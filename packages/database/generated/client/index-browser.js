@@ -282,6 +282,15 @@ exports.Prisma.AgentPatchProposalScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ProjectSkillScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  skillId: 'skillId',
+  enabled: 'enabled',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.ProjectEnvironmentScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
@@ -1321,6 +1330,7 @@ exports.Prisma.ModelName = {
   AgentMemoryPreference: 'AgentMemoryPreference',
   ProjectIdeState: 'ProjectIdeState',
   AgentPatchProposal: 'AgentPatchProposal',
+  ProjectSkill: 'ProjectSkill',
   ProjectEnvironment: 'ProjectEnvironment',
   ProjectSecret: 'ProjectSecret',
   ProjectEnvVar: 'ProjectEnvVar',

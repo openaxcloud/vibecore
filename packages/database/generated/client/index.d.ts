@@ -84,6 +84,11 @@ export type ProjectIdeState = $Result.DefaultSelection<Prisma.$ProjectIdeStatePa
  */
 export type AgentPatchProposal = $Result.DefaultSelection<Prisma.$AgentPatchProposalPayload>
 /**
+ * Model ProjectSkill
+ * 
+ */
+export type ProjectSkill = $Result.DefaultSelection<Prisma.$ProjectSkillPayload>
+/**
  * Model ProjectEnvironment
  * 
  */
@@ -969,6 +974,16 @@ export class PrismaClient<
     * ```
     */
   get agentPatchProposal(): Prisma.AgentPatchProposalDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.projectSkill`: Exposes CRUD operations for the **ProjectSkill** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectSkills
+    * const projectSkills = await prisma.projectSkill.findMany()
+    * ```
+    */
+  get projectSkill(): Prisma.ProjectSkillDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.projectEnvironment`: Exposes CRUD operations for the **ProjectEnvironment** model.
@@ -2157,6 +2172,7 @@ export namespace Prisma {
     AgentMemoryPreference: 'AgentMemoryPreference',
     ProjectIdeState: 'ProjectIdeState',
     AgentPatchProposal: 'AgentPatchProposal',
+    ProjectSkill: 'ProjectSkill',
     ProjectEnvironment: 'ProjectEnvironment',
     ProjectSecret: 'ProjectSecret',
     ProjectEnvVar: 'ProjectEnvVar',
@@ -2246,7 +2262,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3267,6 +3283,80 @@ export namespace Prisma {
           count: {
             args: Prisma.AgentPatchProposalCountArgs<ExtArgs>
             result: $Utils.Optional<AgentPatchProposalCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProjectSkill: {
+        payload: Prisma.$ProjectSkillPayload<ExtArgs>
+        fields: Prisma.ProjectSkillFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectSkillFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSkillPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectSkillFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSkillPayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectSkillFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSkillPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectSkillFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSkillPayload>
+          }
+          findMany: {
+            args: Prisma.ProjectSkillFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSkillPayload>[]
+          }
+          create: {
+            args: Prisma.ProjectSkillCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSkillPayload>
+          }
+          createMany: {
+            args: Prisma.ProjectSkillCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectSkillCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSkillPayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectSkillDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSkillPayload>
+          }
+          update: {
+            args: Prisma.ProjectSkillUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSkillPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectSkillDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectSkillUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectSkillUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSkillPayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectSkillUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSkillPayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectSkillAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectSkill>
+          }
+          groupBy: {
+            args: Prisma.ProjectSkillGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectSkillGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectSkillCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectSkillCountAggregateOutputType> | number
           }
         }
       }
@@ -8868,6 +8958,7 @@ export namespace Prisma {
     agentMemoryPreference?: AgentMemoryPreferenceOmit
     projectIdeState?: ProjectIdeStateOmit
     agentPatchProposal?: AgentPatchProposalOmit
+    projectSkill?: ProjectSkillOmit
     projectEnvironment?: ProjectEnvironmentOmit
     projectSecret?: ProjectSecretOmit
     projectEnvVar?: ProjectEnvVarOmit
@@ -9678,6 +9769,7 @@ export namespace Prisma {
     agentMemoryPreferences: number
     agentPatchProposals: number
     connectionLinks: number
+    skills: number
   }
 
   export type ProjectCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -9700,6 +9792,7 @@ export namespace Prisma {
     agentMemoryPreferences?: boolean | ProjectCountOutputTypeCountAgentMemoryPreferencesArgs
     agentPatchProposals?: boolean | ProjectCountOutputTypeCountAgentPatchProposalsArgs
     connectionLinks?: boolean | ProjectCountOutputTypeCountConnectionLinksArgs
+    skills?: boolean | ProjectCountOutputTypeCountSkillsArgs
   }
 
   // Custom InputTypes
@@ -9844,6 +9937,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountConnectionLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ProjectConnectionLinkWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountSkillsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectSkillWhereInput
   }
 
 
@@ -22009,6 +22109,7 @@ export namespace Prisma {
     agentPatchProposals?: boolean | Project$agentPatchProposalsArgs<ExtArgs>
     connectionLinks?: boolean | Project$connectionLinksArgs<ExtArgs>
     databaseInstance?: boolean | Project$databaseInstanceArgs<ExtArgs>
+    skills?: boolean | Project$skillsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
@@ -22086,6 +22187,7 @@ export namespace Prisma {
     agentPatchProposals?: boolean | Project$agentPatchProposalsArgs<ExtArgs>
     connectionLinks?: boolean | Project$connectionLinksArgs<ExtArgs>
     databaseInstance?: boolean | Project$databaseInstanceArgs<ExtArgs>
+    skills?: boolean | Project$skillsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -22120,6 +22222,7 @@ export namespace Prisma {
       agentPatchProposals: Prisma.$AgentPatchProposalPayload<ExtArgs>[]
       connectionLinks: Prisma.$ProjectConnectionLinkPayload<ExtArgs>[]
       databaseInstance: Prisma.$DatabaseInstancePayload<ExtArgs> | null
+      skills: Prisma.$ProjectSkillPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -22551,6 +22654,7 @@ export namespace Prisma {
     agentPatchProposals<T extends Project$agentPatchProposalsArgs<ExtArgs> = {}>(args?: Subset<T, Project$agentPatchProposalsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentPatchProposalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     connectionLinks<T extends Project$connectionLinksArgs<ExtArgs> = {}>(args?: Subset<T, Project$connectionLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     databaseInstance<T extends Project$databaseInstanceArgs<ExtArgs> = {}>(args?: Subset<T, Project$databaseInstanceArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    skills<T extends Project$skillsArgs<ExtArgs> = {}>(args?: Subset<T, Project$skillsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSkillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -23485,6 +23589,30 @@ export namespace Prisma {
      */
     include?: DatabaseInstanceInclude<ExtArgs> | null
     where?: DatabaseInstanceWhereInput
+  }
+
+  /**
+   * Project.skills
+   */
+  export type Project$skillsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSkill
+     */
+    select?: ProjectSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSkill
+     */
+    omit?: ProjectSkillOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSkillInclude<ExtArgs> | null
+    where?: ProjectSkillWhereInput
+    orderBy?: ProjectSkillOrderByWithRelationInput | ProjectSkillOrderByWithRelationInput[]
+    cursor?: ProjectSkillWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProjectSkillScalarFieldEnum | ProjectSkillScalarFieldEnum[]
   }
 
   /**
@@ -28134,6 +28262,1082 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: AgentPatchProposalInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProjectSkill
+   */
+
+  export type AggregateProjectSkill = {
+    _count: ProjectSkillCountAggregateOutputType | null
+    _min: ProjectSkillMinAggregateOutputType | null
+    _max: ProjectSkillMaxAggregateOutputType | null
+  }
+
+  export type ProjectSkillMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    skillId: string | null
+    enabled: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProjectSkillMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    skillId: string | null
+    enabled: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProjectSkillCountAggregateOutputType = {
+    id: number
+    projectId: number
+    skillId: number
+    enabled: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ProjectSkillMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    skillId?: true
+    enabled?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProjectSkillMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    skillId?: true
+    enabled?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProjectSkillCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    skillId?: true
+    enabled?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ProjectSkillAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectSkill to aggregate.
+     */
+    where?: ProjectSkillWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectSkills to fetch.
+     */
+    orderBy?: ProjectSkillOrderByWithRelationInput | ProjectSkillOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ProjectSkillWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectSkills from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectSkills.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ProjectSkills
+    **/
+    _count?: true | ProjectSkillCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectSkillMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectSkillMaxAggregateInputType
+  }
+
+  export type GetProjectSkillAggregateType<T extends ProjectSkillAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectSkill]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectSkill[P]>
+      : GetScalarType<T[P], AggregateProjectSkill[P]>
+  }
+
+
+
+
+  export type ProjectSkillGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectSkillWhereInput
+    orderBy?: ProjectSkillOrderByWithAggregationInput | ProjectSkillOrderByWithAggregationInput[]
+    by: ProjectSkillScalarFieldEnum[] | ProjectSkillScalarFieldEnum
+    having?: ProjectSkillScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectSkillCountAggregateInputType | true
+    _min?: ProjectSkillMinAggregateInputType
+    _max?: ProjectSkillMaxAggregateInputType
+  }
+
+  export type ProjectSkillGroupByOutputType = {
+    id: string
+    projectId: string
+    skillId: string
+    enabled: boolean
+    createdAt: Date
+    updatedAt: Date
+    _count: ProjectSkillCountAggregateOutputType | null
+    _min: ProjectSkillMinAggregateOutputType | null
+    _max: ProjectSkillMaxAggregateOutputType | null
+  }
+
+  type GetProjectSkillGroupByPayload<T extends ProjectSkillGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectSkillGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectSkillGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectSkillGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectSkillGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectSkillSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    skillId?: boolean
+    enabled?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectSkill"]>
+
+  export type ProjectSkillSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    skillId?: boolean
+    enabled?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectSkill"]>
+
+  export type ProjectSkillSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    skillId?: boolean
+    enabled?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectSkill"]>
+
+  export type ProjectSkillSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    skillId?: boolean
+    enabled?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ProjectSkillOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "skillId" | "enabled" | "createdAt" | "updatedAt", ExtArgs["result"]["projectSkill"]>
+  export type ProjectSkillInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type ProjectSkillIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type ProjectSkillIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+
+  export type $ProjectSkillPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectSkill"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      skillId: string
+      enabled: boolean
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["projectSkill"]>
+    composites: {}
+  }
+
+  type ProjectSkillGetPayload<S extends boolean | null | undefined | ProjectSkillDefaultArgs> = $Result.GetResult<Prisma.$ProjectSkillPayload, S>
+
+  type ProjectSkillCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectSkillFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectSkillCountAggregateInputType | true
+    }
+
+  export interface ProjectSkillDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectSkill'], meta: { name: 'ProjectSkill' } }
+    /**
+     * Find zero or one ProjectSkill that matches the filter.
+     * @param {ProjectSkillFindUniqueArgs} args - Arguments to find a ProjectSkill
+     * @example
+     * // Get one ProjectSkill
+     * const projectSkill = await prisma.projectSkill.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectSkillFindUniqueArgs>(args: SelectSubset<T, ProjectSkillFindUniqueArgs<ExtArgs>>): Prisma__ProjectSkillClient<$Result.GetResult<Prisma.$ProjectSkillPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectSkill that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectSkillFindUniqueOrThrowArgs} args - Arguments to find a ProjectSkill
+     * @example
+     * // Get one ProjectSkill
+     * const projectSkill = await prisma.projectSkill.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectSkillFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectSkillFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectSkillClient<$Result.GetResult<Prisma.$ProjectSkillPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectSkill that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectSkillFindFirstArgs} args - Arguments to find a ProjectSkill
+     * @example
+     * // Get one ProjectSkill
+     * const projectSkill = await prisma.projectSkill.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectSkillFindFirstArgs>(args?: SelectSubset<T, ProjectSkillFindFirstArgs<ExtArgs>>): Prisma__ProjectSkillClient<$Result.GetResult<Prisma.$ProjectSkillPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectSkill that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectSkillFindFirstOrThrowArgs} args - Arguments to find a ProjectSkill
+     * @example
+     * // Get one ProjectSkill
+     * const projectSkill = await prisma.projectSkill.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectSkillFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectSkillFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectSkillClient<$Result.GetResult<Prisma.$ProjectSkillPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectSkills that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectSkillFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectSkills
+     * const projectSkills = await prisma.projectSkill.findMany()
+     * 
+     * // Get first 10 ProjectSkills
+     * const projectSkills = await prisma.projectSkill.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const projectSkillWithIdOnly = await prisma.projectSkill.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ProjectSkillFindManyArgs>(args?: SelectSubset<T, ProjectSkillFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSkillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectSkill.
+     * @param {ProjectSkillCreateArgs} args - Arguments to create a ProjectSkill.
+     * @example
+     * // Create one ProjectSkill
+     * const ProjectSkill = await prisma.projectSkill.create({
+     *   data: {
+     *     // ... data to create a ProjectSkill
+     *   }
+     * })
+     * 
+     */
+    create<T extends ProjectSkillCreateArgs>(args: SelectSubset<T, ProjectSkillCreateArgs<ExtArgs>>): Prisma__ProjectSkillClient<$Result.GetResult<Prisma.$ProjectSkillPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectSkills.
+     * @param {ProjectSkillCreateManyArgs} args - Arguments to create many ProjectSkills.
+     * @example
+     * // Create many ProjectSkills
+     * const projectSkill = await prisma.projectSkill.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ProjectSkillCreateManyArgs>(args?: SelectSubset<T, ProjectSkillCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectSkills and returns the data saved in the database.
+     * @param {ProjectSkillCreateManyAndReturnArgs} args - Arguments to create many ProjectSkills.
+     * @example
+     * // Create many ProjectSkills
+     * const projectSkill = await prisma.projectSkill.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ProjectSkills and only return the `id`
+     * const projectSkillWithIdOnly = await prisma.projectSkill.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ProjectSkillCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectSkillCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSkillPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectSkill.
+     * @param {ProjectSkillDeleteArgs} args - Arguments to delete one ProjectSkill.
+     * @example
+     * // Delete one ProjectSkill
+     * const ProjectSkill = await prisma.projectSkill.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectSkill
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ProjectSkillDeleteArgs>(args: SelectSubset<T, ProjectSkillDeleteArgs<ExtArgs>>): Prisma__ProjectSkillClient<$Result.GetResult<Prisma.$ProjectSkillPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectSkill.
+     * @param {ProjectSkillUpdateArgs} args - Arguments to update one ProjectSkill.
+     * @example
+     * // Update one ProjectSkill
+     * const projectSkill = await prisma.projectSkill.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ProjectSkillUpdateArgs>(args: SelectSubset<T, ProjectSkillUpdateArgs<ExtArgs>>): Prisma__ProjectSkillClient<$Result.GetResult<Prisma.$ProjectSkillPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectSkills.
+     * @param {ProjectSkillDeleteManyArgs} args - Arguments to filter ProjectSkills to delete.
+     * @example
+     * // Delete a few ProjectSkills
+     * const { count } = await prisma.projectSkill.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ProjectSkillDeleteManyArgs>(args?: SelectSubset<T, ProjectSkillDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectSkills.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectSkillUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectSkills
+     * const projectSkill = await prisma.projectSkill.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ProjectSkillUpdateManyArgs>(args: SelectSubset<T, ProjectSkillUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectSkills and returns the data updated in the database.
+     * @param {ProjectSkillUpdateManyAndReturnArgs} args - Arguments to update many ProjectSkills.
+     * @example
+     * // Update many ProjectSkills
+     * const projectSkill = await prisma.projectSkill.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ProjectSkills and only return the `id`
+     * const projectSkillWithIdOnly = await prisma.projectSkill.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ProjectSkillUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectSkillUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSkillPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectSkill.
+     * @param {ProjectSkillUpsertArgs} args - Arguments to update or create a ProjectSkill.
+     * @example
+     * // Update or create a ProjectSkill
+     * const projectSkill = await prisma.projectSkill.upsert({
+     *   create: {
+     *     // ... data to create a ProjectSkill
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectSkill we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectSkillUpsertArgs>(args: SelectSubset<T, ProjectSkillUpsertArgs<ExtArgs>>): Prisma__ProjectSkillClient<$Result.GetResult<Prisma.$ProjectSkillPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectSkills.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectSkillCountArgs} args - Arguments to filter ProjectSkills to count.
+     * @example
+     * // Count the number of ProjectSkills
+     * const count = await prisma.projectSkill.count({
+     *   where: {
+     *     // ... the filter for the ProjectSkills we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectSkillCountArgs>(
+      args?: Subset<T, ProjectSkillCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectSkillCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectSkill.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectSkillAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectSkillAggregateArgs>(args: Subset<T, ProjectSkillAggregateArgs>): Prisma.PrismaPromise<GetProjectSkillAggregateType<T>>
+
+    /**
+     * Group by ProjectSkill.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectSkillGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ProjectSkillGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectSkillGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectSkillGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectSkillGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectSkillGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectSkill model
+   */
+  readonly fields: ProjectSkillFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectSkill.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectSkillClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectSkill model
+   */
+  interface ProjectSkillFieldRefs {
+    readonly id: FieldRef<"ProjectSkill", 'String'>
+    readonly projectId: FieldRef<"ProjectSkill", 'String'>
+    readonly skillId: FieldRef<"ProjectSkill", 'String'>
+    readonly enabled: FieldRef<"ProjectSkill", 'Boolean'>
+    readonly createdAt: FieldRef<"ProjectSkill", 'DateTime'>
+    readonly updatedAt: FieldRef<"ProjectSkill", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ProjectSkill findUnique
+   */
+  export type ProjectSkillFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSkill
+     */
+    select?: ProjectSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSkill
+     */
+    omit?: ProjectSkillOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSkillInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectSkill to fetch.
+     */
+    where: ProjectSkillWhereUniqueInput
+  }
+
+  /**
+   * ProjectSkill findUniqueOrThrow
+   */
+  export type ProjectSkillFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSkill
+     */
+    select?: ProjectSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSkill
+     */
+    omit?: ProjectSkillOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSkillInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectSkill to fetch.
+     */
+    where: ProjectSkillWhereUniqueInput
+  }
+
+  /**
+   * ProjectSkill findFirst
+   */
+  export type ProjectSkillFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSkill
+     */
+    select?: ProjectSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSkill
+     */
+    omit?: ProjectSkillOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSkillInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectSkill to fetch.
+     */
+    where?: ProjectSkillWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectSkills to fetch.
+     */
+    orderBy?: ProjectSkillOrderByWithRelationInput | ProjectSkillOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectSkills.
+     */
+    cursor?: ProjectSkillWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectSkills from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectSkills.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectSkills.
+     */
+    distinct?: ProjectSkillScalarFieldEnum | ProjectSkillScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectSkill findFirstOrThrow
+   */
+  export type ProjectSkillFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSkill
+     */
+    select?: ProjectSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSkill
+     */
+    omit?: ProjectSkillOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSkillInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectSkill to fetch.
+     */
+    where?: ProjectSkillWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectSkills to fetch.
+     */
+    orderBy?: ProjectSkillOrderByWithRelationInput | ProjectSkillOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectSkills.
+     */
+    cursor?: ProjectSkillWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectSkills from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectSkills.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectSkills.
+     */
+    distinct?: ProjectSkillScalarFieldEnum | ProjectSkillScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectSkill findMany
+   */
+  export type ProjectSkillFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSkill
+     */
+    select?: ProjectSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSkill
+     */
+    omit?: ProjectSkillOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSkillInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectSkills to fetch.
+     */
+    where?: ProjectSkillWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectSkills to fetch.
+     */
+    orderBy?: ProjectSkillOrderByWithRelationInput | ProjectSkillOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ProjectSkills.
+     */
+    cursor?: ProjectSkillWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectSkills from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectSkills.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectSkills.
+     */
+    distinct?: ProjectSkillScalarFieldEnum | ProjectSkillScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectSkill create
+   */
+  export type ProjectSkillCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSkill
+     */
+    select?: ProjectSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSkill
+     */
+    omit?: ProjectSkillOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSkillInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectSkill.
+     */
+    data: XOR<ProjectSkillCreateInput, ProjectSkillUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectSkill createMany
+   */
+  export type ProjectSkillCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectSkills.
+     */
+    data: ProjectSkillCreateManyInput | ProjectSkillCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectSkill createManyAndReturn
+   */
+  export type ProjectSkillCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSkill
+     */
+    select?: ProjectSkillSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSkill
+     */
+    omit?: ProjectSkillOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectSkills.
+     */
+    data: ProjectSkillCreateManyInput | ProjectSkillCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSkillIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectSkill update
+   */
+  export type ProjectSkillUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSkill
+     */
+    select?: ProjectSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSkill
+     */
+    omit?: ProjectSkillOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSkillInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectSkill.
+     */
+    data: XOR<ProjectSkillUpdateInput, ProjectSkillUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectSkill to update.
+     */
+    where: ProjectSkillWhereUniqueInput
+  }
+
+  /**
+   * ProjectSkill updateMany
+   */
+  export type ProjectSkillUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectSkills.
+     */
+    data: XOR<ProjectSkillUpdateManyMutationInput, ProjectSkillUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectSkills to update
+     */
+    where?: ProjectSkillWhereInput
+    /**
+     * Limit how many ProjectSkills to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectSkill updateManyAndReturn
+   */
+  export type ProjectSkillUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSkill
+     */
+    select?: ProjectSkillSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSkill
+     */
+    omit?: ProjectSkillOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectSkills.
+     */
+    data: XOR<ProjectSkillUpdateManyMutationInput, ProjectSkillUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectSkills to update
+     */
+    where?: ProjectSkillWhereInput
+    /**
+     * Limit how many ProjectSkills to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSkillIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectSkill upsert
+   */
+  export type ProjectSkillUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSkill
+     */
+    select?: ProjectSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSkill
+     */
+    omit?: ProjectSkillOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSkillInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectSkill to update in case it exists.
+     */
+    where: ProjectSkillWhereUniqueInput
+    /**
+     * In case the ProjectSkill found by the `where` argument doesn't exist, create a new ProjectSkill with this data.
+     */
+    create: XOR<ProjectSkillCreateInput, ProjectSkillUncheckedCreateInput>
+    /**
+     * In case the ProjectSkill was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectSkillUpdateInput, ProjectSkillUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectSkill delete
+   */
+  export type ProjectSkillDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSkill
+     */
+    select?: ProjectSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSkill
+     */
+    omit?: ProjectSkillOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSkillInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectSkill to delete.
+     */
+    where: ProjectSkillWhereUniqueInput
+  }
+
+  /**
+   * ProjectSkill deleteMany
+   */
+  export type ProjectSkillDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectSkills to delete
+     */
+    where?: ProjectSkillWhereInput
+    /**
+     * Limit how many ProjectSkills to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectSkill without action
+   */
+  export type ProjectSkillDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSkill
+     */
+    select?: ProjectSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSkill
+     */
+    omit?: ProjectSkillOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSkillInclude<ExtArgs> | null
   }
 
 
@@ -112176,6 +113380,18 @@ export namespace Prisma {
   export type AgentPatchProposalScalarFieldEnum = (typeof AgentPatchProposalScalarFieldEnum)[keyof typeof AgentPatchProposalScalarFieldEnum]
 
 
+  export const ProjectSkillScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    skillId: 'skillId',
+    enabled: 'enabled',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ProjectSkillScalarFieldEnum = (typeof ProjectSkillScalarFieldEnum)[keyof typeof ProjectSkillScalarFieldEnum]
+
+
   export const ProjectEnvironmentScalarFieldEnum: {
     id: 'id',
     projectId: 'projectId',
@@ -114421,6 +115637,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalListRelationFilter
     connectionLinks?: ProjectConnectionLinkListRelationFilter
     databaseInstance?: XOR<DatabaseInstanceNullableScalarRelationFilter, DatabaseInstanceWhereInput> | null
+    skills?: ProjectSkillListRelationFilter
   }
 
   export type ProjectOrderByWithRelationInput = {
@@ -114459,6 +115676,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalOrderByRelationAggregateInput
     connectionLinks?: ProjectConnectionLinkOrderByRelationAggregateInput
     databaseInstance?: DatabaseInstanceOrderByWithRelationInput
+    skills?: ProjectSkillOrderByRelationAggregateInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -114501,6 +115719,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalListRelationFilter
     connectionLinks?: ProjectConnectionLinkListRelationFilter
     databaseInstance?: XOR<DatabaseInstanceNullableScalarRelationFilter, DatabaseInstanceWhereInput> | null
+    skills?: ProjectSkillListRelationFilter
   }, "id" | "organizationId_slug">
 
   export type ProjectOrderByWithAggregationInput = {
@@ -114923,6 +116142,67 @@ export namespace Prisma {
     error?: StringNullableWithAggregatesFilter<"AgentPatchProposal"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"AgentPatchProposal"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"AgentPatchProposal"> | Date | string
+  }
+
+  export type ProjectSkillWhereInput = {
+    AND?: ProjectSkillWhereInput | ProjectSkillWhereInput[]
+    OR?: ProjectSkillWhereInput[]
+    NOT?: ProjectSkillWhereInput | ProjectSkillWhereInput[]
+    id?: StringFilter<"ProjectSkill"> | string
+    projectId?: StringFilter<"ProjectSkill"> | string
+    skillId?: StringFilter<"ProjectSkill"> | string
+    enabled?: BoolFilter<"ProjectSkill"> | boolean
+    createdAt?: DateTimeFilter<"ProjectSkill"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectSkill"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }
+
+  export type ProjectSkillOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    skillId?: SortOrder
+    enabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+  }
+
+  export type ProjectSkillWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    projectId_skillId?: ProjectSkillProjectIdSkillIdCompoundUniqueInput
+    AND?: ProjectSkillWhereInput | ProjectSkillWhereInput[]
+    OR?: ProjectSkillWhereInput[]
+    NOT?: ProjectSkillWhereInput | ProjectSkillWhereInput[]
+    projectId?: StringFilter<"ProjectSkill"> | string
+    skillId?: StringFilter<"ProjectSkill"> | string
+    enabled?: BoolFilter<"ProjectSkill"> | boolean
+    createdAt?: DateTimeFilter<"ProjectSkill"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectSkill"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }, "id" | "projectId_skillId">
+
+  export type ProjectSkillOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    skillId?: SortOrder
+    enabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ProjectSkillCountOrderByAggregateInput
+    _max?: ProjectSkillMaxOrderByAggregateInput
+    _min?: ProjectSkillMinOrderByAggregateInput
+  }
+
+  export type ProjectSkillScalarWhereWithAggregatesInput = {
+    AND?: ProjectSkillScalarWhereWithAggregatesInput | ProjectSkillScalarWhereWithAggregatesInput[]
+    OR?: ProjectSkillScalarWhereWithAggregatesInput[]
+    NOT?: ProjectSkillScalarWhereWithAggregatesInput | ProjectSkillScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ProjectSkill"> | string
+    projectId?: StringWithAggregatesFilter<"ProjectSkill"> | string
+    skillId?: StringWithAggregatesFilter<"ProjectSkill"> | string
+    enabled?: BoolWithAggregatesFilter<"ProjectSkill"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"ProjectSkill"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ProjectSkill"> | Date | string
   }
 
   export type ProjectEnvironmentWhereInput = {
@@ -121497,6 +122777,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
@@ -121534,6 +122815,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUpdateInput = {
@@ -121571,6 +122853,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
@@ -121608,6 +122891,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
@@ -121996,6 +123280,68 @@ export namespace Prisma {
     hunks?: JsonNullValueInput | InputJsonValue
     status?: StringFieldUpdateOperationsInput | string
     error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectSkillCreateInput = {
+    id?: string
+    skillId: string
+    enabled: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutSkillsInput
+  }
+
+  export type ProjectSkillUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    skillId: string
+    enabled: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectSkillUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    skillId?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutSkillsNestedInput
+  }
+
+  export type ProjectSkillUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    skillId?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectSkillCreateManyInput = {
+    id?: string
+    projectId: string
+    skillId: string
+    enabled: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectSkillUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    skillId?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectSkillUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    skillId?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -129200,6 +130546,12 @@ export namespace Prisma {
     isNot?: DatabaseInstanceWhereInput | null
   }
 
+  export type ProjectSkillListRelationFilter = {
+    every?: ProjectSkillWhereInput
+    some?: ProjectSkillWhereInput
+    none?: ProjectSkillWhereInput
+  }
+
   export type ProjectEnvironmentOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -129229,6 +130581,10 @@ export namespace Prisma {
   }
 
   export type AgentPatchProposalOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ProjectSkillOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -129605,6 +130961,38 @@ export namespace Prisma {
     proposedContent?: SortOrder
     status?: SortOrder
     error?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectSkillProjectIdSkillIdCompoundUniqueInput = {
+    projectId: string
+    skillId: string
+  }
+
+  export type ProjectSkillCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    skillId?: SortOrder
+    enabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectSkillMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    skillId?: SortOrder
+    enabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectSkillMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    skillId?: SortOrder
+    enabled?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -135935,6 +137323,13 @@ export namespace Prisma {
     connect?: DatabaseInstanceWhereUniqueInput
   }
 
+  export type ProjectSkillCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ProjectSkillCreateWithoutProjectInput, ProjectSkillUncheckedCreateWithoutProjectInput> | ProjectSkillCreateWithoutProjectInput[] | ProjectSkillUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectSkillCreateOrConnectWithoutProjectInput | ProjectSkillCreateOrConnectWithoutProjectInput[]
+    createMany?: ProjectSkillCreateManyProjectInputEnvelope
+    connect?: ProjectSkillWhereUniqueInput | ProjectSkillWhereUniqueInput[]
+  }
+
   export type ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -136075,6 +137470,13 @@ export namespace Prisma {
     create?: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput>
     connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutProjectInput
     connect?: DatabaseInstanceWhereUniqueInput
+  }
+
+  export type ProjectSkillUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ProjectSkillCreateWithoutProjectInput, ProjectSkillUncheckedCreateWithoutProjectInput> | ProjectSkillCreateWithoutProjectInput[] | ProjectSkillUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectSkillCreateOrConnectWithoutProjectInput | ProjectSkillCreateOrConnectWithoutProjectInput[]
+    createMany?: ProjectSkillCreateManyProjectInputEnvelope
+    connect?: ProjectSkillWhereUniqueInput | ProjectSkillWhereUniqueInput[]
   }
 
   export type OrganizationUpdateOneRequiredWithoutProjectsNestedInput = {
@@ -136367,6 +137769,20 @@ export namespace Prisma {
     update?: XOR<XOR<DatabaseInstanceUpdateToOneWithWhereWithoutProjectInput, DatabaseInstanceUpdateWithoutProjectInput>, DatabaseInstanceUncheckedUpdateWithoutProjectInput>
   }
 
+  export type ProjectSkillUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ProjectSkillCreateWithoutProjectInput, ProjectSkillUncheckedCreateWithoutProjectInput> | ProjectSkillCreateWithoutProjectInput[] | ProjectSkillUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectSkillCreateOrConnectWithoutProjectInput | ProjectSkillCreateOrConnectWithoutProjectInput[]
+    upsert?: ProjectSkillUpsertWithWhereUniqueWithoutProjectInput | ProjectSkillUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ProjectSkillCreateManyProjectInputEnvelope
+    set?: ProjectSkillWhereUniqueInput | ProjectSkillWhereUniqueInput[]
+    disconnect?: ProjectSkillWhereUniqueInput | ProjectSkillWhereUniqueInput[]
+    delete?: ProjectSkillWhereUniqueInput | ProjectSkillWhereUniqueInput[]
+    connect?: ProjectSkillWhereUniqueInput | ProjectSkillWhereUniqueInput[]
+    update?: ProjectSkillUpdateWithWhereUniqueWithoutProjectInput | ProjectSkillUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ProjectSkillUpdateManyWithWhereWithoutProjectInput | ProjectSkillUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ProjectSkillScalarWhereInput | ProjectSkillScalarWhereInput[]
+  }
+
   export type ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -136649,6 +138065,20 @@ export namespace Prisma {
     update?: XOR<XOR<DatabaseInstanceUpdateToOneWithWhereWithoutProjectInput, DatabaseInstanceUpdateWithoutProjectInput>, DatabaseInstanceUncheckedUpdateWithoutProjectInput>
   }
 
+  export type ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ProjectSkillCreateWithoutProjectInput, ProjectSkillUncheckedCreateWithoutProjectInput> | ProjectSkillCreateWithoutProjectInput[] | ProjectSkillUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectSkillCreateOrConnectWithoutProjectInput | ProjectSkillCreateOrConnectWithoutProjectInput[]
+    upsert?: ProjectSkillUpsertWithWhereUniqueWithoutProjectInput | ProjectSkillUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ProjectSkillCreateManyProjectInputEnvelope
+    set?: ProjectSkillWhereUniqueInput | ProjectSkillWhereUniqueInput[]
+    disconnect?: ProjectSkillWhereUniqueInput | ProjectSkillWhereUniqueInput[]
+    delete?: ProjectSkillWhereUniqueInput | ProjectSkillWhereUniqueInput[]
+    connect?: ProjectSkillWhereUniqueInput | ProjectSkillWhereUniqueInput[]
+    update?: ProjectSkillUpdateWithWhereUniqueWithoutProjectInput | ProjectSkillUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ProjectSkillUpdateManyWithWhereWithoutProjectInput | ProjectSkillUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ProjectSkillScalarWhereInput | ProjectSkillScalarWhereInput[]
+  }
+
   export type IntFieldUpdateOperationsInput = {
     set?: number
     increment?: number
@@ -136791,6 +138221,20 @@ export namespace Prisma {
     upsert?: ProjectUpsertWithoutAgentPatchProposalsInput
     connect?: ProjectWhereUniqueInput
     update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutAgentPatchProposalsInput, ProjectUpdateWithoutAgentPatchProposalsInput>, ProjectUncheckedUpdateWithoutAgentPatchProposalsInput>
+  }
+
+  export type ProjectCreateNestedOneWithoutSkillsInput = {
+    create?: XOR<ProjectCreateWithoutSkillsInput, ProjectUncheckedCreateWithoutSkillsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutSkillsInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type ProjectUpdateOneRequiredWithoutSkillsNestedInput = {
+    create?: XOR<ProjectCreateWithoutSkillsInput, ProjectUncheckedCreateWithoutSkillsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutSkillsInput
+    upsert?: ProjectUpsertWithoutSkillsInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutSkillsInput, ProjectUpdateWithoutSkillsInput>, ProjectUncheckedUpdateWithoutSkillsInput>
   }
 
   export type ProjectCreateNestedOneWithoutEnvironmentsInput = {
@@ -141653,6 +143097,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutOrganizationInput = {
@@ -141689,6 +143134,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutOrganizationInput = {
@@ -145077,6 +146523,32 @@ export namespace Prisma {
     create: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput>
   }
 
+  export type ProjectSkillCreateWithoutProjectInput = {
+    id?: string
+    skillId: string
+    enabled: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectSkillUncheckedCreateWithoutProjectInput = {
+    id?: string
+    skillId: string
+    enabled: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectSkillCreateOrConnectWithoutProjectInput = {
+    where: ProjectSkillWhereUniqueInput
+    create: XOR<ProjectSkillCreateWithoutProjectInput, ProjectSkillUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ProjectSkillCreateManyProjectInputEnvelope = {
+    data: ProjectSkillCreateManyProjectInput | ProjectSkillCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationUpsertWithoutProjectsInput = {
     update: XOR<OrganizationUpdateWithoutProjectsInput, OrganizationUncheckedUpdateWithoutProjectsInput>
     create: XOR<OrganizationCreateWithoutProjectsInput, OrganizationUncheckedCreateWithoutProjectsInput>
@@ -145663,6 +147135,34 @@ export namespace Prisma {
     restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
   }
 
+  export type ProjectSkillUpsertWithWhereUniqueWithoutProjectInput = {
+    where: ProjectSkillWhereUniqueInput
+    update: XOR<ProjectSkillUpdateWithoutProjectInput, ProjectSkillUncheckedUpdateWithoutProjectInput>
+    create: XOR<ProjectSkillCreateWithoutProjectInput, ProjectSkillUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ProjectSkillUpdateWithWhereUniqueWithoutProjectInput = {
+    where: ProjectSkillWhereUniqueInput
+    data: XOR<ProjectSkillUpdateWithoutProjectInput, ProjectSkillUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ProjectSkillUpdateManyWithWhereWithoutProjectInput = {
+    where: ProjectSkillScalarWhereInput
+    data: XOR<ProjectSkillUpdateManyMutationInput, ProjectSkillUncheckedUpdateManyWithoutProjectInput>
+  }
+
+  export type ProjectSkillScalarWhereInput = {
+    AND?: ProjectSkillScalarWhereInput | ProjectSkillScalarWhereInput[]
+    OR?: ProjectSkillScalarWhereInput[]
+    NOT?: ProjectSkillScalarWhereInput | ProjectSkillScalarWhereInput[]
+    id?: StringFilter<"ProjectSkill"> | string
+    projectId?: StringFilter<"ProjectSkill"> | string
+    skillId?: StringFilter<"ProjectSkill"> | string
+    enabled?: BoolFilter<"ProjectSkill"> | boolean
+    createdAt?: DateTimeFilter<"ProjectSkill"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectSkill"> | Date | string
+  }
+
   export type UserCreateWithoutAgentMemoriesInput = {
     id?: string
     email: string
@@ -146065,6 +147565,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoriesInput = {
@@ -146101,6 +147602,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoriesInput = {
@@ -146153,6 +147655,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -146189,6 +147692,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoryPreferencesInput = {
@@ -146403,6 +147907,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -146439,6 +147944,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -146681,6 +148187,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -146717,6 +148224,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutIdeStateInput = {
@@ -146753,6 +148261,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutIdeStateInput = {
@@ -146789,6 +148298,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutIdeStateInput = {
@@ -146934,6 +148444,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutIdeStateInput = {
@@ -146970,6 +148481,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectIdeStateUpdatesInput = {
@@ -147105,6 +148617,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentPatchProposalsInput = {
@@ -147141,6 +148654,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentPatchProposalsInput = {
@@ -147193,6 +148707,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentPatchProposalsInput = {
@@ -147227,6 +148742,171 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectCreateWithoutSkillsInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutSkillsInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutSkillsInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutSkillsInput, ProjectUncheckedCreateWithoutSkillsInput>
+  }
+
+  export type ProjectUpsertWithoutSkillsInput = {
+    update: XOR<ProjectUpdateWithoutSkillsInput, ProjectUncheckedUpdateWithoutSkillsInput>
+    create: XOR<ProjectCreateWithoutSkillsInput, ProjectUncheckedCreateWithoutSkillsInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutSkillsInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutSkillsInput, ProjectUncheckedUpdateWithoutSkillsInput>
+  }
+
+  export type ProjectUpdateWithoutSkillsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutSkillsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
   }
@@ -147265,6 +148945,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvironmentsInput = {
@@ -147301,6 +148982,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvironmentsInput = {
@@ -147353,6 +149035,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvironmentsInput = {
@@ -147389,6 +149072,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSecretsInput = {
@@ -147425,6 +149109,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSecretsInput = {
@@ -147461,6 +149146,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSecretsInput = {
@@ -147513,6 +149199,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSecretsInput = {
@@ -147549,6 +149236,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvVarsInput = {
@@ -147585,6 +149273,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvVarsInput = {
@@ -147621,6 +149310,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvVarsInput = {
@@ -147673,6 +149363,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvVarsInput = {
@@ -147709,6 +149400,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutCollaboratorsInput = {
@@ -147745,6 +149437,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaboratorsInput = {
@@ -147781,6 +149474,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaboratorsInput = {
@@ -147926,6 +149620,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaboratorsInput = {
@@ -147962,6 +149657,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCollaborationsInput = {
@@ -148097,6 +149793,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutActivityInput = {
@@ -148133,6 +149830,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutActivityInput = {
@@ -148278,6 +149976,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutActivityInput = {
@@ -148314,6 +150013,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectActivityInput = {
@@ -148449,6 +150149,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -148485,6 +150186,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -148630,6 +150332,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -148666,6 +150369,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationPresenceInput = {
@@ -148801,6 +150505,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -148837,6 +150542,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -148982,6 +150688,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -149018,6 +150725,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationCommentsInput = {
@@ -149153,6 +150861,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutShareLinksInput = {
@@ -149189,6 +150898,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -149334,6 +151044,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutShareLinksInput = {
@@ -149370,6 +151081,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationShareLinksInput = {
@@ -149505,6 +151217,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTemplatesInput = {
@@ -149541,6 +151254,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTemplatesInput = {
@@ -149678,6 +151392,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTemplatesInput = {
@@ -149714,6 +151429,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutProjectTemplatesInput = {
@@ -149841,6 +151557,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutWorkspacesInput = {
@@ -149877,6 +151594,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutWorkspacesInput = {
@@ -150032,6 +151750,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutWorkspacesInput = {
@@ -150068,6 +151787,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceSessionUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -150431,6 +152151,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutFileSnapshotsInput = {
@@ -150467,6 +152188,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutFileSnapshotsInput = {
@@ -150554,6 +152276,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutFileSnapshotsInput = {
@@ -150590,6 +152313,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceUpsertWithoutSnapshotsInput = {
@@ -150667,6 +152391,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSnapshotsInput = {
@@ -150703,6 +152428,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSnapshotsInput = {
@@ -150848,6 +152574,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSnapshotsInput = {
@@ -150884,6 +152611,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectSnapshotsInput = {
@@ -151019,6 +152747,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutStorageObjectsInput = {
@@ -151055,6 +152784,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutStorageObjectsInput = {
@@ -151107,6 +152837,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutStorageObjectsInput = {
@@ -151143,6 +152874,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutDeploymentsInput = {
@@ -151179,6 +152911,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDeploymentsInput = {
@@ -151215,6 +152948,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDeploymentsInput = {
@@ -151282,6 +153016,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDeploymentsInput = {
@@ -151318,6 +153053,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentEnvironmentUpsertWithoutDeploymentsInput = {
@@ -153197,6 +154933,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConversationsInput = {
@@ -153233,6 +154970,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConversationsInput = {
@@ -153406,6 +155144,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConversationsInput = {
@@ -153442,6 +155181,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutConversationsInput = {
@@ -158702,6 +160442,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConnectionLinksInput = {
@@ -158738,6 +160479,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConnectionLinksInput = {
@@ -158936,6 +160678,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConnectionLinksInput = {
@@ -158972,6 +160715,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserConnectionUpsertWithoutProjectLinksInput = {
@@ -161229,6 +162973,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDatabaseInstanceInput = {
@@ -161265,6 +163010,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDatabaseInstanceInput = {
@@ -161385,6 +163131,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDatabaseInstanceInput = {
@@ -161421,6 +163168,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DatabaseSnapshotUpsertWithWhereUniqueWithoutDatabaseInstanceInput = {
@@ -163190,6 +164938,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutOrganizationInput = {
@@ -163226,6 +164975,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {
@@ -164448,6 +166198,14 @@ export namespace Prisma {
     unlinkedAt?: Date | string | null
   }
 
+  export type ProjectSkillCreateManyProjectInput = {
+    id?: string
+    skillId: string
+    enabled: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type ProjectEnvironmentUpdateWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -165107,6 +166865,30 @@ export namespace Prisma {
     linkedByUserId?: StringFieldUpdateOperationsInput | string
     linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     unlinkedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ProjectSkillUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    skillId?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectSkillUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    skillId?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectSkillUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    skillId?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type WorkspaceSessionCreateManyWorkspaceInput = {

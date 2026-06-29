@@ -1477,6 +1477,26 @@ export class PrismaApiStore implements ApiStore {
     return deleted.count > 0;
   }
 
+  async listProjectSkillOverrides(projectId: string) {
+    return (
+      await this.prisma.projectSkill.findMany({
+        where: { projectId },
+        select: { skillId: true, enabled: true, updatedAt: true },
+      })
+    ).map((row) => ({ skillId: row.skillId, enabled: row.enabled, updatedAt: row.updatedAt.toISOString() }));
+  }
+
+  async setProjectSkillEnabled(input: { projectId: string; skillId: string; enabled: boolean }) {
+    const row = await this.prisma.projectSkill.upsert({
+      where: { projectId_skillId: { projectId: input.projectId, skillId: input.skillId } },
+      create: { projectId: input.projectId, skillId: input.skillId, enabled: input.enabled },
+      update: { enabled: input.enabled },
+      select: { skillId: true, enabled: true, updatedAt: true },
+    });
+
+    return { skillId: row.skillId, enabled: row.enabled, updatedAt: row.updatedAt.toISOString() };
+  }
+
   async createWorkspace(input: { id?: string; projectId: string; name: string; runtimeMode: string }) {
     /*
      * Persist the created workspace first so Prisma can mint the id when the

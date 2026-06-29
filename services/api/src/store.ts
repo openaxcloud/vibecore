@@ -700,6 +700,13 @@ export interface AgentPatchProposalRecord {
   updatedAt: string;
 }
 
+/** A per-project Skills override row (absent => the skill is at its catalog default). */
+export interface ProjectSkillOverrideRecord {
+  skillId: string;
+  enabled: boolean;
+  updatedAt: string;
+}
+
 export interface BillingCustomerRecord {
   id: string;
   organizationId: string;
@@ -1022,6 +1029,13 @@ export interface ApiStore {
   }): Promise<AgentPatchProposalRecord>;
   listOpenAgentPatchProposals(projectId: string): Promise<AgentPatchProposalRecord[]>;
   deleteAgentPatchProposal(projectId: string, id: string): Promise<boolean>;
+  /** Sparse per-project enable/disable overrides for the builtin Skills catalog. */
+  listProjectSkillOverrides(projectId: string): Promise<ProjectSkillOverrideRecord[]>;
+  setProjectSkillEnabled(input: {
+    projectId: string;
+    skillId: string;
+    enabled: boolean;
+  }): Promise<ProjectSkillOverrideRecord>;
   createWorkspace(input: {
     id?: string;
     projectId: string;

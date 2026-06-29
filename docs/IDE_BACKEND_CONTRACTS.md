@@ -102,7 +102,7 @@ the workspace. State persisted as project env key `VIBECORE_SECURITY_STATE`.
 
 ---
 
-## 3. SSH / Remote — EXPOSED (store + test only) ⚠️  ·  keypair-generation = GAP
+## 3. SSH / Remote — EXPOSED (store + test + keygen) ✅
 
 Stores SSH connection definitions; private key encrypted in project secrets
 (`TERMINAL_SSH_PRIVATE_KEY_<connectionId>`); tests reachability via a real
@@ -110,18 +110,21 @@ Stores SSH connection definitions; private key encrypted in project secrets
 
 - **IDE proxy:** `POST /api/projects/:projectId/ide-panel/terminal`
 - **Intents:** `add-ssh { name, host, port, username, privateKey? }`,
-  `delete-ssh { connectionId }`, `connect-ssh { connectionId }`, `disconnect-ssh { connectionId }`.
-- **Connection shape:**
+  `delete-ssh { connectionId }`, `connect-ssh { connectionId }`, `disconnect-ssh { connectionId }`,
+  `generate-keypair { name?, host?, port?, username?, type?: "ed25519"|"rsa", comment? }`.
+- **Connection shape** (keygen adds `publicKey`, `fingerprint`, `keyType`):
   ```json
   { "id": "uuid", "name": "", "host": "", "port": 22, "username": "",
     "status": "connected|connecting|disconnected", "createdAt": "ISO",
-    "updatedAt": "ISO?", "lastCheckedAt": "ISO?", "lastError": "?" }
+    "updatedAt": "ISO?", "lastCheckedAt": "ISO?", "lastError": "?",
+    "publicKey": "ssh-ed25519 AAAA… comment", "fingerprint": "SHA256:…", "keyType": "ed25519|rsa" }
   ```
-- **GAP-SSH (keygen):** there is **no** server-side key-pair generation today (key is
-  user-supplied). Proposed addition — frozen contract for the IDE:
-  - `POST …/ide-panel/terminal` intent `generate-keypair` `{ name, type?: "ed25519"|"rsa", comment? }`
-  - Response: `{ connectionId?, publicKey: "ssh-ed25519 AAAA… comment", fingerprint: "SHA256:…", createdAt: "ISO" }`
-  - Private key stored encrypted (never returned after creation); public key + fingerprint displayed.
+- **`generate-keypair` (IMPLEMENTED):** server mints the pair with `node:crypto` (no external
+  dep), defaults to ed25519 (3072-bit for rsa). Private key stored encrypted and **never
+  returned again**; only the public key + fingerprint are surfaced (on the connection and in
+  the action response). Response: `{ ok, connectionId, publicKey, fingerprint, keyType, createdAt }`.
+  ed25519 private key is the native `openssh-key-v1` container; rsa is PKCS#1 PEM — both proven
+  to round-trip through stock `ssh-keygen -y/-l` (6 tests incl. real OpenSSH interop).
 
 ---
 
@@ -130,8 +133,26 @@ Stores SSH connection definitions; private key encrypted in project secrets
 Real `@google-cloud/storage` backend, bucket-per-project, V4 signed URLs, lifecycle.
 Shipped on branch `feat/object-storage-gcs` @`2ded58b3` (`services/api/src/object-storage.ts`
 + routes in `app.ts`; 21 unit tests). **Dormant** until `OBJECT_STORAGE_ENABLED=true`
-(every route 404s while off). Auth = api pod Workload Identity (ADC). Live-enable still
-needs: deploy the api image + WI binding on the api KSA (see report).
+(every route 404s while off). Auth = api pod Workload Identity (ADC).
+
+**Live-proven 2026-06-29** (real GCS, project `vibecore-495216`): bucket create in `EU`
+with uniform bucket-level access + `tmp/` lifecycle rule (age 7), object upload, list
+with `/` delimiter (folders), move (copy+delete), download bytes, single delete,
+delete-prefix — all green. Unit tests (21) + api typecheck clean.
+
+**Live-enable (needs Avi — prod IAM/security, blocked from automation):**
+1. Grant GSA `vibecore-prod-platform@…` `roles/storage.admin` (today it has only
+   `secretmanager.secretAccessor`).
+2. Give the api pod that identity — pick one:
+   - **Path A (WI, matches "no key files"):** annotate KSA `vibecore-vibecore-platform-api`
+     with `iam.gke.io/gcp-service-account`, add the `roles/iam.workloadIdentityUser`
+     binding, grant the GSA `roles/iam.serviceAccountTokenCreator` **on itself** (V4
+     signing via IAM `signBlob`), **and** punch a NetworkPolicy egress hole so api pods
+     can reach the metadata server (`169.254.169.254:80`) — it is deliberately denied
+     today (`allow-platform-required-egress` excludes `169.254.169.254/32`).
+   - **Path B (key Secret, no netpol change):** mount a GSA JSON key as a k8s Secret +
+     `GOOGLE_APPLICATION_CREDENTIALS`; signing is local (no metadata, no `signBlob`).
+3. Deploy an api image carrying this code and set `OBJECT_STORAGE_ENABLED=true`.
 
 - **Internal API** (all gated; `requireProject` read on GETs, write on mutations):
   | method | route | body / query | response |
@@ -151,24 +172,31 @@ needs: deploy the api image + WI binding on the api KSA (see report).
 
 ---
 
-## 5. Skills registry — GAP ❌ (does not exist; build-spec frozen for IDE)
+## 5. Skills registry — IMPLEMENTED ✅ (builtin catalog + per-project toggles)
 
-No skills backend, package, or UI exists today. Frozen contract:
+Real, additive backend. The catalog is a static code-owned list
+(`services/api/src/skills-catalog.ts`, 10 builtin skills); per-project state is a
+sparse `ProjectSkill` override table (migration `0048_project_skills`). The list
+endpoint is a pure merge of catalog defaults with the project's overrides. No
+feature flag — inert until the IDE calls it (no existing behaviour touched).
 
 - **IDE proxy:** `GET/POST /api/projects/:projectId/ide-panel/skills`
-- **Proposed internal API** (DB-backed, per project/agent):
+- **Internal API** (`requireProject` read on GET, write on toggles):
   | method | route | body | response |
   |---|---|---|---|
-  | GET | `/projects/:id/skills` | — | `{ skills: [Skill] }` |
+  | GET | `/projects/:id/skills` | — | `{ skills: [Skill] }` (full catalog, resolved) |
   | POST | `/projects/:id/skills/:skillId/enable` | `{}` | `{ skill: Skill }` |
   | POST | `/projects/:id/skills/:skillId/disable` | `{}` | `{ skill: Skill }` |
 - **Skill shape:**
   ```json
-  { "id": "", "name": "", "description": "", "category": "", "enabled": false,
-    "source": "builtin|custom", "updatedAt": "ISO" }
+  { "id": "code-review", "name": "Code Review", "description": "…", "category": "quality",
+    "enabled": true, "source": "builtin", "updatedAt": "ISO"|null }
   ```
-- Backed by a `ProjectSkill` table (projectId, skillId, enabled, updatedAt) seeded from a
-  static builtin catalog.
+  `updatedAt` is `null` while the skill sits at its catalog default (no override row).
+- Unknown `skillId` → `404 { code: "SKILL_NOT_FOUND" }`. Builtin slugs are stable
+  identifiers (never rename once shipped).
+- Proof: 6 catalog/resolver unit tests + 5 route tests (list/enable/disable/404/401),
+  api production typecheck clean.
 
 ---
 
@@ -179,6 +207,6 @@ No skills backend, package, or UI exists today. Frozen contract:
 | 0 | SQL read/write | EXPOSED ✅ | live RW proof 2026-06-29; api@a0a34eb6 |
 | 1 | Workflows | EXPOSED ✅ | real exec via runtime; logs per-run (no SSE) |
 | 2 | Security scanner | EXPOSED ✅ | npm audit + secret/SAST grep in workspace |
-| 3 | SSH store/test | EXPOSED ⚠️ | real ssh test; **keygen = GAP-SSH** |
-| 4 | Object Storage GCS | IMPLEMENTED ✅ | real GCS backend `feat/object-storage-gcs@2ded58b3`, flag-gated; live-enable = deploy + api-KSA WI binding |
-| 5 | Skills registry | GAP ❌ | spec frozen; needs `ProjectSkill` table + catalog |
+| 3 | SSH store/test/keygen | EXPOSED ✅ | real ssh test + server keygen (`generate-keypair`); 6 tests incl. OpenSSH interop |
+| 4 | Object Storage GCS | IMPLEMENTED ✅ | merged on `main`, flag-gated; GCS mechanism live-proven 2026-06-29; live-enable = GSA storage role + WI/key wiring + flag (see §4) |
+| 5 | Skills registry | IMPLEMENTED ✅ | `ProjectSkill` table (`0048`) + builtin catalog; 11 tests; additive/unflagged |
