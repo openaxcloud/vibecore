@@ -13,6 +13,9 @@
  * the workspace-manager control plane. The manifest builders + executor state
  * machine are pure and unit-tested with a fake port.
  */
+import { createHmac } from 'node:crypto';
+
+import { Client as PgClient } from 'pg';
 
 /** Minimal manifest shape (structurally compatible with k8s-client's K8sObject). */
 export interface K8sManifest {
@@ -111,6 +114,88 @@ export function buildTenantProvisionSql(projectId: string): { role: string; db: 
       `GRANT CONNECT ON DATABASE "${db}" TO "${role}";`,
     ],
   };
+}
+
+/** PgBouncer service host fronting a shared cluster (transaction-pooled). */
+export function sharedPoolerHost(sharedClusterName: string): string {
+  return `${sharedClusterName}-pooler.${DB_NAMESPACE}.svc`;
+}
+
+/**
+ * Deterministic per-tenant password = HMAC-SHA256(serverSecret, projectId).
+ * Stateless: the same value is recomputed by both provision and read paths, so
+ * no password ever needs to be persisted. Returns undefined when the server
+ * secret is unset — which keeps the shared tier an inert no-op (prod-safe).
+ */
+export function sharedTenantPassword(projectId: string): string | undefined {
+  const secret = process.env.DB_SHARED_TENANT_SECRET?.trim();
+
+  if (!secret) {
+    return undefined;
+  }
+
+  return createHmac('sha256', secret).update(projectId).digest('hex');
+}
+
+/** Tenant `DATABASE_URL` routed through the shared cluster's pooler. */
+export function buildSharedTenantUri(input: { projectId: string; password: string; sharedClusterName: string }): string {
+  const role = tenantRoleName(input.projectId);
+  const db = sharedDbName(input.projectId);
+
+  return `postgresql://${role}:${encodeURIComponent(input.password)}@${sharedPoolerHost(input.sharedClusterName)}:5432/${db}`;
+}
+
+/**
+ * Port that runs the privileged tenant-provisioning SQL on a shared cluster.
+ * Split out so the provisioner's branch logic is unit-testable with a fake.
+ */
+export interface TenantSqlExecutor {
+  provisionTenant(input: { adminUri: string; role: string; db: string; password: string }): Promise<void>;
+}
+
+/**
+ * Real executor: connects as the shared cluster's admin role (which holds
+ * CREATEDB + CREATEROLE) via node-postgres and creates the tenant role, its
+ * database, and the connect-isolation grants. Idempotent — safe to re-run.
+ * Identifiers are alnum-only (derived from the cuid); the password is hex
+ * (HMAC digest), so both embed safely as literals.
+ */
+export class PgTenantSqlExecutor implements TenantSqlExecutor {
+  async provisionTenant(input: { adminUri: string; role: string; db: string; password: string }): Promise<void> {
+    const { adminUri, role, db, password } = input;
+    const client = new PgClient({
+      connectionString: adminUri,
+      ssl: /sslmode=disable/.test(adminUri) ? false : { rejectUnauthorized: false },
+      connectionTimeoutMillis: 10_000,
+      statement_timeout: 15_000,
+    });
+    await client.connect();
+
+    try {
+      const roleExists = await client.query('SELECT 1 FROM pg_roles WHERE rolname = $1', [role]);
+
+      if (roleExists.rowCount === 0) {
+        await client.query(`CREATE ROLE "${role}" LOGIN PASSWORD '${password}'`);
+      } else {
+        // keep the role's password in sync with the deterministic value
+        await client.query(`ALTER ROLE "${role}" LOGIN PASSWORD '${password}'`);
+      }
+
+      const dbExists = await client.query('SELECT 1 FROM pg_database WHERE datname = $1', [db]);
+
+      if (dbExists.rowCount === 0) {
+        // CREATE DATABASE cannot run inside a transaction; node-postgres simple
+        // queries are autocommit, so this is fine.
+        await client.query(`CREATE DATABASE "${db}" OWNER "${role}"`);
+      }
+
+      // Tenant isolation: only the owner may connect to its own database.
+      await client.query(`REVOKE CONNECT ON DATABASE "${db}" FROM PUBLIC`);
+      await client.query(`GRANT CONNECT ON DATABASE "${db}" TO "${role}"`);
+    } finally {
+      await client.end().catch(() => {});
+    }
+  }
 }
 
 /** Shared-tier: a CNPG Database CRD binding a logical db to a shared cluster. */
@@ -367,7 +452,45 @@ export class CnpgProvisioner implements DatabaseProvisioner {
     private readonly k8s: K8sApplyPort,
     private readonly backupBucket: string,
     private readonly backupServiceAccount?: string,
+    private readonly sqlExec: TenantSqlExecutor = new PgTenantSqlExecutor(),
   ) {}
+
+  /**
+   * Provision (idempotently) the shared-tier tenant role + database + isolation
+   * on the shared cluster, and return its pooled `DATABASE_URL` — or undefined
+   * when the prerequisites are missing (no tenant secret configured, or the
+   * shared cluster's admin secret is unreadable). Undefined keeps the shared
+   * tier inert, so nothing breaks before `shared-pg-0` + `DB_SHARED_TENANT_SECRET`
+   * are in place. The admin credentials come from the CNPG `<cluster>-app`
+   * secret; that role is granted CREATEDB + CREATEROLE at cluster bootstrap.
+   */
+  async #ensureSharedTenant(projectId: string, sharedCluster: string): Promise<string | undefined> {
+    const password = sharedTenantPassword(projectId);
+
+    if (!password) {
+      return undefined;
+    }
+
+    const admin = await this.k8s.getSecret(DB_NAMESPACE, `${sharedCluster}-app`).catch(() => undefined);
+    const adminUser = admin?.username?.trim();
+    const adminPassword = admin?.password;
+
+    if (!adminUser || !adminPassword) {
+      return undefined;
+    }
+
+    const adminDb = admin?.dbname?.trim() || 'app';
+    const adminUri = `postgresql://${adminUser}:${encodeURIComponent(adminPassword)}@${sharedCluster}-rw.${DB_NAMESPACE}.svc:5432/${adminDb}`;
+
+    await this.sqlExec.provisionTenant({
+      adminUri,
+      role: tenantRoleName(projectId),
+      db: sharedDbName(projectId),
+      password,
+    });
+
+    return buildSharedTenantUri({ projectId, password, sharedClusterName: sharedCluster });
+  }
 
   async provisionInstance(input: ProvisionInput): Promise<ProvisionResult> {
     if (input.tier === 'shared') {
@@ -378,6 +501,12 @@ export class CnpgProvisioner implements DatabaseProvisioner {
        * is created but getConnectionUri('shared') returns undefined.
        */
       const sharedCluster = input.sharedClusterName ?? DEFAULT_SHARED_CLUSTER;
+
+      // Create the owner role + database + isolation first (the Database CRD
+      // below needs the owner role to already exist). Best-effort: if the
+      // prerequisites are absent this is a no-op and the CRD still records intent.
+      await this.#ensureSharedTenant(input.projectId, sharedCluster).catch(() => undefined);
+
       await this.k8s.apply(buildPoolerManifest(sharedCluster));
       await this.k8s.apply(
         buildDatabaseCrManifest({
@@ -411,7 +540,12 @@ export class CnpgProvisioner implements DatabaseProvisioner {
     sharedClusterName?: string;
   }): Promise<string | undefined> {
     if (input.tier === 'shared') {
-      return undefined;
+      // Idempotently ensure the tenant exists and return its pooled URL. Self-
+      // heals a project provisioned before the shared cluster/secret existed.
+      return this.#ensureSharedTenant(
+        input.projectId,
+        input.sharedClusterName ?? DEFAULT_SHARED_CLUSTER,
+      ).catch(() => undefined);
     }
 
     const secret = await this.k8s.getSecret(DB_NAMESPACE, `${clusterName(input.projectId)}-app`).catch(() => undefined);

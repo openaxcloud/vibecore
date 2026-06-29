@@ -258,3 +258,28 @@ networkPolicy:
     postgresPort: 5432
     redisCidr: 10.237.0.0/24
     redisPort: 6379
+
+# Free-tier shared Postgres (CloudNativePG) — see templates/shared-database.yaml.
+# DISABLED by default: `helm upgrade --reuse-values` drops new keys, so an
+# existing release never auto-creates this heavy HA cluster. Enable explicitly
+# with `--set database.sharedCluster.enabled=true` when free-tier DB goes live.
+database:
+  sharedCluster:
+    enabled: false
+    name: shared-pg-0
+    instances: 3
+    storageGi: 10
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "512Mi"
+      limits:
+        cpu: "1"
+        memory: "2Gi"
+    pooler:
+      instances: 2
+    backup:
+      enabled: false
+      bucket: ""
+      serviceAccount: ""
+      retentionDays: 7
