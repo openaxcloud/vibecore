@@ -130,8 +130,26 @@ Stores SSH connection definitions; private key encrypted in project secrets
 Real `@google-cloud/storage` backend, bucket-per-project, V4 signed URLs, lifecycle.
 Shipped on branch `feat/object-storage-gcs` @`2ded58b3` (`services/api/src/object-storage.ts`
 + routes in `app.ts`; 21 unit tests). **Dormant** until `OBJECT_STORAGE_ENABLED=true`
-(every route 404s while off). Auth = api pod Workload Identity (ADC). Live-enable still
-needs: deploy the api image + WI binding on the api KSA (see report).
+(every route 404s while off). Auth = api pod Workload Identity (ADC).
+
+**Live-proven 2026-06-29** (real GCS, project `vibecore-495216`): bucket create in `EU`
+with uniform bucket-level access + `tmp/` lifecycle rule (age 7), object upload, list
+with `/` delimiter (folders), move (copy+delete), download bytes, single delete,
+delete-prefix — all green. Unit tests (21) + api typecheck clean.
+
+**Live-enable (needs Avi — prod IAM/security, blocked from automation):**
+1. Grant GSA `vibecore-prod-platform@…` `roles/storage.admin` (today it has only
+   `secretmanager.secretAccessor`).
+2. Give the api pod that identity — pick one:
+   - **Path A (WI, matches "no key files"):** annotate KSA `vibecore-vibecore-platform-api`
+     with `iam.gke.io/gcp-service-account`, add the `roles/iam.workloadIdentityUser`
+     binding, grant the GSA `roles/iam.serviceAccountTokenCreator` **on itself** (V4
+     signing via IAM `signBlob`), **and** punch a NetworkPolicy egress hole so api pods
+     can reach the metadata server (`169.254.169.254:80`) — it is deliberately denied
+     today (`allow-platform-required-egress` excludes `169.254.169.254/32`).
+   - **Path B (key Secret, no netpol change):** mount a GSA JSON key as a k8s Secret +
+     `GOOGLE_APPLICATION_CREDENTIALS`; signing is local (no metadata, no `signBlob`).
+3. Deploy an api image carrying this code and set `OBJECT_STORAGE_ENABLED=true`.
 
 - **Internal API** (all gated; `requireProject` read on GETs, write on mutations):
   | method | route | body / query | response |
@@ -180,5 +198,5 @@ No skills backend, package, or UI exists today. Frozen contract:
 | 1 | Workflows | EXPOSED ✅ | real exec via runtime; logs per-run (no SSE) |
 | 2 | Security scanner | EXPOSED ✅ | npm audit + secret/SAST grep in workspace |
 | 3 | SSH store/test | EXPOSED ⚠️ | real ssh test; **keygen = GAP-SSH** |
-| 4 | Object Storage GCS | IMPLEMENTED ✅ | real GCS backend `feat/object-storage-gcs@2ded58b3`, flag-gated; live-enable = deploy + api-KSA WI binding |
+| 4 | Object Storage GCS | IMPLEMENTED ✅ | merged on `main`, flag-gated; GCS mechanism live-proven 2026-06-29; live-enable = GSA storage role + WI/key wiring + flag (see §4) |
 | 5 | Skills registry | GAP ❌ | spec frozen; needs `ProjectSkill` table + catalog |
