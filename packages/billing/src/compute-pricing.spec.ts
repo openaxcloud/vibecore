@@ -4,6 +4,7 @@ import {
   computeUnits,
   computeUnitsCents,
   databaseComputeCents,
+  databaseBillableStorageGib,
   egressCents,
   objectStorageCents,
   reservedVmCents,
@@ -11,6 +12,9 @@ import {
   ceilCents,
   COMPUTE_UNIT_CENTS,
   REQUEST_CENTS,
+  DATABASE_STORAGE_FLOOR_MB,
+  DATABASE_STORAGE_CAP_GIB,
+  DATABASE_IDLE_TIMEOUT_SECONDS,
 } from './compute-pricing.js';
 
 describe('compute units', () => {
@@ -67,9 +71,29 @@ describe('object storage', () => {
   it('prices storage, transfer and ops exactly', () => {
     // 10 GiB-months storage = $0.30 = 30¢; 5 GiB transfer = 50¢
     expect(objectStorageCents({ gibMonths: 10, transferGib: 5 })).toBeCloseTo(30 + 50, 6);
-    // 1M Class A ops = $0.60 = 60¢; 1M Class B = $7.50 = 750¢
-    expect(objectStorageCents({ gibMonths: 0, classAOps: 1_000_000 })).toBeCloseTo(60, 6);
-    expect(objectStorageCents({ gibMonths: 0, classBOps: 1_000_000 })).toBeCloseTo(750, 6);
+    // Replit convention: Class A (advanced/write) is the EXPENSIVE class.
+    // 1M Class A ops = $7.50 = 750¢ ($0.0075/1k); 1M Class B = $0.60 = 60¢ ($0.0006/1k).
+    expect(objectStorageCents({ gibMonths: 0, classAOps: 1_000_000 })).toBeCloseTo(750, 6);
+    expect(objectStorageCents({ gibMonths: 0, classBOps: 1_000_000 })).toBeCloseTo(60, 6);
+  });
+});
+
+describe('database guard-rails', () => {
+  it('exposes Replit floor / cap / idle constants', () => {
+    expect(DATABASE_STORAGE_FLOOR_MB).toBe(33);
+    expect(DATABASE_STORAGE_CAP_GIB).toBe(10);
+    expect(DATABASE_IDLE_TIMEOUT_SECONDS).toBe(300);
+  });
+
+  it('applies the 33 MB floor and 10 GiB cap to billable storage', () => {
+    // Empty DB still bills the 33 MB floor.
+    expect(databaseBillableStorageGib(0)).toBeCloseTo(33 / 1024, 9);
+    // A mid-range value passes through unchanged.
+    expect(databaseBillableStorageGib(2048)).toBeCloseTo(2, 9);
+    // Above the cap clamps to 10 GiB.
+    expect(databaseBillableStorageGib(50 * 1024)).toBe(10);
+    // Negative / non-finite falls back to the floor.
+    expect(databaseBillableStorageGib(Number.NaN)).toBeCloseTo(33 / 1024, 9);
   });
 });
 

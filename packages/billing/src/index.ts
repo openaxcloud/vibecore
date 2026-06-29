@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { toCreditPlanKey, type CreditPlanKey } from './credits.js';
+import { toCreditPlanKey, CREDIT_PACK_VALIDITY_DAYS, type CreditPlanKey } from './credits.js';
 
 export * from './ai-pricing.js';
 export * from './credits.js';
@@ -355,6 +355,94 @@ export function findCreditPlan(key: string | undefined): CreditBillingPlan | und
 /** Resolve any plan key (incl. legacy free/pro/team) to a Replit-parity plan. */
 export function creditPlanByKey(key: string | undefined): CreditBillingPlan {
   return findCreditPlan(toCreditPlanKey(key)) ?? creditPlanCatalog[0];
+}
+
+// --- Credit packs (one-time purchases, Replit parity) ----------------------
+//
+// Replit sells four pre-paid credit packs at a volume discount; the credits
+// expire 6 months after purchase and never roll over past expiry
+// (consumed earliest-expiry-first — see planPackConsumption in credits.ts).
+// Prices/values transcribed from replit.com/pricing (verified 2026-06-29):
+//   $100 → $100   ·   $300 → $290   ·   $500 → $480   ·   $1000 → $950
+
+export interface CreditPackSku {
+  /** Stable SKU id used by checkout and Stripe price-env resolution. */
+  id: string;
+  /** Display label (the credit value as a dollar string). */
+  label: string;
+  /** Credit value granted to the wallet, in cents. */
+  creditCents: number;
+  /** Amount charged at purchase, in cents (≤ creditCents; the gap is the discount). */
+  priceCents: number;
+  /** Validity window from purchase, in days (Replit: 6 months). */
+  validityDays: number;
+  /** Env var holding the Stripe one-time Price id for this pack. */
+  stripePriceEnv: string;
+}
+
+export const creditPackCatalog: CreditPackSku[] = [
+  {
+    id: 'pack-100',
+    label: '$100',
+    creditCents: 10_000,
+    priceCents: 10_000,
+    validityDays: CREDIT_PACK_VALIDITY_DAYS,
+    stripePriceEnv: 'STRIPE_CREDIT_PACK_100_PRICE_ID',
+  },
+  {
+    id: 'pack-300',
+    label: '$300',
+    creditCents: 30_000,
+    priceCents: 29_000,
+    validityDays: CREDIT_PACK_VALIDITY_DAYS,
+    stripePriceEnv: 'STRIPE_CREDIT_PACK_300_PRICE_ID',
+  },
+  {
+    id: 'pack-500',
+    label: '$500',
+    creditCents: 50_000,
+    priceCents: 48_000,
+    validityDays: CREDIT_PACK_VALIDITY_DAYS,
+    stripePriceEnv: 'STRIPE_CREDIT_PACK_500_PRICE_ID',
+  },
+  {
+    id: 'pack-1000',
+    label: '$1,000',
+    creditCents: 100_000,
+    priceCents: 95_000,
+    validityDays: CREDIT_PACK_VALIDITY_DAYS,
+    stripePriceEnv: 'STRIPE_CREDIT_PACK_1000_PRICE_ID',
+  },
+];
+
+export function findCreditPack(id: string | undefined): CreditPackSku | undefined {
+  return creditPackCatalog.find((pack) => pack.id === id);
+}
+
+/** Discount (credit value − price) for a pack SKU, in cents. */
+export function creditPackDiscountCents(pack: CreditPackSku): number {
+  return Math.max(0, pack.creditCents - pack.priceCents);
+}
+
+// --- Concurrent published-app cap (Replit parity) --------------------------
+/**
+ * Hard limit on simultaneously-published apps per account, matching Replit's
+ * documented 20-app concurrency cap. Enforced at publish time.
+ */
+export const MAX_CONCURRENT_PUBLISHED_APPS = 20;
+
+/**
+ * Throw a 429 if publishing one more app would exceed the concurrent cap.
+ * Mirrors `assertQuota`'s shape so callers can treat it the same way.
+ */
+export function assertConcurrentPublishedApps(input: { active: number; cap?: number }): void {
+  const cap = input.cap ?? MAX_CONCURRENT_PUBLISHED_APPS;
+  if (input.active >= cap) {
+    throw Object.assign(new Error(`Concurrent published-app limit reached (${cap}).`), {
+      statusCode: 429,
+      code: 'APP_LIMIT_EXCEEDED',
+    });
+  }
 }
 
 export function assertQuota(input: { key: QuotaKey; used: number; limit: number; increment?: number }) {
