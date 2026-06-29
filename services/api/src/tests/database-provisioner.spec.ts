@@ -8,12 +8,18 @@ import {
   buildPoolerManifest,
   buildRestoreClusterManifest,
   buildScheduledBackupManifest,
+  buildSharedTenantUri,
   buildTenantProvisionSql,
   clusterName,
   resolveDatabaseProvisioner,
   resolveDatabaseTier,
+  sharedDbName,
+  sharedPoolerHost,
+  sharedTenantPassword,
+  tenantRoleName,
   type K8sApplyPort,
   type K8sManifest,
+  type TenantSqlExecutor,
 } from '../database-provisioner.js';
 
 const ORIGINAL_FLAG = process.env.DB_ROLLBACK_ENABLED;
@@ -128,6 +134,96 @@ describe('provisioner dispatch + DATABASE_URL resolution', () => {
     expect(k8s.applied.some((m) => m.kind === 'Pooler')).toBe(true);
     expect(k8s.applied.some((m) => m.kind === 'Database')).toBe(true);
     expect(k8s.applied.some((m) => m.kind === 'Cluster')).toBe(false);
+  });
+});
+
+class FakeTenantSqlExecutor implements TenantSqlExecutor {
+  calls: Array<{ adminUri: string; role: string; db: string; password: string }> = [];
+
+  async provisionTenant(input: { adminUri: string; role: string; db: string; password: string }) {
+    this.calls.push(input);
+  }
+}
+
+describe('shared-tier tenant provisioning (admin-SQL slice)', () => {
+  const ORIGINAL_SECRET = process.env.DB_SHARED_TENANT_SECRET;
+
+  afterEach(() => {
+    if (ORIGINAL_SECRET === undefined) {
+      delete (process.env as Record<string, string | undefined>).DB_SHARED_TENANT_SECRET;
+    } else {
+      process.env.DB_SHARED_TENANT_SECRET = ORIGINAL_SECRET;
+    }
+  });
+
+  function sharedSetup() {
+    process.env.DB_SHARED_TENANT_SECRET = 'unit-test-tenant-secret';
+    const k8s = new FakeK8s();
+    k8s.secrets.set('shared-pg-0-app', { username: 'app', password: 'adminpw', dbname: 'app' });
+    const sql = new FakeTenantSqlExecutor();
+    const prov = new CnpgProvisioner(k8s, 'bkt', undefined, sql);
+
+    return { k8s, sql, prov };
+  }
+
+  it('deterministic password = HMAC(secret, projectId), stable + embedded in the URI', () => {
+    process.env.DB_SHARED_TENANT_SECRET = 'unit-test-tenant-secret';
+    const pw = sharedTenantPassword('proj-cuid-1');
+    expect(pw).toBe(sharedTenantPassword('proj-cuid-1'));
+    expect(pw).toMatch(/^[0-9a-f]{64}$/);
+    expect(sharedTenantPassword('proj-cuid-2')).not.toBe(pw);
+
+    const uri = buildSharedTenantUri({ projectId: 'proj-cuid-1', password: pw!, sharedClusterName: 'shared-pg-0' });
+    expect(uri).toBe(
+      `postgresql://${tenantRoleName('proj-cuid-1')}:${pw}@${sharedPoolerHost('shared-pg-0')}:5432/${sharedDbName('proj-cuid-1')}`,
+    );
+  });
+
+  it('provisionInstance(shared) creates the tenant via the SQL executor with cuid-safe ids', async () => {
+    const { sql, prov } = sharedSetup();
+
+    await prov.provisionInstance({ projectId: 'abc123', retentionDays: 7, tier: 'shared', sharedClusterName: 'shared-pg-0' });
+
+    expect(sql.calls).toHaveLength(1);
+    expect(sql.calls[0]).toMatchObject({ role: tenantRoleName('abc123'), db: sharedDbName('abc123') });
+    expect(sql.calls[0].password).toBe(sharedTenantPassword('abc123'));
+    expect(sql.calls[0].adminUri).toContain('app:adminpw@shared-pg-0-rw.project-databases.svc:5432/app');
+  });
+
+  it('getConnectionUri(shared) returns the pooled tenant DATABASE_URL', async () => {
+    const { prov } = sharedSetup();
+
+    const uri = await prov.getConnectionUri({ projectId: 'abc123', tier: 'shared', sharedClusterName: 'shared-pg-0' });
+    expect(uri).toBe(
+      buildSharedTenantUri({
+        projectId: 'abc123',
+        password: sharedTenantPassword('abc123')!,
+        sharedClusterName: 'shared-pg-0',
+      }),
+    );
+  });
+
+  it('degrades to inert (no SQL, undefined URI) when the tenant secret is unset', async () => {
+    delete (process.env as Record<string, string | undefined>).DB_SHARED_TENANT_SECRET;
+    const k8s = new FakeK8s();
+    k8s.secrets.set('shared-pg-0-app', { username: 'app', password: 'adminpw' });
+    const sql = new FakeTenantSqlExecutor();
+    const prov = new CnpgProvisioner(k8s, 'bkt', undefined, sql);
+
+    const uri = await prov.getConnectionUri({ projectId: 'abc123', tier: 'shared', sharedClusterName: 'shared-pg-0' });
+    expect(uri).toBeUndefined();
+    expect(sql.calls).toHaveLength(0);
+  });
+
+  it('degrades to undefined when the shared cluster admin secret is missing', async () => {
+    process.env.DB_SHARED_TENANT_SECRET = 'unit-test-tenant-secret';
+    const k8s = new FakeK8s(); // no shared-pg-0-app secret
+    const sql = new FakeTenantSqlExecutor();
+    const prov = new CnpgProvisioner(k8s, 'bkt', undefined, sql);
+
+    const uri = await prov.getConnectionUri({ projectId: 'abc123', tier: 'shared', sharedClusterName: 'shared-pg-0' });
+    expect(uri).toBeUndefined();
+    expect(sql.calls).toHaveLength(0);
   });
 });
 

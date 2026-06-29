@@ -331,7 +331,10 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   app.get('/databases/secret', async (request, reply) => {
     const { namespace, name } = z.object({ namespace: z.string(), name: z.string() }).parse(request.query ?? {});
 
-    if (namespace !== DB_ROLLBACK_NAMESPACE || !/^db-[a-z0-9-]+-(app|conn)$/.test(name)) {
+    // Per-project CNPG connection secrets (`db-*-app`/`db-*-conn`) plus the
+    // shared free-tier cluster's admin secret (`shared-pg-N-app`), which the api
+    // reads to provision shared tenants. Never arbitrary secrets.
+    if (namespace !== DB_ROLLBACK_NAMESPACE || !/^(db-[a-z0-9-]+|shared-pg-[0-9]+)-(app|conn)$/.test(name)) {
       return reply.code(403).send({ error: 'Secret not permitted', code: 'DB_SECRET_FORBIDDEN' });
     }
 

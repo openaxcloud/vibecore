@@ -1,0 +1,80 @@
+{{- /*
+  Free-tier shared Postgres cluster (CloudNativePG) + PgBouncer Pooler.
+
+  Every FREE-plan project gets a logical database + isolated owner role on THIS
+  one HA cluster (paid plans get a dedicated per-project Cluster instead — see
+  database-provisioner.ts resolveDatabaseTier). The api provisions each tenant
+  through the workspace-manager: it reads this cluster's `<name>-app` admin
+  secret and runs CREATE ROLE / CREATE DATABASE / REVOKE CONNECT … FROM PUBLIC.
+  That admin role therefore needs CREATEDB + CREATEROLE, granted here via
+  bootstrap.initdb.postInitSQL.
+
+  GATED OFF by default: `database.sharedCluster.enabled` defaults to false, so the
+  always-on `helm upgrade --reuse-values` CD path (which drops new values keys)
+  never materialises this heavy cluster on an existing release. Enable explicitly
+  with `--set database.sharedCluster.enabled=true` once free-tier provisioning is
+  meant to go live. project-databases is provisioned out-of-band (Phase 1).
+*/ -}}
+{{- if .Values.database.sharedCluster.enabled }}
+{{- $sc := .Values.database.sharedCluster }}
+{{- $name := $sc.name | default "shared-pg-0" }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ $name }}
+  namespace: project-databases
+  labels:
+    app.kubernetes.io/name: vibecore-shared-database
+    app.kubernetes.io/managed-by: vibecore
+spec:
+  instances: {{ $sc.instances | default 3 }}
+  storage:
+    size: {{ $sc.storageGi | default 10 }}Gi
+  resources:
+    requests:
+      cpu: {{ $sc.resources.requests.cpu | default "100m" | quote }}
+      memory: {{ $sc.resources.requests.memory | default "512Mi" | quote }}
+    limits:
+      cpu: {{ $sc.resources.limits.cpu | default "1" | quote }}
+      memory: {{ $sc.resources.limits.memory | default "2Gi" | quote }}
+  # The CNPG-managed `app` role provisions tenants, so it needs CREATEDB +
+  # CREATEROLE. Idempotent — postInitSQL only runs on first bootstrap.
+  bootstrap:
+    initdb:
+      postInitSQL:
+        - ALTER ROLE app CREATEDB CREATEROLE
+  {{- if $sc.backup.enabled }}
+  {{- if $sc.backup.serviceAccount }}
+  serviceAccountTemplate:
+    metadata:
+      annotations:
+        iam.gke.io/gcp-service-account: {{ $sc.backup.serviceAccount | quote }}
+  {{- end }}
+  backup:
+    barmanObjectStore:
+      destinationPath: gs://{{ $sc.backup.bucket }}/db/{{ $name }}
+      googleCredentials:
+        gkeEnvironment: true
+      wal:
+        compression: gzip
+      data:
+        compression: gzip
+    retentionPolicy: {{ $sc.backup.retentionDays | default 7 }}d
+  {{- end }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: {{ $name }}-pooler
+  namespace: project-databases
+  labels:
+    app.kubernetes.io/name: vibecore-shared-database-pooler
+    app.kubernetes.io/managed-by: vibecore
+spec:
+  cluster:
+    name: {{ $name }}
+  instances: {{ $sc.pooler.instances | default 2 }}
+  type: rw
+  pgbouncer:
+    poolMode: transaction
+{{- end }}
