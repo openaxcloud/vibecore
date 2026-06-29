@@ -220,6 +220,7 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
             connectionString={readConnectionString(fetcher.data, active.key)}
             storageUsedBytes={active.usedBytes}
             storageQuotaBytes={active.quotaBytes}
+            projectId={projectId}
           />
         ) : null}
       </div>

@@ -1,5 +1,6 @@
 import { Check, ChevronDown, Copy, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
+import { DatabaseRollbackPanel } from './DatabaseRollbackPanel';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -25,6 +26,14 @@ export interface DatabaseSettingsProps {
 
   /** Remove this database (parent wires the real action). */
   onRemove?: () => void;
+
+  /**
+   * Project id — enables the point-in-time restore section (folded in from the
+   * old top-level Backups tab during the 5->3 tab consolidation). The rollback
+   * panel self-hides until the DB_ROLLBACK_ENABLED flag is on, so it is inert
+   * today and renders nothing when projectId is absent.
+   */
+  projectId?: string;
 }
 
 function formatBytes(bytes?: number): string | null {
@@ -57,6 +66,7 @@ export function DatabaseSettings({
   storageQuotaBytes,
   connectionDetails,
   onRemove,
+  projectId,
 }: DatabaseSettingsProps) {
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -200,6 +210,16 @@ export function DatabaseSettings({
           >
             Remove database
           </button>
+        </section>
+      ) : null}
+
+      {/*
+       * Point-in-time restore — folded in from the old top-level "Backups" tab
+       * (5->3 tab consolidation). Self-hides until DB_ROLLBACK_ENABLED is on.
+       */}
+      {projectId ? (
+        <section className="border-t border-bolt-elements-borderColor pt-4">
+          <DatabaseRollbackPanel projectId={projectId} />
         </section>
       ) : null}
     </div>
