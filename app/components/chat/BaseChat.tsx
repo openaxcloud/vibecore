@@ -13187,7 +13187,11 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
   const [loading, setLoading] = useState(false);
   const [working, setWorking] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+
+  // Replit App Storage parity: a per-bucket Objects | Settings view switch.
+  const [view, setView] = useState<'objects' | 'settings'>('objects');
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const folderInputRef = useRef<HTMLInputElement | null>(null);
 
   const postIntent = useCallback(
     async (fields: Record<string, string>): Promise<any> => {
@@ -13278,7 +13282,12 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
 
       try {
         for (const file of Array.from(fileList)) {
-          const key = `${prefix}${file.name}`;
+          /*
+           * For a folder upload the browser sets webkitRelativePath (e.g.
+           * "src/index.ts"); preserve it so the bucket keeps the folder tree.
+           */
+          const relativePath = (file as unknown as { webkitRelativePath?: string }).webkitRelativePath || file.name;
+          const key = `${prefix}${relativePath}`;
           const contentType = file.type || 'application/octet-stream';
 
           const signed = await postIntent({ intent: 'upload-url', key, contentType });
@@ -13310,6 +13319,10 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
         if (uploadInputRef.current) {
           uploadInputRef.current.value = '';
         }
+
+        if (folderInputRef.current) {
+          folderInputRef.current.value = '';
+        }
       }
     },
     [postIntent, prefix, refresh],
@@ -13339,6 +13352,50 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     [runOperation],
   );
 
+  /*
+   * Create a folder by materializing an empty placeholder object at "<prefix><name>/"
+   * (GCS folders are virtual prefixes; an empty trailing-slash object surfaces it).
+   */
+  const handleCreateFolder = useCallback(async () => {
+    const name = window.prompt('New folder name:');
+
+    if (!name || !name.trim()) {
+      return;
+    }
+
+    const key = `${prefix}${name.trim().replace(/^\/+|\/+$/g, '')}/`;
+
+    setWorking(true);
+    setStatus(null);
+
+    try {
+      const signed = await postIntent({ intent: 'upload-url', key, contentType: 'application/x-directory' });
+
+      if (!signed || signed.enabled === false || !signed.url) {
+        setStatus(signed?.error ?? 'Object storage is not enabled.');
+        return;
+      }
+
+      const put = await fetch(signed.url, {
+        method: signed.method ?? 'PUT',
+        headers: signed.headers ?? { 'Content-Type': 'application/x-directory' },
+        body: '',
+      });
+
+      if (!put.ok) {
+        setStatus(`Could not create folder (${put.status}).`);
+        return;
+      }
+
+      setStatus('Folder created.');
+      await refresh(prefix);
+    } catch {
+      setStatus('Could not create folder.');
+    } finally {
+      setWorking(false);
+    }
+  }, [postIntent, prefix, refresh]);
+
   const parentPrefix = (() => {
     const trimmed = prefix.replace(/\/$/, '');
     const idx = trimmed.lastIndexOf('/');
@@ -13364,119 +13421,204 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
   return (
     <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
       <section className="grid gap-3">
-        <div className="bolt-project-panel-toolbar flex flex-wrap items-end gap-2">
-          <label className="grid gap-1 text-xs text-bolt-elements-textSecondary">
-            Prefix (folder)
-            <input
-              value={prefix}
-              onChange={(event) => setPrefix(event.target.value)}
-              placeholder="assets/"
-              autoCapitalize="none"
-              spellCheck={false}
-            />
-          </label>
-          <button type="button" onClick={() => void refresh(prefix)} disabled={loading || working}>
-            {loading ? 'Loading…' : 'Refresh'}
-          </button>
-          <button type="button" onClick={() => uploadInputRef.current?.click()} disabled={busy || working}>
-            Upload files
-          </button>
-          <button
-            type="button"
-            onClick={() => void runOperation({ intent: 'ensure-bucket' }, 'Bucket ready.')}
-            disabled={busy || working}
-          >
-            Ensure bucket
-          </button>
-          <input
-            ref={uploadInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(event) => void handleUpload(event.currentTarget.files)}
-          />
+        {/* Bucket header + Objects | Settings switch (Replit App Storage parity). */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-sm text-bolt-elements-textPrimary">
+            <span className="i-ph:package" aria-hidden />
+            <strong>Project bucket</strong>
+          </div>
+          <div className="bolt-project-tool-tabs">
+            {(
+              [
+                ['objects', 'Objects'],
+                ['settings', 'Settings'],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                aria-current={view === id ? 'page' : undefined}
+                onClick={() => setView(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {prefix ? (
-          <div className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
-            <button type="button" onClick={() => setPrefix(parentPrefix)} className="underline">
-              ⬆ Up
-            </button>
-            <span className="font-mono">{prefix}</span>
-          </div>
-        ) : null}
-
-        {folders.length ? (
-          <div className="flex flex-wrap gap-2">
-            {folders.map((folder) => (
-              <span key={folder} className="inline-flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setPrefix(folder)}
-                  className="inline-flex items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
-                >
-                  📁 {folder.replace(prefix, '').replace(/\/$/, '')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void runOperation({ intent: 'delete-object', prefix: folder }, 'Folder deleted.')}
-                  aria-label={`Delete folder ${folder}`}
-                  className="text-bolt-elements-textTertiary hover:text-bolt-elements-item-contentDanger"
-                  disabled={working}
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-        ) : null}
-
-        {objects.length ? (
-          <div className="grid gap-1">
-            {objects.map((object) => (
-              <div
-                key={object.key}
-                className="flex items-center justify-between gap-2 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs"
+        {view === 'settings' ? (
+          <div className="grid gap-4 text-sm">
+            <section className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">Bucket</h4>
+              <p className="text-xs text-bolt-elements-textSecondary">
+                A single GCS bucket is provisioned per project (server-managed name). Use “Ensure bucket” to create it
+                on first use.
+              </p>
+              <button
+                type="button"
+                className="w-fit rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
+                onClick={() => void runOperation({ intent: 'ensure-bucket' }, 'Bucket ready.')}
+                disabled={busy || working}
               >
-                <div className="min-w-0">
-                  <strong className="block truncate text-bolt-elements-textPrimary">
-                    {object.key.replace(prefix, '')}
-                  </strong>
-                  <span className="text-bolt-elements-textSecondary">
-                    {formatObjectStorageSize(object.size)}
-                    {object.updated ? ` · ${new Date(object.updated).toLocaleString()}` : ''}
-                  </span>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <button type="button" onClick={() => void handleDownload(object.key)} disabled={working}>
-                    Download
-                  </button>
-                  <button type="button" onClick={() => handleRename(object.key)} disabled={working}>
-                    Move
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void runOperation({ intent: 'delete-object', key: object.key }, 'Object deleted.')}
-                    disabled={working}
-                    className="text-bolt-elements-item-contentDanger"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+                Ensure bucket exists
+              </button>
+            </section>
+            <section className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+                Sharing
+              </h4>
+              <p className="text-xs text-bolt-elements-textTertiary">
+                Adding or removing this bucket from other apps is coming soon — backend pending.
+              </p>
+            </section>
+            <section className="grid gap-2 rounded-lg border border-red-500/30 bg-bolt-elements-background-depth-2 p-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+                Delete bucket
+              </h4>
+              <p className="text-xs text-bolt-elements-textTertiary">
+                Permanently deleting the bucket is coming soon — backend pending. Until then, delete objects
+                individually from the Objects tab.
+              </p>
+            </section>
+            {status ? (
+              <p className="text-xs text-bolt-elements-textSecondary" role="status">
+                {status}
+              </p>
+            ) : null}
           </div>
         ) : (
-          <div className="bolt-project-empty-panel">
-            {loading ? 'Loading objects…' : prefix ? 'No objects under this prefix.' : 'The bucket is empty.'}
-          </div>
-        )}
+          <>
+            <div className="bolt-project-panel-toolbar flex flex-wrap items-end gap-2">
+              <label className="grid gap-1 text-xs text-bolt-elements-textSecondary">
+                Prefix (folder)
+                <input
+                  value={prefix}
+                  onChange={(event) => setPrefix(event.target.value)}
+                  placeholder="assets/"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                />
+              </label>
+              <button type="button" onClick={() => void refresh(prefix)} disabled={loading || working}>
+                {loading ? 'Loading…' : 'Refresh'}
+              </button>
+              <button type="button" onClick={() => uploadInputRef.current?.click()} disabled={busy || working}>
+                Upload files
+              </button>
+              <button type="button" onClick={() => folderInputRef.current?.click()} disabled={busy || working}>
+                Upload folder
+              </button>
+              <button type="button" onClick={() => void handleCreateFolder()} disabled={busy || working}>
+                Create folder
+              </button>
+              <button
+                type="button"
+                onClick={() => void runOperation({ intent: 'ensure-bucket' }, 'Bucket ready.')}
+                disabled={busy || working}
+              >
+                Ensure bucket
+              </button>
+              <input
+                ref={uploadInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(event) => void handleUpload(event.currentTarget.files)}
+              />
+              <input
+                ref={folderInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                {...({ webkitdirectory: '', directory: '' } as Record<string, string>)}
+                onChange={(event) => void handleUpload(event.currentTarget.files)}
+              />
+            </div>
 
-        {status ? (
-          <p className="text-xs text-bolt-elements-textSecondary" role="status">
-            {status}
-          </p>
-        ) : null}
+            {prefix ? (
+              <div className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
+                <button type="button" onClick={() => setPrefix(parentPrefix)} className="underline">
+                  ⬆ Up
+                </button>
+                <span className="font-mono">{prefix}</span>
+              </div>
+            ) : null}
+
+            {folders.length ? (
+              <div className="flex flex-wrap gap-2">
+                {folders.map((folder) => (
+                  <span key={folder} className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setPrefix(folder)}
+                      className="inline-flex items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+                    >
+                      📁 {folder.replace(prefix, '').replace(/\/$/, '')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void runOperation({ intent: 'delete-object', prefix: folder }, 'Folder deleted.')}
+                      aria-label={`Delete folder ${folder}`}
+                      className="text-bolt-elements-textTertiary hover:text-bolt-elements-item-contentDanger"
+                      disabled={working}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+
+            {objects.length ? (
+              <div className="grid gap-1">
+                {objects.map((object) => (
+                  <div
+                    key={object.key}
+                    className="flex items-center justify-between gap-2 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs"
+                  >
+                    <div className="min-w-0">
+                      <strong className="block truncate text-bolt-elements-textPrimary">
+                        {object.key.replace(prefix, '')}
+                      </strong>
+                      <span className="text-bolt-elements-textSecondary">
+                        {formatObjectStorageSize(object.size)}
+                        {object.updated ? ` · ${new Date(object.updated).toLocaleString()}` : ''}
+                      </span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button type="button" onClick={() => void handleDownload(object.key)} disabled={working}>
+                        Download
+                      </button>
+                      <button type="button" onClick={() => handleRename(object.key)} disabled={working}>
+                        Move
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void runOperation({ intent: 'delete-object', key: object.key }, 'Object deleted.')
+                        }
+                        disabled={working}
+                        className="text-bolt-elements-item-contentDanger"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bolt-project-empty-panel">
+                {loading ? 'Loading objects…' : prefix ? 'No objects under this prefix.' : 'The bucket is empty.'}
+              </div>
+            )}
+
+            {status ? (
+              <p className="text-xs text-bolt-elements-textSecondary" role="status">
+                {status}
+              </p>
+            ) : null}
+          </>
+        )}
       </section>
     </div>
   );
