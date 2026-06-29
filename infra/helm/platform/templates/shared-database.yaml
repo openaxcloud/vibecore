@@ -15,7 +15,16 @@
   with `--set database.sharedCluster.enabled=true` once free-tier provisioning is
   meant to go live. project-databases is provisioned out-of-band (Phase 1).
 */ -}}
-{{- if .Values.database.sharedCluster.enabled }}
+{{- /*
+  Nil-safe gate: the always-on `helm upgrade --reuse-values` CD path reuses the
+  LIVE release's values and does NOT merge this chart's values.yaml, so on an
+  existing release `.Values.database` has no `sharedCluster` key and a direct
+  `.Values.database.sharedCluster.enabled` chain is a nil-pointer (this broke
+  every prod deploy after the free-tier DB commit). `dig` traverses safely with
+  a `false` default, so the cluster stays gated off until an explicit
+  `--set database.sharedCluster.enabled=true`.
+*/ -}}
+{{- if dig "sharedCluster" "enabled" false (.Values.database | default dict) }}
 {{- $sc := .Values.database.sharedCluster }}
 {{- $name := $sc.name | default "shared-pg-0" }}
 apiVersion: postgresql.cnpg.io/v1
