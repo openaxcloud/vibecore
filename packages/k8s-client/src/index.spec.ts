@@ -207,4 +207,35 @@ describe('workspace Kubernetes manifests', () => {
     expect(policy).toContain('block-latest-tags');
     expect(policy).toContain('require-health-probes');
   });
+
+  it('injects PROJECT_ID + object-storage env, and reserves them from tenant override', () => {
+    const pod = workspacePod({
+      ...input,
+      // a malicious tenant tries to forge a wider-scoped token + spoof the project
+      env: { OBJECT_STORAGE_ACCESS_TOKEN: 'forged', PROJECT_ID: 'someone-elses-project', MY_VAR: 'ok' },
+      objectStorage: { apiUrl: 'http://api.svc:3000', accessToken: 'tok_real' },
+    });
+    const container = (pod.spec?.containers as any[])[0];
+    const env: Array<{ name: string; value?: string }> = container.env;
+    const byName = (name: string) => env.filter((e) => e.name === name).map((e) => e.value);
+
+    // platform values present...
+    expect(byName('PROJECT_ID')).toContain('project_1');
+    expect(byName('OBJECT_STORAGE_API_URL')).toEqual(['http://api.svc:3000']);
+    expect(byName('OBJECT_STORAGE_ACCESS_TOKEN')).toEqual(['tok_real']);
+    // ...and the tenant's spoofed values are filtered out (no 'forged' / 'someone-elses-project')
+    expect(byName('OBJECT_STORAGE_ACCESS_TOKEN')).not.toContain('forged');
+    expect(byName('PROJECT_ID')).not.toContain('someone-elses-project');
+    // a non-reserved tenant var still passes through
+    expect(byName('MY_VAR')).toEqual(['ok']);
+  });
+
+  it('omits object-storage env when not provided (feature off)', () => {
+    const pod = workspacePod(input);
+    const env: Array<{ name: string }> = (pod.spec?.containers as any[])[0].env;
+    expect(env.some((e) => e.name === 'OBJECT_STORAGE_API_URL')).toBe(false);
+    expect(env.some((e) => e.name === 'OBJECT_STORAGE_ACCESS_TOKEN')).toBe(false);
+    // PROJECT_ID is always injected
+    expect(env.some((e) => e.name === 'PROJECT_ID')).toBe(true);
+  });
 });

@@ -819,6 +819,12 @@ importers:
         specifier: ^3.10.1
         version: 3.10.1
 
+  packages/sdk:
+    devDependencies:
+      vitest:
+        specifier: ^3.2.6
+        version: 3.2.6(@types/debug@4.1.12)(@types/node@25.6.0)(jsdom@26.1.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0)
+
   packages/security: {}
 
   packages/shared: {}
@@ -859,6 +865,9 @@ importers:
 
   services/api:
     dependencies:
+      '@e-code/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
       '@fastify/websocket':
         specifier: ^11.2.0
         version: 11.2.0

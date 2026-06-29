@@ -97,9 +97,11 @@ import {
 import { clusterName, resolveDatabaseTier, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
 import {
   ObjectStorageError,
+  type ObjectStorage,
   isObjectStorageEnabled,
   resolveDefaultObjectStorage,
 } from './object-storage.js';
+import { signObjectStorageAccessToken, verifyObjectStorageAccessToken } from '@e-code/sdk';
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
 import {
   databaseRollbackEntitlement,
@@ -208,6 +210,8 @@ declare module 'fastify' {
     currentUser?: AuthenticatedUser;
     currentSession?: SessionRecord;
     apiKeyAuth?: { id: string; scopes: ApiKeyScope[] };
+    /* A workspace-app object-storage grant (non-user principal scoped to one project). */
+    objectStorageGrant?: { projectId: string; userId?: string; workspaceId?: string };
     rawBody?: string;
     observability?: { startedAt: number; correlationId: string };
     observabilityMetrics?: {
@@ -221,6 +225,8 @@ export interface ApiAppOptions {
   agentMemory?: AgentMemoryService;
   mcpMarketplace?: McpMarketplaceService;
   projectStorage?: ProjectStorage;
+  /** Override the per-project object storage backend (tests inject a fake). */
+  objectStorage?: ObjectStorage;
   gitProvider?: GitProvider;
   emailProvider?: EmailProvider;
   jwtSecret?: string;
@@ -2390,6 +2396,74 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
   if (adminMfaRequired() && user.platformAdmin && !user.mfaEnabled && !mfaExempt) {
     return reply.code(403).send({ error: 'MFA required for platform administrators', code: 'MFA_REQUIRED' });
   }
+}
+
+/**
+ * Non-user auth for a workspace app's object-storage calls: a Bearer token
+ * minted at workspace start (signed with OBJECT_STORAGE_ACCESS_TOKEN_SECRET,
+ * carrying its projectId). Only honoured on `/projects/:projectId/object-storage/*`
+ * and only when the token's projectId matches the path. On success it attaches
+ * `request.objectStorageGrant` and the request bypasses the user-session check.
+ */
+function authenticateObjectStorageGrant(request: FastifyRequest): 'granted' | 'not-granted' {
+  const secret = process.env.OBJECT_STORAGE_ACCESS_TOKEN_SECRET?.trim();
+
+  if (!secret) {
+    return 'not-granted';
+  }
+
+  const routeUrl = request.routeOptions?.url ?? '';
+
+  if (!/^\/projects\/:projectId\/object-storage(\/|$)/.test(routeUrl)) {
+    return 'not-granted';
+  }
+
+  const header = request.headers.authorization;
+  const token = typeof header === 'string' && header.startsWith('Bearer ') ? header.slice(7) : undefined;
+  const projectId = (request.params as { projectId?: string } | undefined)?.projectId;
+  const result = verifyObjectStorageAccessToken({ token, secret, expectedProjectId: projectId });
+
+  if (result.ok && result.payload) {
+    request.objectStorageGrant = result.payload;
+
+    return 'granted';
+  }
+
+  return 'not-granted';
+}
+
+/**
+ * Mint the object-storage access for a workspace pod: the in-cluster API URL +
+ * a signed access token scoped to the project. Returns undefined (so nothing is
+ * injected) unless Object Storage is enabled AND both the signing secret and the
+ * pod-facing API URL are configured — keeping this inert until activation.
+ */
+function buildWorkspaceObjectStorage(input: { projectId: string; userId?: string; workspaceId: string }):
+  | { apiUrl: string; accessToken: string }
+  | undefined {
+  if (!isObjectStorageEnabled()) {
+    return undefined;
+  }
+
+  const secret = process.env.OBJECT_STORAGE_ACCESS_TOKEN_SECRET?.trim();
+  const apiUrl = process.env.OBJECT_STORAGE_API_URL?.trim();
+
+  if (!secret || !apiUrl) {
+    return undefined;
+  }
+
+  const ttlMs = Number(process.env.OBJECT_STORAGE_TOKEN_TTL_MS) || 7 * 24 * 60 * 60 * 1000;
+  const accessToken = signObjectStorageAccessToken({
+    payload: {
+      projectId: input.projectId,
+      userId: input.userId,
+      workspaceId: input.workspaceId,
+      expiresAt: Date.now() + ttlMs,
+    },
+    secret,
+  });
+
+  return { apiUrl, accessToken };
 }
 
 async function requirePlatformAdmin(request: FastifyRequest) {
@@ -7463,6 +7537,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return;
     }
 
+    /*
+     * A workspace app calling its own object storage authenticates with the
+     * injected OBJECT_STORAGE_ACCESS_TOKEN (a non-user principal), not a session.
+     */
+    if (authenticateObjectStorageGrant(request) === 'granted') {
+      return;
+    }
+
     await requireAuth(request, reply, store);
 
     /*
@@ -10965,6 +11047,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           orgId: authorized.organizationId ?? 'unknown-org',
           projectId: authorized.projectId,
           workspaceId: authorized.workspaceId,
+          userId: request.currentUser?.id,
           image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
           plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
           resourceLimits: state
@@ -10977,6 +11060,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           env,
           allowedSecretKeys,
           allowedSecrets,
+          objectStorage: buildWorkspaceObjectStorage({
+            projectId: authorized.projectId,
+            userId: request.currentUser?.id,
+            workspaceId: authorized.workspaceId,
+          }),
         }),
       });
     } catch (error) {
@@ -11188,6 +11276,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           orgId: authorized.organizationId ?? 'unknown-org',
           projectId: authorized.projectId,
           workspaceId: authorized.workspaceId,
+          userId: request.currentUser?.id,
           image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
           plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
           resourceLimits: state
@@ -11200,6 +11289,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           env,
           allowedSecretKeys,
           allowedSecrets,
+          objectStorage: buildWorkspaceObjectStorage({
+            projectId: authorized.projectId,
+            userId: request.currentUser?.id,
+            workspaceId: authorized.workspaceId,
+          }),
         }),
       });
     } catch (restartError) {
@@ -20584,8 +20678,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     throw error;
   };
 
-  const requireObjectStorageProject = async (request: FastifyRequest, permission: 'projects:read' | 'projects:write') =>
-    requireProject(request, store, parse(projectParams, request.params).projectId, permission);
+  const resolveObjectStorage = (): ObjectStorage => options.objectStorage ?? resolveDefaultObjectStorage();
+
+  const requireObjectStorageProject = async (request: FastifyRequest, permission: 'projects:read' | 'projects:write') => {
+    const projectId = parse(projectParams, request.params).projectId;
+
+    /*
+     * A workspace app token already authorizes (read+write) THIS project's
+     * storage — no org membership check; the token's scope IS the authorization.
+     */
+    if (request.objectStorageGrant?.projectId === projectId) {
+      const project = await store.getProject(projectId);
+
+      if (!project) {
+        throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
+      }
+
+      return project;
+    }
+
+    return requireProject(request, store, projectId, permission);
+  };
 
   app.post('/projects/:projectId/object-storage/bucket', async (request, reply) => {
     if (!isObjectStorageEnabled()) {
@@ -20595,7 +20708,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const project = await requireObjectStorageProject(request, 'projects:write');
 
     try {
-      return reply.send(await resolveDefaultObjectStorage().ensureBucket(project.id));
+      return reply.send(await resolveObjectStorage().ensureBucket(project.id));
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }
@@ -20613,7 +20726,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     try {
-      return reply.send(await resolveDefaultObjectStorage().listObjects(project.id, query));
+      return reply.send(await resolveObjectStorage().listObjects(project.id, query));
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }
@@ -20631,7 +20744,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     try {
-      return reply.send(await resolveDefaultObjectStorage().createUploadUrl(project.id, body));
+      return reply.send(await resolveObjectStorage().createUploadUrl(project.id, body));
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }
@@ -20646,7 +20759,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const query = parse(z.object({ key: z.string().min(1).max(1024) }), request.query ?? {});
 
     try {
-      return reply.send(await resolveDefaultObjectStorage().createDownloadUrl(project.id, query));
+      return reply.send(await resolveObjectStorage().createDownloadUrl(project.id, query));
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }
@@ -20664,7 +20777,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     try {
-      return reply.send(await resolveDefaultObjectStorage().moveObject(project.id, body));
+      return reply.send(await resolveObjectStorage().moveObject(project.id, body));
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }
@@ -20686,7 +20799,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     try {
-      const storage = resolveDefaultObjectStorage();
+      const storage = resolveObjectStorage();
       const result = body.prefix
         ? await storage.deletePrefix(project.id, { prefix: body.prefix })
         : await storage.deleteObject(project.id, { key: body.key! });

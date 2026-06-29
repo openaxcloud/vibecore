@@ -110,6 +110,15 @@ const RESERVED_WORKSPACE_ENV = new Set([
   'HOST',
   'SHELL',
   'NODE_ENV',
+
+  /*
+   * Platform-injected app context (see workspacePod). A tenant project var of the
+   * same name would shadow the authoritative value the app's @e-code/sdk relies
+   * on (PROJECT_ID) or let an app forge a wider-scoped storage token.
+   */
+  'PROJECT_ID',
+  'OBJECT_STORAGE_API_URL',
+  'OBJECT_STORAGE_ACCESS_TOKEN',
 ]);
 
 export interface WorkspaceRuntimeInput {
@@ -126,6 +135,8 @@ export interface WorkspaceRuntimeInput {
   resourceLimits?: WorkspaceResourceLimits;
   tokenSecret?: string;
   storageClassName?: string;
+  /** App-facing object storage env injected into the pod (apiUrl + access token). */
+  objectStorage?: { apiUrl: string; accessToken: string };
 }
 
 export interface WorkspaceResourceLimits {
@@ -310,6 +321,21 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
               name: 'WORKSPACE_AGENT_TOKEN_SECRET',
               valueFrom: { secretKeyRef: { name: input.agentTokenSecretName, key: 'tokenSecret' } },
             },
+
+            /*
+             * App-facing platform context: PROJECT_ID is always injected; the
+             * object-storage API URL + access token are injected only when the
+             * feature is active (the api passes `objectStorage`). Reserved below so
+             * a tenant env var can't spoof them. The generated app's `@e-code/sdk`
+             * reads these to talk to its own project bucket.
+             */
+            { name: 'PROJECT_ID', value: input.projectId },
+            ...(input.objectStorage
+              ? [
+                  { name: 'OBJECT_STORAGE_API_URL', value: input.objectStorage.apiUrl },
+                  { name: 'OBJECT_STORAGE_ACCESS_TOKEN', value: input.objectStorage.accessToken },
+                ]
+              : []),
 
             /*
              * Strip platform-reserved names from user-supplied env/secrets so a

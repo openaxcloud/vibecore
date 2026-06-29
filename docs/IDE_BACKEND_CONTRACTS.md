@@ -264,3 +264,65 @@ All IDE-testable runtime paths are wired backend-side:
 | Workflows executed | `ide-panel.$panel.ts runWorkflowTasks` → `/commands` (`sh -lc`) | real commands, logs captured in `VIBECORE_WORKFLOWS_STATE` |
 | Skills → agent | `app/lib/.server/llm/project-skills.ts retrieveSkillsForAgentContext` → `api.chat.ts streamText({ system: …skillsContext })` | enabled skills become a `<project_skills>` system-prompt block |
 | MCP → agent | `app/lib/.server/mcp/load-config.server.ts` → `api.chat.ts mcpService.toolsWithoutExecute` | installed MCP servers become agent tools per chat request |
+
+---
+
+## 12. App-facing SDK `@e-code/sdk` — IMPLEMENTED ✅ (Replit `@replit/object-storage` parity)
+
+Generated apps don't call the platform REST routes directly — they import the
+public SDK, which the workspace makes zero-config. The workspace injects, at pod
+start (`packages/k8s-client` `workspacePod`, reserved in `RESERVED_WORKSPACE_ENV`):
+`PROJECT_ID`, and (when Object Storage is active) `OBJECT_STORAGE_API_URL` +
+`OBJECT_STORAGE_ACCESS_TOKEN` (an HMAC token scoped to the project, minted by the
+api at `/workspaces/start`, same HMAC scheme as `@vibecore/connector-sdk`).
+
+**Auth path (new):** a `Bearer <OBJECT_STORAGE_ACCESS_TOKEN>` on a
+`/projects/:projectId/object-storage/*` route is verified by the api
+(`verifyObjectStorageAccessToken` + `OBJECT_STORAGE_ACCESS_TOKEN_SECRET`); a
+match attaches a non-user `request.objectStorageGrant` and bypasses the session
+check — so a workspace app reaches ONLY its own project bucket. Token for another
+project / wrong secret / absent → 401.
+
+**SDK surface** (`packages/sdk`, `@e-code/sdk`):
+```ts
+import { ObjectStorageClient, Client } from '@e-code/sdk';
+
+// zero-config inside a workspace (reads OBJECT_STORAGE_*/PROJECT_ID from env):
+const storage = new ObjectStorageClient();
+await storage.ensureBucket();
+await storage.upload({ key: 'avatars/me.png', data: bytes, contentType: 'image/png' });
+const { objects, folders } = await storage.listObjects({ prefix: 'avatars/', delimiter: '/' });
+const buf = await storage.download({ key: 'avatars/me.png' });
+const { url } = await storage.getDownloadUrl({ key: 'avatars/me.png' }); // share a V4 URL
+await storage.move({ from: 'a.txt', to: 'b.txt' });
+await storage.delete({ key: 'b.txt' });
+await storage.deletePrefix({ prefix: 'avatars/' });
+
+// unified, Replit-style (storage + db + secrets):
+const client = new Client();
+client.database.url;            // injected DATABASE_URL (dev)
+client.database.productionUrl;  // injected PROD_DATABASE_URL
+client.secrets.get('STRIPE_KEY'); // any injected project secret/env var
+```
+- Methods: `ensureBucket`, `listObjects`, `getUploadUrl`, `getDownloadUrl`,
+  `move`, `delete`, `deletePrefix`, plus `upload`/`download` convenience (bytes go
+  straight to the V4 signed URL, never through the api). Errors throw
+  `ObjectStorageError { code, status }`.
+- Also exported: `signObjectStorageAccessToken` / `verifyObjectStorageAccessToken`
+  (the api uses verify; codegen/tests use sign), `getDatabaseUrl`, `getSecret`.
+- Proof: 8 SDK tests + 4 api token-auth integration tests + 2 k8s-client env
+  injection tests (incl. tenant-spoof reserved-filter). api/manager/k8s-client
+  typecheck clean.
+
+**Replit-parity check for the OTHER app-facing capabilities:**
+| capability | app-facing | how the app consumes it |
+|---|---|---|
+| Object Storage | `@e-code/sdk` `ObjectStorageClient` | injected token + API URL (this section) |
+| Database | env `DATABASE_URL` / `PROD_DATABASE_URL` | any pg/orm client, or `Client.database.url` — already injected ✅ |
+| Secrets/Env | env vars | `process.env.X` or `Client.secrets.get('X')` — already injected (project secrets flow to the pod Secret) ✅ |
+
+**Activation (adds to runbook §1):** for the app SDK to work live, also set on the
+api deployment `OBJECT_STORAGE_ACCESS_TOKEN_SECRET` (HMAC secret, ≥16 chars) and
+`OBJECT_STORAGE_API_URL` (the in-cluster api URL pods reach, e.g.
+`http://vibecore-vibecore-platform-api.vibecore.svc:PORT`). Without them the api
+injects nothing (inert) — prod-safe.

@@ -72,10 +72,17 @@ spec:
         - { protocol: TCP, port: 988 }   # GKE metadata server
 YAML
 
-# 1f. flip the flag + roll the api
-kubectl --context="$CTX" set env deploy/$API_DEPLOY -n "$NS" OBJECT_STORAGE_ENABLED=true
+# 1f. flip the flag + (for the app-facing @e-code/sdk) the SDK token secret +
+#     the in-cluster API URL pods reach, then roll the api
+kubectl --context="$CTX" set env deploy/$API_DEPLOY -n "$NS" \
+  OBJECT_STORAGE_ENABLED=true \
+  OBJECT_STORAGE_ACCESS_TOKEN_SECRET="$(openssl rand -hex 32)" \
+  OBJECT_STORAGE_API_URL="http://vibecore-vibecore-platform-api.${NS}.svc:80"
 kubectl --context="$CTX" rollout status deploy/$API_DEPLOY -n "$NS"
 ```
+> `OBJECT_STORAGE_ACCESS_TOKEN_SECRET` + `OBJECT_STORAGE_API_URL` power the
+> injected `@e-code/sdk` (generated apps' `new ObjectStorageClient()`). Without
+> them the api injects nothing — the SDK path stays inert (prod-safe).
 
 **Verify**
 

@@ -160,11 +160,15 @@ export interface StartWorkspaceInput {
   orgId: string;
   projectId: string;
   workspaceId: string;
+  /** The user the workspace runs as (audit; threaded into the object-storage token). */
+  userId?: string;
   image: string;
   plan: WorkspacePlan;
   env: Record<string, string>;
   allowedSecretKeys: string[];
   allowedSecrets?: Record<string, string>;
+  /** App-facing object storage: in-cluster API URL + the project-scoped access token. */
+  objectStorage?: { apiUrl: string; accessToken: string };
   resourceLimits?: {
     cpuMillicores?: number;
     ramMb?: number;
