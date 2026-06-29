@@ -5,6 +5,7 @@ import { mkdir, readdir, readFile, realpath, stat, writeFile } from 'node:fs/pro
 import { createRequire } from 'node:module';
 import { dirname, extname, sep, resolve } from 'node:path';
 import { Readable } from 'node:stream';
+import { signObjectStorageAccessToken, verifyObjectStorageAccessToken } from '@e-code/sdk';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -83,6 +84,7 @@ import {
   type AgentMemoryScope,
   type AgentMemoryType,
 } from './agent-memory.js';
+import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
 import {
   checkServiceShutdown,
@@ -98,14 +100,6 @@ import {
   purgeDueAtMs,
 } from './data-deletion.js';
 import { clusterName, resolveDatabaseTier, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
-import {
-  ObjectStorageError,
-  type ObjectStorage,
-  isObjectStorageEnabled,
-  resolveDefaultObjectStorage,
-} from './object-storage.js';
-import { signObjectStorageAccessToken, verifyObjectStorageAccessToken } from '@e-code/sdk';
-import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
 import {
   databaseRollbackEntitlement,
   isDatabaseRollbackEnabled,
@@ -171,6 +165,12 @@ import {
   meterObjectStorage,
   meterWorkspaceCompute,
 } from './metering-service.js';
+import {
+  ObjectStorageError,
+  type ObjectStorage,
+  isObjectStorageEnabled,
+  resolveDefaultObjectStorage,
+} from './object-storage.js';
 import { PrismaApiStore } from './prisma-store.js';
 import {
   filesFromZip,
@@ -184,6 +184,7 @@ import {
   type StoredArchive,
 } from './project-storage.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
+import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
 import {
   API_KEY_SCOPES,
@@ -213,6 +214,7 @@ declare module 'fastify' {
     currentUser?: AuthenticatedUser;
     currentSession?: SessionRecord;
     apiKeyAuth?: { id: string; scopes: ApiKeyScope[] };
+
     /* A workspace-app object-storage grant (non-user principal scoped to one project). */
     objectStorageGrant?: { projectId: string; userId?: string; workspaceId?: string };
     rawBody?: string;
@@ -228,6 +230,7 @@ export interface ApiAppOptions {
   agentMemory?: AgentMemoryService;
   mcpMarketplace?: McpMarketplaceService;
   projectStorage?: ProjectStorage;
+
   /** Override the per-project object storage backend (tests inject a fake). */
   objectStorage?: ObjectStorage;
   gitProvider?: GitProvider;
@@ -1689,6 +1692,7 @@ function isBlockedGitHost(rawHost: string): boolean {
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
+
     /*
      * ULA fc00::/7 + link-local fe80::/10, but only as IPv6 LITERALS (hextets +
      * ':'). The old startsWith('fc'/'fd'/'fe80') wrongly blocked public hosts like
@@ -2397,6 +2401,7 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
     mfaPathname.startsWith('/auth/recovery-codes/') ||
     mfaPathname === '/auth/sessions' ||
     mfaPathname.startsWith('/auth/sessions/') ||
+
     /*
      * Re-auth is the gateway to enrolling MFA (mfa/setup now requires it); a
      * platform admin without MFA must be able to reach it or they'd be deadlocked.
@@ -2448,9 +2453,11 @@ function authenticateObjectStorageGrant(request: FastifyRequest): 'granted' | 'n
  * injected) unless Object Storage is enabled AND both the signing secret and the
  * pod-facing API URL are configured — keeping this inert until activation.
  */
-function buildWorkspaceObjectStorage(input: { projectId: string; userId?: string; workspaceId: string }):
-  | { apiUrl: string; accessToken: string }
-  | undefined {
+function buildWorkspaceObjectStorage(input: {
+  projectId: string;
+  userId?: string;
+  workspaceId: string;
+}): { apiUrl: string; accessToken: string } | undefined {
   if (!isObjectStorageEnabled()) {
     return undefined;
   }
@@ -2463,6 +2470,7 @@ function buildWorkspaceObjectStorage(input: { projectId: string; userId?: string
   }
 
   const ttlMs = Number(process.env.OBJECT_STORAGE_TOKEN_TTL_MS) || 7 * 24 * 60 * 60 * 1000;
+
   const accessToken = signObjectStorageAccessToken({
     payload: {
       projectId: input.projectId,
@@ -5976,10 +5984,12 @@ async function seedBillingPlans(store: ApiStore) {
        */
       const upper = plan.key.toUpperCase();
       const prior = existing.get(plan.key);
+
       const monthly =
         prior?.stripePriceMonthlyId ??
         process.env[`STRIPE_${upper}_PRICE_MONTHLY_ID`] ??
         process.env[plan.stripePriceEnv];
+
       const annual = prior?.stripePriceAnnualId ?? process.env[`STRIPE_${upper}_PRICE_ANNUAL_ID`];
 
       return store.upsertBillingPlan({
@@ -6041,6 +6051,7 @@ const KNOWN_LLM_PROVIDERS = [
   'Z.ai',
   'xAI',
 ];
+
 const KNOWN_LLM_PROVIDER_SET = new Set(KNOWN_LLM_PROVIDERS);
 
 /** Map the ai-pricing plan key onto the Replit-parity credit plan key. */
@@ -6201,6 +6212,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     /\/+$/,
     '',
   );
+
   /*
    * Build a Stripe client from a resolved API key. Admin-managed config (DB)
    * takes precedence over env; an empty key with no STRIPE_API_BASE_URL means
@@ -7521,12 +7533,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/') ||
+
       /*
        * Service-to-service internal endpoints (metering ingest, inactivity GC).
        * Exempt from user auth; each route self-authenticates with the shared
        * internal secret via requireInternalSecret(). P8.
        */
       request.url.startsWith('/internal/') ||
+
       /*
        * Public read of a shared conversation snapshot — the signed token is the
        * capability. Only the token-scoped GET path is exempt; POST /chat-shares
@@ -14721,6 +14735,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const query = parse(z.object({ limit: z.coerce.number().int().min(1).max(500).optional() }), request.query ?? {});
 
     return { events: await store.listAgentRepairEvents(project.id, { take: query.limit }) };
@@ -14775,12 +14790,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.send({ skill: resolveSkill(skillId, await store.listProjectSkillOverrides(project.id)) });
   };
 
-  app.post('/projects/:projectId/skills/:skillId/enable', (request, reply) =>
-    setSkillEnabled(request, reply, true),
-  );
-  app.post('/projects/:projectId/skills/:skillId/disable', (request, reply) =>
-    setSkillEnabled(request, reply, false),
-  );
+  app.post('/projects/:projectId/skills/:skillId/enable', (request, reply) => setSkillEnabled(request, reply, true));
+  app.post('/projects/:projectId/skills/:skillId/disable', (request, reply) => setSkillEnabled(request, reply, false));
 
   app.get('/projects/:projectId/settings', async (request) => ({
     project: await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read'),
@@ -14951,6 +14962,77 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { envVar };
   });
+
+  /*
+   * "Add Authentication" (Replit-Auth-equivalent for the generated app) — scaffold
+   * REAL email/password auth files into the project (users migration + Express
+   * session/JWT router + login page + README), backed by the project's Postgres.
+   * Idempotent (skips files that already exist) and gated behind
+   * AUTH_SCAFFOLD_ENABLED. Writes to canonical storage AND pushes into the running
+   * workspace pod so the files appear live; sets AUTH_JWT_SECRET once.
+   */
+  app.post('/projects/:projectId/auth/scaffold', async (request, reply) => {
+    if (!isAuthScaffoldEnabled()) {
+      return reply.code(404).send({ error: 'Add Authentication is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    const workspaceId = await resolveGitWorkspaceId(store, project.id, undefined);
+
+    const files = generateAuthScaffoldFiles();
+    const existingPaths = new Set((await projectStorage.listFiles(project.id, workspaceId)).map((file) => file.path));
+    const toWrite = files.filter((file) => !existingPaths.has(file.path));
+    const skipped = files.filter((file) => existingPaths.has(file.path)).map((file) => file.path);
+
+    if (toWrite.length) {
+      await projectStorage.writeFiles(project.id, toWrite, workspaceId);
+
+      // Best-effort: surface the new files in the running pod immediately.
+      if (workspaceId) {
+        for (const file of toWrite) {
+          await agentRequest(workspaceId, '/files/write', {
+            method: 'POST',
+            body: JSON.stringify({ path: file.path, content: file.content }),
+          }).catch(() => undefined);
+        }
+      }
+    }
+
+    // Provision the JWT signing secret once (never overwrite an existing one).
+    const envVars = await store.listProjectEnvVars(project.id).catch(() => [] as Array<{ key: string }>);
+
+    let secretProvisioned = false;
+
+    if (!envVars.some((entry) => entry.key === 'AUTH_JWT_SECRET')) {
+      await store.upsertProjectEnvVar({
+        projectId: project.id,
+        key: 'AUTH_JWT_SECRET',
+        value: generateAuthJwtSecret(),
+      });
+      secretProvisioned = true;
+    }
+
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'project.auth.scaffold',
+      metadata: { written: toWrite.length, skipped: skipped.length },
+    });
+
+    return {
+      ok: true,
+      scaffolded: toWrite.map((file) => file.path),
+      skipped,
+      secretProvisioned,
+    };
+  });
+
   app.get('/projects/:projectId/secrets', async (request) => {
     const project = await requireProject(
       request,
@@ -17605,6 +17687,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { checkoutUrl: session.url, sessionId: session.id };
   });
+
   /*
    * Replit-parity credit-pack purchase. Creates a one-time-payment Checkout
    * Session for a pre-paid credit pack (100/300/500/1000). The pack is granted
@@ -17650,6 +17733,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const organization = await store.getOrganization(orgId);
     const existingCustomer = await store.getBillingCustomer(orgId);
+
     const customer =
       existingCustomer ??
       (await store.upsertBillingCustomer({
@@ -17893,14 +17977,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         typeof object.metadata?.creditPackSku === 'string'
       ) {
         const pack = findCreditPack(object.metadata.creditPackSku);
-        const paid =
-          object.payment_status === 'paid' || object.payment_status === 'no_payment_required';
+
+        const paid = object.payment_status === 'paid' || object.payment_status === 'no_payment_required';
 
         if (pack && paid) {
           const purchasedAtMs = Number.isFinite(Number(event.created)) ? Number(event.created) * 1000 : Date.now();
           const expiresAt = new Date(purchasedAtMs + pack.validityDays * 24 * 60 * 60 * 1000);
           await store.createCreditPack({
             organizationId,
+
             // Spendable credit value (e.g. $300 for the $290 pack); the gap is the discount.
             purchasedCents: pack.creditCents,
             expiresAt,
@@ -18001,6 +18086,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           : undefined;
         const isStaleByTimestamp = Boolean(
           eventCreatedAt &&
+
             /*
              * Deletion is terminal and must ALWAYS be applied: a `deleted` event
              * can legitimately carry an older event.created than a previously
@@ -18399,11 +18485,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   // --- Replit-parity admin supervision: registry, wallets, checkpoints --------
   app.get('/admin/providers', async (request) => {
     await requirePlatformAdmin(request);
+
     /*
      * Show only the canonical user-facing providers (by display name) as toggles,
      * not the legacy lowercase catalog rows that back the dormant model registry.
      */
     const all = await store.listProviderConfigs();
+
     return { providers: all.filter((p) => KNOWN_LLM_PROVIDER_SET.has(p.provider)) };
   });
 
@@ -18637,8 +18725,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    // Rebuild the Stripe client (and let the webhook secret resolver pick up the
-    // new value) so the change is live without a redeploy.
+    /*
+     * Rebuild the Stripe client (and let the webhook secret resolver pick up the
+     * new value) so the change is live without a redeploy.
+     */
     await reloadStripeConfig();
 
     await audit(request, store, {
@@ -18671,6 +18761,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireRecentAdminReauth(request);
 
     const { organizationId } = parse(z.object({ organizationId: z.string().min(1) }), request.params);
+
     const body = parse(
       z.object({
         deltaCents: z
@@ -20581,6 +20672,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const environment = parse(databaseEnvironmentQuery, request.query ?? {}).environment;
     const state = await billingState(project.organizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
+
     let instance = await store.getDatabaseInstanceByProject(project.id, environment);
 
     if (!instance) {
@@ -20824,7 +20916,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const resolveObjectStorage = (): ObjectStorage => options.objectStorage ?? resolveDefaultObjectStorage();
 
-  const requireObjectStorageProject = async (request: FastifyRequest, permission: 'projects:read' | 'projects:write') => {
+  const requireObjectStorageProject = async (
+    request: FastifyRequest,
+    permission: 'projects:read' | 'projects:write',
+  ) => {
     const projectId = parse(projectParams, request.params).projectId;
 
     /*
@@ -20864,6 +20959,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const project = await requireObjectStorageProject(request, 'projects:read');
+
     const query = parse(
       z.object({ prefix: z.string().max(1024).optional(), delimiter: z.string().max(8).optional() }),
       request.query ?? {},
@@ -20882,6 +20978,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
+
     const body = parse(
       z.object({ key: z.string().min(1).max(1024), contentType: z.string().max(255).optional() }),
       request.body ?? {},
@@ -20915,6 +21012,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
+
     const body = parse(
       z.object({ from: z.string().min(1).max(1024), to: z.string().min(1).max(1024) }),
       request.body ?? {},
@@ -20933,6 +21031,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
+
     const body = parse(
       z
         .object({ key: z.string().min(1).max(1024).optional(), prefix: z.string().min(1).max(1024).optional() })
@@ -20944,6 +21043,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     try {
       const storage = resolveObjectStorage();
+
       const result = body.prefix
         ? await storage.deletePrefix(project.id, { prefix: body.prefix })
         : await storage.deleteObject(project.id, { key: body.key! });
@@ -21301,8 +21401,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { deployment: canceled };
   });
 
-  /* P2d: publish a READY preview/staging deployment to production (promote the
-   * same built artifact; the new production deployment links back via parentDeploymentId). */
+  /*
+   * P2d: publish a READY preview/staging deployment to production (promote the
+   * same built artifact; the new production deployment links back via parentDeploymentId).
+   */
   app.post('/projects/:projectId/deployments/:deploymentId/publish', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
     const project = await requireProject(request, store, projectId, 'projects:write');
@@ -21361,6 +21463,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             retentionDays: entitlement.retentionDays,
             environment: 'production',
           });
+
           const provisioner = resolveDefaultDatabaseProvisioner();
 
           if (provisioner.active) {
@@ -21389,6 +21492,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     try {
       const workspaces = await store.listWorkspaces(project.id);
+
       let prodWorkspace = workspaces.find((workspace) => workspace.environment === 'production');
 
       if (!prodWorkspace) {

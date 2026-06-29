@@ -10972,7 +10972,7 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'integrations') {
-    return <ProjectIntegrationsPanel data={data} onSubmit={onSubmit} busy={busy} />;
+    return <ProjectIntegrationsPanel data={data} projectId={projectId} onSubmit={onSubmit} busy={busy} />;
   }
 
   if (panel === 'workflows') {
@@ -14878,7 +14878,99 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
   );
 }
 
-function ProjectIntegrationsPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
+/*
+ * "Add Authentication" — Replit-Auth-equivalent for the generated app. Triggers
+ * the real scaffold (POST /api/projects/:id/auth-scaffold → writes users
+ * migration + Express session/JWT router + login page into the project and
+ * provisions AUTH_JWT_SECRET). Self-contained; shows the written files + wiring.
+ */
+function AddAuthenticationCard({ projectId }: { projectId?: string }) {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ scaffolded?: string[]; skipped?: string[]; error?: string } | null>(null);
+
+  const run = useCallback(async () => {
+    if (!projectId) {
+      return;
+    }
+
+    setBusy(true);
+    setResult(null);
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/auth-scaffold`, { method: 'POST' });
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        scaffolded?: string[];
+        skipped?: string[];
+        error?: string;
+      };
+
+      if (!response.ok || payload.error) {
+        setResult({ error: payload.error ?? 'Could not add authentication.' });
+      } else {
+        setResult({ scaffolded: payload.scaffolded ?? [], skipped: payload.skipped ?? [] });
+      }
+    } catch {
+      setResult({ error: 'Could not reach the auth scaffold service.' });
+    } finally {
+      setBusy(false);
+    }
+  }, [projectId]);
+
+  return (
+    <section className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Add Authentication</h3>
+          <p className="text-xs text-bolt-elements-textSecondary">
+            Scaffold real email/password auth into this app — a <code>users</code> table migration, an Express
+            session/JWT router (signup / login / logout / me), and a login page — backed by your project Postgres.
+            Idempotent; sets <code>AUTH_JWT_SECRET</code> for you.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void run()}
+          disabled={busy || !projectId}
+          className="shrink-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1 disabled:opacity-60"
+        >
+          {busy ? 'Adding…' : 'Add Authentication'}
+        </button>
+      </div>
+      {result?.error ? <p className="text-xs text-bolt-elements-item-contentDanger">{result.error}</p> : null}
+      {result && !result.error ? (
+        <div className="text-xs text-bolt-elements-textSecondary">
+          {result.scaffolded?.length ? (
+            <>
+              <span className="text-green-500">Added:</span>{' '}
+              <span className="font-mono">{result.scaffolded.join(', ')}</span>. Next:{' '}
+              <span className="font-mono">npm i pg bcryptjs jsonwebtoken cookie-parser</span>, run the migration, then{' '}
+              <span className="font-mono">app.use(require(&apos;./auth&apos;).router)</span> (see auth/README.md).
+            </>
+          ) : (
+            <span>
+              Already scaffolded — auth files already exist
+              {result.skipped?.length ? ` (${result.skipped.length} files)` : ''}.
+            </span>
+          )}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function ProjectIntegrationsPanel({
+  data,
+  projectId,
+  onSubmit,
+  busy,
+}: {
+  data: any;
+  projectId?: string;
+  onSubmit: any;
+  busy: boolean;
+}) {
   const state = data.integrationsState ?? {};
   const integrationState = state.integrations ?? {};
   const webhooks = state.webhooks ?? [];
@@ -14919,6 +15011,7 @@ function ProjectIntegrationsPanel({ data, onSubmit, busy }: { data: any; onSubmi
 
   return (
     <div className="bolt-project-integrations-tool" data-testid="integrations-panel">
+      <AddAuthenticationCard projectId={projectId} />
       <header className="bolt-project-integrations-head">
         <div>
           <h3>Integration Hub</h3>
