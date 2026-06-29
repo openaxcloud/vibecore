@@ -292,6 +292,7 @@ const panelEndpoints: Record<string, (projectId: string) => string> = {
   database: (projectId) => `/projects/${projectId}/dashboard`,
   'object-storage': (projectId) => `/projects/${projectId}/dashboard`,
   packages: (projectId) => `/projects/${projectId}/packages`,
+  skills: (projectId) => `/projects/${projectId}/skills`,
   monitoring: (projectId) => `/projects/${projectId}/dashboard`,
   extensions: (projectId) => `/projects/${projectId}/dashboard`,
   integrations: (projectId) => `/projects/${projectId}/env-vars`,
@@ -1631,6 +1632,22 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         body: JSON.stringify({ key: body.key || 'OBJECT_STORAGE_BUCKET', value: body.value ?? '' }),
       });
     }
+  } else if (panel === 'skills') {
+    // Per-project skills registry: enable/disable toggles over the builtin catalog.
+    const skillId = (body.skillId ?? '').trim();
+
+    if (!skillId) {
+      throw json({ error: 'skillId is required' }, { status: 400 });
+    }
+
+    const action = intent === 'disable' ? 'disable' : 'enable';
+
+    const result = await apiRequest(request, `/projects/${projectId}/skills/${encodeURIComponent(skillId)}/${action}`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+
+    return json({ ok: true, rowId: skillId, ...(result as any) });
   } else if (panel === 'packages') {
     const [packages, envVars] = await Promise.all([
       apiRequest<any>(request, `/projects/${projectId}/packages`),

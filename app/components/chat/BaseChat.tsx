@@ -317,6 +317,7 @@ const IDE_MANAGEMENT_PANELS = [
   'database',
   'object-storage',
   'packages',
+  'skills',
   'monitoring',
   'extensions',
   'integrations',
@@ -374,6 +375,7 @@ const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: st
   collaborate: { id: 'collaborate', name: 'Collaborators', icon: 'i-ph:users' },
   collaborators: { id: 'collaborators', name: 'Collaborators', icon: 'i-ph:users' },
   packages: { id: 'packages', name: 'Packages', icon: 'i-ph:package' },
+  skills: { id: 'skills', name: 'Skills', icon: 'i-ph:sparkle' },
   secrets: { id: 'secrets', name: 'Secrets', icon: 'i-ph:lock' },
   settings: { id: 'settings', name: 'Settings', icon: 'i-ph:gear' },
   workflows: { id: 'workflows', name: 'Workflows', icon: 'i-ph:git-branch' },
@@ -621,6 +623,7 @@ const ECODE_MOBILE_MORE_ITEMS = [
   'deployments',
   'git',
   'packages',
+  'skills',
   'database',
   'object-storage',
   'secrets',
@@ -654,6 +657,7 @@ const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> =
   database: 'SQL browser',
   'object-storage': 'File storage',
   packages: 'Dependencies manager',
+  skills: 'Agent skills',
   monitoring: 'App metrics',
   extensions: 'Marketplace',
   integrations: 'Connected services',
@@ -7433,6 +7437,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             ['secrets', 'Secrets', 'Encrypted project secrets', ''],
             ['git', 'Git', 'Version control', ''],
             ['packages', 'Packages', 'Dependencies manager', ''],
+            ['skills', 'Skills', 'Agent skills', ''],
             ['integrations', 'Integrations', 'Connected services', ''],
             ['workflows', 'Workflows', 'Task automation', ''],
             ['deployments', 'Deployments', 'Publish your app', ''],
@@ -10462,6 +10467,7 @@ function IdeTabBar({
     ['secrets', 'Secrets', 'Encrypted project secrets', 'i-ph:lock', 'var(--vc-ide-accent-warning)', 'Configuration'],
     ['git', 'Git', 'Version control', 'i-ph:git-branch', 'var(--vc-ide-accent-success)', 'Project'],
     ['packages', 'Packages', 'Dependencies manager', 'i-ph:cube', 'var(--vc-ide-accent-warning)', 'Project'],
+    ['skills', 'Skills', 'Agent skills', 'i-ph:sparkle', 'var(--vc-ide-accent-action)', 'Project'],
     [
       'integrations',
       'Integrations',
@@ -10948,6 +10954,10 @@ function ProjectIdePanelContent({
 
   if (panel === 'packages') {
     return <ProjectPackagesPanel data={data} onSubmit={onSubmit} busy={busy} />;
+  }
+
+  if (panel === 'skills') {
+    return <ProjectSkillsPanel projectId={projectId} data={data} busy={busy} reload={reload} />;
   }
 
   if (panel === 'monitoring') {
@@ -13612,6 +13622,132 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
         {status ? (
           <p className="text-xs text-bolt-elements-textSecondary" role="status">
             {status}
+          </p>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
+interface ProjectSkill {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  enabled?: boolean;
+  source?: string;
+  updatedAt?: string | null;
+}
+
+/*
+ * Per-project agent Skills registry. Reads the resolved catalog from the loader
+ * (data.skills) and toggles each skill via the ide-panel proxy (enable/disable
+ * intents → /projects/:id/skills/:skillId/enable|disable). Real, additive,
+ * unflagged backend (ProjectSkill override table + builtin catalog).
+ */
+function ProjectSkillsPanel({
+  projectId,
+  data,
+  busy,
+  reload,
+}: {
+  projectId?: string;
+  data: any;
+  busy: boolean;
+  reload?: () => void | Promise<void>;
+}) {
+  const skills = (data?.skills ?? []) as ProjectSkill[];
+  const [pending, setPending] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const toggle = useCallback(
+    async (skill: ProjectSkill) => {
+      if (!projectId) {
+        return;
+      }
+
+      setPending(skill.id);
+      setError(null);
+
+      try {
+        const form = new FormData();
+        form.append('intent', skill.enabled ? 'disable' : 'enable');
+        form.append('skillId', skill.id);
+
+        const response = await fetch(`/api/projects/${projectId}/ide-panel/skills`, {
+          method: 'POST',
+          body: form,
+        });
+
+        const result = (await response.json().catch(() => ({}))) as { error?: string };
+
+        if (!response.ok) {
+          throw new Error(result.error ?? 'Unable to update this skill.');
+        }
+
+        await reload?.();
+      } catch (toggleError) {
+        setError(toggleError instanceof Error ? toggleError.message : 'Unable to update this skill.');
+      } finally {
+        setPending(null);
+      }
+    },
+    [projectId, reload],
+  );
+
+  const categories = Array.from(new Set(skills.map((skill) => skill.category || 'general')));
+
+  return (
+    <div className="bolt-project-managed-panel bolt-project-skills-panel">
+      <section className="grid gap-3">
+        <p className="text-xs text-bolt-elements-textSecondary">
+          Enable agent skills for this project. Toggles are stored per project over a builtin catalog; the agent uses
+          enabled skills as additional capabilities.
+        </p>
+
+        {skills.length ? (
+          categories.map((category) => (
+            <div key={category} className="grid gap-2">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+                {category}
+              </h4>
+              {skills
+                .filter((skill) => (skill.category || 'general') === category)
+                .map((skill) => (
+                  <div
+                    key={skill.id}
+                    className="flex items-center justify-between gap-3 rounded-md border border-bolt-elements-borderColor px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <strong className="block truncate text-sm text-bolt-elements-textPrimary">{skill.name}</strong>
+                      {skill.description ? (
+                        <span className="block text-xs text-bolt-elements-textSecondary">{skill.description}</span>
+                      ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void toggle(skill)}
+                      disabled={busy || pending === skill.id}
+                      className={`shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 ${
+                        skill.enabled
+                          ? 'border-bolt-elements-focus bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
+                          : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3'
+                      }`}
+                      aria-pressed={Boolean(skill.enabled)}
+                    >
+                      {pending === skill.id ? '…' : skill.enabled ? 'Enabled' : 'Disabled'}
+                    </button>
+                  </div>
+                ))}
+            </div>
+          ))
+        ) : (
+          <div className="bolt-project-empty-panel">No skills are available for this project.</div>
+        )}
+
+        {error ? (
+          <p className="text-xs text-bolt-elements-item-contentDanger" role="status">
+            {error}
           </p>
         ) : null}
       </section>
