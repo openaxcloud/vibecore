@@ -287,3 +287,10 @@ database:
       bucket: ""
       serviceAccount: ""
       retentionDays: 7
+  # workspace-manager RBAC in project-databases (templates/database-rbac.yaml).
+  # DISABLED by default: the Role/RoleBinding already exist out-of-band (created at
+  # Phase-1 bootstrap with managed-by=vibecore), and Helm cannot adopt unowned
+  # resources — an always-rendered copy fails every --reuse-values upgrade. Enable
+  # only AFTER annotating the live resources for Helm ownership (see template).
+  rbacManaged:
+    enabled: false
