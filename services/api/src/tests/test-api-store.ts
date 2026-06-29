@@ -1061,6 +1061,24 @@ export class TestApiStore implements ApiStore {
     return true;
   }
 
+  readonly projectSkillOverrides = new Map<
+    string,
+    { skillId: string; enabled: boolean; updatedAt: string }
+  >();
+
+  async listProjectSkillOverrides(projectId: string) {
+    return [...this.projectSkillOverrides.entries()]
+      .filter(([key]) => key.startsWith(`${projectId}:`))
+      .map(([, row]) => row);
+  }
+
+  async setProjectSkillEnabled(input: { projectId: string; skillId: string; enabled: boolean }) {
+    const record = { skillId: input.skillId, enabled: input.enabled, updatedAt: new Date().toISOString() };
+    this.projectSkillOverrides.set(`${input.projectId}:${input.skillId}`, record);
+
+    return record;
+  }
+
   async createWorkspace(input: { id?: string; projectId: string; name: string; runtimeMode: string }) {
     const workspaceId = input.id ?? id('workspace');
 

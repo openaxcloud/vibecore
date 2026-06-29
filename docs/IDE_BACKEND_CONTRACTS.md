@@ -169,24 +169,31 @@ delete-prefix — all green. Unit tests (21) + api typecheck clean.
 
 ---
 
-## 5. Skills registry — GAP ❌ (does not exist; build-spec frozen for IDE)
+## 5. Skills registry — IMPLEMENTED ✅ (builtin catalog + per-project toggles)
 
-No skills backend, package, or UI exists today. Frozen contract:
+Real, additive backend. The catalog is a static code-owned list
+(`services/api/src/skills-catalog.ts`, 10 builtin skills); per-project state is a
+sparse `ProjectSkill` override table (migration `0048_project_skills`). The list
+endpoint is a pure merge of catalog defaults with the project's overrides. No
+feature flag — inert until the IDE calls it (no existing behaviour touched).
 
 - **IDE proxy:** `GET/POST /api/projects/:projectId/ide-panel/skills`
-- **Proposed internal API** (DB-backed, per project/agent):
+- **Internal API** (`requireProject` read on GET, write on toggles):
   | method | route | body | response |
   |---|---|---|---|
-  | GET | `/projects/:id/skills` | — | `{ skills: [Skill] }` |
+  | GET | `/projects/:id/skills` | — | `{ skills: [Skill] }` (full catalog, resolved) |
   | POST | `/projects/:id/skills/:skillId/enable` | `{}` | `{ skill: Skill }` |
   | POST | `/projects/:id/skills/:skillId/disable` | `{}` | `{ skill: Skill }` |
 - **Skill shape:**
   ```json
-  { "id": "", "name": "", "description": "", "category": "", "enabled": false,
-    "source": "builtin|custom", "updatedAt": "ISO" }
+  { "id": "code-review", "name": "Code Review", "description": "…", "category": "quality",
+    "enabled": true, "source": "builtin", "updatedAt": "ISO"|null }
   ```
-- Backed by a `ProjectSkill` table (projectId, skillId, enabled, updatedAt) seeded from a
-  static builtin catalog.
+  `updatedAt` is `null` while the skill sits at its catalog default (no override row).
+- Unknown `skillId` → `404 { code: "SKILL_NOT_FOUND" }`. Builtin slugs are stable
+  identifiers (never rename once shipped).
+- Proof: 6 catalog/resolver unit tests + 5 route tests (list/enable/disable/404/401),
+  api production typecheck clean.
 
 ---
 
@@ -199,4 +206,4 @@ No skills backend, package, or UI exists today. Frozen contract:
 | 2 | Security scanner | EXPOSED ✅ | npm audit + secret/SAST grep in workspace |
 | 3 | SSH store/test | EXPOSED ⚠️ | real ssh test; **keygen = GAP-SSH** |
 | 4 | Object Storage GCS | IMPLEMENTED ✅ | merged on `main`, flag-gated; GCS mechanism live-proven 2026-06-29; live-enable = GSA storage role + WI/key wiring + flag (see §4) |
-| 5 | Skills registry | GAP ❌ | spec frozen; needs `ProjectSkill` table + catalog |
+| 5 | Skills registry | IMPLEMENTED ✅ | `ProjectSkill` table (`0048`) + builtin catalog; 11 tests; additive/unflagged |

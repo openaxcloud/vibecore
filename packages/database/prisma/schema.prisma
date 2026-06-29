@@ -263,6 +263,7 @@ model Project {
   agentPatchProposals    AgentPatchProposal[]
   connectionLinks        ProjectConnectionLink[]
   databaseInstance       DatabaseInstance?
+  skills                 ProjectSkill[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -356,6 +357,24 @@ model AgentPatchProposal {
 
   @@index([projectId, status])
   @@index([projectId, updatedAt])
+}
+
+// Per-project enable/disable overrides for the builtin Skills catalog (Replit
+// parity). The catalog itself is a static, code-owned list (skills-catalog.ts);
+// this table only stores the sparse set of projects that toggled a skill away
+// from its default. Absent row => the skill is at its catalog default. skillId
+// is the catalog slug. Unique per (project, skill).
+model ProjectSkill {
+  id        String   @id @default(cuid())
+  projectId String
+  skillId   String
+  enabled   Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, skillId])
+  @@index([projectId])
 }
 
 model ProjectEnvironment {

@@ -100,6 +100,7 @@ import {
   isObjectStorageEnabled,
   resolveDefaultObjectStorage,
 } from './object-storage.js';
+import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
 import {
   databaseRollbackEntitlement,
   isDatabaseRollbackEnabled,
@@ -419,6 +420,11 @@ const projectIdeStateSchema = z.object({
 const agentPatchProposalParams = z.object({
   projectId: z.string().min(1),
   proposalId: z.string().min(1),
+});
+
+const skillParams = z.object({
+  projectId: z.string().min(1),
+  skillId: z.string().min(1).max(64),
 });
 
 const agentPatchProposalStatusSchema = z.enum(['pending', 'applying', 'failed']);
@@ -14595,6 +14601,38 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { deleted: await store.deleteAgentPatchProposal(project.id, proposalId) };
   });
+
+  /* -------- Skills registry (builtin catalog + per-project enable/disable) -------- */
+  app.get('/projects/:projectId/skills', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    return { skills: resolveProjectSkills(await store.listProjectSkillOverrides(project.id)) };
+  });
+
+  const setSkillEnabled = async (request: FastifyRequest, reply: FastifyReply, enabled: boolean) => {
+    const { projectId, skillId } = parse(skillParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:write');
+
+    if (!isKnownSkill(skillId)) {
+      return reply.code(404).send({ error: 'Unknown skill', code: 'SKILL_NOT_FOUND' });
+    }
+
+    await store.setProjectSkillEnabled({ projectId: project.id, skillId, enabled });
+
+    return reply.send({ skill: resolveSkill(skillId, await store.listProjectSkillOverrides(project.id)) });
+  };
+
+  app.post('/projects/:projectId/skills/:skillId/enable', (request, reply) =>
+    setSkillEnabled(request, reply, true),
+  );
+  app.post('/projects/:projectId/skills/:skillId/disable', (request, reply) =>
+    setSkillEnabled(request, reply, false),
+  );
 
   app.get('/projects/:projectId/settings', async (request) => ({
     project: await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read'),
