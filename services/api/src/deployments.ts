@@ -690,6 +690,51 @@ export function buildDeploymentUrl(project: ProjectRecord, deployment: Deploymen
 }
 
 /**
+ * P2d publish/promote: a deployment can be published to production only when it
+ * has a built artifact (READY) and is not itself a production deployment.
+ */
+export function canPublishDeployment(source: Pick<DeploymentRecord, 'status' | 'environment'>): {
+  ok: boolean;
+  code?: 'NOT_READY' | 'ALREADY_PRODUCTION';
+} {
+  if (source.environment === 'production') {
+    return { ok: false, code: 'ALREADY_PRODUCTION' };
+  }
+
+  if (source.status !== 'READY') {
+    return { ok: false, code: 'NOT_READY' };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Promote a READY preview/staging deployment to production: a true "publish"
+ * that points production at the SAME built artifact (no rebuild), Vercel-style.
+ * The new deployment links back to its source via `parentDeploymentId`. Pure —
+ * the caller supplies the resolved production URL.
+ */
+export function buildPublishedDeploymentInput(source: DeploymentRecord, productionUrl: string) {
+  return {
+    projectId: source.projectId,
+    workspaceId: source.workspaceId,
+    provider: source.provider,
+    environment: 'production' as const,
+    status: 'READY' as const,
+    url: source.url,
+    productionUrl,
+    framework: source.framework,
+    buildCommand: source.buildCommand,
+    outputDirectory: source.outputDirectory,
+    branch: source.branch,
+    commitSha: source.commitSha,
+    customDomain: source.customDomain,
+    parentDeploymentId: source.id,
+    metadata: { ...(source.metadata ?? {}), publishedFrom: source.id },
+  };
+}
+
+/**
  * Public-facing host that backs the `/static-deployments/<id>/*` route. This
  * URL is persisted on the Deployment row and shown to the user as the live URL
  * of their published app, so it MUST be browser-reachable — not the internal

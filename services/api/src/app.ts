@@ -110,6 +110,8 @@ import { shouldRecordDeploymentUsage } from './deployment-billing.js';
 import {
   assertDeploymentRequestAllowed,
   buildDeploymentUrl,
+  buildPublishedDeploymentInput,
+  canPublishDeployment,
   canPollDeploymentStatus,
   createDeploymentLogs,
   deployProviderConfigError,
@@ -20952,6 +20954,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { deployment: canceled };
   });
+
+  /* P2d: publish a READY preview/staging deployment to production (promote the
+   * same built artifact; the new production deployment links back via parentDeploymentId). */
+  app.post('/projects/:projectId/deployments/:deploymentId/publish', async (request, reply) => {
+    const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:write');
+    const source = await store.getDeployment(project.id, deploymentId);
+
+    if (!source) {
+      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    const check = canPublishDeployment(source);
+
+    if (!check.ok) {
+      return reply.code(409).send({
+        error:
+          check.code === 'ALREADY_PRODUCTION'
+            ? 'Deployment is already in production'
+            : 'Only a READY deployment can be published',
+        code: check.code,
+      });
+    }
+
+    const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
+    const published = await store.createDeployment(buildPublishedDeploymentInput(source, publishUrl));
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'deployment.publish',
+      resourceType: 'deployment',
+      resourceId: published.id,
+    });
+
+    return reply.code(201).send({ deployment: published });
+  });
+
   app.post('/projects/:projectId/deployments/:deploymentId/redeploy', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
     const project = await requireProject(request, store, projectId, 'projects:write');

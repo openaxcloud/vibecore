@@ -1842,6 +1842,7 @@ export class PrismaApiStore implements ApiStore {
     logs?: DeploymentRecord['logs'];
     metadata?: Record<string, unknown>;
     rolledBackFromId?: string;
+    parentDeploymentId?: string;
     startedAt?: string;
     finishedAt?: string;
     canceledAt?: string;
@@ -1866,6 +1867,7 @@ export class PrismaApiStore implements ApiStore {
           logs: (input.logs ?? []) as any,
           metadata: (input.metadata ?? {}) as any,
           rolledBackFromId: input.rolledBackFromId,
+          parentDeploymentId: input.parentDeploymentId,
           startedAt: input.startedAt ? new Date(input.startedAt) : undefined,
           finishedAt: input.finishedAt ? new Date(input.finishedAt) : undefined,
           canceledAt: input.canceledAt ? new Date(input.canceledAt) : undefined,
@@ -4347,6 +4349,7 @@ function mapDeployment(deployment: any): DeploymentRecord {
     logs: Array.isArray(deployment.logs) ? deployment.logs : [],
     metadata: deployment.metadata ?? undefined,
     rolledBackFromId: deployment.rolledBackFromId ?? undefined,
+    parentDeploymentId: deployment.parentDeploymentId ?? undefined,
     lastMeteredAt: toIso(deployment.lastMeteredAt),
     startedAt: toIso(deployment.startedAt),
     finishedAt: toIso(deployment.finishedAt),

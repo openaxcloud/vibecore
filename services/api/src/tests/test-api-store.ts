@@ -1371,6 +1371,7 @@ export class TestApiStore implements ApiStore {
     logs?: DeploymentRecord['logs'];
     metadata?: Record<string, unknown>;
     rolledBackFromId?: string;
+    parentDeploymentId?: string;
     startedAt?: string;
     finishedAt?: string;
     canceledAt?: string;
@@ -1394,6 +1395,7 @@ export class TestApiStore implements ApiStore {
       logs: input.logs ?? [],
       metadata: input.metadata,
       rolledBackFromId: input.rolledBackFromId,
+      parentDeploymentId: input.parentDeploymentId,
       startedAt: input.startedAt,
       finishedAt: input.finishedAt,
       canceledAt: input.canceledAt,

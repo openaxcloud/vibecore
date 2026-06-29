@@ -210,3 +210,6 @@ feature flag — inert until the IDE calls it (no existing behaviour touched).
 | 3 | SSH store/test/keygen | EXPOSED ✅ | real ssh test + server keygen (`generate-keypair`); 6 tests incl. OpenSSH interop |
 | 4 | Object Storage GCS | IMPLEMENTED ✅ | merged on `main`, flag-gated; GCS mechanism live-proven 2026-06-29; live-enable = GSA storage role + WI/key wiring + flag (see §4) |
 | 5 | Skills registry | IMPLEMENTED ✅ | `ProjectSkill` table (`0048`) + builtin catalog; 11 tests; additive/unflagged |
+| 6 | Free-tier DB (shared-pg-0) | CODE DONE ✅ | admin-SQL tenant provisioning (role+db+isolation) live-proven vs real Postgres; 22 tests; Helm template gated; activation needs Avi (cluster bootstrap + manager deploy + `DB_SHARED_TENANT_SECRET`) |
+| 7 | Hibernation (workspace) | IMPLEMENTED ✅ | GC reconciler: sleep on idle + orphan-RUNNING reconcile + wake-on-reopen (`manager.ts`); needs ws-manager deploy to go live |
+| 8 | Deploy publish (P2d) | PARTIAL ✅ | `POST /deployments/:id/publish` promotes a READY preview to a linked production deployment (`parentDeploymentId`, migration `0049`); 7 tests. Dev/prod **DB**-split + workspace-file clone = remaining infra-heavy follow-up |

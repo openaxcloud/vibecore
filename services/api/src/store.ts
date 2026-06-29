@@ -258,6 +258,8 @@ export interface DeploymentRecord {
   logs: Array<{ timestamp: string; level: 'info' | 'warn' | 'error'; message: string }>;
   metadata?: Record<string, unknown>;
   rolledBackFromId?: string;
+  /** P2d: source deployment a production deployment was published from. */
+  parentDeploymentId?: string;
   /** Replit-parity deploy metering idempotency marker (ISO); set once metered. */
   lastMeteredAt?: string;
   startedAt?: string;
@@ -1148,6 +1150,7 @@ export interface ApiStore {
     logs?: DeploymentRecord['logs'];
     metadata?: Record<string, unknown>;
     rolledBackFromId?: string;
+    parentDeploymentId?: string;
     startedAt?: string;
     finishedAt?: string;
     canceledAt?: string;
