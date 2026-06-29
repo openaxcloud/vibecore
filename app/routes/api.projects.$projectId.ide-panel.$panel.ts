@@ -972,6 +972,27 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
   }
 }
 
+/*
+ * Object Storage (GCS) is flag-gated (OBJECT_STORAGE_ENABLED): every internal
+ * route 404s with code FEATURE_NOT_ENABLED while the flag is off. Translate that
+ * into a structured `{ enabled: false }` payload so the IDE panel can render a
+ * clear "not enabled" state instead of a 502; any other error is re-thrown.
+ */
+async function objectStorageResultOrDisabled(error: unknown): Promise<ReturnType<typeof json>> {
+  if (error instanceof Response && error.status === 404) {
+    const payload = (await error
+      .clone()
+      .json()
+      .catch(() => ({}))) as { code?: string };
+
+    if (payload.code === 'FEATURE_NOT_ENABLED' || payload.code === undefined) {
+      return json({ enabled: false, objects: [], folders: [] });
+    }
+  }
+
+  throw error;
+}
+
 export async function action({ request, params }: EnterpriseActionArgs) {
   const projectId = params.projectId;
   const panel = params.panel;
@@ -1513,7 +1534,95 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       });
     }
   } else if (panel === 'object-storage') {
-    if (intent === 'export') {
+    if (intent === 'list') {
+      const search = new URLSearchParams({ delimiter: '/' });
+
+      if (body.prefix) {
+        search.set('prefix', body.prefix);
+      }
+
+      try {
+        const result = await apiRequest(request, `/projects/${projectId}/object-storage/objects?${search.toString()}`);
+        return json({ enabled: true, ...(result as any) });
+      } catch (error) {
+        return objectStorageResultOrDisabled(error);
+      }
+    } else if (intent === 'ensure-bucket') {
+      try {
+        const result = await apiRequest(request, `/projects/${projectId}/object-storage/bucket`, {
+          method: 'POST',
+          body: JSON.stringify({}),
+        });
+        return json({ enabled: true, ok: true, ...(result as any) });
+      } catch (error) {
+        return objectStorageResultOrDisabled(error);
+      }
+    } else if (intent === 'upload-url') {
+      const key = (body.key ?? '').trim();
+
+      if (!key) {
+        throw json({ error: 'key is required for upload-url' }, { status: 400 });
+      }
+
+      try {
+        const result = await apiRequest(request, `/projects/${projectId}/object-storage/objects/upload-url`, {
+          method: 'POST',
+          body: JSON.stringify({ key, contentType: body.contentType || undefined }),
+        });
+        return json({ enabled: true, ...(result as any) });
+      } catch (error) {
+        return objectStorageResultOrDisabled(error);
+      }
+    } else if (intent === 'download-url') {
+      const key = (body.key ?? '').trim();
+
+      if (!key) {
+        throw json({ error: 'key is required for download-url' }, { status: 400 });
+      }
+
+      try {
+        const result = await apiRequest(
+          request,
+          `/projects/${projectId}/object-storage/objects/download-url?key=${encodeURIComponent(key)}`,
+        );
+        return json({ enabled: true, ...(result as any) });
+      } catch (error) {
+        return objectStorageResultOrDisabled(error);
+      }
+    } else if (intent === 'move') {
+      const from = (body.from ?? '').trim();
+      const to = (body.to ?? '').trim();
+
+      if (!from || !to) {
+        throw json({ error: 'from and to are required for move' }, { status: 400 });
+      }
+
+      try {
+        const result = await apiRequest(request, `/projects/${projectId}/object-storage/objects/move`, {
+          method: 'POST',
+          body: JSON.stringify({ from, to }),
+        });
+        return json({ enabled: true, ok: true, ...(result as any) });
+      } catch (error) {
+        return objectStorageResultOrDisabled(error);
+      }
+    } else if (intent === 'delete-object') {
+      const payload = body.prefix ? { prefix: body.prefix } : { key: (body.key ?? '').trim() };
+
+      if (!('prefix' in payload ? payload.prefix : payload.key)) {
+        throw json({ error: 'key or prefix is required for delete-object' }, { status: 400 });
+      }
+
+      try {
+        const result = await apiRequest(request, `/projects/${projectId}/object-storage/objects`, {
+          method: 'DELETE',
+          body: JSON.stringify(payload),
+        });
+        return json({ enabled: true, ok: true, ...(result as any) });
+      } catch (error) {
+        return objectStorageResultOrDisabled(error);
+      }
+    } else if (intent === 'export') {
       await apiRequest(request, `/projects/${projectId}/export/zip`);
     } else {
       await apiRequest(request, `/projects/${projectId}/env-vars`, {

@@ -10899,7 +10899,7 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'object-storage') {
-    return <ProjectObjectStoragePanel data={data} onSubmit={onSubmit} busy={busy} />;
+    return <ProjectObjectStoragePanel projectId={projectId} busy={busy} />;
   }
 
   if (panel === 'packages') {
@@ -13242,119 +13242,335 @@ function ProjectSettingsPanel({
   );
 }
 
-function ProjectObjectStoragePanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
-  const storageVars = (data.envVars ?? []).filter((item: any) => /S3|STORAGE|BUCKET|R2/i.test(item.key));
-  const exportCount = (data.recentActivity ?? []).filter((event: any) => event.action === 'project.export_zip').length;
+interface ObjectStorageObject {
+  key: string;
+  size?: number;
+  updated?: string | null;
+  contentType?: string | null;
+}
+
+function formatObjectStorageSize(size?: number): string {
+  if (typeof size !== 'number' || Number.isNaN(size)) {
+    return 'unknown size';
+  }
+
+  if (size < 1024) {
+    return `${size} B`;
+  }
+
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/*
+ * Real per-project GCS object storage. Self-fetches via the ide-panel proxy
+ * (intents list/upload-url/download-url/move/delete-object/ensure-bucket) which
+ * forwards to /projects/:id/object-storage/*. The feature is flag-gated
+ * (OBJECT_STORAGE_ENABLED); when off the proxy returns { enabled: false } and we
+ * render a clear "not enabled" state rather than any placeholder data.
+ */
+function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; busy: boolean }) {
   const [prefix, setPrefix] = useState('');
-  const files = (data.files ?? []) as Array<{ path?: string; sizeBytes?: number; updatedAt?: string }>;
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [objects, setObjects] = useState<ObjectStorageObject[]>([]);
+  const [folders, setFolders] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [working, setWorking] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
-  const objects: Array<{ key: string; size: string; status: string }> = files
-    .filter((file: any) => String(file.path ?? '').startsWith(prefix))
-    .slice(0, 24)
-    .map((file: any) => ({
-      key: String(file.path ?? ''),
-      size: typeof file.sizeBytes === 'number' ? `${Math.ceil(file.sizeBytes / 1024)} KB` : 'unknown size',
-      status: file.updatedAt ? new Date(file.updatedAt).toLocaleString() : 'stored',
-    }));
+  const postIntent = useCallback(
+    async (fields: Record<string, string>): Promise<any> => {
+      if (!projectId) {
+        return null;
+      }
 
-  const [selectedObject, setSelectedObject] = useState('');
+      const form = new FormData();
+
+      for (const [key, value] of Object.entries(fields)) {
+        form.append(key, value);
+      }
+
+      const response = await fetch(`/api/projects/${projectId}/ide-panel/object-storage`, {
+        method: 'POST',
+        body: form,
+      });
+
+      return (await response.json().catch(() => ({}))) as any;
+    },
+    [projectId],
+  );
+
+  const refresh = useCallback(
+    async (nextPrefix: string) => {
+      if (!projectId) {
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const result = await postIntent({ intent: 'list', prefix: nextPrefix });
+
+        if (!result) {
+          return;
+        }
+
+        setEnabled(Boolean(result.enabled));
+        setObjects(Array.isArray(result.objects) ? result.objects : []);
+        setFolders(Array.isArray(result.folders) ? result.folders : []);
+        setStatus(typeof result.error === 'string' ? result.error : null);
+      } catch {
+        setStatus('Unable to reach object storage.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [postIntent, projectId],
+  );
+
+  useEffect(() => {
+    void refresh(prefix);
+  }, [prefix, refresh]);
+
+  const runOperation = useCallback(
+    async (fields: Record<string, string>, successMessage: string) => {
+      setWorking(true);
+      setStatus(null);
+
+      try {
+        const result = await postIntent(fields);
+
+        if (result && result.error) {
+          setStatus(typeof result.error === 'string' ? result.error : 'Operation failed.');
+          return;
+        }
+
+        setStatus(successMessage);
+        await refresh(prefix);
+      } catch {
+        setStatus('Operation failed.');
+      } finally {
+        setWorking(false);
+      }
+    },
+    [postIntent, prefix, refresh],
+  );
+
+  const handleUpload = useCallback(
+    async (fileList: FileList | null) => {
+      if (!fileList || !fileList.length) {
+        return;
+      }
+
+      setWorking(true);
+      setStatus(null);
+
+      try {
+        for (const file of Array.from(fileList)) {
+          const key = `${prefix}${file.name}`;
+          const contentType = file.type || 'application/octet-stream';
+
+          const signed = await postIntent({ intent: 'upload-url', key, contentType });
+
+          if (!signed || signed.enabled === false || !signed.url) {
+            setStatus(signed?.error ?? 'Object storage is not enabled.');
+            return;
+          }
+
+          const put = await fetch(signed.url, {
+            method: signed.method ?? 'PUT',
+            headers: signed.headers ?? { 'Content-Type': contentType },
+            body: file,
+          });
+
+          if (!put.ok) {
+            setStatus(`Upload failed for ${file.name} (${put.status}).`);
+            return;
+          }
+        }
+
+        setStatus('Upload complete.');
+        await refresh(prefix);
+      } catch {
+        setStatus('Upload failed.');
+      } finally {
+        setWorking(false);
+
+        if (uploadInputRef.current) {
+          uploadInputRef.current.value = '';
+        }
+      }
+    },
+    [postIntent, prefix, refresh],
+  );
+
+  const handleDownload = useCallback(
+    async (key: string) => {
+      const result = await postIntent({ intent: 'download-url', key });
+
+      if (result && result.url) {
+        window.open(result.url, '_blank', 'noopener,noreferrer');
+      } else {
+        setStatus(result?.error ?? 'Unable to create a download link.');
+      }
+    },
+    [postIntent],
+  );
+
+  const handleRename = useCallback(
+    (key: string) => {
+      const next = window.prompt('Move/rename object to key:', key);
+
+      if (next && next.trim() && next !== key) {
+        void runOperation({ intent: 'move', from: key, to: next.trim() }, 'Object moved.');
+      }
+    },
+    [runOperation],
+  );
+
+  const parentPrefix = (() => {
+    const trimmed = prefix.replace(/\/$/, '');
+    const idx = trimmed.lastIndexOf('/');
+
+    return idx >= 0 ? trimmed.slice(0, idx + 1) : '';
+  })();
+
+  if (enabled === false) {
+    return (
+      <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
+        <div className="bolt-project-empty-panel grid gap-2 text-sm">
+          <strong className="text-bolt-elements-textPrimary">Object Storage is not enabled for this project</strong>
+          <span className="text-bolt-elements-textSecondary">
+            Per-project GCS buckets are gated behind the OBJECT_STORAGE_ENABLED platform flag. Once a platform admin
+            enables it (and binds the API workload identity), this panel lists, uploads, downloads, moves and deletes
+            real objects in the project bucket.
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
-      <section>
-        <div className="bolt-project-panel-toolbar">
-          <label>
-            Project file prefix
+      <section className="grid gap-3">
+        <div className="bolt-project-panel-toolbar flex flex-wrap items-end gap-2">
+          <label className="grid gap-1 text-xs text-bolt-elements-textSecondary">
+            Prefix (folder)
             <input
               value={prefix}
               onChange={(event) => setPrefix(event.target.value)}
-              placeholder="src/"
+              placeholder="assets/"
               autoCapitalize="none"
               spellCheck={false}
             />
           </label>
+          <button type="button" onClick={() => void refresh(prefix)} disabled={loading || working}>
+            {loading ? 'Loading…' : 'Refresh'}
+          </button>
+          <button type="button" onClick={() => uploadInputRef.current?.click()} disabled={busy || working}>
+            Upload files
+          </button>
           <button
             type="button"
-            onClick={() => setSelectedObject(objects[0]?.key ?? '')}
-            disabled={!objects.length}
-            aria-label="Select the first project file in object storage"
+            onClick={() => void runOperation({ intent: 'ensure-bucket' }, 'Bucket ready.')}
+            disabled={busy || working}
           >
-            Select first file
+            Ensure bucket
           </button>
+          <input
+            ref={uploadInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(event) => void handleUpload(event.currentTarget.files)}
+          />
         </div>
+
+        {prefix ? (
+          <div className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
+            <button type="button" onClick={() => setPrefix(parentPrefix)} className="underline">
+              ⬆ Up
+            </button>
+            <span className="font-mono">{prefix}</span>
+          </div>
+        ) : null}
+
+        {folders.length ? (
+          <div className="flex flex-wrap gap-2">
+            {folders.map((folder) => (
+              <span key={folder} className="inline-flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPrefix(folder)}
+                  className="inline-flex items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+                >
+                  📁 {folder.replace(prefix, '').replace(/\/$/, '')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void runOperation({ intent: 'delete-object', prefix: folder }, 'Folder deleted.')}
+                  aria-label={`Delete folder ${folder}`}
+                  className="text-bolt-elements-textTertiary hover:text-bolt-elements-item-contentDanger"
+                  disabled={working}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : null}
+
         {objects.length ? (
-          <div className="bolt-project-object-grid">
+          <div className="grid gap-1">
             {objects.map((object) => (
-              <button
+              <div
                 key={object.key}
-                type="button"
-                className={selectedObject === object.key ? 'selected' : ''}
-                onClick={() => setSelectedObject(object.key)}
+                className="flex items-center justify-between gap-2 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs"
               >
-                <strong>{object.key}</strong>
-                <span>{object.size}</span>
-                <em>{object.status}</em>
-              </button>
+                <div className="min-w-0">
+                  <strong className="block truncate text-bolt-elements-textPrimary">
+                    {object.key.replace(prefix, '')}
+                  </strong>
+                  <span className="text-bolt-elements-textSecondary">
+                    {formatObjectStorageSize(object.size)}
+                    {object.updated ? ` · ${new Date(object.updated).toLocaleString()}` : ''}
+                  </span>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button type="button" onClick={() => void handleDownload(object.key)} disabled={working}>
+                    Download
+                  </button>
+                  <button type="button" onClick={() => handleRename(object.key)} disabled={working}>
+                    Move
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void runOperation({ intent: 'delete-object', key: object.key }, 'Object deleted.')}
+                    disabled={working}
+                    className="text-bolt-elements-item-contentDanger"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         ) : (
           <div className="bolt-project-empty-panel">
-            {prefix ? 'No backend project files match this prefix.' : 'No backend project files are stored yet.'}
+            {loading ? 'Loading objects…' : prefix ? 'No objects under this prefix.' : 'The bucket is empty.'}
           </div>
         )}
-        <PanelRows
-          rows={
-            storageVars.length
-              ? storageVars.map((item: any) => [item.key, item.updatedAt ?? 'Stored in project environment'])
-              : [
-                  ['Storage provider', 'No object storage bucket configured in backend env'],
-                  ['Backend exports', `${exportCount} project exports recorded`],
-                ]
-          }
-          empty="Object storage is not configured for this project."
-        />
+
+        {status ? (
+          <p className="text-xs text-bolt-elements-textSecondary" role="status">
+            {status}
+          </p>
+        ) : null}
       </section>
-      <form
-        onSubmit={onSubmit}
-        className="bolt-project-managed-form grid gap-3 rounded-lg border border-bolt-elements-borderColor p-3"
-        aria-label="Object storage configuration"
-      >
-        <input name="intent" value="config" type="hidden" />
-        <label className="bolt-project-managed-field" htmlFor="object-storage-config-key">
-          <span>Bucket environment key</span>
-          <PanelInput
-            id="object-storage-config-key"
-            name="key"
-            placeholder="OBJECT_STORAGE_BUCKET"
-            defaultValue="OBJECT_STORAGE_BUCKET"
-            autoCapitalize="none"
-            spellCheck={false}
-            required
-          />
-        </label>
-        <label className="bolt-project-managed-field" htmlFor="object-storage-config-value">
-          <span>Bucket name</span>
-          <PanelInput
-            id="object-storage-config-value"
-            name="value"
-            placeholder="vibecore-project-assets"
-            autoCapitalize="none"
-            spellCheck={false}
-            required
-          />
-        </label>
-        <PanelButton disabled={busy}>Save storage config</PanelButton>
-        <button
-          type="submit"
-          name="intent"
-          value="export"
-          className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
-          disabled={busy}
-          aria-label="Export the current project as a zip archive"
-        >
-          Export project archive
-        </button>
-      </form>
     </div>
   );
 }
