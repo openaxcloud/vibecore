@@ -88,6 +88,7 @@ function mapDatabaseInstance(row: {
   id: string;
   projectId: string;
   organizationId: string;
+  environment: string;
   status: DatabaseInstanceRecord['status'];
   engine: string;
   region: string | null;
@@ -101,6 +102,7 @@ function mapDatabaseInstance(row: {
     id: row.id,
     projectId: row.projectId,
     organizationId: row.organizationId,
+    environment: row.environment === 'production' ? 'production' : 'development',
     status: row.status,
     engine: row.engine,
     region: row.region ?? undefined,
@@ -1677,8 +1679,13 @@ export class PrismaApiStore implements ApiStore {
     return [...byOrg.entries()].map(([organizationId, bytes]) => ({ organizationId, bytes }));
   }
 
-  async getDatabaseInstanceByProject(projectId: string): Promise<DatabaseInstanceRecord | undefined> {
-    const row = await this.prisma.databaseInstance.findUnique({ where: { projectId } });
+  async getDatabaseInstanceByProject(
+    projectId: string,
+    environment = 'development',
+  ): Promise<DatabaseInstanceRecord | undefined> {
+    const row = await this.prisma.databaseInstance.findUnique({
+      where: { projectId_environment: { projectId, environment } },
+    });
 
     return row ? mapDatabaseInstance(row) : undefined;
   }
@@ -1724,11 +1731,13 @@ export class PrismaApiStore implements ApiStore {
     organizationId: string;
     retentionDays: number;
     region?: string;
+    environment?: string;
   }): Promise<DatabaseInstanceRecord> {
     const row = await this.prisma.databaseInstance.create({
       data: {
         projectId: input.projectId,
         organizationId: input.organizationId,
+        environment: input.environment ?? 'development',
         retentionDays: input.retentionDays,
         region: input.region ?? null,
         pitrEnabled: input.retentionDays > 0,
@@ -1842,6 +1851,7 @@ export class PrismaApiStore implements ApiStore {
     logs?: DeploymentRecord['logs'];
     metadata?: Record<string, unknown>;
     rolledBackFromId?: string;
+    parentDeploymentId?: string;
     startedAt?: string;
     finishedAt?: string;
     canceledAt?: string;
@@ -1866,6 +1876,7 @@ export class PrismaApiStore implements ApiStore {
           logs: (input.logs ?? []) as any,
           metadata: (input.metadata ?? {}) as any,
           rolledBackFromId: input.rolledBackFromId,
+          parentDeploymentId: input.parentDeploymentId,
           startedAt: input.startedAt ? new Date(input.startedAt) : undefined,
           finishedAt: input.finishedAt ? new Date(input.finishedAt) : undefined,
           canceledAt: input.canceledAt ? new Date(input.canceledAt) : undefined,
@@ -4347,6 +4358,7 @@ function mapDeployment(deployment: any): DeploymentRecord {
     logs: Array.isArray(deployment.logs) ? deployment.logs : [],
     metadata: deployment.metadata ?? undefined,
     rolledBackFromId: deployment.rolledBackFromId ?? undefined,
+    parentDeploymentId: deployment.parentDeploymentId ?? undefined,
     lastMeteredAt: toIso(deployment.lastMeteredAt),
     startedAt: toIso(deployment.startedAt),
     finishedAt: toIso(deployment.finishedAt),

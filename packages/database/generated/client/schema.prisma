@@ -262,7 +262,7 @@ model Project {
   agentMemoryPreferences AgentMemoryPreference[]
   agentPatchProposals    AgentPatchProposal[]
   connectionLinks        ProjectConnectionLink[]
-  databaseInstance       DatabaseInstance?
+  databaseInstances      DatabaseInstance[]
   skills                 ProjectSkill[]
 
   @@unique([organizationId, slug])
@@ -637,36 +637,39 @@ model ProjectStorageObject {
 }
 
 model Deployment {
-  id               String                 @id @default(cuid())
-  projectId        String
-  workspaceId      String?
-  environmentId    String?
-  environmentName  String                 @default("preview")
-  status           DeploymentStatus       @default(QUEUED)
-  provider         String
-  url              String?
-  previewUrl       String?
-  productionUrl    String?
-  framework        String?
-  buildCommand     String?
-  outputDirectory  String?
-  branch           String?
-  commitSha        String?
-  customDomain     String?
-  logs             Json                   @default("[]")
-  metadata         Json                   @default("{}")
-  rolledBackFromId String?
+  id                 String                 @id @default(cuid())
+  projectId          String
+  workspaceId        String?
+  environmentId      String?
+  environmentName    String                 @default("preview")
+  status             DeploymentStatus       @default(QUEUED)
+  provider           String
+  url                String?
+  previewUrl         String?
+  productionUrl      String?
+  framework          String?
+  buildCommand       String?
+  outputDirectory    String?
+  branch             String?
+  commitSha          String?
+  customDomain       String?
+  logs               Json                   @default("[]")
+  metadata           Json                   @default("{}")
+  rolledBackFromId   String?
+  // P2d dev/prod split: when a preview/staging deployment is published to
+  // production, the new production deployment links back to its source here.
+  parentDeploymentId String?
   // Replit-parity deploy metering idempotency marker: set once the deployment is
   // metered (mirrors WorkspaceRuntime.lastMeteredAt) so a re-reconcile never
   // double-charges. Dormant/SHADOW until BILLING_CREDITS_ENABLED. See metering-service.ts.
-  lastMeteredAt    DateTime?
-  startedAt        DateTime?
-  finishedAt       DateTime?
-  canceledAt       DateTime?
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
-  project          Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  environment      DeploymentEnvironment? @relation(fields: [environmentId], references: [id])
+  lastMeteredAt      DateTime?
+  startedAt          DateTime?
+  finishedAt         DateTime?
+  canceledAt         DateTime?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  project            Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  environment        DeploymentEnvironment? @relation(fields: [environmentId], references: [id])
 
   @@index([projectId])
   @@index([projectId, workspaceId])
@@ -1720,8 +1723,12 @@ enum DatabaseInstanceStatus {
 /// `retentionDays` is the plan-derived PITR window (Pro = 28).
 model DatabaseInstance {
   id             String                 @id @default(cuid())
-  projectId      String                 @unique
+  projectId      String
   organizationId String
+  // P2d dev/prod split: a project has a `development` instance (its workspace
+  // DB) and, once published, a separate `production` instance. Existing rows
+  // backfill to 'development', preserving the prior one-per-project behaviour.
+  environment    String                 @default("development")
   status         DatabaseInstanceStatus @default(PROVISIONING)
   engine         String                 @default("postgres")
   region         String?
@@ -1734,6 +1741,7 @@ model DatabaseInstance {
   snapshots      DatabaseSnapshot[]
   restores       DatabaseRestore[]
 
+  @@unique([projectId, environment])
   @@index([organizationId])
   @@index([status])
 }

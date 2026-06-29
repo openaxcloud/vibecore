@@ -44,8 +44,27 @@ const CNPG_API = 'postgresql.cnpg.io/v1';
 /** Default shared cluster for the free tier (overridable via DB_SHARED_CLUSTER). */
 export const DEFAULT_SHARED_CLUSTER = process.env.DB_SHARED_CLUSTER?.trim() || 'shared-pg-0';
 
-export function clusterName(projectId: string): string {
-  return `db-${projectId}`.toLowerCase().slice(0, 53);
+/*
+ * P2d dev/prod split: a project has a `development` database (its workspace DB)
+ * and, once published, a separate `production` database. Same plan/tier for both
+ * (see resolveDatabaseTier). `development` keeps the original, un-suffixed names
+ * for 100% backward compatibility; only `production` gets a suffix, so existing
+ * dev clusters/dbs/roles are never renamed.
+ */
+export type DatabaseEnvironment = 'development' | 'production';
+
+/** Cluster-name suffix (k8s resource): `-prod` for production, '' for development. */
+function clusterEnvSuffix(environment?: DatabaseEnvironment): string {
+  return environment === 'production' ? '-prod' : '';
+}
+
+/** Postgres-identifier suffix (role/db): `_prod` for production, '' for development. */
+function identEnvSuffix(environment?: DatabaseEnvironment): string {
+  return environment === 'production' ? '_prod' : '';
+}
+
+export function clusterName(projectId: string, environment?: DatabaseEnvironment): string {
+  return `db-${projectId}${clusterEnvSuffix(environment)}`.toLowerCase().slice(0, 53);
 }
 
 export function restoreClusterName(projectId: string, restoreId: string): string {
@@ -84,13 +103,13 @@ function pgIdent(prefix: string, projectId: string): string {
   return `${prefix}${safe}`;
 }
 
-/** Shared-tier per-project logical db + owner role names. */
-export function sharedDbName(projectId: string): string {
-  return pgIdent('proj_', projectId);
+/** Shared-tier per-project logical db + owner role names (per environment). */
+export function sharedDbName(projectId: string, environment?: DatabaseEnvironment): string {
+  return `${pgIdent('proj_', projectId)}${identEnvSuffix(environment)}`;
 }
 
-export function tenantRoleName(projectId: string): string {
-  return pgIdent('t_', projectId);
+export function tenantRoleName(projectId: string, environment?: DatabaseEnvironment): string {
+  return `${pgIdent('t_', projectId)}${identEnvSuffix(environment)}`;
 }
 
 /**
@@ -127,20 +146,29 @@ export function sharedPoolerHost(sharedClusterName: string): string {
  * no password ever needs to be persisted. Returns undefined when the server
  * secret is unset — which keeps the shared tier an inert no-op (prod-safe).
  */
-export function sharedTenantPassword(projectId: string): string | undefined {
+export function sharedTenantPassword(projectId: string, environment?: DatabaseEnvironment): string | undefined {
   const secret = process.env.DB_SHARED_TENANT_SECRET?.trim();
 
   if (!secret) {
     return undefined;
   }
 
-  return createHmac('sha256', secret).update(projectId).digest('hex');
+  // development keeps HMAC(projectId) so existing dev tenants are unchanged;
+  // production derives a distinct password from a per-env salt.
+  const message = environment === 'production' ? `${projectId}:production` : projectId;
+
+  return createHmac('sha256', secret).update(message).digest('hex');
 }
 
 /** Tenant `DATABASE_URL` routed through the shared cluster's pooler. */
-export function buildSharedTenantUri(input: { projectId: string; password: string; sharedClusterName: string }): string {
-  const role = tenantRoleName(input.projectId);
-  const db = sharedDbName(input.projectId);
+export function buildSharedTenantUri(input: {
+  projectId: string;
+  password: string;
+  sharedClusterName: string;
+  environment?: DatabaseEnvironment;
+}): string {
+  const role = tenantRoleName(input.projectId, input.environment);
+  const db = sharedDbName(input.projectId, input.environment);
 
   return `postgresql://${role}:${encodeURIComponent(input.password)}@${sharedPoolerHost(input.sharedClusterName)}:5432/${db}`;
 }
@@ -203,19 +231,20 @@ export function buildDatabaseCrManifest(input: {
   projectId: string;
   organizationId?: string;
   sharedClusterName: string;
+  environment?: DatabaseEnvironment;
 }): K8sManifest {
   return {
     apiVersion: CNPG_API,
     kind: 'Database',
     metadata: {
-      name: `db-${input.projectId}`.toLowerCase().slice(0, 53),
+      name: clusterName(input.projectId, input.environment),
       namespace: DB_NAMESPACE,
       labels: dbLabels(input.projectId, input.organizationId),
     },
     spec: {
       cluster: { name: input.sharedClusterName },
-      name: sharedDbName(input.projectId),
-      owner: tenantRoleName(input.projectId),
+      name: sharedDbName(input.projectId, input.environment),
+      owner: tenantRoleName(input.projectId, input.environment),
     },
   };
 }
@@ -273,6 +302,8 @@ export function buildClusterManifest(input: {
   /** Isolated tier: start hibernated (scale-to-zero, PVC kept) — wake on first use. */
   hibernated?: boolean;
   instances?: number;
+  /** P2d dev/prod split. Defaults to 'development' (un-suffixed cluster name). */
+  environment?: DatabaseEnvironment;
 }): K8sManifest {
   const sat = serviceAccountTemplate(input.backupServiceAccount);
 
@@ -280,7 +311,7 @@ export function buildClusterManifest(input: {
     apiVersion: CNPG_API,
     kind: 'Cluster',
     metadata: {
-      name: clusterName(input.projectId),
+      name: clusterName(input.projectId, input.environment),
       namespace: DB_NAMESPACE,
       labels: dbLabels(input.projectId, input.organizationId),
       // CNPG declarative hibernation: 'on' scales pods to 0 but keeps the PVC.
@@ -304,13 +335,15 @@ export function buildClusterManifest(input: {
 }
 
 /** Daily base backup; continuous WAL archiving is automatic from the Cluster. */
-export function buildScheduledBackupManifest(projectId: string): K8sManifest {
+export function buildScheduledBackupManifest(projectId: string, environment?: DatabaseEnvironment): K8sManifest {
+  const cluster = clusterName(projectId, environment);
+
   return {
     apiVersion: CNPG_API,
     kind: 'ScheduledBackup',
-    metadata: { name: `${clusterName(projectId)}-daily`, namespace: DB_NAMESPACE, labels: dbLabels(projectId) },
+    metadata: { name: `${cluster}-daily`, namespace: DB_NAMESPACE, labels: dbLabels(projectId) },
     // CNPG uses a 6-field cron (with seconds): 02:00 every day.
-    spec: { schedule: '0 0 2 * * *', backupOwnerReference: 'self', cluster: { name: clusterName(projectId) } },
+    spec: { schedule: '0 0 2 * * *', backupOwnerReference: 'self', cluster: { name: cluster } },
   };
 }
 
@@ -388,6 +421,8 @@ export interface ProvisionInput {
   tier?: DatabaseTier;
   /** Shared tier: the shared cluster to place this project's logical DB on. */
   sharedClusterName?: string;
+  /** P2d dev/prod split. Defaults to 'development' (un-suffixed, backward compatible). */
+  environment?: DatabaseEnvironment;
 }
 
 /** Provisioner contract used by the api routes + scheduler. */
@@ -398,7 +433,12 @@ export interface DatabaseProvisioner {
    * Resolve the project's `DATABASE_URL` once the backend is ready, or undefined if
    * not ready yet (caller re-polls). Isolated: the CNPG `<cluster>-app` secret `uri`.
    */
-  getConnectionUri(input: { projectId: string; tier?: DatabaseTier; sharedClusterName?: string }): Promise<string | undefined>;
+  getConnectionUri(input: {
+    projectId: string;
+    tier?: DatabaseTier;
+    sharedClusterName?: string;
+    environment?: DatabaseEnvironment;
+  }): Promise<string | undefined>;
   takeSnapshot(input: { projectId: string; snapshotId: string }): Promise<{ applied: boolean }>;
   startRestore(input: {
     projectId: string;
@@ -464,8 +504,12 @@ export class CnpgProvisioner implements DatabaseProvisioner {
    * are in place. The admin credentials come from the CNPG `<cluster>-app`
    * secret; that role is granted CREATEDB + CREATEROLE at cluster bootstrap.
    */
-  async #ensureSharedTenant(projectId: string, sharedCluster: string): Promise<string | undefined> {
-    const password = sharedTenantPassword(projectId);
+  async #ensureSharedTenant(
+    projectId: string,
+    sharedCluster: string,
+    environment?: DatabaseEnvironment,
+  ): Promise<string | undefined> {
+    const password = sharedTenantPassword(projectId, environment);
 
     if (!password) {
       return undefined;
@@ -484,12 +528,12 @@ export class CnpgProvisioner implements DatabaseProvisioner {
 
     await this.sqlExec.provisionTenant({
       adminUri,
-      role: tenantRoleName(projectId),
-      db: sharedDbName(projectId),
+      role: tenantRoleName(projectId, environment),
+      db: sharedDbName(projectId, environment),
       password,
     });
 
-    return buildSharedTenantUri({ projectId, password, sharedClusterName: sharedCluster });
+    return buildSharedTenantUri({ projectId, password, sharedClusterName: sharedCluster, environment });
   }
 
   async provisionInstance(input: ProvisionInput): Promise<ProvisionResult> {
@@ -505,7 +549,7 @@ export class CnpgProvisioner implements DatabaseProvisioner {
       // Create the owner role + database + isolation first (the Database CRD
       // below needs the owner role to already exist). Best-effort: if the
       // prerequisites are absent this is a no-op and the CRD still records intent.
-      await this.#ensureSharedTenant(input.projectId, sharedCluster).catch(() => undefined);
+      await this.#ensureSharedTenant(input.projectId, sharedCluster, input.environment).catch(() => undefined);
 
       await this.k8s.apply(buildPoolerManifest(sharedCluster));
       await this.k8s.apply(
@@ -513,13 +557,14 @@ export class CnpgProvisioner implements DatabaseProvisioner {
           projectId: input.projectId,
           organizationId: input.organizationId,
           sharedClusterName: sharedCluster,
+          environment: input.environment,
         }),
       );
 
       return { clusterName: sharedCluster, applied: true };
     }
 
-    // Isolated tier (paid / default): a dedicated cluster per project.
+    // Isolated tier (paid / default): a dedicated cluster per project + environment.
     await this.k8s.apply(
       buildClusterManifest({
         projectId: input.projectId,
@@ -527,17 +572,19 @@ export class CnpgProvisioner implements DatabaseProvisioner {
         backupBucket: this.backupBucket,
         retentionDays: input.retentionDays,
         backupServiceAccount: this.backupServiceAccount,
+        environment: input.environment,
       }),
     );
-    await this.k8s.apply(buildScheduledBackupManifest(input.projectId));
+    await this.k8s.apply(buildScheduledBackupManifest(input.projectId, input.environment));
 
-    return { clusterName: clusterName(input.projectId), applied: true };
+    return { clusterName: clusterName(input.projectId, input.environment), applied: true };
   }
 
   async getConnectionUri(input: {
     projectId: string;
     tier?: DatabaseTier;
     sharedClusterName?: string;
+    environment?: DatabaseEnvironment;
   }): Promise<string | undefined> {
     if (input.tier === 'shared') {
       // Idempotently ensure the tenant exists and return its pooled URL. Self-
@@ -545,10 +592,13 @@ export class CnpgProvisioner implements DatabaseProvisioner {
       return this.#ensureSharedTenant(
         input.projectId,
         input.sharedClusterName ?? DEFAULT_SHARED_CLUSTER,
+        input.environment,
       ).catch(() => undefined);
     }
 
-    const secret = await this.k8s.getSecret(DB_NAMESPACE, `${clusterName(input.projectId)}-app`).catch(() => undefined);
+    const secret = await this.k8s
+      .getSecret(DB_NAMESPACE, `${clusterName(input.projectId, input.environment)}-app`)
+      .catch(() => undefined);
     const uri = secret?.uri?.trim();
 
     return uri && uri.length > 0 ? uri : undefined;

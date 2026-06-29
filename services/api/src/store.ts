@@ -146,6 +146,8 @@ export interface DatabaseInstanceRecord {
   id: string;
   projectId: string;
   organizationId: string;
+  /** P2d dev/prod split — which environment this instance backs. */
+  environment: 'development' | 'production';
   status: 'PROVISIONING' | 'ACTIVE' | 'SUSPENDED' | 'DELETED';
   engine: string;
   region?: string;
@@ -258,6 +260,8 @@ export interface DeploymentRecord {
   logs: Array<{ timestamp: string; level: 'info' | 'warn' | 'error'; message: string }>;
   metadata?: Record<string, unknown>;
   rolledBackFromId?: string;
+  /** P2d: source deployment a production deployment was published from. */
+  parentDeploymentId?: string;
   /** Replit-parity deploy metering idempotency marker (ISO); set once metered. */
   lastMeteredAt?: string;
   startedAt?: string;
@@ -1092,7 +1096,10 @@ export interface ApiStore {
    * recovery points; record a restore request (no executor yet). See
    * database-rollback-service.ts + migration 0040.
    */
-  getDatabaseInstanceByProject(projectId: string): Promise<DatabaseInstanceRecord | undefined>;
+  getDatabaseInstanceByProject(
+    projectId: string,
+    environment?: string,
+  ): Promise<DatabaseInstanceRecord | undefined>;
   listDatabaseSnapshots(databaseInstanceId: string): Promise<DatabaseSnapshotRecord[]>;
   listDatabaseRestores(databaseInstanceId: string): Promise<DatabaseRestoreRecord[]>;
   createDatabaseRestore(input: {
@@ -1111,6 +1118,7 @@ export interface ApiStore {
     organizationId: string;
     retentionDays: number;
     region?: string;
+    environment?: string;
   }): Promise<DatabaseInstanceRecord>;
   updateDatabaseInstance(
     id: string,
@@ -1148,6 +1156,7 @@ export interface ApiStore {
     logs?: DeploymentRecord['logs'];
     metadata?: Record<string, unknown>;
     rolledBackFromId?: string;
+    parentDeploymentId?: string;
     startedAt?: string;
     finishedAt?: string;
     canceledAt?: string;
