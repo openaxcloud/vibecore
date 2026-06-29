@@ -87,7 +87,7 @@ const pipeline = [
   {
     icon: Boxes,
     title: 'Ready-to-fork templates',
-    copy: 'Start every bounty from a working E-Code project — AI features, integrations, and growth experiments scaffolded and ready.',
+    copy: 'Start every bounty from a working E-Code project — AI features, integrations, and growth experiments set up and ready.',
   },
   {
     icon: ShieldCheck,
