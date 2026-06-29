@@ -1097,6 +1097,13 @@ export interface ApiStore {
   listActiveWorkspaces(organizationId: string): Promise<WorkspaceRecord[]>;
   countSnapshots(organizationId: string): Promise<number>;
   countDeployments(organizationId: string, since?: Date): Promise<number>;
+  /**
+   * Count an organization's concurrently-published apps — distinct projects with
+   * a live (READY) production deployment. Used to enforce the Replit-parity
+   * 20-app concurrency cap. `excludeProjectId` omits one project from the count
+   * so re-publishing an already-published app does not count against itself.
+   */
+  countPublishedApps(organizationId: string, options?: { excludeProjectId?: string }): Promise<number>;
   createSnapshot(input: {
     projectId: string;
     label?: string;

@@ -317,6 +317,29 @@ export function evaluateCreditGate(input: CreditGateInput): CreditGateDecision {
   return { ok: false, mode: 'blocked', reason: 'budget_cap_reached' };
 }
 
+/**
+ * Replit sets organization usage budgets in **$500 increments**. A budget cap
+ * must be a non-negative multiple of this many cents.
+ */
+export const ORG_BUDGET_INCREMENT_CENTS = 50_000;
+
+/** True if `cents` is a valid org budget cap (≥ 0 and a multiple of $500). */
+export function isValidOrgBudgetCents(cents: number): boolean {
+  return Number.isFinite(cents) && cents >= 0 && cents % ORG_BUDGET_INCREMENT_CENTS === 0;
+}
+
+/**
+ * Snap a requested budget cap UP to the next valid $500 increment (Replit
+ * parity), so a user asking for $501 lands on $1000 rather than being silently
+ * truncated below what they intended. Non-finite/negative inputs clamp to 0.
+ */
+export function roundOrgBudgetToIncrementCents(cents: number): number {
+  if (!Number.isFinite(cents) || cents <= 0) {
+    return 0;
+  }
+  return Math.ceil(cents / ORG_BUDGET_INCREMENT_CENTS) * ORG_BUDGET_INCREMENT_CENTS;
+}
+
 /** Alert thresholds (fractions of the budget cap) for PAYG spend notifications. */
 export const PAYG_ALERT_THRESHOLDS = [0.5, 0.8, 1.0] as const;
 

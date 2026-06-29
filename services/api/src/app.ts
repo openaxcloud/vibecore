@@ -27,9 +27,12 @@ import {
 import {
   StripeBillingClient,
   assertQuota,
+  assertConcurrentPublishedApps,
   aiModelCatalog,
   billingPlans,
   computeAiCostCents,
+  creditPackCatalog,
+  findCreditPack,
   planByKey,
   toCreditPlanKey,
   verifyStripeSignature,
@@ -1117,6 +1120,13 @@ const billingCheckoutSchema = z.object({
 });
 
 const billingPortalSchema = z.object({ returnUrl: z.string().url() });
+
+const creditPackCheckoutSchema = z.object({
+  // One of the catalog SKUs: pack-100 / pack-300 / pack-500 / pack-1000.
+  packId: z.string().min(1),
+  successUrl: z.string().url(),
+  cancelUrl: z.string().url(),
+});
 
 const quotaOverrideSchema = z.object({
   key: z.string().min(1),
@@ -17595,6 +17605,91 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { checkoutUrl: session.url, sessionId: session.id };
   });
+  /*
+   * Replit-parity credit-pack purchase. Creates a one-time-payment Checkout
+   * Session for a pre-paid credit pack (100/300/500/1000). The pack is granted
+   * by the `checkout.session.completed` webhook (mode='payment' branch), not
+   * here. Gated behind BILLING_CREDITS_ENABLED: a real Stripe charge only makes
+   * sense once the credit model is live — while dormant we 503 rather than take
+   * money for credits the app won't yet spend.
+   */
+  app.post('/orgs/:orgId/credits/packs/checkout', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    const body = parse(creditPackCheckoutSchema, request.body);
+    await requireOrg(request, store, orgId, 'billing:manage');
+
+    if (process.env.BILLING_CREDITS_ENABLED !== 'true') {
+      throw Object.assign(new Error('Credit packs are not available yet.'), {
+        statusCode: 503,
+        code: 'CREDIT_PACKS_DISABLED',
+      });
+    }
+
+    const pack = findCreditPack(body.packId);
+
+    if (!pack) {
+      throw Object.assign(new Error('Unknown credit pack.'), {
+        statusCode: 400,
+        code: 'CREDIT_PACK_UNKNOWN',
+        availablePacks: creditPackCatalog.map((entry) => entry.id),
+      });
+    }
+
+    const priceId = process.env[pack.stripePriceEnv];
+
+    if (!priceId) {
+      throw Object.assign(new Error(`Stripe price for ${pack.label} pack is not configured.`), {
+        statusCode: 503,
+        code: 'CREDIT_PACK_PRICE_NOT_CONFIGURED',
+      });
+    }
+
+    if (!stripeClient) {
+      throw Object.assign(new Error('Stripe is not configured'), { statusCode: 503, code: 'STRIPE_NOT_CONFIGURED' });
+    }
+
+    const organization = await store.getOrganization(orgId);
+    const existingCustomer = await store.getBillingCustomer(orgId);
+    const customer =
+      existingCustomer ??
+      (await store.upsertBillingCustomer({
+        organizationId: orgId,
+        provider: 'stripe',
+        externalId: (
+          await stripeClient.createCustomer({
+            organizationId: orgId,
+            name: organization?.name ?? orgId,
+            email: request.currentUser?.email,
+          })
+        ).id,
+      }));
+
+    const session = await stripeClient.createCreditPackCheckoutSession({
+      customerId: customer.externalId,
+      priceId,
+      creditPackSku: pack.id,
+      successUrl: body.successUrl,
+      cancelUrl: body.cancelUrl,
+      organizationId: orgId,
+    });
+
+    if (!session.url) {
+      throw Object.assign(new Error('Stripe checkout session did not include a redirect URL'), {
+        statusCode: 502,
+        code: 'STRIPE_CHECKOUT_URL_MISSING',
+      });
+    }
+
+    await audit(request, store, {
+      organizationId: orgId,
+      action: 'billing.creditpack.checkout.create',
+      resourceType: 'billingCustomer',
+      resourceId: customer.id,
+      metadata: { packId: pack.id, creditCents: pack.creditCents, priceCents: pack.priceCents },
+    });
+
+    return { checkoutUrl: session.url, sessionId: session.id };
+  });
   app.post('/orgs/:orgId/billing/portal', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     const body = parse(billingPortalSchema, request.body);
@@ -17778,6 +17873,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       if (organizationId && object.customer) {
         await store.upsertBillingCustomer({ organizationId, provider: 'stripe', externalId: String(object.customer) });
+      }
+
+      /*
+       * Credit-pack purchase (Replit parity). A one-time-payment Checkout
+       * Session (`createCreditPackCheckoutSession`) completes as a
+       * `checkout.session.completed` event with `mode: 'payment'` and a
+       * `creditPackSku` in metadata. This MUST be intercepted before the
+       * subscription block below — a payment-mode session has no subscription,
+       * so falling through would upsert a bogus subscription keyed on the
+       * checkout-session id and corrupt the org's plan. Idempotency is provided
+       * by the already-committed webhook-dedup row (a Stripe retry of the same
+       * event id is dropped), so the pack is granted at most once.
+       */
+      if (
+        organizationId &&
+        event.type === 'checkout.session.completed' &&
+        object.mode === 'payment' &&
+        typeof object.metadata?.creditPackSku === 'string'
+      ) {
+        const pack = findCreditPack(object.metadata.creditPackSku);
+        const paid =
+          object.payment_status === 'paid' || object.payment_status === 'no_payment_required';
+
+        if (pack && paid) {
+          const purchasedAtMs = Number.isFinite(Number(event.created)) ? Number(event.created) * 1000 : Date.now();
+          const expiresAt = new Date(purchasedAtMs + pack.validityDays * 24 * 60 * 60 * 1000);
+          await store.createCreditPack({
+            organizationId,
+            // Spendable credit value (e.g. $300 for the $290 pack); the gap is the discount.
+            purchasedCents: pack.creditCents,
+            expiresAt,
+            stripePaymentIntentId: typeof object.payment_intent === 'string' ? object.payment_intent : undefined,
+          });
+          await audit(request, store, {
+            organizationId,
+            action: 'billing.creditpack.granted',
+            resourceType: 'creditPack',
+            resourceId: pack.id,
+            metadata: { creditCents: pack.creditCents, expiresAt: expiresAt.toISOString() },
+          });
+        } else {
+          request.log.warn(
+            { organizationId, creditPackSku: object.metadata.creditPackSku, paymentStatus: object.payment_status },
+            'credit-pack checkout completed but not granted (unknown SKU or unpaid)',
+          );
+        }
+
+        // Pack handled — do NOT fall through to the subscription upsert.
+        return reply.code(200).send({ received: true, creditPack: true });
       }
 
       if (
@@ -21178,6 +21322,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             : 'Only a READY deployment can be published',
         code: check.code,
       });
+    }
+
+    /*
+     * Replit-parity concurrent published-app cap (20 live apps/account). Gated
+     * with the rest of the credit model behind BILLING_CREDITS_ENABLED so prod
+     * behaviour is unchanged until the parity billing model is flipped on. We
+     * exclude this project from the count, so re-publishing an already-published
+     * app never trips its own cap — only publishing a NEW (21st) app does.
+     */
+    if (process.env.BILLING_CREDITS_ENABLED === 'true') {
+      const activeOthers = await store.countPublishedApps(project.organizationId, {
+        excludeProjectId: project.id,
+      });
+      assertConcurrentPublishedApps({ active: activeOthers });
     }
 
     const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);

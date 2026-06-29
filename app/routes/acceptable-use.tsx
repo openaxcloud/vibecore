@@ -32,6 +32,16 @@ const page = {
       ],
     },
     {
+      title: 'Usage limits',
+      body: 'Each account may keep up to 20 apps published at once. We may decline to run workloads whose primary purpose is to consume compute (for example crypto-mining, distributed brute-forcing or traffic generation) rather than to build or operate a genuine application.',
+      items: [
+        'Up to 20 concurrently published apps',
+        'No compute-only / mining workloads',
+        'No traffic or load generation',
+        'Fair-use compute',
+      ],
+    },
+    {
       title: 'Abuse response',
       body: 'Abuse events can result in workspace suspension, organization restrictions and audit escalation.',
       items: ['Workspace suspension', 'Organization restrictions', 'Audit escalation', 'Support review'],

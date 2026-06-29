@@ -10,6 +10,9 @@ import {
   toCreditPlanKey,
   HIGH_POWER_ESTIMATE_MULTIPLIER,
   EXTENDED_THINKING_ESTIMATE_MULTIPLIER,
+  ORG_BUDGET_INCREMENT_CENTS,
+  isValidOrgBudgetCents,
+  roundOrgBudgetToIncrementCents,
 } from './credits.js';
 
 describe('computeCreditCostCents', () => {
@@ -158,5 +161,26 @@ describe('paygAlertThresholdCrossed', () => {
   it('returns null below 50% or for invalid caps', () => {
     expect(paygAlertThresholdCrossed(100, 1000)).toBeNull();
     expect(paygAlertThresholdCrossed(100, 0)).toBeNull();
+  });
+});
+
+describe('org budget $500 increments', () => {
+  it('accepts only non-negative multiples of $500', () => {
+    expect(ORG_BUDGET_INCREMENT_CENTS).toBe(50_000);
+    expect(isValidOrgBudgetCents(0)).toBe(true);
+    expect(isValidOrgBudgetCents(50_000)).toBe(true);
+    expect(isValidOrgBudgetCents(150_000)).toBe(true);
+    expect(isValidOrgBudgetCents(50_100)).toBe(false);
+    expect(isValidOrgBudgetCents(-50_000)).toBe(false);
+    expect(isValidOrgBudgetCents(Number.NaN)).toBe(false);
+  });
+
+  it('rounds a requested cap up to the next $500 increment', () => {
+    expect(roundOrgBudgetToIncrementCents(0)).toBe(0);
+    expect(roundOrgBudgetToIncrementCents(1)).toBe(50_000);
+    expect(roundOrgBudgetToIncrementCents(50_000)).toBe(50_000);
+    expect(roundOrgBudgetToIncrementCents(50_100)).toBe(100_000);
+    expect(roundOrgBudgetToIncrementCents(-5)).toBe(0);
+    expect(roundOrgBudgetToIncrementCents(Number.NaN)).toBe(0);
   });
 });

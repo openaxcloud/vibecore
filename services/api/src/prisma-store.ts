@@ -1636,6 +1636,26 @@ export class PrismaApiStore implements ApiStore {
     });
   }
 
+  async countPublishedApps(organizationId: string, options: { excludeProjectId?: string } = {}) {
+    /*
+     * "Published app" = a distinct project with a live PRODUCTION deployment
+     * (status READY). We count distinct projectIds (not deployment rows) so a
+     * project that has been re-published several times counts once. Failed/
+     * superseded builds are excluded by the READY filter.
+     */
+    const rows = await this.prisma.deployment.findMany({
+      where: {
+        project: { organizationId, deletedAt: null },
+        environmentName: 'production',
+        status: 'READY',
+        ...(options.excludeProjectId ? { projectId: { not: options.excludeProjectId } } : {}),
+      },
+      select: { projectId: true },
+      distinct: ['projectId'],
+    });
+    return rows.length;
+  }
+
   async createSnapshot(input: {
     projectId: string;
     label?: string;

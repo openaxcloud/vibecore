@@ -563,6 +563,38 @@ export class StripeBillingClient {
     });
   }
 
+  /**
+   * Create a one-time-payment Checkout Session for a credit pack purchase
+   * (Replit-parity pre-paid credit packs). Unlike `createCheckoutSession`
+   * (subscription mode), this uses `mode: 'payment'` and carries a
+   * `creditPackSku` in metadata so the `checkout.session.completed` webhook can
+   * branch on it and grant the pack instead of touching the subscription row.
+   */
+  async createCreditPackCheckoutSession(input: {
+    customerId: string;
+    priceId: string;
+    creditPackSku: string;
+    successUrl: string;
+    cancelUrl: string;
+    organizationId: string;
+  }) {
+    return this.postForm('/v1/checkout/sessions', {
+      mode: 'payment',
+      customer: input.customerId,
+      success_url: input.successUrl,
+      cancel_url: input.cancelUrl,
+      'line_items[0][price]': input.priceId,
+      'line_items[0][quantity]': '1',
+      'metadata[organizationId]': input.organizationId,
+      'metadata[creditPackSku]': input.creditPackSku,
+      'metadata[priceId]': input.priceId,
+      // Mirror metadata onto the resulting PaymentIntent so a refund/dispute
+      // webhook can also resolve back to the org + pack without a session lookup.
+      'payment_intent_data[metadata][organizationId]': input.organizationId,
+      'payment_intent_data[metadata][creditPackSku]': input.creditPackSku,
+    });
+  }
+
   async createPortalSession(input: { customerId: string; returnUrl: string }) {
     return this.postForm('/v1/billing_portal/sessions', {
       customer: input.customerId,
@@ -603,6 +635,28 @@ export class StripeBillingClient {
       unit_amount: String(input.unitAmountCents),
       'recurring[interval]': input.interval ?? 'month',
       'metadata[planKey]': input.planKey,
+    });
+  }
+
+  /**
+   * Create a one-time (non-recurring) price for a credit pack SKU. Used by the
+   * admin pack-provisioning flow to mint the 4 Stripe Prices whose ids feed the
+   * `STRIPE_CREDIT_PACK_*_PRICE_ID` env vars consumed by
+   * `createCreditPackCheckoutSession`.
+   */
+  async createOneTimePrice(input: {
+    productId: string;
+    creditPackSku: string;
+    unitAmountCents: number;
+    currency?: string;
+    nickname?: string;
+  }) {
+    return this.postForm('/v1/prices', {
+      product: input.productId,
+      currency: input.currency ?? 'usd',
+      unit_amount: String(input.unitAmountCents),
+      ...(input.nickname ? { nickname: input.nickname } : {}),
+      'metadata[creditPackSku]': input.creditPackSku,
     });
   }
 

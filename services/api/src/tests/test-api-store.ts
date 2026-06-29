@@ -1187,6 +1187,23 @@ export class TestApiStore implements ApiStore {
     return [...this.deployments.values()].filter((deployment) => projectIds.has(deployment.projectId)).length;
   }
 
+  async countPublishedApps(organizationId: string, options: { excludeProjectId?: string } = {}) {
+    const projectIds = this.#orgProjectIds(organizationId);
+    const published = new Set<string>();
+    for (const deployment of this.deployments.values()) {
+      if (!projectIds.has(deployment.projectId)) {
+        continue;
+      }
+      if (options.excludeProjectId && deployment.projectId === options.excludeProjectId) {
+        continue;
+      }
+      if (deployment.environment === 'production' && deployment.status === 'READY') {
+        published.add(deployment.projectId);
+      }
+    }
+    return published.size;
+  }
+
   async createSnapshot(input: {
     projectId: string;
     label?: string;

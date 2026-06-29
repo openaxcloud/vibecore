@@ -13,6 +13,13 @@ paths on `app.e-code.ai`.
 > behind the `BILLING_CREDITS_ENABLED` flag. The active billing path still uses
 > the **legacy** flat plans ($29 Pro / $99 Team). This is a *flag flip + gap
 > fill*, not a build-from-scratch.
+>
+> **2026-06-29 follow-up pass:** the credit-pack **purchase flow** (one-time
+> Stripe Checkout → webhook grant) and the **concurrent published-app cap** are
+> now implemented end-to-end and unit-tested — both gated behind
+> `BILLING_CREDITS_ENABLED` so prod is untouched until the model is flipped on.
+> The only remaining work is owner-gated (Avi): create the 4 Stripe one-time
+> Prices, set the env vars, and flip the flag. See §4/§5.
 
 ---
 
@@ -102,13 +109,17 @@ crypto-mining explicitly prohibited; abuse@ + DMCA + security@ channels.
 | One checkpoint / request, open→gate→settle | `services/api/src/credits-service.ts`, `AgentCheckpoint` model | ✅ |
 | Credit costing w/ margin (≥ raw provider cost) | `credits.ts` `computeCreditCostCents` (`DEFAULT_AI_MARGIN=0.3`) | ✅ |
 | Credit packs: 6-mo expiry, earliest-first consumption | `credits.ts` `CREDIT_PACK_VALIDITY_DAYS`, `planPackConsumption` | ✅ |
-| **Credit-pack purchase catalog (4 SKUs + discounts)** | `index.ts` `creditPackCatalog` | ✅ **added (this pass)** |
+| **Credit-pack purchase catalog (4 SKUs + discounts)** | `index.ts` `creditPackCatalog` | ✅ **added (prior pass)** |
+| **Credit-pack one-time Stripe checkout** | `index.ts` `StripeBillingClient.createCreditPackCheckoutSession` + `POST /orgs/:orgId/credits/packs/checkout` | ✅ **added (this pass, gated)** |
+| **Credit-pack grant on `checkout.session.completed` (mode=payment)** | `services/api/src/app.ts` webhook early branch → `store.createCreditPack` | ✅ **added (this pass, gated)** |
+| **Concurrent published-app cap enforced at publish** | `app.ts` publish handler → `assertConcurrentPublishedApps` + `store.countPublishedApps` | ✅ **added (this pass, gated)** |
+| **Org budget $500-increment validation** | `credits.ts` `ORG_BUDGET_INCREMENT_CENTS`/`isValidOrgBudgetCents`/`roundOrgBudgetToIncrementCents` | ✅ **added (this pass)** |
 | PAYG gate + Usage Limit + Service Shutdown + 50/80/100% alerts | `credits.ts` `evaluateCreditGate`/`evaluateSpendLimits`/`paygAlertThresholdCrossed` | ✅ |
 | Compute units (18/2), $3.20/M, $1.20/M, reserved VMs, egress | `compute-pricing.ts` | ✅ exact |
 | Object storage $0.03 / $0.10 / 7-day | `compute-pricing.ts` | ✅ |
 | **Object storage Class A/B op rates** | `compute-pricing.ts` | ✅ **fixed (was inverted)** |
-| **DB floor 33 MB / cap 10 GiB / idle 5 min** | `compute-pricing.ts` | ✅ **added (this pass)** |
-| **Concurrent published-app cap (20)** | `index.ts` `MAX_CONCURRENT_PUBLISHED_APPS` + `assertConcurrentPublishedApps` | ✅ **added (this pass)** |
+| **DB floor 33 MB / cap 10 GiB / idle 5 min** | `compute-pricing.ts` | ✅ **added (prior pass)** |
+| **Concurrent published-app cap (20) constant + assert** | `index.ts` `MAX_CONCURRENT_PUBLISHED_APPS` + `assertConcurrentPublishedApps` | ✅ **added (prior pass)** |
 | Stripe client (checkout/portal/metered usage report) | `index.ts` `StripeBillingClient` | ✅ (subscription) |
 | Billing dashboard (plan, credits, packs, caps, checkpoints) | `app/routes/billing.tsx` | ✅ live |
 | Usage dashboard (quota USED/LIMIT, overrides) | `app/routes/usage.tsx` | ✅ live |
@@ -131,51 +142,82 @@ log-only, never block/debit), `BILLING_CREDITS_SHADOW`, `MODEL_REGISTRY_DB`
 | Database guard-rails | No 33 MB floor / 10 GiB cap / 5 min idle constants | **Added** constants + `databaseBillableStorageGib()` (tested) |
 | Concurrent apps | No 20-app cap | **Added** `MAX_CONCURRENT_PUBLISHED_APPS` + `assertConcurrentPublishedApps()` (tested) |
 | Legal pages | Missing enforcement / account-inactivity / data-deletion | **Added** 3 pages + routes + Legal-hub wiring |
-| Pack **purchase wiring** | Not purchasable (no checkout endpoint / webhook grant) | **Documented** (§5) — needs Stripe one-time price IDs + live verify (Avi) |
-| Active plan model | Live checkout still legacy $29/$99 | **Flag-flip decision** (§5) — credit model is built & dormant |
-| App-cap / DB-floor **enforcement** | Constants added; not yet wired to publish/DB-metering call sites | **Documented** (§5) — enforcement wiring pending |
+| Pack **purchase wiring** | Not purchasable (no checkout endpoint / webhook grant) | **Implemented** (gated) — `createCreditPackCheckoutSession` + `POST /orgs/:orgId/credits/packs/checkout` + `mode='payment'` webhook branch that grants the pack and returns *before* the subscription path. Only the 4 Stripe Price IDs + flag flip remain (Avi). |
+| App-cap **enforcement** | Constant added; not wired to a call site | **Implemented** (gated) — `countPublishedApps` + `assertConcurrentPublishedApps` called at publish, excluding the project being re-published so only a genuinely-new 21st app is blocked. |
+| Org budget increments | No $500-increment rule | **Implemented** — `ORG_BUDGET_INCREMENT_CENTS` + validate/round helpers (tested). |
+| Active plan model | Live checkout still legacy $29/$99 | **Flag-flip decision** (§5) — credit model is built & dormant. |
+| DB-floor **metering** | Floor/cap primitive exists; no consumer | **Open** (§5) — there is *no DB-storage metering pipeline yet* to wire the floor into; building it is a larger dormant-feature task, not a wiring step. |
 
 ---
 
 ## 4. Implemented this pass (gated, prod-safe, tested)
 
-Branch `feat/billing-parity`. All changes are **pure billing primitives** or
-**static legal content** — zero behaviour change to the active (legacy) billing
-path; the credit model stays dormant behind `BILLING_CREDITS_ENABLED`.
+All changes are **pure billing primitives**, **gated server logic** (dormant
+behind `BILLING_CREDITS_ENABLED`), or **static legal content** — zero behaviour
+change to the active (legacy) billing path.
 
-- **`fix(billing)`** — corrected object-storage Class A/B op rates; added DB
-  floor/cap/idle constants + `databaseBillableStorageGib`; added credit-pack SKU
-  catalog + helpers; added concurrent-app cap + assert. 70 billing unit tests
-  green, typecheck clean.
-- **`feat(legal)`** — `/enforcement`, `/account-inactivity`, `/data-deletion`
-  pages + shared `LegalArticle` layout; Legal hub now links these plus the
-  existing acceptable-use and licensing pages. Web typecheck + eslint green.
+**Prior pass** (`fix(billing)` / `feat(legal)`): corrected object-storage Class
+A/B op rates; DB floor/cap/idle constants + `databaseBillableStorageGib`;
+credit-pack SKU catalog + helpers; `MAX_CONCURRENT_PUBLISHED_APPS` constant +
+assert; `/enforcement`, `/account-inactivity`, `/data-deletion` legal pages.
 
-Verification: `pnpm --filter @vibecore/billing test` (70 pass);
-`tsc -p tsconfig.web.json --noEmit` (0 errors); `eslint app` (clean).
+**This pass** — closing the §5 functional gaps (all real, all tested):
+
+- **Credit-pack purchase flow (gated).**
+  - `StripeBillingClient.createCreditPackCheckoutSession()` — one-time
+    (`mode: 'payment'`) Checkout Session carrying `creditPackSku` in metadata
+    (and on the PaymentIntent). Plus `createOneTimePrice()` for admin pack-price
+    provisioning.
+  - `POST /orgs/:orgId/credits/packs/checkout` — `billing:manage`-gated; 503s
+    `CREDIT_PACKS_DISABLED` while the credit model is dormant, 400
+    `CREDIT_PACK_UNKNOWN` for a bad SKU, 503 `CREDIT_PACK_PRICE_NOT_CONFIGURED`
+    when the `STRIPE_CREDIT_PACK_*_PRICE_ID` env var is unset.
+  - **Webhook grant (the sensitive part, done safely):** an early branch in the
+    Stripe `checkout.session.completed` handler matches
+    `mode === 'payment' && metadata.creditPackSku`, grants
+    `store.createCreditPack({ purchasedCents: pack.creditCents, expiresAt: now + 182d, stripePaymentIntentId })`,
+    audits it, and **returns before** the subscription-upsert path — so a
+    payment-mode session can never corrupt the org's subscription row.
+    Idempotency rides the existing committed webhook-dedup row.
+- **Concurrent published-app cap (gated).** New `store.countPublishedApps(orgId,
+  { excludeProjectId })` (counts distinct projects with a READY *production*
+  deployment); the publish handler calls `assertConcurrentPublishedApps` before
+  promoting, excluding the current project so re-publishing never trips its own
+  cap — only a genuinely-new 21st app is blocked (429 `APP_LIMIT_EXCEEDED`).
+  Gated behind `BILLING_CREDITS_ENABLED`.
+- **Org budget $500 increments.** `ORG_BUDGET_INCREMENT_CENTS` +
+  `isValidOrgBudgetCents` + `roundOrgBudgetToIncrementCents` primitives.
+- **Acceptable-use** page gained a "Usage limits" section (20-app cap +
+  no-compute-only/mining), matching Replit's anti-mining + app-cap policy.
+
+Verification (all green): `pnpm --filter @vibecore/billing test` (**72** pass);
+`services/api` vitest `credit-packs-billing.spec.ts` (**8** new tests: checkout
+gating, webhook grant/unpaid, publish cap block/allow/dormant) + existing
+`deployment-publish`/`credit-store`/`credits-service`/`api.spec` webhook tests;
+full `pnpm typecheck` (exit 0); `pnpm lint` (0 errors).
 
 ---
 
-## 5. Remaining gaps (need Avi / not shippable blind)
+## 5. Remaining gaps (owner-gated — Avi)
 
-1. **Credit-pack purchase flow.** The catalog + 6-month/earliest-first
-   consumption are done. To make packs *purchasable* requires:
-   - `StripeBillingClient.createCreditPackCheckoutSession({ priceId, mode: 'payment', metadata: { creditPackSku, organizationId } })` (new one-time-payment method alongside the subscription one at `index.ts:540`).
-   - A gated endpoint `POST /orgs/:orgId/credits/packs/checkout` mirroring `/billing/checkout` (`app.ts:17333`).
-   - **Webhook surgery (sensitive):** the `checkout.session.completed` branch (`app.ts:17645`) currently assumes *subscription* sessions — a `mode: 'payment'` session would fall through and **corrupt the subscription row**. Must add an early `if (object.mode === 'payment' && metadata.creditPackSku)` branch that calls `store.createCreditPack({ organizationId, purchasedCents, remainingCents, expiresAt: now + validityDays })` (persistence exists at `prisma-store.ts:3092`) and returns *before* the subscription logic.
-   - **Blockers:** Avi must create the 4 Stripe one-time Prices and set
-     `STRIPE_CREDIT_PACK_{100,300,500,1000}_PRICE_ID`; live verification needs a
-     real Stripe round-trip. Not shipped blind per the production-quality bar.
+1. **Stripe one-time Prices + flag flip to make packs *purchasable* live.** The
+   code path is complete and tested end-to-end against the test store. To go
+   live Avi must: (a) create the 4 Stripe one-time Prices and set
+   `STRIPE_CREDIT_PACK_{100,300,500,1000}_PRICE_ID` (the `createOneTimePrice`
+   helper or an admin flow can mint them); (b) set `BILLING_CREDITS_ENABLED=true`;
+   (c) do one real Stripe round-trip to confirm. Until (a)+(b), the endpoint
+   intentionally 503s rather than charge for credits the app won't yet spend.
 
-2. **Flip the credit billing model live.** Set `BILLING_CREDITS_ENABLED=true`
-   (and run the legacy→parity backfill `migrateLegacyPlanKey`: pro→core,
-   team→pro, free→starter). This is a **business decision** affecting active
-   billing — owner: Avi. Until then, live checkout remains legacy $29/$99.
+2. **Flip the credit billing model live.** `BILLING_CREDITS_ENABLED=true` (+ the
+   legacy→parity backfill `migrateLegacyPlanKey`: pro→core, team→pro,
+   free→starter). **Business decision** affecting active billing — owner: Avi.
+   Until then live checkout remains legacy $29/$99 and the new cap/pack paths
+   stay dormant. This same flag arms the published-app cap.
 
-3. **Enforcement wiring** for the new constants: call
-   `assertConcurrentPublishedApps` at publish time and feed
-   `databaseBillableStorageGib` into DB storage metering. Constants + helpers are
-   ready; the call-site wiring is the remaining step.
+3. **DB-storage metering pipeline.** `databaseBillableStorageGib` (33 MB floor /
+   10 GiB cap) is ready, but there is **no DB-storage metering consumer yet** to
+   feed it — building that metering pipeline is a larger dormant-feature task
+   (lands with the credit-model flip), not a wiring step.
 
 ---
 
@@ -183,20 +225,22 @@ Verification: `pnpm --filter @vibecore/billing test` (70 pass);
 
 Public (no auth):
 
-- `https://app.e-code.ai/pricing` — 4 plans (Starter/Core/Pro/Enterprise) + monthly/annual toggle.
-- `https://app.e-code.ai/legal` — hub now lists Enforcement, Account Inactivity, Deleting Your Data, Acceptable Use, Licensing.
-- `https://app.e-code.ai/enforcement` · `/account-inactivity` · `/data-deletion` — new policy pages render.
+- `https://app.e-code.ai/pricing` — 4 plans (Starter $0 / Core $25→$20 annual / Pro $100→$95 annual / Enterprise custom) + functional monthly/annual toggle, annual-savings line, comparison table.
+- `https://app.e-code.ai/legal` — hub lists Enforcement, Account Inactivity, Deleting Your Data, Acceptable Use, Licensing.
+- `https://app.e-code.ai/enforcement` · `/account-inactivity` · `/data-deletion` — new policy pages render; `/acceptable-use` now states the 20-app cap + anti-mining.
 
 Authenticated (org member):
 
 - `https://app.e-code.ai/billing` — plan, credits balance, pack balance, budget cap / spend limit bars, recent agent checkpoints.
 - `https://app.e-code.ai/usage` — quota USED/LIMIT table, overrides.
 
-Backend (unit-level, no live billing impact):
+Backend (gated; no live billing impact until the flag is flipped):
 
-- `pnpm --filter @vibecore/billing test` — catalog/metering/pack/cap/storage math, 70 tests.
+- `pnpm --filter @vibecore/billing test` — catalog/metering/pack/cap/storage/budget math (72 tests).
+- `services/api` `credit-packs-billing.spec.ts` — endpoint gating, webhook pack-grant, publish-cap (8 tests).
+- With `BILLING_CREDITS_ENABLED=true` + a Stripe key: `POST /orgs/:orgId/credits/packs/checkout {packId:'pack-300',successUrl,cancelUrl}` returns a Stripe checkout URL; completing it fires the webhook that grants a $300 / 182-day pack visible at `/billing`.
 
-> Nothing in this pass changes live charging. "Parity" of the **economics and
-> policy surface** is implemented & tested; **functional purchase of packs** and
-> **flipping the credit model live** remain owner-gated (§5) and are not claimed
-> as done.
+> "Parity" of the **economics + policy surface** is implemented & tested, and the
+> **pack purchase flow + published-app cap are now functionally complete** behind
+> `BILLING_CREDITS_ENABLED`. What remains is **owner-gated** (Stripe Price IDs +
+> the business decision to flip the flip) — not a code gap.
