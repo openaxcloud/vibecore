@@ -1,0 +1,100 @@
+import { hashPassword } from '@vibecore/auth';
+import { describe, expect, it } from 'vitest';
+
+import { buildApiApp } from '../app.js';
+import type { EmailProvider } from '../email.js';
+import { TestApiStore } from './test-api-store.js';
+
+class QuietEmailProvider implements EmailProvider {
+  async send() {}
+}
+
+const auth = (token: string) => ({ authorization: `Bearer ${token}` });
+
+async function setup() {
+  const store = new TestApiStore();
+  const app = await buildApiApp({ store, emailProvider: new QuietEmailProvider() });
+
+  const owner = await store.createUser({
+    email: 'owner@example.com',
+    name: 'Owner',
+    passwordHash: hashPassword('password123'),
+  });
+  const org = await store.createOrganization({ name: 'Wallet Org', slug: 'wallet-org', ownerUserId: owner.id });
+
+  const admin = await store.createUser({
+    email: 'admin@example.com',
+    name: 'Admin',
+    passwordHash: hashPassword('password123'),
+    platformAdmin: true,
+  });
+  await store.updateUser({ userId: admin.id, mfaEnabled: true });
+  await store.createSession({ userId: admin.id, token: 'admin-token', expiresAt: new Date(Date.now() + 3600_000) });
+  await app.inject({ method: 'POST', url: '/auth/reauth', headers: auth('admin-token'), payload: { password: 'password123' } });
+
+  // a non-admin session, to prove the guard
+  await store.createSession({ userId: owner.id, token: 'owner-token', expiresAt: new Date(Date.now() + 3600_000) });
+
+  return { app, store, org };
+}
+
+describe('admin wallet adjust', () => {
+  it('credits then debits a wallet, updating the materialized balance', async () => {
+    const { app, org } = await setup();
+
+    const credit = await app.inject({
+      method: 'POST',
+      url: `/admin/wallets/${org.id}/adjust`,
+      headers: auth('admin-token'),
+      payload: { deltaCents: 5000, reason: 'goodwill credit' },
+    });
+    expect(credit.statusCode).toBe(200);
+    expect(credit.json().wallet).toMatchObject({ organizationId: org.id, balanceCents: 5000 });
+    expect(credit.json().entry).toMatchObject({ kind: 'ADJUSTMENT', deltaCents: 5000 });
+
+    const debit = await app.inject({
+      method: 'POST',
+      url: `/admin/wallets/${org.id}/adjust`,
+      headers: auth('admin-token'),
+      payload: { deltaCents: -2000, reason: 'correction' },
+    });
+    expect(debit.statusCode).toBe(200);
+    expect(debit.json().wallet.balanceCents).toBe(3000);
+  });
+
+  it('rejects a zero delta (400)', async () => {
+    const { app, org } = await setup();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/admin/wallets/${org.id}/adjust`,
+      headers: auth('admin-token'),
+      payload: { deltaCents: 0, reason: 'noop' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('requires a reason (400)', async () => {
+    const { app, org } = await setup();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/admin/wallets/${org.id}/adjust`,
+      headers: auth('admin-token'),
+      payload: { deltaCents: 100 },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('rejects a non-platform-admin caller (403)', async () => {
+    const { app, org } = await setup();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/admin/wallets/${org.id}/adjust`,
+      headers: auth('owner-token'),
+      payload: { deltaCents: 100, reason: 'nope' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+});

@@ -264,6 +264,7 @@ model Project {
   connectionLinks        ProjectConnectionLink[]
   databaseInstances      DatabaseInstance[]
   skills                 ProjectSkill[]
+  repairEvents           AgentRepairEvent[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -357,6 +358,30 @@ model AgentPatchProposal {
 
   @@index([projectId, status])
   @@index([projectId, updatedAt])
+}
+
+// Durable history of the agent's AST self-repair pipeline: each time a streamed
+// file fails validation and the agent retries (regenerates) it, the outcome is
+// recorded here so the IDE can show a review UI of auto-repairs/errors. Unlike
+// AgentPatchProposal (a transient working queue, hard-deleted on decision), this
+// is an append-only audit log. Additive + inert until the IDE records/reads it.
+model AgentRepairEvent {
+  id              String   @id @default(cuid())
+  projectId       String
+  messageId       String?
+  artifactId      String?
+  actionId        String?
+  relativePath    String
+  attempt         Int      @default(1)
+  // 'repaired' (validation passed after retry) | 'failed' (this attempt failed) |
+  // 'gave_up' (retry budget exhausted, original written best-effort)
+  outcome         String
+  validationError String?
+  repairError     String?
+  createdAt       DateTime @default(now())
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
 }
 
 // Per-project enable/disable overrides for the builtin Skills catalog (Replit
@@ -515,6 +540,12 @@ model Workspace {
   name             String
   status           WorkspaceStatus    @default(PENDING)
   runtimeMode      String
+  // P2d dev/prod split: 'development' (the editable workspace) or 'production'
+  // (the checkout created when a deployment is published). Existing rows
+  // backfill to 'development'. Not unique — a project keeps multiple dev
+  // workspaces (primary + secondary agent-run checkouts); the prod checkout
+  // is the single workspace with environment='production'.
+  environment      String             @default("development")
   // Filesystem path (relative to the project storage root) for this
   // workspace's isolated git working tree. Allocated when the workspace
   // is created so each branch / agent run can have its own checkout

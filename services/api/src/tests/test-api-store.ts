@@ -6,6 +6,8 @@ import type {
   AbuseEventRecord,
   AgentPatchProposalRecord,
   AgentPatchProposalStatus,
+  AgentRepairEventRecord,
+  AgentRepairOutcome,
   ApiKeyRecord,
   ApiKeyScope,
   ApiStore,
@@ -1061,6 +1063,44 @@ export class TestApiStore implements ApiStore {
     return true;
   }
 
+  readonly agentRepairEvents: AgentRepairEventRecord[] = [];
+
+  async recordAgentRepairEvent(input: {
+    projectId: string;
+    messageId?: string;
+    artifactId?: string;
+    actionId?: string;
+    relativePath: string;
+    attempt?: number;
+    outcome: AgentRepairOutcome;
+    validationError?: string;
+    repairError?: string;
+  }) {
+    const event: AgentRepairEventRecord = {
+      id: id('repair_event'),
+      projectId: input.projectId,
+      messageId: input.messageId,
+      artifactId: input.artifactId,
+      actionId: input.actionId,
+      relativePath: input.relativePath,
+      attempt: input.attempt ?? 1,
+      outcome: input.outcome,
+      validationError: input.validationError,
+      repairError: input.repairError,
+      createdAt: now(),
+    };
+    this.agentRepairEvents.push(event);
+
+    return event;
+  }
+
+  async listAgentRepairEvents(projectId: string, options?: { take?: number }) {
+    return this.agentRepairEvents
+      .filter((event) => event.projectId === projectId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, Math.min(Math.max(options?.take ?? 100, 1), 500));
+  }
+
   readonly projectSkillOverrides = new Map<
     string,
     { skillId: string; enabled: boolean; updatedAt: string }
@@ -1079,7 +1119,13 @@ export class TestApiStore implements ApiStore {
     return record;
   }
 
-  async createWorkspace(input: { id?: string; projectId: string; name: string; runtimeMode: string }) {
+  async createWorkspace(input: {
+    id?: string;
+    projectId: string;
+    name: string;
+    runtimeMode: string;
+    environment?: string;
+  }) {
     const workspaceId = input.id ?? id('workspace');
 
     const workspace: WorkspaceRecord = {
@@ -1089,6 +1135,7 @@ export class TestApiStore implements ApiStore {
       runtimeMode: input.runtimeMode,
       status: 'PENDING',
       gitPath: `.vibecore-workspaces/${workspaceId}`,
+      environment: input.environment ?? 'development',
       createdAt: now(),
     };
     this.workspaces.set(workspace.id, workspace);

@@ -8,6 +8,8 @@ import { API_KEY_SCOPES } from './store.js';
 import type {
   AbuseEventRecord,
   AgentPatchProposalRecord,
+  AgentRepairEventRecord,
+  AgentRepairOutcome,
   AgentPatchProposalStatus,
   ApiKeyRecord,
   ApiKeyScope,
@@ -1479,6 +1481,44 @@ export class PrismaApiStore implements ApiStore {
     return deleted.count > 0;
   }
 
+  async recordAgentRepairEvent(input: {
+    projectId: string;
+    messageId?: string;
+    artifactId?: string;
+    actionId?: string;
+    relativePath: string;
+    attempt?: number;
+    outcome: AgentRepairOutcome;
+    validationError?: string;
+    repairError?: string;
+  }) {
+    return mapAgentRepairEvent(
+      await this.prisma.agentRepairEvent.create({
+        data: {
+          projectId: input.projectId,
+          messageId: input.messageId,
+          artifactId: input.artifactId,
+          actionId: input.actionId,
+          relativePath: input.relativePath,
+          attempt: input.attempt ?? 1,
+          outcome: input.outcome,
+          validationError: input.validationError,
+          repairError: input.repairError,
+        },
+      }),
+    );
+  }
+
+  async listAgentRepairEvents(projectId: string, options?: { take?: number }) {
+    return (
+      await this.prisma.agentRepairEvent.findMany({
+        where: { projectId },
+        orderBy: { createdAt: 'desc' },
+        take: Math.min(Math.max(options?.take ?? 100, 1), 500),
+      })
+    ).map(mapAgentRepairEvent);
+  }
+
   async listProjectSkillOverrides(projectId: string) {
     return (
       await this.prisma.projectSkill.findMany({
@@ -1499,7 +1539,13 @@ export class PrismaApiStore implements ApiStore {
     return { skillId: row.skillId, enabled: row.enabled, updatedAt: row.updatedAt.toISOString() };
   }
 
-  async createWorkspace(input: { id?: string; projectId: string; name: string; runtimeMode: string }) {
+  async createWorkspace(input: {
+    id?: string;
+    projectId: string;
+    name: string;
+    runtimeMode: string;
+    environment?: string;
+  }) {
     /*
      * Persist the created workspace first so Prisma can mint the id when the
      * caller doesn't supply one. Once we have the id, allocate a relative
@@ -4160,6 +4206,7 @@ function mapWorkspace(workspace: any): WorkspaceRecord {
     runtimeMode: workspace.runtimeMode,
     gitPath: workspace.gitPath ?? undefined,
     gitRepositoryUrl: workspace.gitRepositoryUrl ?? undefined,
+    environment: workspace.environment ?? undefined,
     createdAt: toIso(workspace.createdAt)!,
   };
 }
@@ -4335,6 +4382,22 @@ function mapAgentPatchProposal(row: any): AgentPatchProposalRecord {
     error: row.error ?? undefined,
     createdAt: toIso(row.createdAt)!,
     updatedAt: toIso(row.updatedAt)!,
+  };
+}
+
+function mapAgentRepairEvent(row: any): AgentRepairEventRecord {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    messageId: row.messageId ?? undefined,
+    artifactId: row.artifactId ?? undefined,
+    actionId: row.actionId ?? undefined,
+    relativePath: row.relativePath,
+    attempt: row.attempt,
+    outcome: row.outcome,
+    validationError: row.validationError ?? undefined,
+    repairError: row.repairError ?? undefined,
+    createdAt: toIso(row.createdAt)!,
   };
 }
 

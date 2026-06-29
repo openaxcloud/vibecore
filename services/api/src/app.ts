@@ -14609,6 +14609,43 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { deleted: await store.deleteAgentPatchProposal(project.id, proposalId) };
   });
 
+  /* -------- Agent self-repair history (durable; powers the IDE review UI) -------- */
+  app.get('/projects/:projectId/agent-repair-events', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const query = parse(z.object({ limit: z.coerce.number().int().min(1).max(500).optional() }), request.query ?? {});
+
+    return { events: await store.listAgentRepairEvents(project.id, { take: query.limit }) };
+  });
+
+  app.post('/projects/:projectId/agent-repair-events', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(
+      z.object({
+        messageId: z.string().max(128).optional(),
+        artifactId: z.string().max(128).optional(),
+        actionId: z.string().max(128).optional(),
+        relativePath: z.string().min(1).max(1024),
+        attempt: z.number().int().min(1).max(20).optional(),
+        outcome: z.enum(['repaired', 'failed', 'gave_up']),
+        validationError: z.string().max(4000).optional(),
+        repairError: z.string().max(4000).optional(),
+      }),
+      request.body ?? {},
+    );
+
+    return { event: await store.recordAgentRepairEvent({ projectId: project.id, ...body }) };
+  });
+
   /* -------- Skills registry (builtin catalog + per-project enable/disable) -------- */
   app.get('/projects/:projectId/skills', async (request) => {
     const project = await requireProject(
@@ -18385,6 +18422,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { wallets: await store.listAdminCreditWallets() };
   });
 
+  /*
+   * Admin credit adjustment: credit (positive) or debit (negative) an org's
+   * wallet by an arbitrary amount. Appends an ADJUSTMENT ledger entry (the
+   * audit trail) and updates the materialized balance atomically via the same
+   * recordCreditEntry path grants/usage use. Platform-admin + recent re-auth gated.
+   */
+  app.post('/admin/wallets/:organizationId/adjust', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { organizationId } = parse(z.object({ organizationId: z.string().min(1) }), request.params);
+    const body = parse(
+      z.object({
+        deltaCents: z
+          .number()
+          .int()
+          .refine((value) => value !== 0, { message: 'deltaCents must be a non-zero integer' }),
+        reason: z.string().min(1).max(500),
+      }),
+      request.body ?? {},
+    );
+
+    const { entry, balanceCents } = await store.recordCreditEntry({
+      organizationId,
+      deltaCents: body.deltaCents,
+      kind: 'ADJUSTMENT',
+      reason: body.reason,
+    });
+
+    await audit(request, store, {
+      organizationId,
+      action: 'admin.wallet.adjust',
+      resourceType: 'wallet',
+      resourceId: organizationId,
+      metadata: { deltaCents: body.deltaCents, reason: body.reason, balanceCents },
+    });
+
+    return { wallet: { organizationId, balanceCents }, entry };
+  });
+
   app.get('/admin/checkpoints', async (request) => {
     await requirePlatformAdmin(request);
     return { checkpoints: await store.listAdminAgentCheckpoints({ take: 200 }) };
@@ -21030,6 +21107,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       } catch (error) {
         request.log?.warn?.({ err: error }, 'prod db ensure on publish failed (non-fatal)');
       }
+    }
+
+    /*
+     * P2d: give the project an editable PRODUCTION workspace — a separate git
+     * working tree seeded (and refreshed on each publish) with the published
+     * source files, so prod can diverge from dev. Best-effort + non-fatal: a
+     * copy failure never blocks the publish, and the prod deployment already
+     * serves the promoted artifact regardless.
+     */
+    try {
+      const workspaces = await store.listWorkspaces(project.id);
+      let prodWorkspace = workspaces.find((workspace) => workspace.environment === 'production');
+
+      if (!prodWorkspace) {
+        const devTemplate = workspaces.find((workspace) => (workspace.environment ?? 'development') === 'development');
+        prodWorkspace = await store.createWorkspace({
+          projectId: project.id,
+          name: 'Production',
+          runtimeMode: devTemplate?.runtimeMode ?? 'docker',
+          environment: 'production',
+        });
+      }
+
+      const publishedFiles = await projectStorage.listFiles(project.id, source.workspaceId);
+      await projectStorage.writeFiles(project.id, publishedFiles, prodWorkspace.id);
+    } catch (error) {
+      request.log?.warn?.({ err: error }, 'prod workspace checkout on publish failed (non-fatal)');
     }
 
     await audit(request, store, {

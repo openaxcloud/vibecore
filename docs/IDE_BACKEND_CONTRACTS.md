@@ -217,10 +217,50 @@ feature flag — inert until the IDE calls it (no existing behaviour touched).
 **P2d dev/prod database split** (`database-provisioner.ts`): every project has a
 `development` DB (its workspace DB, un-suffixed = backward compatible) and, once
 published, a separate `production` DB (`-prod`/`_prod` suffix, distinct owner
-role + HMAC password + REVOKE-CONNECT isolation). The production deployment
-serves the promoted artifact pinned to the source `commitSha` (the file
-snapshot); a fully separate editable production workspace checkout remains a
-future option. Publish provisions the prod DB best-effort (dormant until
-`DB_ROLLBACK_ENABLED` + a backing cluster). `GET /projects/:id/database?environment=production`
-reconciles the prod URL into a `PROD_DATABASE_URL` project secret so dev + prod
-connections coexist in the IDE.
+role + HMAC password + REVOKE-CONNECT isolation). Publish provisions the prod DB
+best-effort (dormant until `DB_ROLLBACK_ENABLED` + a backing cluster).
+`GET /projects/:id/database?environment=production` reconciles the prod URL into
+a `PROD_DATABASE_URL` project secret so dev + prod connections coexist in the IDE.
+Publish also creates an **editable production workspace checkout**
+(`Workspace.environment='production'`, migration `0051`): a separate git working
+tree seeded — and refreshed on each publish — with the published source files via
+`projectStorage.listFiles → writeFiles` (best-effort, non-fatal; reused, never
+duplicated). 10 tests.
+
+---
+
+## 9. Agent self-repair history — IMPLEMENTED ✅ (durable; for the review UI)
+
+Append-only audit log of the AST self-repair pipeline (distinct from the transient
+`agent-patch-proposals` queue). Table `AgentRepairEvent` (migration `0051`).
+Additive/unflagged — inert until the IDE records/reads it.
+
+- **Internal API** (`requireProject` read on GET, write on POST):
+  | method | route | body / query | response |
+  |---|---|---|---|
+  | GET | `/projects/:id/agent-repair-events` | `?limit=` (1–500, default 100) | `{ events: [RepairEvent] }` (newest first) |
+  | POST | `/projects/:id/agent-repair-events` | `{ relativePath, outcome, attempt?, messageId?, artifactId?, actionId?, validationError?, repairError? }` | `{ event: RepairEvent }` |
+- **RepairEvent:** `{ id, projectId, relativePath, attempt, outcome:"repaired"|"failed"|"gave_up", validationError?, repairError?, messageId?, artifactId?, actionId?, createdAt }`.
+- IDE: the agent's self-repair loop (`app/lib/runtime/action-runner.ts`) POSTs one
+  event per repair attempt/outcome; the review UI lists them via GET.
+
+## 10. Admin wallet adjust — IMPLEMENTED ✅ (makes /admin/wallets editable)
+
+- `POST /admin/wallets/:organizationId/adjust` — body `{ deltaCents: int≠0, reason: string }`.
+  Positive = credit, negative = debit. Appends an `ADJUSTMENT` CreditLedger entry +
+  updates the materialized balance atomically (same path as grants/usage).
+- Auth: **platform-admin + recent re-auth** (`requirePlatformAdmin` + `requireRecentAdminReauth`);
+  audited as `admin.wallet.adjust`. Response `{ wallet: { organizationId, balanceCents }, entry }`.
+  Errors: 400 (zero delta / missing reason), 403 (not platform admin / re-auth stale).
+
+## 11. Agent runtime wiring — VERIFIED ✅ (where each capability is consumed)
+
+All IDE-testable runtime paths are wired backend-side:
+
+| capability | wired at | how |
+|---|---|---|
+| Secrets/Env → runtime | `app.ts` `/api/runtime/workspaces` → `managerRequest('/workspaces/start', {allowedSecrets,allowedSecretKeys})` → `k8s-client workspacePod` `secretKeyRef` | secrets land in a k8s Secret, mounted as pod env |
+| Packages installed | `/api/runtime/workspaces/:id/commands` → agent `/commands/run` | real `npm/pnpm/yarn install` runs in the pod |
+| Workflows executed | `ide-panel.$panel.ts runWorkflowTasks` → `/commands` (`sh -lc`) | real commands, logs captured in `VIBECORE_WORKFLOWS_STATE` |
+| Skills → agent | `app/lib/.server/llm/project-skills.ts retrieveSkillsForAgentContext` → `api.chat.ts streamText({ system: …skillsContext })` | enabled skills become a `<project_skills>` system-prompt block |
+| MCP → agent | `app/lib/.server/mcp/load-config.server.ts` → `api.chat.ts mcpService.toolsWithoutExecute` | installed MCP servers become agent tools per chat request |

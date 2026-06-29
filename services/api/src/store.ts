@@ -102,6 +102,8 @@ export interface WorkspaceRecord {
    * should fall back to Project.gitRepositoryUrl when this is undefined.
    */
   gitRepositoryUrl?: string;
+  /** P2d dev/prod split: 'development' (default) or 'production' (publish checkout). */
+  environment?: string;
   createdAt: string;
 }
 
@@ -704,6 +706,23 @@ export interface AgentPatchProposalRecord {
   updatedAt: string;
 }
 
+export type AgentRepairOutcome = 'repaired' | 'failed' | 'gave_up';
+
+/** One append-only entry in the agent self-repair history (IDE review UI). */
+export interface AgentRepairEventRecord {
+  id: string;
+  projectId: string;
+  messageId?: string;
+  artifactId?: string;
+  actionId?: string;
+  relativePath: string;
+  attempt: number;
+  outcome: AgentRepairOutcome;
+  validationError?: string;
+  repairError?: string;
+  createdAt: string;
+}
+
 /** A per-project Skills override row (absent => the skill is at its catalog default). */
 export interface ProjectSkillOverrideRecord {
   skillId: string;
@@ -1033,6 +1052,20 @@ export interface ApiStore {
   }): Promise<AgentPatchProposalRecord>;
   listOpenAgentPatchProposals(projectId: string): Promise<AgentPatchProposalRecord[]>;
   deleteAgentPatchProposal(projectId: string, id: string): Promise<boolean>;
+  /** Append an agent self-repair outcome to the durable history. */
+  recordAgentRepairEvent(input: {
+    projectId: string;
+    messageId?: string;
+    artifactId?: string;
+    actionId?: string;
+    relativePath: string;
+    attempt?: number;
+    outcome: AgentRepairOutcome;
+    validationError?: string;
+    repairError?: string;
+  }): Promise<AgentRepairEventRecord>;
+  /** List recent self-repair events for a project (newest first). */
+  listAgentRepairEvents(projectId: string, options?: { take?: number }): Promise<AgentRepairEventRecord[]>;
   /** Sparse per-project enable/disable overrides for the builtin Skills catalog. */
   listProjectSkillOverrides(projectId: string): Promise<ProjectSkillOverrideRecord[]>;
   setProjectSkillEnabled(input: {
@@ -1045,6 +1078,7 @@ export interface ApiStore {
     projectId: string;
     name: string;
     runtimeMode: string;
+    environment?: string;
   }): Promise<WorkspaceRecord>;
   getWorkspace(id: string): Promise<WorkspaceRecord | undefined>;
   listWorkspaces(projectId: string): Promise<WorkspaceRecord[]>;

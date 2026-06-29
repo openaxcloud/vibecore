@@ -282,6 +282,20 @@ exports.Prisma.AgentPatchProposalScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.AgentRepairEventScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  messageId: 'messageId',
+  artifactId: 'artifactId',
+  actionId: 'actionId',
+  relativePath: 'relativePath',
+  attempt: 'attempt',
+  outcome: 'outcome',
+  validationError: 'validationError',
+  repairError: 'repairError',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.ProjectSkillScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
@@ -388,6 +402,7 @@ exports.Prisma.WorkspaceScalarFieldEnum = {
   name: 'name',
   status: 'status',
   runtimeMode: 'runtimeMode',
+  environment: 'environment',
   gitPath: 'gitPath',
   gitRepositoryUrl: 'gitRepositoryUrl',
   createdAt: 'createdAt',
@@ -1332,6 +1347,7 @@ exports.Prisma.ModelName = {
   AgentMemoryPreference: 'AgentMemoryPreference',
   ProjectIdeState: 'ProjectIdeState',
   AgentPatchProposal: 'AgentPatchProposal',
+  AgentRepairEvent: 'AgentRepairEvent',
   ProjectSkill: 'ProjectSkill',
   ProjectEnvironment: 'ProjectEnvironment',
   ProjectSecret: 'ProjectSecret',

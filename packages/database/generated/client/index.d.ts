@@ -84,6 +84,11 @@ export type ProjectIdeState = $Result.DefaultSelection<Prisma.$ProjectIdeStatePa
  */
 export type AgentPatchProposal = $Result.DefaultSelection<Prisma.$AgentPatchProposalPayload>
 /**
+ * Model AgentRepairEvent
+ * 
+ */
+export type AgentRepairEvent = $Result.DefaultSelection<Prisma.$AgentRepairEventPayload>
+/**
  * Model ProjectSkill
  * 
  */
@@ -974,6 +979,16 @@ export class PrismaClient<
     * ```
     */
   get agentPatchProposal(): Prisma.AgentPatchProposalDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.agentRepairEvent`: Exposes CRUD operations for the **AgentRepairEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AgentRepairEvents
+    * const agentRepairEvents = await prisma.agentRepairEvent.findMany()
+    * ```
+    */
+  get agentRepairEvent(): Prisma.AgentRepairEventDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.projectSkill`: Exposes CRUD operations for the **ProjectSkill** model.
@@ -2172,6 +2187,7 @@ export namespace Prisma {
     AgentMemoryPreference: 'AgentMemoryPreference',
     ProjectIdeState: 'ProjectIdeState',
     AgentPatchProposal: 'AgentPatchProposal',
+    AgentRepairEvent: 'AgentRepairEvent',
     ProjectSkill: 'ProjectSkill',
     ProjectEnvironment: 'ProjectEnvironment',
     ProjectSecret: 'ProjectSecret',
@@ -2262,7 +2278,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3283,6 +3299,80 @@ export namespace Prisma {
           count: {
             args: Prisma.AgentPatchProposalCountArgs<ExtArgs>
             result: $Utils.Optional<AgentPatchProposalCountAggregateOutputType> | number
+          }
+        }
+      }
+      AgentRepairEvent: {
+        payload: Prisma.$AgentRepairEventPayload<ExtArgs>
+        fields: Prisma.AgentRepairEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AgentRepairEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRepairEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AgentRepairEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRepairEventPayload>
+          }
+          findFirst: {
+            args: Prisma.AgentRepairEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRepairEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AgentRepairEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRepairEventPayload>
+          }
+          findMany: {
+            args: Prisma.AgentRepairEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRepairEventPayload>[]
+          }
+          create: {
+            args: Prisma.AgentRepairEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRepairEventPayload>
+          }
+          createMany: {
+            args: Prisma.AgentRepairEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AgentRepairEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRepairEventPayload>[]
+          }
+          delete: {
+            args: Prisma.AgentRepairEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRepairEventPayload>
+          }
+          update: {
+            args: Prisma.AgentRepairEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRepairEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.AgentRepairEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AgentRepairEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AgentRepairEventUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRepairEventPayload>[]
+          }
+          upsert: {
+            args: Prisma.AgentRepairEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRepairEventPayload>
+          }
+          aggregate: {
+            args: Prisma.AgentRepairEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAgentRepairEvent>
+          }
+          groupBy: {
+            args: Prisma.AgentRepairEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AgentRepairEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AgentRepairEventCountArgs<ExtArgs>
+            result: $Utils.Optional<AgentRepairEventCountAggregateOutputType> | number
           }
         }
       }
@@ -8958,6 +9048,7 @@ export namespace Prisma {
     agentMemoryPreference?: AgentMemoryPreferenceOmit
     projectIdeState?: ProjectIdeStateOmit
     agentPatchProposal?: AgentPatchProposalOmit
+    agentRepairEvent?: AgentRepairEventOmit
     projectSkill?: ProjectSkillOmit
     projectEnvironment?: ProjectEnvironmentOmit
     projectSecret?: ProjectSecretOmit
@@ -9771,6 +9862,7 @@ export namespace Prisma {
     connectionLinks: number
     databaseInstances: number
     skills: number
+    repairEvents: number
   }
 
   export type ProjectCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -9795,6 +9887,7 @@ export namespace Prisma {
     connectionLinks?: boolean | ProjectCountOutputTypeCountConnectionLinksArgs
     databaseInstances?: boolean | ProjectCountOutputTypeCountDatabaseInstancesArgs
     skills?: boolean | ProjectCountOutputTypeCountSkillsArgs
+    repairEvents?: boolean | ProjectCountOutputTypeCountRepairEventsArgs
   }
 
   // Custom InputTypes
@@ -9953,6 +10046,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountSkillsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ProjectSkillWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountRepairEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentRepairEventWhereInput
   }
 
 
@@ -22119,6 +22219,7 @@ export namespace Prisma {
     connectionLinks?: boolean | Project$connectionLinksArgs<ExtArgs>
     databaseInstances?: boolean | Project$databaseInstancesArgs<ExtArgs>
     skills?: boolean | Project$skillsArgs<ExtArgs>
+    repairEvents?: boolean | Project$repairEventsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
@@ -22197,6 +22298,7 @@ export namespace Prisma {
     connectionLinks?: boolean | Project$connectionLinksArgs<ExtArgs>
     databaseInstances?: boolean | Project$databaseInstancesArgs<ExtArgs>
     skills?: boolean | Project$skillsArgs<ExtArgs>
+    repairEvents?: boolean | Project$repairEventsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -22232,6 +22334,7 @@ export namespace Prisma {
       connectionLinks: Prisma.$ProjectConnectionLinkPayload<ExtArgs>[]
       databaseInstances: Prisma.$DatabaseInstancePayload<ExtArgs>[]
       skills: Prisma.$ProjectSkillPayload<ExtArgs>[]
+      repairEvents: Prisma.$AgentRepairEventPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -22664,6 +22767,7 @@ export namespace Prisma {
     connectionLinks<T extends Project$connectionLinksArgs<ExtArgs> = {}>(args?: Subset<T, Project$connectionLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     databaseInstances<T extends Project$databaseInstancesArgs<ExtArgs> = {}>(args?: Subset<T, Project$databaseInstancesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     skills<T extends Project$skillsArgs<ExtArgs> = {}>(args?: Subset<T, Project$skillsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSkillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    repairEvents<T extends Project$repairEventsArgs<ExtArgs> = {}>(args?: Subset<T, Project$repairEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRepairEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -23627,6 +23731,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ProjectSkillScalarFieldEnum | ProjectSkillScalarFieldEnum[]
+  }
+
+  /**
+   * Project.repairEvents
+   */
+  export type Project$repairEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRepairEvent
+     */
+    select?: AgentRepairEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRepairEvent
+     */
+    omit?: AgentRepairEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRepairEventInclude<ExtArgs> | null
+    where?: AgentRepairEventWhereInput
+    orderBy?: AgentRepairEventOrderByWithRelationInput | AgentRepairEventOrderByWithRelationInput[]
+    cursor?: AgentRepairEventWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AgentRepairEventScalarFieldEnum | AgentRepairEventScalarFieldEnum[]
   }
 
   /**
@@ -28276,6 +28404,1181 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: AgentPatchProposalInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AgentRepairEvent
+   */
+
+  export type AggregateAgentRepairEvent = {
+    _count: AgentRepairEventCountAggregateOutputType | null
+    _avg: AgentRepairEventAvgAggregateOutputType | null
+    _sum: AgentRepairEventSumAggregateOutputType | null
+    _min: AgentRepairEventMinAggregateOutputType | null
+    _max: AgentRepairEventMaxAggregateOutputType | null
+  }
+
+  export type AgentRepairEventAvgAggregateOutputType = {
+    attempt: number | null
+  }
+
+  export type AgentRepairEventSumAggregateOutputType = {
+    attempt: number | null
+  }
+
+  export type AgentRepairEventMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    messageId: string | null
+    artifactId: string | null
+    actionId: string | null
+    relativePath: string | null
+    attempt: number | null
+    outcome: string | null
+    validationError: string | null
+    repairError: string | null
+    createdAt: Date | null
+  }
+
+  export type AgentRepairEventMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    messageId: string | null
+    artifactId: string | null
+    actionId: string | null
+    relativePath: string | null
+    attempt: number | null
+    outcome: string | null
+    validationError: string | null
+    repairError: string | null
+    createdAt: Date | null
+  }
+
+  export type AgentRepairEventCountAggregateOutputType = {
+    id: number
+    projectId: number
+    messageId: number
+    artifactId: number
+    actionId: number
+    relativePath: number
+    attempt: number
+    outcome: number
+    validationError: number
+    repairError: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type AgentRepairEventAvgAggregateInputType = {
+    attempt?: true
+  }
+
+  export type AgentRepairEventSumAggregateInputType = {
+    attempt?: true
+  }
+
+  export type AgentRepairEventMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    messageId?: true
+    artifactId?: true
+    actionId?: true
+    relativePath?: true
+    attempt?: true
+    outcome?: true
+    validationError?: true
+    repairError?: true
+    createdAt?: true
+  }
+
+  export type AgentRepairEventMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    messageId?: true
+    artifactId?: true
+    actionId?: true
+    relativePath?: true
+    attempt?: true
+    outcome?: true
+    validationError?: true
+    repairError?: true
+    createdAt?: true
+  }
+
+  export type AgentRepairEventCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    messageId?: true
+    artifactId?: true
+    actionId?: true
+    relativePath?: true
+    attempt?: true
+    outcome?: true
+    validationError?: true
+    repairError?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type AgentRepairEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentRepairEvent to aggregate.
+     */
+    where?: AgentRepairEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentRepairEvents to fetch.
+     */
+    orderBy?: AgentRepairEventOrderByWithRelationInput | AgentRepairEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AgentRepairEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentRepairEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentRepairEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AgentRepairEvents
+    **/
+    _count?: true | AgentRepairEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: AgentRepairEventAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: AgentRepairEventSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AgentRepairEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AgentRepairEventMaxAggregateInputType
+  }
+
+  export type GetAgentRepairEventAggregateType<T extends AgentRepairEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateAgentRepairEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAgentRepairEvent[P]>
+      : GetScalarType<T[P], AggregateAgentRepairEvent[P]>
+  }
+
+
+
+
+  export type AgentRepairEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentRepairEventWhereInput
+    orderBy?: AgentRepairEventOrderByWithAggregationInput | AgentRepairEventOrderByWithAggregationInput[]
+    by: AgentRepairEventScalarFieldEnum[] | AgentRepairEventScalarFieldEnum
+    having?: AgentRepairEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AgentRepairEventCountAggregateInputType | true
+    _avg?: AgentRepairEventAvgAggregateInputType
+    _sum?: AgentRepairEventSumAggregateInputType
+    _min?: AgentRepairEventMinAggregateInputType
+    _max?: AgentRepairEventMaxAggregateInputType
+  }
+
+  export type AgentRepairEventGroupByOutputType = {
+    id: string
+    projectId: string
+    messageId: string | null
+    artifactId: string | null
+    actionId: string | null
+    relativePath: string
+    attempt: number
+    outcome: string
+    validationError: string | null
+    repairError: string | null
+    createdAt: Date
+    _count: AgentRepairEventCountAggregateOutputType | null
+    _avg: AgentRepairEventAvgAggregateOutputType | null
+    _sum: AgentRepairEventSumAggregateOutputType | null
+    _min: AgentRepairEventMinAggregateOutputType | null
+    _max: AgentRepairEventMaxAggregateOutputType | null
+  }
+
+  type GetAgentRepairEventGroupByPayload<T extends AgentRepairEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AgentRepairEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AgentRepairEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AgentRepairEventGroupByOutputType[P]>
+            : GetScalarType<T[P], AgentRepairEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AgentRepairEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    messageId?: boolean
+    artifactId?: boolean
+    actionId?: boolean
+    relativePath?: boolean
+    attempt?: boolean
+    outcome?: boolean
+    validationError?: boolean
+    repairError?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["agentRepairEvent"]>
+
+  export type AgentRepairEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    messageId?: boolean
+    artifactId?: boolean
+    actionId?: boolean
+    relativePath?: boolean
+    attempt?: boolean
+    outcome?: boolean
+    validationError?: boolean
+    repairError?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["agentRepairEvent"]>
+
+  export type AgentRepairEventSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    messageId?: boolean
+    artifactId?: boolean
+    actionId?: boolean
+    relativePath?: boolean
+    attempt?: boolean
+    outcome?: boolean
+    validationError?: boolean
+    repairError?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["agentRepairEvent"]>
+
+  export type AgentRepairEventSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    messageId?: boolean
+    artifactId?: boolean
+    actionId?: boolean
+    relativePath?: boolean
+    attempt?: boolean
+    outcome?: boolean
+    validationError?: boolean
+    repairError?: boolean
+    createdAt?: boolean
+  }
+
+  export type AgentRepairEventOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "messageId" | "artifactId" | "actionId" | "relativePath" | "attempt" | "outcome" | "validationError" | "repairError" | "createdAt", ExtArgs["result"]["agentRepairEvent"]>
+  export type AgentRepairEventInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type AgentRepairEventIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type AgentRepairEventIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+
+  export type $AgentRepairEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AgentRepairEvent"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      messageId: string | null
+      artifactId: string | null
+      actionId: string | null
+      relativePath: string
+      attempt: number
+      outcome: string
+      validationError: string | null
+      repairError: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["agentRepairEvent"]>
+    composites: {}
+  }
+
+  type AgentRepairEventGetPayload<S extends boolean | null | undefined | AgentRepairEventDefaultArgs> = $Result.GetResult<Prisma.$AgentRepairEventPayload, S>
+
+  type AgentRepairEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AgentRepairEventFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AgentRepairEventCountAggregateInputType | true
+    }
+
+  export interface AgentRepairEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AgentRepairEvent'], meta: { name: 'AgentRepairEvent' } }
+    /**
+     * Find zero or one AgentRepairEvent that matches the filter.
+     * @param {AgentRepairEventFindUniqueArgs} args - Arguments to find a AgentRepairEvent
+     * @example
+     * // Get one AgentRepairEvent
+     * const agentRepairEvent = await prisma.agentRepairEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AgentRepairEventFindUniqueArgs>(args: SelectSubset<T, AgentRepairEventFindUniqueArgs<ExtArgs>>): Prisma__AgentRepairEventClient<$Result.GetResult<Prisma.$AgentRepairEventPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AgentRepairEvent that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AgentRepairEventFindUniqueOrThrowArgs} args - Arguments to find a AgentRepairEvent
+     * @example
+     * // Get one AgentRepairEvent
+     * const agentRepairEvent = await prisma.agentRepairEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AgentRepairEventFindUniqueOrThrowArgs>(args: SelectSubset<T, AgentRepairEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AgentRepairEventClient<$Result.GetResult<Prisma.$AgentRepairEventPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AgentRepairEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRepairEventFindFirstArgs} args - Arguments to find a AgentRepairEvent
+     * @example
+     * // Get one AgentRepairEvent
+     * const agentRepairEvent = await prisma.agentRepairEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AgentRepairEventFindFirstArgs>(args?: SelectSubset<T, AgentRepairEventFindFirstArgs<ExtArgs>>): Prisma__AgentRepairEventClient<$Result.GetResult<Prisma.$AgentRepairEventPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AgentRepairEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRepairEventFindFirstOrThrowArgs} args - Arguments to find a AgentRepairEvent
+     * @example
+     * // Get one AgentRepairEvent
+     * const agentRepairEvent = await prisma.agentRepairEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AgentRepairEventFindFirstOrThrowArgs>(args?: SelectSubset<T, AgentRepairEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__AgentRepairEventClient<$Result.GetResult<Prisma.$AgentRepairEventPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AgentRepairEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRepairEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AgentRepairEvents
+     * const agentRepairEvents = await prisma.agentRepairEvent.findMany()
+     * 
+     * // Get first 10 AgentRepairEvents
+     * const agentRepairEvents = await prisma.agentRepairEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const agentRepairEventWithIdOnly = await prisma.agentRepairEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AgentRepairEventFindManyArgs>(args?: SelectSubset<T, AgentRepairEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRepairEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AgentRepairEvent.
+     * @param {AgentRepairEventCreateArgs} args - Arguments to create a AgentRepairEvent.
+     * @example
+     * // Create one AgentRepairEvent
+     * const AgentRepairEvent = await prisma.agentRepairEvent.create({
+     *   data: {
+     *     // ... data to create a AgentRepairEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends AgentRepairEventCreateArgs>(args: SelectSubset<T, AgentRepairEventCreateArgs<ExtArgs>>): Prisma__AgentRepairEventClient<$Result.GetResult<Prisma.$AgentRepairEventPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AgentRepairEvents.
+     * @param {AgentRepairEventCreateManyArgs} args - Arguments to create many AgentRepairEvents.
+     * @example
+     * // Create many AgentRepairEvents
+     * const agentRepairEvent = await prisma.agentRepairEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AgentRepairEventCreateManyArgs>(args?: SelectSubset<T, AgentRepairEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AgentRepairEvents and returns the data saved in the database.
+     * @param {AgentRepairEventCreateManyAndReturnArgs} args - Arguments to create many AgentRepairEvents.
+     * @example
+     * // Create many AgentRepairEvents
+     * const agentRepairEvent = await prisma.agentRepairEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AgentRepairEvents and only return the `id`
+     * const agentRepairEventWithIdOnly = await prisma.agentRepairEvent.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AgentRepairEventCreateManyAndReturnArgs>(args?: SelectSubset<T, AgentRepairEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRepairEventPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AgentRepairEvent.
+     * @param {AgentRepairEventDeleteArgs} args - Arguments to delete one AgentRepairEvent.
+     * @example
+     * // Delete one AgentRepairEvent
+     * const AgentRepairEvent = await prisma.agentRepairEvent.delete({
+     *   where: {
+     *     // ... filter to delete one AgentRepairEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AgentRepairEventDeleteArgs>(args: SelectSubset<T, AgentRepairEventDeleteArgs<ExtArgs>>): Prisma__AgentRepairEventClient<$Result.GetResult<Prisma.$AgentRepairEventPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AgentRepairEvent.
+     * @param {AgentRepairEventUpdateArgs} args - Arguments to update one AgentRepairEvent.
+     * @example
+     * // Update one AgentRepairEvent
+     * const agentRepairEvent = await prisma.agentRepairEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AgentRepairEventUpdateArgs>(args: SelectSubset<T, AgentRepairEventUpdateArgs<ExtArgs>>): Prisma__AgentRepairEventClient<$Result.GetResult<Prisma.$AgentRepairEventPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AgentRepairEvents.
+     * @param {AgentRepairEventDeleteManyArgs} args - Arguments to filter AgentRepairEvents to delete.
+     * @example
+     * // Delete a few AgentRepairEvents
+     * const { count } = await prisma.agentRepairEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AgentRepairEventDeleteManyArgs>(args?: SelectSubset<T, AgentRepairEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentRepairEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRepairEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AgentRepairEvents
+     * const agentRepairEvent = await prisma.agentRepairEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AgentRepairEventUpdateManyArgs>(args: SelectSubset<T, AgentRepairEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentRepairEvents and returns the data updated in the database.
+     * @param {AgentRepairEventUpdateManyAndReturnArgs} args - Arguments to update many AgentRepairEvents.
+     * @example
+     * // Update many AgentRepairEvents
+     * const agentRepairEvent = await prisma.agentRepairEvent.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more AgentRepairEvents and only return the `id`
+     * const agentRepairEventWithIdOnly = await prisma.agentRepairEvent.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends AgentRepairEventUpdateManyAndReturnArgs>(args: SelectSubset<T, AgentRepairEventUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRepairEventPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AgentRepairEvent.
+     * @param {AgentRepairEventUpsertArgs} args - Arguments to update or create a AgentRepairEvent.
+     * @example
+     * // Update or create a AgentRepairEvent
+     * const agentRepairEvent = await prisma.agentRepairEvent.upsert({
+     *   create: {
+     *     // ... data to create a AgentRepairEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AgentRepairEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AgentRepairEventUpsertArgs>(args: SelectSubset<T, AgentRepairEventUpsertArgs<ExtArgs>>): Prisma__AgentRepairEventClient<$Result.GetResult<Prisma.$AgentRepairEventPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AgentRepairEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRepairEventCountArgs} args - Arguments to filter AgentRepairEvents to count.
+     * @example
+     * // Count the number of AgentRepairEvents
+     * const count = await prisma.agentRepairEvent.count({
+     *   where: {
+     *     // ... the filter for the AgentRepairEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends AgentRepairEventCountArgs>(
+      args?: Subset<T, AgentRepairEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AgentRepairEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AgentRepairEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRepairEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AgentRepairEventAggregateArgs>(args: Subset<T, AgentRepairEventAggregateArgs>): Prisma.PrismaPromise<GetAgentRepairEventAggregateType<T>>
+
+    /**
+     * Group by AgentRepairEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRepairEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AgentRepairEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AgentRepairEventGroupByArgs['orderBy'] }
+        : { orderBy?: AgentRepairEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AgentRepairEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAgentRepairEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AgentRepairEvent model
+   */
+  readonly fields: AgentRepairEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AgentRepairEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AgentRepairEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AgentRepairEvent model
+   */
+  interface AgentRepairEventFieldRefs {
+    readonly id: FieldRef<"AgentRepairEvent", 'String'>
+    readonly projectId: FieldRef<"AgentRepairEvent", 'String'>
+    readonly messageId: FieldRef<"AgentRepairEvent", 'String'>
+    readonly artifactId: FieldRef<"AgentRepairEvent", 'String'>
+    readonly actionId: FieldRef<"AgentRepairEvent", 'String'>
+    readonly relativePath: FieldRef<"AgentRepairEvent", 'String'>
+    readonly attempt: FieldRef<"AgentRepairEvent", 'Int'>
+    readonly outcome: FieldRef<"AgentRepairEvent", 'String'>
+    readonly validationError: FieldRef<"AgentRepairEvent", 'String'>
+    readonly repairError: FieldRef<"AgentRepairEvent", 'String'>
+    readonly createdAt: FieldRef<"AgentRepairEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AgentRepairEvent findUnique
+   */
+  export type AgentRepairEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRepairEvent
+     */
+    select?: AgentRepairEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRepairEvent
+     */
+    omit?: AgentRepairEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRepairEventInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRepairEvent to fetch.
+     */
+    where: AgentRepairEventWhereUniqueInput
+  }
+
+  /**
+   * AgentRepairEvent findUniqueOrThrow
+   */
+  export type AgentRepairEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRepairEvent
+     */
+    select?: AgentRepairEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRepairEvent
+     */
+    omit?: AgentRepairEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRepairEventInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRepairEvent to fetch.
+     */
+    where: AgentRepairEventWhereUniqueInput
+  }
+
+  /**
+   * AgentRepairEvent findFirst
+   */
+  export type AgentRepairEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRepairEvent
+     */
+    select?: AgentRepairEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRepairEvent
+     */
+    omit?: AgentRepairEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRepairEventInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRepairEvent to fetch.
+     */
+    where?: AgentRepairEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentRepairEvents to fetch.
+     */
+    orderBy?: AgentRepairEventOrderByWithRelationInput | AgentRepairEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AgentRepairEvents.
+     */
+    cursor?: AgentRepairEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentRepairEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentRepairEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentRepairEvents.
+     */
+    distinct?: AgentRepairEventScalarFieldEnum | AgentRepairEventScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRepairEvent findFirstOrThrow
+   */
+  export type AgentRepairEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRepairEvent
+     */
+    select?: AgentRepairEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRepairEvent
+     */
+    omit?: AgentRepairEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRepairEventInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRepairEvent to fetch.
+     */
+    where?: AgentRepairEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentRepairEvents to fetch.
+     */
+    orderBy?: AgentRepairEventOrderByWithRelationInput | AgentRepairEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AgentRepairEvents.
+     */
+    cursor?: AgentRepairEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentRepairEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentRepairEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentRepairEvents.
+     */
+    distinct?: AgentRepairEventScalarFieldEnum | AgentRepairEventScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRepairEvent findMany
+   */
+  export type AgentRepairEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRepairEvent
+     */
+    select?: AgentRepairEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRepairEvent
+     */
+    omit?: AgentRepairEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRepairEventInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRepairEvents to fetch.
+     */
+    where?: AgentRepairEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentRepairEvents to fetch.
+     */
+    orderBy?: AgentRepairEventOrderByWithRelationInput | AgentRepairEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AgentRepairEvents.
+     */
+    cursor?: AgentRepairEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentRepairEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentRepairEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentRepairEvents.
+     */
+    distinct?: AgentRepairEventScalarFieldEnum | AgentRepairEventScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRepairEvent create
+   */
+  export type AgentRepairEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRepairEvent
+     */
+    select?: AgentRepairEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRepairEvent
+     */
+    omit?: AgentRepairEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRepairEventInclude<ExtArgs> | null
+    /**
+     * The data needed to create a AgentRepairEvent.
+     */
+    data: XOR<AgentRepairEventCreateInput, AgentRepairEventUncheckedCreateInput>
+  }
+
+  /**
+   * AgentRepairEvent createMany
+   */
+  export type AgentRepairEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AgentRepairEvents.
+     */
+    data: AgentRepairEventCreateManyInput | AgentRepairEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AgentRepairEvent createManyAndReturn
+   */
+  export type AgentRepairEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRepairEvent
+     */
+    select?: AgentRepairEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRepairEvent
+     */
+    omit?: AgentRepairEventOmit<ExtArgs> | null
+    /**
+     * The data used to create many AgentRepairEvents.
+     */
+    data: AgentRepairEventCreateManyInput | AgentRepairEventCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRepairEventIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AgentRepairEvent update
+   */
+  export type AgentRepairEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRepairEvent
+     */
+    select?: AgentRepairEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRepairEvent
+     */
+    omit?: AgentRepairEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRepairEventInclude<ExtArgs> | null
+    /**
+     * The data needed to update a AgentRepairEvent.
+     */
+    data: XOR<AgentRepairEventUpdateInput, AgentRepairEventUncheckedUpdateInput>
+    /**
+     * Choose, which AgentRepairEvent to update.
+     */
+    where: AgentRepairEventWhereUniqueInput
+  }
+
+  /**
+   * AgentRepairEvent updateMany
+   */
+  export type AgentRepairEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AgentRepairEvents.
+     */
+    data: XOR<AgentRepairEventUpdateManyMutationInput, AgentRepairEventUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentRepairEvents to update
+     */
+    where?: AgentRepairEventWhereInput
+    /**
+     * Limit how many AgentRepairEvents to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentRepairEvent updateManyAndReturn
+   */
+  export type AgentRepairEventUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRepairEvent
+     */
+    select?: AgentRepairEventSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRepairEvent
+     */
+    omit?: AgentRepairEventOmit<ExtArgs> | null
+    /**
+     * The data used to update AgentRepairEvents.
+     */
+    data: XOR<AgentRepairEventUpdateManyMutationInput, AgentRepairEventUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentRepairEvents to update
+     */
+    where?: AgentRepairEventWhereInput
+    /**
+     * Limit how many AgentRepairEvents to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRepairEventIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AgentRepairEvent upsert
+   */
+  export type AgentRepairEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRepairEvent
+     */
+    select?: AgentRepairEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRepairEvent
+     */
+    omit?: AgentRepairEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRepairEventInclude<ExtArgs> | null
+    /**
+     * The filter to search for the AgentRepairEvent to update in case it exists.
+     */
+    where: AgentRepairEventWhereUniqueInput
+    /**
+     * In case the AgentRepairEvent found by the `where` argument doesn't exist, create a new AgentRepairEvent with this data.
+     */
+    create: XOR<AgentRepairEventCreateInput, AgentRepairEventUncheckedCreateInput>
+    /**
+     * In case the AgentRepairEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AgentRepairEventUpdateInput, AgentRepairEventUncheckedUpdateInput>
+  }
+
+  /**
+   * AgentRepairEvent delete
+   */
+  export type AgentRepairEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRepairEvent
+     */
+    select?: AgentRepairEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRepairEvent
+     */
+    omit?: AgentRepairEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRepairEventInclude<ExtArgs> | null
+    /**
+     * Filter which AgentRepairEvent to delete.
+     */
+    where: AgentRepairEventWhereUniqueInput
+  }
+
+  /**
+   * AgentRepairEvent deleteMany
+   */
+  export type AgentRepairEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentRepairEvents to delete
+     */
+    where?: AgentRepairEventWhereInput
+    /**
+     * Limit how many AgentRepairEvents to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentRepairEvent without action
+   */
+  export type AgentRepairEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRepairEvent
+     */
+    select?: AgentRepairEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRepairEvent
+     */
+    omit?: AgentRepairEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRepairEventInclude<ExtArgs> | null
   }
 
 
@@ -39289,6 +40592,7 @@ export namespace Prisma {
     name: string | null
     status: $Enums.WorkspaceStatus | null
     runtimeMode: string | null
+    environment: string | null
     gitPath: string | null
     gitRepositoryUrl: string | null
     createdAt: Date | null
@@ -39301,6 +40605,7 @@ export namespace Prisma {
     name: string | null
     status: $Enums.WorkspaceStatus | null
     runtimeMode: string | null
+    environment: string | null
     gitPath: string | null
     gitRepositoryUrl: string | null
     createdAt: Date | null
@@ -39313,6 +40618,7 @@ export namespace Prisma {
     name: number
     status: number
     runtimeMode: number
+    environment: number
     gitPath: number
     gitRepositoryUrl: number
     createdAt: number
@@ -39327,6 +40633,7 @@ export namespace Prisma {
     name?: true
     status?: true
     runtimeMode?: true
+    environment?: true
     gitPath?: true
     gitRepositoryUrl?: true
     createdAt?: true
@@ -39339,6 +40646,7 @@ export namespace Prisma {
     name?: true
     status?: true
     runtimeMode?: true
+    environment?: true
     gitPath?: true
     gitRepositoryUrl?: true
     createdAt?: true
@@ -39351,6 +40659,7 @@ export namespace Prisma {
     name?: true
     status?: true
     runtimeMode?: true
+    environment?: true
     gitPath?: true
     gitRepositoryUrl?: true
     createdAt?: true
@@ -39436,6 +40745,7 @@ export namespace Prisma {
     name: string
     status: $Enums.WorkspaceStatus
     runtimeMode: string
+    environment: string
     gitPath: string | null
     gitRepositoryUrl: string | null
     createdAt: Date
@@ -39465,6 +40775,7 @@ export namespace Prisma {
     name?: boolean
     status?: boolean
     runtimeMode?: boolean
+    environment?: boolean
     gitPath?: boolean
     gitRepositoryUrl?: boolean
     createdAt?: boolean
@@ -39483,6 +40794,7 @@ export namespace Prisma {
     name?: boolean
     status?: boolean
     runtimeMode?: boolean
+    environment?: boolean
     gitPath?: boolean
     gitRepositoryUrl?: boolean
     createdAt?: boolean
@@ -39496,6 +40808,7 @@ export namespace Prisma {
     name?: boolean
     status?: boolean
     runtimeMode?: boolean
+    environment?: boolean
     gitPath?: boolean
     gitRepositoryUrl?: boolean
     createdAt?: boolean
@@ -39509,13 +40822,14 @@ export namespace Prisma {
     name?: boolean
     status?: boolean
     runtimeMode?: boolean
+    environment?: boolean
     gitPath?: boolean
     gitRepositoryUrl?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type WorkspaceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "name" | "status" | "runtimeMode" | "gitPath" | "gitRepositoryUrl" | "createdAt" | "updatedAt", ExtArgs["result"]["workspace"]>
+  export type WorkspaceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "name" | "status" | "runtimeMode" | "environment" | "gitPath" | "gitRepositoryUrl" | "createdAt" | "updatedAt", ExtArgs["result"]["workspace"]>
   export type WorkspaceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     sessions?: boolean | Workspace$sessionsArgs<ExtArgs>
@@ -39546,6 +40860,7 @@ export namespace Prisma {
       name: string
       status: $Enums.WorkspaceStatus
       runtimeMode: string
+      environment: string
       gitPath: string | null
       gitRepositoryUrl: string | null
       createdAt: Date
@@ -39983,6 +41298,7 @@ export namespace Prisma {
     readonly name: FieldRef<"Workspace", 'String'>
     readonly status: FieldRef<"Workspace", 'WorkspaceStatus'>
     readonly runtimeMode: FieldRef<"Workspace", 'String'>
+    readonly environment: FieldRef<"Workspace", 'String'>
     readonly gitPath: FieldRef<"Workspace", 'String'>
     readonly gitRepositoryUrl: FieldRef<"Workspace", 'String'>
     readonly createdAt: FieldRef<"Workspace", 'DateTime'>
@@ -113420,6 +114736,23 @@ export namespace Prisma {
   export type AgentPatchProposalScalarFieldEnum = (typeof AgentPatchProposalScalarFieldEnum)[keyof typeof AgentPatchProposalScalarFieldEnum]
 
 
+  export const AgentRepairEventScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    messageId: 'messageId',
+    artifactId: 'artifactId',
+    actionId: 'actionId',
+    relativePath: 'relativePath',
+    attempt: 'attempt',
+    outcome: 'outcome',
+    validationError: 'validationError',
+    repairError: 'repairError',
+    createdAt: 'createdAt'
+  };
+
+  export type AgentRepairEventScalarFieldEnum = (typeof AgentRepairEventScalarFieldEnum)[keyof typeof AgentRepairEventScalarFieldEnum]
+
+
   export const ProjectSkillScalarFieldEnum: {
     id: 'id',
     projectId: 'projectId',
@@ -113556,6 +114889,7 @@ export namespace Prisma {
     name: 'name',
     status: 'status',
     runtimeMode: 'runtimeMode',
+    environment: 'environment',
     gitPath: 'gitPath',
     gitRepositoryUrl: 'gitRepositoryUrl',
     createdAt: 'createdAt',
@@ -115680,6 +117014,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkListRelationFilter
     databaseInstances?: DatabaseInstanceListRelationFilter
     skills?: ProjectSkillListRelationFilter
+    repairEvents?: AgentRepairEventListRelationFilter
   }
 
   export type ProjectOrderByWithRelationInput = {
@@ -115719,6 +117054,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkOrderByRelationAggregateInput
     databaseInstances?: DatabaseInstanceOrderByRelationAggregateInput
     skills?: ProjectSkillOrderByRelationAggregateInput
+    repairEvents?: AgentRepairEventOrderByRelationAggregateInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -115762,6 +117098,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkListRelationFilter
     databaseInstances?: DatabaseInstanceListRelationFilter
     skills?: ProjectSkillListRelationFilter
+    repairEvents?: AgentRepairEventListRelationFilter
   }, "id" | "organizationId_slug">
 
   export type ProjectOrderByWithAggregationInput = {
@@ -116184,6 +117521,93 @@ export namespace Prisma {
     error?: StringNullableWithAggregatesFilter<"AgentPatchProposal"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"AgentPatchProposal"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"AgentPatchProposal"> | Date | string
+  }
+
+  export type AgentRepairEventWhereInput = {
+    AND?: AgentRepairEventWhereInput | AgentRepairEventWhereInput[]
+    OR?: AgentRepairEventWhereInput[]
+    NOT?: AgentRepairEventWhereInput | AgentRepairEventWhereInput[]
+    id?: StringFilter<"AgentRepairEvent"> | string
+    projectId?: StringFilter<"AgentRepairEvent"> | string
+    messageId?: StringNullableFilter<"AgentRepairEvent"> | string | null
+    artifactId?: StringNullableFilter<"AgentRepairEvent"> | string | null
+    actionId?: StringNullableFilter<"AgentRepairEvent"> | string | null
+    relativePath?: StringFilter<"AgentRepairEvent"> | string
+    attempt?: IntFilter<"AgentRepairEvent"> | number
+    outcome?: StringFilter<"AgentRepairEvent"> | string
+    validationError?: StringNullableFilter<"AgentRepairEvent"> | string | null
+    repairError?: StringNullableFilter<"AgentRepairEvent"> | string | null
+    createdAt?: DateTimeFilter<"AgentRepairEvent"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }
+
+  export type AgentRepairEventOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    messageId?: SortOrderInput | SortOrder
+    artifactId?: SortOrderInput | SortOrder
+    actionId?: SortOrderInput | SortOrder
+    relativePath?: SortOrder
+    attempt?: SortOrder
+    outcome?: SortOrder
+    validationError?: SortOrderInput | SortOrder
+    repairError?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+  }
+
+  export type AgentRepairEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AgentRepairEventWhereInput | AgentRepairEventWhereInput[]
+    OR?: AgentRepairEventWhereInput[]
+    NOT?: AgentRepairEventWhereInput | AgentRepairEventWhereInput[]
+    projectId?: StringFilter<"AgentRepairEvent"> | string
+    messageId?: StringNullableFilter<"AgentRepairEvent"> | string | null
+    artifactId?: StringNullableFilter<"AgentRepairEvent"> | string | null
+    actionId?: StringNullableFilter<"AgentRepairEvent"> | string | null
+    relativePath?: StringFilter<"AgentRepairEvent"> | string
+    attempt?: IntFilter<"AgentRepairEvent"> | number
+    outcome?: StringFilter<"AgentRepairEvent"> | string
+    validationError?: StringNullableFilter<"AgentRepairEvent"> | string | null
+    repairError?: StringNullableFilter<"AgentRepairEvent"> | string | null
+    createdAt?: DateTimeFilter<"AgentRepairEvent"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }, "id">
+
+  export type AgentRepairEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    messageId?: SortOrderInput | SortOrder
+    artifactId?: SortOrderInput | SortOrder
+    actionId?: SortOrderInput | SortOrder
+    relativePath?: SortOrder
+    attempt?: SortOrder
+    outcome?: SortOrder
+    validationError?: SortOrderInput | SortOrder
+    repairError?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: AgentRepairEventCountOrderByAggregateInput
+    _avg?: AgentRepairEventAvgOrderByAggregateInput
+    _max?: AgentRepairEventMaxOrderByAggregateInput
+    _min?: AgentRepairEventMinOrderByAggregateInput
+    _sum?: AgentRepairEventSumOrderByAggregateInput
+  }
+
+  export type AgentRepairEventScalarWhereWithAggregatesInput = {
+    AND?: AgentRepairEventScalarWhereWithAggregatesInput | AgentRepairEventScalarWhereWithAggregatesInput[]
+    OR?: AgentRepairEventScalarWhereWithAggregatesInput[]
+    NOT?: AgentRepairEventScalarWhereWithAggregatesInput | AgentRepairEventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AgentRepairEvent"> | string
+    projectId?: StringWithAggregatesFilter<"AgentRepairEvent"> | string
+    messageId?: StringNullableWithAggregatesFilter<"AgentRepairEvent"> | string | null
+    artifactId?: StringNullableWithAggregatesFilter<"AgentRepairEvent"> | string | null
+    actionId?: StringNullableWithAggregatesFilter<"AgentRepairEvent"> | string | null
+    relativePath?: StringWithAggregatesFilter<"AgentRepairEvent"> | string
+    attempt?: IntWithAggregatesFilter<"AgentRepairEvent"> | number
+    outcome?: StringWithAggregatesFilter<"AgentRepairEvent"> | string
+    validationError?: StringNullableWithAggregatesFilter<"AgentRepairEvent"> | string | null
+    repairError?: StringNullableWithAggregatesFilter<"AgentRepairEvent"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"AgentRepairEvent"> | Date | string
   }
 
   export type ProjectSkillWhereInput = {
@@ -116871,6 +118295,7 @@ export namespace Prisma {
     name?: StringFilter<"Workspace"> | string
     status?: EnumWorkspaceStatusFilter<"Workspace"> | $Enums.WorkspaceStatus
     runtimeMode?: StringFilter<"Workspace"> | string
+    environment?: StringFilter<"Workspace"> | string
     gitPath?: StringNullableFilter<"Workspace"> | string | null
     gitRepositoryUrl?: StringNullableFilter<"Workspace"> | string | null
     createdAt?: DateTimeFilter<"Workspace"> | Date | string
@@ -116888,6 +118313,7 @@ export namespace Prisma {
     name?: SortOrder
     status?: SortOrder
     runtimeMode?: SortOrder
+    environment?: SortOrder
     gitPath?: SortOrderInput | SortOrder
     gitRepositoryUrl?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -116908,6 +118334,7 @@ export namespace Prisma {
     name?: StringFilter<"Workspace"> | string
     status?: EnumWorkspaceStatusFilter<"Workspace"> | $Enums.WorkspaceStatus
     runtimeMode?: StringFilter<"Workspace"> | string
+    environment?: StringFilter<"Workspace"> | string
     gitPath?: StringNullableFilter<"Workspace"> | string | null
     gitRepositoryUrl?: StringNullableFilter<"Workspace"> | string | null
     createdAt?: DateTimeFilter<"Workspace"> | Date | string
@@ -116925,6 +118352,7 @@ export namespace Prisma {
     name?: SortOrder
     status?: SortOrder
     runtimeMode?: SortOrder
+    environment?: SortOrder
     gitPath?: SortOrderInput | SortOrder
     gitRepositoryUrl?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -116943,6 +118371,7 @@ export namespace Prisma {
     name?: StringWithAggregatesFilter<"Workspace"> | string
     status?: EnumWorkspaceStatusWithAggregatesFilter<"Workspace"> | $Enums.WorkspaceStatus
     runtimeMode?: StringWithAggregatesFilter<"Workspace"> | string
+    environment?: StringWithAggregatesFilter<"Workspace"> | string
     gitPath?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
     gitRepositoryUrl?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Workspace"> | Date | string
@@ -122831,6 +124260,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
@@ -122869,6 +124299,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUpdateInput = {
@@ -122907,6 +124338,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
@@ -122945,6 +124377,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
@@ -123335,6 +124768,103 @@ export namespace Prisma {
     error?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentRepairEventCreateInput = {
+    id?: string
+    messageId?: string | null
+    artifactId?: string | null
+    actionId?: string | null
+    relativePath: string
+    attempt?: number
+    outcome: string
+    validationError?: string | null
+    repairError?: string | null
+    createdAt?: Date | string
+    project: ProjectCreateNestedOneWithoutRepairEventsInput
+  }
+
+  export type AgentRepairEventUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    messageId?: string | null
+    artifactId?: string | null
+    actionId?: string | null
+    relativePath: string
+    attempt?: number
+    outcome: string
+    validationError?: string | null
+    repairError?: string | null
+    createdAt?: Date | string
+  }
+
+  export type AgentRepairEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    messageId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactId?: NullableStringFieldUpdateOperationsInput | string | null
+    actionId?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    outcome?: StringFieldUpdateOperationsInput | string
+    validationError?: NullableStringFieldUpdateOperationsInput | string | null
+    repairError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutRepairEventsNestedInput
+  }
+
+  export type AgentRepairEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    messageId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactId?: NullableStringFieldUpdateOperationsInput | string | null
+    actionId?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    outcome?: StringFieldUpdateOperationsInput | string
+    validationError?: NullableStringFieldUpdateOperationsInput | string | null
+    repairError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentRepairEventCreateManyInput = {
+    id?: string
+    projectId: string
+    messageId?: string | null
+    artifactId?: string | null
+    actionId?: string | null
+    relativePath: string
+    attempt?: number
+    outcome: string
+    validationError?: string | null
+    repairError?: string | null
+    createdAt?: Date | string
+  }
+
+  export type AgentRepairEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    messageId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactId?: NullableStringFieldUpdateOperationsInput | string | null
+    actionId?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    outcome?: StringFieldUpdateOperationsInput | string
+    validationError?: NullableStringFieldUpdateOperationsInput | string | null
+    repairError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentRepairEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    messageId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactId?: NullableStringFieldUpdateOperationsInput | string | null
+    actionId?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    outcome?: StringFieldUpdateOperationsInput | string
+    validationError?: NullableStringFieldUpdateOperationsInput | string | null
+    repairError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ProjectSkillCreateInput = {
@@ -124026,6 +125556,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
     createdAt?: Date | string
@@ -124043,6 +125574,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
     createdAt?: Date | string
@@ -124058,6 +125590,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -124075,6 +125608,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -124091,6 +125625,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
     createdAt?: Date | string
@@ -124102,6 +125637,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -124114,6 +125650,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -130620,6 +132157,12 @@ export namespace Prisma {
     none?: ProjectSkillWhereInput
   }
 
+  export type AgentRepairEventListRelationFilter = {
+    every?: AgentRepairEventWhereInput
+    some?: AgentRepairEventWhereInput
+    none?: AgentRepairEventWhereInput
+  }
+
   export type ProjectEnvironmentOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -130657,6 +132200,10 @@ export namespace Prisma {
   }
 
   export type ProjectSkillOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type AgentRepairEventOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -131035,6 +132582,56 @@ export namespace Prisma {
     error?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type AgentRepairEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    messageId?: SortOrder
+    artifactId?: SortOrder
+    actionId?: SortOrder
+    relativePath?: SortOrder
+    attempt?: SortOrder
+    outcome?: SortOrder
+    validationError?: SortOrder
+    repairError?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AgentRepairEventAvgOrderByAggregateInput = {
+    attempt?: SortOrder
+  }
+
+  export type AgentRepairEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    messageId?: SortOrder
+    artifactId?: SortOrder
+    actionId?: SortOrder
+    relativePath?: SortOrder
+    attempt?: SortOrder
+    outcome?: SortOrder
+    validationError?: SortOrder
+    repairError?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AgentRepairEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    messageId?: SortOrder
+    artifactId?: SortOrder
+    actionId?: SortOrder
+    relativePath?: SortOrder
+    attempt?: SortOrder
+    outcome?: SortOrder
+    validationError?: SortOrder
+    repairError?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AgentRepairEventSumOrderByAggregateInput = {
+    attempt?: SortOrder
   }
 
   export type ProjectSkillProjectIdSkillIdCompoundUniqueInput = {
@@ -131432,6 +133029,7 @@ export namespace Prisma {
     name?: SortOrder
     status?: SortOrder
     runtimeMode?: SortOrder
+    environment?: SortOrder
     gitPath?: SortOrder
     gitRepositoryUrl?: SortOrder
     createdAt?: SortOrder
@@ -131444,6 +133042,7 @@ export namespace Prisma {
     name?: SortOrder
     status?: SortOrder
     runtimeMode?: SortOrder
+    environment?: SortOrder
     gitPath?: SortOrder
     gitRepositoryUrl?: SortOrder
     createdAt?: SortOrder
@@ -131456,6 +133055,7 @@ export namespace Prisma {
     name?: SortOrder
     status?: SortOrder
     runtimeMode?: SortOrder
+    environment?: SortOrder
     gitPath?: SortOrder
     gitRepositoryUrl?: SortOrder
     createdAt?: SortOrder
@@ -137414,6 +139014,13 @@ export namespace Prisma {
     connect?: ProjectSkillWhereUniqueInput | ProjectSkillWhereUniqueInput[]
   }
 
+  export type AgentRepairEventCreateNestedManyWithoutProjectInput = {
+    create?: XOR<AgentRepairEventCreateWithoutProjectInput, AgentRepairEventUncheckedCreateWithoutProjectInput> | AgentRepairEventCreateWithoutProjectInput[] | AgentRepairEventUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: AgentRepairEventCreateOrConnectWithoutProjectInput | AgentRepairEventCreateOrConnectWithoutProjectInput[]
+    createMany?: AgentRepairEventCreateManyProjectInputEnvelope
+    connect?: AgentRepairEventWhereUniqueInput | AgentRepairEventWhereUniqueInput[]
+  }
+
   export type ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -137562,6 +139169,13 @@ export namespace Prisma {
     connectOrCreate?: ProjectSkillCreateOrConnectWithoutProjectInput | ProjectSkillCreateOrConnectWithoutProjectInput[]
     createMany?: ProjectSkillCreateManyProjectInputEnvelope
     connect?: ProjectSkillWhereUniqueInput | ProjectSkillWhereUniqueInput[]
+  }
+
+  export type AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<AgentRepairEventCreateWithoutProjectInput, AgentRepairEventUncheckedCreateWithoutProjectInput> | AgentRepairEventCreateWithoutProjectInput[] | AgentRepairEventUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: AgentRepairEventCreateOrConnectWithoutProjectInput | AgentRepairEventCreateOrConnectWithoutProjectInput[]
+    createMany?: AgentRepairEventCreateManyProjectInputEnvelope
+    connect?: AgentRepairEventWhereUniqueInput | AgentRepairEventWhereUniqueInput[]
   }
 
   export type OrganizationUpdateOneRequiredWithoutProjectsNestedInput = {
@@ -137872,6 +139486,20 @@ export namespace Prisma {
     deleteMany?: ProjectSkillScalarWhereInput | ProjectSkillScalarWhereInput[]
   }
 
+  export type AgentRepairEventUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<AgentRepairEventCreateWithoutProjectInput, AgentRepairEventUncheckedCreateWithoutProjectInput> | AgentRepairEventCreateWithoutProjectInput[] | AgentRepairEventUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: AgentRepairEventCreateOrConnectWithoutProjectInput | AgentRepairEventCreateOrConnectWithoutProjectInput[]
+    upsert?: AgentRepairEventUpsertWithWhereUniqueWithoutProjectInput | AgentRepairEventUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: AgentRepairEventCreateManyProjectInputEnvelope
+    set?: AgentRepairEventWhereUniqueInput | AgentRepairEventWhereUniqueInput[]
+    disconnect?: AgentRepairEventWhereUniqueInput | AgentRepairEventWhereUniqueInput[]
+    delete?: AgentRepairEventWhereUniqueInput | AgentRepairEventWhereUniqueInput[]
+    connect?: AgentRepairEventWhereUniqueInput | AgentRepairEventWhereUniqueInput[]
+    update?: AgentRepairEventUpdateWithWhereUniqueWithoutProjectInput | AgentRepairEventUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: AgentRepairEventUpdateManyWithWhereWithoutProjectInput | AgentRepairEventUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: AgentRepairEventScalarWhereInput | AgentRepairEventScalarWhereInput[]
+  }
+
   export type ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -138172,6 +139800,20 @@ export namespace Prisma {
     deleteMany?: ProjectSkillScalarWhereInput | ProjectSkillScalarWhereInput[]
   }
 
+  export type AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<AgentRepairEventCreateWithoutProjectInput, AgentRepairEventUncheckedCreateWithoutProjectInput> | AgentRepairEventCreateWithoutProjectInput[] | AgentRepairEventUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: AgentRepairEventCreateOrConnectWithoutProjectInput | AgentRepairEventCreateOrConnectWithoutProjectInput[]
+    upsert?: AgentRepairEventUpsertWithWhereUniqueWithoutProjectInput | AgentRepairEventUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: AgentRepairEventCreateManyProjectInputEnvelope
+    set?: AgentRepairEventWhereUniqueInput | AgentRepairEventWhereUniqueInput[]
+    disconnect?: AgentRepairEventWhereUniqueInput | AgentRepairEventWhereUniqueInput[]
+    delete?: AgentRepairEventWhereUniqueInput | AgentRepairEventWhereUniqueInput[]
+    connect?: AgentRepairEventWhereUniqueInput | AgentRepairEventWhereUniqueInput[]
+    update?: AgentRepairEventUpdateWithWhereUniqueWithoutProjectInput | AgentRepairEventUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: AgentRepairEventUpdateManyWithWhereWithoutProjectInput | AgentRepairEventUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: AgentRepairEventScalarWhereInput | AgentRepairEventScalarWhereInput[]
+  }
+
   export type IntFieldUpdateOperationsInput = {
     set?: number
     increment?: number
@@ -138314,6 +139956,20 @@ export namespace Prisma {
     upsert?: ProjectUpsertWithoutAgentPatchProposalsInput
     connect?: ProjectWhereUniqueInput
     update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutAgentPatchProposalsInput, ProjectUpdateWithoutAgentPatchProposalsInput>, ProjectUncheckedUpdateWithoutAgentPatchProposalsInput>
+  }
+
+  export type ProjectCreateNestedOneWithoutRepairEventsInput = {
+    create?: XOR<ProjectCreateWithoutRepairEventsInput, ProjectUncheckedCreateWithoutRepairEventsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutRepairEventsInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type ProjectUpdateOneRequiredWithoutRepairEventsNestedInput = {
+    create?: XOR<ProjectCreateWithoutRepairEventsInput, ProjectUncheckedCreateWithoutRepairEventsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutRepairEventsInput
+    upsert?: ProjectUpsertWithoutRepairEventsInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutRepairEventsInput, ProjectUpdateWithoutRepairEventsInput>, ProjectUncheckedUpdateWithoutRepairEventsInput>
   }
 
   export type ProjectCreateNestedOneWithoutSkillsInput = {
@@ -143191,6 +144847,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutOrganizationInput = {
@@ -143228,6 +144885,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutOrganizationInput = {
@@ -146143,6 +147801,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
     createdAt?: Date | string
@@ -146158,6 +147817,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
     createdAt?: Date | string
@@ -146651,6 +148311,42 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type AgentRepairEventCreateWithoutProjectInput = {
+    id?: string
+    messageId?: string | null
+    artifactId?: string | null
+    actionId?: string | null
+    relativePath: string
+    attempt?: number
+    outcome: string
+    validationError?: string | null
+    repairError?: string | null
+    createdAt?: Date | string
+  }
+
+  export type AgentRepairEventUncheckedCreateWithoutProjectInput = {
+    id?: string
+    messageId?: string | null
+    artifactId?: string | null
+    actionId?: string | null
+    relativePath: string
+    attempt?: number
+    outcome: string
+    validationError?: string | null
+    repairError?: string | null
+    createdAt?: Date | string
+  }
+
+  export type AgentRepairEventCreateOrConnectWithoutProjectInput = {
+    where: AgentRepairEventWhereUniqueInput
+    create: XOR<AgentRepairEventCreateWithoutProjectInput, AgentRepairEventUncheckedCreateWithoutProjectInput>
+  }
+
+  export type AgentRepairEventCreateManyProjectInputEnvelope = {
+    data: AgentRepairEventCreateManyProjectInput | AgentRepairEventCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationUpsertWithoutProjectsInput = {
     update: XOR<OrganizationUpdateWithoutProjectsInput, OrganizationUncheckedUpdateWithoutProjectsInput>
     create: XOR<OrganizationCreateWithoutProjectsInput, OrganizationUncheckedCreateWithoutProjectsInput>
@@ -146898,6 +148594,7 @@ export namespace Prisma {
     name?: StringFilter<"Workspace"> | string
     status?: EnumWorkspaceStatusFilter<"Workspace"> | $Enums.WorkspaceStatus
     runtimeMode?: StringFilter<"Workspace"> | string
+    environment?: StringFilter<"Workspace"> | string
     gitPath?: StringNullableFilter<"Workspace"> | string | null
     gitRepositoryUrl?: StringNullableFilter<"Workspace"> | string | null
     createdAt?: DateTimeFilter<"Workspace"> | Date | string
@@ -147257,6 +148954,39 @@ export namespace Prisma {
     enabled?: BoolFilter<"ProjectSkill"> | boolean
     createdAt?: DateTimeFilter<"ProjectSkill"> | Date | string
     updatedAt?: DateTimeFilter<"ProjectSkill"> | Date | string
+  }
+
+  export type AgentRepairEventUpsertWithWhereUniqueWithoutProjectInput = {
+    where: AgentRepairEventWhereUniqueInput
+    update: XOR<AgentRepairEventUpdateWithoutProjectInput, AgentRepairEventUncheckedUpdateWithoutProjectInput>
+    create: XOR<AgentRepairEventCreateWithoutProjectInput, AgentRepairEventUncheckedCreateWithoutProjectInput>
+  }
+
+  export type AgentRepairEventUpdateWithWhereUniqueWithoutProjectInput = {
+    where: AgentRepairEventWhereUniqueInput
+    data: XOR<AgentRepairEventUpdateWithoutProjectInput, AgentRepairEventUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type AgentRepairEventUpdateManyWithWhereWithoutProjectInput = {
+    where: AgentRepairEventScalarWhereInput
+    data: XOR<AgentRepairEventUpdateManyMutationInput, AgentRepairEventUncheckedUpdateManyWithoutProjectInput>
+  }
+
+  export type AgentRepairEventScalarWhereInput = {
+    AND?: AgentRepairEventScalarWhereInput | AgentRepairEventScalarWhereInput[]
+    OR?: AgentRepairEventScalarWhereInput[]
+    NOT?: AgentRepairEventScalarWhereInput | AgentRepairEventScalarWhereInput[]
+    id?: StringFilter<"AgentRepairEvent"> | string
+    projectId?: StringFilter<"AgentRepairEvent"> | string
+    messageId?: StringNullableFilter<"AgentRepairEvent"> | string | null
+    artifactId?: StringNullableFilter<"AgentRepairEvent"> | string | null
+    actionId?: StringNullableFilter<"AgentRepairEvent"> | string | null
+    relativePath?: StringFilter<"AgentRepairEvent"> | string
+    attempt?: IntFilter<"AgentRepairEvent"> | number
+    outcome?: StringFilter<"AgentRepairEvent"> | string
+    validationError?: StringNullableFilter<"AgentRepairEvent"> | string | null
+    repairError?: StringNullableFilter<"AgentRepairEvent"> | string | null
+    createdAt?: DateTimeFilter<"AgentRepairEvent"> | Date | string
   }
 
   export type UserCreateWithoutAgentMemoriesInput = {
@@ -147662,6 +149392,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoriesInput = {
@@ -147699,6 +149430,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoriesInput = {
@@ -147752,6 +149484,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -147789,6 +149522,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoryPreferencesInput = {
@@ -148004,6 +149738,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -148041,6 +149776,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -148284,6 +150020,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -148321,6 +150058,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutIdeStateInput = {
@@ -148358,6 +150096,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutIdeStateInput = {
@@ -148395,6 +150134,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutIdeStateInput = {
@@ -148541,6 +150281,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutIdeStateInput = {
@@ -148578,6 +150319,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectIdeStateUpdatesInput = {
@@ -148714,6 +150456,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentPatchProposalsInput = {
@@ -148751,6 +150494,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentPatchProposalsInput = {
@@ -148804,6 +150548,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentPatchProposalsInput = {
@@ -148838,6 +150583,175 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectCreateWithoutRepairEventsInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutRepairEventsInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutRepairEventsInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutRepairEventsInput, ProjectUncheckedCreateWithoutRepairEventsInput>
+  }
+
+  export type ProjectUpsertWithoutRepairEventsInput = {
+    update: XOR<ProjectUpdateWithoutRepairEventsInput, ProjectUncheckedUpdateWithoutRepairEventsInput>
+    create: XOR<ProjectCreateWithoutRepairEventsInput, ProjectUncheckedCreateWithoutRepairEventsInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutRepairEventsInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutRepairEventsInput, ProjectUncheckedUpdateWithoutRepairEventsInput>
+  }
+
+  export type ProjectUpdateWithoutRepairEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutRepairEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
@@ -148878,6 +150792,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSkillsInput = {
@@ -148915,6 +150830,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSkillsInput = {
@@ -148968,6 +150884,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSkillsInput = {
@@ -149005,6 +150922,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvironmentsInput = {
@@ -149042,6 +150960,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvironmentsInput = {
@@ -149079,6 +150998,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvironmentsInput = {
@@ -149132,6 +151052,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvironmentsInput = {
@@ -149169,6 +151090,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSecretsInput = {
@@ -149206,6 +151128,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSecretsInput = {
@@ -149243,6 +151166,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSecretsInput = {
@@ -149296,6 +151220,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSecretsInput = {
@@ -149333,6 +151258,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvVarsInput = {
@@ -149370,6 +151296,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvVarsInput = {
@@ -149407,6 +151334,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvVarsInput = {
@@ -149460,6 +151388,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvVarsInput = {
@@ -149497,6 +151426,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutCollaboratorsInput = {
@@ -149534,6 +151464,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaboratorsInput = {
@@ -149571,6 +151502,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaboratorsInput = {
@@ -149717,6 +151649,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaboratorsInput = {
@@ -149754,6 +151687,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCollaborationsInput = {
@@ -149890,6 +151824,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutActivityInput = {
@@ -149927,6 +151862,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutActivityInput = {
@@ -150073,6 +152009,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutActivityInput = {
@@ -150110,6 +152047,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectActivityInput = {
@@ -150246,6 +152184,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -150283,6 +152222,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -150429,6 +152369,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -150466,6 +152407,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationPresenceInput = {
@@ -150602,6 +152544,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -150639,6 +152582,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -150785,6 +152729,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -150822,6 +152767,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationCommentsInput = {
@@ -150958,6 +152904,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutShareLinksInput = {
@@ -150995,6 +152942,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -151141,6 +153089,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutShareLinksInput = {
@@ -151178,6 +153127,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationShareLinksInput = {
@@ -151314,6 +153264,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTemplatesInput = {
@@ -151351,6 +153302,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTemplatesInput = {
@@ -151489,6 +153441,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTemplatesInput = {
@@ -151526,6 +153479,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutProjectTemplatesInput = {
@@ -151654,6 +153608,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutWorkspacesInput = {
@@ -151691,6 +153646,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutWorkspacesInput = {
@@ -151847,6 +153803,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutWorkspacesInput = {
@@ -151884,6 +153841,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceSessionUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -151990,6 +153948,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
     createdAt?: Date | string
@@ -152006,6 +153965,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
     createdAt?: Date | string
@@ -152036,6 +153996,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -152052,6 +154013,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -152066,6 +154028,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
     createdAt?: Date | string
@@ -152082,6 +154045,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
     createdAt?: Date | string
@@ -152112,6 +154076,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -152128,6 +154093,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -152142,6 +154108,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
     createdAt?: Date | string
@@ -152158,6 +154125,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
     createdAt?: Date | string
@@ -152188,6 +154156,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -152204,6 +154173,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -152248,6 +154218,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutFileSnapshotsInput = {
@@ -152285,6 +154256,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutFileSnapshotsInput = {
@@ -152297,6 +154269,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
     createdAt?: Date | string
@@ -152313,6 +154286,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
     createdAt?: Date | string
@@ -152373,6 +154347,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutFileSnapshotsInput = {
@@ -152410,6 +154385,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceUpsertWithoutSnapshotsInput = {
@@ -152428,6 +154404,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -152444,6 +154421,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -152488,6 +154466,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSnapshotsInput = {
@@ -152525,6 +154504,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSnapshotsInput = {
@@ -152671,6 +154651,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSnapshotsInput = {
@@ -152708,6 +154689,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectSnapshotsInput = {
@@ -152844,6 +154826,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutStorageObjectsInput = {
@@ -152881,6 +154864,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutStorageObjectsInput = {
@@ -152934,6 +154918,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutStorageObjectsInput = {
@@ -152971,6 +154956,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutDeploymentsInput = {
@@ -153008,6 +154994,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDeploymentsInput = {
@@ -153045,6 +155032,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDeploymentsInput = {
@@ -153113,6 +155101,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDeploymentsInput = {
@@ -153150,6 +155139,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentEnvironmentUpsertWithoutDeploymentsInput = {
@@ -155032,6 +157022,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConversationsInput = {
@@ -155069,6 +157060,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConversationsInput = {
@@ -155243,6 +157235,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConversationsInput = {
@@ -155280,6 +157273,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutConversationsInput = {
@@ -160541,6 +162535,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConnectionLinksInput = {
@@ -160578,6 +162573,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConnectionLinksInput = {
@@ -160777,6 +162773,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConnectionLinksInput = {
@@ -160814,6 +162811,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserConnectionUpsertWithoutProjectLinksInput = {
@@ -163072,6 +165070,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDatabaseInstancesInput = {
@@ -163109,6 +165108,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDatabaseInstancesInput = {
@@ -163230,6 +165230,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDatabaseInstancesInput = {
@@ -163267,6 +165268,7 @@ export namespace Prisma {
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DatabaseSnapshotUpsertWithWhereUniqueWithoutDatabaseInstanceInput = {
@@ -165045,6 +167047,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutOrganizationInput = {
@@ -165082,6 +167085,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {
@@ -166163,6 +168167,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
     createdAt?: Date | string
@@ -166327,6 +168332,19 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type AgentRepairEventCreateManyProjectInput = {
+    id?: string
+    messageId?: string | null
+    artifactId?: string | null
+    actionId?: string | null
+    relativePath: string
+    attempt?: number
+    outcome: string
+    validationError?: string | null
+    repairError?: string | null
+    createdAt?: Date | string
+  }
+
   export type ProjectEnvironmentUpdateWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -166473,6 +168491,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -166488,6 +168507,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -166503,6 +168523,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -167059,6 +169080,45 @@ export namespace Prisma {
     enabled?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentRepairEventUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    messageId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactId?: NullableStringFieldUpdateOperationsInput | string | null
+    actionId?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    outcome?: StringFieldUpdateOperationsInput | string
+    validationError?: NullableStringFieldUpdateOperationsInput | string | null
+    repairError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentRepairEventUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    messageId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactId?: NullableStringFieldUpdateOperationsInput | string | null
+    actionId?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    outcome?: StringFieldUpdateOperationsInput | string
+    validationError?: NullableStringFieldUpdateOperationsInput | string | null
+    repairError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentRepairEventUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    messageId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactId?: NullableStringFieldUpdateOperationsInput | string | null
+    actionId?: NullableStringFieldUpdateOperationsInput | string | null
+    relativePath?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    outcome?: StringFieldUpdateOperationsInput | string
+    validationError?: NullableStringFieldUpdateOperationsInput | string | null
+    repairError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type WorkspaceSessionCreateManyWorkspaceInput = {
