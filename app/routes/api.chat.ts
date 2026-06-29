@@ -29,6 +29,7 @@ import { checkChatQuota, recordChatUsage } from '~/lib/.server/ai-usage';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { MCPService } from '~/lib/services/mcpService';
 import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
+import { retrieveSkillsForAgentContext } from '~/lib/.server/llm/project-skills';
 import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
 import { classifyStreamError, streamErrorCodeMessages } from '~/types/context';
 import type { DesignScheme } from '~/types/design-scheme';
@@ -448,6 +449,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         if (agentMemory?.memories.length) {
           dataStream.writeMessageAnnotation(agentMemoryAnnotation(agentMemory.memories) as ContextAnnotation);
         }
+
+        /*
+         * Project Skills → agent context. Enabled skills (managed in the IDE
+         * "Skills" panel) are injected into the system prompt so toggling a skill
+         * actually changes agent behaviour. Fails open to "no skills".
+         */
+        const projectSkills = await retrieveSkillsForAgentContext(request, { projectId });
 
         /*
          * Connector-need detection: scan the latest user message and emit a
@@ -942,6 +950,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   agentOrchestrationPlan: orchestrationPlan,
                   agentOrchestrationContext,
                   agentMemoryContext: agentMemory?.context,
+                  skillsContext: projectSkills?.context,
                 });
 
                 result.mergeIntoDataStream(dataStream);
@@ -1012,6 +1021,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           agentOrchestrationPlan: orchestrationPlan,
           agentOrchestrationContext,
           agentMemoryContext: agentMemory?.context,
+          skillsContext: projectSkills?.context,
         });
 
         result.mergeIntoDataStream(dataStream);
