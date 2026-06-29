@@ -48,6 +48,7 @@ import {
 import { setAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
 import { autoApplyAttemptKey, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
+import { AgentRepairHistory } from './AgentRepairHistory';
 import { ConversationBranchesMenu } from './ConversationBranchesMenu';
 import { Messages } from './Messages.client';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
@@ -6059,6 +6060,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         />
                       </div>
                     )}
+                    {projectIdeMode && projectId ? (
+                      <div className="w-full max-w-chat mx-auto px-0 pb-4">
+                        <AgentRepairHistory projectId={projectId} />
+                      </div>
+                    ) : null}
                   </>
                 ) : null;
               }}
