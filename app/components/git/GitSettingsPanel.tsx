@@ -114,6 +114,24 @@ function GitIgnoreEditor({ projectId }: { projectId: string }) {
   );
 }
 
+/**
+ * A reusable git identity. Stored globally (not per-project) under
+ * COMMIT_AUTHOR_PROFILES_KEY so the same identities can be reused across every
+ * project; switching one writes the per-project active-author key that GitTab
+ * reads to prefill the commit form.
+ */
+interface AuthorProfile {
+  id: string;
+  name: string;
+  email: string;
+}
+
+const COMMIT_AUTHOR_PROFILES_KEY = 'vibecore:git:commit-author-profiles';
+
+function authorProfileId(name: string, email: string): string {
+  return `${name.trim().toLowerCase()}|${email.trim().toLowerCase()}`;
+}
+
 export interface GitSettingsPanelProps {
   projectId: string;
   gitRepositoryUrl?: string | null;
@@ -148,6 +166,7 @@ export function GitSettingsPanel({
   const authorStorageKey = useMemo(() => `vibecore:git:commit-author:${projectId}`, [projectId]);
   const [authorName, setAuthorName] = useState('');
   const [authorEmail, setAuthorEmail] = useState('');
+  const [authorProfiles, setAuthorProfiles] = useState<AuthorProfile[]>([]);
 
   useEffect(() => {
     setRemoteUrl(gitRepositoryUrl ?? '');
@@ -166,6 +185,83 @@ export function GitSettingsPanel({
       // Ignore malformed/blocked storage; the fields just start empty.
     }
   }, [authorStorageKey]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(COMMIT_AUTHOR_PROFILES_KEY);
+
+      if (raw) {
+        const parsed = JSON.parse(raw) as AuthorProfile[];
+
+        if (Array.isArray(parsed)) {
+          setAuthorProfiles(
+            parsed.filter((entry) => entry && typeof entry.email === 'string' && typeof entry.id === 'string'),
+          );
+        }
+      }
+    } catch {
+      // Ignore malformed/blocked storage; the saved-profiles list just starts empty.
+    }
+  }, []);
+
+  const persistAuthorProfiles = useCallback((next: AuthorProfile[]) => {
+    setAuthorProfiles(next);
+
+    try {
+      localStorage.setItem(COMMIT_AUTHOR_PROFILES_KEY, JSON.stringify(next));
+    } catch {
+      // Best-effort; in-memory state still reflects the change for this session.
+    }
+  }, []);
+
+  // Writes the per-project active author that GitTab reads to prefill commits.
+  const setActiveAuthor = useCallback(
+    (name: string, email: string) => {
+      try {
+        if (name || email) {
+          localStorage.setItem(authorStorageKey, JSON.stringify({ name, email }));
+        } else {
+          localStorage.removeItem(authorStorageKey);
+        }
+      } catch {
+        // Ignore blocked storage; the in-memory fields below still update.
+      }
+    },
+    [authorStorageKey],
+  );
+
+  const applyAuthorProfile = useCallback(
+    (profile: AuthorProfile) => {
+      setAuthorName(profile.name);
+      setAuthorEmail(profile.email);
+      setActiveAuthor(profile.name, profile.email);
+      toast.success(`Commit author set to ${profile.name || profile.email}`);
+    },
+    [setActiveAuthor],
+  );
+
+  const saveAuthorAsProfile = useCallback(() => {
+    const name = authorName.trim();
+    const email = authorEmail.trim();
+
+    if (!name && !email) {
+      toast.error('Enter a name or email before saving a profile.');
+      return;
+    }
+
+    const id = authorProfileId(name, email);
+    const next = [{ id, name, email }, ...authorProfiles.filter((entry) => entry.id !== id)].slice(0, 12);
+    persistAuthorProfiles(next);
+    setActiveAuthor(name, email);
+    toast.success('Commit author profile saved');
+  }, [authorEmail, authorName, authorProfiles, persistAuthorProfiles, setActiveAuthor]);
+
+  const removeAuthorProfile = useCallback(
+    (id: string) => {
+      persistAuthorProfiles(authorProfiles.filter((entry) => entry.id !== id));
+    },
+    [authorProfiles, persistAuthorProfiles],
+  );
 
   const loadConnections = useCallback(async () => {
     setConnectionsLoading(true);
@@ -345,21 +441,9 @@ export function GitSettingsPanel({
   }, [onRemoteConfigured, projectId, workspaceId]);
 
   const saveAuthor = useCallback(() => {
-    try {
-      const name = authorName.trim();
-      const email = authorEmail.trim();
-
-      if (name || email) {
-        localStorage.setItem(authorStorageKey, JSON.stringify({ name, email }));
-      } else {
-        localStorage.removeItem(authorStorageKey);
-      }
-
-      toast.success('Default commit author saved');
-    } catch {
-      toast.error('Unable to save the commit author in this browser.');
-    }
-  }, [authorEmail, authorName, authorStorageKey]);
+    setActiveAuthor(authorName.trim(), authorEmail.trim());
+    toast.success('Default commit author saved');
+  }, [authorEmail, authorName, setActiveAuthor]);
 
   /*
    * Fixed px (not rem) so the Git settings keep IDE density despite the ecode
@@ -515,9 +599,46 @@ export function GitSettingsPanel({
           Commit author
         </h4>
         <p className="text-xs text-bolt-elements-textSecondary">
-          Default author for commits from this project (stored in this browser; used to prefill the commit form).
+          Default author for commits from this project (stored in this browser; used to prefill the commit form). Save
+          multiple identities and switch between them per project.
         </p>
-        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+        {authorProfiles.length ? (
+          <div className="flex flex-wrap gap-2" aria-label="Saved commit author profiles">
+            {authorProfiles.map((profile) => {
+              const isActive = authorProfileId(authorName, authorEmail) === profile.id;
+
+              return (
+                <span
+                  key={profile.id}
+                  className={`group inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${
+                    isActive
+                      ? 'border-bolt-elements-focus bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
+                      : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => applyAuthorProfile(profile)}
+                    className="max-w-[14rem] truncate text-start"
+                    title={`${profile.name || '(no name)'} <${profile.email || 'no email'}>`}
+                  >
+                    {profile.name || profile.email}
+                    {isActive ? ' ✓' : ''}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeAuthorProfile(profile.id)}
+                    aria-label={`Remove commit author profile ${profile.name || profile.email}`}
+                    className="text-bolt-elements-textTertiary hover:text-bolt-elements-item-contentDanger"
+                  >
+                    ×
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        ) : null}
+        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto]">
           <input
             className={inputClass}
             value={authorName}
@@ -539,6 +660,13 @@ export function GitSettingsPanel({
             className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
           >
             Save
+          </button>
+          <button
+            type="button"
+            onClick={saveAuthorAsProfile}
+            className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+          >
+            Save as profile
           </button>
         </div>
       </section>
