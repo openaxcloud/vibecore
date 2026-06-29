@@ -383,3 +383,52 @@ describe('P2d dev/prod split (environment-scoped naming)', () => {
     expect(m.metadata.name).toBe('db-abc123-prod');
   });
 });
+
+describe('P2d isolated tier (paid) — dedicated per-project dev + prod clusters', () => {
+  it('provisionInstance(isolated, production) applies a dedicated -prod Cluster + ScheduledBackup', async () => {
+    const k8s = new FakeK8s();
+    const prov = new CnpgProvisioner(k8s, 'bkt');
+
+    await prov.provisionInstance({ projectId: 'abc123', retentionDays: 28, tier: 'isolated', environment: 'production' });
+
+    const cluster = k8s.applied.find((m) => m.kind === 'Cluster');
+    const backup = k8s.applied.find((m) => m.kind === 'ScheduledBackup');
+    expect(cluster?.metadata.name).toBe('db-abc123-prod');
+    expect(backup?.metadata.name).toBe('db-abc123-prod-daily');
+    // never a shared Database CRD / Pooler for a paid project
+    expect(k8s.applied.some((m) => m.kind === 'Database' || m.kind === 'Pooler')).toBe(false);
+  });
+
+  it('dev and prod isolated clusters are distinct dedicated clusters', async () => {
+    const k8s = new FakeK8s();
+    const prov = new CnpgProvisioner(k8s, 'bkt');
+
+    await prov.provisionInstance({ projectId: 'abc123', retentionDays: 28, tier: 'isolated', environment: 'development' });
+    await prov.provisionInstance({ projectId: 'abc123', retentionDays: 28, tier: 'isolated', environment: 'production' });
+
+    const clusters = k8s.applied.filter((m) => m.kind === 'Cluster').map((m) => m.metadata.name);
+    expect(clusters).toEqual(['db-abc123', 'db-abc123-prod']);
+  });
+
+  it('getConnectionUri(isolated, production) reads the -prod cluster app secret', async () => {
+    const k8s = new FakeK8s();
+    k8s.secrets.set('db-abc123-prod-app', { uri: 'postgresql://app:pw@db-abc123-prod-rw:5432/app' });
+    const prov = new CnpgProvisioner(k8s, 'bkt');
+
+    expect(await prov.getConnectionUri({ projectId: 'abc123', tier: 'isolated', environment: 'production' })).toBe(
+      'postgresql://app:pw@db-abc123-prod-rw:5432/app',
+    );
+    // development reads the un-suffixed secret (and is undefined here)
+    expect(await prov.getConnectionUri({ projectId: 'abc123', tier: 'isolated', environment: 'development' })).toBeUndefined();
+  });
+
+  it('teardown removes BOTH dev and prod isolated clusters', async () => {
+    const k8s = new FakeK8s();
+    const prov = new CnpgProvisioner(k8s, 'bkt');
+
+    await prov.teardown({ projectId: 'abc123' });
+
+    expect(k8s.deleted).toContain('Cluster/db-abc123');
+    expect(k8s.deleted).toContain('Cluster/db-abc123-prod');
+  });
+});

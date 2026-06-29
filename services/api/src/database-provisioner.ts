@@ -642,8 +642,13 @@ export class CnpgProvisioner implements DatabaseProvisioner {
   }
 
   async teardown(input: { projectId: string }): Promise<void> {
-    await this.k8s.delete('Cluster', DB_NAMESPACE, clusterName(input.projectId)).catch(() => {});
-    await this.k8s.delete('ScheduledBackup', DB_NAMESPACE, `${clusterName(input.projectId)}-daily`).catch(() => {});
+    // Tear down BOTH environments' isolated clusters (dev + prod) so deleting a
+    // project leaves no orphaned production database behind.
+    for (const environment of ['development', 'production'] as const) {
+      const cluster = clusterName(input.projectId, environment);
+      await this.k8s.delete('Cluster', DB_NAMESPACE, cluster).catch(() => {});
+      await this.k8s.delete('ScheduledBackup', DB_NAMESPACE, `${cluster}-daily`).catch(() => {});
+    }
   }
 }
 

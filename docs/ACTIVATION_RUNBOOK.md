@@ -137,12 +137,27 @@ kubectl --context="$CTX" rollout status deploy/$API_DEPLOY -n "$NS"
 > it permanent, store it as a k8s Secret and add the env ref to the api
 > deployment in `infra/helm/platform` (codify in a follow-up commit).
 
-**Verify** — provision a DB on any FREE-plan project, then read `/projects/:id/database`:
-the response should flip to `ACTIVE` with a `DATABASE_URL` pointing at
-`shared-pg-0-pooler.project-databases.svc:5432`.
+**Verify**
 
-- **Impact:** free projects begin getting a real isolated logical DB on the
-  shared cluster. While `database.sharedCluster.enabled=false` (default) or
+```bash
+# cluster healthy + pooler running
+kubectl --context="$CTX" get cluster.postgresql.cnpg.io shared-pg-0 -n project-databases
+kubectl --context="$CTX" get pooler.postgresql.cnpg.io shared-pg-0-pooler -n project-databases
+# the app role was granted CREATEDB+CREATEROLE by postInitSQL:
+kubectl --context="$CTX" exec -n project-databases shared-pg-0-1 -c postgres -- \
+  psql -U postgres -tAc "SELECT rolcreatedb AND rolcreaterole FROM pg_roles WHERE rolname='app'"   # -> t
+```
+Then provision a DB on any FREE-plan project and read `GET /projects/:id/database`
+(dev) and `GET /projects/:id/database?environment=production` after publish — each
+flips to `ACTIVE` with a URL on `shared-pg-0-pooler.project-databases.svc:5432`,
+DB `proj_<id>` (dev) / `proj_<id>_prod` (prod). Confirm the per-tenant isolation:
+```bash
+kubectl --context="$CTX" exec -n project-databases shared-pg-0-1 -c postgres -- \
+  psql -U postgres -tAc "SELECT datname FROM pg_database WHERE datname LIKE 'proj\_%'"   # the tenant DBs
+```
+
+- **Impact:** free projects begin getting a real isolated logical DB (dev + prod)
+  on the shared cluster. While `database.sharedCluster.enabled=false` (default) or
   `DB_SHARED_TENANT_SECRET` is unset, the path stays inert.
 - **Rollback:** `helm upgrade … --set database.sharedCluster.enabled=false` (then
   `kubectl delete cluster.postgresql.cnpg.io shared-pg-0 -n project-databases`);
@@ -161,6 +176,17 @@ kubectl --context="$CTX" rollout status \
   deploy/vibecore-vibecore-platform-workspace-manager -n "$NS"
 # the worker's BullMQ `workspace.gc` cron drives it on a schedule
 ```
+
+**Verify** — the reconciler logs each transition; confirm it is sweeping:
+```bash
+# the cron enqueues workspace.gc; the manager logs stop/reconcile decisions
+kubectl --context="$CTX" logs -n "$NS" deploy/vibecore-vibecore-platform-workspace-manager --since=1h \
+  | grep -iE "garbage|stop|reconcile|gc" | tail
+# end-to-end: open a project, leave it idle > WORKSPACE_INACTIVE_MS (default 30m),
+# then check its WorkspaceRuntime flips RUNNING -> STOPPED (pod deleted, PVC kept),
+# and reopening re-provisions a fresh pod from the kept PVC.
+```
+
 - **Impact:** idle workspaces stop (PVC kept) and reopen re-provisions; orphaned
   RUNNING rows (pod gone) self-heal to STOPPED. Already the intended behaviour.
 - **Rollback:** `helm rollback vibecore <prev-revision> -n $NS` (reverts the
