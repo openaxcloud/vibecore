@@ -96,6 +96,11 @@ import {
 } from './data-deletion.js';
 import { clusterName, resolveDatabaseTier, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
 import {
+  ObjectStorageError,
+  isObjectStorageEnabled,
+  resolveDefaultObjectStorage,
+} from './object-storage.js';
+import {
   databaseRollbackEntitlement,
   isDatabaseRollbackEnabled,
   validateRestoreTarget,
@@ -20437,6 +20442,130 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return reply.code(202).send({ snapshot });
+  });
+
+  /* -------- Object Storage (GCS, per-project) — dormant unless OBJECT_STORAGE_ENABLED -------- */
+  const sendObjectStorageError = (reply: FastifyReply, error: unknown) => {
+    if (error instanceof ObjectStorageError) {
+      const status = error.code === 'INVALID_KEY' ? 400 : error.code === 'FEATURE_NOT_ENABLED' ? 404 : 422;
+
+      return reply.code(status).send({ error: error.message, code: error.code });
+    }
+
+    throw error;
+  };
+
+  const requireObjectStorageProject = async (request: FastifyRequest, permission: 'projects:read' | 'projects:write') =>
+    requireProject(request, store, parse(projectParams, request.params).projectId, permission);
+
+  app.post('/projects/:projectId/object-storage/bucket', async (request, reply) => {
+    if (!isObjectStorageEnabled()) {
+      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireObjectStorageProject(request, 'projects:write');
+
+    try {
+      return reply.send(await resolveDefaultObjectStorage().ensureBucket(project.id));
+    } catch (error) {
+      return sendObjectStorageError(reply, error);
+    }
+  });
+
+  app.get('/projects/:projectId/object-storage/objects', async (request, reply) => {
+    if (!isObjectStorageEnabled()) {
+      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireObjectStorageProject(request, 'projects:read');
+    const query = parse(
+      z.object({ prefix: z.string().max(1024).optional(), delimiter: z.string().max(8).optional() }),
+      request.query ?? {},
+    );
+
+    try {
+      return reply.send(await resolveDefaultObjectStorage().listObjects(project.id, query));
+    } catch (error) {
+      return sendObjectStorageError(reply, error);
+    }
+  });
+
+  app.post('/projects/:projectId/object-storage/objects/upload-url', async (request, reply) => {
+    if (!isObjectStorageEnabled()) {
+      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireObjectStorageProject(request, 'projects:write');
+    const body = parse(
+      z.object({ key: z.string().min(1).max(1024), contentType: z.string().max(255).optional() }),
+      request.body ?? {},
+    );
+
+    try {
+      return reply.send(await resolveDefaultObjectStorage().createUploadUrl(project.id, body));
+    } catch (error) {
+      return sendObjectStorageError(reply, error);
+    }
+  });
+
+  app.get('/projects/:projectId/object-storage/objects/download-url', async (request, reply) => {
+    if (!isObjectStorageEnabled()) {
+      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireObjectStorageProject(request, 'projects:read');
+    const query = parse(z.object({ key: z.string().min(1).max(1024) }), request.query ?? {});
+
+    try {
+      return reply.send(await resolveDefaultObjectStorage().createDownloadUrl(project.id, query));
+    } catch (error) {
+      return sendObjectStorageError(reply, error);
+    }
+  });
+
+  app.post('/projects/:projectId/object-storage/objects/move', async (request, reply) => {
+    if (!isObjectStorageEnabled()) {
+      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireObjectStorageProject(request, 'projects:write');
+    const body = parse(
+      z.object({ from: z.string().min(1).max(1024), to: z.string().min(1).max(1024) }),
+      request.body ?? {},
+    );
+
+    try {
+      return reply.send(await resolveDefaultObjectStorage().moveObject(project.id, body));
+    } catch (error) {
+      return sendObjectStorageError(reply, error);
+    }
+  });
+
+  app.delete('/projects/:projectId/object-storage/objects', async (request, reply) => {
+    if (!isObjectStorageEnabled()) {
+      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireObjectStorageProject(request, 'projects:write');
+    const body = parse(
+      z
+        .object({ key: z.string().min(1).max(1024).optional(), prefix: z.string().min(1).max(1024).optional() })
+        .refine((value) => Boolean(value.key) !== Boolean(value.prefix), {
+          message: 'Provide exactly one of key or prefix',
+        }),
+      request.body ?? {},
+    );
+
+    try {
+      const storage = resolveDefaultObjectStorage();
+      const result = body.prefix
+        ? await storage.deletePrefix(project.id, { prefix: body.prefix })
+        : await storage.deleteObject(project.id, { key: body.key! });
+
+      return reply.send(result);
+    } catch (error) {
+      return sendObjectStorageError(reply, error);
+    }
   });
 
   app.post('/projects/:projectId/deployments', async (request, reply) => {
