@@ -145,13 +145,46 @@ then exits `97` with an actionable message (`restart the workspace … then
 retry`). A key added before the pod started (or surviving a restart) works
 immediately.
 
-**GAP (gated, NOT wired):** the platform's own server-side git (push/pull via
-`GitCliProvider` in `services/api/src/project-storage.ts`) runs on the **shared
-api pod** and does **not** set `GIT_SSH_COMMAND` / use a per-tenant key.
-Materializing tenant private keys on the shared pod cannot be isolated as
-cleanly as the per-pod path above (concurrent ops, blast radius), so it is left
-unimplemented pending a dedicated per-request isolation design. User-facing
-git-over-SSH is fully covered by the `git-ssh` workspace-pod path above.
+**GAP — real server-side push/pull over SSH (gated, NOT wired) — verdict + design.**
+The platform's authoritative per-project git repo lives on the **shared multi-tenant
+api pod** (`GitCliProvider` in `services/api/src/project-storage.ts`, `git()` →
+`execFile('git', …)` with `gitEnv()` that sets no `GIT_SSH_COMMAND`). So real
+`git push`/`git pull` of the canonical repo can only run there — exactly where the
+isolation question bites. User-facing git-over-SSH (auth proof) is already fully
+covered by the `git-ssh` workspace-pod path above; the remaining hole is mutating
+push/pull with the project key.
+
+*Verdict (Jun 29): file-level isolation IS achievable and safe; enabling it is a
+deliberate security-boundary decision + a binding decision — left gated, not rushed.*
+
+- **Safe per-request mechanism (sound):** for each push/pull, `mkdtemp` a unique dir
+  (random name), write the decrypted key to `<dir>/id` at `0600` (`umask 077`) plus a
+  per-request `<dir>/known_hosts`, run git with
+  `GIT_SSH_COMMAND="ssh -i <dir>/id -o IdentitiesOnly=yes -o UserKnownHostsFile=<dir>/known_hosts -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=10"`,
+  and `rm -rf <dir>` in a `finally`. `withProjectLock(projectId)` already serialises
+  per-project ops, and each request uses a distinct dir, so concurrent ops never share
+  a path. The key value lives only in the file — never in argv/env/logs/run-output
+  (only the path appears). Tenants cannot execute code on the api pod, so no tenant can
+  read another's transient key file; and blast radius does **not** exceed today's, since
+  the api process already holds `CONFIG_ENCRYPTION_KEY` and can decrypt every project's
+  secrets regardless.
+- **Blocker 1 — security boundary (Avi's call):** the above still places a tenant
+  private key *in plaintext, briefly, on the shared api pod's disk/memory*. The platform
+  today deliberately keeps tenant private keys **only** on per-tenant gVisor pods (the
+  `git-ssh`/`connect-ssh` path). Reversing that boundary is a security-architecture
+  decision reserved to the platform owner — not flipped unilaterally.
+- **Blocker 2 — key→origin binding:** a project may hold 0/1/many SSH keys
+  (`TERMINAL_SSH_PRIVATE_KEY_<id>`, each with a `host`). Real push/pull needs a
+  deterministic rule for *which* key authenticates `origin` (host-match against the
+  remote URL, or an explicit "default git key" flag on a connection). Undecided.
+- **Cleaner alternative (no shared-pod key):** route push/pull through the per-tenant
+  workspace pod (reusing the proven ephemeral-key path), keeping keys off the shared pod
+  entirely. Cost: the canonical repo is api-pod-side, so this needs a workspace-tree ⇆
+  authoritative-repo reconciliation design (origin wiring + which tree wins).
+
+Net: `ssh`(OpenSSH 9.2)+`git` are present in the api image and the isolation primitive
+is ready; what's pending is the boundary decision (1) + binding (2), or the
+reconciliation design for the workspace-pod route. Until then this stays gated.
 - **Connection shape** (keygen adds `publicKey`, `fingerprint`, `keyType`):
   ```json
   { "id": "uuid", "name": "", "host": "", "port": 22, "username": "",
