@@ -18,6 +18,21 @@ export type WorkspaceEventMap = {
     filePath: string;
     status: { attempt: number; maxAttempts: number; errorMessage?: string } | null;
   };
+
+  /*
+   * Phase 0 #9 — emitted by ActionRunner at each terminal outcome of the AST
+   * self-repair loop (one per attempt that fails, plus the final
+   * repaired / gave_up). Distinct from the transient `:progress` banner: this
+   * is the durable audit signal the workbench mirrors to the
+   * `agent-repair-events` table (backend contract §9) for the repair review UI.
+   */
+  'agent:self-repair:event': {
+    filePath: string;
+    outcome: 'repaired' | 'failed' | 'gave_up';
+    attempt: number;
+    validationError?: string;
+    repairError?: string;
+  };
 };
 
 type WorkspaceEventName = keyof WorkspaceEventMap;

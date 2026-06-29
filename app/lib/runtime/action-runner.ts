@@ -757,6 +757,8 @@ export class ActionRunner {
 
         if (reValidation.kind === 'ok') {
           workspaceEvents.emit('agent:self-repair:progress', { filePath: relativePath, status: null });
+          workspaceEvents.emit('agent:self-repair:event', { filePath: relativePath, outcome: 'repaired', attempt });
+
           return reValidation.formatted;
         }
 
@@ -765,10 +767,23 @@ export class ActionRunner {
           return corrected;
         }
 
+        // Still invalid after this attempt's LLM call — record the failure and loop.
+        workspaceEvents.emit('agent:self-repair:event', {
+          filePath: relativePath,
+          outcome: 'failed',
+          attempt,
+          validationError: reValidation.message,
+        });
         lastError = reValidation;
         payload = corrected;
       } catch (error) {
         logger.warn(`Self-repair attempt ${attempt}/${SELF_REPAIR_MAX_ATTEMPTS} for ${relativePath} failed:`, error);
+        workspaceEvents.emit('agent:self-repair:event', {
+          filePath: relativePath,
+          outcome: 'failed',
+          attempt,
+          repairError: error instanceof Error ? error.message : String(error),
+        });
 
         if (attempt === SELF_REPAIR_MAX_ATTEMPTS) {
           break;
@@ -784,6 +799,12 @@ export class ActionRunner {
       `Self-repair exhausted ${SELF_REPAIR_MAX_ATTEMPTS} retries for ${relativePath} (${lastError.language}); writing best-effort payload`,
     );
     workspaceEvents.emit('agent:self-repair:progress', { filePath: relativePath, status: null });
+    workspaceEvents.emit('agent:self-repair:event', {
+      filePath: relativePath,
+      outcome: 'gave_up',
+      attempt: SELF_REPAIR_MAX_ATTEMPTS,
+      validationError: lastError.message,
+    });
 
     return payload;
   }

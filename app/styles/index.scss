@@ -16905,6 +16905,11 @@ button.bolt-project-statusbar-pill:focus-visible,
   color: var(--vc-success, #3fb950);
 }
 
+/* Replit parity: agent-generated workflows get a muted gray "Generated" badge. */
+.bolt-project-workflow-card em[data-kind='generated'] {
+  color: var(--vc-ide-text-muted);
+}
+
 .bolt-project-workflow-card em[data-status='failed'],
 .bolt-project-workflow-runs span[data-status='failed'] {
   color: var(--vc-danger, #f85149);
@@ -16918,8 +16923,18 @@ button.bolt-project-statusbar-pill:focus-visible,
   gap: 10px;
 }
 
+/* Expanded header: name field (with Save) + Sequential/Parallel toggle. */
 .bolt-project-workflow-form {
-  grid-template-columns: minmax(180px, 1fr) 150px auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.bolt-project-workflow-name-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
 }
 
 .bolt-project-workflow-form label {
@@ -16929,19 +16944,50 @@ button.bolt-project-statusbar-pill:focus-visible,
   font-size: 11px;
 }
 
+/* Segmented Sequential / Parallel toggle. */
+.bolt-project-workflow-mode-toggle {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 8px;
+}
+
+.bolt-project-workflow-mode-toggle button {
+  border: 0;
+  background: transparent;
+  padding: 6px 12px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.bolt-project-workflow-mode-toggle button[data-active='true'] {
+  background: var(--vc-ide-surface-2);
+  color: var(--vc-ide-text-primary);
+}
+
+/* Task row: [drag] [type dropdown] [type-specific control + Save] [trash]. */
 .bolt-project-workflow-task {
-  display: grid;
+  display: flex;
   min-width: 0;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
   border-top: 1px solid var(--vc-ide-border);
   padding-top: 10px;
 }
 
-.bolt-project-workflow-task > div:first-child {
-  display: grid;
-  grid-template-columns: auto minmax(0, max-content) minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
+.bolt-project-workflow-task-drag {
+  flex: 0 0 auto;
+  color: var(--vc-ide-text-muted);
+  cursor: grab;
+}
+
+.bolt-project-workflow-task-drag:active {
+  cursor: grabbing;
+}
+
+.bolt-project-workflow-task-type {
+  flex: 0 0 auto;
 }
 
 .bolt-project-workflow-task small,
@@ -16954,7 +17000,33 @@ button.bolt-project-statusbar-pill:focus-visible,
 }
 
 .bolt-project-workflow-task-form {
-  grid-template-columns: 140px minmax(180px, 1fr) 170px auto;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.bolt-project-workflow-task-form input,
+.bolt-project-workflow-task-form select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.bolt-project-workflow-task-delete button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 6px;
+  background: transparent;
+  padding: 6px;
+  color: var(--vc-ide-text-muted);
+  cursor: pointer;
+}
+
+.bolt-project-workflow-task-delete button:hover {
+  color: var(--vc-danger, #f85149);
 }
 
 .bolt-project-workflow-add-task {

@@ -25,6 +25,7 @@ import {
   isTerminalAgentPatchStatus,
   putAgentPatchProposal,
 } from '~/lib/persistence/agentPatchProposalSync';
+import { recordAgentRepairEvent } from '~/lib/persistence/agentRepairEventSync';
 import { getRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { foldCommandExitCode } from '~/lib/runtime/command-exit';
 import { ActionRunner } from '~/lib/runtime/action-runner';
@@ -310,6 +311,28 @@ export class WorkbenchStore {
           this.agentPatchSelfRepair.set(current);
         }
       }
+    });
+
+    /*
+     * Mirror each terminal self-repair outcome to the durable audit log so the
+     * repair review UI survives a reload. Best-effort: the sync helper swallows
+     * failures, and we only fire when a project is bound (Bolt standalone has
+     * no projectId / no API route).
+     */
+    workspaceEvents.on('agent:self-repair:event', ({ filePath, outcome, attempt, validationError, repairError }) => {
+      const projectId = this.#projectId;
+
+      if (!projectId) {
+        return;
+      }
+
+      void recordAgentRepairEvent(projectId, {
+        relativePath: filePath,
+        outcome,
+        attempt,
+        validationError,
+        repairError,
+      });
     });
   }
 

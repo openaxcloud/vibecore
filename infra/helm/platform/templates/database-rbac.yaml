@@ -6,11 +6,22 @@
   The manager therefore needs create/get/delete on the CNPG CRs and read on the
   generated connection Secrets in the project-databases namespace.
 
-  Kept as an always-rendered template (no new values key) so the always-on
-  `helm upgrade --reuse-values` CD path applies it — see configmap.yaml DB_* note.
-  The project-databases namespace is provisioned out-of-band (Phase 1), so this
-  binds into it by literal name rather than creating it.
+  GATED to opt-in (`database.rbacManaged.enabled`, default false). These Role +
+  RoleBinding were first created OUT-OF-BAND (kubectl, label managed-by=vibecore,
+  no Helm ownership annotations) when project-databases was bootstrapped Phase 1.
+  An always-rendered Helm copy therefore FAILS every `helm upgrade --reuse-values`
+  with "exists and cannot be imported into the current release: invalid ownership
+  metadata" — Helm refuses to adopt a resource it doesn't own. Default-off so the
+  always-on CD path renders nothing here and the working out-of-band resource is
+  left untouched (it keeps serving the DB feature). To hand ownership to Helm:
+  annotate the live resources (`meta.helm.sh/release-name=vibecore`,
+  `meta.helm.sh/release-namespace=vibecore`, label `app.kubernetes.io/managed-by=Helm`)
+  THEN deploy with `--set database.rbacManaged.enabled=true`.
+
+  Nil-safe gate (see shared-database.yaml): --reuse-values drops new chart keys,
+  so traverse with `dig`/default rather than a bare `.enabled` chain.
 */ -}}
+{{- if dig "rbacManaged" "enabled" false (.Values.database | default dict) }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -45,3 +56,4 @@ roleRef:
   kind: Role
   name: workspace-manager-databases
   apiGroup: rbac.authorization.k8s.io
+{{- end }}

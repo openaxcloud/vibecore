@@ -767,17 +767,24 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   if (panel === 'workflows') {
     try {
-      const [dashboard, envVars, activity] = await Promise.all([
+      const [dashboard, envVars, activity, packages] = await Promise.all([
         apiRequest(request, `/projects/${projectId}/dashboard`),
         apiRequest(request, `/projects/${projectId}/env-vars`),
         apiRequest(request, `/projects/${projectId}/activity`),
+        apiRequest(request, `/projects/${projectId}/packages`).catch(() => null),
       ]);
+
+      const packageData = packages as Record<string, any> | null;
 
       return json(
         panelEnvelope(panel, project.project, {
           ...(dashboard as any),
           ...(envVars as any),
           ...(activity as any),
+
+          // For the "Install Packages" task type's package selector (Replit parity).
+          packageManager: packageData?.packageManager ?? null,
+          dependencies: packageData?.dependencies ?? [],
           workflowsState: readWorkflowsState(envVars),
         }),
       );
@@ -2019,6 +2026,30 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
         return { ...workflow, updatedAt: now, tasks: normalizeWorkflowTasks(tasks) };
       });
+    } else if (intent === 'reorder-task') {
+      /*
+       * Drag-and-drop reorder (Replit parity): move `taskId` to an absolute
+       * `toIndex`, clamped to the list bounds. move-task (±1) stays for the
+       * keyboard/Up-Down fallback path.
+       */
+      state.workflows = state.workflows.map((workflow: any) => {
+        if (workflow.id !== workflowId) {
+          return workflow;
+        }
+
+        const tasks = normalizeWorkflowTasks(workflow.tasks ?? []);
+        const index = tasks.findIndex((task: any) => task.id === taskId);
+        const toIndex = Math.max(0, Math.min(tasks.length - 1, Number(body.toIndex)));
+
+        if (index < 0 || Number.isNaN(toIndex) || index === toIndex) {
+          return workflow;
+        }
+
+        const [moved] = tasks.splice(index, 1);
+        tasks.splice(toIndex, 0, moved);
+
+        return { ...workflow, updatedAt: now, tasks: normalizeWorkflowTasks(tasks) };
+      });
     } else if (intent === 'run-workflow') {
       const dashboard = await apiRequest<any>(request, `/projects/${projectId}/dashboard`).catch(() => null);
       const workflow = state.workflows.find((item: any) => item.id === workflowId);
@@ -2225,16 +2256,18 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         throw json({ error: 'SSH connection not found' }, { status: 400 });
       }
 
-      const command = [
-        'ssh',
-        '-o BatchMode=yes',
-        '-o StrictHostKeyChecking=no',
-        '-o ConnectTimeout=8',
-        '-p',
-        shellQuote(String(connection.port || 22)),
-        `${shellQuote(`${connection.username}@${connection.host}`)}`,
-        shellQuote('echo vibecore-ssh-connected'),
-      ].join(' ');
+      /*
+       * Real key-based reachability test, run in the project's own workspace
+       * pod with the connection's private key (see ephemeralSshKeyPrelude).
+       * IdentitiesOnly=yes so ONLY this connection's key is offered — no leaking
+       * of any default identity on the shared platform.
+       */
+      const command = buildSshConnectScript({
+        keyEnvVar: terminalSshSecretKey(connection.id),
+        host: connection.host,
+        port: Number(connection.port) || 22,
+        username: connection.username,
+      });
 
       const run = await runTerminalCommand(request, workspaceId, command, `SSH ${connection.name}`, now);
       state.scriptRuns.unshift(run);
@@ -2244,6 +2277,41 @@ export async function action({ request, params }: EnterpriseActionArgs) {
           ? {
               ...item,
               status: run.exitCode === 0 ? 'connected' : 'disconnected',
+              lastCheckedAt: run.finishedAt,
+              lastError: run.exitCode === 0 ? undefined : run.output.slice(-500),
+              updatedAt: run.finishedAt,
+            }
+          : item,
+      );
+    } else if (intent === 'git-ssh') {
+      /*
+       * Real git-over-SSH access test: `git ls-remote` against an SSH git URL
+       * using GIT_SSH_COMMAND bound to the connection's ephemeral key. Read-only
+       * — proves key auth + git transport without mutating the remote.
+       */
+      const connection = state.sshConnections.find((item: any) => item.id === body.connectionId);
+
+      if (!connection) {
+        throw json({ error: 'SSH connection not found' }, { status: 400 });
+      }
+
+      const repoUrl = (body.repoUrl ?? '').trim();
+
+      if (!isSshGitUrl(repoUrl)) {
+        throw json(
+          { error: 'Enter an SSH git URL such as git@github.com:owner/repo.git or ssh://host/path.git' },
+          { status: 400 },
+        );
+      }
+
+      const command = buildGitSshLsRemoteScript({ keyEnvVar: terminalSshSecretKey(connection.id), repoUrl });
+      const run = await runTerminalCommand(request, workspaceId, command, `git ls-remote ${repoUrl}`, now);
+      state.scriptRuns.unshift(run);
+      state.scriptRuns = state.scriptRuns.slice(0, 20);
+      state.sshConnections = state.sshConnections.map((item: any) =>
+        item.id === connection.id
+          ? {
+              ...item,
               lastCheckedAt: run.finishedAt,
               lastError: run.exitCode === 0 ? undefined : run.output.slice(-500),
               updatedAt: run.finishedAt,
@@ -2952,6 +3020,87 @@ function terminalSshSecretKey(connectionId: string) {
 
 function shellQuote(value: string) {
   return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
+/*
+ * SSH key handling on the shared platform — TENANT ISOLATION.
+ *
+ * The per-connection private key is stored as the project secret
+ * `TERMINAL_SSH_PRIVATE_KEY_<id>`, and every project secret is injected into
+ * the project's OWN workspace pod env at start (api `/workspaces/start` →
+ * `allowedSecrets`). We therefore run all key-based ssh/git INSIDE that
+ * per-tenant gVisor-sandboxed pod (never on the shared api pod): the key value
+ * is read from the pod env BY NAME, materialized to an ephemeral 0600 file, and
+ * deleted on exit. The key value never appears in the command string, process
+ * args, or the persisted run output — only the env-var name does. One tenant
+ * can never reach another tenant's key because each pod only carries its own
+ * project's secrets.
+ *
+ * Limitation (documented): secrets are injected at pod start, so a key added in
+ * the current session is not visible until the workspace restarts — the prelude
+ * exits 97 with an actionable message in that case.
+ */
+const SSH_KEY_OPTS = '-o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=10';
+
+/**
+ * Shell prelude that materializes the private key held in the pod env var
+ * `keyEnvVar` to `$VIBECORE_SSH_KEYFILE` (0600), cleaning it up on exit. The
+ * caller appends the actual ssh/git invocation, which references
+ * `$VIBECORE_SSH_KEYFILE`. `keyEnvVar` is a constant derived from a uuid
+ * (`[A-Z0-9_]`), so inlining it is injection-safe.
+ */
+export function ephemeralSshKeyPrelude(keyEnvVar: string): string {
+  return [
+    'set -e',
+    'umask 077',
+    'VIBECORE_SSH_KEYFILE="$(mktemp)"',
+    `trap 'rm -f "$VIBECORE_SSH_KEYFILE"' EXIT INT TERM`,
+    `printf '%s\\n' "$${keyEnvVar}" > "$VIBECORE_SSH_KEYFILE"`,
+    'if [ ! -s "$VIBECORE_SSH_KEYFILE" ]; then echo "vibecore-ssh: private key not present in the workspace environment — restart the workspace after adding or generating the key, then retry." >&2; exit 97; fi',
+  ].join('\n');
+}
+
+/** Real key-based reachability test: ssh in with ONLY the connection's key. */
+export function buildSshConnectScript(input: {
+  keyEnvVar: string;
+  host: string;
+  port: number;
+  username: string;
+}): string {
+  const inner = [
+    'ssh',
+    '-i "$VIBECORE_SSH_KEYFILE"',
+    SSH_KEY_OPTS,
+    '-p',
+    shellQuote(String(input.port || 22)),
+    shellQuote(`${input.username}@${input.host}`),
+    shellQuote('echo vibecore-ssh-connected'),
+  ].join(' ');
+
+  return `${ephemeralSshKeyPrelude(input.keyEnvVar)}\n${inner}\n`;
+}
+
+/** scp-style (`git@host:path`) or `ssh://` git URL — anything over SSH, not https. */
+export function isSshGitUrl(value: string): boolean {
+  const trimmed = value.trim();
+
+  if (!trimmed || /\s/.test(trimmed)) {
+    return false;
+  }
+
+  return /^ssh:\/\/[^/]+\/.+/.test(trimmed) || /^[^@\s/]+@[^:\s/]+:.+/.test(trimmed);
+}
+
+/**
+ * Real git-over-SSH access test using GIT_SSH_COMMAND bound to the ephemeral
+ * key. `git ls-remote` is read-only — it proves key auth + git transport
+ * without mutating the remote.
+ */
+export function buildGitSshLsRemoteScript(input: { keyEnvVar: string; repoUrl: string }): string {
+  const gitSshCommand = `ssh -i $VIBECORE_SSH_KEYFILE ${SSH_KEY_OPTS}`;
+  const inner = `GIT_SSH_COMMAND="${gitSshCommand}" git ls-remote --heads ${shellQuote(input.repoUrl)}`;
+
+  return `${ephemeralSshKeyPrelude(input.keyEnvVar)}\n${inner}\n`;
 }
 
 async function runTerminalCommand(
