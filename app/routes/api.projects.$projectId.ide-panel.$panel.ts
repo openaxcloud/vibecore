@@ -16,6 +16,7 @@ import {
 import { isSecurityScheduleDue, vulnerabilitiesFromSecretScan } from '~/lib/ide-panel-security';
 import { defaultProjectKeybindings, serializeKeybindingOverrides } from '~/lib/keybindings';
 import { buildProjectOverviewInsights } from '~/lib/project-overview';
+import { generateSshKeyPair } from '~/lib/ssh-keygen.server';
 
 export type IdePanelStatus = 'ok' | 'empty' | 'error';
 
@@ -2039,6 +2040,48 @@ export async function action({ request, params }: EnterpriseActionArgs) {
           body: JSON.stringify({ key: terminalSshSecretKey(id), value: body.privateKey }),
         });
       }
+    } else if (intent === 'generate-keypair') {
+      /*
+       * Server-side key generation: mint a fresh pair, store the private key
+       * encrypted (never returned again), surface only the public key +
+       * fingerprint. Persist state inline so we can return the public key in
+       * the same response (the shared trailing return is just `{ ok: true }`).
+       */
+      const id = randomUUID();
+      const keyType = body.type === 'rsa' ? 'rsa' : 'ed25519';
+      const keypair = generateSshKeyPair({ type: keyType, comment: body.comment || body.name || body.username });
+
+      await apiRequest(request, `/projects/${projectId}/secrets`, {
+        method: 'PUT',
+        body: JSON.stringify({ key: terminalSshSecretKey(id), value: keypair.privateKey }),
+      });
+
+      state.sshConnections.unshift({
+        id,
+        name: body.name || `${keypair.type} ${keypair.fingerprint.slice(7, 19)}`,
+        host: body.host || '',
+        port: Number(body.port) || 22,
+        username: body.username || '',
+        status: 'disconnected',
+        createdAt: now,
+        publicKey: keypair.publicKey,
+        fingerprint: keypair.fingerprint,
+        keyType: keypair.type,
+      });
+
+      await apiRequest(request, `/projects/${projectId}/env-vars`, {
+        method: 'PUT',
+        body: JSON.stringify({ key: TERMINAL_STATE_ENV_KEY, value: JSON.stringify(normalizeTerminalState(state)) }),
+      });
+
+      return json({
+        ok: true,
+        connectionId: id,
+        publicKey: keypair.publicKey,
+        fingerprint: keypair.fingerprint,
+        keyType: keypair.type,
+        createdAt: now,
+      });
     } else if (intent === 'delete-ssh') {
       state.sshConnections = state.sshConnections.filter((connection: any) => connection.id !== body.connectionId);
       await apiRequest(request, `/projects/${projectId}/secrets`, {
@@ -2766,6 +2809,11 @@ function normalizeTerminalState(input: any) {
           updatedAt: connection.updatedAt,
           lastCheckedAt: connection.lastCheckedAt,
           lastError: connection.lastError,
+
+          // server-generated key metadata (display only; private key lives in a secret)
+          publicKey: typeof connection.publicKey === 'string' ? connection.publicKey : undefined,
+          fingerprint: typeof connection.fingerprint === 'string' ? connection.fingerprint : undefined,
+          keyType: connection.keyType === 'rsa' || connection.keyType === 'ed25519' ? connection.keyType : undefined,
         }))
       : [],
     scriptRuns: Array.isArray(input?.scriptRuns) ? input.scriptRuns.slice(0, 20) : [],

@@ -102,7 +102,7 @@ the workspace. State persisted as project env key `VIBECORE_SECURITY_STATE`.
 
 ---
 
-## 3. SSH / Remote — EXPOSED (store + test only) ⚠️  ·  keypair-generation = GAP
+## 3. SSH / Remote — EXPOSED (store + test + keygen) ✅
 
 Stores SSH connection definitions; private key encrypted in project secrets
 (`TERMINAL_SSH_PRIVATE_KEY_<connectionId>`); tests reachability via a real
@@ -110,18 +110,21 @@ Stores SSH connection definitions; private key encrypted in project secrets
 
 - **IDE proxy:** `POST /api/projects/:projectId/ide-panel/terminal`
 - **Intents:** `add-ssh { name, host, port, username, privateKey? }`,
-  `delete-ssh { connectionId }`, `connect-ssh { connectionId }`, `disconnect-ssh { connectionId }`.
-- **Connection shape:**
+  `delete-ssh { connectionId }`, `connect-ssh { connectionId }`, `disconnect-ssh { connectionId }`,
+  `generate-keypair { name?, host?, port?, username?, type?: "ed25519"|"rsa", comment? }`.
+- **Connection shape** (keygen adds `publicKey`, `fingerprint`, `keyType`):
   ```json
   { "id": "uuid", "name": "", "host": "", "port": 22, "username": "",
     "status": "connected|connecting|disconnected", "createdAt": "ISO",
-    "updatedAt": "ISO?", "lastCheckedAt": "ISO?", "lastError": "?" }
+    "updatedAt": "ISO?", "lastCheckedAt": "ISO?", "lastError": "?",
+    "publicKey": "ssh-ed25519 AAAA… comment", "fingerprint": "SHA256:…", "keyType": "ed25519|rsa" }
   ```
-- **GAP-SSH (keygen):** there is **no** server-side key-pair generation today (key is
-  user-supplied). Proposed addition — frozen contract for the IDE:
-  - `POST …/ide-panel/terminal` intent `generate-keypair` `{ name, type?: "ed25519"|"rsa", comment? }`
-  - Response: `{ connectionId?, publicKey: "ssh-ed25519 AAAA… comment", fingerprint: "SHA256:…", createdAt: "ISO" }`
-  - Private key stored encrypted (never returned after creation); public key + fingerprint displayed.
+- **`generate-keypair` (IMPLEMENTED):** server mints the pair with `node:crypto` (no external
+  dep), defaults to ed25519 (3072-bit for rsa). Private key stored encrypted and **never
+  returned again**; only the public key + fingerprint are surfaced (on the connection and in
+  the action response). Response: `{ ok, connectionId, publicKey, fingerprint, keyType, createdAt }`.
+  ed25519 private key is the native `openssh-key-v1` container; rsa is PKCS#1 PEM — both proven
+  to round-trip through stock `ssh-keygen -y/-l` (6 tests incl. real OpenSSH interop).
 
 ---
 
@@ -204,6 +207,6 @@ feature flag — inert until the IDE calls it (no existing behaviour touched).
 | 0 | SQL read/write | EXPOSED ✅ | live RW proof 2026-06-29; api@a0a34eb6 |
 | 1 | Workflows | EXPOSED ✅ | real exec via runtime; logs per-run (no SSE) |
 | 2 | Security scanner | EXPOSED ✅ | npm audit + secret/SAST grep in workspace |
-| 3 | SSH store/test | EXPOSED ⚠️ | real ssh test; **keygen = GAP-SSH** |
+| 3 | SSH store/test/keygen | EXPOSED ✅ | real ssh test + server keygen (`generate-keypair`); 6 tests incl. OpenSSH interop |
 | 4 | Object Storage GCS | IMPLEMENTED ✅ | merged on `main`, flag-gated; GCS mechanism live-proven 2026-06-29; live-enable = GSA storage role + WI/key wiring + flag (see §4) |
 | 5 | Skills registry | IMPLEMENTED ✅ | `ProjectSkill` table (`0048`) + builtin catalog; 11 tests; additive/unflagged |
