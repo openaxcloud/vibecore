@@ -25,6 +25,7 @@ import {
   Lock,
   MailPlus,
   Menu,
+  Monitor,
   MonitorPlay,
   Moon,
   Plus,
@@ -272,6 +273,7 @@ export const accountNav = [
   { label: 'API keys', to: '/api-keys', icon: KeyRound },
   { label: 'Connected accounts', to: '/connected-accounts', icon: Github },
   { label: 'Notifications', to: '/notifications', icon: Bell },
+  { label: 'Desktop app', to: '/desktop-settings', icon: Monitor },
 ];
 
 export const projectNav = [
