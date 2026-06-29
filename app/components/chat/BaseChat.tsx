@@ -11108,166 +11108,7 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'deployments') {
-    const deployments = data.deployments ?? [];
-    const latestDeployment = deployments[0];
-    const workspaceId = data.selectedWorkspaceId ?? data.workspaceId ?? data.workspace?.id ?? '';
-
-    const inferredFramework = detectFrameworkFromDeployConfig({
-      buildCommand: latestDeployment?.buildCommand,
-      outputDirectory: latestDeployment?.outputDirectory,
-    });
-
-    return (
-      <div className="bolt-project-deploy-tool">
-        <section className="bolt-project-deploy-history">
-          <div className="bolt-project-deploy-summary">
-            <div>
-              <span>Latest status</span>
-              <strong>{latestDeployment?.status ?? 'No deployment'}</strong>
-            </div>
-            <div>
-              <span>Environment</span>
-              <strong>{latestDeployment?.environment ?? 'preview'}</strong>
-            </div>
-            <div>
-              <span>Framework</span>
-              <strong>{latestDeployment?.framework ?? inferredFramework}</strong>
-            </div>
-          </div>
-
-          {deployments.length ? (
-            deployments.map((deployment: any) => (
-              <article key={deployment.id} className="bolt-project-deploy-card">
-                <header>
-                  <div>
-                    <strong>
-                      {deployment.provider} · {deployment.environment ?? 'preview'}
-                    </strong>
-                    <span>{deployment.url ?? deployment.customDomain ?? deployment.createdAt ?? 'URL pending'}</span>
-                  </div>
-                  <em data-status={deployment.status}>{deployment.status}</em>
-                </header>
-                <pre aria-label={`Deployment logs for ${deployment.id}`}>
-                  {(deployment.logs ?? [])
-                    .slice(-8)
-                    .map((log: any) => `[${log.level ?? 'info'}] ${log.message}`)
-                    .join('\n') || 'No deployment logs yet.'}
-                </pre>
-                <div className="bolt-project-deploy-actions">
-                  {deployment.url && (
-                    <a href={deployment.url} target="_blank" rel="noreferrer">
-                      Open
-                    </a>
-                  )}
-                  <ProjectDeploymentAction
-                    intent="redeploy"
-                    deploymentId={deployment.id}
-                    onSubmit={onSubmit}
-                    busy={busy}
-                  >
-                    Redeploy
-                  </ProjectDeploymentAction>
-                  <ProjectDeploymentAction
-                    intent="rollback"
-                    deploymentId={deployment.id}
-                    onSubmit={onSubmit}
-                    busy={busy}
-                  >
-                    Rollback
-                  </ProjectDeploymentAction>
-                  <ProjectDeploymentAction intent="cancel" deploymentId={deployment.id} onSubmit={onSubmit} busy={busy}>
-                    Cancel
-                  </ProjectDeploymentAction>
-                </div>
-              </article>
-            ))
-          ) : (
-            <div className="bolt-project-empty-panel">No deployments yet. Create one from the wizard.</div>
-          )}
-        </section>
-
-        <form onSubmit={onSubmit} className="bolt-project-deploy-wizard">
-          {workspaceId ? <input type="hidden" name="workspaceId" value={workspaceId} /> : null}
-          <h3>Deployment wizard</h3>
-          <p>
-            Uses the existing E-Code build defaults and records the SaaS deployment with quotas, audit logs and redacted
-            output.
-          </p>
-          <label>
-            Provider
-            <select name="provider" defaultValue="static">
-              {BOLT_DEPLOY_PROVIDERS.map((provider) => (
-                <option key={provider.id} value={provider.id}>
-                  {provider.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Environment
-            <select name="environment" defaultValue="preview">
-              <option value="preview">Preview</option>
-              <option value="staging">Staging</option>
-              <option value="production">Production</option>
-            </select>
-          </label>
-          <label title="Command executed before deployment to generate production assets.">
-            <span>Build command</span>
-            <PanelInput name="buildCommand" defaultValue={DEFAULT_DEPLOY_BUILD_COMMAND} aria-label="Build command" />
-            <small>Example: npm run build, pnpm build, or yarn build.</small>
-          </label>
-          <label title="Directory containing the built static assets or server bundle to deploy.">
-            <span>Output directory</span>
-            <PanelInput
-              name="outputDirectory"
-              defaultValue={DEFAULT_DEPLOY_OUTPUT_DIRECTORY}
-              aria-label="Output directory"
-            />
-            <small>For Vite this is usually dist.</small>
-          </label>
-          <label title="Detected framework used to choose provider defaults. Leave empty to keep auto-detection.">
-            <span>Framework detected</span>
-            <PanelInput name="framework" placeholder={`Auto: ${inferredFramework}`} aria-label="Framework detected" />
-            <small>Leave blank to let E-Code infer the framework from package scripts and config files.</small>
-          </label>
-          <label title="Git branch or workspace branch used as the deployment source.">
-            <span>Branch</span>
-            <PanelInput name="branch" placeholder={project.gitDefaultBranch ?? 'main'} aria-label="Deployment branch" />
-            <small>Defaults to the project branch when no branch is provided.</small>
-          </label>
-          <label title="Optional Git remote URL used by providers that deploy from a repository.">
-            <span>Repository URL</span>
-            <PanelInput
-              name="repositoryUrl"
-              defaultValue={project.gitRepositoryUrl ?? ''}
-              aria-label="Repository URL"
-            />
-          </label>
-          <label title="Optional domain to attach to the deployment after DNS verification.">
-            <span>Custom domain</span>
-            <PanelInput name="customDomain" aria-label="Custom domain" placeholder="app.example.com" />
-          </label>
-          <label title="Plain environment variables added for this deployment. Do not paste secrets here.">
-            <span>Environment variables</span>
-            <textarea name="envVars" placeholder={'KEY=value\nANOTHER_KEY=value'} aria-label="Environment variables" />
-            <small>Use KEY=value pairs, one per line. Store sensitive values as secrets.</small>
-          </label>
-          <label title="Comma-separated names of existing project secrets to inject at deploy time.">
-            <span>Secrets to inject</span>
-            <PanelInput
-              name="injectSecrets"
-              placeholder="DATABASE_URL,STRIPE_SECRET_KEY"
-              aria-label="Secrets to inject"
-            />
-          </label>
-          <label className="bolt-project-checkbox-row">
-            <input name="previewDeployment" type="checkbox" defaultChecked />
-            Create preview URL for non-production deploys
-          </label>
-          <PanelButton disabled={busy}>Deploy project</PanelButton>
-        </form>
-      </div>
-    );
+    return <ProjectDeploymentsPanel data={data} project={project} onSubmit={onSubmit} busy={busy} />;
   }
 
   if (panel === 'env') {
@@ -17273,6 +17114,300 @@ function ProjectSecretsPanel({
           <div className="bolt-project-empty-panel">No project secrets.</div>
         )}
       </div>
+    </div>
+  );
+}
+
+/*
+ * Deployments panel — Replit-parity tabs (Overview / Logs / Domains / Manage)
+ * over the existing deployment data + actions (no backend change). Overview is
+ * the at-a-glance status + URLs, Logs streams each deployment's build/runtime
+ * log, Domains lists the URLs/custom domains a deploy produced (full DNS lives
+ * in the dedicated Domains panel), and Manage holds the lifecycle actions
+ * (redeploy / rollback / cancel) plus the create-deployment wizard.
+ */
+function ProjectDeploymentsPanel({
+  data,
+  project,
+  onSubmit,
+  busy,
+}: {
+  data: any;
+  project: any;
+  onSubmit: any;
+  busy: boolean;
+}) {
+  const deployments = data.deployments ?? [];
+  const latestDeployment = deployments[0];
+  const workspaceId = data.selectedWorkspaceId ?? data.workspaceId ?? data.workspace?.id ?? '';
+
+  const inferredFramework = detectFrameworkFromDeployConfig({
+    buildCommand: latestDeployment?.buildCommand,
+    outputDirectory: latestDeployment?.outputDirectory,
+  });
+
+  const [tab, setTab] = useState<'overview' | 'logs' | 'domains' | 'manage'>('overview');
+
+  const domainEntries = deployments.filter((deployment: any) => deployment.url || deployment.customDomain);
+
+  return (
+    <div className="bolt-project-deploy-tool">
+      <div className="bolt-project-tool-tabs">
+        {(
+          [
+            ['overview', 'Overview'],
+            ['logs', 'Logs'],
+            ['domains', 'Domains'],
+            ['manage', 'Manage'],
+          ] as const
+        ).map(([id, label]) => (
+          <button key={id} type="button" aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'overview' ? (
+        <section className="bolt-project-deploy-history">
+          <div className="bolt-project-deploy-summary">
+            <div>
+              <span>Latest status</span>
+              <strong>{latestDeployment?.status ?? 'No deployment'}</strong>
+            </div>
+            <div>
+              <span>Environment</span>
+              <strong>{latestDeployment?.environment ?? 'preview'}</strong>
+            </div>
+            <div>
+              <span>Framework</span>
+              <strong>{latestDeployment?.framework ?? inferredFramework}</strong>
+            </div>
+          </div>
+
+          {deployments.length ? (
+            deployments.map((deployment: any) => (
+              <article key={deployment.id} className="bolt-project-deploy-card">
+                <header>
+                  <div>
+                    <strong>
+                      {deployment.provider} · {deployment.environment ?? 'preview'}
+                    </strong>
+                    <span>{deployment.url ?? deployment.customDomain ?? deployment.createdAt ?? 'URL pending'}</span>
+                  </div>
+                  <em data-status={deployment.status}>{deployment.status}</em>
+                </header>
+                {deployment.url ? (
+                  <div className="bolt-project-deploy-actions">
+                    <a href={deployment.url} target="_blank" rel="noreferrer">
+                      Open
+                    </a>
+                  </div>
+                ) : null}
+              </article>
+            ))
+          ) : (
+            <div className="bolt-project-empty-panel">No deployments yet. Create one from the Manage tab.</div>
+          )}
+        </section>
+      ) : null}
+
+      {tab === 'logs' ? (
+        <section className="bolt-project-deploy-history">
+          {deployments.length ? (
+            deployments.map((deployment: any) => (
+              <article key={deployment.id} className="bolt-project-deploy-card">
+                <header>
+                  <div>
+                    <strong>
+                      {deployment.provider} · {deployment.environment ?? 'preview'}
+                    </strong>
+                    <span>{deployment.url ?? deployment.createdAt ?? ''}</span>
+                  </div>
+                  <em data-status={deployment.status}>{deployment.status}</em>
+                </header>
+                <pre aria-label={`Deployment logs for ${deployment.id}`}>
+                  {(deployment.logs ?? []).map((log: any) => `[${log.level ?? 'info'}] ${log.message}`).join('\n') ||
+                    'No deployment logs yet.'}
+                </pre>
+              </article>
+            ))
+          ) : (
+            <div className="bolt-project-empty-panel">No deployment logs yet.</div>
+          )}
+        </section>
+      ) : null}
+
+      {tab === 'domains' ? (
+        <section className="bolt-project-deploy-history">
+          {domainEntries.length ? (
+            domainEntries.map((deployment: any) => (
+              <article key={deployment.id} className="bolt-project-deploy-card">
+                <header>
+                  <div>
+                    <strong>{deployment.customDomain ?? deployment.url}</strong>
+                    {deployment.customDomain && deployment.url ? <span>{deployment.url}</span> : null}
+                  </div>
+                  <em data-status={deployment.status}>{deployment.environment ?? 'preview'}</em>
+                </header>
+                {deployment.url ? (
+                  <div className="bolt-project-deploy-actions">
+                    <a href={deployment.url} target="_blank" rel="noreferrer">
+                      Open
+                    </a>
+                  </div>
+                ) : null}
+              </article>
+            ))
+          ) : (
+            <div className="bolt-project-empty-panel">
+              No deployment domains yet. Attach a custom domain when you deploy (Manage tab); manage DNS and
+              verification in the dedicated Domains panel.
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {tab === 'manage' ? (
+        <>
+          {deployments.length ? (
+            <section className="bolt-project-deploy-history">
+              {deployments.map((deployment: any) => (
+                <article key={deployment.id} className="bolt-project-deploy-card">
+                  <header>
+                    <div>
+                      <strong>
+                        {deployment.provider} · {deployment.environment ?? 'preview'}
+                      </strong>
+                      <span>{deployment.url ?? deployment.customDomain ?? deployment.createdAt ?? 'URL pending'}</span>
+                    </div>
+                    <em data-status={deployment.status}>{deployment.status}</em>
+                  </header>
+                  <div className="bolt-project-deploy-actions">
+                    {deployment.url ? (
+                      <a href={deployment.url} target="_blank" rel="noreferrer">
+                        Open
+                      </a>
+                    ) : null}
+                    <ProjectDeploymentAction
+                      intent="redeploy"
+                      deploymentId={deployment.id}
+                      onSubmit={onSubmit}
+                      busy={busy}
+                    >
+                      Redeploy
+                    </ProjectDeploymentAction>
+                    <ProjectDeploymentAction
+                      intent="rollback"
+                      deploymentId={deployment.id}
+                      onSubmit={onSubmit}
+                      busy={busy}
+                    >
+                      Rollback
+                    </ProjectDeploymentAction>
+                    <ProjectDeploymentAction
+                      intent="cancel"
+                      deploymentId={deployment.id}
+                      onSubmit={onSubmit}
+                      busy={busy}
+                    >
+                      Cancel
+                    </ProjectDeploymentAction>
+                  </div>
+                </article>
+              ))}
+            </section>
+          ) : null}
+
+          <form onSubmit={onSubmit} className="bolt-project-deploy-wizard">
+            {workspaceId ? <input type="hidden" name="workspaceId" value={workspaceId} /> : null}
+            <h3>Deployment wizard</h3>
+            <p>
+              Uses the existing E-Code build defaults and records the SaaS deployment with quotas, audit logs and
+              redacted output.
+            </p>
+            <label>
+              Provider
+              <select name="provider" defaultValue="static">
+                {BOLT_DEPLOY_PROVIDERS.map((provider) => (
+                  <option key={provider.id} value={provider.id}>
+                    {provider.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Environment
+              <select name="environment" defaultValue="preview">
+                <option value="preview">Preview</option>
+                <option value="staging">Staging</option>
+                <option value="production">Production</option>
+              </select>
+            </label>
+            <label title="Command executed before deployment to generate production assets.">
+              <span>Build command</span>
+              <PanelInput name="buildCommand" defaultValue={DEFAULT_DEPLOY_BUILD_COMMAND} aria-label="Build command" />
+              <small>Example: npm run build, pnpm build, or yarn build.</small>
+            </label>
+            <label title="Directory containing the built static assets or server bundle to deploy.">
+              <span>Output directory</span>
+              <PanelInput
+                name="outputDirectory"
+                defaultValue={DEFAULT_DEPLOY_OUTPUT_DIRECTORY}
+                aria-label="Output directory"
+              />
+              <small>For Vite this is usually dist.</small>
+            </label>
+            <label title="Detected framework used to choose provider defaults. Leave empty to keep auto-detection.">
+              <span>Framework detected</span>
+              <PanelInput name="framework" placeholder={`Auto: ${inferredFramework}`} aria-label="Framework detected" />
+              <small>Leave blank to let E-Code infer the framework from package scripts and config files.</small>
+            </label>
+            <label title="Git branch or workspace branch used as the deployment source.">
+              <span>Branch</span>
+              <PanelInput
+                name="branch"
+                placeholder={project.gitDefaultBranch ?? 'main'}
+                aria-label="Deployment branch"
+              />
+              <small>Defaults to the project branch when no branch is provided.</small>
+            </label>
+            <label title="Optional Git remote URL used by providers that deploy from a repository.">
+              <span>Repository URL</span>
+              <PanelInput
+                name="repositoryUrl"
+                defaultValue={project.gitRepositoryUrl ?? ''}
+                aria-label="Repository URL"
+              />
+            </label>
+            <label title="Optional domain to attach to the deployment after DNS verification.">
+              <span>Custom domain</span>
+              <PanelInput name="customDomain" aria-label="Custom domain" placeholder="app.example.com" />
+            </label>
+            <label title="Plain environment variables added for this deployment. Do not paste secrets here.">
+              <span>Environment variables</span>
+              <textarea
+                name="envVars"
+                placeholder={'KEY=value\nANOTHER_KEY=value'}
+                aria-label="Environment variables"
+              />
+              <small>Use KEY=value pairs, one per line. Store sensitive values as secrets.</small>
+            </label>
+            <label title="Comma-separated names of existing project secrets to inject at deploy time.">
+              <span>Secrets to inject</span>
+              <PanelInput
+                name="injectSecrets"
+                placeholder="DATABASE_URL,STRIPE_SECRET_KEY"
+                aria-label="Secrets to inject"
+              />
+            </label>
+            <label className="bolt-project-checkbox-row">
+              <input name="previewDeployment" type="checkbox" defaultChecked />
+              Create preview URL for non-production deploys
+            </label>
+            <PanelButton disabled={busy}>Deploy project</PanelButton>
+          </form>
+        </>
+      ) : null}
     </div>
   );
 }
