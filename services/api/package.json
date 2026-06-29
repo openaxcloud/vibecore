@@ -4,6 +4,7 @@
   "type": "module",
   "dependencies": {
     "@fastify/websocket": "^11.2.0",
+    "@google-cloud/storage": "^7.14.0",
     "@vibecore/audit": "workspace:*",
     "@vibecore/auth": "workspace:*",
     "@vibecore/billing": "workspace:*",
