@@ -430,6 +430,33 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json({ ok: true, rowId: `${organizationId}:${key}`, message: USER_INTENT_OK['quota-override'] });
     }
 
+    if (intent === 'system-setting') {
+      const key = String(form.get('key') ?? '').trim();
+
+      if (!key) {
+        return json({ ok: false, error: 'Setting key is required.' }, { status: 400 });
+      }
+
+      const rawValue = String(form.get('value') ?? '');
+
+      // Store real JSON when the admin typed a boolean/number/object; otherwise keep the string.
+      let value: unknown = rawValue;
+
+      try {
+        value = JSON.parse(rawValue);
+      } catch {
+        value = rawValue;
+      }
+
+      await apiRequest(request, '/admin/system-settings', {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({ key, value }),
+      });
+
+      return json({ ok: true, rowId: key, message: `Saved system setting "${key}".` });
+    }
+
     if (!userId) {
       return json({ ok: false, error: 'Missing user.' }, { status: 400 });
     }
@@ -517,6 +544,7 @@ export default function AdminSectionPage() {
           {section === 'feature-flags' ? <ToggleListPanel payload={payload} kind="feature-flags" /> : null}
           {section === 'oauth-providers' ? <OauthProvidersPanel payload={payload} /> : null}
           {section === 'quotas' ? <QuotaOverridePanel /> : null}
+          {section === 'system-settings' ? <SystemSettingUpsertPanel /> : null}
           {section === 'developer-tools' ? <DeveloperToolsPanel /> : null}
           {![
             'overview',
@@ -1183,6 +1211,88 @@ function QuotaOverridePanel() {
           className="inline-flex items-center rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? 'Granting…' : 'Grant override'}
+        </button>
+        {fetcher.data?.message ? <span className="text-xs text-emerald-400">{fetcher.data.message}</span> : null}
+        {fetcher.data?.error ? <span className="text-xs text-rose-400">{fetcher.data.error}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+/*
+ * Upsert a platform system setting. Step-up protected like QuotaOverridePanel —
+ * the password is sent only with the action. The read-only DataPanel below still
+ * lists existing settings; this panel writes via POST /admin/system-settings.
+ */
+function SystemSettingUpsertPanel() {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+
+  const [key, setKey] = useState('');
+  const [value, setValue] = useState('');
+  const [password, setPassword] = useState('');
+
+  const inputClass =
+    'mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive';
+
+  const save = () => {
+    fetcher.submit({ intent: 'system-setting', key, value, password }, { method: 'post' });
+    setPassword('');
+  };
+
+  return (
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Set system setting</h3>
+      <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+        Create or update a platform system setting by key. The value is stored as JSON when it parses (true / 42 / {'{'}
+        …{'}'}), otherwise as a string. Step-up protected — your password is sent only with the action and never stored.
+      </p>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Setting key
+          <input
+            value={key}
+            onChange={(event) => setKey(event.target.value)}
+            placeholder="e.g. signup.enabled"
+            data-testid="system-setting-key"
+            className={inputClass}
+          />
+        </label>
+
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Value
+          <input
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            placeholder='e.g. true, 100, or "text"'
+            data-testid="system-setting-value"
+            className={inputClass}
+          />
+        </label>
+
+        <label className="block text-xs text-bolt-elements-textSecondary sm:col-span-2">
+          Confirm with your password
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            placeholder="Your password"
+            data-testid="system-setting-password"
+            className={inputClass}
+          />
+        </label>
+      </div>
+
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          type="button"
+          disabled={busy || !key || !password}
+          onClick={save}
+          className="inline-flex items-center rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {busy ? 'Saving…' : 'Save setting'}
         </button>
         {fetcher.data?.message ? <span className="text-xs text-emerald-400">{fetcher.data.message}</span> : null}
         {fetcher.data?.error ? <span className="text-xs text-rose-400">{fetcher.data.error}</span> : null}
