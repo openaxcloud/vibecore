@@ -590,13 +590,6 @@ const ECODE_MOBILE_TOOLS = [
     icon: 'i-ph:stack',
   },
   {
-    id: 'domains',
-    section: 'tools',
-    title: 'Domains',
-    description: 'Custom domains',
-    icon: 'i-ph:globe',
-  },
-  {
     id: 'commands',
     section: 'tools',
     title: 'Commands',
@@ -638,7 +631,6 @@ const ECODE_MOBILE_MORE_ITEMS = [
   'snapshots',
   'extensions',
   'monitoring',
-  'domains',
   'security',
   'settings',
 ] as const;
@@ -10504,7 +10496,6 @@ function IdeTabBar({
     ['snapshots', 'Snapshots', 'Rollback points', 'i-ph:stack', 'var(--vc-ide-accent-ai-start)', 'Project'],
     ['activity', 'Activity', 'Project timeline', 'i-ph:activity', 'var(--vc-ide-accent-action)', 'Team'],
     ['collaborators', 'Collaborators', 'Team access', 'i-ph:users', 'var(--vc-ide-text-secondary)', 'Team'],
-    ['domains', 'Domains', 'Custom domains', 'i-ph:globe', 'var(--vc-ide-accent-action)', 'Delivery'],
     ['settings', 'Settings', 'Project settings', 'i-ph:gear', 'var(--vc-ide-text-secondary)', 'Configuration'],
   ];
 
@@ -11106,7 +11097,9 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'deployments') {
-    return <ProjectDeploymentsPanel data={data} project={project} onSubmit={onSubmit} busy={busy} />;
+    return (
+      <ProjectDeploymentsPanel data={data} project={project} projectId={projectId} onSubmit={onSubmit} busy={busy} />
+    );
   }
 
   if (panel === 'env') {
@@ -11365,7 +11358,77 @@ function ProjectIdePanelContent({
   return <PanelRows rows={[]} empty="Panel not available." />;
 }
 
-function ProjectDomainsPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
+function ProjectDomainsPanel({
+  data: dataProp,
+  onSubmit: onSubmitProp,
+  busy: busyProp,
+  projectId,
+}: {
+  data?: any;
+  onSubmit?: any;
+  busy?: boolean;
+  projectId?: string;
+}) {
+  /*
+   * Two modes over the SAME /ide-panel/domains loader+action (one domains UI,
+   * Replit-style under Deploy):
+   *  - self-contained (projectId given, used by the Deploy → Domains tab):
+   *    self-fetch the list and self-submit add/verify/delete to the domains
+   *    endpoint, since the Deploy panel's own onSubmit targets `deployments`;
+   *  - framework mode (data/onSubmit/busy from the panel host) — legacy path.
+   */
+  const selfMode = Boolean(projectId);
+  const [selfData, setSelfData] = useState<any>(null);
+  const [selfBusy, setSelfBusy] = useState(false);
+
+  const loadDomains = useCallback(async () => {
+    if (!projectId) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/ide-panel/domains`, {
+        headers: { accept: 'application/json' },
+      });
+
+      const envelope = (await response.json().catch(() => ({}))) as any;
+      setSelfData(envelope?.data ?? envelope ?? {});
+    } catch {
+      // Non-fatal: keep whatever we last had.
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    if (selfMode) {
+      void loadDomains();
+    }
+  }, [selfMode, loadDomains]);
+
+  const selfSubmit = useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+
+      if (!projectId) {
+        return;
+      }
+
+      const form = new FormData(event.currentTarget);
+      setSelfBusy(true);
+
+      try {
+        await fetch(`/api/projects/${projectId}/ide-panel/domains`, { method: 'POST', body: form });
+        await loadDomains();
+      } finally {
+        setSelfBusy(false);
+      }
+    },
+    [projectId, loadDomains],
+  );
+
+  const data = selfMode ? (selfData ?? {}) : (dataProp ?? {});
+  const onSubmit = selfMode ? selfSubmit : onSubmitProp;
+  const busy = selfMode ? selfBusy : Boolean(busyProp);
+
   const domains = data.domains ?? [];
   const latestReadyDeployment = (data.deployments ?? []).find((deployment: any) => deployment.status === 'READY');
   const deploymentHost = getHostname(latestReadyDeployment?.productionUrl ?? latestReadyDeployment?.url);
@@ -16807,11 +16870,13 @@ function ProjectSecretsPanel({
 function ProjectDeploymentsPanel({
   data,
   project,
+  projectId,
   onSubmit,
   busy,
 }: {
   data: any;
   project: any;
+  projectId?: string;
   onSubmit: any;
   busy: boolean;
 }) {
@@ -16825,8 +16890,6 @@ function ProjectDeploymentsPanel({
   });
 
   const [tab, setTab] = useState<'overview' | 'logs' | 'domains' | 'manage'>('overview');
-
-  const domainEntries = deployments.filter((deployment: any) => deployment.url || deployment.customDomain);
 
   return (
     <div className="bolt-project-deploy-tool">
@@ -16951,37 +17014,13 @@ function ProjectDeploymentsPanel({
         </section>
       ) : null}
 
-      {tab === 'domains' ? (
-        <section className="bolt-project-deploy-history">
-          {domainEntries.length ? (
-            domainEntries.map((deployment: any) => (
-              <article key={deployment.id} className="bolt-project-deploy-card">
-                <header>
-                  <div>
-                    <strong>{deployment.customDomain ?? deployment.url}</strong>
-                    {deployment.customDomain && deployment.url ? <span>{deployment.url}</span> : null}
-                  </div>
-                  <em data-status={deployment.status}>{deployment.environment ?? 'preview'}</em>
-                </header>
-                {deployment.url ? (
-                  <div className="bolt-project-deploy-actions">
-                    <a href={deployment.url} target="_blank" rel="noreferrer">
-                      Open
-                    </a>
-                  </div>
-                ) : null}
-              </article>
-            ))
-          ) : (
-            <div className="bolt-project-empty-panel">
-              No deployment domains yet. Attach a custom domain when you deploy (Manage tab); manage DNS and
-              verification in the dedicated Domains panel.
-            </div>
-          )}
-          {/* Buy-a-domain commerce flow needs a backend/registrar integration we don't have yet. */}
-          <p className="text-xs text-bolt-elements-textTertiary">Buy a domain — coming soon.</p>
-        </section>
-      ) : null}
+      {/*
+       * Real domains management, consolidated under Deploy (Replit parity): the
+       * full ProjectDomainsPanel self-fetches + submits against /orgs/:id/domains
+       * (list / add custom domain / DNS verify / delete). The standalone Domains
+       * panel is removed from the Add-tab selector so this is the single place.
+       */}
+      {tab === 'domains' ? <ProjectDomainsPanel projectId={projectId} /> : null}
 
       {tab === 'manage' ? (
         <>
