@@ -102,16 +102,56 @@ the workspace. State persisted as project env key `VIBECORE_SECURITY_STATE`.
 
 ---
 
-## 3. SSH / Remote — EXPOSED (store + test + keygen) ✅
+## 3. SSH / Remote — EXPOSED (store + real key-based test + git-over-SSH + keygen) ✅
 
 Stores SSH connection definitions; private key encrypted in project secrets
-(`TERMINAL_SSH_PRIVATE_KEY_<connectionId>`); tests reachability via a real
-`ssh -o BatchMode=yes … 'echo vibecore-ssh-connected'`. State key `VIBECORE_TERMINAL_STATE`.
+(`TERMINAL_SSH_PRIVATE_KEY_<connectionId>`); tests reachability **with the
+connection's own key** and runs **real git-over-SSH** (`git ls-remote`). State
+key `VIBECORE_TERMINAL_STATE`.
 
 - **IDE proxy:** `POST /api/projects/:projectId/ide-panel/terminal`
 - **Intents:** `add-ssh { name, host, port, username, privateKey? }`,
   `delete-ssh { connectionId }`, `connect-ssh { connectionId }`, `disconnect-ssh { connectionId }`,
+  `git-ssh { connectionId, repoUrl }`,
   `generate-keypair { name?, host?, port?, username?, type?: "ed25519"|"rsa", comment? }`.
+
+### Tenant-isolated key execution (`connect-ssh` + `git-ssh`) — IMPLEMENTED ✅
+
+Both run **inside the project's own gVisor-sandboxed workspace pod**, never on
+the shared api pod. The private key is injected into that pod's env at start
+(api `/workspaces/start` → `allowedSecrets` carries every project secret), so
+the exec command references the key **by env-var name only** — the key value
+never appears in the command string, process args, or the persisted run output.
+The command materializes it to an ephemeral `0600` temp file (`mktemp`, `umask
+077`), uses it, and `trap`-deletes it on exit:
+
+- `connect-ssh`: `ssh -i <ephemeral> -o IdentitiesOnly=yes -o BatchMode=yes -o
+  StrictHostKeyChecking=accept-new … 'echo vibecore-ssh-connected'` —
+  `IdentitiesOnly=yes` offers ONLY this connection's key (no default-identity
+  leak across tenants).
+- `git-ssh`: `GIT_SSH_COMMAND="ssh -i <ephemeral> …" git ls-remote --heads
+  <repoUrl>` — read-only access proof; `repoUrl` must be an SSH git URL
+  (`git@host:path` or `ssh://…`), https is rejected to force the SSH path.
+
+Isolation is **guaranteed by construction**: each pod only carries its own
+project's secrets, so one tenant can never reach another's key. Pure script
+builders (`ephemeralSshKeyPrelude`, `buildSshConnectScript`, `isSshGitUrl`,
+`buildGitSshLsRemoteScript`) are unit-tested (no key value in the emitted
+script). 8 tests.
+
+**Limitation (by design):** secrets are injected at pod start, so a key added in
+the current session is not visible until the workspace restarts — the prelude
+then exits `97` with an actionable message (`restart the workspace … then
+retry`). A key added before the pod started (or surviving a restart) works
+immediately.
+
+**GAP (gated, NOT wired):** the platform's own server-side git (push/pull via
+`GitCliProvider` in `services/api/src/project-storage.ts`) runs on the **shared
+api pod** and does **not** set `GIT_SSH_COMMAND` / use a per-tenant key.
+Materializing tenant private keys on the shared pod cannot be isolated as
+cleanly as the per-pod path above (concurrent ops, blast radius), so it is left
+unimplemented pending a dedicated per-request isolation design. User-facing
+git-over-SSH is fully covered by the `git-ssh` workspace-pod path above.
 - **Connection shape** (keygen adds `publicKey`, `fingerprint`, `keyType`):
   ```json
   { "id": "uuid", "name": "", "host": "", "port": 22, "username": "",
@@ -207,7 +247,7 @@ feature flag — inert until the IDE calls it (no existing behaviour touched).
 | 0 | SQL read/write | EXPOSED ✅ | live RW proof 2026-06-29; api@a0a34eb6 |
 | 1 | Workflows | EXPOSED ✅ | real exec via runtime; logs per-run (no SSE) |
 | 2 | Security scanner | EXPOSED ✅ | npm audit + secret/SAST grep in workspace |
-| 3 | SSH store/test/keygen | EXPOSED ✅ | real ssh test + server keygen (`generate-keypair`); 6 tests incl. OpenSSH interop |
+| 3 | SSH store/test/keygen + git-over-SSH | EXPOSED ✅ | real **key-based** ssh test + `git-ssh` (`git ls-remote`) run in the per-tenant workspace pod with an ephemeral key (key value never in args/logs); server keygen; 14 tests (6 keygen incl. OpenSSH interop + 8 builders). GAP: shared-api-pod `GitCliProvider` push/pull not key-wired (gated, see §3) |
 | 4 | Object Storage GCS | IMPLEMENTED ✅ | merged on `main`, flag-gated; GCS mechanism live-proven 2026-06-29; live-enable = GSA storage role + WI/key wiring + flag (see §4) |
 | 5 | Skills registry | IMPLEMENTED ✅ | `ProjectSkill` table (`0048`) + builtin catalog; 11 tests; additive/unflagged |
 | 6 | Free-tier DB (shared-pg-0) | CODE DONE ✅ | admin-SQL tenant provisioning (role+db+isolation) live-proven vs real Postgres; 22 tests; Helm template gated; activation needs Avi (cluster bootstrap + manager deploy + `DB_SHARED_TENANT_SECRET`) |

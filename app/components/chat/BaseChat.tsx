@@ -9898,6 +9898,14 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
                       {connection.status === 'connected' ? 'Disconnect' : 'Connect'}
                     </PanelButton>
                   </form>
+                  <form onSubmit={submit} className="bolt-terminal-ssh-git" data-testid={`ssh-git-${connection.id}`}>
+                    <input type="hidden" name="intent" value="git-ssh" />
+                    <input type="hidden" name="connectionId" value={connection.id} />
+                    <PanelInput name="repoUrl" placeholder="git@github.com:owner/repo.git" aria-label="SSH git URL" />
+                    <PanelButton disabled={busy} variant="outline" data-testid={`button-git-ssh-${connection.id}`}>
+                      Test git access
+                    </PanelButton>
+                  </form>
                 </article>
               ))}
               {!sshConnections.length ? (
