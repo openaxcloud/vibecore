@@ -9535,6 +9535,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(() => new Set(['.', '/workspace']));
   const [showEnvForm, setShowEnvForm] = useState(false);
   const [showSshForm, setShowSshForm] = useState(false);
+  const [showKeygenForm, setShowKeygenForm] = useState(false);
   const [showScriptForm, setShowScriptForm] = useState(false);
   const [customScript, setCustomScript] = useState('');
   const [revealedSecrets, setRevealedSecrets] = useState<Record<string, string>>({});
@@ -9625,9 +9626,14 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
       form.reset();
       setShowEnvForm(false);
       setShowSshForm(false);
+      setShowKeygenForm(false);
       setShowScriptForm(false);
       setCustomScript('');
-      setMessage('Action applied to the workspace backend.');
+      setMessage(
+        result.fingerprint
+          ? `Key pair generated (${result.keyType ?? 'ed25519'} · ${result.fingerprint}). Public key shown on the connection below.`
+          : 'Action applied to the workspace backend.',
+      );
       await loadPanel();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Terminal action failed');
@@ -9795,13 +9801,22 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
                 <span className="i-ph:wifi-high" aria-hidden />
                 SSH Connections
               </h4>
-              <button
-                type="button"
-                onClick={() => setShowSshForm((value) => !value)}
-                data-testid="button-ssh-connections"
-              >
-                Add
-              </button>
+              <div className="bolt-terminal-section-actions">
+                <button
+                  type="button"
+                  onClick={() => setShowKeygenForm((value) => !value)}
+                  data-testid="button-ssh-generate-key"
+                >
+                  Generate key
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSshForm((value) => !value)}
+                  data-testid="button-ssh-connections"
+                >
+                  Add
+                </button>
+              </div>
             </div>
             {showSshForm ? (
               <form onSubmit={submit} className="bolt-terminal-compact-form" data-testid="dialog-ssh">
@@ -9813,6 +9828,20 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
                 <textarea name="privateKey" placeholder="Optional private key stored as a project secret" />
                 <PanelButton disabled={busy} data-testid="button-add-ssh">
                   Save SSH
+                </PanelButton>
+              </form>
+            ) : null}
+            {showKeygenForm ? (
+              <form onSubmit={submit} className="bolt-terminal-compact-form" data-testid="dialog-ssh-keygen">
+                <input type="hidden" name="intent" value="generate-keypair" />
+                <PanelInput name="name" placeholder="Key label (e.g. deploy key)" required />
+                <select name="type" defaultValue="ed25519" aria-label="Key type">
+                  <option value="ed25519">ed25519 (recommended)</option>
+                  <option value="rsa">rsa</option>
+                </select>
+                <PanelInput name="comment" placeholder="Optional comment (e.g. you@host)" />
+                <PanelButton disabled={busy} data-testid="button-generate-keypair">
+                  Generate key pair
                 </PanelButton>
               </form>
             ) : null}
@@ -9830,6 +9859,21 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
                     </small>
                     {connection.lastError ? (
                       <small className="terminal-error-text">{connection.lastError}</small>
+                    ) : null}
+                    {connection.publicKey ? (
+                      <div className="bolt-terminal-ssh-pubkey">
+                        {connection.fingerprint ? <small>{connection.fingerprint}</small> : null}
+                        <code className="block truncate" title={connection.publicKey}>
+                          {connection.publicKey}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => void navigator.clipboard?.writeText(connection.publicKey)}
+                          aria-label={`Copy public key for ${connection.name}`}
+                        >
+                          Copy public key
+                        </button>
+                      </div>
                     ) : null}
                   </div>
                   <form onSubmit={submit}>
