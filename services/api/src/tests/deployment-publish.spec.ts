@@ -141,4 +141,41 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
 
     expect(res.statusCode).toBe(404);
   });
+
+  it('provisions a production DatabaseInstance on publish when DB provisioning is enabled (P2d split)', async () => {
+    const original = process.env.DB_ROLLBACK_ENABLED;
+    process.env.DB_ROLLBACK_ENABLED = 'true';
+
+    try {
+      const { app, store, token, project } = await setup();
+      const source = await store.createDeployment({
+        projectId: project.id,
+        provider: 'static',
+        environment: 'preview',
+        status: 'READY',
+        url: 'https://preview.example/',
+      });
+
+      // no production DB before publish
+      expect(await store.getDatabaseInstanceByProject(project.id, 'production')).toBeUndefined();
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/projects/${project.id}/deployments/${source.id}/publish`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(res.statusCode).toBe(201);
+
+      // a distinct production instance now exists; the development one does not
+      const prod = await store.getDatabaseInstanceByProject(project.id, 'production');
+      expect(prod?.environment).toBe('production');
+      expect(await store.getDatabaseInstanceByProject(project.id, 'development')).toBeUndefined();
+    } finally {
+      if (original === undefined) {
+        delete (process.env as Record<string, string | undefined>).DB_ROLLBACK_ENABLED;
+      } else {
+        process.env.DB_ROLLBACK_ENABLED = original;
+      }
+    }
+  });
 });

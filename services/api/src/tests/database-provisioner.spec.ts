@@ -329,3 +329,57 @@ describe('resolveDatabaseProvisioner (dormancy)', () => {
     expect((await noop.takeSnapshot({ projectId: 'p1', snapshotId: 's1' })).applied).toBe(false);
   });
 });
+
+describe('P2d dev/prod split (environment-scoped naming)', () => {
+  it('development keeps the original un-suffixed names (backward compatible)', () => {
+    expect(clusterName('abc123')).toBe('db-abc123');
+    expect(clusterName('abc123', 'development')).toBe('db-abc123');
+    expect(sharedDbName('abc123', 'development')).toBe(sharedDbName('abc123'));
+    expect(tenantRoleName('abc123', 'development')).toBe(tenantRoleName('abc123'));
+  });
+
+  it('production suffixes the cluster (-prod), db (_prod) and role (_prod)', () => {
+    expect(clusterName('abc123', 'production')).toBe('db-abc123-prod');
+    expect(sharedDbName('abc123', 'production')).toBe(`${sharedDbName('abc123')}_prod`);
+    expect(tenantRoleName('abc123', 'production')).toBe(`${tenantRoleName('abc123')}_prod`);
+  });
+
+  it('derives a distinct production tenant password', () => {
+    process.env.DB_SHARED_TENANT_SECRET = 'unit-test-tenant-secret';
+    const dev = sharedTenantPassword('abc123', 'development');
+    const prod = sharedTenantPassword('abc123', 'production');
+    expect(dev).toBe(sharedTenantPassword('abc123'));
+    expect(prod).toMatch(/^[0-9a-f]{64}$/);
+    expect(prod).not.toBe(dev);
+    delete (process.env as Record<string, string | undefined>).DB_SHARED_TENANT_SECRET;
+  });
+
+  it('provisionInstance(production, shared) provisions the prod-suffixed tenant', async () => {
+    process.env.DB_SHARED_TENANT_SECRET = 'unit-test-tenant-secret';
+    const k8s = new FakeK8s();
+    k8s.secrets.set('shared-pg-0-app', { username: 'app', password: 'adminpw', dbname: 'app' });
+    const sql = new FakeTenantSqlExecutor();
+    const prov = new CnpgProvisioner(k8s, 'bkt', undefined, sql);
+
+    await prov.provisionInstance({
+      projectId: 'abc123',
+      retentionDays: 7,
+      tier: 'shared',
+      sharedClusterName: 'shared-pg-0',
+      environment: 'production',
+    });
+
+    expect(sql.calls[0]).toMatchObject({
+      role: tenantRoleName('abc123', 'production'),
+      db: sharedDbName('abc123', 'production'),
+    });
+    const dbCr = k8s.applied.find((m) => m.kind === 'Database');
+    expect((dbCr?.spec as { name?: string })?.name).toBe(sharedDbName('abc123', 'production'));
+    delete (process.env as Record<string, string | undefined>).DB_SHARED_TENANT_SECRET;
+  });
+
+  it('isolated production cluster gets the -prod name', () => {
+    const m = buildClusterManifest({ projectId: 'abc123', backupBucket: 'bkt', retentionDays: 28, environment: 'production' });
+    expect(m.metadata.name).toBe('db-abc123-prod');
+  });
+});

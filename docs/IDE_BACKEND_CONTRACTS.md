@@ -212,4 +212,15 @@ feature flag — inert until the IDE calls it (no existing behaviour touched).
 | 5 | Skills registry | IMPLEMENTED ✅ | `ProjectSkill` table (`0048`) + builtin catalog; 11 tests; additive/unflagged |
 | 6 | Free-tier DB (shared-pg-0) | CODE DONE ✅ | admin-SQL tenant provisioning (role+db+isolation) live-proven vs real Postgres; 22 tests; Helm template gated; activation needs Avi (cluster bootstrap + manager deploy + `DB_SHARED_TENANT_SECRET`) |
 | 7 | Hibernation (workspace) | IMPLEMENTED ✅ | GC reconciler: sleep on idle + orphan-RUNNING reconcile + wake-on-reopen (`manager.ts`); needs ws-manager deploy to go live |
-| 8 | Deploy publish (P2d) | PARTIAL ✅ | `POST /deployments/:id/publish` promotes a READY preview to a linked production deployment (`parentDeploymentId`, migration `0049`); 7 tests. Dev/prod **DB**-split + workspace-file clone = remaining infra-heavy follow-up |
+| 8 | Deploy publish (P2d) | IMPLEMENTED ✅ | `POST /deployments/:id/publish` promotes a READY preview → linked production deployment (`parentDeploymentId`, `0049`) **and** provisions a separate **production database** (env-scoped `db-<id>-prod` / `proj_<id>_prod`, `DatabaseInstance.environment`, migration `0050`); 35 tests + live dev/prod **DB isolation** proof on real Postgres. `GET/POST /database` accept `environment` → `PROD_DATABASE_URL`. Gated by `DB_ROLLBACK_ENABLED`; prod env dormant until publish |
+
+**P2d dev/prod database split** (`database-provisioner.ts`): every project has a
+`development` DB (its workspace DB, un-suffixed = backward compatible) and, once
+published, a separate `production` DB (`-prod`/`_prod` suffix, distinct owner
+role + HMAC password + REVOKE-CONNECT isolation). The production deployment
+serves the promoted artifact pinned to the source `commitSha` (the file
+snapshot); a fully separate editable production workspace checkout remains a
+future option. Publish provisions the prod DB best-effort (dormant until
+`DB_ROLLBACK_ENABLED` + a backing cluster). `GET /projects/:id/database?environment=production`
+reconciles the prod URL into a `PROD_DATABASE_URL` project secret so dev + prod
+connections coexist in the IDE.

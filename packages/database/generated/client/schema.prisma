@@ -262,7 +262,7 @@ model Project {
   agentMemoryPreferences AgentMemoryPreference[]
   agentPatchProposals    AgentPatchProposal[]
   connectionLinks        ProjectConnectionLink[]
-  databaseInstance       DatabaseInstance?
+  databaseInstances      DatabaseInstance[]
   skills                 ProjectSkill[]
 
   @@unique([organizationId, slug])
@@ -1723,8 +1723,12 @@ enum DatabaseInstanceStatus {
 /// `retentionDays` is the plan-derived PITR window (Pro = 28).
 model DatabaseInstance {
   id             String                 @id @default(cuid())
-  projectId      String                 @unique
+  projectId      String
   organizationId String
+  // P2d dev/prod split: a project has a `development` instance (its workspace
+  // DB) and, once published, a separate `production` instance. Existing rows
+  // backfill to 'development', preserving the prior one-per-project behaviour.
+  environment    String                 @default("development")
   status         DatabaseInstanceStatus @default(PROVISIONING)
   engine         String                 @default("postgres")
   region         String?
@@ -1737,6 +1741,7 @@ model DatabaseInstance {
   snapshots      DatabaseSnapshot[]
   restores       DatabaseRestore[]
 
+  @@unique([projectId, environment])
   @@index([organizationId])
   @@index([status])
 }

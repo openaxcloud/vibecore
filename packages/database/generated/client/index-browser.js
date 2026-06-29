@@ -1139,6 +1139,7 @@ exports.Prisma.DatabaseInstanceScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
   organizationId: 'organizationId',
+  environment: 'environment',
   status: 'status',
   engine: 'engine',
   region: 'region',

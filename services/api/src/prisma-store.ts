@@ -88,6 +88,7 @@ function mapDatabaseInstance(row: {
   id: string;
   projectId: string;
   organizationId: string;
+  environment: string;
   status: DatabaseInstanceRecord['status'];
   engine: string;
   region: string | null;
@@ -101,6 +102,7 @@ function mapDatabaseInstance(row: {
     id: row.id,
     projectId: row.projectId,
     organizationId: row.organizationId,
+    environment: row.environment === 'production' ? 'production' : 'development',
     status: row.status,
     engine: row.engine,
     region: row.region ?? undefined,
@@ -1677,8 +1679,13 @@ export class PrismaApiStore implements ApiStore {
     return [...byOrg.entries()].map(([organizationId, bytes]) => ({ organizationId, bytes }));
   }
 
-  async getDatabaseInstanceByProject(projectId: string): Promise<DatabaseInstanceRecord | undefined> {
-    const row = await this.prisma.databaseInstance.findUnique({ where: { projectId } });
+  async getDatabaseInstanceByProject(
+    projectId: string,
+    environment = 'development',
+  ): Promise<DatabaseInstanceRecord | undefined> {
+    const row = await this.prisma.databaseInstance.findUnique({
+      where: { projectId_environment: { projectId, environment } },
+    });
 
     return row ? mapDatabaseInstance(row) : undefined;
   }
@@ -1724,11 +1731,13 @@ export class PrismaApiStore implements ApiStore {
     organizationId: string;
     retentionDays: number;
     region?: string;
+    environment?: string;
   }): Promise<DatabaseInstanceRecord> {
     const row = await this.prisma.databaseInstance.create({
       data: {
         projectId: input.projectId,
         organizationId: input.organizationId,
+        environment: input.environment ?? 'development',
         retentionDays: input.retentionDays,
         region: input.region ?? null,
         pitrEnabled: input.retentionDays > 0,

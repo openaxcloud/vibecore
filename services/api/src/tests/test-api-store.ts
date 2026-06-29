@@ -1209,9 +1209,9 @@ export class TestApiStore implements ApiStore {
     return [...byOrg.entries()].map(([organizationId, bytes]) => ({ organizationId, bytes }));
   }
 
-  async getDatabaseInstanceByProject(projectId: string) {
+  async getDatabaseInstanceByProject(projectId: string, environment = 'development') {
     for (const instance of this.databaseInstances.values()) {
-      if (instance.projectId === projectId) {
+      if (instance.projectId === projectId && instance.environment === environment) {
         return instance;
       }
     }
@@ -1256,11 +1256,13 @@ export class TestApiStore implements ApiStore {
     organizationId: string;
     retentionDays: number;
     region?: string;
+    environment?: string;
   }) {
     const instance: DatabaseInstanceRecord = {
       id: id('database_instance'),
       projectId: input.projectId,
       organizationId: input.organizationId,
+      environment: input.environment === 'production' ? 'production' : 'development',
       status: 'PROVISIONING',
       engine: 'postgres',
       region: input.region,

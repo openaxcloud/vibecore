@@ -9769,6 +9769,7 @@ export namespace Prisma {
     agentMemoryPreferences: number
     agentPatchProposals: number
     connectionLinks: number
+    databaseInstances: number
     skills: number
   }
 
@@ -9792,6 +9793,7 @@ export namespace Prisma {
     agentMemoryPreferences?: boolean | ProjectCountOutputTypeCountAgentMemoryPreferencesArgs
     agentPatchProposals?: boolean | ProjectCountOutputTypeCountAgentPatchProposalsArgs
     connectionLinks?: boolean | ProjectCountOutputTypeCountConnectionLinksArgs
+    databaseInstances?: boolean | ProjectCountOutputTypeCountDatabaseInstancesArgs
     skills?: boolean | ProjectCountOutputTypeCountSkillsArgs
   }
 
@@ -9937,6 +9939,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountConnectionLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ProjectConnectionLinkWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountDatabaseInstancesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DatabaseInstanceWhereInput
   }
 
   /**
@@ -22108,7 +22117,7 @@ export namespace Prisma {
     agentMemoryPreferences?: boolean | Project$agentMemoryPreferencesArgs<ExtArgs>
     agentPatchProposals?: boolean | Project$agentPatchProposalsArgs<ExtArgs>
     connectionLinks?: boolean | Project$connectionLinksArgs<ExtArgs>
-    databaseInstance?: boolean | Project$databaseInstanceArgs<ExtArgs>
+    databaseInstances?: boolean | Project$databaseInstancesArgs<ExtArgs>
     skills?: boolean | Project$skillsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
@@ -22186,7 +22195,7 @@ export namespace Prisma {
     agentMemoryPreferences?: boolean | Project$agentMemoryPreferencesArgs<ExtArgs>
     agentPatchProposals?: boolean | Project$agentPatchProposalsArgs<ExtArgs>
     connectionLinks?: boolean | Project$connectionLinksArgs<ExtArgs>
-    databaseInstance?: boolean | Project$databaseInstanceArgs<ExtArgs>
+    databaseInstances?: boolean | Project$databaseInstancesArgs<ExtArgs>
     skills?: boolean | Project$skillsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
@@ -22221,7 +22230,7 @@ export namespace Prisma {
       agentMemoryPreferences: Prisma.$AgentMemoryPreferencePayload<ExtArgs>[]
       agentPatchProposals: Prisma.$AgentPatchProposalPayload<ExtArgs>[]
       connectionLinks: Prisma.$ProjectConnectionLinkPayload<ExtArgs>[]
-      databaseInstance: Prisma.$DatabaseInstancePayload<ExtArgs> | null
+      databaseInstances: Prisma.$DatabaseInstancePayload<ExtArgs>[]
       skills: Prisma.$ProjectSkillPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -22653,7 +22662,7 @@ export namespace Prisma {
     agentMemoryPreferences<T extends Project$agentMemoryPreferencesArgs<ExtArgs> = {}>(args?: Subset<T, Project$agentMemoryPreferencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentPatchProposals<T extends Project$agentPatchProposalsArgs<ExtArgs> = {}>(args?: Subset<T, Project$agentPatchProposalsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentPatchProposalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     connectionLinks<T extends Project$connectionLinksArgs<ExtArgs> = {}>(args?: Subset<T, Project$connectionLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    databaseInstance<T extends Project$databaseInstanceArgs<ExtArgs> = {}>(args?: Subset<T, Project$databaseInstanceArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    databaseInstances<T extends Project$databaseInstancesArgs<ExtArgs> = {}>(args?: Subset<T, Project$databaseInstancesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     skills<T extends Project$skillsArgs<ExtArgs> = {}>(args?: Subset<T, Project$skillsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSkillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -23573,9 +23582,9 @@ export namespace Prisma {
   }
 
   /**
-   * Project.databaseInstance
+   * Project.databaseInstances
    */
-  export type Project$databaseInstanceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type Project$databaseInstancesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
      * Select specific fields to fetch from the DatabaseInstance
      */
@@ -23589,6 +23598,11 @@ export namespace Prisma {
      */
     include?: DatabaseInstanceInclude<ExtArgs> | null
     where?: DatabaseInstanceWhereInput
+    orderBy?: DatabaseInstanceOrderByWithRelationInput | DatabaseInstanceOrderByWithRelationInput[]
+    cursor?: DatabaseInstanceWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DatabaseInstanceScalarFieldEnum | DatabaseInstanceScalarFieldEnum[]
   }
 
   /**
@@ -109674,6 +109688,7 @@ export namespace Prisma {
     id: string | null
     projectId: string | null
     organizationId: string | null
+    environment: string | null
     status: $Enums.DatabaseInstanceStatus | null
     engine: string | null
     region: string | null
@@ -109688,6 +109703,7 @@ export namespace Prisma {
     id: string | null
     projectId: string | null
     organizationId: string | null
+    environment: string | null
     status: $Enums.DatabaseInstanceStatus | null
     engine: string | null
     region: string | null
@@ -109702,6 +109718,7 @@ export namespace Prisma {
     id: number
     projectId: number
     organizationId: number
+    environment: number
     status: number
     engine: number
     region: number
@@ -109728,6 +109745,7 @@ export namespace Prisma {
     id?: true
     projectId?: true
     organizationId?: true
+    environment?: true
     status?: true
     engine?: true
     region?: true
@@ -109742,6 +109760,7 @@ export namespace Prisma {
     id?: true
     projectId?: true
     organizationId?: true
+    environment?: true
     status?: true
     engine?: true
     region?: true
@@ -109756,6 +109775,7 @@ export namespace Prisma {
     id?: true
     projectId?: true
     organizationId?: true
+    environment?: true
     status?: true
     engine?: true
     region?: true
@@ -109857,6 +109877,7 @@ export namespace Prisma {
     id: string
     projectId: string
     organizationId: string
+    environment: string
     status: $Enums.DatabaseInstanceStatus
     engine: string
     region: string | null
@@ -109890,6 +109911,7 @@ export namespace Prisma {
     id?: boolean
     projectId?: boolean
     organizationId?: boolean
+    environment?: boolean
     status?: boolean
     engine?: boolean
     region?: boolean
@@ -109908,6 +109930,7 @@ export namespace Prisma {
     id?: boolean
     projectId?: boolean
     organizationId?: boolean
+    environment?: boolean
     status?: boolean
     engine?: boolean
     region?: boolean
@@ -109923,6 +109946,7 @@ export namespace Prisma {
     id?: boolean
     projectId?: boolean
     organizationId?: boolean
+    environment?: boolean
     status?: boolean
     engine?: boolean
     region?: boolean
@@ -109938,6 +109962,7 @@ export namespace Prisma {
     id?: boolean
     projectId?: boolean
     organizationId?: boolean
+    environment?: boolean
     status?: boolean
     engine?: boolean
     region?: boolean
@@ -109948,7 +109973,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type DatabaseInstanceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "organizationId" | "status" | "engine" | "region" | "sizeBytes" | "retentionDays" | "pitrEnabled" | "createdAt" | "updatedAt", ExtArgs["result"]["databaseInstance"]>
+  export type DatabaseInstanceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "organizationId" | "environment" | "status" | "engine" | "region" | "sizeBytes" | "retentionDays" | "pitrEnabled" | "createdAt" | "updatedAt", ExtArgs["result"]["databaseInstance"]>
   export type DatabaseInstanceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     snapshots?: boolean | DatabaseInstance$snapshotsArgs<ExtArgs>
@@ -109973,6 +109998,7 @@ export namespace Prisma {
       id: string
       projectId: string
       organizationId: string
+      environment: string
       status: $Enums.DatabaseInstanceStatus
       engine: string
       region: string | null
@@ -110410,6 +110436,7 @@ export namespace Prisma {
     readonly id: FieldRef<"DatabaseInstance", 'String'>
     readonly projectId: FieldRef<"DatabaseInstance", 'String'>
     readonly organizationId: FieldRef<"DatabaseInstance", 'String'>
+    readonly environment: FieldRef<"DatabaseInstance", 'String'>
     readonly status: FieldRef<"DatabaseInstance", 'DatabaseInstanceStatus'>
     readonly engine: FieldRef<"DatabaseInstance", 'String'>
     readonly region: FieldRef<"DatabaseInstance", 'String'>
@@ -114466,6 +114493,7 @@ export namespace Prisma {
     id: 'id',
     projectId: 'projectId',
     organizationId: 'organizationId',
+    environment: 'environment',
     status: 'status',
     engine: 'engine',
     region: 'region',
@@ -115650,7 +115678,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     agentPatchProposals?: AgentPatchProposalListRelationFilter
     connectionLinks?: ProjectConnectionLinkListRelationFilter
-    databaseInstance?: XOR<DatabaseInstanceNullableScalarRelationFilter, DatabaseInstanceWhereInput> | null
+    databaseInstances?: DatabaseInstanceListRelationFilter
     skills?: ProjectSkillListRelationFilter
   }
 
@@ -115689,7 +115717,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceOrderByRelationAggregateInput
     agentPatchProposals?: AgentPatchProposalOrderByRelationAggregateInput
     connectionLinks?: ProjectConnectionLinkOrderByRelationAggregateInput
-    databaseInstance?: DatabaseInstanceOrderByWithRelationInput
+    databaseInstances?: DatabaseInstanceOrderByRelationAggregateInput
     skills?: ProjectSkillOrderByRelationAggregateInput
   }
 
@@ -115732,7 +115760,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     agentPatchProposals?: AgentPatchProposalListRelationFilter
     connectionLinks?: ProjectConnectionLinkListRelationFilter
-    databaseInstance?: XOR<DatabaseInstanceNullableScalarRelationFilter, DatabaseInstanceWhereInput> | null
+    databaseInstances?: DatabaseInstanceListRelationFilter
     skills?: ProjectSkillListRelationFilter
   }, "id" | "organizationId_slug">
 
@@ -121666,6 +121694,7 @@ export namespace Prisma {
     id?: StringFilter<"DatabaseInstance"> | string
     projectId?: StringFilter<"DatabaseInstance"> | string
     organizationId?: StringFilter<"DatabaseInstance"> | string
+    environment?: StringFilter<"DatabaseInstance"> | string
     status?: EnumDatabaseInstanceStatusFilter<"DatabaseInstance"> | $Enums.DatabaseInstanceStatus
     engine?: StringFilter<"DatabaseInstance"> | string
     region?: StringNullableFilter<"DatabaseInstance"> | string | null
@@ -121683,6 +121712,7 @@ export namespace Prisma {
     id?: SortOrder
     projectId?: SortOrder
     organizationId?: SortOrder
+    environment?: SortOrder
     status?: SortOrder
     engine?: SortOrder
     region?: SortOrderInput | SortOrder
@@ -121698,11 +121728,13 @@ export namespace Prisma {
 
   export type DatabaseInstanceWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    projectId?: string
+    projectId_environment?: DatabaseInstanceProjectIdEnvironmentCompoundUniqueInput
     AND?: DatabaseInstanceWhereInput | DatabaseInstanceWhereInput[]
     OR?: DatabaseInstanceWhereInput[]
     NOT?: DatabaseInstanceWhereInput | DatabaseInstanceWhereInput[]
+    projectId?: StringFilter<"DatabaseInstance"> | string
     organizationId?: StringFilter<"DatabaseInstance"> | string
+    environment?: StringFilter<"DatabaseInstance"> | string
     status?: EnumDatabaseInstanceStatusFilter<"DatabaseInstance"> | $Enums.DatabaseInstanceStatus
     engine?: StringFilter<"DatabaseInstance"> | string
     region?: StringNullableFilter<"DatabaseInstance"> | string | null
@@ -121714,12 +121746,13 @@ export namespace Prisma {
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
     snapshots?: DatabaseSnapshotListRelationFilter
     restores?: DatabaseRestoreListRelationFilter
-  }, "id" | "projectId">
+  }, "id" | "projectId_environment">
 
   export type DatabaseInstanceOrderByWithAggregationInput = {
     id?: SortOrder
     projectId?: SortOrder
     organizationId?: SortOrder
+    environment?: SortOrder
     status?: SortOrder
     engine?: SortOrder
     region?: SortOrderInput | SortOrder
@@ -121742,6 +121775,7 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"DatabaseInstance"> | string
     projectId?: StringWithAggregatesFilter<"DatabaseInstance"> | string
     organizationId?: StringWithAggregatesFilter<"DatabaseInstance"> | string
+    environment?: StringWithAggregatesFilter<"DatabaseInstance"> | string
     status?: EnumDatabaseInstanceStatusWithAggregatesFilter<"DatabaseInstance"> | $Enums.DatabaseInstanceStatus
     engine?: StringWithAggregatesFilter<"DatabaseInstance"> | string
     region?: StringNullableWithAggregatesFilter<"DatabaseInstance"> | string | null
@@ -122795,7 +122829,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -122833,7 +122867,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -122871,7 +122905,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -122909,7 +122943,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -129261,6 +129295,7 @@ export namespace Prisma {
   export type DatabaseInstanceCreateInput = {
     id?: string
     organizationId: string
+    environment?: string
     status?: $Enums.DatabaseInstanceStatus
     engine?: string
     region?: string | null
@@ -129269,7 +129304,7 @@ export namespace Prisma {
     pitrEnabled?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
-    project: ProjectCreateNestedOneWithoutDatabaseInstanceInput
+    project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
   }
@@ -129278,6 +129313,7 @@ export namespace Prisma {
     id?: string
     projectId: string
     organizationId: string
+    environment?: string
     status?: $Enums.DatabaseInstanceStatus
     engine?: string
     region?: string | null
@@ -129293,6 +129329,7 @@ export namespace Prisma {
   export type DatabaseInstanceUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
     engine?: StringFieldUpdateOperationsInput | string
     region?: NullableStringFieldUpdateOperationsInput | string | null
@@ -129301,7 +129338,7 @@ export namespace Prisma {
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    project?: ProjectUpdateOneRequiredWithoutDatabaseInstanceNestedInput
+    project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
   }
@@ -129310,6 +129347,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     projectId?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
     engine?: StringFieldUpdateOperationsInput | string
     region?: NullableStringFieldUpdateOperationsInput | string | null
@@ -129326,6 +129364,7 @@ export namespace Prisma {
     id?: string
     projectId: string
     organizationId: string
+    environment?: string
     status?: $Enums.DatabaseInstanceStatus
     engine?: string
     region?: string | null
@@ -129339,6 +129378,7 @@ export namespace Prisma {
   export type DatabaseInstanceUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
     engine?: StringFieldUpdateOperationsInput | string
     region?: NullableStringFieldUpdateOperationsInput | string | null
@@ -129353,6 +129393,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     projectId?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
     engine?: StringFieldUpdateOperationsInput | string
     region?: NullableStringFieldUpdateOperationsInput | string | null
@@ -130567,9 +130608,10 @@ export namespace Prisma {
     none?: AgentPatchProposalWhereInput
   }
 
-  export type DatabaseInstanceNullableScalarRelationFilter = {
-    is?: DatabaseInstanceWhereInput | null
-    isNot?: DatabaseInstanceWhereInput | null
+  export type DatabaseInstanceListRelationFilter = {
+    every?: DatabaseInstanceWhereInput
+    some?: DatabaseInstanceWhereInput
+    none?: DatabaseInstanceWhereInput
   }
 
   export type ProjectSkillListRelationFilter = {
@@ -130607,6 +130649,10 @@ export namespace Prisma {
   }
 
   export type AgentPatchProposalOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type DatabaseInstanceOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -134210,10 +134256,16 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type DatabaseInstanceProjectIdEnvironmentCompoundUniqueInput = {
+    projectId: string
+    environment: string
+  }
+
   export type DatabaseInstanceCountOrderByAggregateInput = {
     id?: SortOrder
     projectId?: SortOrder
     organizationId?: SortOrder
+    environment?: SortOrder
     status?: SortOrder
     engine?: SortOrder
     region?: SortOrder
@@ -134233,6 +134285,7 @@ export namespace Prisma {
     id?: SortOrder
     projectId?: SortOrder
     organizationId?: SortOrder
+    environment?: SortOrder
     status?: SortOrder
     engine?: SortOrder
     region?: SortOrder
@@ -134247,6 +134300,7 @@ export namespace Prisma {
     id?: SortOrder
     projectId?: SortOrder
     organizationId?: SortOrder
+    environment?: SortOrder
     status?: SortOrder
     engine?: SortOrder
     region?: SortOrder
@@ -137346,10 +137400,11 @@ export namespace Prisma {
     connect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
   }
 
-  export type DatabaseInstanceCreateNestedOneWithoutProjectInput = {
-    create?: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput>
-    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutProjectInput
-    connect?: DatabaseInstanceWhereUniqueInput
+  export type DatabaseInstanceCreateNestedManyWithoutProjectInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput> | DatabaseInstanceCreateWithoutProjectInput[] | DatabaseInstanceUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutProjectInput | DatabaseInstanceCreateOrConnectWithoutProjectInput[]
+    createMany?: DatabaseInstanceCreateManyProjectInputEnvelope
+    connect?: DatabaseInstanceWhereUniqueInput | DatabaseInstanceWhereUniqueInput[]
   }
 
   export type ProjectSkillCreateNestedManyWithoutProjectInput = {
@@ -137495,10 +137550,11 @@ export namespace Prisma {
     connect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
   }
 
-  export type DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput = {
-    create?: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput>
-    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutProjectInput
-    connect?: DatabaseInstanceWhereUniqueInput
+  export type DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput> | DatabaseInstanceCreateWithoutProjectInput[] | DatabaseInstanceUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutProjectInput | DatabaseInstanceCreateOrConnectWithoutProjectInput[]
+    createMany?: DatabaseInstanceCreateManyProjectInputEnvelope
+    connect?: DatabaseInstanceWhereUniqueInput | DatabaseInstanceWhereUniqueInput[]
   }
 
   export type ProjectSkillUncheckedCreateNestedManyWithoutProjectInput = {
@@ -137788,14 +137844,18 @@ export namespace Prisma {
     deleteMany?: ProjectConnectionLinkScalarWhereInput | ProjectConnectionLinkScalarWhereInput[]
   }
 
-  export type DatabaseInstanceUpdateOneWithoutProjectNestedInput = {
-    create?: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput>
-    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutProjectInput
-    upsert?: DatabaseInstanceUpsertWithoutProjectInput
-    disconnect?: DatabaseInstanceWhereInput | boolean
-    delete?: DatabaseInstanceWhereInput | boolean
-    connect?: DatabaseInstanceWhereUniqueInput
-    update?: XOR<XOR<DatabaseInstanceUpdateToOneWithWhereWithoutProjectInput, DatabaseInstanceUpdateWithoutProjectInput>, DatabaseInstanceUncheckedUpdateWithoutProjectInput>
+  export type DatabaseInstanceUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput> | DatabaseInstanceCreateWithoutProjectInput[] | DatabaseInstanceUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutProjectInput | DatabaseInstanceCreateOrConnectWithoutProjectInput[]
+    upsert?: DatabaseInstanceUpsertWithWhereUniqueWithoutProjectInput | DatabaseInstanceUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: DatabaseInstanceCreateManyProjectInputEnvelope
+    set?: DatabaseInstanceWhereUniqueInput | DatabaseInstanceWhereUniqueInput[]
+    disconnect?: DatabaseInstanceWhereUniqueInput | DatabaseInstanceWhereUniqueInput[]
+    delete?: DatabaseInstanceWhereUniqueInput | DatabaseInstanceWhereUniqueInput[]
+    connect?: DatabaseInstanceWhereUniqueInput | DatabaseInstanceWhereUniqueInput[]
+    update?: DatabaseInstanceUpdateWithWhereUniqueWithoutProjectInput | DatabaseInstanceUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: DatabaseInstanceUpdateManyWithWhereWithoutProjectInput | DatabaseInstanceUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: DatabaseInstanceScalarWhereInput | DatabaseInstanceScalarWhereInput[]
   }
 
   export type ProjectSkillUpdateManyWithoutProjectNestedInput = {
@@ -138084,14 +138144,18 @@ export namespace Prisma {
     deleteMany?: ProjectConnectionLinkScalarWhereInput | ProjectConnectionLinkScalarWhereInput[]
   }
 
-  export type DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput = {
-    create?: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput>
-    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutProjectInput
-    upsert?: DatabaseInstanceUpsertWithoutProjectInput
-    disconnect?: DatabaseInstanceWhereInput | boolean
-    delete?: DatabaseInstanceWhereInput | boolean
-    connect?: DatabaseInstanceWhereUniqueInput
-    update?: XOR<XOR<DatabaseInstanceUpdateToOneWithWhereWithoutProjectInput, DatabaseInstanceUpdateWithoutProjectInput>, DatabaseInstanceUncheckedUpdateWithoutProjectInput>
+  export type DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput> | DatabaseInstanceCreateWithoutProjectInput[] | DatabaseInstanceUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutProjectInput | DatabaseInstanceCreateOrConnectWithoutProjectInput[]
+    upsert?: DatabaseInstanceUpsertWithWhereUniqueWithoutProjectInput | DatabaseInstanceUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: DatabaseInstanceCreateManyProjectInputEnvelope
+    set?: DatabaseInstanceWhereUniqueInput | DatabaseInstanceWhereUniqueInput[]
+    disconnect?: DatabaseInstanceWhereUniqueInput | DatabaseInstanceWhereUniqueInput[]
+    delete?: DatabaseInstanceWhereUniqueInput | DatabaseInstanceWhereUniqueInput[]
+    connect?: DatabaseInstanceWhereUniqueInput | DatabaseInstanceWhereUniqueInput[]
+    update?: DatabaseInstanceUpdateWithWhereUniqueWithoutProjectInput | DatabaseInstanceUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: DatabaseInstanceUpdateManyWithWhereWithoutProjectInput | DatabaseInstanceUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: DatabaseInstanceScalarWhereInput | DatabaseInstanceScalarWhereInput[]
   }
 
   export type ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput = {
@@ -140302,9 +140366,9 @@ export namespace Prisma {
     update?: XOR<XOR<ProviderConfigUpdateToOneWithWhereWithoutModelsInput, ProviderConfigUpdateWithoutModelsInput>, ProviderConfigUncheckedUpdateWithoutModelsInput>
   }
 
-  export type ProjectCreateNestedOneWithoutDatabaseInstanceInput = {
-    create?: XOR<ProjectCreateWithoutDatabaseInstanceInput, ProjectUncheckedCreateWithoutDatabaseInstanceInput>
-    connectOrCreate?: ProjectCreateOrConnectWithoutDatabaseInstanceInput
+  export type ProjectCreateNestedOneWithoutDatabaseInstancesInput = {
+    create?: XOR<ProjectCreateWithoutDatabaseInstancesInput, ProjectUncheckedCreateWithoutDatabaseInstancesInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutDatabaseInstancesInput
     connect?: ProjectWhereUniqueInput
   }
 
@@ -140348,12 +140412,12 @@ export namespace Prisma {
     divide?: bigint | number
   }
 
-  export type ProjectUpdateOneRequiredWithoutDatabaseInstanceNestedInput = {
-    create?: XOR<ProjectCreateWithoutDatabaseInstanceInput, ProjectUncheckedCreateWithoutDatabaseInstanceInput>
-    connectOrCreate?: ProjectCreateOrConnectWithoutDatabaseInstanceInput
-    upsert?: ProjectUpsertWithoutDatabaseInstanceInput
+  export type ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput = {
+    create?: XOR<ProjectCreateWithoutDatabaseInstancesInput, ProjectUncheckedCreateWithoutDatabaseInstancesInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutDatabaseInstancesInput
+    upsert?: ProjectUpsertWithoutDatabaseInstancesInput
     connect?: ProjectWhereUniqueInput
-    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutDatabaseInstanceInput, ProjectUpdateWithoutDatabaseInstanceInput>, ProjectUncheckedUpdateWithoutDatabaseInstanceInput>
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutDatabaseInstancesInput, ProjectUpdateWithoutDatabaseInstancesInput>, ProjectUncheckedUpdateWithoutDatabaseInstancesInput>
   }
 
   export type DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput = {
@@ -143125,7 +143189,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -143162,7 +143226,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -146522,6 +146586,7 @@ export namespace Prisma {
   export type DatabaseInstanceCreateWithoutProjectInput = {
     id?: string
     organizationId: string
+    environment?: string
     status?: $Enums.DatabaseInstanceStatus
     engine?: string
     region?: string | null
@@ -146537,6 +146602,7 @@ export namespace Prisma {
   export type DatabaseInstanceUncheckedCreateWithoutProjectInput = {
     id?: string
     organizationId: string
+    environment?: string
     status?: $Enums.DatabaseInstanceStatus
     engine?: string
     region?: string | null
@@ -146552,6 +146618,11 @@ export namespace Prisma {
   export type DatabaseInstanceCreateOrConnectWithoutProjectInput = {
     where: DatabaseInstanceWhereUniqueInput
     create: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput>
+  }
+
+  export type DatabaseInstanceCreateManyProjectInputEnvelope = {
+    data: DatabaseInstanceCreateManyProjectInput | DatabaseInstanceCreateManyProjectInput[]
+    skipDuplicates?: boolean
   }
 
   export type ProjectSkillCreateWithoutProjectInput = {
@@ -147126,45 +147197,38 @@ export namespace Prisma {
     data: XOR<ProjectConnectionLinkUpdateManyMutationInput, ProjectConnectionLinkUncheckedUpdateManyWithoutProjectInput>
   }
 
-  export type DatabaseInstanceUpsertWithoutProjectInput = {
+  export type DatabaseInstanceUpsertWithWhereUniqueWithoutProjectInput = {
+    where: DatabaseInstanceWhereUniqueInput
     update: XOR<DatabaseInstanceUpdateWithoutProjectInput, DatabaseInstanceUncheckedUpdateWithoutProjectInput>
     create: XOR<DatabaseInstanceCreateWithoutProjectInput, DatabaseInstanceUncheckedCreateWithoutProjectInput>
-    where?: DatabaseInstanceWhereInput
   }
 
-  export type DatabaseInstanceUpdateToOneWithWhereWithoutProjectInput = {
-    where?: DatabaseInstanceWhereInput
+  export type DatabaseInstanceUpdateWithWhereUniqueWithoutProjectInput = {
+    where: DatabaseInstanceWhereUniqueInput
     data: XOR<DatabaseInstanceUpdateWithoutProjectInput, DatabaseInstanceUncheckedUpdateWithoutProjectInput>
   }
 
-  export type DatabaseInstanceUpdateWithoutProjectInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    organizationId?: StringFieldUpdateOperationsInput | string
-    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
-    engine?: StringFieldUpdateOperationsInput | string
-    region?: NullableStringFieldUpdateOperationsInput | string | null
-    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
-    retentionDays?: IntFieldUpdateOperationsInput | number
-    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
-    restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+  export type DatabaseInstanceUpdateManyWithWhereWithoutProjectInput = {
+    where: DatabaseInstanceScalarWhereInput
+    data: XOR<DatabaseInstanceUpdateManyMutationInput, DatabaseInstanceUncheckedUpdateManyWithoutProjectInput>
   }
 
-  export type DatabaseInstanceUncheckedUpdateWithoutProjectInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    organizationId?: StringFieldUpdateOperationsInput | string
-    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
-    engine?: StringFieldUpdateOperationsInput | string
-    region?: NullableStringFieldUpdateOperationsInput | string | null
-    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
-    retentionDays?: IntFieldUpdateOperationsInput | number
-    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
-    restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+  export type DatabaseInstanceScalarWhereInput = {
+    AND?: DatabaseInstanceScalarWhereInput | DatabaseInstanceScalarWhereInput[]
+    OR?: DatabaseInstanceScalarWhereInput[]
+    NOT?: DatabaseInstanceScalarWhereInput | DatabaseInstanceScalarWhereInput[]
+    id?: StringFilter<"DatabaseInstance"> | string
+    projectId?: StringFilter<"DatabaseInstance"> | string
+    organizationId?: StringFilter<"DatabaseInstance"> | string
+    environment?: StringFilter<"DatabaseInstance"> | string
+    status?: EnumDatabaseInstanceStatusFilter<"DatabaseInstance"> | $Enums.DatabaseInstanceStatus
+    engine?: StringFilter<"DatabaseInstance"> | string
+    region?: StringNullableFilter<"DatabaseInstance"> | string | null
+    sizeBytes?: BigIntFilter<"DatabaseInstance"> | bigint | number
+    retentionDays?: IntFilter<"DatabaseInstance"> | number
+    pitrEnabled?: BoolFilter<"DatabaseInstance"> | boolean
+    createdAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
+    updatedAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
   }
 
   export type ProjectSkillUpsertWithWhereUniqueWithoutProjectInput = {
@@ -147596,7 +147660,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -147633,7 +147697,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -147686,7 +147750,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -147723,7 +147787,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -147938,7 +148002,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -147975,7 +148039,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -148218,7 +148282,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -148255,7 +148319,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -148292,7 +148356,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -148329,7 +148393,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -148475,7 +148539,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -148512,7 +148576,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -148648,7 +148712,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -148685,7 +148749,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -148738,7 +148802,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -148775,7 +148839,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -148813,7 +148877,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSkillsInput = {
@@ -148850,7 +148914,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSkillsInput = {
@@ -148903,7 +148967,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSkillsInput = {
@@ -148940,7 +149004,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvironmentsInput = {
@@ -148976,7 +149040,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -149013,7 +149077,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -149066,7 +149130,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -149103,7 +149167,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -149140,7 +149204,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -149177,7 +149241,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -149230,7 +149294,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -149267,7 +149331,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -149304,7 +149368,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -149341,7 +149405,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -149394,7 +149458,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -149431,7 +149495,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -149468,7 +149532,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -149505,7 +149569,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -149651,7 +149715,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -149688,7 +149752,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -149824,7 +149888,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -149861,7 +149925,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -150007,7 +150071,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -150044,7 +150108,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -150180,7 +150244,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -150217,7 +150281,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -150363,7 +150427,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -150400,7 +150464,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -150536,7 +150600,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -150573,7 +150637,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -150719,7 +150783,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -150756,7 +150820,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -150892,7 +150956,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -150929,7 +150993,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -151075,7 +151139,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -151112,7 +151176,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -151248,7 +151312,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -151285,7 +151349,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -151423,7 +151487,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -151460,7 +151524,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -151588,7 +151652,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -151625,7 +151689,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -151781,7 +151845,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -151818,7 +151882,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -152182,7 +152246,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -152219,7 +152283,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -152307,7 +152371,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -152344,7 +152408,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -152422,7 +152486,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -152459,7 +152523,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -152605,7 +152669,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -152642,7 +152706,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -152778,7 +152842,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -152815,7 +152879,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -152868,7 +152932,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -152905,7 +152969,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -152942,7 +153006,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -152979,7 +153043,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -153047,7 +153111,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -153084,7 +153148,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -154966,7 +155030,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -155003,7 +155067,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -155177,7 +155241,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -155214,7 +155278,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -160475,7 +160539,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
@@ -160512,7 +160576,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
-    databaseInstance?: DatabaseInstanceUncheckedCreateNestedOneWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -160711,7 +160775,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -160748,7 +160812,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -162973,7 +163037,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type ProjectCreateWithoutDatabaseInstanceInput = {
+  export type ProjectCreateWithoutDatabaseInstancesInput = {
     id?: string
     name: string
     slug: string
@@ -163010,7 +163074,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
   }
 
-  export type ProjectUncheckedCreateWithoutDatabaseInstanceInput = {
+  export type ProjectUncheckedCreateWithoutDatabaseInstancesInput = {
     id?: string
     organizationId: string
     name: string
@@ -163047,9 +163111,9 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
   }
 
-  export type ProjectCreateOrConnectWithoutDatabaseInstanceInput = {
+  export type ProjectCreateOrConnectWithoutDatabaseInstancesInput = {
     where: ProjectWhereUniqueInput
-    create: XOR<ProjectCreateWithoutDatabaseInstanceInput, ProjectUncheckedCreateWithoutDatabaseInstanceInput>
+    create: XOR<ProjectCreateWithoutDatabaseInstancesInput, ProjectUncheckedCreateWithoutDatabaseInstancesInput>
   }
 
   export type DatabaseSnapshotCreateWithoutDatabaseInstanceInput = {
@@ -163120,18 +163184,18 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
-  export type ProjectUpsertWithoutDatabaseInstanceInput = {
-    update: XOR<ProjectUpdateWithoutDatabaseInstanceInput, ProjectUncheckedUpdateWithoutDatabaseInstanceInput>
-    create: XOR<ProjectCreateWithoutDatabaseInstanceInput, ProjectUncheckedCreateWithoutDatabaseInstanceInput>
+  export type ProjectUpsertWithoutDatabaseInstancesInput = {
+    update: XOR<ProjectUpdateWithoutDatabaseInstancesInput, ProjectUncheckedUpdateWithoutDatabaseInstancesInput>
+    create: XOR<ProjectCreateWithoutDatabaseInstancesInput, ProjectUncheckedCreateWithoutDatabaseInstancesInput>
     where?: ProjectWhereInput
   }
 
-  export type ProjectUpdateToOneWithWhereWithoutDatabaseInstanceInput = {
+  export type ProjectUpdateToOneWithWhereWithoutDatabaseInstancesInput = {
     where?: ProjectWhereInput
-    data: XOR<ProjectUpdateWithoutDatabaseInstanceInput, ProjectUncheckedUpdateWithoutDatabaseInstanceInput>
+    data: XOR<ProjectUpdateWithoutDatabaseInstancesInput, ProjectUncheckedUpdateWithoutDatabaseInstancesInput>
   }
 
-  export type ProjectUpdateWithoutDatabaseInstanceInput = {
+  export type ProjectUpdateWithoutDatabaseInstancesInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
@@ -163168,7 +163232,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
-  export type ProjectUncheckedUpdateWithoutDatabaseInstanceInput = {
+  export type ProjectUncheckedUpdateWithoutDatabaseInstancesInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -163272,6 +163336,7 @@ export namespace Prisma {
   export type DatabaseInstanceCreateWithoutSnapshotsInput = {
     id?: string
     organizationId: string
+    environment?: string
     status?: $Enums.DatabaseInstanceStatus
     engine?: string
     region?: string | null
@@ -163280,7 +163345,7 @@ export namespace Prisma {
     pitrEnabled?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
-    project: ProjectCreateNestedOneWithoutDatabaseInstanceInput
+    project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
     restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
   }
 
@@ -163288,6 +163353,7 @@ export namespace Prisma {
     id?: string
     projectId: string
     organizationId: string
+    environment?: string
     status?: $Enums.DatabaseInstanceStatus
     engine?: string
     region?: string | null
@@ -163318,6 +163384,7 @@ export namespace Prisma {
   export type DatabaseInstanceUpdateWithoutSnapshotsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
     engine?: StringFieldUpdateOperationsInput | string
     region?: NullableStringFieldUpdateOperationsInput | string | null
@@ -163326,7 +163393,7 @@ export namespace Prisma {
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    project?: ProjectUpdateOneRequiredWithoutDatabaseInstanceNestedInput
+    project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
     restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
   }
 
@@ -163334,6 +163401,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     projectId?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
     engine?: StringFieldUpdateOperationsInput | string
     region?: NullableStringFieldUpdateOperationsInput | string | null
@@ -163348,6 +163416,7 @@ export namespace Prisma {
   export type DatabaseInstanceCreateWithoutRestoresInput = {
     id?: string
     organizationId: string
+    environment?: string
     status?: $Enums.DatabaseInstanceStatus
     engine?: string
     region?: string | null
@@ -163356,7 +163425,7 @@ export namespace Prisma {
     pitrEnabled?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
-    project: ProjectCreateNestedOneWithoutDatabaseInstanceInput
+    project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
   }
 
@@ -163364,6 +163433,7 @@ export namespace Prisma {
     id?: string
     projectId: string
     organizationId: string
+    environment?: string
     status?: $Enums.DatabaseInstanceStatus
     engine?: string
     region?: string | null
@@ -163394,6 +163464,7 @@ export namespace Prisma {
   export type DatabaseInstanceUpdateWithoutRestoresInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
     engine?: StringFieldUpdateOperationsInput | string
     region?: NullableStringFieldUpdateOperationsInput | string | null
@@ -163402,7 +163473,7 @@ export namespace Prisma {
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    project?: ProjectUpdateOneRequiredWithoutDatabaseInstanceNestedInput
+    project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
   }
 
@@ -163410,6 +163481,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     projectId?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
     status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
     engine?: StringFieldUpdateOperationsInput | string
     region?: NullableStringFieldUpdateOperationsInput | string | null
@@ -164971,7 +165043,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
   }
 
@@ -165008,7 +165080,7 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
-    databaseInstance?: DatabaseInstanceUncheckedUpdateOneWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -166233,6 +166305,20 @@ export namespace Prisma {
     unlinkedAt?: Date | string | null
   }
 
+  export type DatabaseInstanceCreateManyProjectInput = {
+    id?: string
+    organizationId: string
+    environment?: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type ProjectSkillCreateManyProjectInput = {
     id?: string
     skillId: string
@@ -166903,6 +166989,52 @@ export namespace Prisma {
     linkedByUserId?: StringFieldUpdateOperationsInput | string
     linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     unlinkedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseInstanceUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
+    restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+  }
+
+  export type DatabaseInstanceUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+  }
+
+  export type DatabaseInstanceUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ProjectSkillUpdateWithoutProjectInput = {

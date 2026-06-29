@@ -429,6 +429,11 @@ const skillParams = z.object({
   skillId: z.string().min(1).max(64),
 });
 
+/** P2d: which database environment a provision/read targets (default development). */
+const databaseEnvironmentQuery = z.object({
+  environment: z.enum(['development', 'production']).default('development'),
+});
+
 const agentPatchProposalStatusSchema = z.enum(['pending', 'applying', 'failed']);
 
 const agentPatchProposalUpsertSchema = z.object({
@@ -20258,20 +20263,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
+    const environment = parse(databaseEnvironmentQuery, request.query ?? {}).environment;
     const state = await billingState(project.organizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
-    let instance = await store.getDatabaseInstanceByProject(project.id);
+    let instance = await store.getDatabaseInstanceByProject(project.id, environment);
 
     if (!instance) {
       return { entitlement, instance: null, snapshots: [], restores: [] };
     }
 
     /*
-     * Reconcile-on-read: once the backend is ready, resolve + inject DATABASE_URL
-     * (idempotent) and flip the instance to ACTIVE. Stored as a project secret so it
-     * auto-appears as a `postgres` connection in /databases (detectDatabaseKind) →
-     * the IDE panel's schema/query routes work against the native DB with no extra
-     * API. Best-effort: a not-ready/transient error just leaves it PROVISIONING.
+     * Reconcile-on-read: once the backend is ready, resolve + inject the env's
+     * DATABASE_URL (idempotent) and flip the instance to ACTIVE. Stored as a
+     * project secret so it auto-appears as a `postgres` connection in /databases
+     * (detectDatabaseKind) → the IDE panel's schema/query routes work against the
+     * native DB with no extra API. Production uses a distinct PROD_DATABASE_URL
+     * secret so dev and prod connections coexist. Best-effort.
      */
     if (instance.status !== 'ACTIVE') {
       const provisioner = resolveDefaultDatabaseProvisioner();
@@ -20279,12 +20286,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (provisioner.active) {
         try {
           const tier = resolveDatabaseTier(state?.plan.key);
-          const uri = await provisioner.getConnectionUri({ projectId: project.id, tier });
+          const uri = await provisioner.getConnectionUri({ projectId: project.id, tier, environment });
 
           if (uri) {
             await store.upsertProjectSecret({
               projectId: project.id,
-              key: 'DATABASE_URL',
+              key: environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL',
               valueEncrypted: encryptJson({ value: uri }),
             });
             instance = (await store.updateDatabaseInstance(instance.id, { status: 'ACTIVE' })) ?? instance;
@@ -20411,7 +20418,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
     );
 
-    const existing = await store.getDatabaseInstanceByProject(project.id);
+    const environment = parse(databaseEnvironmentQuery, request.body ?? {}).environment;
+    const existing = await store.getDatabaseInstanceByProject(project.id, environment);
 
     if (existing) {
       return { instance: existing, created: false };
@@ -20424,6 +20432,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       projectId: project.id,
       organizationId: project.organizationId,
       retentionDays: entitlement.retentionDays,
+      environment,
     });
 
     const provisioner = resolveDefaultDatabaseProvisioner();
@@ -20436,11 +20445,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           organizationId: project.organizationId,
           retentionDays: entitlement.retentionDays,
           tier,
+          environment,
         })
         .catch((error) => request.log?.warn?.({ err: error }, 'db provision kickoff failed (non-fatal)'));
     }
 
-    return reply.code(202).send({ instance, created: true, clusterName: clusterName(project.id), tier });
+    return reply
+      .code(202)
+      .send({ instance, created: true, clusterName: clusterName(project.id, environment), tier, environment });
   });
 
   /** Take a manual snapshot of a project's database (Phase 2, dormant). */
@@ -20980,6 +20992,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
     const published = await store.createDeployment(buildPublishedDeploymentInput(source, publishUrl));
+
+    /*
+     * P2d: publishing gives the project a real PRODUCTION database, distinct
+     * from its development DB. Best-effort + dormant: only when DB provisioning
+     * is enabled, and a no-op once the production instance already exists. The
+     * production DATABASE_URL is reconciled+stored (as PROD_DATABASE_URL) by
+     * GET /projects/:id/database?environment=production.
+     */
+    if (isDatabaseRollbackEnabled()) {
+      try {
+        const existingProd = await store.getDatabaseInstanceByProject(project.id, 'production');
+
+        if (!existingProd) {
+          const billing = await billingState(project.organizationId).catch(() => undefined);
+          const entitlement = databaseRollbackEntitlement(toCreditPlanKey(billing?.plan.key));
+          await store.createDatabaseInstance({
+            projectId: project.id,
+            organizationId: project.organizationId,
+            retentionDays: entitlement.retentionDays,
+            environment: 'production',
+          });
+          const provisioner = resolveDefaultDatabaseProvisioner();
+
+          if (provisioner.active) {
+            await provisioner
+              .provisionInstance({
+                projectId: project.id,
+                organizationId: project.organizationId,
+                retentionDays: entitlement.retentionDays,
+                tier: resolveDatabaseTier(billing?.plan.key),
+                environment: 'production',
+              })
+              .catch((error) => request.log?.warn?.({ err: error }, 'prod db provision on publish failed (non-fatal)'));
+          }
+        }
+      } catch (error) {
+        request.log?.warn?.({ err: error }, 'prod db ensure on publish failed (non-fatal)');
+      }
+    }
+
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'deployment.publish',
