@@ -70,6 +70,20 @@ export interface PreviewProxyOptions {
   tenantSecret?: string;
 
   /**
+   * Private-port enforcement (Replit "private port"; default OFF, dark-launch).
+   * When on, a request for a port the project marked private in
+   * VIBECORE_PORTS_STATE requires an authenticated preview session (a valid
+   * `vc_preview` cookie); without one the proxy returns 401 instead of proxying.
+   * Public ports are unaffected. Reads the per-port flag from the api via
+   * `apiBaseUrl` (authed with proxySharedSecret); fails OPEN on lookup error so
+   * an api hiccup never breaks previews.
+   */
+  enforcePrivatePorts?: boolean;
+
+  /** In-cluster api base URL for the port-access lookup. */
+  apiBaseUrl?: string;
+
+  /**
    * Inject the inspect-to-code bridge into proxied HTML so "Inspect to code"
    * works on remote previews (the same capability WebContainer previews get).
    * Defaults to true.
@@ -305,10 +319,44 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   const previewDomain = options.previewDomain ?? process.env.PREVIEW_DOMAIN;
   const enforceTenant = options.enforceTenant ?? process.env.PREVIEW_PROXY_ENFORCE_TENANT === 'true';
   const tenantSecret = options.tenantSecret ?? process.env.PREVIEW_TENANT_SECRET;
+  const enforcePrivatePorts = options.enforcePrivatePorts ?? process.env.PREVIEW_ENFORCE_PRIVATE_PORTS === 'true';
+  const apiBaseUrl = (options.apiBaseUrl ?? process.env.API_BASE_URL ?? '').trim().replace(/\/$/, '');
+  const proxySharedSecret = options.proxySharedSecret ?? process.env.PREVIEW_PROXY_SHARED_SECRET;
 
   if (enforceTenant && !tenantSecret) {
     throw new Error('PREVIEW_TENANT_SECRET is required when PREVIEW_PROXY_ENFORCE_TENANT is enabled.');
   }
+
+  if (enforcePrivatePorts && (!apiBaseUrl || !proxySharedSecret || !tenantSecret)) {
+    throw new Error(
+      'PREVIEW_ENFORCE_PRIVATE_PORTS requires API_BASE_URL, PREVIEW_PROXY_SHARED_SECRET and PREVIEW_TENANT_SECRET.',
+    );
+  }
+
+  /* Is this workspace's port marked private? Fail-open on any lookup error. */
+  const isPortPrivate = async (workspaceId: string, port: string): Promise<boolean> => {
+    if (!enforcePrivatePorts || !apiBaseUrl || !proxySharedSecret) {
+      return false;
+    }
+
+    try {
+      const response = await fetchImpl(
+        `${apiBaseUrl}/internal/preview/port-access?workspaceId=${encodeURIComponent(workspaceId)}&port=${encodeURIComponent(port)}`,
+        { headers: { authorization: `Bearer ${proxySharedSecret}` } },
+      );
+
+      if (!response.ok) {
+        return false;
+      }
+
+      return ((await response.json()) as { private?: boolean })?.private === true;
+    } catch {
+      return false;
+    }
+  };
+
+  /* Login-required page shown when a private port is hit without a session. */
+  const PRIVATE_PORT_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Private port</title><style>html,body{height:100%;margin:0}body{display:flex;align-items:center;justify-content:center;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:#0d1117;color:#c9d1d9}.box{text-align:center;max-width:420px;padding:24px}h1{font-size:16px;font-weight:600;margin:0 0 8px}p{font-size:13px;color:#8b949e;margin:0}</style></head><body><div class="box"><h1>This port is private</h1><p>Sign in to the workspace owner&apos;s account to view this preview.</p></div></body></html>`;
 
   const app = Fastify({ logger: options.logger ?? false });
 
@@ -414,6 +462,23 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
       if (!requesterOrgId) {
         return reply.code(403).send({ error: 'Preview access denied', code: 'PREVIEW_TENANT_FORBIDDEN' });
+      }
+    }
+
+    /*
+     * Private-port gate (Replit "private port"): if the project marked this port
+     * private, require an authenticated preview session (a valid `vc_preview`
+     * cookie). Public ports skip this entirely. Dark-launched off.
+     */
+    if (enforcePrivatePorts && (await isPortPrivate(params.workspaceId, String(portNumber)))) {
+      const sessionOrgId =
+        requesterOrgId ??
+        (tenantSecret
+          ? verifyPreviewTenantToken(readCookie(request.headers.cookie, 'vc_preview'), tenantSecret, Date.now())
+          : undefined);
+
+      if (!sessionOrgId) {
+        return reply.code(401).type('text/html').send(PRIVATE_PORT_HTML);
       }
     }
 
@@ -586,8 +651,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           lower === 'transfer-encoding' ||
           lower === 'connection' ||
           lower === 'keep-alive' ||
+
           // length no longer matches the decoded body
           (upstreamWasEncoded && lower === 'content-length') ||
+
           // recomputed after a possible body rewrite below
           (isHtml && injectInspector && lower === 'content-length')
         ) {
@@ -860,7 +927,11 @@ function injectScriptTag(html: string, src: string, marker: string): string {
  * already carrying either marker is never double-injected.
  */
 export function injectInspectorScript(html: string): string {
-  return injectScriptTag(injectScriptTag(html, REPORTER_SCRIPT_PATH, REPORTER_MARKER), INSPECTOR_SCRIPT_PATH, INSPECTOR_MARKER);
+  return injectScriptTag(
+    injectScriptTag(html, REPORTER_SCRIPT_PATH, REPORTER_MARKER),
+    INSPECTOR_SCRIPT_PATH,
+    INSPECTOR_MARKER,
+  );
 }
 
 function defaultResolveAgent(options: PreviewProxyOptions, fetchImpl: typeof fetch) {

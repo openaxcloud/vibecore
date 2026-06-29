@@ -14,11 +14,14 @@ function recordingFetch(handler: (input: URL, init: RequestInit) => Promise<Resp
   calls: Array<{ url: URL; init: RequestInit }>;
 } {
   const calls: Array<{ url: URL; init: RequestInit }> = [];
+
   const fn = (async (input: URL | string | Request, init?: RequestInit) => {
     const url = input instanceof URL ? input : new URL(String(input));
     calls.push({ url, init: init ?? {} });
+
     return handler(url, init ?? {});
   }) as unknown as typeof fetch;
+
   return { fn, calls };
 }
 
@@ -27,6 +30,7 @@ describe('preview-proxy', () => {
     const fetchImpl = (async () => {
       throw new Error('connect ECONNREFUSED 127.0.0.1:4173');
     }) as unknown as typeof fetch;
+
     const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
 
     const response = await app.inject({
@@ -45,6 +49,7 @@ describe('preview-proxy', () => {
     const fetchImpl = (async () => {
       throw new Error('connect ECONNREFUSED 127.0.0.1:4173');
     }) as unknown as typeof fetch;
+
     const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
 
     const response = await app.inject({
@@ -112,13 +117,14 @@ describe('preview-proxy', () => {
   });
 
   it('forwards GET to the workspace agent and adds auth + workspace headers', async () => {
-    const { fn: fetchImpl, calls } = recordingFetch(async () =>
-      new Response('hello world', { status: 200, headers: { 'content-type': 'text/plain' } }),
+    const { fn: fetchImpl, calls } = recordingFetch(
+      async () => new Response('hello world', { status: 200, headers: { 'content-type': 'text/plain' } }),
     );
     const app = await buildPreviewProxyApp({
       fetchImpl,
       resolveAgent: async () => fakeAgent,
     });
+
     const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/about?lang=en' });
     expect(response.statusCode).toBe(200);
     expect(response.body).toBe('hello world');
@@ -143,6 +149,7 @@ describe('preview-proxy', () => {
       workspaceManagerUrl: 'http://workspace-manager.test',
       proxySharedSecret: 'preview-secret\n',
     });
+
     const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
 
     expect(response.statusCode).toBe(200);
@@ -155,10 +162,12 @@ describe('preview-proxy', () => {
 
   it('forwards root preview requests without requiring a trailing slash', async () => {
     const { fn: fetchImpl, calls } = recordingFetch(async () => new Response('root preview', { status: 200 }));
+
     const app = await buildPreviewProxyApp({
       fetchImpl,
       resolveAgent: async () => fakeAgent,
     });
+
     const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173' });
 
     expect(response.statusCode).toBe(200);
@@ -176,6 +185,7 @@ describe('preview-proxy', () => {
       fetchImpl,
       resolveAgent: async () => fakeAgent,
     });
+
     const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/index.html' });
     expect(response.statusCode).toBe(504);
     await app.close();
@@ -189,6 +199,7 @@ describe('preview-proxy', () => {
       fetchImpl,
       resolveAgent: async () => fakeAgent,
     });
+
     const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/index.html' });
     expect(response.statusCode).toBe(502);
     expect(response.json()).toMatchObject({ code: 'PREVIEW_UPSTREAM_ERROR' });
@@ -207,9 +218,11 @@ describe('preview-proxy', () => {
 
   it('injects the inspector bridge into proxied HTML before </head>', async () => {
     const html = '<!doctype html><html><head><title>App</title></head><body><h1>Hi</h1></body></html>';
+
     const { fn: fetchImpl } = recordingFetch(
       async () => new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } }),
     );
+
     const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
     const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
 
@@ -237,9 +250,11 @@ describe('preview-proxy', () => {
 
   it('injects the preview error reporter into proxied HTML so the IDE Console tab is fed in remote previews', async () => {
     const html = '<!doctype html><html><head><title>App</title></head><body><h1>Hi</h1></body></html>';
+
     const { fn: fetchImpl } = recordingFetch(
       async () => new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } }),
     );
+
     const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
     const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
 
@@ -259,9 +274,11 @@ describe('preview-proxy', () => {
 
   it('does not double-inject the reporter when the page already self-hosts it', async () => {
     const html = '<html><head><script src="/x" data-vibecore-reporter></script></head><body></body></html>';
+
     const { fn: fetchImpl } = recordingFetch(
       async () => new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } }),
     );
+
     const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
     const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
 
@@ -274,6 +291,7 @@ describe('preview-proxy', () => {
     const { fn: fetchImpl } = recordingFetch(
       async () => new Response('body { color: red }', { status: 200, headers: { 'content-type': 'text/css' } }),
     );
+
     const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
     const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/app.css' });
 
@@ -284,6 +302,7 @@ describe('preview-proxy', () => {
 
   it('honors injectInspector:false', async () => {
     const html = '<html><head></head><body></body></html>';
+
     const { fn: fetchImpl } = recordingFetch(
       async () => new Response(html, { status: 200, headers: { 'content-type': 'text/html' } }),
     );
@@ -292,6 +311,7 @@ describe('preview-proxy', () => {
       resolveAgent: async () => fakeAgent,
       injectInspector: false,
     });
+
     const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
 
     expect(response.body).toBe(html);
@@ -306,6 +326,7 @@ describe('preview-proxy', () => {
     const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
     expect(response.statusCode).toBe(200);
     expect(response.headers['cross-origin-resource-policy']).toBe('cross-origin');
+
     /*
      * The embedder sends COEP: credentialless; a cross-origin iframe DOCUMENT is
      * blocked (ERR_BLOCKED_BY_RESPONSE) unless it carries its own compatible
@@ -326,8 +347,10 @@ describe('preview-proxy', () => {
 
     it('serves root-relative asset requests at the host root (workspace+port from the Host)', async () => {
       const { fn: fetchImpl, calls } = recordingFetch(
-        async () => new Response('console.log(1)', { status: 200, headers: { 'content-type': 'application/javascript' } }),
+        async () =>
+          new Response('console.log(1)', { status: 200, headers: { 'content-type': 'application/javascript' } }),
       );
+
       const app = await buildPreviewProxyApp({ fetchImpl, previewDomain, resolveAgent: async () => fakeAgent });
 
       const response = await app.inject({ method: 'GET', url: '/main.js', headers: { host: host(5173) } });
@@ -464,12 +487,16 @@ describe('preview-proxy', () => {
       const token = signPreviewTenantToken('org_1', now + 60_000, secret);
 
       expect(verifyPreviewTenantToken(token, secret, now)).toBe('org_1');
+
       // expired
       expect(verifyPreviewTenantToken(token, secret, now + 120_000)).toBeUndefined();
+
       // wrong secret
       expect(verifyPreviewTenantToken(token, 'other', now)).toBeUndefined();
+
       // tampered signature
       expect(verifyPreviewTenantToken(`${token}x`, secret, now)).toBeUndefined();
+
       // malformed
       expect(verifyPreviewTenantToken('not-a-token', secret, now)).toBeUndefined();
       expect(verifyPreviewTenantToken(undefined, secret, now)).toBeUndefined();
@@ -494,9 +521,14 @@ describe('preview-proxy', () => {
     });
 
     it('403s a preview request with an expired/forged cookie when enforcement is on', async () => {
-      const app = await buildPreviewProxyApp({ enforceTenant: true, tenantSecret: secret, resolveAgent: async () => fakeAgent });
+      const app = await buildPreviewProxyApp({
+        enforceTenant: true,
+        tenantSecret: secret,
+        resolveAgent: async () => fakeAgent,
+      });
 
       const expired = signPreviewTenantToken('org_1', Date.now() - 1000, secret);
+
       const response = await app.inject({
         method: 'GET',
         url: '/p/ws_1/3000/index.html',
@@ -508,6 +540,7 @@ describe('preview-proxy', () => {
 
     it('forwards the verified orgId to the resolver and proxies when the cookie is valid', async () => {
       const seen: Array<string | undefined> = [];
+
       const app = await buildPreviewProxyApp({
         enforceTenant: true,
         tenantSecret: secret,
@@ -520,6 +553,7 @@ describe('preview-proxy', () => {
       });
 
       const token = signPreviewTenantToken('org_42', Date.now() + 60_000, secret);
+
       const response = await app.inject({
         method: 'GET',
         url: '/p/ws_1/3000/index.html',
@@ -532,8 +566,9 @@ describe('preview-proxy', () => {
     });
 
     it('default resolver forwards orgId as a query param to workspace-manager', async () => {
-      const { fn: fetchImpl, calls } = recordingFetch(async () =>
-        new Response(JSON.stringify(fakeAgent), { status: 200, headers: { 'content-type': 'application/json' } }),
+      const { fn: fetchImpl, calls } = recordingFetch(
+        async () =>
+          new Response(JSON.stringify(fakeAgent), { status: 200, headers: { 'content-type': 'application/json' } }),
       );
       const app = await buildPreviewProxyApp({
         enforceTenant: true,
@@ -571,6 +606,79 @@ describe('preview-proxy', () => {
 
       const response = await app.inject({ method: 'GET', url: '/p/ws_1/3000/index.html' });
       expect(response.headers['referrer-policy']).toBe('no-referrer');
+      await app.close();
+    });
+  });
+
+  describe('private-port enforcement', () => {
+    const privateOpts = {
+      enforcePrivatePorts: true,
+      apiBaseUrl: 'http://api.test',
+      proxySharedSecret: 'preview-secret',
+      tenantSecret: 'tenant-secret',
+    } as const;
+
+    /*
+     * fetchImpl that answers the port-access lookup, else behaves as an
+     * unreachable dev server (so a request that PASSES the gate yields 503, not 401).
+     */
+    const fetchFor = (isPrivate: boolean) =>
+      (async (input: URL | string | Request) => {
+        const url = String(input instanceof URL ? input.href : input);
+
+        if (url.includes('/internal/preview/port-access')) {
+          return new Response(JSON.stringify({ private: isPrivate }), {
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        throw new Error('connect ECONNREFUSED dev-server');
+      }) as unknown as typeof fetch;
+
+    it('returns 401 for a private port with no preview session cookie', async () => {
+      const app = await buildPreviewProxyApp({
+        ...privateOpts,
+        fetchImpl: fetchFor(true),
+        resolveAgent: async () => fakeAgent,
+      });
+
+      const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/', headers: { accept: 'text/html' } });
+
+      expect(response.statusCode).toBe(401);
+      expect(response.body).toContain('private');
+      await app.close();
+    });
+
+    it('allows a private port when a valid vc_preview session cookie is present', async () => {
+      const token = signPreviewTenantToken('org_1', Date.now() + 60_000, 'tenant-secret');
+
+      const app = await buildPreviewProxyApp({
+        ...privateOpts,
+        fetchImpl: fetchFor(true),
+        resolveAgent: async () => fakeAgent,
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/p/ws_1/4173/',
+        headers: { accept: 'text/html', cookie: `vc_preview=${token}` },
+      });
+
+      // Passes the gate -> reaches the (unreachable) dev server -> 503 holding page, not 401.
+      expect(response.statusCode).not.toBe(401);
+      await app.close();
+    });
+
+    it('does not gate a public port (no session required)', async () => {
+      const app = await buildPreviewProxyApp({
+        ...privateOpts,
+        fetchImpl: fetchFor(false),
+        resolveAgent: async () => fakeAgent,
+      });
+
+      const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/', headers: { accept: 'text/html' } });
+
+      expect(response.statusCode).not.toBe(401);
       await app.close();
     });
   });

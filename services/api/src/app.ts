@@ -2521,6 +2521,35 @@ function requireInternalSecret(request: FastifyRequest) {
   }
 }
 
+/*
+ * Auth for the preview-proxy → api internal call (port-access). The preview-proxy
+ * only carries PREVIEW_PROXY_SHARED_SECRET (not the control-plane manager secret),
+ * so this accepts that secret specifically — kept separate from
+ * requireInternalSecret so the broadly-shared preview secret can never reach a
+ * control-plane route.
+ */
+function requirePreviewProxySecret(request: FastifyRequest) {
+  const expected = (process.env.PREVIEW_PROXY_SHARED_SECRET || '').trim();
+  const header = request.headers.authorization;
+
+  const provided =
+    typeof header === 'string' && header.startsWith('Bearer ') ? header.slice('Bearer '.length).trim() : '';
+
+  const fail = () =>
+    Object.assign(new Error('Preview authentication required'), { statusCode: 401, code: 'PREVIEW_AUTH_REQUIRED' });
+
+  if (!expected || !provided) {
+    throw fail();
+  }
+
+  const expectedBuf = Buffer.from(expected);
+  const providedBuf = Buffer.from(provided);
+
+  if (expectedBuf.length !== providedBuf.length || !timingSafeEqual(expectedBuf, providedBuf)) {
+    throw fail();
+  }
+}
+
 async function recordAdminAction(
   request: FastifyRequest,
   store: ApiStore,
@@ -19130,6 +19159,51 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * only deletes when INACTIVITY_GC_ENABLED=true (or body.enabled), and even then
    * skips users who share an org with others (orphan-prevention). Idempotent.
    */
+  /*
+   * Preview private-port gate (Replit "private port"): the preview-proxy asks
+   * whether a workspace's port is marked private in the project's persisted
+   * VIBECORE_PORTS_STATE. Returns { private:false } when the feature flag is off
+   * or the workspace/port can't be resolved, so the proxy never gates by
+   * mistake. Authed with the preview secret the proxy already carries.
+   */
+  app.get('/internal/preview/port-access', async (request) => {
+    requirePreviewProxySecret(request);
+
+    if (process.env.PREVIEW_PRIVATE_PORTS_ENABLED !== 'true') {
+      return { private: false };
+    }
+
+    const query = parse(
+      z.object({ workspaceId: z.string().min(1).max(128), port: z.string().min(1).max(8) }),
+      request.query ?? {},
+    );
+
+    const workspace = await store.getWorkspace(query.workspaceId).catch(() => undefined);
+
+    if (!workspace) {
+      return { private: false };
+    }
+
+    const envVars = await store
+      .listProjectEnvVars(workspace.projectId)
+      .catch(() => [] as Array<{ key: string; value?: string }>);
+
+    const raw = envVars.find((entry) => entry.key === 'VIBECORE_PORTS_STATE')?.value;
+
+    let isPrivate = false;
+
+    if (typeof raw === 'string' && raw.trim()) {
+      try {
+        const state = JSON.parse(raw) as { visibility?: Record<string, string> };
+        isPrivate = state?.visibility?.[String(query.port)] === 'private';
+      } catch {
+        isPrivate = false;
+      }
+    }
+
+    return { private: isPrivate };
+  });
+
   app.post('/internal/inactivity-gc', async (request, reply) => {
     requireInternalSecret(request);
 
