@@ -579,7 +579,16 @@ const DevEventLogsTab = React.lazy(() =>
   import('~/components/@settings/tabs/event-logs/EventLogsTab').then((m) => ({ default: m.EventLogsTab })),
 );
 
+/*
+ * Provider config tabs are also window:'developer' (hidden from the user ControlPanel)
+ * and per constants.tsx §11 are a platform-admin responsibility, so they belong here.
+ */
+const DevCloudProvidersTab = React.lazy(() => import('~/components/@settings/tabs/providers/cloud/CloudProvidersTab'));
+const DevLocalProvidersTab = React.lazy(() => import('~/components/@settings/tabs/providers/local/LocalProvidersTab'));
+
 const DEV_TOOLS = [
+  { id: 'cloud-providers', label: 'Cloud Providers', Component: DevCloudProvidersTab },
+  { id: 'local-providers', label: 'Local Providers', Component: DevLocalProvidersTab },
   { id: 'debug', label: 'Debug', Component: DevDebugTab },
   { id: 'task-manager', label: 'Task Manager', Component: DevTaskManagerTab },
   { id: 'service-status', label: 'Service Status', Component: DevServiceStatusTab },
