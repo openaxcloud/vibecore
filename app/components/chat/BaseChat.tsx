@@ -3039,6 +3039,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       window.localStorage.setItem('vibecore:agent-plan-first-default', String(projectPlanFirst));
+
+      /*
+       * Broadcast so Chat.client (owner of the /api/chat body) sends planFirst to
+       * the server, where it actually forces a decompose-and-plan pass. Without
+       * this the Plan toggle was cosmetic.
+       */
+      window.dispatchEvent(new CustomEvent('vibecore:plan-first-change', { detail: projectPlanFirst }));
     }, [projectPlanFirst]);
 
     const projectAutoApply = true;

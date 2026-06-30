@@ -12,9 +12,15 @@ import {
   buildAgentExecutionAnnotation,
   buildAgentOrchestrationPlan,
   createAgentExecutionContext,
+  createAgentPlanContext,
   executeAgentOrchestration,
   executeAgentOrchestrationStream,
+  parallelAgentsForBuildTier,
+  shouldUseAgentOrchestration,
+  type AgentBuildTier,
+  type AgentRoleId,
 } from '~/lib/.server/llm/agent-orchestration';
+import { createAgentPlan } from '~/lib/.server/llm/create-agent-plan';
 import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.server/llm/connector-prompt';
 import { ChatQuotaError, serializeChatStreamError } from './api.chat.quota-error';
 import { apiRequest } from '~/lib/enterprise-api.server';
@@ -118,6 +124,21 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       };
     };
     maxLLMSteps: number;
+
+    /*
+     * Composer power controls (Lite/Economy/Power + boosts). Previously these
+     * were UI-only and never reached the server; they now drive the parallel-agent
+     * cap, the planner role budget, and the agentic step depth.
+     */
+    agentPower?: {
+      buildTier?: AgentBuildTier;
+      highPowerModel?: boolean;
+      extendedThinking?: boolean;
+      turboMode?: boolean;
+    };
+
+    /** Composer "Plan" toggle — force a decompose-and-plan pass even for short prompts. */
+    planFirstEnabled?: boolean;
   };
 
   try {
@@ -134,8 +155,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     });
   }
 
-  const { messages, files, promptId, projectId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps } =
-    parsedBody;
+  const {
+    messages,
+    files,
+    promptId,
+    projectId,
+    contextOptimization,
+    supabase,
+    chatMode,
+    designScheme,
+    maxLLMSteps,
+    agentPower,
+    planFirstEnabled,
+  } = parsedBody;
 
   /*
    * Tool-loop step cap actually applied to streamText. Overridden below by the
@@ -226,6 +258,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       }
     } catch (error) {
       logger.warn('Failed to load MCP config for chat request', error);
+    }
+
+    /*
+     * Extended-thinking boost (composer power control): give the agent a deeper
+     * tool/iteration budget so it can plan + self-correct over more steps. Applied
+     * on top of the resolved cap, still bounded at 50 so it can't run away.
+     */
+    if (agentPower?.extendedThinking) {
+      resolvedMaxSteps = Math.min(50, Math.max(resolvedMaxSteps, resolvedMaxSteps + 4));
     }
 
     const totalMessageContent = messages.reduce((acc, message) => acc + message.content, '');
@@ -475,15 +516,84 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           request,
         });
 
+        /*
+         * Composer power controls → parallel-agent cap. Lite=1 (single lane, no
+         * orchestration), Economy=3, Power=5 (+1 for High-power). This is what
+         * makes the Lite/Economy/Power selector VISIBLY change how many specialist
+         * agents run, instead of every request silently fanning out all 5.
+         */
+        const parallelAgents = agentPower
+          ? agentPower.turboMode
+            ? /* Turbo: fan out the full roster for the fastest wall-clock (more lanes
+               * finishing concurrently), at the higher cost the control advertises. */
+              parallelAgentsForBuildTier('power', agentPower.highPowerModel)
+            : parallelAgentsForBuildTier(agentPower.buildTier, agentPower.highPowerModel)
+          : undefined;
+
+        /*
+         * Decide up-front whether this request will orchestrate so we only pay for
+         * the (LLM) planner when it matters. Plan mode forces orchestration even
+         * for short prompts.
+         */
+        const willOrchestrate = shouldUseAgentOrchestration(processedMessages, chatMode, {
+          planFirst: planFirstEnabled,
+        });
+
+        /*
+         * Prompt-driven planner: ask the user's model to decompose the request
+         * into specialist sub-tasks BEFORE the fan-out, so the roster is tailored
+         * to THIS request (Replit-style) and the plan is shown to the user.
+         * Fail-open — a null plan keeps the full roster.
+         */
+        let agentPlanTasks: Array<{ title: string; roleId: AgentRoleId }> | undefined;
+        let selectedRoleIds: AgentRoleId[] | undefined;
+
+        if (willOrchestrate) {
+          const plan = await createAgentPlan({
+            messages: processedMessages,
+            env: context.cloudflare?.env,
+            apiKeys,
+            providerSettings,
+            abortSignal: request.signal,
+            maxRoles: parallelAgents,
+          });
+
+          if (plan) {
+            agentPlanTasks = plan.tasks;
+            selectedRoleIds = plan.roleIds;
+          }
+        }
+
         let orchestrationPlan = buildAgentOrchestrationPlan({
           messages: processedMessages,
           chatMode,
           subagentsAvailable: areParallelSubagentsAvailable(
             context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
           ),
+          parallelAgents,
+          planFirst: planFirstEnabled,
+          selectedRoleIds,
         });
 
-        let agentOrchestrationContext: string | undefined;
+        /*
+         * Surface the decomposition to the UI BEFORE the lanes start so the user
+         * sees what the agent decided to do (the visible plan).
+         */
+        if (orchestrationPlan.enabled && agentPlanTasks?.length) {
+          dataStream.writeMessageAnnotation({
+            type: 'agentPlan',
+            planned: true,
+            tasks: agentPlanTasks,
+          } satisfies ContextAnnotation);
+        }
+
+        /*
+         * Seed the orchestration context with the plan so the integrating model
+         * (and the single-model-lanes fallback) follows the decomposition. The
+         * lane-execution results are appended to this below.
+         */
+        let agentOrchestrationContext: string | undefined =
+          orchestrationPlan.enabled && agentPlanTasks?.length ? createAgentPlanContext(agentPlanTasks) : undefined;
 
         /*
          * The provider/model the user picked in the composer. Threaded into both
@@ -582,7 +692,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 });
               }
 
-              agentOrchestrationContext = createAgentExecutionContext(execution);
+              agentOrchestrationContext = [agentOrchestrationContext, createAgentExecutionContext(execution)]
+                .filter(Boolean)
+                .join('\n');
               dataStream.writeMessageAnnotation(buildAgentExecutionAnnotation(execution) satisfies ContextAnnotation);
             } catch (error) {
               const message =

@@ -137,6 +137,9 @@ export const AssistantMessage = memo(
     const agentMemory = filteredAnnotations.find((annotation) => annotation.type === 'agentMemory') as
       | Extract<ContextAnnotation, { type: 'agentMemory' }>
       | undefined;
+    const agentPlan = filteredAnnotations.find((annotation) => annotation.type === 'agentPlan') as
+      | Extract<ContextAnnotation, { type: 'agentPlan' }>
+      | undefined;
 
     /*
      * Live per-lane streaming: the executor emits agentLaneStream {kind} events —
@@ -497,6 +500,32 @@ export const AssistantMessage = memo(
             </div>
           </div>
         </>
+        {agentPlan?.tasks?.length ? (
+          <div
+            className="bolt-agent-plan my-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
+            data-testid="agent-plan-panel"
+          >
+            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
+              <span className="i-ph:list-checks text-bolt-elements-item-contentAccent" aria-hidden />
+              <span>Plan</span>
+              <span className="[margin-inline-start:auto] text-[11px] font-normal text-bolt-elements-textSecondary">
+                {agentPlan.tasks.length} task{agentPlan.tasks.length === 1 ? '' : 's'} ·{' '}
+                {new Set(agentPlan.tasks.map((task) => task.roleId)).size} agents
+              </span>
+            </div>
+            <ol className="space-y-1">
+              {agentPlan.tasks.map((task, index) => (
+                <li key={`${task.roleId}-${index}`} className="flex items-start gap-2 text-xs">
+                  <span className="mt-[1px] text-bolt-elements-textTertiary">{index + 1}.</span>
+                  <span className="rounded bg-bolt-elements-background-depth-2 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-bolt-elements-item-contentAccent">
+                    {task.roleId}
+                  </span>
+                  <span className="text-bolt-elements-textSecondary">{task.title}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ) : null}
         {((agentOrchestration?.mode === 'parallel-subagents' && agentOrchestration.roles.length > 0) ||
           agentLaneStreams?.length) &&
           lanePanelRoles.length > 0 && (

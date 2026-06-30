@@ -235,6 +235,77 @@ export const ChatImpl = memo(
     const [animationScope, animate] = useAnimate();
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
     const [chatMode, setChatMode] = useState<'discuss' | 'build'>('build');
+
+    /*
+     * Composer power controls + Plan toggle, mirrored from the values ChatBox /
+     * BaseChat persist to localStorage. Held here (not just in ChatBox) so they
+     * can be sent in the /api/chat body — previously these toggles were UI-only
+     * and never reached the server. Kept in sync via the custom events those
+     * components dispatch on change (decoupled, no prop threading through the
+     * volatile BaseChat).
+     */
+    const [agentPower, setAgentPower] = useState<{
+      buildTier?: 'lite' | 'economy' | 'power';
+      highPowerModel?: boolean;
+      extendedThinking?: boolean;
+      turboMode?: boolean;
+    } | null>(null);
+
+    const [planFirstEnabled, setPlanFirstEnabled] = useState(false);
+
+    useEffect(() => {
+      if (typeof window === 'undefined') {
+        return undefined;
+      }
+
+      const readAgentPower = () => {
+        try {
+          const raw = window.localStorage.getItem('vibecore.agentPower');
+          setAgentPower(raw ? JSON.parse(raw) : null);
+        } catch {
+          // ignore malformed/blocked storage
+        }
+      };
+
+      const readPlanFirst = () => {
+        try {
+          setPlanFirstEnabled(window.localStorage.getItem('vibecore:agent-plan-first-default') === 'true');
+        } catch {
+          // ignore
+        }
+      };
+
+      readAgentPower();
+      readPlanFirst();
+
+      const onPower = (event: Event) => {
+        const detail = (event as CustomEvent).detail;
+        setAgentPower(detail && typeof detail === 'object' ? detail : null);
+      };
+      const onPlanFirst = (event: Event) => {
+        setPlanFirstEnabled(Boolean((event as CustomEvent).detail));
+      };
+      const onStorage = (event: StorageEvent) => {
+        if (event.key === 'vibecore.agentPower') {
+          readAgentPower();
+        }
+
+        if (event.key === 'vibecore:agent-plan-first-default') {
+          readPlanFirst();
+        }
+      };
+
+      window.addEventListener('vibecore:agent-power-change', onPower as EventListener);
+      window.addEventListener('vibecore:plan-first-change', onPlanFirst as EventListener);
+      window.addEventListener('storage', onStorage);
+
+      return () => {
+        window.removeEventListener('vibecore:agent-power-change', onPower as EventListener);
+        window.removeEventListener('vibecore:plan-first-change', onPlanFirst as EventListener);
+        window.removeEventListener('storage', onStorage);
+      };
+    }, []);
+
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
     const mcpSettings = useMCPStore((state) => state.settings);
     const latestMessagesRef = useRef<Message[]>(initialMessages);
@@ -415,6 +486,14 @@ export const ChatImpl = memo(
           },
         },
         maxLLMSteps: mcpSettings.maxLLMSteps,
+
+        /*
+         * Power controls + Plan toggle, now actually sent to the server so they
+         * change the generation (parallel-agent count, planner role budget,
+         * agentic depth, and forcing a plan pass). See api.chat.ts.
+         */
+        ...(agentPower ? { agentPower } : {}),
+        planFirstEnabled,
       },
 
       /*

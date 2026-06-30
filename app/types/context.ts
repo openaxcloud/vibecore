@@ -54,6 +54,16 @@ export type ContextAnnotation =
       };
     }
   | {
+      type: 'agentPlan';
+
+      /** Whether a tailored, prompt-driven plan was produced (vs. the default full roster). */
+      planned: boolean;
+      tasks: Array<{
+        title: string;
+        roleId: 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
+      }>;
+    }
+  | {
       type: 'agentMemory';
       memories: Array<{
         id: string;

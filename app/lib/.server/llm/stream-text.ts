@@ -413,9 +413,17 @@ ${skillsContext}`;
     providerSettings,
   });
 
+  /*
+   * Discuss/Ask/Plan mode uses discussPrompt() instead of the build systemPrompt,
+   * which previously DROPPED the agent-memory + skills context (they were only
+   * appended to systemPrompt above). Re-append them here so persistent memory and
+   * enabled skills actually inform discuss-mode answers too, not just builds.
+   */
+  const discussSystem = [discussPrompt(), agentMemoryContext, skillsContext].filter(Boolean).join('\n\n');
+
   const streamParams = {
     model: removeUnsupportedModelSettings(modelInstance, modelDetails.name, modelDetails.provider),
-    system: chatMode === 'build' ? systemPrompt : discussPrompt(),
+    system: chatMode === 'build' ? systemPrompt : discussSystem,
 
     /*
      * Auto-retry transient provider failures (Bedrock "[UNKNOWN]" stream errors,

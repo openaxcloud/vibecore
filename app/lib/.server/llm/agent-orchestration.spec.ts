@@ -9,6 +9,8 @@ import {
   clampRolesToParallelLimit,
   createAgentExecutionContext,
   createAgentOrchestrationPrompt,
+  createAgentPlanContext,
+  parallelAgentsForBuildTier,
   executeAgentOrchestration,
   executeAgentOrchestrationStream,
   getSubagentExecutorToken,
@@ -731,5 +733,78 @@ describe('E-Code agent orchestration', () => {
     );
     expect(partial).toMatchObject({ runId: 'run_y', status: 'partial' });
     expect(partial!.results).toHaveLength(1);
+  });
+
+  /*
+   * Power controls must VISIBLY change the number of parallel agents (previously
+   * the Lite/Economy/Power selector was cosmetic and every request ran all 5).
+   */
+  it('maps the build tier to a parallel-agent cap (Lite=1, Economy=3, Power=5)', () => {
+    expect(parallelAgentsForBuildTier('lite')).toBe(1);
+    expect(parallelAgentsForBuildTier('economy')).toBe(3);
+    expect(parallelAgentsForBuildTier('power')).toBe(5);
+
+    // High-power boost adds one lane, capped at the roster size.
+    expect(parallelAgentsForBuildTier('economy', true)).toBe(4);
+    expect(parallelAgentsForBuildTier('power', true)).toBe(5);
+
+    // Unknown/undefined tier falls back to the balanced default.
+    expect(parallelAgentsForBuildTier(undefined)).toBe(3);
+  });
+
+  it('Lite tier (1 agent) disables the parallel fan-out', () => {
+    const plan = buildAgentOrchestrationPlan({
+      chatMode: 'build',
+      messages: [{ role: 'user', content: COMPLEX_BUILD_PROMPT }],
+      subagentsAvailable: true,
+      parallelAgents: parallelAgentsForBuildTier('lite'),
+    });
+    expect(plan.enabled).toBe(false);
+  });
+
+  /*
+   * Plan mode is an explicit user request to decompose; it must orchestrate even
+   * for a short prompt that wouldn't trip the complexity heuristic.
+   */
+  it('planFirst forces orchestration for a short prompt that the heuristic would skip', () => {
+    const shortPrompt = 'make a counter';
+
+    expect(shouldUseAgentOrchestration([{ role: 'user', content: shortPrompt }], 'build')).toBe(false);
+    expect(shouldUseAgentOrchestration([{ role: 'user', content: shortPrompt }], 'build', { planFirst: true })).toBe(
+      true,
+    );
+
+    const plan = buildAgentOrchestrationPlan({
+      chatMode: 'build',
+      messages: [{ role: 'user', content: shortPrompt }],
+      subagentsAvailable: true,
+      planFirst: true,
+    });
+    expect(plan.enabled).toBe(true);
+  });
+
+  /*
+   * The prompt-driven planner narrows the roster to only the roles it selected
+   * (e.g. a static page needs no backend/devops), instead of the fixed 5.
+   */
+  it('restricts the roster to the planner-selected roles', () => {
+    const plan = buildAgentOrchestrationPlan({
+      chatMode: 'build',
+      messages: [{ role: 'user', content: COMPLEX_BUILD_PROMPT }],
+      subagentsAvailable: true,
+      selectedRoleIds: ['architect', 'frontend'],
+    });
+    expect(plan.roles.map((role) => role.id)).toEqual(['architect', 'frontend']);
+  });
+
+  it('renders the plan tasks into an injectable system-prompt block', () => {
+    const context = createAgentPlanContext([
+      { title: 'Design the data model', roleId: 'architect' },
+      { title: 'Build the dashboard UI', roleId: 'frontend' },
+    ]);
+    expect(context).toContain('<ecode_agent_plan>');
+    expect(context).toContain('[architect] Design the data model');
+    expect(context).toContain('[frontend] Build the dashboard UI');
+    expect(createAgentPlanContext([])).toBe('');
   });
 });

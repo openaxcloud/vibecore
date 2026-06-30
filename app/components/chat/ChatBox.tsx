@@ -178,12 +178,19 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
     (next: AgentPowerControlsValue) => {
       if (!props.agentPower) {
         setLocalAgentPower(next);
+      }
 
-        try {
-          window.localStorage.setItem(AGENT_POWER_STORAGE_KEY, JSON.stringify(next));
-        } catch {
-          // ignore blocked storage
-        }
+      /*
+       * Persist + broadcast on every change (controlled or not) so Chat.client —
+       * which owns the /api/chat request body — can pick up the latest power
+       * settings and actually send them to the server. Without this the controls
+       * stay cosmetic.
+       */
+      try {
+        window.localStorage.setItem(AGENT_POWER_STORAGE_KEY, JSON.stringify(next));
+        window.dispatchEvent(new CustomEvent('vibecore:agent-power-change', { detail: next }));
+      } catch {
+        // ignore blocked storage / SSR
       }
 
       props.onAgentPowerChange?.(next);

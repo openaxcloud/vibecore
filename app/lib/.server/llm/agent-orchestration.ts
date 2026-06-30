@@ -207,6 +207,7 @@ function getTextContent(message: Omit<Message, 'id'> | Message): string {
 export function shouldUseAgentOrchestration(
   messages: Array<Omit<Message, 'id'> | Message>,
   chatMode?: string,
+  options?: { planFirst?: boolean },
 ): boolean {
   if (chatMode !== 'build') {
     return false;
@@ -219,7 +220,37 @@ export function shouldUseAgentOrchestration(
     return false;
   }
 
+  /*
+   * Plan mode (the composer's "Plan" toggle) is an explicit user request to
+   * decompose-and-plan, so honour it even for short prompts — otherwise enabling
+   * Plan does nothing visible for a terse request, which reads as a dead toggle.
+   */
+  if (options?.planFirst) {
+    return true;
+  }
+
   return content.length >= 180 || complexBuildSignals.some((signal) => content.includes(signal));
+}
+
+/** User-facing build effort tier from the composer's power controls. */
+export type AgentBuildTier = 'lite' | 'economy' | 'power';
+
+/**
+ * Map the composer's power controls to a parallel-agent cap, so the
+ * Lite/Economy/Power selector + High-power boost VISIBLY change how many
+ * specialist agents run (previously the controls were cosmetic and every
+ * request silently ran all 5 lanes).
+ *
+ * Lite = 1 (single lane → orchestration disabled, fastest/cheapest), Economy = 3
+ * (balanced default), Power = 5 (full roster). High-power bumps the cap by one
+ * (capped at the roster size) so the boost is observable. Pure + exported for
+ * unit testing.
+ */
+export function parallelAgentsForBuildTier(tier?: AgentBuildTier, highPowerModel?: boolean): number {
+  const base = tier === 'lite' ? 1 : tier === 'power' ? ECODE_AGENT_ROLES.length : 3;
+  const boosted = highPowerModel ? base + 1 : base;
+
+  return Math.max(1, Math.min(boosted, ECODE_AGENT_ROLES.length));
 }
 
 /**
@@ -264,10 +295,30 @@ export function buildAgentOrchestrationPlan(input: {
    * behaviour is unchanged for callers that don't yet pass the entitlement.
    */
   parallelAgents?: number;
-}): AgentOrchestrationPlan {
-  const complexEnough = shouldUseAgentOrchestration(input.messages, input.chatMode);
 
-  const roles = complexEnough ? clampRolesToParallelLimit(ECODE_AGENT_ROLES, input.parallelAgents) : [];
+  /*
+   * The composer's "Plan" toggle. When set, orchestration is allowed even for a
+   * short prompt (an explicit user request to plan-and-decompose).
+   */
+  planFirst?: boolean;
+
+  /*
+   * Roles the prompt-driven planner decided are actually needed for THIS request
+   * (createAgentPlan). When provided, the roster is filtered to these roles
+   * (then still clamped by parallelAgents) instead of always running all 5 —
+   * this is what makes the fan-out a tailored plan rather than a fixed roster.
+   * Omitted (planner unavailable / failed) keeps the full roster (fail-open).
+   */
+  selectedRoleIds?: AgentRoleId[];
+}): AgentOrchestrationPlan {
+  const complexEnough = shouldUseAgentOrchestration(input.messages, input.chatMode, { planFirst: input.planFirst });
+
+  const selected =
+    input.selectedRoleIds && input.selectedRoleIds.length
+      ? ECODE_AGENT_ROLES.filter((role) => input.selectedRoleIds!.includes(role.id))
+      : ECODE_AGENT_ROLES;
+
+  const roles = complexEnough ? clampRolesToParallelLimit(selected, input.parallelAgents) : [];
 
   /*
    * A plan that entitles fewer than 2 parallel agents (Starter) can't run the
@@ -789,6 +840,27 @@ Status: ${response.status}
 
 ${results}
 </ecode_subagent_results>
+`;
+}
+
+/**
+ * Render the prompt-driven plan into the system prompt so the integrating model
+ * (and the single-model-lanes fallback) actually follows the decomposition the
+ * planner produced, instead of re-deriving its own. Pure + exported.
+ */
+export function createAgentPlanContext(tasks: Array<{ title: string; roleId: AgentRoleId }>): string {
+  if (!tasks.length) {
+    return '';
+  }
+
+  const lines = tasks.map((task, index) => `    ${index + 1}. [${task.roleId}] ${task.title}`).join('\n');
+
+  return `
+<ecode_agent_plan>
+  This request was decomposed into the following ordered sub-tasks. Implement ALL
+  of them, keep them mutually consistent, and do not skip any:
+${lines}
+</ecode_agent_plan>
 `;
 }
 
