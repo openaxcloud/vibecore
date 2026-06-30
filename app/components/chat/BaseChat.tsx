@@ -115,6 +115,7 @@ import LlmErrorAlert from './LLMApiAlert';
 import { editorKindForLayout, useResponsiveLayout } from '@vibecore/editor';
 import { useSwipeGesture } from '~/lib/hooks/useMobileGestures';
 import { useMobileIdePersistence } from '~/lib/hooks/useMobileIdePersistence';
+import { useProjectChatBranches } from '~/lib/hooks/useProjectChatBranches';
 import {
   getProjectIdeMemory,
   saveProjectIdeMemory,
@@ -318,6 +319,7 @@ function readProjectBottomTerminalUiState() {
 
 const IDE_MANAGEMENT_PANELS = [
   'overview',
+  'studio',
   'database',
   'object-storage',
   'packages',
@@ -398,6 +400,7 @@ const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: st
   ports: { id: 'ports', name: 'Ports', icon: 'i-ph:plugs' },
   domains: { id: 'domains', name: 'Domains', icon: 'i-ph:globe' },
   overview: { id: 'overview', name: 'Overview', icon: 'i-ph:gauge' },
+  studio: { id: 'studio', name: 'Agent Studio', icon: 'i-ph:robot' },
   web: { id: 'web', name: 'Webview', icon: 'i-ph:monitor' },
   tools: { id: 'tools', name: 'Tools', icon: 'i-ph:stack' },
 };
@@ -412,6 +415,7 @@ const IDE_FILE_TREE_HIDDEN_PATTERNS = [
 
 const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> = {
   overview: 'Project summary',
+  studio: 'Agent supervisor',
   database: 'SQL browser',
   'object-storage': 'File storage',
   packages: 'Dependencies manager',
@@ -10688,6 +10692,10 @@ function ProjectIdePanelContent({
     return <ProjectOverviewPanel data={data} project={project} />;
   }
 
+  if (panel === 'studio') {
+    return <ProjectAgentStudioPanel data={data} projectId={projectId} reload={reload} busy={busy} />;
+  }
+
   if (panel === 'database') {
     return <ProjectDatabasePanel projectId={projectId} data={data} onSubmit={onSubmit} busy={busy} reload={reload} />;
   }
@@ -13865,6 +13873,240 @@ function ProjectPortsPanel({
           <div className="bolt-project-empty-panel">
             No ports detected yet. Start your app (it must listen on a port) and refresh.
           </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+interface StudioMemorySummary {
+  total: number;
+  enabled: boolean;
+  recent: Array<{ id: string; content: string; scope?: string; memoryType?: string; createdAt?: string }>;
+}
+
+/*
+ * Agent Studio supervisor — a single per-project oversight surface that
+ * AGGREGATES the agent signals that already exist elsewhere in the IDE, so an
+ * operator can see (and action) everything the agent is doing in one place:
+ *
+ *   - Pending patch proposals    → live from workbenchStore.agentPatchProposals
+ *                                   (approve/reject reuse the EXISTING store path
+ *                                   which writes through the patch endpoints).
+ *   - Self-repair history        → reuses <AgentRepairHistory> (project-scoped).
+ *   - Conversation branches      → reuses useProjectChatBranches(projectId).
+ *   - Agent-memory summary       → reuses GET /api/agent-memory?projectId=…
+ *
+ * Every signal is scoped to the current projectId; nothing is aggregated across
+ * projects. The server-side loader (ide-panel `studio` case) provides initial
+ * patch/repair snapshots gated by project read; the live store is the source of
+ * truth for the actionable queue. Consensus (ConsensusRecord) is intentionally
+ * NOT surfaced: it has no project-scoped read endpoint in the web/API layer
+ * (it lives only in the ai-gateway service), so exposing it would require real
+ * new backend — out of scope for a reuse-only supervisor.
+ */
+function ProjectAgentStudioPanel({
+  data,
+  projectId,
+  reload,
+  busy,
+}: {
+  data: any;
+  projectId?: string;
+  reload?: () => void | Promise<void>;
+  busy: boolean;
+}) {
+  const agentPatchProposals = useStore(workbenchStore.agentPatchProposals);
+
+  const pendingProposals = useMemo(
+    () =>
+      Object.values(agentPatchProposals).filter(
+        (proposal) => proposal.status === 'pending' || proposal.status === 'applying' || proposal.status === 'failed',
+      ),
+    [agentPatchProposals],
+  );
+
+  const { conversations, tree } = useProjectChatBranches(projectId);
+
+  const serverProposalCount = Array.isArray(data?.patchProposals) ? data.patchProposals.length : 0;
+  const repairEventsCount = Array.isArray(data?.repairEvents) ? data.repairEvents.length : 0;
+
+  const [memory, setMemory] = useState<StudioMemorySummary | undefined>();
+  const [memoryError, setMemoryError] = useState<string | undefined>();
+
+  const loadMemory = useCallback(async () => {
+    if (!projectId) {
+      return;
+    }
+
+    setMemoryError(undefined);
+
+    try {
+      const [memoriesResponse, preferenceResponse] = await Promise.all([
+        fetch(`/api/agent-memory?projectId=${encodeURIComponent(projectId)}&limit=30`, {
+          headers: { accept: 'application/json' },
+        }),
+        fetch(`/api/agent-memory/preferences?projectId=${encodeURIComponent(projectId)}`, {
+          headers: { accept: 'application/json' },
+        }),
+      ]);
+
+      const payload = (await memoriesResponse.json().catch(() => ({}))) as { memories?: any[]; error?: string };
+
+      const preferencePayload = (await preferenceResponse.json().catch(() => ({}))) as {
+        preference?: { enabled?: boolean };
+      };
+
+      if (!memoriesResponse.ok) {
+        throw new Error(payload.error ?? 'Unable to load agent memory');
+      }
+
+      const memories = Array.isArray(payload.memories) ? payload.memories : [];
+
+      setMemory({
+        total: memories.length,
+        enabled: preferencePayload.preference?.enabled !== false,
+        recent: memories.slice(0, 5).map((item: any) => ({
+          id: String(item.id),
+          content: String(item.content ?? item.summary ?? ''),
+          scope: item.scope,
+          memoryType: item.memoryType,
+          createdAt: item.createdAt,
+        })),
+      });
+    } catch (error) {
+      setMemoryError(error instanceof Error ? error.message : 'Unable to load agent memory');
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    void loadMemory();
+  }, [loadMemory]);
+
+  const branchCount = conversations.length;
+
+  const metrics = [
+    [
+      'Pending changes',
+      String(pendingProposals.length),
+      pendingProposals.length ? 'Awaiting your review below' : 'No AI changes to review',
+    ],
+    ['Recorded proposals', String(serverProposalCount), 'Open proposals tracked server-side'],
+    [
+      'Self-repair events',
+      String(repairEventsCount),
+      repairEventsCount ? 'AST repair loop activity' : 'No self-repair recorded',
+    ],
+    ['Conversation branches', String(branchCount), branchCount ? 'Archived agent threads' : 'No branches yet'],
+    [
+      'Agent memories',
+      memory ? String(memory.total) : '—',
+      memory ? (memory.enabled ? 'Memory enabled' : 'Memory disabled') : 'Loading…',
+    ],
+  ] as const;
+
+  return (
+    <div className="bolt-project-monitoring-panel" aria-label="Agent Studio supervisor">
+      <div className="bolt-project-panel-toolbar">
+        <button type="button" onClick={() => void reload?.()} disabled={busy}>
+          {busy ? 'Refreshing' : 'Refresh'}
+        </button>
+      </div>
+
+      <div className="bolt-project-metric-grid">
+        {metrics.map(([label, value, detail]) => (
+          <article key={label}>
+            <span>{label}</span>
+            <strong>{value}</strong>
+            <small>{detail}</small>
+          </article>
+        ))}
+      </div>
+
+      <section
+        className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
+        aria-label="Pending AI changes"
+      >
+        <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Pending AI changes</h3>
+        {pendingProposals.length ? (
+          <AgentPatchReviewQueue proposals={pendingProposals} />
+        ) : (
+          <p className="text-sm text-bolt-elements-textSecondary">
+            No AI changes are waiting for review. Accepted and rejected changes are applied automatically.
+          </p>
+        )}
+      </section>
+
+      {projectId ? (
+        <section className="mt-3" aria-label="Self-repair history">
+          <AgentRepairHistory projectId={projectId} />
+        </section>
+      ) : null}
+
+      <section
+        className="mt-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
+        aria-label="Conversation branches"
+      >
+        <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">
+          Conversation branches
+          <span className="ml-2 rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
+            {branchCount}
+          </span>
+        </h3>
+        {branchCount ? (
+          <ul className="divide-y divide-bolt-elements-borderColor">
+            {tree.flatMap(function flatten(node, depth = 0): React.ReactNode[] {
+              const label = node.conversation.title?.trim() || node.conversation.id;
+
+              return [
+                <li key={node.conversation.id} className="flex items-center gap-2 py-1.5 text-sm">
+                  <span className="i-ph:git-branch text-bolt-elements-textSecondary" aria-hidden />
+                  <span
+                    className="truncate text-bolt-elements-textPrimary"
+                    style={{ paddingLeft: `${depth * 12}px` }}
+                    title={label}
+                  >
+                    {label}
+                  </span>
+                  <span className="ml-auto text-xs text-bolt-elements-textSecondary">
+                    {node.conversation.messages.length} msg
+                  </span>
+                </li>,
+                ...node.children.flatMap((child) => flatten(child, depth + 1)),
+              ];
+            })}
+          </ul>
+        ) : (
+          <p className="text-sm text-bolt-elements-textSecondary">
+            No archived conversation branches for this project yet.
+          </p>
+        )}
+      </section>
+
+      <section
+        className="mt-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
+        aria-label="Agent memory"
+      >
+        <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Agent memory</h3>
+        {memoryError ? (
+          <p className="text-sm text-red-500">{memoryError}</p>
+        ) : !memory ? (
+          <p className="text-sm text-bolt-elements-textSecondary">Loading agent memory…</p>
+        ) : memory.recent.length === 0 ? (
+          <p className="text-sm text-bolt-elements-textSecondary">No agent memories recorded for this project yet.</p>
+        ) : (
+          <ul className="divide-y divide-bolt-elements-borderColor">
+            {memory.recent.map((item) => (
+              <li key={item.id} className="py-1.5 text-sm">
+                <p className="truncate text-bolt-elements-textPrimary" title={item.content}>
+                  {item.content}
+                </p>
+                <p className="text-xs text-bolt-elements-textSecondary">
+                  {[item.scope, item.memoryType].filter(Boolean).join(' · ')}
+                </p>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
     </div>
@@ -17325,6 +17567,7 @@ function panelTitle(panel: string) {
 
 function panelIcon(panel: string) {
   const icons: Record<string, string> = {
+    studio: 'i-ph:robot',
     editor: 'i-ph:code',
     preview: 'i-ph:browser',
     webview: 'i-ph:browser',

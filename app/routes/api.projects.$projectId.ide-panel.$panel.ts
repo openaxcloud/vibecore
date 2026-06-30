@@ -1013,6 +1013,39 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     }
   }
 
+  if (panel === 'studio') {
+    /*
+     * Agent Studio supervisor — a read-only oversight surface that aggregates
+     * the project's existing agent signals into one envelope. Both reads are
+     * project-read gated server-side (requireProject 'projects:read'), so this
+     * never leaks another tenant's agent data. Each enrichment is best-effort:
+     * a missing signal degrades to an empty list rather than failing the panel.
+     * Conversation branches + agent-memory are layered on client-side by the
+     * panel component (they live in client persistence / are fetched directly).
+     */
+    try {
+      const [proposals, repairEvents] = await Promise.all([
+        apiRequest<{ proposals?: unknown[] }>(request, `/projects/${projectId}/agent-patch-proposals`).catch(() => ({
+          proposals: [],
+        })),
+        apiRequest<{ events?: unknown[] }>(request, `/projects/${projectId}/agent-repair-events?limit=50`).catch(
+          () => ({
+            events: [],
+          }),
+        ),
+      ]);
+
+      return json(
+        panelEnvelope(panel, project.project, {
+          patchProposals: Array.isArray(proposals.proposals) ? proposals.proposals : [],
+          repairEvents: Array.isArray(repairEvents.events) ? repairEvents.events : [],
+        }),
+      );
+    } catch (error) {
+      return json(panelEnvelopeError(panel, project.project, error));
+    }
+  }
+
   const endpoint = panelEndpoints[panel];
 
   if (!endpoint) {
