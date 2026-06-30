@@ -16,6 +16,7 @@ import type {
   ApiStore,
   AiCostLedgerRecord,
   AiConversationRecord,
+  IntegrationFeatureRequestRecord,
   AiMessageRecord,
   AiTokenUsageRecord,
   AiToolCallRecord,
@@ -2170,6 +2171,42 @@ export class PrismaApiStore implements ApiStore {
         take: filter?.take ?? 1000,
       })
     ).map(mapAbuseEvent);
+  }
+
+  async createIntegrationFeatureRequest(input: {
+    userId: string;
+    organizationId?: string;
+    integrationName: string;
+    useCaseDescription: string;
+  }) {
+    return mapIntegrationFeatureRequest(
+      await this.prisma.integrationFeatureRequest.create({
+        data: {
+          userId: input.userId,
+          organizationId: input.organizationId,
+          integrationName: input.integrationName,
+          useCaseDescription: input.useCaseDescription,
+        },
+      }),
+    );
+  }
+
+  async listIntegrationFeatureRequests(filter: { userId: string; organizationId?: string; take?: number }) {
+    /*
+     * Scoped to the requesting user. When the user supplies an organization
+     * context we also surface that org's requests (so org members see what
+     * teammates have already asked for and avoid duplicate submissions); the
+     * `userId` clause keeps the user's own requests visible regardless of org.
+     */
+    return (
+      await this.prisma.integrationFeatureRequest.findMany({
+        where: filter.organizationId
+          ? { OR: [{ userId: filter.userId }, { organizationId: filter.organizationId }] }
+          : { userId: filter.userId },
+        orderBy: { createdAt: 'desc' },
+        take: filter.take ?? 200,
+      })
+    ).map(mapIntegrationFeatureRequest);
   }
 
   async setSystemSetting(input: { key: string; value?: unknown }) {
@@ -4582,6 +4619,18 @@ function mapAbuseEvent(event: any): AbuseEventRecord {
     type: event.type,
     severity: event.severity,
     createdAt: toIso(event.createdAt)!,
+  };
+}
+
+function mapIntegrationFeatureRequest(request: any): IntegrationFeatureRequestRecord {
+  return {
+    id: request.id,
+    userId: request.userId,
+    organizationId: request.organizationId ?? undefined,
+    integrationName: request.integrationName,
+    useCaseDescription: request.useCaseDescription,
+    status: request.status,
+    createdAt: toIso(request.createdAt)!,
   };
 }
 

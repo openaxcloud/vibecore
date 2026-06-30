@@ -105,3 +105,79 @@ describe('TestApiStore.listAbuseEvents', () => {
     expect(all).toHaveLength(2);
   });
 });
+
+describe('TestApiStore integration feature requests', () => {
+  it('createIntegrationFeatureRequest persists a row scoped to the requesting user', async () => {
+    const store = new TestApiStore();
+
+    const created = await store.createIntegrationFeatureRequest({
+      userId: 'user-1',
+      integrationName: 'Notion',
+      useCaseDescription: 'Sync project docs into Notion.',
+    });
+
+    expect(created.id).toBeTruthy();
+    expect(created.userId).toBe('user-1');
+    expect(created.integrationName).toBe('Notion');
+    expect(created.useCaseDescription).toBe('Sync project docs into Notion.');
+    expect(created.status).toBe('pending');
+    expect(created.organizationId).toBeUndefined();
+    expect(created.createdAt).toBeTruthy();
+  });
+
+  it("listIntegrationFeatureRequests returns only the user's own requests when no org is given", async () => {
+    const store = new TestApiStore();
+
+    await store.createIntegrationFeatureRequest({
+      userId: 'user-1',
+      integrationName: 'Notion',
+      useCaseDescription: 'Docs sync.',
+    });
+    await store.createIntegrationFeatureRequest({
+      userId: 'user-2',
+      integrationName: 'Stripe',
+      useCaseDescription: 'Billing.',
+    });
+
+    const mine = await store.listIntegrationFeatureRequests({ userId: 'user-1' });
+
+    expect(mine).toHaveLength(1);
+    expect(mine[0].integrationName).toBe('Notion');
+    expect(mine.every((request) => request.userId === 'user-1')).toBe(true);
+  });
+
+  it("listIntegrationFeatureRequests surfaces the user's own + org-scoped requests when an org is given", async () => {
+    const store = new TestApiStore();
+
+    // user-1's own request, no org.
+    await store.createIntegrationFeatureRequest({
+      userId: 'user-1',
+      integrationName: 'Notion',
+      useCaseDescription: 'Docs sync.',
+    });
+
+    // a teammate's request in the same org.
+    await store.createIntegrationFeatureRequest({
+      userId: 'user-2',
+      organizationId: 'org-a',
+      integrationName: 'Stripe',
+      useCaseDescription: 'Billing.',
+    });
+
+    // an unrelated org's request must not leak.
+    await store.createIntegrationFeatureRequest({
+      userId: 'user-3',
+      organizationId: 'org-b',
+      integrationName: 'Twilio',
+      useCaseDescription: 'SMS.',
+    });
+
+    const scoped = await store.listIntegrationFeatureRequests({ userId: 'user-1', organizationId: 'org-a' });
+
+    expect(scoped.map((request) => request.integrationName).sort()).toEqual(['Notion', 'Stripe']);
+    expect(scoped.some((request) => request.integrationName === 'Twilio')).toBe(false);
+
+    // Most-recent-first ordering.
+    expect(scoped[0].createdAt >= scoped[scoped.length - 1].createdAt).toBe(true);
+  });
+});

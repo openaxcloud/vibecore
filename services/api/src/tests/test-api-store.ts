@@ -14,6 +14,7 @@ import type {
   AiCostLedgerRecord,
   AiConversationRecord,
   AiMessageRecord,
+  IntegrationFeatureRequestRecord,
   AiTokenUsageRecord,
   AiToolCallRecord,
   AgentCheckpointRecord,
@@ -118,6 +119,7 @@ export class TestApiStore implements ApiStore {
   readonly supportTickets = new Map<string, SupportTicketRecord>();
   readonly featureFlags = new Map<string, FeatureFlagRecord>();
   readonly abuseEvents = new Map<string, AbuseEventRecord>();
+  readonly integrationFeatureRequests = new Map<string, IntegrationFeatureRequestRecord>();
   readonly systemSettings = new Map<string, SystemSettingRecord>();
   readonly emailVerifications = new Map<
     string,
@@ -1603,6 +1605,39 @@ export class TestApiStore implements ApiStore {
     const take = filter?.take ?? 1000;
 
     return events.slice(0, take);
+  }
+
+  async createIntegrationFeatureRequest(input: {
+    userId: string;
+    organizationId?: string;
+    integrationName: string;
+    useCaseDescription: string;
+  }) {
+    const request: IntegrationFeatureRequestRecord = {
+      id: id('intreq'),
+      userId: input.userId,
+      organizationId: input.organizationId,
+      integrationName: input.integrationName,
+      useCaseDescription: input.useCaseDescription,
+      status: 'pending',
+      createdAt: now(),
+    };
+    this.integrationFeatureRequests.set(request.id, request);
+
+    return request;
+  }
+
+  async listIntegrationFeatureRequests(filter: { userId: string; organizationId?: string; take?: number }) {
+    const requests = [...this.integrationFeatureRequests.values()].filter((request) =>
+      filter.organizationId
+        ? request.userId === filter.userId || request.organizationId === filter.organizationId
+        : request.userId === filter.userId,
+    );
+
+    // Most-recent-first, matching prisma-store's orderBy: { createdAt: 'desc' }.
+    requests.sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0));
+
+    return requests.slice(0, filter.take ?? 200);
   }
 
   async setSystemSetting(input: { key: string; value?: unknown }) {
