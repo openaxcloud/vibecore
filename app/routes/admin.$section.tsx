@@ -233,6 +233,19 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => [
   { title: data ? `${data.config.title} - E-Code` : 'Admin - E-Code' },
 ];
 
+/*
+ * Audit-log sections support a CSV/JSON file download via `?export=csv|json`.
+ * The API base URL is server-only (can be an internal cluster host), so a raw
+ * browser anchor to the API would not authenticate or resolve. Instead the
+ * loader fetches the export over the session cookie and streams it back as a
+ * downloadable attachment. CSV comes back from the API as text/csv (a string);
+ * JSON comes back parsed, so we re-stringify it.
+ */
+const AUDIT_EXPORT_ENDPOINTS: Record<string, string> = {
+  'audit-logs': '/admin/audit-logs',
+  'admin-audit-logs': '/admin/admin-audit-logs',
+};
+
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   await requirePlatformAdmin(request);
 
@@ -241,6 +254,27 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   if (!config) {
     throw json({ error: 'Admin section is not available.' }, { status: 404 });
+  }
+
+  const url = new URL(request.url);
+  const exportFormat = url.searchParams.get('export');
+
+  if (exportFormat && AUDIT_EXPORT_ENDPOINTS[section]) {
+    const format = exportFormat === 'csv' ? 'csv' : 'json';
+    const result = await apiRequest<unknown>(request, `${AUDIT_EXPORT_ENDPOINTS[section]}?format=${format}`);
+
+    const body =
+      format === 'csv' ? (typeof result === 'string' ? result : String(result ?? '')) : JSON.stringify(result, null, 2);
+
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+
+    return new Response(body, {
+      headers: {
+        'content-type': format === 'csv' ? 'text/csv; charset=utf-8' : 'application/json; charset=utf-8',
+        'content-disposition': `attachment; filename="${section}-${stamp}.${format}"`,
+        'cache-control': 'no-store',
+      },
+    });
   }
 
   // Sections without an endpoint (developer-tools) render self-fetching panels.
@@ -457,6 +491,90 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json({ ok: true, rowId: key, message: `Saved system setting "${key}".` });
     }
 
+    // Workspace lifecycle actions (Stop / Restart / Delete).
+    if (intent === 'workspace-stop' || intent === 'workspace-restart' || intent === 'workspace-delete') {
+      const workspaceId = String(form.get('workspaceId') ?? '');
+
+      if (!workspaceId) {
+        return json({ ok: false, error: 'Missing workspace.' }, { status: 400 });
+      }
+
+      if (intent === 'workspace-delete') {
+        await apiRequest(request, `/admin/workspaces/${workspaceId}`, { method: 'DELETE', redirectOn401: false });
+        return json({ ok: true, rowId: workspaceId, message: 'Workspace deleted (pod + storage reclaimed).' });
+      }
+
+      const verb = intent === 'workspace-stop' ? 'stop' : 'restart';
+      await apiRequest(request, `/admin/workspaces/${workspaceId}/${verb}`, {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({}),
+      });
+
+      return json({
+        ok: true,
+        rowId: workspaceId,
+        message: verb === 'stop' ? 'Workspace stopped.' : 'Workspace restarted.',
+      });
+    }
+
+    // Abuse event resolve.
+    if (intent === 'abuse-resolve') {
+      const abuseEventId = String(form.get('abuseEventId') ?? '');
+
+      if (!abuseEventId) {
+        return json({ ok: false, error: 'Missing abuse event.' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/admin/abuse-events/${abuseEventId}/resolve`, {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({}),
+      });
+
+      return json({ ok: true, rowId: abuseEventId, message: 'Abuse event resolved.' });
+    }
+
+    // Organization suspend. (No unsuspend endpoint exists server-side today.)
+    if (intent === 'org-suspend') {
+      const organizationId = String(form.get('organizationId') ?? '');
+
+      if (!organizationId) {
+        return json({ ok: false, error: 'Missing organization.' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/admin/orgs/${organizationId}/suspend`, {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({}),
+      });
+
+      return json({ ok: true, rowId: organizationId, message: 'Organization suspended.' });
+    }
+
+    // Support ticket respond (status + response body).
+    if (intent === 'support-respond') {
+      const ticketId = String(form.get('ticketId') ?? '');
+      const response = String(form.get('response') ?? '').trim();
+      const status = String(form.get('status') ?? 'PENDING');
+
+      if (!ticketId) {
+        return json({ ok: false, error: 'Missing ticket.' }, { status: 400 });
+      }
+
+      if (!response) {
+        return json({ ok: false, rowId: ticketId, error: 'Enter a response message.' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/admin/support-tickets/${ticketId}/respond`, {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({ status, response }),
+      });
+
+      return json({ ok: true, rowId: ticketId, message: `Response sent (${status}).` });
+    }
+
     if (!userId) {
       return json({ ok: false, error: 'Missing user.' }, { status: 400 });
     }
@@ -525,7 +643,18 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 export default function AdminSectionPage() {
-  const { section, config, payload } = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
+
+  /*
+   * The loader returns a downloadable `Response` for `?export=…` (the browser
+   * handles it as a file download, the component never renders with it). Narrow
+   * to the page-data shape for normal navigations.
+   */
+  if (!data || !('config' in data)) {
+    return null;
+  }
+
+  const { section, config, payload } = data;
 
   return (
     <AppShell
@@ -545,6 +674,11 @@ export default function AdminSectionPage() {
           {section === 'oauth-providers' ? <OauthProvidersPanel payload={payload} /> : null}
           {section === 'quotas' ? <QuotaOverridePanel /> : null}
           {section === 'system-settings' ? <SystemSettingUpsertPanel /> : null}
+          {section === 'workspaces' ? <WorkspacesPanel payload={payload} /> : null}
+          {section === 'abuse-events' ? <AbuseEventsPanel payload={payload} /> : null}
+          {section === 'organizations' ? <OrganizationsPanel payload={payload} /> : null}
+          {section === 'support-tickets' ? <SupportTicketsPanel payload={payload} /> : null}
+          {section === 'audit-logs' || section === 'admin-audit-logs' ? <AuditExportPanel section={section} /> : null}
           {section === 'developer-tools' ? <DeveloperToolsPanel /> : null}
           {![
             'overview',
@@ -554,6 +688,10 @@ export default function AdminSectionPage() {
             'models',
             'feature-flags',
             'oauth-providers',
+            'workspaces',
+            'abuse-events',
+            'organizations',
+            'support-tickets',
             'developer-tools',
           ].includes(section) ? (
             <DataPanel config={config} payload={payload} />
@@ -1305,6 +1443,565 @@ function SystemSettingUpsertPanel() {
         </button>
         {fetcher.data?.message ? <span className="text-xs text-emerald-400">{fetcher.data.message}</span> : null}
         {fetcher.data?.error ? <span className="text-xs text-rose-400">{fetcher.data.error}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+/*
+ * Shared password step-up header used by the operational panels below. The
+ * admin types their password once; each row action submits it with the intent
+ * and the route action re-authenticates (≤5 min) before mutating — identical to
+ * UsersPanel. The password is sent only with the action and never stored.
+ */
+function ReauthHeader({
+  password,
+  onChange,
+  hint,
+}: {
+  password: string;
+  onChange: (value: string) => void;
+  hint: string;
+}) {
+  return (
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Confirm changes with your password</h3>
+      <p className="mt-1 text-xs text-bolt-elements-textSecondary">{hint}</p>
+      <input
+        type="password"
+        value={password}
+        onChange={(event) => onChange(event.target.value)}
+        autoComplete="current-password"
+        placeholder="Your password"
+        data-testid="admin-reauth-password"
+        className="mt-3 w-full max-w-sm rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
+      />
+    </div>
+  );
+}
+
+const ROW_BTN =
+  'inline-flex items-center rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50';
+
+const ROW_DANGER = `${ROW_BTN} border-red-500/40 text-red-600 hover:bg-red-500/10 dark:text-red-400`;
+
+function RowFeedback({ data }: { data?: { message?: string; error?: string } }) {
+  return (
+    <>
+      {data?.message ? (
+        <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
+          <span className="i-ph:check-circle-fill" aria-hidden />
+          {data.message}
+        </p>
+      ) : null}
+      {data?.error ? (
+        <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
+          <span className="i-ph:warning-circle-fill" aria-hidden />
+          {data.error}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+type AdminWorkspace = {
+  id: string;
+  name?: string;
+  projectId?: string;
+  status?: string;
+  runtimeMode?: string;
+  environment?: string;
+};
+
+/*
+ * Operational workspace panel: per-row Stop / Restart / Delete wired to the
+ * existing POST/DELETE /admin/workspaces/:id endpoints. Delete is destructive →
+ * an explicit confirm gate plus the password step-up (the action re-auths too).
+ */
+function WorkspacesPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const workspaces = (Array.isArray(payload.workspaces) ? payload.workspaces : []) as AdminWorkspace[];
+  const [password, setPassword] = useState('');
+
+  return (
+    <div className="grid gap-4">
+      <ReauthHeader
+        password={password}
+        onChange={setPassword}
+        hint="Workspace actions are step-up protected. Enter your password once, then Stop / Restart / Delete a workspace below. Delete reclaims the pod and storage and cannot be undone."
+      />
+
+      <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
+        <table className="w-full min-w-[680px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
+              <th className="px-4 py-3 font-medium">Workspace</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {workspaces.length === 0 ? (
+              <tr>
+                <td className="px-4 py-3 text-bolt-elements-textSecondary" colSpan={3}>
+                  No workspaces found.
+                </td>
+              </tr>
+            ) : (
+              workspaces.map((workspace) => (
+                <WorkspaceRow key={workspace.id} workspace={workspace} password={password} />
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function WorkspaceRow({ workspace, password }: { workspace: AdminWorkspace; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+  const status = String(workspace.status ?? 'UNKNOWN');
+  const running = ['PENDING', 'STARTING', 'RUNNING'].includes(status);
+
+  const run = (intent: string) => {
+    fetcher.submit({ intent, workspaceId: workspace.id, password }, { method: 'post' });
+  };
+
+  const confirmDelete = () => {
+    if (
+      window.confirm(
+        `Delete workspace "${workspace.name ?? workspace.id}"? This reclaims its pod and storage and cannot be undone.`,
+      )
+    ) {
+      run('workspace-delete');
+    }
+  };
+
+  const statusTone = status === 'FAILED' ? 'danger' : running ? 'ok' : 'muted';
+
+  return (
+    <tr className="border-b border-bolt-elements-borderColor align-top last:border-b-0">
+      <td className="px-4 py-3">
+        <div className="font-medium text-bolt-elements-textPrimary">{workspace.name ?? workspace.id}</div>
+        <div className="text-xs text-bolt-elements-textSecondary">{workspace.id}</div>
+        {workspace.runtimeMode || workspace.environment ? (
+          <div className="text-xs text-bolt-elements-textTertiary">
+            {[workspace.runtimeMode, workspace.environment].filter(Boolean).join(' · ')}
+          </div>
+        ) : null}
+      </td>
+      <td className="px-4 py-3">
+        <StatusPill tone={statusTone}>{status.toLowerCase()}</StatusPill>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            className={ROW_BTN}
+            disabled={busy || !password}
+            data-testid={`workspace-stop-${workspace.id}`}
+            onClick={() => run('workspace-stop')}
+          >
+            Stop
+          </button>
+          <button
+            type="button"
+            className={ROW_BTN}
+            disabled={busy || !password}
+            data-testid={`workspace-restart-${workspace.id}`}
+            onClick={() => run('workspace-restart')}
+          >
+            Restart
+          </button>
+          <button
+            type="button"
+            className={ROW_DANGER}
+            disabled={busy || !password}
+            data-testid={`workspace-delete-${workspace.id}`}
+            onClick={confirmDelete}
+          >
+            Delete
+          </button>
+        </div>
+        {!password && !busy ? (
+          <p className="mt-1.5 text-xs text-bolt-elements-textTertiary">Enter your password above to enable actions.</p>
+        ) : null}
+        <RowFeedback data={fetcher.data} />
+      </td>
+    </tr>
+  );
+}
+
+type AdminAbuseEvent = {
+  id: string;
+  organizationId?: string;
+  userId?: string;
+  type?: string;
+  severity?: string;
+  resolved?: boolean;
+  createdAt?: string;
+};
+
+/*
+ * Abuse-event review panel: per-row Resolve wired to POST
+ * /admin/abuse-events/:id/resolve. The Resolve button hides once the row is
+ * resolved (the loader payload may omit `resolved`; we hide on the fetcher's
+ * success too, so a just-resolved row stops offering the action).
+ */
+function AbuseEventsPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const events = (Array.isArray(payload.abuseEvents) ? payload.abuseEvents : []) as AdminAbuseEvent[];
+  const [password, setPassword] = useState('');
+
+  return (
+    <div className="grid gap-4">
+      <ReauthHeader
+        password={password}
+        onChange={setPassword}
+        hint="Resolving an abuse event is step-up protected. Enter your password once, then Resolve events below."
+      />
+
+      <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
+        <table className="w-full min-w-[680px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
+              <th className="px-4 py-3 font-medium">Event</th>
+              <th className="px-4 py-3 font-medium">Severity</th>
+              <th className="px-4 py-3 font-medium">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {events.length === 0 ? (
+              <tr>
+                <td className="px-4 py-3 text-bolt-elements-textSecondary" colSpan={3}>
+                  No abuse events found.
+                </td>
+              </tr>
+            ) : (
+              events.map((event) => <AbuseEventRow key={event.id} event={event} password={password} />)
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AbuseEventRow({ event, password }: { event: AdminAbuseEvent; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+  const resolved = event.resolved === true || fetcher.data?.ok === true;
+  const severity = String(event.severity ?? 'unknown');
+  const tone = severity === 'critical' || severity === 'high' ? 'danger' : 'muted';
+
+  return (
+    <tr className="border-b border-bolt-elements-borderColor align-top last:border-b-0">
+      <td className="px-4 py-3">
+        <div className="font-medium text-bolt-elements-textPrimary">{event.type ?? event.id}</div>
+        <div className="text-xs text-bolt-elements-textSecondary">
+          {[event.organizationId ? `org ${event.organizationId}` : null, event.userId ? `user ${event.userId}` : null]
+            .filter(Boolean)
+            .join(' · ') || event.id}
+        </div>
+        {event.createdAt ? <div className="text-xs text-bolt-elements-textTertiary">{event.createdAt}</div> : null}
+      </td>
+      <td className="px-4 py-3">
+        <StatusPill tone={tone}>{severity}</StatusPill>
+      </td>
+      <td className="px-4 py-3">
+        {resolved ? (
+          <StatusPill tone="ok">resolved</StatusPill>
+        ) : (
+          <>
+            <button
+              type="button"
+              className={ROW_BTN}
+              disabled={busy || !password}
+              data-testid={`abuse-resolve-${event.id}`}
+              onClick={() =>
+                fetcher.submit({ intent: 'abuse-resolve', abuseEventId: event.id, password }, { method: 'post' })
+              }
+            >
+              {busy ? 'Resolving…' : 'Resolve'}
+            </button>
+            {!password && !busy ? (
+              <p className="mt-1.5 text-xs text-bolt-elements-textTertiary">Enter your password above first.</p>
+            ) : null}
+          </>
+        )}
+        <RowFeedback data={fetcher.data} />
+      </td>
+    </tr>
+  );
+}
+
+type AdminOrganization = {
+  id: string;
+  name?: string;
+  slug?: string;
+  createdAt?: string;
+};
+
+/*
+ * Organization panel: per-row Suspend wired to POST /admin/orgs/:id/suspend.
+ * The suspended state is derived from the loader's `suspendedOrganizationIds`.
+ * NOTE: the API exposes only suspend today (no unsuspend endpoint), so a
+ * suspended org shows a disabled "Suspended" state rather than a reactivate
+ * action — wiring an Unsuspend button to a non-existent endpoint would 404.
+ */
+function OrganizationsPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const organizations = (Array.isArray(payload.organizations) ? payload.organizations : []) as AdminOrganization[];
+
+  const suspendedIds = new Set(
+    (Array.isArray(payload.suspendedOrganizationIds) ? payload.suspendedOrganizationIds : []).map(String),
+  );
+
+  const [password, setPassword] = useState('');
+
+  return (
+    <div className="grid gap-4">
+      <ReauthHeader
+        password={password}
+        onChange={setPassword}
+        hint="Suspending an organization is step-up protected. Enter your password once, then suspend organizations below."
+      />
+
+      <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
+        <table className="w-full min-w-[680px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
+              <th className="px-4 py-3 font-medium">Organization</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {organizations.length === 0 ? (
+              <tr>
+                <td className="px-4 py-3 text-bolt-elements-textSecondary" colSpan={3}>
+                  No organizations found.
+                </td>
+              </tr>
+            ) : (
+              organizations.map((org) => (
+                <OrganizationRow key={org.id} org={org} suspended={suspendedIds.has(org.id)} password={password} />
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function OrganizationRow({
+  org,
+  suspended,
+  password,
+}: {
+  org: AdminOrganization;
+  suspended: boolean;
+  password: string;
+}) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+  const isSuspended = suspended || fetcher.data?.ok === true;
+
+  return (
+    <tr className="border-b border-bolt-elements-borderColor align-top last:border-b-0">
+      <td className="px-4 py-3">
+        <div className="font-medium text-bolt-elements-textPrimary">{org.name ?? org.id}</div>
+        <div className="text-xs text-bolt-elements-textSecondary">{org.slug ?? org.id}</div>
+      </td>
+      <td className="px-4 py-3">
+        {isSuspended ? <StatusPill tone="danger">suspended</StatusPill> : <StatusPill tone="ok">active</StatusPill>}
+      </td>
+      <td className="px-4 py-3">
+        {isSuspended ? (
+          <span className="text-xs text-bolt-elements-textTertiary">Suspended</span>
+        ) : (
+          <>
+            <button
+              type="button"
+              className={ROW_DANGER}
+              disabled={busy || !password}
+              data-testid={`org-suspend-${org.id}`}
+              onClick={() =>
+                fetcher.submit({ intent: 'org-suspend', organizationId: org.id, password }, { method: 'post' })
+              }
+            >
+              {busy ? 'Suspending…' : 'Suspend'}
+            </button>
+            {!password && !busy ? (
+              <p className="mt-1.5 text-xs text-bolt-elements-textTertiary">Enter your password above first.</p>
+            ) : null}
+          </>
+        )}
+        <RowFeedback data={fetcher.data} />
+      </td>
+    </tr>
+  );
+}
+
+type AdminSupportTicket = {
+  id: string;
+  organizationId?: string;
+  userId?: string;
+  subject?: string;
+  status?: string;
+  createdAt?: string;
+};
+
+const TICKET_STATUSES = ['OPEN', 'PENDING', 'RESOLVED', 'CLOSED'] as const;
+
+/*
+ * Support-ticket panel: per-ticket Respond form (status select + response
+ * textarea) wired to POST /admin/support-tickets/:id/respond. Step-up protected.
+ */
+function SupportTicketsPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const tickets = (Array.isArray(payload.tickets) ? payload.tickets : []) as AdminSupportTicket[];
+  const [password, setPassword] = useState('');
+
+  return (
+    <div className="grid gap-4">
+      <ReauthHeader
+        password={password}
+        onChange={setPassword}
+        hint="Responding to a ticket is step-up protected. Enter your password once, then respond to tickets below."
+      />
+
+      <div className="grid gap-4">
+        {tickets.length === 0 ? (
+          <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-sm text-bolt-elements-textSecondary shadow-sm">
+            No support tickets found.
+          </div>
+        ) : (
+          tickets.map((ticket) => <SupportTicketCard key={ticket.id} ticket={ticket} password={password} />)
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SupportTicketCard({ ticket, password }: { ticket: AdminSupportTicket; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+  const [status, setStatus] = useState<string>(ticket.status ?? 'PENDING');
+  const [response, setResponse] = useState('');
+
+  const inputClass =
+    'mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive';
+
+  const submit = () => {
+    fetcher.submit({ intent: 'support-respond', ticketId: ticket.id, status, response, password }, { method: 'post' });
+    setResponse('');
+  };
+
+  const currentTone =
+    ticket.status === 'RESOLVED' || ticket.status === 'CLOSED' ? 'ok' : ticket.status === 'OPEN' ? 'danger' : 'muted';
+
+  return (
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">{ticket.subject ?? ticket.id}</h3>
+          <p className="mt-0.5 text-xs text-bolt-elements-textSecondary">
+            {[
+              ticket.organizationId ? `org ${ticket.organizationId}` : null,
+              ticket.userId ? `user ${ticket.userId}` : null,
+            ]
+              .filter(Boolean)
+              .join(' · ') || ticket.id}
+            {ticket.createdAt ? ` · ${ticket.createdAt}` : ''}
+          </p>
+        </div>
+        <StatusPill tone={currentTone}>{String(ticket.status ?? 'unknown').toLowerCase()}</StatusPill>
+      </div>
+
+      <div className="mt-3 grid gap-3">
+        <label className="block text-xs text-bolt-elements-textSecondary sm:max-w-xs">
+          New status
+          <select
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
+            data-testid={`ticket-status-${ticket.id}`}
+            className={inputClass}
+          >
+            {TICKET_STATUSES.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Response
+          <textarea
+            value={response}
+            onChange={(event) => setResponse(event.target.value)}
+            rows={3}
+            placeholder="Write your response to the customer…"
+            data-testid={`ticket-response-${ticket.id}`}
+            className={inputClass}
+          />
+        </label>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          disabled={busy || !password || !response.trim()}
+          onClick={submit}
+          data-testid={`ticket-respond-${ticket.id}`}
+          className="inline-flex items-center rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {busy ? 'Sending…' : 'Send response'}
+        </button>
+        {!password ? (
+          <span className="text-xs text-bolt-elements-textTertiary">Enter your password above first.</span>
+        ) : null}
+        {fetcher.data?.message ? <span className="text-xs text-emerald-400">{fetcher.data.message}</span> : null}
+        {fetcher.data?.error ? <span className="text-xs text-rose-400">{fetcher.data.error}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+/*
+ * Audit-log export header (sits above the read-only DataPanel table). Each
+ * button is an anchor to `?export=csv|json`, which the loader serves as a
+ * downloadable attachment over the session cookie — no client token handling.
+ */
+function AuditExportPanel({ section }: { section: string }) {
+  const linkClass =
+    'inline-flex items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3';
+
+  return (
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Export</h3>
+      <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+        Download the full audit trail. The export is generated server-side over your admin session.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <a
+          className={linkClass}
+          href={`/admin/${section}?export=csv`}
+          download
+          data-testid={`audit-export-csv-${section}`}
+        >
+          <span className="i-ph:file-csv" aria-hidden />
+          Export CSV
+        </a>
+        <a
+          className={linkClass}
+          href={`/admin/${section}?export=json`}
+          download
+          data-testid={`audit-export-json-${section}`}
+        >
+          <span className="i-ph:file-text" aria-hidden />
+          Export JSON
+        </a>
       </div>
     </div>
   );
