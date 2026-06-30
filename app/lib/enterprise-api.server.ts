@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { data as json, redirect, type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
 import { json as jsonResponse } from '~/lib/json-response';
 
@@ -98,6 +99,25 @@ export function readSessionToken(request: Request) {
      */
     return undefined;
   }
+}
+
+/*
+ * SHA-256 of the caller's raw session token, matching the `tokenHash` the API
+ * stores per session (`@vibecore/auth` hashToken = sha256 hex). The API's
+ * `GET /auth/sessions` returns each session's `tokenHash`, but no per-row
+ * "current" flag; comparing this digest against those hashes lets a server
+ * loader mark the caller's own session as "this device" WITHOUT shipping the
+ * raw token or hash to the browser. Server-only (uses node:crypto, and the
+ * token must never reach client code). Returns undefined when unauthenticated.
+ */
+export function currentSessionTokenHash(request: Request): string | undefined {
+  const token = readSessionToken(request);
+
+  if (!token) {
+    return undefined;
+  }
+
+  return createHash('sha256').update(token).digest('hex');
 }
 
 /*
