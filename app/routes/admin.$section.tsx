@@ -150,6 +150,15 @@ const adminSections: Record<string, AdminSectionConfig> = {
     endpoint: '/admin/system-settings',
     primaryKey: 'settings',
   },
+  'ops-controls': {
+    title: 'Ops controls',
+    description:
+      'Platform-wide operational broadcasts — maintenance mode, user announcements and the incident banner. Step-up protected; changes take effect immediately.',
+
+    // Reuses the system-settings read so the forms can prefill current state.
+    endpoint: '/admin/system-settings',
+    primaryKey: 'settings',
+  },
   costs: {
     title: 'Costs',
     description: 'AI cost totals and usage records.',
@@ -219,6 +228,7 @@ const navItems = [
   'account-deletions',
   'feature-flags',
   'system-settings',
+  'ops-controls',
   'costs',
   'providers',
   'models',
@@ -491,6 +501,81 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json({ ok: true, rowId: key, message: `Saved system setting "${key}".` });
     }
 
+    // Ops controls — platform-wide operational broadcasts.
+    if (intent === 'maintenance-mode') {
+      const enabled = String(form.get('enabled')) === 'true';
+      const message = String(form.get('message') ?? '').trim();
+
+      // adminMaintenanceSchema: { enabled: boolean, message?: string }
+      const body: Record<string, unknown> = { enabled };
+
+      if (message) {
+        body.message = message;
+      }
+
+      await apiRequest(request, '/admin/maintenance-mode', {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify(body),
+      });
+
+      return json({
+        ok: true,
+        rowId: 'maintenance-mode',
+        message: enabled ? 'Maintenance mode enabled.' : 'Maintenance mode disabled.',
+      });
+    }
+
+    if (intent === 'announcement') {
+      const message = String(form.get('message') ?? '').trim();
+      const severity = String(form.get('severity') ?? 'info');
+      const active = String(form.get('active')) === 'true';
+
+      // adminAnnouncementSchema requires a non-empty message even when clearing.
+      if (!message) {
+        return json({ ok: false, rowId: 'announcement', error: 'Enter an announcement message.' }, { status: 400 });
+      }
+
+      await apiRequest(request, '/admin/announcements', {
+        method: 'POST',
+        redirectOn401: false,
+
+        // adminAnnouncementSchema: { message, severity: info|warning|critical, active }
+        body: JSON.stringify({ message, severity, active }),
+      });
+
+      return json({
+        ok: true,
+        rowId: 'announcement',
+        message: active ? 'Announcement published.' : 'Announcement cleared.',
+      });
+    }
+
+    if (intent === 'incident-banner') {
+      const message = String(form.get('message') ?? '').trim();
+      const status = String(form.get('status') ?? 'investigating');
+      const active = String(form.get('active')) === 'true';
+
+      // adminIncidentSchema requires a non-empty message even when clearing.
+      if (!message) {
+        return json({ ok: false, rowId: 'incident-banner', error: 'Enter an incident message.' }, { status: 400 });
+      }
+
+      await apiRequest(request, '/admin/incident-banner', {
+        method: 'POST',
+        redirectOn401: false,
+
+        // adminIncidentSchema: { message, status: investigating|identified|monitoring|resolved, active }
+        body: JSON.stringify({ message, status, active }),
+      });
+
+      return json({
+        ok: true,
+        rowId: 'incident-banner',
+        message: active ? 'Incident banner published.' : 'Incident banner cleared.',
+      });
+    }
+
     // Workspace lifecycle actions (Stop / Restart / Delete).
     if (intent === 'workspace-stop' || intent === 'workspace-restart' || intent === 'workspace-delete') {
       const workspaceId = String(form.get('workspaceId') ?? '');
@@ -674,6 +759,7 @@ export default function AdminSectionPage() {
           {section === 'oauth-providers' ? <OauthProvidersPanel payload={payload} /> : null}
           {section === 'quotas' ? <QuotaOverridePanel /> : null}
           {section === 'system-settings' ? <SystemSettingUpsertPanel /> : null}
+          {section === 'ops-controls' ? <OpsControlsPanel payload={payload} /> : null}
           {section === 'workspaces' ? <WorkspacesPanel payload={payload} /> : null}
           {section === 'abuse-events' ? <AbuseEventsPanel payload={payload} /> : null}
           {section === 'organizations' ? <OrganizationsPanel payload={payload} /> : null}
@@ -693,6 +779,7 @@ export default function AdminSectionPage() {
             'organizations',
             'support-tickets',
             'developer-tools',
+            'ops-controls',
           ].includes(section) ? (
             <DataPanel config={config} payload={payload} />
           ) : null}
@@ -1443,6 +1530,300 @@ function SystemSettingUpsertPanel() {
         </button>
         {fetcher.data?.message ? <span className="text-xs text-emerald-400">{fetcher.data.message}</span> : null}
         {fetcher.data?.error ? <span className="text-xs text-rose-400">{fetcher.data.error}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+/*
+ * Ops controls — three platform-wide operational broadcasts, each wired to an
+ * existing API endpoint (no new backend). Step-up protected: the admin types
+ * their password once in the shared header and every card submits it with its
+ * intent so the route action re-authenticates (≤5 min) before mutating.
+ *
+ * Current state is read from /admin/system-settings (the section endpoint) so
+ * each card prefills from its stored key:
+ *   admin.maintenanceMode → { enabled, message }
+ *   admin.announcement    → { message, severity, active }
+ *   admin.incidentBanner  → { message, status, active }
+ */
+type SystemSettingRow = { key: string; value: JsonValue };
+
+function readSetting(payload: Record<string, JsonValue>, key: string): Record<string, JsonValue> {
+  const rows = (Array.isArray(payload.settings) ? payload.settings : []) as SystemSettingRow[];
+  const row = rows.find((item) => item && item.key === key);
+
+  return row && typeof row.value === 'object' && row.value !== null && !Array.isArray(row.value)
+    ? (row.value as Record<string, JsonValue>)
+    : {};
+}
+
+const OPS_INPUT =
+  'mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive';
+
+const OPS_PRIMARY_BTN =
+  'inline-flex items-center rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50';
+
+function OpsControlsPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const [password, setPassword] = useState('');
+
+  const maintenance = readSetting(payload, 'admin.maintenanceMode');
+  const announcement = readSetting(payload, 'admin.announcement');
+  const incident = readSetting(payload, 'admin.incidentBanner');
+
+  return (
+    <div className="grid gap-4">
+      <ReauthHeader
+        password={password}
+        onChange={setPassword}
+        hint="These are platform-wide broadcasts that take effect immediately. Enter your password once, then publish or clear maintenance mode, an announcement or the incident banner below."
+      />
+
+      <MaintenanceModeCard current={maintenance} password={password} />
+      <AnnouncementCard current={announcement} password={password} />
+      <IncidentBannerCard current={incident} password={password} />
+    </div>
+  );
+}
+
+function MaintenanceModeCard({ current, password }: { current: Record<string, JsonValue>; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+
+  const [enabled, setEnabled] = useState(current.enabled === true);
+  const [message, setMessage] = useState(typeof current.message === 'string' ? current.message : '');
+
+  const submit = (next: boolean) => {
+    setEnabled(next);
+    fetcher.submit({ intent: 'maintenance-mode', enabled: String(next), message, password }, { method: 'post' });
+  };
+
+  return (
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Maintenance mode</h3>
+        <span
+          className={
+            enabled
+              ? 'rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400'
+              : 'rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs font-medium text-bolt-elements-textSecondary'
+          }
+        >
+          {enabled ? 'On' : 'Off'}
+        </span>
+      </div>
+      <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+        When on, the platform signals maintenance to users. The optional message is shown alongside the maintenance
+        state.
+      </p>
+
+      <label className="mt-3 block text-xs text-bolt-elements-textSecondary">
+        Message (optional)
+        <input
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+          placeholder="e.g. Scheduled maintenance until 18:00 UTC"
+          data-testid="ops-maintenance-message"
+          className={OPS_INPUT}
+        />
+      </label>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        {enabled ? (
+          <button
+            type="button"
+            disabled={busy || !password}
+            onClick={() => submit(false)}
+            data-testid="ops-maintenance-disable"
+            className={OPS_PRIMARY_BTN}
+          >
+            {busy ? 'Saving…' : 'Disable maintenance'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={busy || !password}
+            onClick={() => submit(true)}
+            data-testid="ops-maintenance-enable"
+            className={OPS_PRIMARY_BTN}
+          >
+            {busy ? 'Saving…' : 'Enable maintenance'}
+          </button>
+        )}
+        <RowFeedback data={fetcher.data} />
+      </div>
+    </div>
+  );
+}
+
+function AnnouncementCard({ current, password }: { current: Record<string, JsonValue>; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+
+  const [message, setMessage] = useState(typeof current.message === 'string' ? current.message : '');
+  const [severity, setSeverity] = useState(typeof current.severity === 'string' ? current.severity : 'info');
+
+  const submit = (active: boolean) => {
+    fetcher.submit({ intent: 'announcement', message, severity, active: String(active), password }, { method: 'post' });
+  };
+
+  const active = current.active === true;
+
+  return (
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Announcement</h3>
+        <span
+          className={
+            active
+              ? 'rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400'
+              : 'rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs font-medium text-bolt-elements-textSecondary'
+          }
+        >
+          {active ? 'Live' : 'Inactive'}
+        </span>
+      </div>
+      <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+        Broadcast a banner message to all users. Clearing it publishes the same message with an inactive flag so the
+        banner is dismissed.
+      </p>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-[160px_1fr]">
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Severity
+          <select
+            value={severity}
+            onChange={(event) => setSeverity(event.target.value)}
+            data-testid="ops-announcement-severity"
+            className={OPS_INPUT}
+          >
+            <option value="info">Info</option>
+            <option value="warning">Warning</option>
+            <option value="critical">Critical</option>
+          </select>
+        </label>
+
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Message
+          <textarea
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            rows={2}
+            placeholder="e.g. New features just shipped — check the changelog."
+            data-testid="ops-announcement-message"
+            className={OPS_INPUT}
+          />
+        </label>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          disabled={busy || !password || !message.trim()}
+          onClick={() => submit(true)}
+          data-testid="ops-announcement-publish"
+          className={OPS_PRIMARY_BTN}
+        >
+          {busy ? 'Saving…' : 'Publish announcement'}
+        </button>
+        <button
+          type="button"
+          disabled={busy || !password || !message.trim()}
+          onClick={() => submit(false)}
+          data-testid="ops-announcement-clear"
+          className={OPS_PRIMARY_BTN}
+        >
+          {busy ? 'Saving…' : 'Clear announcement'}
+        </button>
+        <RowFeedback data={fetcher.data} />
+      </div>
+    </div>
+  );
+}
+
+function IncidentBannerCard({ current, password }: { current: Record<string, JsonValue>; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+
+  const [message, setMessage] = useState(typeof current.message === 'string' ? current.message : '');
+  const [status, setStatus] = useState(typeof current.status === 'string' ? current.status : 'investigating');
+
+  const submit = (active: boolean) => {
+    fetcher.submit(
+      { intent: 'incident-banner', message, status, active: String(active), password },
+      { method: 'post' },
+    );
+  };
+
+  const active = current.active === true;
+
+  return (
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Incident banner</h3>
+        <span
+          className={
+            active
+              ? 'rounded-full bg-rose-500/15 px-2 py-0.5 text-xs font-medium text-rose-600 dark:text-rose-400'
+              : 'rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs font-medium text-bolt-elements-textSecondary'
+          }
+        >
+          {active ? 'Live' : 'Inactive'}
+        </span>
+      </div>
+      <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+        Surface an active incident to all users with a status. Mark it resolved and clear to take the banner down.
+      </p>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-[200px_1fr]">
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Status
+          <select
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
+            data-testid="ops-incident-status"
+            className={OPS_INPUT}
+          >
+            <option value="investigating">Investigating</option>
+            <option value="identified">Identified</option>
+            <option value="monitoring">Monitoring</option>
+            <option value="resolved">Resolved</option>
+          </select>
+        </label>
+
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Message
+          <textarea
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            rows={2}
+            placeholder="e.g. Elevated error rates on preview deploys — we're investigating."
+            data-testid="ops-incident-message"
+            className={OPS_INPUT}
+          />
+        </label>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          disabled={busy || !password || !message.trim()}
+          onClick={() => submit(true)}
+          data-testid="ops-incident-publish"
+          className={OPS_PRIMARY_BTN}
+        >
+          {busy ? 'Saving…' : 'Publish incident'}
+        </button>
+        <button
+          type="button"
+          disabled={busy || !password || !message.trim()}
+          onClick={() => submit(false)}
+          data-testid="ops-incident-clear"
+          className={OPS_PRIMARY_BTN}
+        >
+          {busy ? 'Saving…' : 'Clear incident'}
+        </button>
+        <RowFeedback data={fetcher.data} />
       </div>
     </div>
   );
