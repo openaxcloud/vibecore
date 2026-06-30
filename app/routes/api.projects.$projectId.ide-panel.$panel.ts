@@ -2411,27 +2411,47 @@ export async function action({ request, params }: EnterpriseActionArgs) {
           authorEmail: body.authorEmail?.trim() || undefined,
         }),
       });
-    } else if (intent === 'push') {
-      await apiRequest(request, `/projects/${projectId}/git/push`, {
-        method: 'POST',
-        body: JSON.stringify({ branch: body.branch || 'main', workspaceId }),
-      });
-    } else if (intent === 'pull') {
-      await apiRequest(request, `/projects/${projectId}/git/pull`, {
-        method: 'POST',
-        body: JSON.stringify({ branch: body.branch || 'main', workspaceId }),
-      });
-    } else if (intent === 'sync') {
-      // Replit-style "Sync Changes": pull remote updates, then push local commits.
+    } else if (intent === 'push' || intent === 'pull' || intent === 'sync') {
       const branchName = body.branch || 'main';
-      await apiRequest(request, `/projects/${projectId}/git/pull`, {
-        method: 'POST',
-        body: JSON.stringify({ branch: branchName, workspaceId }),
-      });
-      await apiRequest(request, `/projects/${projectId}/git/push`, {
-        method: 'POST',
-        body: JSON.stringify({ branch: branchName, workspaceId }),
-      });
+      const remoteUrl = await resolveProjectRemoteUrl(request, projectId, workspaceId);
+
+      /*
+       * Replit "Option A": when the configured origin speaks SSH, run git INSIDE
+       * the project's isolated workspace pod with its own key (never on the shared
+       * api pod). HTTPS remotes keep using the api-pod git path unchanged, so the
+       * existing commit/HTTPS-push flow is untouched. "Sync" = pull then push.
+       */
+      if (remoteUrl && isSshGitUrl(remoteUrl)) {
+        if (intent === 'sync' || intent === 'pull') {
+          await runWorkspaceSshGit({ request, projectId, workspaceId, op: 'pull', branch: branchName, remoteUrl });
+        }
+
+        if (intent === 'sync' || intent === 'push') {
+          await runWorkspaceSshGit({
+            request,
+            projectId,
+            workspaceId,
+            op: 'push',
+            branch: branchName,
+            remoteUrl,
+            message: body.message,
+          });
+        }
+      } else if (intent === 'sync') {
+        await apiRequest(request, `/projects/${projectId}/git/pull`, {
+          method: 'POST',
+          body: JSON.stringify({ branch: branchName, workspaceId }),
+        });
+        await apiRequest(request, `/projects/${projectId}/git/push`, {
+          method: 'POST',
+          body: JSON.stringify({ branch: branchName, workspaceId }),
+        });
+      } else {
+        await apiRequest(request, `/projects/${projectId}/git/${intent}`, {
+          method: 'POST',
+          body: JSON.stringify({ branch: branchName, workspaceId }),
+        });
+      }
     } else if (intent === 'configure-remote') {
       await apiRequest(request, `/projects/${projectId}/git/remote`, {
         method: 'POST',
@@ -3191,6 +3211,303 @@ export function buildGitSshLsRemoteScript(input: { keyEnvVar: string; repoUrl: s
   const inner = `GIT_SSH_COMMAND="${gitSshCommand}" git ls-remote --heads ${shellQuote(input.repoUrl)}`;
 
   return `${ephemeralSshKeyPrelude(input.keyEnvVar)}\n${inner}\n`;
+}
+
+/*
+ * SSH GIT IN THE WORKSPACE POD (Replit "Option A").
+ *
+ * Real push/pull/fetch over the SSH transport, executed INSIDE the project's own
+ * gVisor-sandboxed workspace pod (never on the shared api pod). The working tree
+ * is `$VIBECORE_GIT_WORKDIR` (the pod's WORKSPACE_ROOT by default), the project's
+ * SSH private key is read from the pod env by NAME only (`keyEnvVar`), and every
+ * git invocation uses `GIT_SSH_COMMAND` bound to that ephemeral key. The api pod
+ * orchestrates by sending the SCRIPT (which references the env-var name) — the
+ * key value never crosses the api boundary.
+ *
+ * The pod working tree is authoritative for content (it is what the user sees and
+ * edits); the SSH remote is authoritative for history. Every op fetches the
+ * remote branch first and bases on it, so the push is a real fast-forward and the
+ * remote's existing history is preserved — exactly the container-side model Replit
+ * uses. The api-pod canonical repo (HTTPS/commit/status) is untouched.
+ */
+const GIT_SSH_PRELUDE = [
+  `export GIT_SSH_COMMAND="ssh -i $VIBECORE_SSH_KEYFILE ${SSH_KEY_OPTS}"`,
+
+  // Run in the pod working tree; WORKSPACE_ROOT is the project root inside the pod.
+  'VIBECORE_GIT_WORKDIR="${VIBECORE_GIT_WORKDIR:-${WORKSPACE_ROOT:-/workspace}}"',
+  'cd "$VIBECORE_GIT_WORKDIR"',
+  'if [ ! -d .git ]; then git init -q; fi',
+
+  /*
+   * A committer identity is required for `git commit`; only set when absent so a
+   * user-configured identity (e.g. the "commit as" selector) is never clobbered.
+   */
+  'git config user.email >/dev/null 2>&1 || git config user.email "you@vibecore.local"',
+  'git config user.name >/dev/null 2>&1 || git config user.name "Vibecore"',
+  'if git remote get-url origin >/dev/null 2>&1; then git remote set-url origin "$URL"; else git remote add origin "$URL"; fi',
+].join('\n');
+
+/** Parse the host out of an SSH git URL (scp-like `git@host:path` or `ssh://host/path`). */
+export function sshHostFromGitUrl(url: string): string | null {
+  const trimmed = (url ?? '').trim();
+  const proto = trimmed.match(/^ssh:\/\/(?:[^@/]+@)?([^:/]+)/i);
+
+  if (proto) {
+    return proto[1].toLowerCase();
+  }
+
+  const scp = trimmed.match(/^[^@\s/]+@([^:\s/]+):/);
+
+  return scp ? scp[1].toLowerCase() : null;
+}
+
+/**
+ * Bind the project's SSH key to the origin with a safe default: prefer the key
+ * whose configured host matches the origin host; otherwise, when exactly one key
+ * exists it is unambiguous, so use it. Returns null when the binding is
+ * ambiguous (multiple keys, none host-matching) so the caller can ask the user
+ * to disambiguate rather than silently offering the wrong identity.
+ */
+export function selectSshConnectionForOrigin<T extends { host?: string | null }>(
+  connections: T[],
+  remoteUrl: string,
+): T | null {
+  const host = sshHostFromGitUrl(remoteUrl);
+
+  if (host) {
+    const match = connections.find((connection) => (connection.host ?? '').trim().toLowerCase() === host);
+
+    if (match) {
+      return match;
+    }
+  }
+
+  return connections.length === 1 ? connections[0] : null;
+}
+
+/**
+ * Push the pod working tree to `origin/<branch>` over SSH. Bases on the remote
+ * tip (without disturbing the working tree) so the push fast-forwards; on a brand
+ * new branch it creates it. Run entirely inside the workspace pod.
+ */
+export function buildGitSshPushScript(input: {
+  keyEnvVar: string;
+  repoUrl: string;
+  branch: string;
+  message: string;
+}): string {
+  const inner = [
+    `URL=${shellQuote(input.repoUrl)}`,
+    `BRANCH=${shellQuote(input.branch)}`,
+    GIT_SSH_PRELUDE,
+
+    /*
+     * Base the local branch on the remote tip WITHOUT overwriting working-tree
+     * files: update-ref + symbolic-ref move HEAD, `reset --mixed` re-points the
+     * index while leaving every file on disk as-is. `git add -A` then stages the
+     * user's real local changes on top of the remote history.
+     */
+    'if git fetch --no-tags --depth=50 origin "$BRANCH" 2>/dev/null; then',
+    '  git update-ref "refs/heads/$BRANCH" FETCH_HEAD',
+    '  git symbolic-ref HEAD "refs/heads/$BRANCH"',
+    '  git reset --mixed -q',
+    'else',
+    '  git checkout -q -B "$BRANCH"',
+    'fi',
+    'git add -A',
+    `if git diff --cached --quiet; then echo "vibecore-git: working tree matches origin/$BRANCH; nothing new to commit"; else git commit -q -m ${shellQuote(
+      input.message,
+    )}; fi`,
+    'git push origin "HEAD:refs/heads/$BRANCH"',
+    'echo "vibecore-git: pushed $(git rev-parse --short HEAD) to origin/$BRANCH"',
+  ].join('\n');
+
+  return `${ephemeralSshKeyPrelude(input.keyEnvVar)}\n${inner}\n`;
+}
+
+/**
+ * Pull `origin/<branch>` over SSH into the pod working tree. Fast-forwards when
+ * possible; on a fresh tree it materializes the remote. A genuine divergence
+ * exits non-zero with an actionable message (real git semantics).
+ */
+export function buildGitSshPullScript(input: { keyEnvVar: string; repoUrl: string; branch: string }): string {
+  const inner = [
+    `URL=${shellQuote(input.repoUrl)}`,
+    `BRANCH=${shellQuote(input.branch)}`,
+    GIT_SSH_PRELUDE,
+    'git fetch --no-tags origin "$BRANCH"',
+    'if git rev-parse -q --verify HEAD >/dev/null 2>&1; then',
+    '  git merge --ff-only FETCH_HEAD || { echo "vibecore-git: cannot fast-forward — local commits diverge from origin/$BRANCH; resolve before pulling" >&2; exit 3; }',
+    'else',
+    '  git update-ref "refs/heads/$BRANCH" FETCH_HEAD',
+    '  git symbolic-ref HEAD "refs/heads/$BRANCH"',
+    '  git reset --hard -q FETCH_HEAD',
+    'fi',
+    'echo "vibecore-git: pulled origin/$BRANCH ($(git rev-parse --short HEAD))"',
+  ].join('\n');
+
+  return `${ephemeralSshKeyPrelude(input.keyEnvVar)}\n${inner}\n`;
+}
+
+/** Read-only `git fetch` of `origin/<branch>` over SSH, in the pod. */
+export function buildGitSshFetchScript(input: { keyEnvVar: string; repoUrl: string; branch: string }): string {
+  const inner = [
+    `URL=${shellQuote(input.repoUrl)}`,
+    `BRANCH=${shellQuote(input.branch)}`,
+    GIT_SSH_PRELUDE,
+    'git fetch --no-tags origin "$BRANCH"',
+    'echo "vibecore-git: fetched origin/$BRANCH ($(git rev-parse --short FETCH_HEAD))"',
+  ].join('\n');
+
+  return `${ephemeralSshKeyPrelude(input.keyEnvVar)}\n${inner}\n`;
+}
+
+/**
+ * The authoritative remote for a push/pull. A non-primary workspace can override
+ * the project-level remote (api parity: Workspace.gitRepositoryUrl wins when set),
+ * so resolve the workspace record first, then fall back to the project record.
+ */
+async function resolveProjectRemoteUrl(
+  request: Request,
+  projectId: string,
+  workspaceId?: string,
+): Promise<string | null> {
+  if (workspaceId) {
+    const workspaces = await apiRequest<{ workspaces?: Array<Record<string, unknown>> }>(
+      request,
+      `/projects/${projectId}/workspaces`,
+    ).catch(() => null);
+
+    const match = workspaces?.workspaces?.find((workspace) => workspace?.id === workspaceId);
+    const url = (match as { gitRepositoryUrl?: unknown } | undefined)?.gitRepositoryUrl;
+
+    if (typeof url === 'string' && url.trim()) {
+      return url.trim();
+    }
+  }
+
+  const project = await apiRequest<{ project?: { gitRepositoryUrl?: unknown } }>(
+    request,
+    `/projects/${projectId}`,
+  ).catch(() => null);
+
+  const url = project?.project?.gitRepositoryUrl;
+
+  return typeof url === 'string' && url.trim() ? url.trim() : null;
+}
+
+/** Concrete workspace to run pod commands in: the requested one, else the primary (oldest). */
+async function resolveSshGitWorkspaceId(
+  request: Request,
+  projectId: string,
+  requested?: string,
+): Promise<string | undefined> {
+  if (requested) {
+    return requested;
+  }
+
+  const workspaces = await apiRequest<{ workspaces?: Array<Record<string, unknown>> }>(
+    request,
+    `/projects/${projectId}/workspaces`,
+  ).catch(() => null);
+
+  const list = Array.isArray(workspaces?.workspaces) ? workspaces!.workspaces! : [];
+  const ordered = [...list].sort((a, b) => String(a?.createdAt ?? '').localeCompare(String(b?.createdAt ?? '')));
+  const id = (ordered[0]?.id ?? list[0]?.id) as unknown;
+
+  return typeof id === 'string' ? id : undefined;
+}
+
+/** SSH connections (id/host/...) configured for this project, from terminal state. */
+async function loadProjectSshConnections(request: Request, projectId: string) {
+  const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`).catch(() => ({}));
+
+  return readTerminalState(envVars).sshConnections as Array<{ id: string; host?: string; name?: string }>;
+}
+
+/**
+ * Run a git push/pull/fetch over SSH INSIDE the project's isolated workspace pod
+ * (Replit "Option A"). Resolves the workspace and the host-bound SSH key, then
+ * executes the materialize-key → GIT_SSH_COMMAND → git script via the workspace
+ * agent. The private key never crosses the api pod — only its env-var name does.
+ */
+async function runWorkspaceSshGit(input: {
+  request: Request;
+  projectId: string;
+  workspaceId?: string;
+  op: 'push' | 'pull' | 'fetch';
+  branch: string;
+  remoteUrl: string;
+  message?: string;
+}): Promise<{ output: string }> {
+  const workspaceId = await resolveSshGitWorkspaceId(input.request, input.projectId, input.workspaceId);
+
+  if (!workspaceId) {
+    throw json(
+      { error: 'Open the workspace before pushing or pulling over SSH — this project has no running workspace yet.' },
+      { status: 409 },
+    );
+  }
+
+  const connections = await loadProjectSshConnections(input.request, input.projectId);
+
+  if (connections.length === 0) {
+    throw json(
+      {
+        error:
+          'No SSH key is configured for this project. Add or generate one in Terminal → SSH, then restart the workspace and retry.',
+      },
+      { status: 400 },
+    );
+  }
+
+  const connection = selectSshConnectionForOrigin(connections, input.remoteUrl);
+
+  if (!connection) {
+    throw json(
+      {
+        error: `Several SSH keys are configured and none matches the origin host (${
+          sshHostFromGitUrl(input.remoteUrl) ?? 'unknown'
+        }). Add a key whose host matches the remote, or keep a single key.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  const keyEnvVar = terminalSshSecretKey(connection.id);
+
+  const script =
+    input.op === 'push'
+      ? buildGitSshPushScript({
+          keyEnvVar,
+          repoUrl: input.remoteUrl,
+          branch: input.branch,
+          message: input.message?.trim() || 'Update from workspace',
+        })
+      : input.op === 'pull'
+        ? buildGitSshPullScript({ keyEnvVar, repoUrl: input.remoteUrl, branch: input.branch })
+        : buildGitSshFetchScript({ keyEnvVar, repoUrl: input.remoteUrl, branch: input.branch });
+
+  const run = await runTerminalCommand(
+    input.request,
+    workspaceId,
+    script,
+    `git ${input.op} ${input.remoteUrl}`,
+    new Date().toISOString(),
+  );
+
+  if (run.exitCode !== 0) {
+    throw json(
+      {
+        error: `git ${input.op} over SSH failed (exit ${run.exitCode}).`,
+        detail: run.output.slice(-1200),
+        code: 'GIT_SSH_FAILED',
+      },
+      { status: 400 },
+    );
+  }
+
+  return { output: run.output };
 }
 
 async function runTerminalCommand(

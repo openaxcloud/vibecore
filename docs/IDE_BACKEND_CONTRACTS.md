@@ -102,7 +102,7 @@ the workspace. State persisted as project env key `VIBECORE_SECURITY_STATE`.
 
 ---
 
-## 3. SSH / Remote — EXPOSED (store + real key-based test + git-over-SSH + keygen) ✅
+## 3. SSH / Remote — EXPOSED (store + key-based test + git-over-SSH + real push/pull + keygen) ✅
 
 Stores SSH connection definitions; private key encrypted in project secrets
 (`TERMINAL_SSH_PRIVATE_KEY_<connectionId>`); tests reachability **with the
@@ -137,7 +137,7 @@ Isolation is **guaranteed by construction**: each pod only carries its own
 project's secrets, so one tenant can never reach another's key. Pure script
 builders (`ephemeralSshKeyPrelude`, `buildSshConnectScript`, `isSshGitUrl`,
 `buildGitSshLsRemoteScript`) are unit-tested (no key value in the emitted
-script). 8 tests.
+script).
 
 **Limitation (by design):** secrets are injected at pod start, so a key added in
 the current session is not visible until the workspace restarts — the prelude
@@ -145,46 +145,53 @@ then exits `97` with an actionable message (`restart the workspace … then
 retry`). A key added before the pod started (or surviving a restart) works
 immediately.
 
-**GAP — real server-side push/pull over SSH (gated, NOT wired) — verdict + design.**
-The platform's authoritative per-project git repo lives on the **shared multi-tenant
-api pod** (`GitCliProvider` in `services/api/src/project-storage.ts`, `git()` →
-`execFile('git', …)` with `gitEnv()` that sets no `GIT_SSH_COMMAND`). So real
-`git push`/`git pull` of the canonical repo can only run there — exactly where the
-isolation question bites. User-facing git-over-SSH (auth proof) is already fully
-covered by the `git-ssh` workspace-pod path above; the remaining hole is mutating
-push/pull with the project key.
+### Real push / pull / fetch over SSH — IMPLEMENTED ✅ (Replit "Option A", Jun 30)
 
-*Verdict (Jun 29): file-level isolation IS achievable and safe; enabling it is a
-deliberate security-boundary decision + a binding decision — left gated, not rushed.*
+Mutating `git push`/`pull`/`fetch` over SSH now run **inside the project's own
+isolated workspace pod** — the Replit container model — and **no tenant key ever
+touches the shared api pod**. This is the "Cleaner alternative" from the prior gap,
+now built and **proven against a real OpenSSH origin**.
 
-- **Safe per-request mechanism (sound):** for each push/pull, `mkdtemp` a unique dir
-  (random name), write the decrypted key to `<dir>/id` at `0600` (`umask 077`) plus a
-  per-request `<dir>/known_hosts`, run git with
-  `GIT_SSH_COMMAND="ssh -i <dir>/id -o IdentitiesOnly=yes -o UserKnownHostsFile=<dir>/known_hosts -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=10"`,
-  and `rm -rf <dir>` in a `finally`. `withProjectLock(projectId)` already serialises
-  per-project ops, and each request uses a distinct dir, so concurrent ops never share
-  a path. The key value lives only in the file — never in argv/env/logs/run-output
-  (only the path appears). Tenants cannot execute code on the api pod, so no tenant can
-  read another's transient key file; and blast radius does **not** exceed today's, since
-  the api process already holds `CONFIG_ENCRYPTION_KEY` and can decrypt every project's
-  secrets regardless.
-- **Blocker 1 — security boundary (Avi's call):** the above still places a tenant
-  private key *in plaintext, briefly, on the shared api pod's disk/memory*. The platform
-  today deliberately keeps tenant private keys **only** on per-tenant gVisor pods (the
-  `git-ssh`/`connect-ssh` path). Reversing that boundary is a security-architecture
-  decision reserved to the platform owner — not flipped unilaterally.
-- **Blocker 2 — key→origin binding:** a project may hold 0/1/many SSH keys
-  (`TERMINAL_SSH_PRIVATE_KEY_<id>`, each with a `host`). Real push/pull needs a
-  deterministic rule for *which* key authenticates `origin` (host-match against the
-  remote URL, or an explicit "default git key" flag on a connection). Undecided.
-- **Cleaner alternative (no shared-pod key):** route push/pull through the per-tenant
-  workspace pod (reusing the proven ephemeral-key path), keeping keys off the shared pod
-  entirely. Cost: the canonical repo is api-pod-side, so this needs a workspace-tree ⇆
-  authoritative-repo reconciliation design (origin wiring + which tree wins).
+- **IDE proxy:** `POST /api/projects/:projectId/ide-panel/git` — the existing
+  `push` / `pull` / `sync` intents (no UI change). When the configured origin is an
+  **SSH** URL the action auto-routes through the workspace pod; **HTTPS remotes keep
+  using the api-pod `GitCliProvider` path unchanged**, so the existing commit/HTTPS
+  flow is untouched.
+- **Where git runs:** the project's pod working tree (`$WORKSPACE_ROOT`, default
+  `/workspace`), via the workspace agent `/commands/run`. The pod working tree is
+  authoritative for content; the SSH remote is authoritative for history — each op
+  `git fetch`es the branch and bases on it, so the push is a real fast-forward and the
+  remote's history is preserved.
+- **Key handling (isolation by construction):** reuses the proven ephemeral-key
+  prelude — the project SSH private key (`TERMINAL_SSH_PRIVATE_KEY_<connId>`,
+  injected into the pod at start via `allowedSecrets`) is read **by env-var name
+  only**, materialized to a `0600` `mktemp` file, used via
+  `GIT_SSH_COMMAND="ssh -i <ephemeral> -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new …"`,
+  and `trap`-deleted on exit. The key value never appears in the api pod, the command
+  string, argv, or run output.
+- **key→origin binding (safe default):** `selectSshConnectionForOrigin` picks the key
+  whose `host` matches the origin host; if none matches but exactly **one** key exists
+  it is used (unambiguous); otherwise the op errors asking the user to disambiguate.
+- **Push semantics:** `fetch origin <branch>` → `update-ref`+`symbolic-ref`+`reset
+  --mixed` to base on the remote tip **without disturbing the working tree** → `git
+  add -A` (working tree is the source of truth, like Replit) → commit if changed →
+  `git push origin HEAD:<branch>`. First push to a new branch creates it.
+- **Pull semantics:** `fetch` → `merge --ff-only` (fresh tree → materialize remote);
+  a genuine divergence exits non-zero with an actionable message.
+- **Pure builders unit-tested** (`sshHostFromGitUrl`, `selectSshConnectionForOrigin`,
+  `buildGitSshPushScript`/`PullScript`/`FetchScript` — no key value in any emitted
+  script). 18 tests in `api.projects.$projectId.ide-panel.$panel.spec.ts`.
+- **Real proof (Jun 30):** the exact generated scripts were run against a real
+  OpenSSH server (`ssh://…127.0.0.1:2222/…origin.git`) with the key supplied **only**
+  via the pod env var: PUSH advanced the real origin (`519e51b..20446b7`, file
+  landed), PULL fast-forwarded a collaborator commit into the pod tree
+  (`20446b7..584c3fe`, `remote-change.txt` materialized), FETCH was read-only — and
+  `grep "BEGIN OPENSSH PRIVATE KEY"` over every emitted script returned **0**.
 
-Net: `ssh`(OpenSSH 9.2)+`git` are present in the api image and the isolation primitive
-is ready; what's pending is the boundary decision (1) + binding (2), or the
-reconciliation design for the workspace-pod route. Until then this stays gated.
+**Limitation (by design):** like the auth-proof path, the key is injected at pod
+start — a key added mid-session needs a workspace restart (prelude exits `97` with an
+actionable message). And `git add -A` makes the remote match the pod working tree
+exactly (Replit container semantics; same `--all` behavior as the api-pod path).
 - **Connection shape** (keygen adds `publicKey`, `fingerprint`, `keyType`):
   ```json
   { "id": "uuid", "name": "", "host": "", "port": 22, "username": "",

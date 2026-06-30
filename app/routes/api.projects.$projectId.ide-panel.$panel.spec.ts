@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildGitSshFetchScript,
   buildGitSshLsRemoteScript,
+  buildGitSshPullScript,
+  buildGitSshPushScript,
   buildSshConnectScript,
   ephemeralSshKeyPrelude,
   isSshGitUrl,
   scopeDeploymentsForWorkspace,
+  selectSshConnectionForOrigin,
+  sshHostFromGitUrl,
 } from './api.projects.$projectId.ide-panel.$panel';
 
 describe('scopeDeploymentsForWorkspace', () => {
@@ -94,6 +99,100 @@ describe('SSH key handling (tenant isolation)', () => {
       expect(script).toContain('-o IdentitiesOnly=yes');
       expect(script).toContain("git ls-remote --heads 'git@github.com:owner/repo.git'");
       expect(script).toContain('VIBECORE_SSH_KEYFILE="$(mktemp)"');
+    });
+  });
+});
+
+describe('SSH git in the workspace pod (Option A)', () => {
+  describe('sshHostFromGitUrl', () => {
+    it('extracts the host from scp-style and ssh:// URLs (case-insensitive)', () => {
+      expect(sshHostFromGitUrl('git@github.com:owner/repo.git')).toBe('github.com');
+      expect(sshHostFromGitUrl('ssh://git@Gitlab.Example.com/owner/repo.git')).toBe('gitlab.example.com');
+      expect(sshHostFromGitUrl('ssh://host.example.com:2222/owner/repo.git')).toBe('host.example.com');
+    });
+
+    it('returns null for non-SSH URLs', () => {
+      expect(sshHostFromGitUrl('https://github.com/owner/repo.git')).toBeNull();
+      expect(sshHostFromGitUrl('')).toBeNull();
+    });
+  });
+
+  describe('selectSshConnectionForOrigin (key→origin binding)', () => {
+    const gh = { id: 'a', host: 'github.com' };
+    const gl = { id: 'b', host: 'gitlab.com' };
+
+    it('prefers the key whose host matches the origin host', () => {
+      expect(selectSshConnectionForOrigin([gh, gl], 'git@gitlab.com:owner/repo.git')).toBe(gl);
+      expect(selectSshConnectionForOrigin([gh, gl], 'ssh://git@github.com/owner/repo.git')).toBe(gh);
+    });
+
+    it('falls back to the single configured key when none matches by host', () => {
+      const only = { id: 'solo', host: 'bastion.internal' };
+      expect(selectSshConnectionForOrigin([only], 'git@github.com:owner/repo.git')).toBe(only);
+    });
+
+    it('refuses to guess when several keys exist and none matches the host', () => {
+      expect(selectSshConnectionForOrigin([gh, gl], 'git@bitbucket.org:owner/repo.git')).toBeNull();
+    });
+  });
+
+  describe('buildGitSshPushScript', () => {
+    const script = buildGitSshPushScript({
+      keyEnvVar: 'TERMINAL_SSH_PRIVATE_KEY_X',
+      repoUrl: 'git@github.com:owner/repo.git',
+      branch: 'main',
+      message: 'Update from workspace',
+    });
+
+    it('materializes the key and binds GIT_SSH_COMMAND to it', () => {
+      expect(script).toContain('VIBECORE_SSH_KEYFILE="$(mktemp)"');
+      expect(script).toContain('export GIT_SSH_COMMAND="ssh -i $VIBECORE_SSH_KEYFILE');
+      expect(script).toContain('-o IdentitiesOnly=yes');
+    });
+
+    it('runs in the pod working tree and against the quoted origin/branch', () => {
+      expect(script).toContain('cd "$VIBECORE_GIT_WORKDIR"');
+      expect(script).toContain("URL='git@github.com:owner/repo.git'");
+      expect(script).toContain("BRANCH='main'");
+      expect(script).toContain('git push origin "HEAD:refs/heads/$BRANCH"');
+    });
+
+    it('bases on the remote tip without overwriting the working tree, then commits local changes', () => {
+      expect(script).toContain('git fetch --no-tags --depth=50 origin "$BRANCH"');
+      expect(script).toContain('git update-ref "refs/heads/$BRANCH" FETCH_HEAD');
+      expect(script).toContain('git reset --mixed -q');
+      expect(script).toContain('git add -A');
+      expect(script).toContain("git commit -q -m 'Update from workspace'");
+    });
+  });
+
+  describe('buildGitSshPullScript', () => {
+    const script = buildGitSshPullScript({
+      keyEnvVar: 'TERMINAL_SSH_PRIVATE_KEY_X',
+      repoUrl: 'ssh://git@host/owner/repo.git',
+      branch: 'dev',
+    });
+
+    it('fetches and fast-forwards, erroring on real divergence', () => {
+      expect(script).toContain('git fetch --no-tags origin "$BRANCH"');
+      expect(script).toContain('git merge --ff-only FETCH_HEAD');
+      expect(script).toContain('exit 3');
+      expect(script).toContain("BRANCH='dev'");
+    });
+  });
+
+  describe('buildGitSshFetchScript', () => {
+    it('is a read-only fetch bound to the ephemeral key', () => {
+      const script = buildGitSshFetchScript({
+        keyEnvVar: 'TERMINAL_SSH_PRIVATE_KEY_X',
+        repoUrl: 'git@github.com:owner/repo.git',
+        branch: 'main',
+      });
+
+      expect(script).toContain('export GIT_SSH_COMMAND="ssh -i $VIBECORE_SSH_KEYFILE');
+      expect(script).toContain('git fetch --no-tags origin "$BRANCH"');
+      expect(script).not.toContain('git push');
+      expect(script).not.toContain('git commit');
     });
   });
 });
