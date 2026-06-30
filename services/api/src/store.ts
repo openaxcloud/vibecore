@@ -301,6 +301,16 @@ export interface AbuseEventRecord {
   createdAt: string;
 }
 
+export interface IntegrationFeatureRequestRecord {
+  id: string;
+  userId: string;
+  organizationId?: string;
+  integrationName: string;
+  useCaseDescription: string;
+  status: string;
+  createdAt: string;
+}
+
 export interface SystemSettingRecord {
   key: string;
   value?: unknown;
@@ -1237,6 +1247,17 @@ export interface ApiStore {
     severity: string;
   }): Promise<AbuseEventRecord>;
   listAbuseEvents(filter?: { organizationId?: string; type?: string; take?: number }): Promise<AbuseEventRecord[]>;
+  createIntegrationFeatureRequest(input: {
+    userId: string;
+    organizationId?: string;
+    integrationName: string;
+    useCaseDescription: string;
+  }): Promise<IntegrationFeatureRequestRecord>;
+  listIntegrationFeatureRequests(filter: {
+    userId: string;
+    organizationId?: string;
+    take?: number;
+  }): Promise<IntegrationFeatureRequestRecord[]>;
   setSystemSetting(input: { key: string; value?: unknown }): Promise<SystemSettingRecord>;
   listSystemSettings(): Promise<SystemSettingRecord[]>;
 

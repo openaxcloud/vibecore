@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
+import RequestIntegrationCard from './RequestIntegrationCard';
 import { classNames } from '~/utils/classNames';
 
 interface ConfiguredProvider {
@@ -110,6 +111,8 @@ export default function ConnectionsTab() {
           </Link>
         ))}
       </section>
+
+      <RequestIntegrationCard />
     </div>
   );
 }

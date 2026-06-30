@@ -1062,6 +1062,12 @@ const integrationApiKeyConfigureBodySchema = z.object({
 const userConnectionListQuerySchema = z.object({ provider: z.string().min(1).optional() });
 const userConnectionIdParams = z.object({ userConnectionId: z.string().min(1) });
 
+const integrationFeatureRequestCreateSchema = z.object({
+  integrationName: z.string().trim().min(1).max(120),
+  useCaseDescription: z.string().trim().min(1).max(2000),
+  organizationId: z.string().min(1).optional(),
+});
+
 const apiKeyCreateSchema = z.object({
   name: z.string().trim().min(1).max(120),
   scopes: z.array(z.enum(API_KEY_SCOPES as [ApiKeyScope, ...ApiKeyScope[]])).min(1),
@@ -8483,6 +8489,104 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       })),
     };
   });
+
+  /*
+   * Integration feature requests — a builder asks for an integration / connector
+   * that isn't available yet, with a short use-case. Scoped to the requesting
+   * user (and, when supplied, their organization so teammates can see what has
+   * already been requested). Surfaced from the @settings → Connections tab.
+   */
+  app.get('/api/integration-requests', async (request, reply) => {
+    if (!request.currentUser) {
+      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+    }
+
+    const query = parse(userConnectionListQuerySchema.extend({ organizationId: z.string().min(1).optional() }), request.query);
+
+    let organizationId: string | undefined;
+
+    if (query.organizationId) {
+      const membership = await store.getMembership(request.currentUser.id, query.organizationId);
+
+      if (!membership) {
+        return reply.code(403).send({ error: 'Not a member of this organization', code: 'NOT_A_MEMBER' });
+      }
+
+      organizationId = query.organizationId;
+    }
+
+    const requests = await store.listIntegrationFeatureRequests({
+      userId: request.currentUser.id,
+      organizationId,
+    });
+
+    return {
+      requests: requests.map((item) => ({
+        id: item.id,
+        integrationName: item.integrationName,
+        useCaseDescription: item.useCaseDescription,
+        status: item.status,
+        organizationId: item.organizationId ?? null,
+        createdAt: item.createdAt,
+        mine: item.userId === request.currentUser!.id,
+      })),
+    };
+  });
+
+  app.post(
+    '/api/integration-requests',
+    {
+      config: {
+        rateLimit: { max: Number(process.env.INTEGRATION_REQUEST_RATE_LIMIT_MAX ?? 20), timeWindow: '1 minute' },
+      },
+    },
+    async (request, reply) => {
+      if (!request.currentUser) {
+        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      }
+
+      const body = parse(integrationFeatureRequestCreateSchema, request.body);
+
+      let organizationId: string | undefined;
+
+      if (body.organizationId) {
+        const membership = await store.getMembership(request.currentUser.id, body.organizationId);
+
+        if (!membership) {
+          return reply.code(403).send({ error: 'Not a member of this organization', code: 'NOT_A_MEMBER' });
+        }
+
+        organizationId = body.organizationId;
+      }
+
+      const created = await store.createIntegrationFeatureRequest({
+        userId: request.currentUser.id,
+        organizationId,
+        integrationName: body.integrationName,
+        useCaseDescription: body.useCaseDescription,
+      });
+
+      await audit(request, store, {
+        organizationId,
+        action: 'integration.feature_request.create',
+        resourceType: 'IntegrationFeatureRequest',
+        resourceId: created.id,
+        metadata: { integrationName: created.integrationName },
+      });
+
+      return reply.code(201).send({
+        request: {
+          id: created.id,
+          integrationName: created.integrationName,
+          useCaseDescription: created.useCaseDescription,
+          status: created.status,
+          organizationId: created.organizationId ?? null,
+          createdAt: created.createdAt,
+          mine: true,
+        },
+      });
+    },
+  );
 
   app.post(
     '/api/account/connections/:userConnectionId/revoke',
