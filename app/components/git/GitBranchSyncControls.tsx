@@ -1,4 +1,5 @@
 import type { FormEventHandler } from 'react';
+import { isSshRemoteUrl } from '~/components/git/git-ssh-url';
 import { classNames } from '~/utils/classNames';
 
 interface GitBranchSyncControlsProps {
@@ -69,16 +70,27 @@ export function GitBranchSyncControls({
           Remote Updates
         </h3>
         {repoUrl ? (
-          <a
-            href={repoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex min-w-0 items-center gap-1 truncate text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
-            title={repoUrl}
-          >
-            <span className="i-ph:github-logo text-sm" aria-hidden />
-            <span className="truncate">{shortRepoLabel(repoUrl)}</span>
-          </a>
+          <span className="inline-flex min-w-0 items-center gap-1.5">
+            <a
+              href={repoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-w-0 items-center gap-1 truncate text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+              title={repoUrl}
+            >
+              <span className="i-ph:github-logo text-sm" aria-hidden />
+              <span className="truncate">{shortRepoLabel(repoUrl)}</span>
+            </a>
+            {isSshRemoteUrl(repoUrl) ? (
+              <span
+                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary"
+                title="Authenticated with this project's SSH key, run inside the isolated workspace (manage in ⚙ Settings → SSH keys)"
+              >
+                <span className="i-ph:key text-[11px]" aria-hidden />
+                SSH
+              </span>
+            ) : null}
+          </span>
         ) : null}
       </div>
 
@@ -134,7 +146,7 @@ export function GitBranchSyncControls({
             type="submit"
             disabled={busy}
             className={secondaryButton}
-            title={`Pull remote updates from origin/${branch} into this workspace branch`}
+            title={`Pull origin/${branch} into the workspace (clones it on the first pull into an empty tree)`}
             aria-label={`Pull remote updates from origin/${branch} into this workspace branch`}
           >
             <span className="i-ph:arrow-down text-sm" aria-hidden />

@@ -164,6 +164,25 @@ describe('SSH git in the workspace pod (Option A)', () => {
       expect(script).toContain('git add -A');
       expect(script).toContain("git commit -q -m 'Update from workspace'");
     });
+
+    it('does NOT swallow fetch stderr and aborts when an existing branch fails to fetch (auth/network)', () => {
+      /*
+       * Bug #1: no `2>/dev/null` on the fetch, and a ls-remote guard that aborts
+       * (exit 4) rather than orphaning history when the branch exists remotely.
+       */
+      expect(script).not.toContain('git fetch --no-tags --depth=50 origin "$BRANCH" 2>/dev/null');
+      expect(script).toContain('git ls-remote --exit-code --heads origin "$BRANCH"');
+      expect(script).toContain('exit 4');
+    });
+
+    it('guards git add -A with transient excludes when the repo has no .gitignore (Bug #5)', () => {
+      expect(script).toContain('if [ -f .gitignore ]; then');
+      expect(script).toContain('core.excludesFile="$VIBECORE_GIT_EXCLUDES"');
+      expect(script).toContain('node_modules');
+
+      // Never writes/commits a .gitignore the user didn't author.
+      expect(script).not.toContain('> .gitignore');
+    });
   });
 
   describe('buildGitSshPullScript', () => {

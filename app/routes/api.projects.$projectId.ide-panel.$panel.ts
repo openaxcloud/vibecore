@@ -3339,15 +3339,38 @@ export function buildGitSshPushScript(input: {
      * files: update-ref + symbolic-ref move HEAD, `reset --mixed` re-points the
      * index while leaving every file on disk as-is. `git add -A` then stages the
      * user's real local changes on top of the remote history.
+     *
+     * Distinguish a missing remote branch (first push → create it) from a fetch
+     * that failed for auth/network reasons while the branch EXISTS: in the latter
+     * case `ls-remote` still sees the branch, so we abort instead of silently
+     * starting a fresh history that the (non-force) push would then reject anyway —
+     * surfacing the real cause (bad/absent key, workspace not restarted, network).
      */
-    'if git fetch --no-tags --depth=50 origin "$BRANCH" 2>/dev/null; then',
+    'if git fetch --no-tags --depth=50 origin "$BRANCH"; then',
     '  git update-ref "refs/heads/$BRANCH" FETCH_HEAD',
     '  git symbolic-ref HEAD "refs/heads/$BRANCH"',
     '  git reset --mixed -q',
+    'elif git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then',
+    '  echo "vibecore-git: could not fetch existing origin/$BRANCH — check the SSH key is added to the Git host and the workspace was restarted after adding it" >&2; exit 4',
     'else',
     '  git checkout -q -B "$BRANCH"',
     'fi',
-    'git add -A',
+
+    /*
+     * Never let a MISSING .gitignore sweep node_modules / build output / .env into
+     * the push (the pod often ran `npm install`). When the repo has no .gitignore
+     * at all, apply safe excludes for THIS add only via a transient excludesFile —
+     * we never write/commit a .gitignore the user didn't author, and an existing
+     * .gitignore is always trusted as-is.
+     */
+    'if [ -f .gitignore ]; then',
+    '  git add -A',
+    'else',
+    '  VIBECORE_GIT_EXCLUDES="$(mktemp)"',
+    '  printf "%s\\n" node_modules .env "dist/" "build/" .DS_Store > "$VIBECORE_GIT_EXCLUDES"',
+    '  git -c core.excludesFile="$VIBECORE_GIT_EXCLUDES" add -A',
+    '  rm -f "$VIBECORE_GIT_EXCLUDES"',
+    'fi',
     `if git diff --cached --quiet; then echo "vibecore-git: working tree matches origin/$BRANCH; nothing new to commit"; else git commit -q -m ${shellQuote(
       input.message,
     )}; fi`,

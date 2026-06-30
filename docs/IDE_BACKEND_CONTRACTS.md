@@ -180,13 +180,31 @@ now built and **proven against a real OpenSSH origin**.
   a genuine divergence exits non-zero with an actionable message.
 - **Pure builders unit-tested** (`sshHostFromGitUrl`, `selectSshConnectionForOrigin`,
   `buildGitSshPushScript`/`PullScript`/`FetchScript` — no key value in any emitted
-  script). 18 tests in `api.projects.$projectId.ide-panel.$panel.spec.ts`.
-- **Real proof (Jun 30):** the exact generated scripts were run against a real
-  OpenSSH server (`ssh://…127.0.0.1:2222/…origin.git`) with the key supplied **only**
-  via the pod env var: PUSH advanced the real origin (`519e51b..20446b7`, file
-  landed), PULL fast-forwarded a collaborator commit into the pod tree
-  (`20446b7..584c3fe`, `remote-change.txt` materialized), FETCH was read-only — and
+  script). 20 tests in `api.projects.$projectId.ide-panel.$panel.spec.ts`.
+- **Real proof:** the exact generated scripts were run against a real OpenSSH server
+  with the key supplied **only** via the pod env var: PUSH advanced the real origin
+  and the file landed, PULL fast-forwarded a collaborator commit into the pod tree
+  (and a fresh empty tree → full clone), FETCH was read-only — and
   `grep "BEGIN OPENSSH PRIVATE KEY"` over every emitted script returned **0**.
+
+**Git-pane SSH-key UI — IMPLEMENTED ✅ (Jun 30, Replit-parity placement).** SSH keys
+are now managed in **Git Settings (⚙) → SSH keys** (`app/components/git/GitSettingsPanel.tsx`,
+`SshKeysSection`), the same place Replit puts git auth — generate (ed25519), copy the
+public key, **Test** access (real `git ls-remote` in the pod), delete, and a "bound to
+origin" badge using the same host-match rule as the push/pull key selection. It reuses
+the Terminal→SSH store (`generate-keypair`/`delete-ssh`/`git-ssh` intents) so a key
+works in both places — **no new backend**. The Remote bar shows an **SSH** badge when
+the origin speaks SSH. Mobile terminal SSH UI untouched. URL helpers in
+`app/components/git/git-ssh-url.ts` (unit-tested).
+
+**Hardening (Jun 30, from adversarial review):** (1) the push no longer swallows
+`git fetch` stderr — it distinguishes a missing remote branch (first push → create)
+from an auth/network failure on an existing branch (`ls-remote` guard → abort with a
+clear message instead of orphaning history); (2) when the pod tree has **no**
+`.gitignore`, `git add -A` runs under a transient `core.excludesFile` so `node_modules`
+/ `.env` / build output are never swept into the push — without writing a `.gitignore`
+the user didn't author. Both proven in real (the push committed only `app.txt`, not the
+present `node_modules/`/`.env`).
 
 **Limitation (by design):** like the auth-proof path, the key is injected at pod
 start — a key added mid-session needs a workspace restart (prelude exits `97` with an
