@@ -18779,6 +18779,64 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /*
+   * Admin management for the API-key connectors (Vercel / Netlify / Supabase).
+   * Unlike the OAuth connectors there is no platform-wide client secret to paste
+   * — each user supplies their own personal access token via the per-user
+   * `/api/integrations/api-key/:provider/configure` flow (validated live against
+   * the provider, stored encrypted in UserConnection). So the platform-level
+   * surface here is: see each connector's status + enable/disable it for the
+   * whole instance, plus the console URL where users mint a token. This makes the
+   * full connector catalog visible+governable from admin (no more "shell").
+   */
+  const API_KEY_CONNECTOR_PROVIDERS = [
+    { provider: 'vercel', tokenConsoleUrl: 'https://vercel.com/account/tokens' },
+    { provider: 'netlify', tokenConsoleUrl: 'https://app.netlify.com/user/applications#personal-access-tokens' },
+    { provider: 'supabase', tokenConsoleUrl: 'https://supabase.com/dashboard/account/tokens' },
+  ] as const;
+  const API_KEY_CONNECTOR_KEYS = ['vercel', 'netlify', 'supabase'] as const;
+
+  app.get('/admin/connectors/api-key', async (request) => {
+    await requirePlatformAdmin(request);
+
+    const rows = await Promise.all(
+      API_KEY_CONNECTOR_PROVIDERS.map(async (p) => {
+        const cat = await store.getConnectorOAuthCatalog(p.provider);
+
+        return {
+          provider: p.provider,
+          displayName: cat?.displayName ?? p.provider,
+          authType: 'api_key' as const,
+          enabled: cat?.enabled ?? false,
+          tokenConsoleUrl: p.tokenConsoleUrl,
+          configureEndpoint: `/api/integrations/api-key/${p.provider}/configure`,
+        };
+      }),
+    );
+
+    return { connectors: rows };
+  });
+
+  app.post('/admin/connectors/api-key', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const body = parse(
+      z.object({ provider: z.enum(API_KEY_CONNECTOR_KEYS), enabled: z.boolean() }),
+      request.body ?? {},
+    );
+
+    const updated = await store.upsertConnectorOAuthConfig({ provider: body.provider, enabled: body.enabled });
+    await audit(request, store, {
+      action: 'admin.connector.apikey.toggle',
+      resourceType: 'connector',
+      resourceId: body.provider,
+      metadata: { enabled: updated.enabled },
+    });
+
+    return { connector: { provider: updated.provider, enabled: updated.enabled } };
+  });
+
+  /*
    * Admin self-service social-login provider config (GitHub / Google sign-in).
    * Lets a platform admin paste the login OAuth apps' client_id/secret from the
    * admin UI instead of the platform Secret + a redeploy; the login flow reads

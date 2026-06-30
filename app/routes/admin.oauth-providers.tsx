@@ -103,36 +103,38 @@ const CONNECTOR_HOWTO: Record<string, { console: string; steps: string[] }> = {
   },
 };
 
-/* API-key connectors: no OAuth app — each user supplies a personal token in-IDE. */
-const API_KEY_CONNECTORS = [
-  {
-    provider: 'vercel',
-    displayName: 'Vercel',
-    where: 'https://vercel.com/account/tokens — create a token, users paste it in the IDE Connect panel.',
-  },
-  {
-    provider: 'netlify',
-    displayName: 'Netlify',
-    where: 'https://app.netlify.com/user/applications#personal-access-tokens — personal access token.',
-  },
-  {
-    provider: 'supabase',
-    displayName: 'Supabase',
-    where: 'https://supabase.com/dashboard/account/tokens — access token, pasted per-user in the IDE.',
-  },
-] as const;
+type ApiKeyConnector = {
+  provider: string;
+  displayName: string;
+  authType: string;
+  enabled: boolean;
+  tokenConsoleUrl: string;
+  configureEndpoint: string;
+};
+
+/* Per-provider "how to get a token" copy for the API-key connectors. */
+const API_KEY_HOWTO: Record<string, string> = {
+  vercel:
+    'vercel.com → Account Settings → Tokens → Create. Users paste it in the IDE Connect panel; the platform deploys to their Vercel account.',
+  netlify:
+    'app.netlify.com → User settings → Applications → Personal access tokens → New token. Used for "Deploy to Netlify" against the user account.',
+  supabase:
+    'supabase.com → Account → Access Tokens → Generate. Used by the Database panel "Connect Supabase" flow (list projects + connection string).',
+};
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   await requirePlatformAdmin(request);
 
-  const [connectorsData, loginData] = await Promise.all([
+  const [connectorsData, loginData, apiKeyData] = await Promise.all([
     apiRequest<{ connectors: Connector[] }>(request, '/admin/connectors/oauth'),
     apiRequest<{ providers: LoginProvider[] }>(request, '/admin/login-providers'),
+    apiRequest<{ connectors: ApiKeyConnector[] }>(request, '/admin/connectors/api-key'),
   ]);
 
   return json({
     connectors: connectorsData.connectors ?? [],
     loginProviders: loginData.providers ?? [],
+    apiKeyConnectors: apiKeyData.connectors ?? [],
   });
 }
 
@@ -223,17 +225,26 @@ export async function action({ request }: EnterpriseActionArgs) {
   }
 
   const isLogin = body.kind === 'login';
-  const endpoint = isLogin ? '/admin/login-providers' : '/admin/connectors/oauth';
+  const isApiKey = body.kind === 'apikey';
+
+  const endpoint = isLogin
+    ? '/admin/login-providers'
+    : isApiKey
+      ? '/admin/connectors/api-key'
+      : '/admin/connectors/oauth';
 
   if (isLogin && typeof body.scopes === 'string') {
     payload.scopes = body.scopes;
   }
 
+  // The api-key toggle endpoint only accepts { provider, enabled }.
+  const sentPayload = isApiKey ? { provider: body.provider, enabled: payload.enabled } : payload;
+
   try {
     await apiRequest(request, endpoint, {
       method: 'POST',
       redirectOn401: false,
-      body: JSON.stringify(payload),
+      body: JSON.stringify(sentPayload),
     });
 
     return json({ status: `${body.provider} ${isLogin ? 'sign-in' : 'connector'} configuration saved.` });
@@ -287,7 +298,7 @@ function StatusPill({ enabled, hasSecret }: { enabled: boolean; hasSecret: boole
 }
 
 export default function AdminOauthProvidersPage() {
-  const { connectors, loginProviders } = useLoaderData<typeof loader>();
+  const { connectors, loginProviders, apiKeyConnectors } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
 
   return (
@@ -440,17 +451,58 @@ export default function AdminOauthProvidersPage() {
           API-key connectors (per-user token)
         </h2>
         <p className="text-sm text-bolt-elements-textSecondary">
-          These connectors use a personal access token rather than a shared OAuth app — there is no platform-wide secret
-          to configure. Each user pastes their own token in the IDE Connect panel. Listed here for reference.
+          Deploy/database connectors that use a personal access token rather than a shared OAuth app — each user pastes
+          their own token in the IDE Connect panel (validated live and stored encrypted server-side). There is no
+          platform-wide secret; enable/disable each connector for the whole instance here.
         </p>
 
-        {API_KEY_CONNECTORS.map((c) => (
-          <div key={c.provider} className="space-y-2 rounded-lg border border-bolt-elements-borderColor p-4">
-            <strong className="text-bolt-elements-textPrimary">{c.displayName}</strong>
+        {apiKeyConnectors.map((c) => (
+          <Form
+            method="post"
+            key={`apikey-${c.provider}`}
+            className="space-y-3 rounded-lg border border-bolt-elements-borderColor p-4"
+          >
+            <div className="flex items-center justify-between">
+              <strong className="text-bolt-elements-textPrimary">{c.displayName}</strong>
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs ${
+                  c.enabled
+                    ? 'bg-[var(--ecode-accent)]/15 text-[var(--ecode-accent)]'
+                    : 'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary'
+                }`}
+              >
+                {c.enabled ? 'Enabled · API key (per-user)' : 'Disabled'}
+              </span>
+            </div>
+
+            <input type="hidden" name="kind" value="apikey" />
+            <input type="hidden" name="provider" value={c.provider} />
+
             <p className="text-xs text-bolt-elements-textSecondary">
-              Where users get a token: <span className="font-mono">{c.where}</span>
+              Token console: <span className="font-mono">{c.tokenConsoleUrl}</span>
             </p>
-          </div>
+            {API_KEY_HOWTO[c.provider] ? (
+              <p className="text-xs text-bolt-elements-textSecondary">{API_KEY_HOWTO[c.provider]}</p>
+            ) : null}
+            <p className="text-xs text-bolt-elements-textSecondary">
+              Per-user connect endpoint: <span className="font-mono">{c.configureEndpoint}</span>
+            </p>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="enabled" defaultChecked={c.enabled} className="h-4 w-4" />
+              Enabled (available to users)
+            </label>
+
+            <TextField
+              label="Confirm with your password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+            />
+
+            <PrimaryButton>Save {c.displayName}</PrimaryButton>
+          </Form>
         ))}
       </section>
     </EnterpriseFormPage>
