@@ -312,3 +312,139 @@ describe('Account connections routes', () => {
     await app.close();
   });
 });
+
+describe('Reconnection alert routes', () => {
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    process.env.INTEGRATION_GITHUB_CLIENT_ID = 'acc-client-id';
+    process.env.INTEGRATION_GITHUB_CLIENT_SECRET = 'acc-client-secret';
+    process.env.OAUTH_STATE_SECRET = 'acc-state-secret-do-not-ship';
+    process.env.ENCRYPTION_SECRET = 'acc-encryption-secret-do-not-ship';
+  });
+
+  afterEach(() => {
+    process.env = { ...originalEnv };
+    vi.restoreAllMocks();
+  });
+
+  it('GET lists only the current user unresolved alerts', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const alpha = await registerUserAndProject(app, 'recon-alpha@example.com', 'ReconAlpha');
+    const beta = await registerUserAndProject(app, 'recon-beta@example.com', 'ReconBeta');
+
+    const alphaConnection = await connectGithub(app, alpha, 'recon-alpha-octo', 11);
+    const betaConnection = await connectGithub(app, beta, 'recon-beta-octo', 22);
+
+    store.seedReconnectionAlert({ userConnectionId: alphaConnection, reason: 'token_revoked' });
+    store.seedReconnectionAlert({ userConnectionId: betaConnection, reason: 'token_revoked' });
+    // A resolved alert for alpha must not appear.
+    store.seedReconnectionAlert({
+      userConnectionId: alphaConnection,
+      reason: 'token_revoked',
+      resolvedAt: new Date(),
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/account/reconnection-alerts',
+      headers: { authorization: `Bearer ${alpha.token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as { alerts: Array<{ userConnectionId: string; provider: string }> };
+    expect(body.alerts).toHaveLength(1);
+    expect(body.alerts[0].userConnectionId).toBe(alphaConnection);
+    expect(body.alerts[0].provider).toBe('github');
+    await app.close();
+  });
+
+  it('POST resolve flips resolvedAt and removes the alert from the list', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const tenant = await registerUserAndProject(app, 'recon-resolve@example.com', 'ReconResolve');
+    const connection = await connectGithub(app, tenant, 'recon-resolve-octo', 33);
+    const alert = store.seedReconnectionAlert({ userConnectionId: connection, reason: 'token_revoked' });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/account/reconnection-alerts/${alert.id}/resolve`,
+      headers: { authorization: `Bearer ${tenant.token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect((response.json() as { resolvedAt: string }).resolvedAt).toBeTruthy();
+
+    const stored = await store.getReconnectionAlertById(alert.id);
+    expect(stored?.resolvedAt).toBeTruthy();
+
+    const list = await app.inject({
+      method: 'GET',
+      url: '/api/account/reconnection-alerts',
+      headers: { authorization: `Bearer ${tenant.token}` },
+    });
+    expect((list.json() as { alerts: unknown[] }).alerts).toHaveLength(0);
+    await app.close();
+  });
+
+  it('resolve is idempotent — calling twice does not fail', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const tenant = await registerUserAndProject(app, 'recon-idem@example.com', 'ReconIdem');
+    const connection = await connectGithub(app, tenant, 'recon-idem-octo', 44);
+    const alert = store.seedReconnectionAlert({ userConnectionId: connection, reason: 'token_revoked' });
+
+    await app.inject({
+      method: 'POST',
+      url: `/api/account/reconnection-alerts/${alert.id}/resolve`,
+      headers: { authorization: `Bearer ${tenant.token}` },
+    });
+
+    const second = await app.inject({
+      method: 'POST',
+      url: `/api/account/reconnection-alerts/${alert.id}/resolve`,
+      headers: { authorization: `Bearer ${tenant.token}` },
+    });
+
+    expect(second.statusCode).toBe(200);
+    expect((second.json() as { resolvedAt: string }).resolvedAt).toBeTruthy();
+    await app.close();
+  });
+
+  it('resolve rejects when the alert belongs to another user', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const alpha = await registerUserAndProject(app, 'recon-cross-alpha@example.com', 'ReconCrossAlpha');
+    const beta = await registerUserAndProject(app, 'recon-cross-beta@example.com', 'ReconCrossBeta');
+
+    const connection = await connectGithub(app, alpha, 'recon-cross-octo', 66);
+    const alert = store.seedReconnectionAlert({ userConnectionId: connection, reason: 'token_revoked' });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/account/reconnection-alerts/${alert.id}/resolve`,
+      headers: { authorization: `Bearer ${beta.token}` },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({ code: 'RECONNECTION_ALERT_NOT_FOUND' });
+
+    const stored = await store.getReconnectionAlertById(alert.id);
+    expect(stored?.resolvedAt).toBeUndefined();
+    await app.close();
+  });
+
+  it('list returns 401 without a session', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/account/reconnection-alerts',
+    });
+
+    expect(response.statusCode).toBe(401);
+    await app.close();
+  });
+});

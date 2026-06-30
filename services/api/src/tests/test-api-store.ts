@@ -37,6 +37,7 @@ import type {
   MembershipRecord,
   OAuthConnectionRecord,
   ProjectConnectionLinkRecord,
+  ReconnectionAlertRecord,
   UserConnectionRecord,
   UserConnectionStatus,
   OrganizationInviteRecord,
@@ -138,6 +139,7 @@ export class TestApiStore implements ApiStore {
   readonly oauthConnections = new Map<string, OAuthConnectionRecord>();
   readonly userConnections = new Map<string, UserConnectionRecord>();
   readonly projectConnectionLinks = new Map<string, ProjectConnectionLinkRecord>();
+  readonly reconnectionAlerts = new Map<string, ReconnectionAlertRecord>();
   readonly aiConversations = new Map<string, AiConversationRecord>();
   readonly aiMessages = new Map<string, AiMessageRecord>();
   readonly aiToolCalls = new Map<string, AiToolCallRecord>();
@@ -2136,6 +2138,66 @@ export class TestApiStore implements ApiStore {
     return Array.from(this.projectConnectionLinks.values()).filter(
       (row) => row.projectId === projectId && (opts?.includeUnlinked || !row.unlinkedAt),
     );
+  }
+
+  /**
+   * Test helper mirroring how the worker token-health sweep / connector-proxy
+   * create ReconnectionAlert rows (there is no store interface method — the
+   * platform only ever reads and resolves them from the user-facing surface).
+   */
+  seedReconnectionAlert(input: {
+    userConnectionId: string;
+    reason: string;
+    detectedAt?: Date;
+    resolvedAt?: Date;
+    notifiedAt?: Date;
+  }): ReconnectionAlertRecord {
+    const connection = this.userConnections.get(input.userConnectionId);
+    const alert: ReconnectionAlertRecord = {
+      id: id('recon'),
+      userConnectionId: input.userConnectionId,
+      reason: input.reason,
+      detectedAt: input.detectedAt ? input.detectedAt.toISOString() : now(),
+      resolvedAt: input.resolvedAt?.toISOString(),
+      notifiedAt: input.notifiedAt?.toISOString(),
+      provider: connection?.provider ?? '',
+      externalAccountLabel: connection?.externalAccountLabel ?? '',
+    };
+    this.reconnectionAlerts.set(alert.id, alert);
+
+    return alert;
+  }
+
+  async listUnresolvedReconnectionAlertsByUser(userId: string) {
+    return Array.from(this.reconnectionAlerts.values())
+      .filter((alert) => {
+        if (alert.resolvedAt) {
+          return false;
+        }
+
+        return this.userConnections.get(alert.userConnectionId)?.userId === userId;
+      })
+      .sort((a, b) => b.detectedAt.localeCompare(a.detectedAt));
+  }
+
+  async getReconnectionAlertById(idValue: string) {
+    return this.reconnectionAlerts.get(idValue);
+  }
+
+  async resolveReconnectionAlert(input: { id: string; resolvedAt?: Date }) {
+    const existing = this.reconnectionAlerts.get(input.id);
+
+    if (!existing) {
+      return undefined;
+    }
+
+    const updated: ReconnectionAlertRecord = {
+      ...existing,
+      resolvedAt: (input.resolvedAt ?? new Date()).toISOString(),
+    };
+    this.reconnectionAlerts.set(updated.id, updated);
+
+    return updated;
   }
 
   async createAiConversation(input: { projectId?: string; userId: string; title?: string }) {

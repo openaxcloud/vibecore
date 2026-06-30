@@ -462,6 +462,25 @@ export interface ProjectConnectionLinkRecord {
   unlinkedAt?: string;
 }
 
+/**
+ * Raised by the background token-health sweep (services/worker) or the
+ * connector-proxy resolver when a stored UserConnection credential is found to
+ * be revoked/expired, so the owning user can be prompted to reconnect. Surfaced
+ * read-only on the connected-accounts page; the user resolves it by reconnecting
+ * or dismissing.
+ */
+export interface ReconnectionAlertRecord {
+  id: string;
+  userConnectionId: string;
+  reason: string;
+  detectedAt: string;
+  resolvedAt?: string;
+  notifiedAt?: string;
+  /** Denormalised from the related UserConnection for the user-facing list. */
+  provider: string;
+  externalAccountLabel: string;
+}
+
 export interface AiConversationRecord {
   id: string;
   projectId?: string;
@@ -1364,6 +1383,9 @@ export interface ApiStore {
     projectId: string,
     opts?: { includeUnlinked?: boolean },
   ): Promise<ProjectConnectionLinkRecord[]>;
+  listUnresolvedReconnectionAlertsByUser(userId: string): Promise<ReconnectionAlertRecord[]>;
+  getReconnectionAlertById(id: string): Promise<ReconnectionAlertRecord | undefined>;
+  resolveReconnectionAlert(input: { id: string; resolvedAt?: Date }): Promise<ReconnectionAlertRecord | undefined>;
   createAiConversation(input: { projectId?: string; userId: string; title?: string }): Promise<AiConversationRecord>;
   getAiConversation(id: string): Promise<AiConversationRecord | undefined>;
   listAiConversations(input: { projectId: string; userId: string; limit?: number }): Promise<AiConversationRecord[]>;
