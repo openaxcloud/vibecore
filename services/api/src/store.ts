@@ -1504,6 +1504,27 @@ export interface ApiStore {
     enabled?: boolean;
   }): Promise<{ provider: string; enabled: boolean; clientId: string | null; hasSecret: boolean }>;
   /*
+   * Admin-managed social-login provider config (one row per provider). Returns the
+   * encrypted secret so the caller can decrypt it server-side; never expose it to
+   * the browser. A null result means no admin row exists yet (login falls back to
+   * env). The login flow reads this DB-first.
+   */
+  getLoginProviderConfig(provider: string): Promise<{
+    provider: string;
+    enabled: boolean;
+    clientId: string | null;
+    clientSecretEnc: string | null;
+    scopes: string[];
+  } | null>;
+  upsertLoginProviderConfig(input: {
+    provider: string;
+    clientId?: string | null;
+    clientSecretEnc?: string | null;
+    scopes?: string[];
+    enabled?: boolean;
+    updatedByUserId?: string | null;
+  }): Promise<{ provider: string; enabled: boolean; clientId: string | null; hasSecret: boolean }>;
+  /*
    * Admin-managed Stripe config (singleton). Returns the encrypted blobs so the
    * caller can decrypt them server-side; never expose these to the browser.
    */

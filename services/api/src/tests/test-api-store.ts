@@ -2625,6 +2625,48 @@ export class TestApiStore implements ApiStore {
     };
   }
 
+  private loginProviderConfigs = new Map<
+    string,
+    { provider: string; enabled: boolean; clientId: string | null; clientSecretEnc: string | null; scopes: string[] }
+  >();
+
+  async getLoginProviderConfig(provider: string) {
+    return this.loginProviderConfigs.get(provider) ?? null;
+  }
+
+  async upsertLoginProviderConfig(input: {
+    provider: string;
+    clientId?: string | null;
+    clientSecretEnc?: string | null;
+    scopes?: string[];
+    enabled?: boolean;
+    updatedByUserId?: string | null;
+  }) {
+    const existing = this.loginProviderConfigs.get(input.provider) ?? {
+      provider: input.provider,
+      enabled: true,
+      clientId: null,
+      clientSecretEnc: null,
+      scopes: [],
+    };
+
+    const next = {
+      ...existing,
+      ...(input.clientId !== undefined ? { clientId: input.clientId } : {}),
+      ...(input.clientSecretEnc !== undefined ? { clientSecretEnc: input.clientSecretEnc } : {}),
+      ...(input.scopes !== undefined ? { scopes: input.scopes } : {}),
+      ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
+    };
+    this.loginProviderConfigs.set(input.provider, next);
+
+    return {
+      provider: next.provider,
+      enabled: next.enabled,
+      clientId: next.clientId,
+      hasSecret: Boolean(next.clientSecretEnc),
+    };
+  }
+
   private stripeConfig: { secretKeyEnc: string | null; webhookSecretEnc: string | null } | null = null;
 
   async getStripeConfig() {

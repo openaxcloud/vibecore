@@ -814,6 +814,27 @@ model StripeConfig {
   updatedAt        DateTime @updatedAt
 }
 
+/*
+ * Admin-managed social-login provider config (2026-06-30): a platform admin can
+ * paste each sign-in provider's (GitHub / Google) OAuth client_id + client_secret
+ * in /admin/oauth-providers instead of editing the platform Secret + redeploying.
+ * One row per provider (provider key is the PK). The secret is stored encrypted
+ * (encryptJson) and is write-only. The login flow reads this row DB-first and
+ * falls back to the *_CLIENT_ID/*_CLIENT_SECRET env vars, so an absent row keeps
+ * the current env-based behaviour with zero regression. `enabled = false`
+ * disables the provider's sign-in button without clearing the stored credentials.
+ */
+model LoginProviderConfig {
+  provider        String   @id // 'github' | 'google'
+  clientId        String?
+  clientSecretEnc String?
+  scopes          String[]
+  enabled         Boolean  @default(true)
+  updatedByUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
 model UsageEvent {
   id             String       @id @default(cuid())
   organizationId String

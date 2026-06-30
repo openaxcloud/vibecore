@@ -3382,6 +3382,64 @@ export class PrismaApiStore implements ApiStore {
     };
   }
 
+  async getLoginProviderConfig(provider: string) {
+    const row = await this.prisma.loginProviderConfig.findUnique({ where: { provider } });
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      provider: row.provider,
+      enabled: row.enabled,
+      clientId: row.clientId,
+      clientSecretEnc: row.clientSecretEnc,
+      scopes: row.scopes,
+    };
+  }
+
+  /*
+   * Upsert a social-login provider's admin-configured OAuth credentials. The
+   * secret arrives already encrypted (encryptJson) from the route and is never
+   * logged. A field left `undefined` is preserved; pass `null` to clear.
+   */
+  async upsertLoginProviderConfig(input: {
+    provider: string;
+    clientId?: string | null;
+    clientSecretEnc?: string | null;
+    scopes?: string[];
+    enabled?: boolean;
+    updatedByUserId?: string | null;
+  }) {
+    const patch = {
+      ...(input.clientId !== undefined ? { clientId: input.clientId } : {}),
+      ...(input.clientSecretEnc !== undefined ? { clientSecretEnc: input.clientSecretEnc } : {}),
+      ...(input.scopes !== undefined ? { scopes: input.scopes } : {}),
+      ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
+      ...(input.updatedByUserId !== undefined ? { updatedByUserId: input.updatedByUserId } : {}),
+    };
+
+    const row = await this.prisma.loginProviderConfig.upsert({
+      where: { provider: input.provider },
+      create: {
+        provider: input.provider,
+        clientId: input.clientId ?? null,
+        clientSecretEnc: input.clientSecretEnc ?? null,
+        scopes: input.scopes ?? [],
+        enabled: input.enabled ?? true,
+        updatedByUserId: input.updatedByUserId ?? null,
+      },
+      update: patch,
+    });
+
+    return {
+      provider: row.provider,
+      enabled: row.enabled,
+      clientId: row.clientId,
+      hasSecret: Boolean(row.clientSecretEnc),
+    };
+  }
+
   async getStripeConfig() {
     const row = await this.prisma.stripeConfig.findUnique({ where: { id: 'singleton' } });
 

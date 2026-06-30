@@ -3965,7 +3965,77 @@ const wellKnownOauthEndpoints: Record<
   },
 };
 
-async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthCallbackSchema>) {
+/*
+ * Resolve a social-login provider's OAuth credentials DB-first (admin-configured
+ * via /admin/oauth-providers, secret encrypted with encryptJson) and fall back to
+ * the *_CLIENT_ID/*_CLIENT_SECRET env vars. An absent admin row preserves the
+ * exact env-based behaviour (zero regression). `enabled = false` on an admin row
+ * turns the provider's sign-in off without clearing the stored credentials.
+ *
+ * `scopes` is only returned when the admin set explicit scopes; otherwise null so
+ * the caller keeps the env/well-known default. `configured` is true only when a
+ * usable client_id + secret pair is available from either source.
+ */
+async function resolveLoginProviderCredentials(
+  provider: string,
+  store: ApiStore,
+): Promise<{
+  clientId: string | null;
+  clientSecret: string | null;
+  scopes: string[] | null;
+  enabled: boolean;
+  configured: boolean;
+  source: 'admin' | 'env' | 'none';
+}> {
+  const envId = process.env[`${provider.toUpperCase()}_CLIENT_ID`] ?? null;
+  const envSecret = process.env[`${provider.toUpperCase()}_CLIENT_SECRET`] ?? null;
+
+  try {
+    const cfg = await store.getLoginProviderConfig(provider);
+
+    if (cfg) {
+      let dbSecret: string | null = null;
+
+      if (cfg.clientSecretEnc) {
+        try {
+          dbSecret = decryptJson<{ value: string }>(cfg.clientSecretEnc).value || null;
+        } catch {
+          // Undecryptable stored secret → fall back to env secret below.
+        }
+      }
+
+      const clientId = cfg.clientId ?? envId;
+      const clientSecret = dbSecret ?? envSecret;
+      const usedAdmin = Boolean(cfg.clientId) || Boolean(dbSecret);
+
+      return {
+        clientId,
+        clientSecret,
+        scopes: cfg.scopes && cfg.scopes.length > 0 ? cfg.scopes : null,
+        enabled: cfg.enabled,
+        configured: Boolean(clientId && clientSecret),
+        source: usedAdmin ? 'admin' : clientId ? 'env' : 'none',
+      };
+    }
+  } catch {
+    // DB unreachable/row unreadable → fall through to env-only resolution.
+  }
+
+  return {
+    clientId: envId,
+    clientSecret: envSecret,
+    scopes: null,
+    enabled: true,
+    configured: Boolean(envId && envSecret),
+    source: envId ? 'env' : 'none',
+  };
+}
+
+async function resolveOAuthProfile(
+  provider: string,
+  body: z.infer<typeof oauthCallbackSchema>,
+  credsOverride?: { clientId: string | null; clientSecret: string | null },
+) {
   /*
    * Test-only seam: accept a pre-resolved profile without performing a real provider
    * code exchange. This MUST never be reachable in production — otherwise any caller
@@ -4013,8 +4083,9 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
     );
   }
 
-  const clientId = process.env[`${provider.toUpperCase()}_CLIENT_ID`];
-  const clientSecret = process.env[`${provider.toUpperCase()}_CLIENT_SECRET`];
+  // Admin-configured credentials (DB-first) win; otherwise fall back to env.
+  const clientId = credsOverride?.clientId ?? process.env[`${provider.toUpperCase()}_CLIENT_ID`];
+  const clientSecret = credsOverride?.clientSecret ?? process.env[`${provider.toUpperCase()}_CLIENT_SECRET`];
   const redirectUri = process.env[`${provider.toUpperCase()}_REDIRECT_URI`];
 
   if (!clientId || !clientSecret) {
@@ -7149,16 +7220,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return true;
   }
 
-  function oauthAuthorizationUrl(provider: string) {
+  async function oauthAuthorizationUrl(provider: string) {
     const authorizationUrl =
       process.env[`${provider.toUpperCase()}_OAUTH_AUTHORIZATION_URL`] ??
       process.env[`${provider.toUpperCase()}_AUTHORIZATION_URL`] ??
       wellKnownOauthEndpoints[provider]?.authorizationUrl;
 
-    const clientId = process.env[`${provider.toUpperCase()}_CLIENT_ID`];
+    // DB-first client_id (admin-configured) → env fallback. A disabled admin row
+    // turns sign-in off (null URL → start route reports ready:false).
+    const creds = await resolveLoginProviderCredentials(provider, store);
+
+    if (!creds.enabled) {
+      return null;
+    }
+
+    const clientId = creds.clientId ?? undefined;
     const redirectUri = process.env[`${provider.toUpperCase()}_REDIRECT_URI`];
 
     const scope =
+      (creds.scopes && creds.scopes.length > 0 ? creds.scopes.join(' ') : undefined) ??
       process.env[`${provider.toUpperCase()}_SCOPE`] ??
       wellKnownOauthEndpoints[provider]?.scope ??
       'openid email profile';
@@ -7187,16 +7267,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return url.toString();
   }
 
-  app.get('/auth/oauth/google/start', async () => ({
-    provider: 'google',
-    authorizationUrl: oauthAuthorizationUrl('google'),
-    ready: Boolean(process.env.GOOGLE_CLIENT_ID),
-  }));
-  app.get('/auth/oauth/github/start', async () => ({
-    provider: 'github',
-    authorizationUrl: oauthAuthorizationUrl('github'),
-    ready: Boolean(process.env.GITHUB_CLIENT_ID),
-  }));
+  app.get('/auth/oauth/google/start', async () => {
+    const authorizationUrl = await oauthAuthorizationUrl('google');
+
+    return { provider: 'google', authorizationUrl, ready: Boolean(authorizationUrl) };
+  });
+  app.get('/auth/oauth/github/start', async () => {
+    const authorizationUrl = await oauthAuthorizationUrl('github');
+
+    return { provider: 'github', authorizationUrl, ready: Boolean(authorizationUrl) };
+  });
   app.post(
     '/auth/oauth/:provider/callback',
     { config: { rateLimit: { max: Number(process.env.AUTH_OAUTH_RATE_LIMIT_MAX ?? 100), timeWindow: '1 minute' } } },
@@ -7213,10 +7293,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply.code(401).send({ error: 'Invalid or expired OAuth state', code: 'OAUTH_STATE_INVALID' });
       }
 
+      // Admin-configured credentials (DB-first) win over env; a disabled provider
+      // is rejected before any code exchange.
+      const loginCreds = await resolveLoginProviderCredentials(provider, store);
+
+      if (!loginCreds.enabled) {
+        return reply
+          .code(503)
+          .send({ error: 'This sign-in provider is disabled', code: 'OAUTH_PROVIDER_DISABLED' });
+      }
+
       let profile;
 
       try {
-        profile = await resolveOAuthProfile(provider, body);
+        profile = await resolveOAuthProfile(provider, body, {
+          clientId: loginCreds.clientId,
+          clientSecret: loginCreds.clientSecret,
+        });
       } catch (err: any) {
         request.log.error(
           { provider, code: err?.code, statusCode: err?.statusCode, msg: err?.message },
@@ -7285,11 +7378,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     },
   );
-  app.get('/auth/oidc/start', async () => ({
-    provider: 'oidc',
-    authorizationUrl: oauthAuthorizationUrl('oidc'),
-    ready: Boolean(process.env.OIDC_CLIENT_ID),
-  }));
+  app.get('/auth/oidc/start', async () => {
+    const authorizationUrl = await oauthAuthorizationUrl('oidc');
+
+    return { provider: 'oidc', authorizationUrl, ready: Boolean(authorizationUrl) };
+  });
   app.post(
     '/auth/oidc/callback',
     { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
@@ -7300,10 +7393,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply.code(401).send({ error: 'Invalid or expired OIDC state', code: 'OAUTH_STATE_INVALID' });
       }
 
+      const oidcCreds = await resolveLoginProviderCredentials('oidc', store);
+
+      if (!oidcCreds.enabled) {
+        return reply
+          .code(503)
+          .send({ error: 'This sign-in provider is disabled', code: 'OAUTH_PROVIDER_DISABLED' });
+      }
+
       let profile;
 
       try {
-        profile = await resolveOAuthProfile('oidc', body);
+        profile = await resolveOAuthProfile('oidc', body, {
+          clientId: oidcCreds.clientId,
+          clientSecret: oidcCreds.clientSecret,
+        });
       } catch (err: any) {
         request.log.error(
           { code: err?.code, statusCode: err?.statusCode, msg: err?.message },
@@ -18672,6 +18776,88 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { connector: updated };
+  });
+
+  /*
+   * Admin self-service social-login provider config (GitHub / Google sign-in).
+   * Lets a platform admin paste the login OAuth apps' client_id/secret from the
+   * admin UI instead of the platform Secret + a redeploy; the login flow reads
+   * these DB-first via resolveLoginProviderCredentials and falls back to env. The
+   * secret is WRITE-ONLY here — never returned, only `hasSecret` is exposed.
+   * `envClientIdPresent` lets the UI show whether env still provides a fallback.
+   */
+  const LOGIN_OAUTH_PROVIDERS = [
+    { provider: 'github', displayName: 'GitHub (sign-in)', callbackUrl: 'https://app.e-code.ai/auth/oauth/github/callback' },
+    { provider: 'google', displayName: 'Google (sign-in)', callbackUrl: 'https://app.e-code.ai/auth/oauth/google/callback' },
+  ] as const;
+  const LOGIN_OAUTH_PROVIDER_KEYS = ['github', 'google'] as const;
+
+  app.get('/admin/login-providers', async (request) => {
+    await requirePlatformAdmin(request);
+
+    const rows = await Promise.all(
+      LOGIN_OAUTH_PROVIDERS.map(async (p) => {
+        const cfg = await store.getLoginProviderConfig(p.provider);
+        const envClientId = process.env[`${p.provider.toUpperCase()}_CLIENT_ID`];
+        const envSecret = process.env[`${p.provider.toUpperCase()}_CLIENT_SECRET`];
+
+        return {
+          provider: p.provider,
+          displayName: p.displayName,
+          callbackUrl: p.callbackUrl,
+          enabled: cfg?.enabled ?? true,
+          clientId: cfg?.clientId ?? '',
+          hasSecret: Boolean(cfg?.clientSecretEnc),
+          scopes: cfg?.scopes ?? [],
+          envClientIdPresent: Boolean(envClientId),
+          envSecretPresent: Boolean(envSecret),
+        };
+      }),
+    );
+
+    return { providers: rows };
+  });
+
+  app.post('/admin/login-providers', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const body = parse(
+      z.object({
+        provider: z.enum(LOGIN_OAUTH_PROVIDER_KEYS),
+        clientId: z.string().trim().optional(),
+        clientSecret: z.string().optional(),
+        scopes: z.string().optional(),
+        enabled: z.boolean().optional(),
+      }),
+      request.body ?? {},
+    );
+
+    const hasNewSecret = typeof body.clientSecret === 'string' && body.clientSecret.length > 0;
+    const scopes =
+      typeof body.scopes === 'string'
+        ? body.scopes
+            .split(/[\s,]+/)
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : undefined;
+
+    const updated = await store.upsertLoginProviderConfig({
+      provider: body.provider,
+      ...(body.clientId !== undefined ? { clientId: body.clientId.length > 0 ? body.clientId : null } : {}),
+      ...(hasNewSecret ? { clientSecretEnc: encryptJson({ value: body.clientSecret }) } : {}),
+      ...(scopes !== undefined ? { scopes } : {}),
+      ...(body.enabled !== undefined ? { enabled: body.enabled } : {}),
+      updatedByUserId: request.currentUser?.id ?? null,
+    });
+    await audit(request, store, {
+      action: 'admin.login-provider.configure',
+      resourceType: 'login-provider',
+      resourceId: body.provider,
+      metadata: { enabled: updated.enabled, hasClientId: Boolean(updated.clientId), secretUpdated: hasNewSecret },
+    });
+
+    return { provider: updated };
   });
 
   /*

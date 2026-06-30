@@ -573,6 +573,17 @@ exports.Prisma.StripeConfigScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.LoginProviderConfigScalarFieldEnum = {
+  provider: 'provider',
+  clientId: 'clientId',
+  clientSecretEnc: 'clientSecretEnc',
+  scopes: 'scopes',
+  enabled: 'enabled',
+  updatedByUserId: 'updatedByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.UsageEventScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -1373,6 +1384,7 @@ exports.Prisma.ModelName = {
   Subscription: 'Subscription',
   Plan: 'Plan',
   StripeConfig: 'StripeConfig',
+  LoginProviderConfig: 'LoginProviderConfig',
   UsageEvent: 'UsageEvent',
   QuotaLedger: 'QuotaLedger',
   QuotaOverride: 'QuotaOverride',

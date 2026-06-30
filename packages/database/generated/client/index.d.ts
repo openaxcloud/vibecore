@@ -220,6 +220,18 @@ export type Plan = $Result.DefaultSelection<Prisma.$PlanPayload>
  */
 export type StripeConfig = $Result.DefaultSelection<Prisma.$StripeConfigPayload>
 /**
+ * Model LoginProviderConfig
+ * * Admin-managed social-login provider config (2026-06-30): a platform admin can
+ *  * paste each sign-in provider's (GitHub / Google) OAuth client_id + client_secret
+ *  * in /admin/oauth-providers instead of editing the platform Secret + redeploying.
+ *  * One row per provider (provider key is the PK). The secret is stored encrypted
+ *  * (encryptJson) and is write-only. The login flow reads this row DB-first and
+ *  * falls back to the *_CLIENT_ID/*_CLIENT_SECRET env vars, so an absent row keeps
+ *  * the current env-based behaviour with zero regression. `enabled = false`
+ *  * disables the provider's sign-in button without clearing the stored credentials.
+ */
+export type LoginProviderConfig = $Result.DefaultSelection<Prisma.$LoginProviderConfigPayload>
+/**
  * Model UsageEvent
  * 
  */
@@ -1241,6 +1253,16 @@ export class PrismaClient<
   get stripeConfig(): Prisma.StripeConfigDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.loginProviderConfig`: Exposes CRUD operations for the **LoginProviderConfig** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more LoginProviderConfigs
+    * const loginProviderConfigs = await prisma.loginProviderConfig.findMany()
+    * ```
+    */
+  get loginProviderConfig(): Prisma.LoginProviderConfigDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.usageEvent`: Exposes CRUD operations for the **UsageEvent** model.
     * Example usage:
     * ```ts
@@ -2213,6 +2235,7 @@ export namespace Prisma {
     Subscription: 'Subscription',
     Plan: 'Plan',
     StripeConfig: 'StripeConfig',
+    LoginProviderConfig: 'LoginProviderConfig',
     UsageEvent: 'UsageEvent',
     QuotaLedger: 'QuotaLedger',
     QuotaOverride: 'QuotaOverride',
@@ -2278,7 +2301,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5223,6 +5246,80 @@ export namespace Prisma {
           count: {
             args: Prisma.StripeConfigCountArgs<ExtArgs>
             result: $Utils.Optional<StripeConfigCountAggregateOutputType> | number
+          }
+        }
+      }
+      LoginProviderConfig: {
+        payload: Prisma.$LoginProviderConfigPayload<ExtArgs>
+        fields: Prisma.LoginProviderConfigFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.LoginProviderConfigFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginProviderConfigPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.LoginProviderConfigFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginProviderConfigPayload>
+          }
+          findFirst: {
+            args: Prisma.LoginProviderConfigFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginProviderConfigPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.LoginProviderConfigFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginProviderConfigPayload>
+          }
+          findMany: {
+            args: Prisma.LoginProviderConfigFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginProviderConfigPayload>[]
+          }
+          create: {
+            args: Prisma.LoginProviderConfigCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginProviderConfigPayload>
+          }
+          createMany: {
+            args: Prisma.LoginProviderConfigCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.LoginProviderConfigCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginProviderConfigPayload>[]
+          }
+          delete: {
+            args: Prisma.LoginProviderConfigDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginProviderConfigPayload>
+          }
+          update: {
+            args: Prisma.LoginProviderConfigUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginProviderConfigPayload>
+          }
+          deleteMany: {
+            args: Prisma.LoginProviderConfigDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.LoginProviderConfigUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.LoginProviderConfigUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginProviderConfigPayload>[]
+          }
+          upsert: {
+            args: Prisma.LoginProviderConfigUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginProviderConfigPayload>
+          }
+          aggregate: {
+            args: Prisma.LoginProviderConfigAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLoginProviderConfig>
+          }
+          groupBy: {
+            args: Prisma.LoginProviderConfigGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LoginProviderConfigGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.LoginProviderConfigCountArgs<ExtArgs>
+            result: $Utils.Optional<LoginProviderConfigCountAggregateOutputType> | number
           }
         }
       }
@@ -9074,6 +9171,7 @@ export namespace Prisma {
     subscription?: SubscriptionOmit
     plan?: PlanOmit
     stripeConfig?: StripeConfigOmit
+    loginProviderConfig?: LoginProviderConfigOmit
     usageEvent?: UsageEventOmit
     quotaLedger?: QuotaLedgerOmit
     quotaOverride?: QuotaOverrideOmit
@@ -57686,6 +57784,1041 @@ export namespace Prisma {
      * Omit specific fields from the StripeConfig
      */
     omit?: StripeConfigOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model LoginProviderConfig
+   */
+
+  export type AggregateLoginProviderConfig = {
+    _count: LoginProviderConfigCountAggregateOutputType | null
+    _min: LoginProviderConfigMinAggregateOutputType | null
+    _max: LoginProviderConfigMaxAggregateOutputType | null
+  }
+
+  export type LoginProviderConfigMinAggregateOutputType = {
+    provider: string | null
+    clientId: string | null
+    clientSecretEnc: string | null
+    enabled: boolean | null
+    updatedByUserId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type LoginProviderConfigMaxAggregateOutputType = {
+    provider: string | null
+    clientId: string | null
+    clientSecretEnc: string | null
+    enabled: boolean | null
+    updatedByUserId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type LoginProviderConfigCountAggregateOutputType = {
+    provider: number
+    clientId: number
+    clientSecretEnc: number
+    scopes: number
+    enabled: number
+    updatedByUserId: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type LoginProviderConfigMinAggregateInputType = {
+    provider?: true
+    clientId?: true
+    clientSecretEnc?: true
+    enabled?: true
+    updatedByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type LoginProviderConfigMaxAggregateInputType = {
+    provider?: true
+    clientId?: true
+    clientSecretEnc?: true
+    enabled?: true
+    updatedByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type LoginProviderConfigCountAggregateInputType = {
+    provider?: true
+    clientId?: true
+    clientSecretEnc?: true
+    scopes?: true
+    enabled?: true
+    updatedByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type LoginProviderConfigAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LoginProviderConfig to aggregate.
+     */
+    where?: LoginProviderConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LoginProviderConfigs to fetch.
+     */
+    orderBy?: LoginProviderConfigOrderByWithRelationInput | LoginProviderConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: LoginProviderConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LoginProviderConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LoginProviderConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned LoginProviderConfigs
+    **/
+    _count?: true | LoginProviderConfigCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: LoginProviderConfigMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: LoginProviderConfigMaxAggregateInputType
+  }
+
+  export type GetLoginProviderConfigAggregateType<T extends LoginProviderConfigAggregateArgs> = {
+        [P in keyof T & keyof AggregateLoginProviderConfig]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateLoginProviderConfig[P]>
+      : GetScalarType<T[P], AggregateLoginProviderConfig[P]>
+  }
+
+
+
+
+  export type LoginProviderConfigGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LoginProviderConfigWhereInput
+    orderBy?: LoginProviderConfigOrderByWithAggregationInput | LoginProviderConfigOrderByWithAggregationInput[]
+    by: LoginProviderConfigScalarFieldEnum[] | LoginProviderConfigScalarFieldEnum
+    having?: LoginProviderConfigScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: LoginProviderConfigCountAggregateInputType | true
+    _min?: LoginProviderConfigMinAggregateInputType
+    _max?: LoginProviderConfigMaxAggregateInputType
+  }
+
+  export type LoginProviderConfigGroupByOutputType = {
+    provider: string
+    clientId: string | null
+    clientSecretEnc: string | null
+    scopes: string[]
+    enabled: boolean
+    updatedByUserId: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: LoginProviderConfigCountAggregateOutputType | null
+    _min: LoginProviderConfigMinAggregateOutputType | null
+    _max: LoginProviderConfigMaxAggregateOutputType | null
+  }
+
+  type GetLoginProviderConfigGroupByPayload<T extends LoginProviderConfigGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<LoginProviderConfigGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof LoginProviderConfigGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], LoginProviderConfigGroupByOutputType[P]>
+            : GetScalarType<T[P], LoginProviderConfigGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type LoginProviderConfigSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    provider?: boolean
+    clientId?: boolean
+    clientSecretEnc?: boolean
+    scopes?: boolean
+    enabled?: boolean
+    updatedByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["loginProviderConfig"]>
+
+  export type LoginProviderConfigSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    provider?: boolean
+    clientId?: boolean
+    clientSecretEnc?: boolean
+    scopes?: boolean
+    enabled?: boolean
+    updatedByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["loginProviderConfig"]>
+
+  export type LoginProviderConfigSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    provider?: boolean
+    clientId?: boolean
+    clientSecretEnc?: boolean
+    scopes?: boolean
+    enabled?: boolean
+    updatedByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["loginProviderConfig"]>
+
+  export type LoginProviderConfigSelectScalar = {
+    provider?: boolean
+    clientId?: boolean
+    clientSecretEnc?: boolean
+    scopes?: boolean
+    enabled?: boolean
+    updatedByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type LoginProviderConfigOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"provider" | "clientId" | "clientSecretEnc" | "scopes" | "enabled" | "updatedByUserId" | "createdAt" | "updatedAt", ExtArgs["result"]["loginProviderConfig"]>
+
+  export type $LoginProviderConfigPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LoginProviderConfig"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      provider: string
+      clientId: string | null
+      clientSecretEnc: string | null
+      scopes: string[]
+      enabled: boolean
+      updatedByUserId: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["loginProviderConfig"]>
+    composites: {}
+  }
+
+  type LoginProviderConfigGetPayload<S extends boolean | null | undefined | LoginProviderConfigDefaultArgs> = $Result.GetResult<Prisma.$LoginProviderConfigPayload, S>
+
+  type LoginProviderConfigCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<LoginProviderConfigFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: LoginProviderConfigCountAggregateInputType | true
+    }
+
+  export interface LoginProviderConfigDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LoginProviderConfig'], meta: { name: 'LoginProviderConfig' } }
+    /**
+     * Find zero or one LoginProviderConfig that matches the filter.
+     * @param {LoginProviderConfigFindUniqueArgs} args - Arguments to find a LoginProviderConfig
+     * @example
+     * // Get one LoginProviderConfig
+     * const loginProviderConfig = await prisma.loginProviderConfig.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends LoginProviderConfigFindUniqueArgs>(args: SelectSubset<T, LoginProviderConfigFindUniqueArgs<ExtArgs>>): Prisma__LoginProviderConfigClient<$Result.GetResult<Prisma.$LoginProviderConfigPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one LoginProviderConfig that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {LoginProviderConfigFindUniqueOrThrowArgs} args - Arguments to find a LoginProviderConfig
+     * @example
+     * // Get one LoginProviderConfig
+     * const loginProviderConfig = await prisma.loginProviderConfig.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends LoginProviderConfigFindUniqueOrThrowArgs>(args: SelectSubset<T, LoginProviderConfigFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LoginProviderConfigClient<$Result.GetResult<Prisma.$LoginProviderConfigPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LoginProviderConfig that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LoginProviderConfigFindFirstArgs} args - Arguments to find a LoginProviderConfig
+     * @example
+     * // Get one LoginProviderConfig
+     * const loginProviderConfig = await prisma.loginProviderConfig.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends LoginProviderConfigFindFirstArgs>(args?: SelectSubset<T, LoginProviderConfigFindFirstArgs<ExtArgs>>): Prisma__LoginProviderConfigClient<$Result.GetResult<Prisma.$LoginProviderConfigPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LoginProviderConfig that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LoginProviderConfigFindFirstOrThrowArgs} args - Arguments to find a LoginProviderConfig
+     * @example
+     * // Get one LoginProviderConfig
+     * const loginProviderConfig = await prisma.loginProviderConfig.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends LoginProviderConfigFindFirstOrThrowArgs>(args?: SelectSubset<T, LoginProviderConfigFindFirstOrThrowArgs<ExtArgs>>): Prisma__LoginProviderConfigClient<$Result.GetResult<Prisma.$LoginProviderConfigPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more LoginProviderConfigs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LoginProviderConfigFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all LoginProviderConfigs
+     * const loginProviderConfigs = await prisma.loginProviderConfig.findMany()
+     * 
+     * // Get first 10 LoginProviderConfigs
+     * const loginProviderConfigs = await prisma.loginProviderConfig.findMany({ take: 10 })
+     * 
+     * // Only select the `provider`
+     * const loginProviderConfigWithProviderOnly = await prisma.loginProviderConfig.findMany({ select: { provider: true } })
+     * 
+     */
+    findMany<T extends LoginProviderConfigFindManyArgs>(args?: SelectSubset<T, LoginProviderConfigFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LoginProviderConfigPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a LoginProviderConfig.
+     * @param {LoginProviderConfigCreateArgs} args - Arguments to create a LoginProviderConfig.
+     * @example
+     * // Create one LoginProviderConfig
+     * const LoginProviderConfig = await prisma.loginProviderConfig.create({
+     *   data: {
+     *     // ... data to create a LoginProviderConfig
+     *   }
+     * })
+     * 
+     */
+    create<T extends LoginProviderConfigCreateArgs>(args: SelectSubset<T, LoginProviderConfigCreateArgs<ExtArgs>>): Prisma__LoginProviderConfigClient<$Result.GetResult<Prisma.$LoginProviderConfigPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many LoginProviderConfigs.
+     * @param {LoginProviderConfigCreateManyArgs} args - Arguments to create many LoginProviderConfigs.
+     * @example
+     * // Create many LoginProviderConfigs
+     * const loginProviderConfig = await prisma.loginProviderConfig.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends LoginProviderConfigCreateManyArgs>(args?: SelectSubset<T, LoginProviderConfigCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many LoginProviderConfigs and returns the data saved in the database.
+     * @param {LoginProviderConfigCreateManyAndReturnArgs} args - Arguments to create many LoginProviderConfigs.
+     * @example
+     * // Create many LoginProviderConfigs
+     * const loginProviderConfig = await prisma.loginProviderConfig.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many LoginProviderConfigs and only return the `provider`
+     * const loginProviderConfigWithProviderOnly = await prisma.loginProviderConfig.createManyAndReturn({
+     *   select: { provider: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends LoginProviderConfigCreateManyAndReturnArgs>(args?: SelectSubset<T, LoginProviderConfigCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LoginProviderConfigPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a LoginProviderConfig.
+     * @param {LoginProviderConfigDeleteArgs} args - Arguments to delete one LoginProviderConfig.
+     * @example
+     * // Delete one LoginProviderConfig
+     * const LoginProviderConfig = await prisma.loginProviderConfig.delete({
+     *   where: {
+     *     // ... filter to delete one LoginProviderConfig
+     *   }
+     * })
+     * 
+     */
+    delete<T extends LoginProviderConfigDeleteArgs>(args: SelectSubset<T, LoginProviderConfigDeleteArgs<ExtArgs>>): Prisma__LoginProviderConfigClient<$Result.GetResult<Prisma.$LoginProviderConfigPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one LoginProviderConfig.
+     * @param {LoginProviderConfigUpdateArgs} args - Arguments to update one LoginProviderConfig.
+     * @example
+     * // Update one LoginProviderConfig
+     * const loginProviderConfig = await prisma.loginProviderConfig.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends LoginProviderConfigUpdateArgs>(args: SelectSubset<T, LoginProviderConfigUpdateArgs<ExtArgs>>): Prisma__LoginProviderConfigClient<$Result.GetResult<Prisma.$LoginProviderConfigPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more LoginProviderConfigs.
+     * @param {LoginProviderConfigDeleteManyArgs} args - Arguments to filter LoginProviderConfigs to delete.
+     * @example
+     * // Delete a few LoginProviderConfigs
+     * const { count } = await prisma.loginProviderConfig.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends LoginProviderConfigDeleteManyArgs>(args?: SelectSubset<T, LoginProviderConfigDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LoginProviderConfigs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LoginProviderConfigUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many LoginProviderConfigs
+     * const loginProviderConfig = await prisma.loginProviderConfig.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends LoginProviderConfigUpdateManyArgs>(args: SelectSubset<T, LoginProviderConfigUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LoginProviderConfigs and returns the data updated in the database.
+     * @param {LoginProviderConfigUpdateManyAndReturnArgs} args - Arguments to update many LoginProviderConfigs.
+     * @example
+     * // Update many LoginProviderConfigs
+     * const loginProviderConfig = await prisma.loginProviderConfig.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more LoginProviderConfigs and only return the `provider`
+     * const loginProviderConfigWithProviderOnly = await prisma.loginProviderConfig.updateManyAndReturn({
+     *   select: { provider: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends LoginProviderConfigUpdateManyAndReturnArgs>(args: SelectSubset<T, LoginProviderConfigUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LoginProviderConfigPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one LoginProviderConfig.
+     * @param {LoginProviderConfigUpsertArgs} args - Arguments to update or create a LoginProviderConfig.
+     * @example
+     * // Update or create a LoginProviderConfig
+     * const loginProviderConfig = await prisma.loginProviderConfig.upsert({
+     *   create: {
+     *     // ... data to create a LoginProviderConfig
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the LoginProviderConfig we want to update
+     *   }
+     * })
+     */
+    upsert<T extends LoginProviderConfigUpsertArgs>(args: SelectSubset<T, LoginProviderConfigUpsertArgs<ExtArgs>>): Prisma__LoginProviderConfigClient<$Result.GetResult<Prisma.$LoginProviderConfigPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of LoginProviderConfigs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LoginProviderConfigCountArgs} args - Arguments to filter LoginProviderConfigs to count.
+     * @example
+     * // Count the number of LoginProviderConfigs
+     * const count = await prisma.loginProviderConfig.count({
+     *   where: {
+     *     // ... the filter for the LoginProviderConfigs we want to count
+     *   }
+     * })
+    **/
+    count<T extends LoginProviderConfigCountArgs>(
+      args?: Subset<T, LoginProviderConfigCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], LoginProviderConfigCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a LoginProviderConfig.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LoginProviderConfigAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends LoginProviderConfigAggregateArgs>(args: Subset<T, LoginProviderConfigAggregateArgs>): Prisma.PrismaPromise<GetLoginProviderConfigAggregateType<T>>
+
+    /**
+     * Group by LoginProviderConfig.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LoginProviderConfigGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends LoginProviderConfigGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: LoginProviderConfigGroupByArgs['orderBy'] }
+        : { orderBy?: LoginProviderConfigGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, LoginProviderConfigGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLoginProviderConfigGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the LoginProviderConfig model
+   */
+  readonly fields: LoginProviderConfigFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for LoginProviderConfig.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__LoginProviderConfigClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the LoginProviderConfig model
+   */
+  interface LoginProviderConfigFieldRefs {
+    readonly provider: FieldRef<"LoginProviderConfig", 'String'>
+    readonly clientId: FieldRef<"LoginProviderConfig", 'String'>
+    readonly clientSecretEnc: FieldRef<"LoginProviderConfig", 'String'>
+    readonly scopes: FieldRef<"LoginProviderConfig", 'String[]'>
+    readonly enabled: FieldRef<"LoginProviderConfig", 'Boolean'>
+    readonly updatedByUserId: FieldRef<"LoginProviderConfig", 'String'>
+    readonly createdAt: FieldRef<"LoginProviderConfig", 'DateTime'>
+    readonly updatedAt: FieldRef<"LoginProviderConfig", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * LoginProviderConfig findUnique
+   */
+  export type LoginProviderConfigFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginProviderConfig
+     */
+    select?: LoginProviderConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LoginProviderConfig
+     */
+    omit?: LoginProviderConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which LoginProviderConfig to fetch.
+     */
+    where: LoginProviderConfigWhereUniqueInput
+  }
+
+  /**
+   * LoginProviderConfig findUniqueOrThrow
+   */
+  export type LoginProviderConfigFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginProviderConfig
+     */
+    select?: LoginProviderConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LoginProviderConfig
+     */
+    omit?: LoginProviderConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which LoginProviderConfig to fetch.
+     */
+    where: LoginProviderConfigWhereUniqueInput
+  }
+
+  /**
+   * LoginProviderConfig findFirst
+   */
+  export type LoginProviderConfigFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginProviderConfig
+     */
+    select?: LoginProviderConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LoginProviderConfig
+     */
+    omit?: LoginProviderConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which LoginProviderConfig to fetch.
+     */
+    where?: LoginProviderConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LoginProviderConfigs to fetch.
+     */
+    orderBy?: LoginProviderConfigOrderByWithRelationInput | LoginProviderConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LoginProviderConfigs.
+     */
+    cursor?: LoginProviderConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LoginProviderConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LoginProviderConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LoginProviderConfigs.
+     */
+    distinct?: LoginProviderConfigScalarFieldEnum | LoginProviderConfigScalarFieldEnum[]
+  }
+
+  /**
+   * LoginProviderConfig findFirstOrThrow
+   */
+  export type LoginProviderConfigFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginProviderConfig
+     */
+    select?: LoginProviderConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LoginProviderConfig
+     */
+    omit?: LoginProviderConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which LoginProviderConfig to fetch.
+     */
+    where?: LoginProviderConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LoginProviderConfigs to fetch.
+     */
+    orderBy?: LoginProviderConfigOrderByWithRelationInput | LoginProviderConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LoginProviderConfigs.
+     */
+    cursor?: LoginProviderConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LoginProviderConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LoginProviderConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LoginProviderConfigs.
+     */
+    distinct?: LoginProviderConfigScalarFieldEnum | LoginProviderConfigScalarFieldEnum[]
+  }
+
+  /**
+   * LoginProviderConfig findMany
+   */
+  export type LoginProviderConfigFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginProviderConfig
+     */
+    select?: LoginProviderConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LoginProviderConfig
+     */
+    omit?: LoginProviderConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which LoginProviderConfigs to fetch.
+     */
+    where?: LoginProviderConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LoginProviderConfigs to fetch.
+     */
+    orderBy?: LoginProviderConfigOrderByWithRelationInput | LoginProviderConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing LoginProviderConfigs.
+     */
+    cursor?: LoginProviderConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LoginProviderConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LoginProviderConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LoginProviderConfigs.
+     */
+    distinct?: LoginProviderConfigScalarFieldEnum | LoginProviderConfigScalarFieldEnum[]
+  }
+
+  /**
+   * LoginProviderConfig create
+   */
+  export type LoginProviderConfigCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginProviderConfig
+     */
+    select?: LoginProviderConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LoginProviderConfig
+     */
+    omit?: LoginProviderConfigOmit<ExtArgs> | null
+    /**
+     * The data needed to create a LoginProviderConfig.
+     */
+    data: XOR<LoginProviderConfigCreateInput, LoginProviderConfigUncheckedCreateInput>
+  }
+
+  /**
+   * LoginProviderConfig createMany
+   */
+  export type LoginProviderConfigCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many LoginProviderConfigs.
+     */
+    data: LoginProviderConfigCreateManyInput | LoginProviderConfigCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LoginProviderConfig createManyAndReturn
+   */
+  export type LoginProviderConfigCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginProviderConfig
+     */
+    select?: LoginProviderConfigSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LoginProviderConfig
+     */
+    omit?: LoginProviderConfigOmit<ExtArgs> | null
+    /**
+     * The data used to create many LoginProviderConfigs.
+     */
+    data: LoginProviderConfigCreateManyInput | LoginProviderConfigCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LoginProviderConfig update
+   */
+  export type LoginProviderConfigUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginProviderConfig
+     */
+    select?: LoginProviderConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LoginProviderConfig
+     */
+    omit?: LoginProviderConfigOmit<ExtArgs> | null
+    /**
+     * The data needed to update a LoginProviderConfig.
+     */
+    data: XOR<LoginProviderConfigUpdateInput, LoginProviderConfigUncheckedUpdateInput>
+    /**
+     * Choose, which LoginProviderConfig to update.
+     */
+    where: LoginProviderConfigWhereUniqueInput
+  }
+
+  /**
+   * LoginProviderConfig updateMany
+   */
+  export type LoginProviderConfigUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update LoginProviderConfigs.
+     */
+    data: XOR<LoginProviderConfigUpdateManyMutationInput, LoginProviderConfigUncheckedUpdateManyInput>
+    /**
+     * Filter which LoginProviderConfigs to update
+     */
+    where?: LoginProviderConfigWhereInput
+    /**
+     * Limit how many LoginProviderConfigs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LoginProviderConfig updateManyAndReturn
+   */
+  export type LoginProviderConfigUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginProviderConfig
+     */
+    select?: LoginProviderConfigSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LoginProviderConfig
+     */
+    omit?: LoginProviderConfigOmit<ExtArgs> | null
+    /**
+     * The data used to update LoginProviderConfigs.
+     */
+    data: XOR<LoginProviderConfigUpdateManyMutationInput, LoginProviderConfigUncheckedUpdateManyInput>
+    /**
+     * Filter which LoginProviderConfigs to update
+     */
+    where?: LoginProviderConfigWhereInput
+    /**
+     * Limit how many LoginProviderConfigs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LoginProviderConfig upsert
+   */
+  export type LoginProviderConfigUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginProviderConfig
+     */
+    select?: LoginProviderConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LoginProviderConfig
+     */
+    omit?: LoginProviderConfigOmit<ExtArgs> | null
+    /**
+     * The filter to search for the LoginProviderConfig to update in case it exists.
+     */
+    where: LoginProviderConfigWhereUniqueInput
+    /**
+     * In case the LoginProviderConfig found by the `where` argument doesn't exist, create a new LoginProviderConfig with this data.
+     */
+    create: XOR<LoginProviderConfigCreateInput, LoginProviderConfigUncheckedCreateInput>
+    /**
+     * In case the LoginProviderConfig was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<LoginProviderConfigUpdateInput, LoginProviderConfigUncheckedUpdateInput>
+  }
+
+  /**
+   * LoginProviderConfig delete
+   */
+  export type LoginProviderConfigDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginProviderConfig
+     */
+    select?: LoginProviderConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LoginProviderConfig
+     */
+    omit?: LoginProviderConfigOmit<ExtArgs> | null
+    /**
+     * Filter which LoginProviderConfig to delete.
+     */
+    where: LoginProviderConfigWhereUniqueInput
+  }
+
+  /**
+   * LoginProviderConfig deleteMany
+   */
+  export type LoginProviderConfigDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LoginProviderConfigs to delete
+     */
+    where?: LoginProviderConfigWhereInput
+    /**
+     * Limit how many LoginProviderConfigs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * LoginProviderConfig without action
+   */
+  export type LoginProviderConfigDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginProviderConfig
+     */
+    select?: LoginProviderConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LoginProviderConfig
+     */
+    omit?: LoginProviderConfigOmit<ExtArgs> | null
   }
 
 
@@ -115105,6 +116238,20 @@ export namespace Prisma {
   export type StripeConfigScalarFieldEnum = (typeof StripeConfigScalarFieldEnum)[keyof typeof StripeConfigScalarFieldEnum]
 
 
+  export const LoginProviderConfigScalarFieldEnum: {
+    provider: 'provider',
+    clientId: 'clientId',
+    clientSecretEnc: 'clientSecretEnc',
+    scopes: 'scopes',
+    enabled: 'enabled',
+    updatedByUserId: 'updatedByUserId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type LoginProviderConfigScalarFieldEnum = (typeof LoginProviderConfigScalarFieldEnum)[keyof typeof LoginProviderConfigScalarFieldEnum]
+
+
   export const UsageEventScalarFieldEnum: {
     id: 'id',
     organizationId: 'organizationId',
@@ -119432,6 +120579,73 @@ export namespace Prisma {
     updatedByUserId?: StringNullableWithAggregatesFilter<"StripeConfig"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"StripeConfig"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"StripeConfig"> | Date | string
+  }
+
+  export type LoginProviderConfigWhereInput = {
+    AND?: LoginProviderConfigWhereInput | LoginProviderConfigWhereInput[]
+    OR?: LoginProviderConfigWhereInput[]
+    NOT?: LoginProviderConfigWhereInput | LoginProviderConfigWhereInput[]
+    provider?: StringFilter<"LoginProviderConfig"> | string
+    clientId?: StringNullableFilter<"LoginProviderConfig"> | string | null
+    clientSecretEnc?: StringNullableFilter<"LoginProviderConfig"> | string | null
+    scopes?: StringNullableListFilter<"LoginProviderConfig">
+    enabled?: BoolFilter<"LoginProviderConfig"> | boolean
+    updatedByUserId?: StringNullableFilter<"LoginProviderConfig"> | string | null
+    createdAt?: DateTimeFilter<"LoginProviderConfig"> | Date | string
+    updatedAt?: DateTimeFilter<"LoginProviderConfig"> | Date | string
+  }
+
+  export type LoginProviderConfigOrderByWithRelationInput = {
+    provider?: SortOrder
+    clientId?: SortOrderInput | SortOrder
+    clientSecretEnc?: SortOrderInput | SortOrder
+    scopes?: SortOrder
+    enabled?: SortOrder
+    updatedByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type LoginProviderConfigWhereUniqueInput = Prisma.AtLeast<{
+    provider?: string
+    AND?: LoginProviderConfigWhereInput | LoginProviderConfigWhereInput[]
+    OR?: LoginProviderConfigWhereInput[]
+    NOT?: LoginProviderConfigWhereInput | LoginProviderConfigWhereInput[]
+    clientId?: StringNullableFilter<"LoginProviderConfig"> | string | null
+    clientSecretEnc?: StringNullableFilter<"LoginProviderConfig"> | string | null
+    scopes?: StringNullableListFilter<"LoginProviderConfig">
+    enabled?: BoolFilter<"LoginProviderConfig"> | boolean
+    updatedByUserId?: StringNullableFilter<"LoginProviderConfig"> | string | null
+    createdAt?: DateTimeFilter<"LoginProviderConfig"> | Date | string
+    updatedAt?: DateTimeFilter<"LoginProviderConfig"> | Date | string
+  }, "provider">
+
+  export type LoginProviderConfigOrderByWithAggregationInput = {
+    provider?: SortOrder
+    clientId?: SortOrderInput | SortOrder
+    clientSecretEnc?: SortOrderInput | SortOrder
+    scopes?: SortOrder
+    enabled?: SortOrder
+    updatedByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: LoginProviderConfigCountOrderByAggregateInput
+    _max?: LoginProviderConfigMaxOrderByAggregateInput
+    _min?: LoginProviderConfigMinOrderByAggregateInput
+  }
+
+  export type LoginProviderConfigScalarWhereWithAggregatesInput = {
+    AND?: LoginProviderConfigScalarWhereWithAggregatesInput | LoginProviderConfigScalarWhereWithAggregatesInput[]
+    OR?: LoginProviderConfigScalarWhereWithAggregatesInput[]
+    NOT?: LoginProviderConfigScalarWhereWithAggregatesInput | LoginProviderConfigScalarWhereWithAggregatesInput[]
+    provider?: StringWithAggregatesFilter<"LoginProviderConfig"> | string
+    clientId?: StringNullableWithAggregatesFilter<"LoginProviderConfig"> | string | null
+    clientSecretEnc?: StringNullableWithAggregatesFilter<"LoginProviderConfig"> | string | null
+    scopes?: StringNullableListFilter<"LoginProviderConfig">
+    enabled?: BoolWithAggregatesFilter<"LoginProviderConfig"> | boolean
+    updatedByUserId?: StringNullableWithAggregatesFilter<"LoginProviderConfig"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"LoginProviderConfig"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"LoginProviderConfig"> | Date | string
   }
 
   export type UsageEventWhereInput = {
@@ -126797,6 +128011,83 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type LoginProviderConfigCreateInput = {
+    provider: string
+    clientId?: string | null
+    clientSecretEnc?: string | null
+    scopes?: LoginProviderConfigCreatescopesInput | string[]
+    enabled?: boolean
+    updatedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type LoginProviderConfigUncheckedCreateInput = {
+    provider: string
+    clientId?: string | null
+    clientSecretEnc?: string | null
+    scopes?: LoginProviderConfigCreatescopesInput | string[]
+    enabled?: boolean
+    updatedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type LoginProviderConfigUpdateInput = {
+    provider?: StringFieldUpdateOperationsInput | string
+    clientId?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSecretEnc?: NullableStringFieldUpdateOperationsInput | string | null
+    scopes?: LoginProviderConfigUpdatescopesInput | string[]
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    updatedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LoginProviderConfigUncheckedUpdateInput = {
+    provider?: StringFieldUpdateOperationsInput | string
+    clientId?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSecretEnc?: NullableStringFieldUpdateOperationsInput | string | null
+    scopes?: LoginProviderConfigUpdatescopesInput | string[]
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    updatedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LoginProviderConfigCreateManyInput = {
+    provider: string
+    clientId?: string | null
+    clientSecretEnc?: string | null
+    scopes?: LoginProviderConfigCreatescopesInput | string[]
+    enabled?: boolean
+    updatedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type LoginProviderConfigUpdateManyMutationInput = {
+    provider?: StringFieldUpdateOperationsInput | string
+    clientId?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSecretEnc?: NullableStringFieldUpdateOperationsInput | string | null
+    scopes?: LoginProviderConfigUpdatescopesInput | string[]
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    updatedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LoginProviderConfigUncheckedUpdateManyInput = {
+    provider?: StringFieldUpdateOperationsInput | string
+    clientId?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSecretEnc?: NullableStringFieldUpdateOperationsInput | string | null
+    scopes?: LoginProviderConfigUpdatescopesInput | string[]
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    updatedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type UsageEventCreateInput = {
     id?: string
     userId?: string | null
@@ -133661,6 +134952,37 @@ export namespace Prisma {
     id?: SortOrder
     secretKeyEnc?: SortOrder
     webhookSecretEnc?: SortOrder
+    updatedByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type LoginProviderConfigCountOrderByAggregateInput = {
+    provider?: SortOrder
+    clientId?: SortOrder
+    clientSecretEnc?: SortOrder
+    scopes?: SortOrder
+    enabled?: SortOrder
+    updatedByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type LoginProviderConfigMaxOrderByAggregateInput = {
+    provider?: SortOrder
+    clientId?: SortOrder
+    clientSecretEnc?: SortOrder
+    enabled?: SortOrder
+    updatedByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type LoginProviderConfigMinOrderByAggregateInput = {
+    provider?: SortOrder
+    clientId?: SortOrder
+    clientSecretEnc?: SortOrder
+    enabled?: SortOrder
     updatedByUserId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -140712,6 +142034,15 @@ export namespace Prisma {
     update?: SubscriptionUpdateWithWhereUniqueWithoutPlanInput | SubscriptionUpdateWithWhereUniqueWithoutPlanInput[]
     updateMany?: SubscriptionUpdateManyWithWhereWithoutPlanInput | SubscriptionUpdateManyWithWhereWithoutPlanInput[]
     deleteMany?: SubscriptionScalarWhereInput | SubscriptionScalarWhereInput[]
+  }
+
+  export type LoginProviderConfigCreatescopesInput = {
+    set: string[]
+  }
+
+  export type LoginProviderConfigUpdatescopesInput = {
+    set?: string[]
+    push?: string | string[]
   }
 
   export type OrganizationCreateNestedOneWithoutUsageEventsInput = {
