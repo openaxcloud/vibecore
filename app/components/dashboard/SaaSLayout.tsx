@@ -32,6 +32,7 @@ import {
   Rocket,
   Search,
   Settings,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   Sun,
@@ -274,6 +275,7 @@ export const accountNav = [
   { label: 'Connected accounts', to: '/connected-accounts', icon: Github },
   { label: 'Notifications', to: '/notifications', icon: Bell },
   { label: 'Desktop app', to: '/desktop-settings', icon: Monitor },
+  { label: 'Data & privacy', to: '/account-data', icon: ShieldAlert },
 ];
 
 export const projectNav = [
