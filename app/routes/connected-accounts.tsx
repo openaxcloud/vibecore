@@ -1,4 +1,4 @@
-import { Chrome, Github, Link2 } from 'lucide-react';
+import { AlertTriangle, Chrome, Github, Link2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Link, useLoaderData, useRevalidator } from 'react-router';
@@ -70,30 +70,70 @@ type IntegrationConnection = {
 
 type IdentityConnection = { provider: string; externalId: string; createdAt: string };
 
+type ReconnectionAlert = {
+  id: string;
+  userConnectionId: string;
+  provider: string;
+  externalAccountLabel: string;
+  reason: string;
+  detectedAt: string;
+};
+
 export async function loader({ request }: EnterpriseLoaderArgs) {
   /*
    * Each endpoint answers a different question; if one is unavailable the other
    * should still render, so degrade each independently to an empty list.
    */
-  const [integration, identity] = await Promise.all([
+  const [integration, identity, reconnection] = await Promise.all([
     apiRequest<{ connections: IntegrationConnection[] }>(request, '/api/account/connections').catch(() => ({
       connections: [] as IntegrationConnection[],
     })),
     apiRequest<{ connections: IdentityConnection[] }>(request, '/auth/connections').catch(() => ({
       connections: [] as IdentityConnection[],
     })),
+    apiRequest<{ alerts: ReconnectionAlert[] }>(request, '/api/account/reconnection-alerts').catch(() => ({
+      alerts: [] as ReconnectionAlert[],
+    })),
   ]);
 
   return {
     integrationConnections: integration.connections,
     identityConnections: identity.connections,
+    reconnectionAlerts: reconnection.alerts,
   };
+}
+
+/*
+ * Human-readable copy for the machine reason recorded by the worker / proxy
+ * (e.g. `token_revoked`). Unknown reasons fall back to a generic message.
+ */
+const RECONNECT_REASON_COPY: Record<string, string> = {
+  token_revoked: 'the stored access token was revoked or expired',
+};
+
+function reconnectReasonText(reason: string) {
+  return RECONNECT_REASON_COPY[reason] ?? 'the stored credential is no longer valid';
 }
 
 const dateFormat: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
 
 export default function ConnectedAccountsPage() {
-  const { integrationConnections, identityConnections } = useLoaderData<typeof loader>();
+  const { integrationConnections, identityConnections, reconnectionAlerts } = useLoaderData<typeof loader>();
+
+  /*
+   * The sweep can raise more than one alert over a connection's lifetime; show
+   * at most one banner per connection (the most recent, loader-ordered) so the
+   * user is not nagged twice for the same broken connection.
+   */
+  const alertsByConnection = new Map<string, ReconnectionAlert>();
+
+  for (const alert of reconnectionAlerts) {
+    if (!alertsByConnection.has(alert.userConnectionId)) {
+      alertsByConnection.set(alert.userConnectionId, alert);
+    }
+  }
+
+  const dedupedAlerts = Array.from(alertsByConnection.values());
 
   const integrationByProvider = new Map(
     integrationConnections
@@ -108,6 +148,8 @@ export default function ConnectedAccountsPage() {
       title="Connected accounts"
       description="Manage OAuth connections for source control, identity and deployment providers."
     >
+      {dedupedAlerts.length > 0 ? <ReconnectionAlertsBanner alerts={dedupedAlerts} /> : null}
+
       <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
         {PROVIDERS.map((provider, index) => {
           const Icon = provider.icon;
@@ -171,6 +213,133 @@ export default function ConnectedAccountsPage() {
         })}
       </div>
     </AppShell>
+  );
+}
+
+/*
+ * Inline warning surfacing open ReconnectionAlert rows raised by the background
+ * token-health sweep / connector-proxy. Each row offers a Reconnect action
+ * (relaunches the connector OAuth flow for that provider) and a Dismiss action
+ * (resolves the alert via POST /api/account/reconnection-alerts/:id/resolve).
+ */
+function ReconnectionAlertsBanner({ alerts }: { alerts: ReconnectionAlert[] }) {
+  return (
+    <div
+      role="alert"
+      className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-bolt-elements-textPrimary shadow-sm"
+    >
+      <div className="flex items-start gap-3">
+        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">
+            {alerts.length === 1 ? '1 connection needs reconnecting' : `${alerts.length} connections need reconnecting`}
+          </p>
+          <ul className="mt-3 flex flex-col gap-3">
+            {alerts.map((alert) => (
+              <ReconnectionAlertRow key={alert.id} alert={alert} />
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReconnectionAlertRow({ alert }: { alert: ReconnectionAlert }) {
+  const { state, launch, reset } = useConnectorPopup();
+  const revalidator = useRevalidator();
+  const [error, setError] = useState<string | null>(null);
+  const [reconnecting, setReconnecting] = useState(false);
+  const [dismissing, setDismissing] = useState(false);
+
+  useEffect(() => {
+    if (state.phase === 'succeeded') {
+      revalidator.revalidate();
+      reset();
+    } else if (state.phase === 'failed') {
+      setError(state.result.errorMessage ?? 'Reconnection failed.');
+      reset();
+    }
+  }, [state, revalidator, reset]);
+
+  const reconnect = useCallback(async () => {
+    setError(null);
+    setReconnecting(true);
+
+    try {
+      const response = await fetch(`/api/integrations/oauth/${alert.provider}/connect`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        const parsed = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(parsed.error ?? `Failed to start reconnection (HTTP ${response.status})`);
+      }
+
+      const result = (await response.json()) as { provider: string; authorizationUrl: string };
+      launch({ authorizationUrl: result.authorizationUrl, provider: result.provider });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to start the reconnection.');
+    } finally {
+      setReconnecting(false);
+    }
+  }, [alert.provider, launch]);
+
+  const dismiss = useCallback(async () => {
+    setError(null);
+    setDismissing(true);
+
+    try {
+      const response = await fetch(`/api/account/reconnection-alerts/${alert.id}/resolve`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        const parsed = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(parsed.error ?? `Failed to dismiss (HTTP ${response.status})`);
+      }
+
+      revalidator.revalidate();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to dismiss this alert.');
+    } finally {
+      setDismissing(false);
+    }
+  }, [alert.id, revalidator]);
+
+  const reconnectBusy = reconnecting || state.phase === 'launching';
+  const providerLabel = alert.provider.charAt(0).toUpperCase() + alert.provider.slice(1);
+
+  return (
+    <li className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <p className="min-w-0 break-words text-sm text-bolt-elements-textSecondary">
+        <span className="font-medium text-bolt-elements-textPrimary">{providerLabel}</span>
+        {alert.externalAccountLabel ? <span className="break-all"> ({alert.externalAccountLabel})</span> : null} —{' '}
+        {reconnectReasonText(alert.reason)}.{error ? <span className="mt-1 block text-red-500">{error}</span> : null}
+      </p>
+      <div className="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={() => void reconnect()}
+          disabled={reconnectBusy}
+          className="inline-flex h-8 items-center justify-center rounded-md bg-bolt-elements-button-primary-background px-3 text-xs font-medium text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover disabled:opacity-60"
+        >
+          {reconnectBusy ? 'Reconnecting…' : 'Reconnect'}
+        </button>
+        <button
+          type="button"
+          onClick={() => void dismiss()}
+          disabled={dismissing}
+          className="inline-flex h-8 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
+        >
+          {dismissing ? 'Dismissing…' : 'Dismiss'}
+        </button>
+      </div>
+    </li>
   );
 }
 

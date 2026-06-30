@@ -45,6 +45,7 @@ import type {
   ProjectActivityRecord,
   ProjectCollaboratorRecord,
   ProjectConnectionLinkRecord,
+  ReconnectionAlertRecord,
   ProjectEnvironmentRecord,
   ProjectIdeStateRecord,
   ProjectRecord,
@@ -2869,6 +2870,42 @@ export class PrismaApiStore implements ApiStore {
     return rows.map(mapProjectConnectionLink);
   }
 
+  async listUnresolvedReconnectionAlertsByUser(userId: string) {
+    const rows = await this.prisma.reconnectionAlert.findMany({
+      where: {
+        resolvedAt: null,
+        userConnection: { userId },
+      },
+      include: { userConnection: true },
+      orderBy: { detectedAt: 'desc' },
+    });
+
+    return rows.map(mapReconnectionAlert);
+  }
+
+  async getReconnectionAlertById(id: string) {
+    const row = await this.prisma.reconnectionAlert.findUnique({
+      where: { id },
+      include: { userConnection: true },
+    });
+
+    return row ? mapReconnectionAlert(row) : undefined;
+  }
+
+  async resolveReconnectionAlert(input: { id: string; resolvedAt?: Date }) {
+    try {
+      const updated = await this.prisma.reconnectionAlert.update({
+        where: { id: input.id },
+        data: { resolvedAt: input.resolvedAt ?? new Date() },
+        include: { userConnection: true },
+      });
+
+      return mapReconnectionAlert(updated);
+    } catch {
+      return undefined;
+    }
+  }
+
   async createAiConversation(input: { projectId?: string; userId: string; title?: string }) {
     return mapAiConversation(await this.prisma.aiConversation.create({ data: input }));
   }
@@ -4699,6 +4736,19 @@ function mapProjectConnectionLink(link: any): ProjectConnectionLinkRecord {
     linkedByUserId: link.linkedByUserId,
     linkedAt: toIso(link.linkedAt)!,
     unlinkedAt: toIso(link.unlinkedAt),
+  };
+}
+
+function mapReconnectionAlert(alert: any): ReconnectionAlertRecord {
+  return {
+    id: alert.id,
+    userConnectionId: alert.userConnectionId,
+    reason: alert.reason,
+    detectedAt: toIso(alert.detectedAt)!,
+    resolvedAt: toIso(alert.resolvedAt),
+    notifiedAt: toIso(alert.notifiedAt),
+    provider: alert.userConnection?.provider ?? '',
+    externalAccountLabel: alert.userConnection?.externalAccountLabel ?? '',
   };
 }
 

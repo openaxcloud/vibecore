@@ -1061,6 +1061,7 @@ const integrationApiKeyConfigureBodySchema = z.object({
 
 const userConnectionListQuerySchema = z.object({ provider: z.string().min(1).optional() });
 const userConnectionIdParams = z.object({ userConnectionId: z.string().min(1) });
+const reconnectionAlertIdParams = z.object({ alertId: z.string().min(1) });
 
 const apiKeyCreateSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -8533,6 +8534,80 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         status: updated?.status ?? 'revoked',
         revokedAt: updated?.revokedAt ?? new Date().toISOString(),
       };
+    },
+  );
+
+  /*
+   * Reconnection alerts. The background token-health sweep (services/worker)
+   * and the connector-proxy resolver raise a ReconnectionAlert when a stored
+   * connection credential is found revoked/expired. These two endpoints let the
+   * owning user see the open alerts and dismiss them once handled — both are
+   * strictly scoped to the current user via the related UserConnection.
+   */
+  app.get('/api/account/reconnection-alerts', async (request, reply) => {
+    if (!request.currentUser) {
+      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+    }
+
+    const alerts = await store.listUnresolvedReconnectionAlertsByUser(request.currentUser.id);
+
+    return {
+      alerts: alerts.map((alert) => ({
+        id: alert.id,
+        userConnectionId: alert.userConnectionId,
+        provider: alert.provider,
+        externalAccountLabel: alert.externalAccountLabel,
+        reason: alert.reason,
+        detectedAt: alert.detectedAt,
+      })),
+    };
+  });
+
+  app.post(
+    '/api/account/reconnection-alerts/:alertId/resolve',
+    {
+      config: {
+        rateLimit: { max: Number(process.env.RECONNECTION_ALERT_RESOLVE_RATE_LIMIT_MAX ?? 30), timeWindow: '1 minute' },
+      },
+    },
+    async (request, reply) => {
+      if (!request.currentUser) {
+        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      }
+
+      const params = parse(reconnectionAlertIdParams, request.params);
+      const existing = await store.getReconnectionAlertById(params.alertId);
+
+      /*
+       * Ownership is on the related UserConnection, not the alert itself, so we
+       * load the connection and compare userId. A missing connection or a
+       * mismatch is reported as not-found so we never leak another user's alert.
+       */
+      const connection = existing ? await store.getUserConnectionById(existing.userConnectionId) : undefined;
+
+      if (!existing || !connection || connection.userId !== request.currentUser.id) {
+        return reply.code(404).send({ error: 'Reconnection alert not found', code: 'RECONNECTION_ALERT_NOT_FOUND' });
+      }
+
+      if (existing.resolvedAt) {
+        return { alertId: existing.id, resolvedAt: existing.resolvedAt };
+      }
+
+      const updated = await store.resolveReconnectionAlert({ id: existing.id, resolvedAt: new Date() });
+
+      await audit(request, store, {
+        action: `connector.reconnection_alert.${connection.provider}.resolve`,
+        resourceType: 'UserConnection',
+        resourceId: connection.id,
+        metadata: {
+          alertId: existing.id,
+          provider: connection.provider,
+          accountLabel: connection.externalAccountLabel,
+          reason: existing.reason,
+        },
+      });
+
+      return { alertId: existing.id, resolvedAt: updated?.resolvedAt ?? new Date().toISOString() };
     },
   );
 
