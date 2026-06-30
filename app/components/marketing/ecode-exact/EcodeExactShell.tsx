@@ -23,8 +23,9 @@ import { Badge, Button, cn, Link, useMarketingNavigate, useWouterLocation } from
 import { publicChromeUserChoseDark, resolvePublicChromeTheme } from './ecode-public-theme';
 import { getThemeSwitcherPresentation } from './theme-switcher-presentation';
 import { ScrollArea } from '~/components/ui/ScrollArea';
-import { applyThemeToDocument, kTheme, themeStore, toggleTheme } from '~/lib/stores/theme';
+import { applyThemeToDocument, kTheme, resolveInitialTheme, themeStore, toggleTheme } from '~/lib/stores/theme';
 import type { Theme } from '~/lib/stores/theme';
+import { readThemeCookie } from '~/lib/stores/theme-cookie';
 
 type MenuItem = {
   title: string;
@@ -221,26 +222,38 @@ function useHomepagePublicChrome() {
     }
 
     /*
-     * Respect a visitor's persisted dark choice. Reading localStorage here lets a
-     * dark selection survive SPA navigation between marketing pages: each route
-     * change remounts this shell, and without this guard we would unconditionally
-     * reset the manual-change flag and re-force light, reverting the user's pick.
+     * Resolve the theme from the SHARED source of truth (cross-domain cookie ->
+     * per-origin localStorage -> OS preference), exactly like the rest of the app.
+     * This makes a dark choice — whether made here, on the app/IDE (carried via
+     * the .e-code.ai cookie), or via the OS — govern the marketing chrome too, and
+     * survive SPA navigation between marketing pages (each route change remounts
+     * this shell; without honoring the resolved theme we would re-force light and
+     * revert the user's pick).
      */
-    let persistedTheme: string | null = null;
+    let storedTheme: string | null = null;
 
     try {
-      persistedTheme = localStorage.getItem(kTheme);
+      storedTheme = localStorage.getItem(kTheme);
     } catch {
-      persistedTheme = null;
+      storedTheme = null;
     }
 
-    if (publicChromeUserChoseDark(persistedTheme)) {
+    const root = document.documentElement;
+
+    const chromeTheme = resolvePublicChromeTheme(
+      resolveInitialTheme({
+        cookie: readThemeCookie(),
+        stored: storedTheme,
+        attribute: root.getAttribute('data-theme'),
+        prefersDark:
+          typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches,
+      }),
+    );
+
+    if (publicChromeUserChoseDark(chromeTheme)) {
       publicThemeWasManuallyChanged = true;
     }
 
-    const chromeTheme = resolvePublicChromeTheme(persistedTheme);
-
-    const root = document.documentElement;
     const body = document.body;
     const previousTheme: Theme = themeStore.get();
     const previousRootFontSize = root.style.fontSize;
