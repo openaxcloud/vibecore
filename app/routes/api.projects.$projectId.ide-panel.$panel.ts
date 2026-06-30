@@ -1389,11 +1389,19 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       });
     }
   } else if (panel === 'domains') {
-    const project = await apiRequest<{ project: any }>(request, `/projects/${projectId}`);
+    const project = await apiRequest<{ project: any }>(request, `/projects/${projectId}`).catch(() => ({
+      project: undefined,
+    }));
+
     const organizationId = project.project?.organizationId;
 
     if (!organizationId) {
-      throw new Error('Project organization is missing');
+      return json(
+        { error: 'This project is not linked to an organization, so domains cannot be managed.' },
+        {
+          status: 400,
+        },
+      );
     }
 
     if (intent === 'verify') {

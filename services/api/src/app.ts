@@ -15571,7 +15571,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               id: secret.id,
               projectId: secret.projectId,
               key: secret.key,
-              value: decryptJson<{ value: string }>(secret.valueEncrypted).value,
+              // valueEncrypted is nullable in the schema; never feed null to
+              // decryptJson (it would throw a 500). A secret with no ciphertext
+              // simply reveals as empty.
+              value: secret.valueEncrypted ? decryptJson<{ value: string }>(secret.valueEncrypted).value : '',
               updatedAt: secret.updatedAt,
             }
           : null,

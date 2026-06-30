@@ -11169,8 +11169,16 @@ function ProjectDomainsPanel({
       setSelfBusy(true);
 
       try {
-        await fetch(`/api/projects/${projectId}/ide-panel/domains`, { method: 'POST', body: form });
+        const response = await fetch(`/api/projects/${projectId}/ide-panel/domains`, { method: 'POST', body: form });
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as { error?: string };
+          toast.error(payload.error ?? 'Domain update failed.');
+        }
+
         await loadDomains();
+      } catch {
+        toast.error('Domain update failed — please retry.');
       } finally {
         setSelfBusy(false);
       }
