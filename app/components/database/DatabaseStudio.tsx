@@ -106,7 +106,12 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
   const base = `/api/projects/${encodeURIComponent(projectId)}/ide-panel/database`;
   const connFetcher = useFetcher();
   const schemaFetcher = useFetcher();
-  const queryFetcher = useFetcher<{ ok?: boolean } & QueryResult>();
+
+  /*
+   * The ide-panel proxy returns { ok, result: { columns, rows, rowCount }, error? }
+   * (the query result is NESTED under `result`, not spread flat).
+   */
+  const queryFetcher = useFetcher<{ ok?: boolean; result?: QueryResult; error?: string }>();
 
   const [connectionKey, setConnectionKey] = useState('');
   const [sql, setSql] = useState('SELECT 1;');
@@ -153,8 +158,8 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
     queryFetcher.submit({ intent: 'query', connectionKey, query: queryText }, { method: 'post', action: base });
   };
 
-  const result = queryFetcher.data ? normalizeRows(queryFetcher.data) : null;
-  const queryError = queryFetcher.data?.error;
+  const result = queryFetcher.data?.result ? normalizeRows(queryFetcher.data.result) : null;
+  const queryError = queryFetcher.data?.error ?? queryFetcher.data?.result?.error;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
