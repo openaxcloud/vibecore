@@ -35,6 +35,13 @@ const adminSections: Record<string, AdminSectionConfig> = {
     description: 'Runtime, queue, database and Redis configuration status.',
     endpoint: '/admin/health',
   },
+  monitoring: {
+    title: 'Monitoring',
+    description:
+      'Platform monitoring dashboard — AI cost over time, cost/token breakdown by provider & model, cost by organization, and provider gateway health. Read-only; visualizes existing admin metrics.',
+
+    // Self-combined in the loader from /admin/costs + /admin/provider-health.
+  },
   users: {
     title: 'Users',
     description: 'Platform user accounts and suspension state.',
@@ -211,6 +218,7 @@ const adminSections: Record<string, AdminSectionConfig> = {
 const navItems = [
   'overview',
   'health',
+  'monitoring',
   'users',
   'organizations',
   'projects',
@@ -285,6 +293,32 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         'cache-control': 'no-store',
       },
     });
+  }
+
+  /*
+   * Monitoring is a read-only dashboard that VISUALIZES several existing admin
+   * JSON endpoints. The web's API base URL is server-only, so a client panel
+   * can't hit /admin/* directly — instead we fan out the reads here (over the
+   * same session cookie as every other admin loader) and hand the panel one
+   * combined payload. No new backend: /admin/costs already returns aiCostCents +
+   * the full aiCosts ledger + usage events; /admin/provider-health returns the
+   * gateway status. allSettled so a single slow/failed probe doesn't blank the
+   * whole dashboard.
+   */
+  if (section === 'monitoring') {
+    const [costs, providerHealth] = await Promise.allSettled([
+      apiRequest<Record<string, JsonValue>>(request, '/admin/costs'),
+      apiRequest<Record<string, JsonValue>>(request, '/admin/provider-health'),
+    ]);
+
+    const payload: Record<string, JsonValue> = {
+      ...(costs.status === 'fulfilled' ? costs.value : {}),
+      providers: providerHealth.status === 'fulfilled' ? (providerHealth.value.providers ?? []) : [],
+      providerHealthError: providerHealth.status === 'rejected',
+      costsError: costs.status === 'rejected',
+    };
+
+    return { section, config, payload };
   }
 
   // Sections without an endpoint (developer-tools) render self-fetching panels.
@@ -752,6 +786,7 @@ export default function AdminSectionPage() {
         <div className="grid gap-6">
           {section === 'overview' ? <OverviewPanel payload={payload} /> : null}
           {section === 'health' ? <HealthPanel payload={payload} /> : null}
+          {section === 'monitoring' ? <MonitoringPanel payload={payload} /> : null}
           {section === 'users' ? <UsersPanel payload={payload} /> : null}
           {section === 'providers' ? <ToggleListPanel payload={payload} kind="providers" /> : null}
           {section === 'models' ? <ToggleListPanel payload={payload} kind="models" /> : null}
@@ -769,6 +804,7 @@ export default function AdminSectionPage() {
           {![
             'overview',
             'health',
+            'monitoring',
             'users',
             'providers',
             'models',
@@ -810,6 +846,25 @@ const DevEventLogsTab = React.lazy(() =>
  */
 const DevCloudProvidersTab = React.lazy(() => import('~/components/@settings/tabs/providers/cloud/CloudProvidersTab'));
 const DevLocalProvidersTab = React.lazy(() => import('~/components/@settings/tabs/providers/local/LocalProvidersTab'));
+
+/*
+ * Chart.js / react-chartjs-2 live in a lazy chunk so they only load when the
+ * Monitoring section is opened, keeping them out of the rest of the admin bundle.
+ */
+const MonitoringCharts = {
+  CostOverTimeChart: React.lazy(() =>
+    import('~/components/admin/MonitoringCharts').then((m) => ({ default: m.CostOverTimeChart })),
+  ),
+  CostByCategoryChart: React.lazy(() =>
+    import('~/components/admin/MonitoringCharts').then((m) => ({ default: m.CostByCategoryChart })),
+  ),
+  TokensByProviderChart: React.lazy(() =>
+    import('~/components/admin/MonitoringCharts').then((m) => ({ default: m.TokensByProviderChart })),
+  ),
+  CostByOrgChart: React.lazy(() =>
+    import('~/components/admin/MonitoringCharts').then((m) => ({ default: m.CostByOrgChart })),
+  ),
+};
 
 const DEV_TOOLS = [
   { id: 'cloud-providers', label: 'Cloud Providers', Component: DevCloudProvidersTab },
@@ -942,6 +997,268 @@ function HealthPanel({ payload }: { payload: Record<string, JsonValue> }) {
           <KeyValueGrid value={asRecord(value)} />
         </SectionCard>
       ))}
+    </div>
+  );
+}
+
+/*
+ * Read-only platform monitoring dashboard. Every number/series here is derived
+ * CLIENT-SIDE (pure reduce/group) from the combined loader payload built out of
+ * two EXISTING endpoints — no new backend, no mocks:
+ *   /admin/costs           → { aiCostCents, aiCosts: AiCostLedgerRecord[], usage: UsageEventRecord[] }
+ *   /admin/provider-health → { providers: [{ provider, status, statusCode?, error? }] }
+ *
+ * AiCostLedgerRecord (verified, services/api/src/store.ts:501): id, organizationId,
+ * projectId?, conversationId?, messageId?, provider, model, inputTokens,
+ * outputTokens, costCents, reason, createdAt.
+ *
+ * The aggregations below (cost by day, by provider, by model, by org; tokens by
+ * provider) are NOT returned pre-grouped by the API, so we compute them here from
+ * the aiCosts list. Provider health is rendered as-is.
+ */
+type AiCost = {
+  organizationId?: string;
+  provider?: string;
+  model?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  costCents?: number;
+  createdAt?: string;
+};
+
+type ProviderHealthRow = {
+  provider?: string;
+  status?: string;
+  statusCode?: number;
+  error?: string;
+};
+
+const usd = (cents: number) => `$${(cents / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+
+/** Group a list into { key → summed number } via a value selector, returning the top N descending. */
+function topGroups<T>(
+  rows: T[],
+  keyOf: (row: T) => string,
+  valueOf: (row: T) => number,
+  limit = 10,
+): { labels: string[]; values: number[] } {
+  const totals = new Map<string, number>();
+
+  for (const row of rows) {
+    const key = keyOf(row) || 'unknown';
+    totals.set(key, (totals.get(key) ?? 0) + (Number.isFinite(valueOf(row)) ? valueOf(row) : 0));
+  }
+
+  const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit);
+
+  return { labels: sorted.map(([k]) => k), values: sorted.map(([, v]) => v) };
+}
+
+function MonitoringPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const aiCosts = (Array.isArray(payload.aiCosts) ? payload.aiCosts : []) as AiCost[];
+  const usageEvents = (Array.isArray(payload.usage) ? payload.usage : []) as Array<{ quantity?: number }>;
+  const providers = (Array.isArray(payload.providers) ? payload.providers : []) as ProviderHealthRow[];
+
+  const totalCostCents =
+    typeof payload.aiCostCents === 'number'
+      ? payload.aiCostCents
+      : aiCosts.reduce((sum, c) => sum + (c.costCents ?? 0), 0);
+
+  const totalTokens = aiCosts.reduce((sum, c) => sum + (c.inputTokens ?? 0) + (c.outputTokens ?? 0), 0);
+  const totalUsage = usageEvents.reduce((sum, e) => sum + (e.quantity ?? 0), 0);
+  const hasCostData = aiCosts.length > 0;
+
+  // Cost (USD) by day, chronological — group by the date part of createdAt.
+  const byDay = (() => {
+    const totals = new Map<string, number>();
+
+    for (const c of aiCosts) {
+      const day = (c.createdAt ?? '').slice(0, 10) || 'unknown';
+      totals.set(day, (totals.get(day) ?? 0) + (c.costCents ?? 0));
+    }
+
+    const sorted = [...totals.entries()].filter(([day]) => day !== 'unknown').sort((a, b) => a[0].localeCompare(b[0]));
+
+    return { labels: sorted.map(([d]) => d), values: sorted.map(([, cents]) => Number((cents / 100).toFixed(2))) };
+  })();
+
+  // Cost (USD) by model, by provider; tokens by provider; cost (USD) by org.
+  const byModel = topGroups(
+    aiCosts,
+    (c) => c.model ?? 'unknown',
+    (c) => (c.costCents ?? 0) / 100,
+    8,
+  );
+  const byProviderCost = topGroups(
+    aiCosts,
+    (c) => c.provider ?? 'unknown',
+    (c) => (c.costCents ?? 0) / 100,
+    8,
+  );
+  const tokensByProvider = topGroups(
+    aiCosts,
+    (c) => c.provider ?? 'unknown',
+    (c) => (c.inputTokens ?? 0) + (c.outputTokens ?? 0),
+    8,
+  );
+  const byOrg = topGroups(
+    aiCosts,
+    (c) => c.organizationId ?? 'unknown',
+    (c) => (c.costCents ?? 0) / 100,
+    10,
+  );
+
+  const chartFallback = (
+    <div className="flex h-full items-center justify-center text-sm text-bolt-elements-textTertiary">
+      Loading chart…
+    </div>
+  );
+
+  return (
+    <>
+      {payload.costsError ? (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-700 dark:text-amber-300">
+          <span className="i-ph:warning-circle text-base" aria-hidden />
+          Cost metrics are temporarily unavailable. Provider health below is unaffected.
+        </div>
+      ) : null}
+
+      {/* KPI cards — collapse 4 → 2 → 1 col on narrower viewports. */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Total AI cost" value={usd(totalCostCents)} />
+        <MetricCard label="Total tokens" value={totalTokens.toLocaleString()} />
+        <MetricCard label="Cost records" value={aiCosts.length.toLocaleString()} />
+        <MetricCard label="Usage events" value={totalUsage.toLocaleString()} />
+      </div>
+
+      {/* Charts — each in a height-bounded, responsive wrapper (charts use maintainAspectRatio:false). */}
+      <div className="grid gap-4 xl:grid-cols-2">
+        <SectionCard title="AI cost over time (USD/day)" icon="cost">
+          {hasCostData && byDay.labels.length > 0 ? (
+            <div className="h-56 w-full sm:h-64">
+              <React.Suspense fallback={chartFallback}>
+                <MonitoringCharts.CostOverTimeChart labels={byDay.labels} values={byDay.values} />
+              </React.Suspense>
+            </div>
+          ) : (
+            <MonitoringEmpty />
+          )}
+        </SectionCard>
+
+        <SectionCard title="Cost by model (USD)" icon="cost">
+          {hasCostData && byModel.labels.length > 0 ? (
+            <div className="h-56 w-full sm:h-64">
+              <React.Suspense fallback={chartFallback}>
+                <MonitoringCharts.CostByCategoryChart
+                  labels={byModel.labels}
+                  values={byModel.values}
+                  axisLabel="Cost (USD)"
+                />
+              </React.Suspense>
+            </div>
+          ) : (
+            <MonitoringEmpty />
+          )}
+        </SectionCard>
+
+        <SectionCard title="Tokens by provider" icon="cost">
+          {hasCostData && tokensByProvider.labels.length > 0 ? (
+            <div className="h-56 w-full sm:h-64">
+              <React.Suspense fallback={chartFallback}>
+                <MonitoringCharts.TokensByProviderChart
+                  labels={tokensByProvider.labels}
+                  values={tokensByProvider.values}
+                />
+              </React.Suspense>
+            </div>
+          ) : (
+            <MonitoringEmpty />
+          )}
+        </SectionCard>
+
+        <SectionCard title="Cost by organization (USD)" icon="cost">
+          {hasCostData && byOrg.labels.length > 0 ? (
+            <div className="h-56 w-full sm:h-64">
+              <React.Suspense fallback={chartFallback}>
+                <MonitoringCharts.CostByOrgChart labels={byOrg.labels} values={byOrg.values} />
+              </React.Suspense>
+            </div>
+          ) : (
+            <MonitoringEmpty />
+          )}
+        </SectionCard>
+      </div>
+
+      {/* Secondary cost-by-provider as a compact bar (complements the doughnut). */}
+      <SectionCard title="Cost by provider (USD)" icon="cost">
+        {hasCostData && byProviderCost.labels.length > 0 ? (
+          <div className="h-52 w-full">
+            <React.Suspense fallback={chartFallback}>
+              <MonitoringCharts.CostByCategoryChart
+                labels={byProviderCost.labels}
+                values={byProviderCost.values}
+                axisLabel="Cost (USD)"
+              />
+            </React.Suspense>
+          </div>
+        ) : (
+          <MonitoringEmpty />
+        )}
+      </SectionCard>
+
+      {/* Provider gateway health — status pills, not a chart. */}
+      <SectionCard title="Provider health" icon="health">
+        {payload.providerHealthError ? (
+          <p className="text-sm text-bolt-elements-textSecondary">Provider health check is temporarily unavailable.</p>
+        ) : providers.length === 0 ? (
+          <MonitoringEmpty />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {providers.map((p, index) => (
+              <ProviderHealthCard key={`${p.provider ?? 'provider'}-${index}`} provider={p} />
+            ))}
+          </div>
+        )}
+      </SectionCard>
+    </>
+  );
+}
+
+function ProviderHealthCard({ provider }: { provider: ProviderHealthRow }) {
+  const status = String(provider.status ?? 'unknown');
+  const healthy = ['healthy', 'ok', 'configured', 'active'].includes(status);
+  const degraded = status === 'degraded';
+  const tone: 'ok' | 'danger' | 'muted' = healthy ? 'ok' : degraded ? 'muted' : 'danger';
+
+  return (
+    <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
+      <div className="flex items-center gap-2">
+        <span
+          className={[
+            'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
+            healthy ? 'bg-green-500' : degraded ? 'bg-amber-500' : 'bg-red-500',
+          ].join(' ')}
+          aria-hidden
+        />
+        <strong className="truncate text-sm text-bolt-elements-textPrimary">{provider.provider ?? 'provider'}</strong>
+        <span className="ml-auto">
+          <StatusPill tone={tone}>{status}</StatusPill>
+        </span>
+      </div>
+      {typeof provider.statusCode === 'number' ? (
+        <p className="mt-1.5 text-xs text-bolt-elements-textSecondary">HTTP {provider.statusCode}</p>
+      ) : null}
+      {provider.error ? (
+        <p className="mt-1.5 break-words text-xs text-red-600 dark:text-red-400">{provider.error}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function MonitoringEmpty() {
+  return (
+    <div className="flex h-40 items-center justify-center text-sm text-bolt-elements-textTertiary">
+      No data recorded yet.
     </div>
   );
 }
