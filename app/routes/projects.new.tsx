@@ -697,6 +697,15 @@ export async function action({ request, context }: EnterpriseActionArgs) {
   let aiGenerationFailed = false;
   let aiGenerationError: string | undefined;
 
+  /*
+   * True only when AI generation failed AND we could not recover the
+   * server-committed project, so we created an EMPTY project as a fallback. This
+   * (not aiGenerationFailed alone) is what the IDE surfaces as a visible warning
+   * toast — a recovered project still has its generated content and shouldn't be
+   * labelled "created empty".
+   */
+  let createdEmptyAiFallback = false;
+
   if (prompt) {
     const attemptStartedAt = Date.now();
 
@@ -742,6 +751,7 @@ export async function action({ request, context }: EnterpriseActionArgs) {
         }
 
         result = created.result;
+        createdEmptyAiFallback = true;
       }
     }
   } else {
@@ -778,6 +788,20 @@ export async function action({ request, context }: EnterpriseActionArgs) {
 
   if (promptQueueError) {
     ideParams.set('promptQueueError', promptQueueError.slice(0, 240));
+  }
+
+  /*
+   * Surface AI-generation failure to the user: without these params the empty
+   * fallback project loads silently and the user never learns generation failed
+   * (they just see an empty IDE). Chat.client.tsx reads aiFallback/aiFallbackReason
+   * and shows a warning toast on IDE mount.
+   */
+  if (createdEmptyAiFallback) {
+    ideParams.set('aiFallback', 'true');
+
+    if (aiGenerationError) {
+      ideParams.set('aiFallbackReason', aiGenerationError.slice(0, 240));
+    }
   }
 
   const ideUrl = projectIdePath(

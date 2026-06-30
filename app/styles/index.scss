@@ -1261,13 +1261,23 @@ body
   color: var(--vc-ide-text-primary) !important;
 }
 
+/*
+ * Chat message-bubble theming. The `[class*='message']` arm also matches lucide
+ * icons named *-message-* (e.g. <MessageSquare> → `lucide-message-square`,
+ * <MessagesSquare>, <MessageSquarePlus>), painting an opaque card-coloured box
+ * behind the glyph — visible site-wide wherever such an icon sits on a card
+ * (e.g. the community "Posts" stat). Exclude svg / lucide elements INSIDE the
+ * :where() so specificity stays 0 (no override of real message bubbles) while
+ * icons keep their transparent background. Real message containers are divs, so
+ * they still match.
+ */
 body
   :where(
-    .message,
-    [data-message],
-    [data-testid*='message'],
-    [class*='message'],
-    [class*='Message'],
+    .message:not(svg),
+    [data-message]:not(svg),
+    [data-testid*='message']:not(svg),
+    [class*='message']:not(svg):not([class*='lucide']),
+    [class*='Message']:not(svg),
     [class*='bg-bolt-elements-messages']
   ) {
   border-color: var(--vc-ide-border-visible);
@@ -1291,8 +1301,21 @@ body
   color: var(--vc-ide-text-primary) !important;
 }
 
+/*
+ * Code-block theming in the agent panel. Same icon-bleed guard as the message
+ * rule above: `[class*='code']` matches lucide icons named *-code-* (e.g.
+ * <Code2> → `lucide-code-2`), so exclude svg / lucide inside :where() (keeps
+ * specificity 0). `pre`/`code` are matched explicitly, so real code blocks are
+ * unaffected.
+ */
 .bolt-project-agent-panel
-  :where(pre, code, [class*='code'], [class*='Code'], [class*='bg-bolt-elements-actions-code']) {
+  :where(
+    pre,
+    code,
+    [class*='code']:not(svg):not([class*='lucide']),
+    [class*='Code']:not(svg),
+    [class*='bg-bolt-elements-actions-code']
+  ) {
   border-color: var(--vc-ide-border-visible) !important;
   background-color: var(--vc-ide-bg-panel) !important;
   color: var(--vc-ide-text-primary) !important;

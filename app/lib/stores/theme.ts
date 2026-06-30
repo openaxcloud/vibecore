@@ -1,5 +1,6 @@
 import { atom } from 'nanostores';
 import { logStore } from './logs';
+import { readThemeCookie, writeThemeCookie } from './theme-cookie';
 
 export type Theme = 'dark' | 'light';
 
@@ -108,20 +109,82 @@ function isTheme(value: string | null | undefined): value is Theme {
   return value === 'dark' || value === 'light';
 }
 
-function initStore() {
+/**
+ * Resolve the active theme from the available signals, in priority order. This
+ * is the SINGLE SOURCE OF TRUTH shared by every E-Code surface — keep it in sync
+ * with the pre-hydration boot script in app/root.tsx (which inlines the same
+ * precedence as a plain string because it cannot import this module).
+ *
+ *   1. Shared cross-domain cookie (`ecode_theme`, Domain=.e-code.ai) — set on
+ *      the marketing site AND the app/IDE so a choice on one carries to the other.
+ *   2. Per-origin localStorage (`bolt_theme`) — backward-compatible fallback for
+ *      visitors who toggled before the cookie existed.
+ *   3. The server-seeded `data-theme` attribute already on <html>.
+ *   4. The OS-level `prefers-color-scheme` media query.
+ *   5. DEFAULT_THEME (light).
+ *
+ * Marketing routes no longer force light: the shared preference governs every
+ * surface, so picking dark on e-code.ai keeps the app + IDE dark too.
+ */
+export function resolveInitialTheme(opts: {
+  cookie?: string | null;
+  stored?: string | null;
+  attribute?: string | null;
+  prefersDark?: boolean;
+}): Theme {
+  if (isTheme(opts.cookie)) {
+    return opts.cookie;
+  }
+
+  if (isTheme(opts.stored)) {
+    return opts.stored;
+  }
+
+  if (isTheme(opts.attribute)) {
+    return opts.attribute;
+  }
+
+  if (opts.prefersDark) {
+    return 'dark';
+  }
+
+  return DEFAULT_THEME;
+}
+
+function prefersDark(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+  );
+}
+
+function initStore(): Theme {
   if (!import.meta.env.SSR) {
     try {
+      const cookieTheme = readThemeCookie();
       const persistedTheme = localStorage.getItem(kTheme);
       const root = document.querySelector('html');
       const themeAttribute = root?.getAttribute('data-theme');
-      const publicChrome = root?.getAttribute('data-ecode-public-chrome') === 'homepage';
-      const publicMarketingRoute = typeof window !== 'undefined' && isPublicMarketingPath(window.location.pathname);
 
-      if (publicChrome || publicMarketingRoute) {
-        return 'light';
+      const resolved = resolveInitialTheme({
+        cookie: cookieTheme,
+        stored: persistedTheme,
+        attribute: themeAttribute,
+        prefersDark: prefersDark(),
+      });
+
+      /*
+       * Migrate forward: if the choice came from per-origin localStorage (or the
+       * OS preference) but the shared cookie was absent, write it now so the
+       * preference propagates to the other E-Code subdomains without requiring
+       * the visitor to re-toggle.
+       */
+      if (!isTheme(cookieTheme)) {
+        writeThemeCookie(resolved);
       }
 
-      return isTheme(persistedTheme) ? persistedTheme : isTheme(themeAttribute) ? themeAttribute : DEFAULT_THEME;
+      return resolved;
     } catch {
       return DEFAULT_THEME;
     }
@@ -187,6 +250,13 @@ export function persistTheme(theme: Theme): boolean {
     ok = false;
     console.error('Error persisting theme to localStorage:', error);
   }
+
+  /*
+   * Mirror the choice into the cross-domain cookie (Domain=.e-code.ai) so it
+   * follows the user from the marketing site to the app/IDE and back. Best-effort
+   * and self-guarding — never throws (see theme-cookie.ts).
+   */
+  writeThemeCookie(theme);
 
   // Update user profile if it exists
   try {

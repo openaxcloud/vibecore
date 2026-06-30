@@ -465,14 +465,31 @@ async function walkFiles(root: string, current = ''): Promise<ProjectFile[]> {
 
     if (entry.isFile()) {
       const fullPath = join(root, child);
-      const metadata = await stat(fullPath);
 
       /*
-       * Read raw bytes and detect binary, so non-text assets (images, fonts, wasm)
-       * survive instead of being lossily decoded as UTF-8 (git-import corruption).
+       * TOCTOU: a concurrent write/save can delete or rename a file between the
+       * readdir above and the stat/readFile here (e.g. the IDE rewriting
+       * index.html while the dashboard lists files). A per-file ENOENT must skip
+       * that entry, not throw — otherwise one racing delete 500s the entire
+       * project listing (observed in prod as `ENOENT ... index.html` on
+       * /projects/:projectId/dashboard).
        */
-      const { content, encoding } = encodeFileBuffer(await readFile(fullPath));
-      files.push({ path: child, content, encoding, updatedAt: metadata.mtime.toISOString() });
+      try {
+        const metadata = await stat(fullPath);
+
+        /*
+         * Read raw bytes and detect binary, so non-text assets (images, fonts, wasm)
+         * survive instead of being lossily decoded as UTF-8 (git-import corruption).
+         */
+        const { content, encoding } = encodeFileBuffer(await readFile(fullPath));
+        files.push({ path: child, content, encoding, updatedAt: metadata.mtime.toISOString() });
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          continue;
+        }
+
+        throw error;
+      }
     }
   }
 

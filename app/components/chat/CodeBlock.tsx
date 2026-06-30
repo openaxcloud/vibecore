@@ -72,8 +72,24 @@ export const CodeBlock = memo(
       };
     }, [code, language, effectiveTheme]);
 
+    /*
+     * Show the language as a small badge (top-left) like GitHub/ChatGPT/Cursor so
+     * the reader can tell a block is `tsx` vs `bash` at a glance. Hidden for
+     * plaintext and special (non-syntax) langs where a label adds noise.
+     */
+    const languageLabel =
+      language && language !== 'plaintext' && !isSpecialLang(language) ? String(language) : undefined;
+
     return (
       <div className={classNames('relative group text-left', className)}>
+        {languageLabel && (
+          <span
+            className="absolute top-[10px] left-[12px] z-10 select-none rounded text-[10px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary opacity-70 group-hover:opacity-100"
+            aria-hidden
+          >
+            {languageLabel}
+          </span>
+        )}
         <div
           className={classNames(
             styles.CopyButtonContainer,

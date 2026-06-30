@@ -84,7 +84,14 @@ describe('E-Code public theme wrappers', () => {
     expect(themeStore).toContain("'/marketplace/templates'");
     expect(themeStore).toContain("'/community/'");
     expect(themeStore).toContain("'/u/'");
-    expect(themeStore).toContain("return 'light'");
+
+    /*
+     * Marketing routes no longer force light: the shared cross-domain cookie
+     * (read via resolveInitialTheme) is the single source of truth, so a dark
+     * choice carries across e-code.ai, app.e-code.ai and the IDE.
+     */
+    expect(themeStore).toContain('export function resolveInitialTheme(');
+    expect(themeStore).toContain('readThemeCookie()');
     expect(marketplaceRoute).toContain('MarketingStaticPage');
     expect(marketplaceRoute).not.toContain('ecodeMarketingShellLoader');
     expect(exploreRoute).toContain('MarketingStaticPage');

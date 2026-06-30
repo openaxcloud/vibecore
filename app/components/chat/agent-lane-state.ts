@@ -63,3 +63,87 @@ export function resolveLaneState({
 
   return live;
 }
+
+/**
+ * Extract human-readable prose from a specialist lane's live stream text.
+ *
+ * The ai-gateway streams each lane's STRUCTURED result token-by-token, so the
+ * accumulated `agentLaneStream` delta text is a partial JSON object being built
+ * up, e.g. `{"summary":"Designed the data model` mid-stream. Rendering that raw
+ * fragment in the lane tile shows the user a wall of JSON punctuation that looks
+ * broken. This pulls just the `summary` string value out of the (possibly
+ * incomplete) JSON so the tile streams clean prose, falling back to undefined
+ * when no summary content has arrived yet (caller then shows the role
+ * description placeholder instead of raw JSON).
+ *
+ * Pure + exported for unit testing across the partial-JSON states.
+ */
+export function extractLaneStreamSummary(text: string | undefined): string | undefined {
+  if (!text) {
+    return undefined;
+  }
+
+  const trimmed = text.trim();
+
+  if (!trimmed) {
+    return undefined;
+  }
+
+  // A fully-formed JSON object: trust the parsed summary (or first string field).
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+      const summary = parsed.summary ?? parsed.text ?? parsed.message;
+
+      if (typeof summary === 'string' && summary.trim()) {
+        return summary.trim();
+      }
+    } catch {
+      // Fall through to the partial-extraction path below.
+    }
+  }
+
+  // Partial JSON mid-stream: pull the (possibly unterminated) "summary" value.
+  const keyMatch = trimmed.match(/"summary"\s*:\s*"/);
+
+  if (keyMatch && keyMatch.index !== undefined) {
+    const valueStart = keyMatch.index + keyMatch[0].length;
+
+    let result = '';
+
+    for (let i = valueStart; i < trimmed.length; i++) {
+      const char = trimmed[i];
+
+      if (char === '\\') {
+        // Unescape the common JSON escapes; pass the next char through literally.
+        const next = trimmed[i + 1];
+        result += next === 'n' ? '\n' : next === 't' ? '\t' : (next ?? '');
+        i++;
+        continue;
+      }
+
+      if (char === '"') {
+        // Reached the closing quote of a complete summary value.
+        break;
+      }
+
+      result += char;
+    }
+
+    const cleaned = result.trim();
+
+    return cleaned || undefined;
+  }
+
+  /*
+   * Not (yet) recognisable structured output: if it doesn't look like JSON at
+   * all, the gateway emitted plain prose — show it. If it looks like JSON we
+   * haven't been able to extract from yet (`{`, `{"sum`), suppress it so the
+   * tile shows the placeholder rather than raw punctuation.
+   */
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    return undefined;
+  }
+
+  return trimmed;
+}

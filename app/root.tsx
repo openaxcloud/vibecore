@@ -35,6 +35,7 @@ import { ClientOnly } from 'remix-utils/client-only';
 import 'virtual:uno.css';
 
 import { AppErrorBoundary } from './components/ui/PanelBoundary';
+import { GlobalTooltip } from './components/ui/GlobalTooltip';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -176,13 +177,62 @@ const inlineThemeCode = stripIndents`
     }
   }
 
+  /*
+   * Read the cross-domain theme cookie (Domain=.e-code.ai). This is the shared
+   * source of truth that lets a light/dark choice made on the marketing site
+   * (e-code.ai) carry over to the app + IDE (app.e-code.ai) — localStorage is
+   * partitioned per origin and cannot. Kept in sync with readThemeCookie() in
+   * app/lib/stores/theme-cookie.ts.
+   */
+  function readThemeCookie() {
+    try {
+      var cookies = document.cookie ? document.cookie.split(';') : [];
+
+      for (var i = 0; i < cookies.length; i++) {
+        var pair = cookies[i];
+        var eq = pair.indexOf('=');
+
+        if (eq === -1) {
+          continue;
+        }
+
+        if (pair.slice(0, eq).trim() === 'ecode_theme') {
+          return decodeURIComponent(pair.slice(eq + 1).trim());
+        }
+      }
+    } catch (e) {
+      return null;
+    }
+
+    return null;
+  }
+
+  function prefersDarkScheme() {
+    try {
+      return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    } catch (e) {
+      return false;
+    }
+  }
+
   function setTutorialKitTheme() {
     const publicMarketingRoute = isEcodePublicMarketingPath(window.location.pathname);
-    let theme = publicMarketingRoute ? 'light' : readPersistedTheme();
+
+    /*
+     * Unified precedence (must mirror resolveInitialTheme in
+     * app/lib/stores/theme.ts): shared cookie -> per-origin localStorage ->
+     * OS prefers-color-scheme -> light default. Marketing routes no longer force
+     * light — the shared preference governs every surface so the theme stays the
+     * same across e-code.ai, app.e-code.ai and the IDE.
+     */
+    let theme = readThemeCookie();
 
     if (theme !== 'dark' && theme !== 'light') {
-      // Default to light (matches Replit); a persisted bolt_theme overrides this.
-      theme = 'light';
+      theme = readPersistedTheme();
+    }
+
+    if (theme !== 'dark' && theme !== 'light') {
+      theme = prefersDarkScheme() ? 'dark' : 'light';
     }
 
     const root = document.querySelector('html');
@@ -326,6 +376,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       </ClientOnly>
       <ClientOnly>{() => <GlobalRouteLoader />}</ClientOnly>
       <ClientOnly>{() => <AppToastContainer />}</ClientOnly>
+      <ClientOnly>{() => <GlobalTooltip />}</ClientOnly>
     </>
   );
 }
