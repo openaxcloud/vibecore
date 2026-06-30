@@ -139,6 +139,12 @@ import {
 } from '~/utils/project-panel-refresh';
 import { countHiddenMobileBottomTabs, selectVisibleMobileBottomTabs } from '~/lib/mobile-bottom-tabs';
 import {
+  ECODE_MOBILE_MORE_ITEMS,
+  ECODE_MOBILE_TOOLS,
+  MOBILE_TOOL_TO_MANAGEMENT_PANEL,
+  SHELL_TERMINAL_LABEL,
+} from '~/lib/mobile-ide-tabs';
+import {
   applyKeybindingOverrides,
   defaultProjectKeybindings,
   detectKeybindingConflicts,
@@ -155,7 +161,6 @@ const PROJECT_IDE_GUIDED_TOUR_STORAGE_KEY = 'vibecore-project-ide-guided-tour-v1
 const PROJECT_SECURITY_SCAN_TIMEOUT_MS = 90_000;
 const PROJECT_IDE_STATE_RESTORE_FALLBACK_MS = 6_000;
 const PROJECT_KEYBINDINGS = defaultProjectKeybindings;
-const SHELL_TERMINAL_LABEL = 'Shell (Terminal)';
 type ProjectThemePreference = Theme | 'system';
 
 function isProjectThemePreference(preference: unknown): preference is ProjectThemePreference {
@@ -396,254 +401,6 @@ const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: st
   web: { id: 'web', name: 'Webview', icon: 'i-ph:monitor' },
   tools: { id: 'tools', name: 'Tools', icon: 'i-ph:stack' },
 };
-
-const ECODE_MOBILE_TOOLS = [
-  {
-    id: 'search',
-    section: 'search',
-    title: 'Search',
-    description: 'Search through your files',
-    icon: 'i-ph:magnifying-glass',
-  },
-  {
-    id: 'files',
-    section: 'search',
-    title: 'Files',
-    description: 'Find a file',
-    icon: 'i-ph:folder-open',
-  },
-  {
-    id: 'editor',
-    section: 'search',
-    title: 'Editor',
-    description: 'Open code editor',
-    icon: 'i-ph:code',
-  },
-  {
-    id: 'overview',
-    section: 'tools',
-    title: 'Overview',
-    description: 'Project summary',
-    icon: 'i-ph:gauge',
-    tone: 'info',
-  },
-  {
-    id: 'agent',
-    section: 'tools',
-    title: 'AI Agent',
-    description: 'Agent can make changes, review its work, and debug itself automatically.',
-    icon: 'agent',
-    tone: 'agent',
-  },
-  {
-    id: 'deployments',
-    section: 'tools',
-    title: 'Deployments',
-    description: 'Publish your app',
-    icon: 'i-ph:rocket-launch',
-    tone: 'success',
-  },
-  {
-    id: 'object-storage',
-    section: 'tools',
-    title: 'Object Storage',
-    description: 'File storage',
-    icon: 'i-ph:hard-drives',
-  },
-  {
-    id: 'settings',
-    section: 'tools',
-    title: 'Settings',
-    description: 'Project settings',
-    icon: 'i-ph:gear',
-    tone: 'info',
-  },
-  {
-    id: 'terminal',
-    section: 'tools',
-    title: SHELL_TERMINAL_LABEL,
-    description: 'Workspace shell terminal',
-    icon: 'i-ph:terminal-window',
-  },
-  {
-    id: 'database',
-    section: 'tools',
-    title: 'Database',
-    description: 'SQL browser',
-    icon: 'i-ph:database',
-    tone: 'info',
-  },
-  {
-    id: 'locks',
-    section: 'tools',
-    title: 'Locks',
-    description: 'Locked files',
-    icon: 'i-ph:lock',
-    tone: 'warning',
-  },
-  {
-    id: 'debugger',
-    section: 'tools',
-    title: 'Debugger',
-    description: 'Breakpoints and launch configs',
-    icon: 'i-ph:bug',
-  },
-  {
-    id: 'git',
-    section: 'tools',
-    title: 'Git',
-    description: 'Version control for your App',
-    icon: 'i-ph:git-branch',
-    tone: 'warning',
-  },
-  {
-    id: 'packages',
-    section: 'tools',
-    title: 'Packages',
-    description: 'Dependencies manager',
-    icon: 'i-ph:package',
-  },
-  {
-    id: 'integrations',
-    section: 'tools',
-    title: 'Integrations',
-    description: 'Connected services',
-    icon: 'i-ph:package',
-  },
-  {
-    id: 'extensions',
-    section: 'tools',
-    title: 'Extensions',
-    description: 'Marketplace',
-    icon: 'i-ph:puzzle-piece',
-  },
-  {
-    id: 'collaborators',
-    section: 'tools',
-    title: 'Collaborators',
-    description: 'Team access',
-    icon: 'i-ph:users',
-    tone: 'info',
-  },
-  {
-    id: 'preview',
-    section: 'tools',
-    title: 'Webview',
-    description: 'Preview your App',
-    icon: 'i-ph:monitor',
-  },
-  {
-    id: 'logs',
-    section: 'tools',
-    title: 'Logs',
-    description: 'Runtime logs',
-    icon: 'i-ph:list-magnifying-glass',
-    tone: 'info',
-  },
-  {
-    id: 'secrets',
-    section: 'tools',
-    title: 'Secrets',
-    description: 'Store sensitive information (like API keys) securely in your App',
-    icon: 'i-ph:key',
-  },
-  {
-    id: 'security',
-    section: 'tools',
-    title: 'Security',
-    description: 'Security scanner',
-    icon: 'i-ph:shield-check',
-    tone: 'danger',
-  },
-  {
-    id: 'monitoring',
-    section: 'tools',
-    title: 'Monitoring',
-    description: 'App metrics',
-    icon: 'i-ph:chart-line',
-  },
-  {
-    id: 'ports',
-    section: 'tools',
-    title: 'Ports',
-    description: 'Forwarded ports',
-    icon: 'i-ph:plugs',
-  },
-  {
-    id: 'env',
-    section: 'tools',
-    title: 'Environment variables',
-    description: 'Environment variables',
-    icon: 'i-ph:brackets-curly',
-  },
-  {
-    id: 'workflows',
-    section: 'tools',
-    title: 'Workflows',
-    description: 'Configure different ways to run your App',
-    icon: 'i-ph:lightning',
-    tone: 'warning',
-  },
-  {
-    id: 'activity',
-    section: 'tools',
-    title: 'Activity',
-    description: 'Project timeline',
-    icon: 'i-ph:activity',
-  },
-  {
-    id: 'snapshots',
-    section: 'tools',
-    title: 'Snapshots',
-    description: 'Rollback points',
-    icon: 'i-ph:stack',
-  },
-  {
-    id: 'commands',
-    section: 'tools',
-    title: 'Commands',
-    description: 'Open command palette',
-    icon: 'i-ph:command',
-    tone: 'info',
-  },
-  {
-    id: 'share',
-    section: 'tools',
-    title: 'Share',
-    description: 'Copy project link',
-    icon: 'i-ph:share-network',
-    tone: 'info',
-  },
-] as const;
-
-const ECODE_MOBILE_MORE_ITEMS = [
-  'preview',
-  'agent',
-  'files',
-  'editor',
-  'deployments',
-  'git',
-  'packages',
-  'skills',
-  'database',
-  'object-storage',
-  'secrets',
-  'env',
-  'terminal',
-  'logs',
-  'search',
-  'locks',
-  'commands',
-  'workflows',
-  'collaborators',
-  'activity',
-  'snapshots',
-  'extensions',
-  'monitoring',
-  'ports',
-  'security',
-  'settings',
-] as const;
 
 const IDE_FILE_TREE_HIDDEN_PATTERNS = [
   /\/node_modules(?:\/|$)/,
@@ -4696,42 +4453,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const activateMobileTool = useCallback(
       (toolId: string) => {
-        const managementPanelByTool: Record<string, IdeManagementPanel> = {
-          deployments: 'deployments',
-          publishing: 'deployments',
-          deploy: 'deployments',
-          'object-storage': 'object-storage',
-          'app-storage': 'object-storage',
-          storage: 'object-storage',
-          database: 'database',
-          'kv-store': 'database',
-          debugger: 'debugger',
-          debug: 'debugger',
-          developer: 'debugger',
-          git: 'git',
-          activity: 'activity',
-          history: 'activity',
-          integrations: 'integrations',
-          collaborators: 'collaborators',
-          collaboration: 'collaborators',
-          collaborate: 'collaborators',
-          multiplayer: 'collaborators',
-          packages: 'packages',
-          secrets: 'secrets',
-          env: 'env',
-          auth: 'settings',
-          settings: 'settings',
-          workflows: 'workflows',
-          snapshots: 'snapshots',
-          checkpoints: 'snapshots',
-          extensions: 'extensions',
-          security: 'security',
-          logs: 'logs',
-          monitoring: 'monitoring',
-          domains: 'domains',
-          overview: 'overview',
-        };
-
         const normalizedToolId = toolId === 'deployment' ? 'deployments' : toolId;
 
         if (normalizedToolId === 'commands') {
@@ -4787,7 +4508,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           setMobileIdePanel('editor');
           setProjectPanelSearchParam('editor');
         } else {
-          const managementPanel = managementPanelByTool[normalizedToolId];
+          const managementPanel = MOBILE_TOOL_TO_MANAGEMENT_PANEL[normalizedToolId] as IdeManagementPanel | undefined;
 
           if (managementPanel) {
             openWorkspacePanel(managementPanel, { replaceUrl: false });
