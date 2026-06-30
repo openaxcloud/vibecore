@@ -208,6 +208,38 @@ export async function fetchSupabaseStats(token: string) {
   }
 }
 
+/*
+ * Cross-device hydration: recover the Supabase connection from the encrypted
+ * server-side UserConnection when this device has none locally (see netlify.ts
+ * for the rationale). Best-effort, idempotent, never overrides a local session.
+ * fetchSupabaseStats hits /api/supabase, which itself prefers the server token —
+ * so the per-project selection (kept per chatId) reconnects on a fresh device.
+ */
+export async function hydrateSupabaseFromUserConnection() {
+  if (typeof window === 'undefined' || supabaseConnection.get().user) {
+    return;
+  }
+
+  try {
+    const tokenResponse = await fetch('/api/connector-token/supabase');
+
+    if (!tokenResponse.ok) {
+      return;
+    }
+
+    const { token } = (await tokenResponse.json()) as { token?: string | null };
+
+    if (!token) {
+      return;
+    }
+
+    updateSupabaseConnection({ token });
+    await fetchSupabaseStats(token);
+  } catch (error) {
+    console.debug('Supabase cross-device hydration skipped:', error);
+  }
+}
+
 export async function fetchProjectApiKeys(projectId: string, token: string) {
   isFetchingApiKeys.set(true);
 

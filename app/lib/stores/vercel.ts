@@ -224,3 +224,43 @@ export async function fetchVercelStats(token: string) {
     isFetchingStats.set(false);
   }
 }
+
+/*
+ * Cross-device hydration: recover the Vercel connection from the encrypted
+ * server-side UserConnection when this device has none locally (see netlify.ts
+ * for the rationale). Best-effort, idempotent, never overrides a local session.
+ */
+export async function hydrateVercelFromUserConnection() {
+  if (typeof window === 'undefined' || vercelConnection.get().user) {
+    return;
+  }
+
+  try {
+    const tokenResponse = await fetch('/api/connector-token/vercel');
+
+    if (!tokenResponse.ok) {
+      return;
+    }
+
+    const { token } = (await tokenResponse.json()) as { token?: string | null };
+
+    if (!token) {
+      return;
+    }
+
+    const userResponse = await fetch('https://api.vercel.com/v2/user', {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!userResponse.ok) {
+      return;
+    }
+
+    const userData = (await userResponse.json()) as any;
+    updateVercelConnection({ user: userData.user || userData, token });
+    await fetchVercelStats(token);
+  } catch (error) {
+    console.debug('Vercel cross-device hydration skipped:', error);
+  }
+}

@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react';
 import { useState } from 'react';
 import { ACCOUNT_MENU_LINKS, resolveAccountMenuLink } from '~/components/@settings/core/account-menu-links';
 import { DeployButton } from '~/components/deploy/DeployButton';
+import { useHydrateConnectors } from '~/lib/hooks/useHydrateConnectors';
 import { workbenchStore } from '~/lib/stores/workbench';
 
 interface HeaderActionButtonsProps {
@@ -12,6 +13,14 @@ export function HeaderActionButtons({ chatStarted: _chatStarted }: HeaderActionB
   const [activePreviewIndex] = useState(0);
   const previews = useStore(workbenchStore.previews);
   const activePreview = previews[activePreviewIndex];
+
+  /*
+   * Recover Vercel/Netlify/Supabase connections from the encrypted server-side
+   * UserConnection on IDE load, so they follow the signed-in user across devices
+   * (the Deploy button + Database panel show "connected" without re-pasting a
+   * token). Best-effort; no-op when this device already has a local connection.
+   */
+  useHydrateConnectors();
 
   const shouldShowButtons = activePreview;
 

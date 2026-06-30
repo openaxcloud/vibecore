@@ -135,3 +135,46 @@ export async function fetchNetlifyStats(token: string) {
     isFetchingStats.set(false);
   }
 }
+
+/*
+ * Cross-device hydration: recover the Netlify connection from the encrypted
+ * server-side UserConnection when this device has none locally. Best-effort and
+ * idempotent — skips when already connected here, swallows errors, never
+ * overrides an active local connection. The token reaches the browser exactly as
+ * the legacy localStorage flow already did; the difference is it now follows the
+ * signed-in user to any device.
+ */
+export async function hydrateNetlifyFromUserConnection() {
+  if (typeof window === 'undefined' || netlifyConnection.get().user) {
+    return;
+  }
+
+  try {
+    const tokenResponse = await fetch('/api/connector-token/netlify');
+
+    if (!tokenResponse.ok) {
+      return;
+    }
+
+    const { token } = (await tokenResponse.json()) as { token?: string | null };
+
+    if (!token) {
+      return;
+    }
+
+    const userResponse = await fetch('https://api.netlify.com/api/v1/user', {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!userResponse.ok) {
+      return;
+    }
+
+    const userData = (await userResponse.json()) as NetlifyUser;
+    updateNetlifyConnection({ user: userData, token });
+    await fetchNetlifyStats(token);
+  } catch (error) {
+    console.debug('Netlify cross-device hydration skipped:', error);
+  }
+}
