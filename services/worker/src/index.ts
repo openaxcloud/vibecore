@@ -321,6 +321,44 @@ export async function triggerObjectStorageMetering(jobData: Record<string, unkno
 }
 
 /**
+ * Database-storage metering trigger (Replit-parity $0.03/GiB-month) — POSTs to
+ * the api's /internal/metering/database-storage which sums each org's REAL stored
+ * bytes across its active DatabaseInstances and meters one day's GiB-months. Thin
+ * trigger (aggregation + pricing stay in the api). SHADOW-safe. Mirrors
+ * metering.objectStorage.
+ */
+export async function triggerDatabaseStorageMetering(jobData: Record<string, unknown> = {}) {
+  const baseUrl = process.env.API_INTERNAL_URL ?? process.env.API_URL;
+  if (!baseUrl) {
+    throw new Error('API_INTERNAL_URL (or API_URL) is required to trigger metering.databaseStorage');
+  }
+
+  const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();
+  const body = {
+    shadow: jobData.shadow as boolean | undefined,
+    daysInPeriod: jobData.daysInPeriod as number | undefined,
+  };
+
+  const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/internal/metering/database-storage`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(120_000),
+  });
+
+  if (!response.ok) {
+    await response.body?.cancel().catch(() => {});
+    throw new Error(`metering.databaseStorage upstream failed: ${response.status}`);
+  }
+
+  const result = await response.json().catch(() => ({}));
+  return result as Record<string, unknown>;
+}
+
+/**
  * Database point-in-time rollback maintenance trigger (Phase 2) — POSTs to the
  * api's internal /internal/database-maintenance which prunes expired snapshots,
  * takes daily auto snapshots, and advances in-flight restores. Inert while
@@ -408,6 +446,10 @@ export function startWorkers() {
 
       if (job.name === 'metering.objectStorage') {
         return await triggerObjectStorageMetering(job.data ?? {});
+      }
+
+      if (job.name === 'metering.databaseStorage') {
+        return await triggerDatabaseStorageMetering(job.data ?? {});
       }
 
       if (job.name === 'database.maintenance') {

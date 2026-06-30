@@ -5,6 +5,7 @@ import {
   computeUnitsCents,
   databaseComputeCents,
   databaseBillableStorageGib,
+  databaseStorageCents,
   egressCents,
   objectStorageCents,
   reservedVmCents,
@@ -94,6 +95,15 @@ describe('database guard-rails', () => {
     expect(databaseBillableStorageGib(50 * 1024)).toBe(10);
     // Negative / non-finite falls back to the floor.
     expect(databaseBillableStorageGib(Number.NaN)).toBeCloseTo(33 / 1024, 9);
+  });
+
+  it('prices DB storage at $0.03/GiB-month', () => {
+    // 2 GiB held for a full month → 2 × $0.03 = $0.06 = 6 cents.
+    expect(databaseStorageCents(2)).toBeCloseTo(6, 9);
+    // One day of a 2 GiB DB → 2/30 GiB-months × 3 cents.
+    expect(databaseStorageCents(2 / 30)).toBeCloseTo((2 / 30) * 3, 9);
+    expect(databaseStorageCents(0)).toBe(0);
+    expect(databaseStorageCents(Number.NaN)).toBe(0);
   });
 });
 

@@ -103,6 +103,65 @@ describe('internal metering ingest', () => {
     expect(types).toContain('database.activeHours');
   });
 
+  it('records a per-event database-storage meter (33 MB floor)', async () => {
+    const { app, store, org } = await setup();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/internal/metering',
+      headers: internalAuth,
+      payload: { kind: 'database-storage', organizationId: org.id, usedMb: 0 },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.kind).toBe('database-storage');
+    // Empty DB still bills the 33 MB floor.
+    expect(body.result.billableGib).toBeCloseTo(33 / 1024, 6);
+
+    const types = (await store.listUsageEvents(org.id)).map((e: { type: string }) => e.type);
+    expect(types).toContain('database.storageGiBMonths');
+  });
+
+  it('runs the daily database-storage sweep over active instances (idempotent)', async () => {
+    const { app, store, org } = await setup();
+    const project = await store.createProject({ organizationId: org.id, name: 'P', slug: 'p' });
+    const instance = await store.createDatabaseInstance({
+      projectId: project.id,
+      organizationId: org.id,
+      retentionDays: 7,
+      environment: 'production',
+    });
+    await store.updateDatabaseInstance(instance.id, { status: 'ACTIVE', sizeBytes: 5 * 1024 * 1024 * 1024 });
+
+    const first = await app.inject({
+      method: 'POST',
+      url: '/internal/metering/database-storage',
+      headers: internalAuth,
+      payload: {},
+    });
+    expect(first.statusCode).toBe(200);
+    expect(first.json().result.orgsMetered).toBe(1);
+
+    // Same UTC day → idempotent, meters nothing more.
+    const second = await app.inject({
+      method: 'POST',
+      url: '/internal/metering/database-storage',
+      headers: internalAuth,
+      payload: {},
+    });
+    expect(second.json().result.orgsMetered).toBe(0);
+
+    const storageEvents = (await store.listUsageEvents(org.id)).filter(
+      (e: { type: string }) => e.type === 'database.storageGiBMonths',
+    );
+    expect(storageEvents).toHaveLength(1);
+  });
+
+  it('database-storage sweep requires the internal secret', async () => {
+    const { app } = await setup();
+    const res = await app.inject({ method: 'POST', url: '/internal/metering/database-storage', payload: {} });
+    expect(res.statusCode).toBe(401);
+  });
+
   it('rejects an unknown metering kind', async () => {
     const { app, org } = await setup();
     const res = await app.inject({

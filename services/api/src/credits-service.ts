@@ -355,6 +355,62 @@ export async function reportCheckpointPaygUsage(
   return { reported: true };
 }
 
+/**
+ * Report a USAGE-metering overage (compute / object storage / database storage /
+ * deployment beyond included credits) to the org's Stripe metered subscription
+ * item — the usage-based analogue of {@link reportCheckpointPaygUsage}. Bills to
+ * `STRIPE_PAYG_USAGE_PRICE_ID`, falling back to `STRIPE_PAYG_AI_PRICE_ID` so a
+ * single metered item can capture all overage if desired.
+ *
+ * FULLY SHADOW-SAFE: a no-op unless `BILLING_CREDITS_ENABLED==='true'`, a price
+ * is configured, a Stripe client is supplied, there is a real overage, and the
+ * org has the metered subscription item. Idempotent via the caller's `reference`.
+ */
+export async function reportUsagePaygUsage(
+  store: ApiStore,
+  stripe: PaygStripeClient | undefined,
+  input: { organizationId: string; reference: string; paygChargeCents: number },
+): Promise<{ reported: boolean; reason?: string }> {
+  if (process.env.BILLING_CREDITS_ENABLED !== 'true') {
+    return { reported: false, reason: 'shadow' };
+  }
+
+  if (!stripe) {
+    return { reported: false, reason: 'no_stripe_client' };
+  }
+
+  const priceId = process.env.STRIPE_PAYG_USAGE_PRICE_ID ?? process.env.STRIPE_PAYG_AI_PRICE_ID;
+
+  if (!priceId) {
+    return { reported: false, reason: 'no_payg_price' };
+  }
+
+  if (!(input.paygChargeCents > 0)) {
+    return { reported: false, reason: 'no_overage' };
+  }
+
+  const subscription = await store.getSubscription(input.organizationId);
+
+  if (!subscription?.externalId) {
+    return { reported: false, reason: 'no_subscription' };
+  }
+
+  const stripeSub = await stripe.getSubscription(subscription.externalId);
+  const item = stripeSub?.items?.data?.find((entry) => entry.price?.id === priceId);
+
+  if (!item) {
+    return { reported: false, reason: 'no_metered_item' };
+  }
+
+  await stripe.reportUsage({
+    subscriptionItemId: item.id,
+    quantity: Math.ceil(input.paygChargeCents),
+    idempotencyKey: `usage:${input.reference}`,
+  });
+
+  return { reported: true };
+}
+
 /** Convenience: estimate the reservation cost for the agent UI cost preview. */
 export function estimateRequestCents(
   input: {

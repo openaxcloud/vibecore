@@ -13,7 +13,9 @@ import {
   autoscaleUsageCents,
   ceilCents,
   computeUnitsCents,
+  databaseBillableStorageGib,
   databaseComputeCents,
+  databaseStorageCents,
   egressCents,
   objectStorageCents,
   reservedVmCents,
@@ -27,17 +29,38 @@ export interface MeterResult {
   costCents: number;
   fromPacks: number;
   fromBalance: number;
+  /**
+   * Usage cost not covered by credit packs or wallet balance — the pay-as-you-go
+   * overage (billed to Stripe, counts toward the spend cap). 0 in shadow mode.
+   */
+  paygCents: number;
   shadow: boolean;
 }
 
 async function charge(
   store: ApiStore,
-  input: { organizationId: string; costCents: number; reason: string; shadow?: boolean; nowMs: number },
+  input: {
+    organizationId: string;
+    costCents: number;
+    reason: string;
+    shadow?: boolean;
+    nowMs: number;
+    /**
+     * Stable dedup key for the PAYG tracking-ledger entry. When provided (and the
+     * usage incurs an overage beyond packs+balance), the overage is recorded as a
+     * PAYG_CHARGE ledger row so `sumPaygSpendSince` — which drives the spend cap
+     * (`checkServiceShutdown`) and 50/80/100% alerts — counts usage-based overage,
+     * not just agent checkpoints. Deduped by (org, reference), so an idempotent
+     * re-meter never double-counts. Omitted → no tracking row (overage still
+     * overflows in the wallet exactly as before, no regression).
+     */
+    paygReference?: string;
+  },
 ): Promise<MeterResult> {
   const cents = ceilCents(input.costCents);
 
   if (input.shadow || cents <= 0) {
-    return { costCents: cents, fromPacks: 0, fromBalance: 0, shadow: Boolean(input.shadow) };
+    return { costCents: cents, fromPacks: 0, fromBalance: 0, paygCents: 0, shadow: Boolean(input.shadow) };
   }
 
   const { fromPacks, fromBalance } = await debitCredits(store, {
@@ -47,7 +70,17 @@ async function charge(
     nowMs: input.nowMs,
   });
 
-  return { costCents: cents, fromPacks, fromBalance, shadow: false };
+  const paygCents = Math.max(0, cents - fromPacks - fromBalance);
+
+  if (paygCents > 0 && input.paygReference) {
+    await store
+      .recordPaygCharge({ organizationId: input.organizationId, checkpointId: input.paygReference, cents: paygCents })
+      .catch(() => {
+        /* tracking-only; never block metering on a ledger write */
+      });
+  }
+
+  return { costCents: cents, fromPacks, fromBalance, paygCents, shadow: false };
 }
 
 /**
@@ -64,6 +97,7 @@ export async function meterWorkspaceCompute(
     seconds: number;
     shadow?: boolean;
     nowMs: number;
+    paygReference?: string;
   },
 ): Promise<MeterResult & { computeUnits: number; minutes: number }> {
   const units = workspaceComputeUnits(input.cpuMillicores, input.ramMb, input.seconds);
@@ -81,6 +115,7 @@ export async function meterWorkspaceCompute(
     reason: 'workspace compute',
     shadow: input.shadow,
     nowMs: input.nowMs,
+    paygReference: input.paygReference,
   });
 
   return { ...result, computeUnits: units, minutes };
@@ -97,6 +132,7 @@ export async function meterObjectStorage(
     classBOps?: number;
     shadow?: boolean;
     nowMs: number;
+    paygReference?: string;
   },
 ): Promise<MeterResult> {
   await store.recordUsageEvent({
@@ -116,6 +152,7 @@ export async function meterObjectStorage(
     reason: 'object storage',
     shadow: input.shadow,
     nowMs: input.nowMs,
+    paygReference: input.paygReference,
   });
 }
 
@@ -173,6 +210,7 @@ export async function meterAllObjectStorage(
           gibMonths,
           shadow: input.shadow,
           nowMs: input.nowMs,
+          paygReference: `usage:object-storage:${utcDay}:${row.organizationId}`,
         });
 
         return true;
@@ -197,6 +235,7 @@ export async function meterDatabaseCompute(
     hours: number;
     shadow?: boolean;
     nowMs: number;
+    paygReference?: string;
   },
 ): Promise<MeterResult> {
   await store.recordUsageEvent({
@@ -210,7 +249,109 @@ export async function meterDatabaseCompute(
     reason: 'database compute',
     shadow: input.shadow,
     nowMs: input.nowMs,
+    paygReference: input.paygReference,
   });
+}
+
+/**
+ * Meter database STORAGE (Replit parity — $0.03/GiB-month by the period's max
+ * GiB). `billableGib` is the storage to charge, ALREADY floored (33 MB/DB) and
+ * capped (10 GiB/DB) by the caller via {@link databaseBillableStorageGib} — kept
+ * pre-applied so a sweep can sum several DBs without the org total being re-capped
+ * at 10 GiB. `monthFraction` lets a daily sweep charge one day's fraction. Records
+ * a `database.storageGiBMonths` usage event then debits credits (unless shadow).
+ */
+export async function meterDatabaseStorage(
+  store: ApiStore,
+  input: {
+    organizationId: string;
+    billableGib: number;
+    /** Fraction-of-month the storage was held (daily sweep passes 1/daysInPeriod). */
+    monthFraction?: number;
+    shadow?: boolean;
+    nowMs: number;
+    paygReference?: string;
+  },
+): Promise<MeterResult & { billableGib: number; gibMonths: number }> {
+  const billableGib = Math.max(0, input.billableGib);
+  const gibMonths = billableGib * (input.monthFraction ?? 1);
+  await store.recordUsageEvent({
+    organizationId: input.organizationId,
+    type: 'database.storageGiBMonths',
+    quantity: Math.ceil(gibMonths),
+    metadata: { billableGib },
+  });
+  const result = await charge(store, {
+    organizationId: input.organizationId,
+    costCents: databaseStorageCents(gibMonths),
+    reason: 'database storage',
+    shadow: input.shadow,
+    nowMs: input.nowMs,
+    paygReference: input.paygReference,
+  });
+  return { ...result, billableGib, gibMonths };
+}
+
+/**
+ * Daily database-storage metering sweep (Replit parity). Sums each org's REAL
+ * stored bytes across its ACTIVE database instances — applying the 33 MB floor +
+ * 10 GiB cap PER DATABASE (so an empty DB still bills the floor) — and meters one
+ * day's worth of GiB-months so the monthly total accrues across daily runs.
+ * Idempotent per (org, UTC-day) under an advisory lock, mirroring
+ * {@link meterAllObjectStorage}. SHADOW-safe via the `shadow` flag.
+ */
+export async function meterAllDatabaseStorage(
+  store: ApiStore,
+  input: { shadow?: boolean; nowMs: number; daysInPeriod?: number },
+): Promise<{ orgsMetered: number; instances: number; shadow: boolean }> {
+  const days = input.daysInPeriod && input.daysInPeriod > 0 ? input.daysInPeriod : 30;
+  const instances = await store.listActiveDatabaseInstances();
+
+  // Sum billable GiB per org, applying the floor/cap PER instance (Replit bills
+  // the 33 MB floor per database, not per org).
+  const billableByOrg = new Map<string, { gib: number; count: number }>();
+  for (const instance of instances) {
+    const usedMb = Number(instance.sizeBytes ?? 0) / (1024 * 1024);
+    const gib = databaseBillableStorageGib(usedMb);
+    const entry = billableByOrg.get(instance.organizationId) ?? { gib: 0, count: 0 };
+    entry.gib += gib;
+    entry.count += 1;
+    billableByOrg.set(instance.organizationId, entry);
+  }
+
+  const dayStartMs = Math.floor(input.nowMs / 86_400_000) * 86_400_000;
+  const utcDay = Math.floor(input.nowMs / 86_400_000);
+
+  let orgsMetered = 0;
+  let meteredInstances = 0;
+
+  for (const [organizationId, { gib, count }] of billableByOrg) {
+    const metered = await store.withSerializedMutation(
+      `metering:database-storage:${utcDay}:${organizationId}`,
+      async () => {
+        if (await store.hasUsageEventSince(organizationId, 'database.storageGiBMonths', dayStartMs)) {
+          return false;
+        }
+        // `gib` is already the org's total billable GiB (floor/cap applied per DB).
+        await meterDatabaseStorage(store, {
+          organizationId,
+          billableGib: gib,
+          monthFraction: 1 / days,
+          shadow: input.shadow,
+          nowMs: input.nowMs,
+          paygReference: `usage:database-storage:${utcDay}:${organizationId}`,
+        });
+        return true;
+      },
+    );
+
+    if (metered) {
+      orgsMetered += 1;
+      meteredInstances += count;
+    }
+  }
+
+  return { orgsMetered, instances: meteredInstances, shadow: Boolean(input.shadow) };
 }
 
 export type DeploymentKind = 'autoscale' | 'scheduled' | 'static' | 'reserved-vm';
@@ -228,6 +369,7 @@ export async function meterDeployment(
     includeBase?: boolean;
     shadow?: boolean;
     nowMs: number;
+    paygReference?: string;
   },
 ): Promise<MeterResult> {
   let cost = 0;
@@ -270,5 +412,6 @@ export async function meterDeployment(
     reason: `deployment ${input.kind}`,
     shadow: input.shadow,
     nowMs: input.nowMs,
+    paygReference: input.paygReference,
   });
 }

@@ -49,6 +49,11 @@
       "schedule" "15 2 * * *"
       "queue" "enterprise-jobs"
       "job" "metering.objectStorage")
+    "databaseStorageMetering" (dict
+      "enabled" true
+      "schedule" "20 2 * * *"
+      "queue" "enterprise-jobs"
+      "job" "metering.databaseStorage")
     "databaseMaintenance" (dict
       "enabled" true
       "schedule" "30 2 * * *"

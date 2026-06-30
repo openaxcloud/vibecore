@@ -33,6 +33,7 @@ import {
   billingPlans,
   computeAiCostCents,
   creditPackCatalog,
+  databaseBillableStorageGib,
   findCreditPack,
   planByKey,
   toCreditPlanKey,
@@ -90,6 +91,7 @@ import {
   checkServiceShutdown,
   openCheckpoint,
   reportCheckpointPaygUsage,
+  reportUsagePaygUsage,
   settleCheckpoint,
 } from './credits-service.js';
 import {
@@ -159,8 +161,10 @@ import {
   createDefaultMcpMarketplaceService,
 } from './mcp-marketplace.js';
 import {
+  meterAllDatabaseStorage,
   meterAllObjectStorage,
   meterDatabaseCompute,
+  meterDatabaseStorage,
   meterDeployment,
   meterObjectStorage,
   meterWorkspaceCompute,
@@ -2900,6 +2904,9 @@ async function meterDeploymentOnce(store: ApiStore, deployment: DeploymentRecord
       kind,
       shadow,
       nowMs: Date.now(),
+      // metered exactly once (guarded by lastMeteredAt), so the deployment id is a
+      // stable PAYG dedup key for any overage beyond included credits.
+      paygReference: `deployment:${fresh.id}`,
     }).catch(() => {});
 
     return store
@@ -19384,6 +19391,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           cpuMillicores: z.number().nonnegative(),
           ramMb: z.number().nonnegative(),
           seconds: z.number().nonnegative(),
+          reference: z.string().optional(),
           shadow: z.boolean().optional(),
         }),
         z.object({
@@ -19393,6 +19401,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           transferGib: z.number().nonnegative().optional(),
           classAOps: z.number().nonnegative().optional(),
           classBOps: z.number().nonnegative().optional(),
+          reference: z.string().optional(),
           shadow: z.boolean().optional(),
         }),
         z.object({
@@ -19401,6 +19410,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           cpuMillicores: z.number().nonnegative(),
           ramMb: z.number().nonnegative(),
           hours: z.number().nonnegative(),
+          reference: z.string().optional(),
+          shadow: z.boolean().optional(),
+        }),
+        z.object({
+          kind: z.literal('database-storage'),
+          organizationId: z.string().min(1),
+          usedMb: z.number().nonnegative(),
+          monthFraction: z.number().positive().max(1).optional(),
+          reference: z.string().optional(),
           shadow: z.boolean().optional(),
         }),
         z.object({
@@ -19412,6 +19430,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           egressGib: z.number().nonnegative().optional(),
           reservedTier: z.enum(['shared-0.5', 'dedicated-1', 'dedicated-2', 'dedicated-4']).optional(),
           includeBase: z.boolean().optional(),
+          reference: z.string().optional(),
           shadow: z.boolean().optional(),
         }),
       ]),
@@ -19422,6 +19441,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const shadow = body.shadow ?? process.env.BILLING_CREDITS_ENABLED !== 'true';
     const nowMs = Date.now();
 
+    // Stable PAYG dedup key: producer-supplied reference, else a per-(kind,org,
+    // minute) fallback so retries inside a minute don't double-record/charge.
+    const paygReference =
+      ('reference' in body && body.reference) || `${body.kind}:${body.organizationId}:${Math.floor(nowMs / 60_000)}`;
+
+    /*
+     * Bill any usage overage beyond included credits to Stripe metered usage
+     * (no-op in shadow / until the PAYG price + subscription item exist). The
+     * overage was already recorded to the PAYG ledger inside the meter call
+     * (drives the spend cap + alerts), so this only reports it to Stripe.
+     */
+    const reportPayg = (result: { paygCents: number }) =>
+      reportUsagePaygUsage(store, stripeClient, {
+        organizationId: body.organizationId,
+        reference: paygReference,
+        paygChargeCents: result.paygCents,
+      }).catch((error) => request.log?.warn?.({ err: error }, 'usage PAYG report failed (non-fatal)'));
+
     if (body.kind === 'compute') {
       const result = await meterWorkspaceCompute(store, {
         organizationId: body.organizationId,
@@ -19431,7 +19468,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         seconds: body.seconds,
         shadow,
         nowMs,
+        paygReference,
       });
+      await reportPayg(result);
       return { kind: body.kind, shadow, result };
     }
 
@@ -19444,7 +19483,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         classBOps: body.classBOps,
         shadow,
         nowMs,
+        paygReference,
       });
+      await reportPayg(result);
       return { kind: body.kind, shadow, result };
     }
 
@@ -19456,7 +19497,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         hours: body.hours,
         shadow,
         nowMs,
+        paygReference,
       });
+      await reportPayg(result);
+      return { kind: body.kind, shadow, result };
+    }
+
+    if (body.kind === 'database-storage') {
+      const result = await meterDatabaseStorage(store, {
+        organizationId: body.organizationId,
+        billableGib: databaseBillableStorageGib(body.usedMb),
+        monthFraction: body.monthFraction,
+        shadow,
+        nowMs,
+        paygReference,
+      });
+      await reportPayg(result);
       return { kind: body.kind, shadow, result };
     }
 
@@ -19470,8 +19526,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       includeBase: body.includeBase,
       shadow,
       nowMs,
+      paygReference,
     });
 
+    await reportPayg(result);
     return { kind: body.kind, shadow, result };
   });
 
@@ -19500,6 +19558,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { kind: 'object-storage-sweep', shadow, result };
+  });
+
+  /**
+   * Daily database-storage metering sweep (Replit parity — $0.03/GiB-month by the
+   * period's max GiB, 33 MB floor + 10 GiB cap per database). Sums each org's REAL
+   * stored bytes across its ACTIVE DatabaseInstances and meters one day's worth of
+   * GiB-months so the monthly total accrues across the daily cron — the database
+   * analogue of /internal/metering/object-storage and the consumer the
+   * `databaseBillableStorageGib` primitive previously lacked. Idempotent per (org,
+   * UTC-day). Shadow unless billing credits are enabled. Auth = internal secret.
+   */
+  app.post('/internal/metering/database-storage', async (request, reply) => {
+    requireInternalSecret(request);
+
+    const body = parse(
+      z.object({ shadow: z.boolean().optional(), daysInPeriod: z.number().positive().optional() }),
+      request.body ?? {},
+    );
+
+    const shadow = body.shadow ?? process.env.BILLING_CREDITS_ENABLED !== 'true';
+
+    const result = await meterAllDatabaseStorage(store, {
+      shadow,
+      nowMs: Date.now(),
+      daysInPeriod: body.daysInPeriod,
+    });
+
+    return { kind: 'database-storage-sweep', shadow, result };
   });
 
   /**

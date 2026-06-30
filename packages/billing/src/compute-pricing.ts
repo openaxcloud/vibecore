@@ -141,3 +141,15 @@ export function databaseBillableStorageGib(usedMb: number): number {
   const gib = flooredMb / 1024;
   return Math.min(gib, DATABASE_STORAGE_CAP_GIB);
 }
+
+/**
+ * Database storage cost for a billing window. Replit bills managed-database
+ * storage at the same $0.03/GiB-month rate as object storage (docs.replit.com
+ * "storage"), by the period's max GiB. `gibMonths` is the billable GiB (already
+ * floored/capped via {@link databaseBillableStorageGib}) multiplied by the
+ * fraction-of-month it was held — mirroring {@link objectStorageCents}'s daily
+ * accrual so a daily sweep sums to the monthly total.
+ */
+export function databaseStorageCents(gibMonths: number): number {
+  return clampNonNeg(gibMonths) * STORAGE_CENTS_PER_GIB_MONTH;
+}

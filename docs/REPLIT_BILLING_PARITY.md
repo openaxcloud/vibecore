@@ -146,7 +146,8 @@ log-only, never block/debit), `BILLING_CREDITS_SHADOW`, `MODEL_REGISTRY_DB`
 | App-cap **enforcement** | Constant added; not wired to a call site | **Implemented** (gated) — `countPublishedApps` + `assertConcurrentPublishedApps` called at publish, excluding the project being re-published so only a genuinely-new 21st app is blocked. |
 | Org budget increments | No $500-increment rule | **Implemented** — `ORG_BUDGET_INCREMENT_CENTS` + validate/round helpers (tested). |
 | Active plan model | Live checkout still legacy $29/$99 | **Flag-flip decision** (§5) — credit model is built & dormant. |
-| DB-floor **metering** | Floor/cap primitive exists; no consumer | **Open** (§5) — there is *no DB-storage metering pipeline yet* to wire the floor into; building it is a larger dormant-feature task, not a wiring step. |
+| DB-storage **metering** | Floor/cap primitive existed with **no consumer** | **Implemented** (gated) — `databaseStorageCents` + `meterDatabaseStorage` + daily `meterAllDatabaseStorage` sweep over `DatabaseInstance.sizeBytes` (33 MB floor / 10 GiB cap **per DB**) → `POST /internal/metering/database-storage` + worker cron `metering.databaseStorage` + helm CronJob. The primitive now has its consumer. |
+| Usage PAYG + spend cap | Overage on compute/storage/DB metering was **lost** (not counted toward the cap, not billed) | **Implemented** (gated) — the metering charge path records the overage as a PAYG ledger entry, so `sumPaygSpendSince` → the `checkServiceShutdown` spend cap + 50/80/100% alerts now see **usage** overage (not just agent checkpoints), and reports it to Stripe via `reportUsagePaygUsage`. |
 
 ---
 
@@ -214,10 +215,16 @@ full `pnpm typecheck` (exit 0); `pnpm lint` (0 errors).
    Until then live checkout remains legacy $29/$99 and the new cap/pack paths
    stay dormant. This same flag arms the published-app cap.
 
-3. **DB-storage metering pipeline.** `databaseBillableStorageGib` (33 MB floor /
-   10 GiB cap) is ready, but there is **no DB-storage metering consumer yet** to
-   feed it — building that metering pipeline is a larger dormant-feature task
-   (lands with the credit-model flip), not a wiring step.
+3. **DB-storage metering pipeline.** ✅ DONE (this pass) — `meterAllDatabaseStorage`
+   daily sweep + `POST /internal/metering/database-storage` + worker/helm cron.
+   Dormant until the flag flip; activates with it.
+
+4. **DB-*compute* active-hours metering.** `meterDatabaseCompute` + the `database`
+   internal-metering kind exist and are tested, but no emitter yet produces DB
+   *active hours* (Replit bills DB compute by active, not wall, time — which needs
+   idle-suspend/resume tracking we don't yet capture). Storage is metered; compute
+   active-hours is the one remaining DB emitter. Low-value while DBs are few; lands
+   with idle-state tracking.
 
 ---
 
