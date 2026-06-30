@@ -3793,19 +3793,157 @@ function adminAuditLogsToCsv(events: Awaited<ReturnType<ApiStore['listAdminAudit
   return [header.join(','), ...lines].join('\n');
 }
 
-async function providerHealth(aiGatewayUrl: string) {
-  try {
-    const response = await fetch(`${aiGatewayUrl}/health`, { headers: { accept: 'application/json' } });
-    return [{ provider: 'ai-gateway', status: response.ok ? 'healthy' : 'degraded', statusCode: response.status }];
-  } catch (error) {
-    return [
-      {
-        provider: 'ai-gateway',
-        status: 'unreachable',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-    ];
+/*
+ * Per-provider readiness for the admin Monitoring dashboard. This REUSES the two
+ * sources of truth the platform already maintains — no fabricated latency:
+ *   1. ProviderConfig.enabled  (admin /admin/providers toggle, seeded for the 22
+ *      user-facing LLMManager providers — the source of truth for the selector).
+ *   2. Whether a platform key is configured for the provider, read from the same
+ *      env-var names the web LLMManager providers declare via `apiTokenKey`
+ *      (mirrored here because the API can't import app/lib/modules/llm).
+ * On top of that config-readiness it OVERLAYS live liveness from the ai-gateway's
+ * existing `GET /providers/health` probe (real upstream fetch) for the providers
+ * the gateway actually proxies, so those rows reflect an actual reachability
+ * check rather than config alone.
+ *
+ * Status semantics (no synthetic numbers):
+ *   ready       — enabled AND a platform key is present (or a keyless local
+ *                 provider). For gateway-proxied providers this is confirmed by
+ *                 the live probe (healthy → ready, non-healthy → degraded).
+ *   no_key      — enabled but no platform key configured (BYOK-only).
+ *   disabled    — turned off in the admin provider registry.
+ *   degraded    — gateway live probe reported the upstream as unhealthy.
+ *   unknown     — provider present in the registry but unrecognized here.
+ */
+
+/*
+ * Env-var names that hold the platform key for each user-facing LLM provider.
+ * Mirrors `apiTokenKey` declared by the web registry providers (app/lib/modules/
+ * llm/providers/*). Keep in sync with KNOWN_LLM_PROVIDERS. Providers absent from
+ * this map (LMStudio, Ollama) are keyless local runtimes.
+ */
+const PROVIDER_KEY_ENV: Record<string, string> = {
+  AmazonBedrock: 'AWS_BEDROCK_CONFIG',
+  Anthropic: 'ANTHROPIC_API_KEY',
+  Cerebras: 'CEREBRAS_API_KEY',
+  Cohere: 'COHERE_API_KEY',
+  Deepseek: 'DEEPSEEK_API_KEY',
+  Fireworks: 'FIREWORKS_API_KEY',
+  Github: 'GITHUB_API_KEY',
+  Google: 'GOOGLE_GENERATIVE_AI_API_KEY',
+  Groq: 'GROQ_API_KEY',
+  HuggingFace: 'HuggingFace_API_KEY',
+  Hyperbolic: 'HYPERBOLIC_API_KEY',
+  Mistral: 'MISTRAL_API_KEY',
+  Moonshot: 'MOONSHOT_API_KEY',
+  OpenAI: 'OPENAI_API_KEY',
+  OpenAILike: 'OPENAI_LIKE_API_KEY',
+  OpenRouter: 'OPEN_ROUTER_API_KEY',
+  Perplexity: 'PERPLEXITY_API_KEY',
+  Together: 'TOGETHER_API_KEY',
+  'Z.ai': 'ZAI_API_KEY',
+  xAI: 'XAI_API_KEY',
+};
+
+/** Local/keyless providers that are "ready" once enabled, no platform key needed. */
+const KEYLESS_LLM_PROVIDERS = new Set(['LMStudio', 'Ollama']);
+
+/*
+ * Map the ai-gateway's provider `id` (services/ai-gateway/src/gateway.ts:
+ * providerConfigs()) onto the user-facing ProviderConfig display name, so its
+ * live `/providers/health` probe can be overlaid onto the matching readiness row.
+ */
+const GATEWAY_ID_TO_DISPLAY: Record<string, string> = {
+  openai: 'OpenAI',
+  anthropic: 'Anthropic',
+  'google-gemini': 'Google',
+  openrouter: 'OpenRouter',
+  mistral: 'Mistral',
+  groq: 'Groq',
+  xai: 'xAI',
+  ollama: 'Ollama',
+};
+
+type ProviderHealthRow = {
+  provider: string;
+  status: 'ready' | 'no_key' | 'disabled' | 'degraded' | 'unknown';
+  enabled: boolean;
+  keyConfigured: boolean;
+
+  /** Set when the row's status was confirmed by the ai-gateway live upstream probe. */
+  liveChecked?: boolean;
+  statusCode?: number;
+  error?: string;
+};
+
+async function providerHealth(store: ApiStore, aiGatewayUrl: string): Promise<ProviderHealthRow[]> {
+  // 1. Config-readiness from the admin provider registry (reuse, no probe).
+  const configs = (await store.listProviderConfigs()).filter((p) => KNOWN_LLM_PROVIDER_SET.has(p.provider));
+  const byProvider = new Map(configs.map((c) => [c.provider, c] as const));
+
+  const rows = new Map<string, ProviderHealthRow>();
+
+  for (const name of KNOWN_LLM_PROVIDERS) {
+    const config = byProvider.get(name);
+    const enabled = config?.enabled ?? false;
+    const envKey = PROVIDER_KEY_ENV[name];
+
+    const keyConfigured =
+      KEYLESS_LLM_PROVIDERS.has(name) ||
+      Boolean(config?.apiKeySecret) ||
+      (Boolean(envKey) && Boolean(process.env[envKey]?.trim()));
+
+    let status: ProviderHealthRow['status'];
+
+    if (!enabled) {
+      status = 'disabled';
+    } else if (!keyConfigured) {
+      status = 'no_key';
+    } else {
+      status = 'ready';
+    }
+
+    rows.set(name, { provider: name, status, enabled, keyConfigured });
   }
+
+  // 2. Overlay live liveness from the ai-gateway's existing per-provider probe.
+  try {
+    const response = await fetch(`${aiGatewayUrl}/providers/health`, {
+      headers: { accept: 'application/json' },
+      signal: AbortSignal.timeout(4000),
+    });
+
+    if (response.ok) {
+      const body = (await response.json()) as {
+        providers?: Array<{ provider?: string; healthy?: boolean; configured?: boolean }>;
+      };
+
+      for (const probe of body.providers ?? []) {
+        const display = probe.provider ? GATEWAY_ID_TO_DISPLAY[probe.provider] : undefined;
+        const row = display ? rows.get(display) : undefined;
+
+        // Don't resurrect a disabled provider from a live probe.
+        if (!row || !row.enabled) {
+          continue;
+        }
+
+        row.liveChecked = true;
+
+        if (probe.healthy) {
+          row.status = 'ready';
+        } else if (probe.configured) {
+          // Configured upstream but the live probe failed → genuinely degraded.
+          row.status = 'degraded';
+        }
+
+        // probe.configured === false → keep the config-derived status (e.g. no_key).
+      }
+    }
+  } catch {
+    // Gateway unreachable: keep pure config-readiness; do not fabricate liveness.
+  }
+
+  return [...rows.values()];
 }
 
 async function adminHealthSummary(store: ApiStore) {
@@ -18798,7 +18936,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/provider-health', async (request) => {
     await requirePlatformAdmin(request);
-    return { providers: await providerHealth(aiGatewayUrl) };
+    return { providers: await providerHealth(store, aiGatewayUrl) };
   });
 
   // --- Replit-parity admin supervision: registry, wallets, checkpoints --------

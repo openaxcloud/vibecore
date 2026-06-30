@@ -1029,6 +1029,9 @@ type AiCost = {
 type ProviderHealthRow = {
   provider?: string;
   status?: string;
+  enabled?: boolean;
+  keyConfigured?: boolean;
+  liveChecked?: boolean;
   statusCode?: number;
   error?: string;
 };
@@ -1206,48 +1209,66 @@ function MonitoringPanel({ payload }: { payload: Record<string, JsonValue> }) {
         )}
       </SectionCard>
 
-      {/* Provider gateway health — status pills, not a chart. */}
+      {/* Per-provider readiness — status pills, not a chart. */}
       <SectionCard title="Provider health" icon="health">
         {payload.providerHealthError ? (
           <p className="text-sm text-bolt-elements-textSecondary">Provider health check is temporarily unavailable.</p>
         ) : providers.length === 0 ? (
           <MonitoringEmpty />
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {providers.map((p, index) => (
-              <ProviderHealthCard key={`${p.provider ?? 'provider'}-${index}`} provider={p} />
-            ))}
-          </div>
+          <>
+            <p className="mb-3 text-xs text-bolt-elements-textTertiary">
+              Config readiness from the admin provider registry (enabled + platform key); rows marked “live” also
+              reflect the AI gateway’s real upstream probe.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {providers.map((p, index) => (
+                <ProviderHealthCard key={`${p.provider ?? 'provider'}-${index}`} provider={p} />
+              ))}
+            </div>
+          </>
         )}
       </SectionCard>
     </>
   );
 }
 
+/*
+ * Per-provider readiness card. Maps the backend status onto a tone + dot +
+ * label. `ready`/`healthy` are good; `degraded`/`unreachable` are problems
+ * (the provider is enabled+keyed but the live probe failed); `no_key` is a
+ * config gap (amber, actionable); `disabled` is intentionally off (muted).
+ */
+const PROVIDER_HEALTH_META: Record<string, { label: string; tone: 'ok' | 'danger' | 'muted'; dot: string }> = {
+  ready: { label: 'Ready', tone: 'ok', dot: 'bg-green-500' },
+  healthy: { label: 'Ready', tone: 'ok', dot: 'bg-green-500' },
+  degraded: { label: 'Degraded', tone: 'danger', dot: 'bg-amber-500' },
+  unreachable: { label: 'Unreachable', tone: 'danger', dot: 'bg-red-500' },
+  no_key: { label: 'No key', tone: 'muted', dot: 'bg-amber-500' },
+  disabled: { label: 'Disabled', tone: 'muted', dot: 'bg-bolt-elements-textTertiary' },
+  unknown: { label: 'Unknown', tone: 'muted', dot: 'bg-bolt-elements-textTertiary' },
+};
+
 function ProviderHealthCard({ provider }: { provider: ProviderHealthRow }) {
   const status = String(provider.status ?? 'unknown');
-  const healthy = ['healthy', 'ok', 'configured', 'active'].includes(status);
-  const degraded = status === 'degraded';
-  const tone: 'ok' | 'danger' | 'muted' = healthy ? 'ok' : degraded ? 'muted' : 'danger';
+  const meta = PROVIDER_HEALTH_META[status] ?? PROVIDER_HEALTH_META.unknown;
 
   return (
     <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
       <div className="flex items-center gap-2">
-        <span
-          className={[
-            'inline-block h-2.5 w-2.5 shrink-0 rounded-full',
-            healthy ? 'bg-green-500' : degraded ? 'bg-amber-500' : 'bg-red-500',
-          ].join(' ')}
-          aria-hidden
-        />
+        <span className={['inline-block h-2.5 w-2.5 shrink-0 rounded-full', meta.dot].join(' ')} aria-hidden />
         <strong className="truncate text-sm text-bolt-elements-textPrimary">{provider.provider ?? 'provider'}</strong>
-        <span className="ml-auto">
-          <StatusPill tone={tone}>{status}</StatusPill>
+        <span className="ml-auto flex shrink-0 items-center gap-1.5">
+          {provider.liveChecked ? <StatusPill tone="accent">live</StatusPill> : null}
+          <StatusPill tone={meta.tone}>{meta.label}</StatusPill>
         </span>
       </div>
-      {typeof provider.statusCode === 'number' ? (
-        <p className="mt-1.5 text-xs text-bolt-elements-textSecondary">HTTP {provider.statusCode}</p>
-      ) : null}
+      <p className="mt-1.5 text-xs text-bolt-elements-textSecondary">
+        {provider.enabled ? 'Enabled' : 'Disabled'}
+        {' · '}
+        {provider.keyConfigured ? 'Platform key set' : 'No platform key'}
+        {typeof provider.statusCode === 'number' ? ` · HTTP ${provider.statusCode}` : ''}
+      </p>
       {provider.error ? (
         <p className="mt-1.5 break-words text-xs text-red-600 dark:text-red-400">{provider.error}</p>
       ) : null}
