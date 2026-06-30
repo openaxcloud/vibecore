@@ -1,4 +1,5 @@
 import { type ActionFunctionArgs, data as json } from 'react-router';
+import { preferredConnectorToken } from '~/lib/connectors/connector-token.server';
 import type { NetlifySiteInfo } from '~/types/netlify';
 
 /*
@@ -43,7 +44,22 @@ async function readNetlifyError(response: Response) {
 
 export async function action({ request }: ActionFunctionArgs) {
   try {
-    const { siteId, files, token, chatId } = (await request.json()) as DeployRequestBody & { token: string };
+    const {
+      siteId,
+      files,
+      token: fallbackToken,
+      chatId,
+    } = (await request.json()) as DeployRequestBody & {
+      token: string;
+    };
+
+    /*
+     * Prefer the cross-device UserConnection token (decrypted server-side for the
+     * authenticated owner) over the bolt localStorage token the browser sent, so a
+     * user who connected Netlify on another device can deploy here without
+     * reconnecting. Falls back to the supplied token cleanly.
+     */
+    const token = await preferredConnectorToken(request, 'netlify', fallbackToken);
 
     if (!token) {
       return json({ error: 'Not connected to Netlify' }, { status: 401 });

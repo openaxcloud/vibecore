@@ -1,4 +1,5 @@
 import { type ActionFunctionArgs } from 'react-router';
+import { resolveConnectorToken } from '~/lib/connectors/connector-token.server';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('api.supabase.query');
@@ -10,7 +11,15 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const authHeader = request.headers.get('Authorization');
 
-  if (!authHeader) {
+  /*
+   * Cross-device: prefer the server-decrypted UserConnection token over the
+   * Authorization header (which carries the localStorage token). Falls back to
+   * the header when the user has no active server connection.
+   */
+  const serverToken = await resolveConnectorToken(request, 'supabase');
+  const upstreamAuth = serverToken ? `Bearer ${serverToken}` : authHeader;
+
+  if (!upstreamAuth) {
     return new Response('No authorization token provided', { status: 401 });
   }
 
@@ -36,7 +45,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const response = await fetch(`https://api.supabase.com/v1/projects/${projectId}/database/query`, {
       method: 'POST',
       headers: {
-        Authorization: authHeader,
+        Authorization: upstreamAuth,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ query }),

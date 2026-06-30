@@ -8599,6 +8599,66 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
   );
 
+  /*
+   * Owner-scoped connector token read (Vercel / Netlify / Supabase only). The
+   * client-orchestrated deploy / DB-connect flows (Deploy menu, Database panel's
+   * Connect-Supabase) need the user's personal token client-side; this returns it
+   * decrypted from the active UserConnection so the SAME connection works ACROSS
+   * DEVICES (Replit parity) — the legacy bolt localStorage token is only a
+   * fallback. Restricted to these api_key deploy/data connectors: git providers
+   * stay server-side (see /api/github-proxy `__token__`, which intentionally does
+   * NOT hand the token to the browser) and are not exposed here. Only the caller's
+   * OWN connection (request.currentUser.id) is ever returned.
+   */
+  const CLIENT_TOKEN_PROVIDERS = new Set(['vercel', 'netlify', 'supabase']);
+
+  app.get(
+    '/api/integrations/:provider/token',
+    { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      if (!request.currentUser) {
+        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      }
+
+      const params = parse(integrationOauthProviderParams, request.params);
+
+      if (!CLIENT_TOKEN_PROVIDERS.has(params.provider)) {
+        return reply.code(400).send({
+          error: `Client token read is not available for ${params.provider}.`,
+          code: 'CONNECTOR_TOKEN_NOT_EXPOSED',
+        });
+      }
+
+      const connections = await store.listUserConnectionsByUser(request.currentUser.id, {
+        provider: params.provider,
+      });
+      const active = connections.find((row) => row.status === 'active');
+
+      if (!active) {
+        return reply.code(404).send({ token: null, code: 'CONNECTOR_NOT_LINKED' });
+      }
+
+      if (!active.accessTokenEncrypted) {
+        return reply.code(503).send({ token: null, code: 'CONNECTOR_TOKEN_UNAVAILABLE' });
+      }
+
+      let token: string;
+
+      try {
+        token = decryptJson<{ value: string }>(active.accessTokenEncrypted).value;
+      } catch {
+        return reply.code(503).send({ token: null, code: 'CONNECTOR_TOKEN_DECRYPT_FAILED' });
+      }
+
+      return {
+        provider: params.provider,
+        token,
+        accountLabel: active.externalAccountLabel,
+        externalAccountId: active.externalAccountId,
+      };
+    },
+  );
+
   app.get('/api/account/connections', async (request, reply) => {
     if (!request.currentUser) {
       return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });

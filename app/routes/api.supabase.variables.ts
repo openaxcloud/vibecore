@@ -1,10 +1,14 @@
 import { data as json, type ActionFunctionArgs } from 'react-router';
+import { preferredConnectorToken } from '~/lib/connectors/connector-token.server';
 
 export async function action({ request }: ActionFunctionArgs) {
   try {
     // Add proper type assertion for the request body
     const body = (await request.json()) as { projectId?: string; token?: string };
-    const { projectId, token } = body;
+    const { projectId, token: fallbackToken } = body;
+
+    // Cross-device: prefer the server UserConnection token over localStorage.
+    const token = await preferredConnectorToken(request, 'supabase', fallbackToken);
 
     if (!projectId || !token) {
       return json({ error: 'Project ID and token are required' }, { status: 400 });

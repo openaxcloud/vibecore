@@ -2,6 +2,7 @@ import { Database as DatabaseIcon, RefreshCw } from 'lucide-react';
 import { useEffect } from 'react';
 import { useFetcher } from 'react-router';
 import { DatabaseRollbackPanel } from './DatabaseRollbackPanel';
+import { SupabaseConnection } from '~/components/chat/SupabaseConnection';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -139,6 +140,28 @@ export function DatabasePanel({ projectId }: { projectId: string }) {
           </button>
         </div>
       </header>
+
+      {/*
+       * Connect an external database (Supabase) to THIS project — the Replit
+       * "Connect external database" entry point. Reuses the existing
+       * SupabaseConnection flow (per-project selection keyed by chatId, connection
+       * string + SQL); the token now resolves from the encrypted UserConnection so
+       * the connection follows the user across devices. Independent of the managed
+       * Postgres instance below, so it always renders.
+       */}
+      <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h3 className="text-[14px] font-medium text-bolt-elements-textPrimary">Connect external database</h3>
+            <p className="mt-1 text-[12px] text-bolt-elements-textSecondary">
+              Link a Supabase project to this app — its connection string and SQL run against the database you select.
+            </p>
+          </div>
+          <div className="shrink-0">
+            <SupabaseConnection triggerVariant="bar" />
+          </div>
+        </div>
+      </section>
 
       {loading && !data ? (
         <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 py-10 text-center">

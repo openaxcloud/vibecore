@@ -1,4 +1,5 @@
 import { data as json, type ActionFunction } from 'react-router';
+import { preferredConnectorToken } from '~/lib/connectors/connector-token.server';
 import type { SupabaseProject } from '~/types/supabase';
 
 export const action: ActionFunction = async ({ request }) => {
@@ -7,7 +8,13 @@ export const action: ActionFunction = async ({ request }) => {
   }
 
   try {
-    const { token } = (await request.json()) as any;
+    const { token: fallbackToken } = (await request.json()) as any;
+
+    /*
+     * Prefer the cross-device UserConnection token (server-decrypted for the
+     * owner) over the bolt localStorage token; falls back cleanly.
+     */
+    const token = await preferredConnectorToken(request, 'supabase', fallbackToken);
 
     if (!token || typeof token !== 'string') {
       return json({ error: 'A Supabase access token is required' }, { status: 400 });

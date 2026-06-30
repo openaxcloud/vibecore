@@ -1,4 +1,5 @@
 import { type ActionFunctionArgs, type LoaderFunctionArgs, data as json } from 'react-router';
+import { preferredConnectorToken } from '~/lib/connectors/connector-token.server';
 import { resolveVercelPollOutcome } from '~/lib/vercel-deploy-poll';
 import { isValidVercelProjectId } from '~/lib/vercel-project-id';
 import { buildVercelProjectName } from '~/lib/vercel-project-name';
@@ -273,9 +274,23 @@ interface DeployRequestBody {
 // Existing action function for POST requests
 export async function action({ request }: ActionFunctionArgs) {
   try {
-    const { projectId, files, sourceFiles, token, chatId, framework } = (await request.json()) as DeployRequestBody & {
+    const {
+      projectId,
+      files,
+      sourceFiles,
+      token: fallbackToken,
+      chatId,
+      framework,
+    } = (await request.json()) as DeployRequestBody & {
       token: string;
     };
+
+    /*
+     * Prefer the cross-device UserConnection token (server-decrypted for the
+     * authenticated owner) over the bolt localStorage token from the browser, so a
+     * Vercel connection made on another device works here. Falls back cleanly.
+     */
+    const token = await preferredConnectorToken(request, 'vercel', fallbackToken);
 
     if (!token) {
       return json({ error: 'Not connected to Vercel' }, { status: 401 });
