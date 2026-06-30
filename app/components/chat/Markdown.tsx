@@ -210,15 +210,25 @@ export const Markdown = memo(
       } satisfies Components;
     }, [append, setChatMode, model, provider]);
 
+    /*
+     * Memoize the plugin arrays + stripped content so a streaming re-render that
+     * doesn't change `children` (e.g. a sibling state update) doesn't rebuild the
+     * remark/rehype pipeline and re-tokenize the whole document. Combined with the
+     * useChat throttle this keeps streaming markdown smooth.
+     */
+    const memoRemarkPlugins = useMemo(() => remarkPlugins(limitedMarkdown), [limitedMarkdown]);
+    const memoRehypePlugins = useMemo(() => rehypePlugins(html), [html]);
+    const strippedChildren = useMemo(() => stripCodeFenceFromArtifact(children), [children]);
+
     return (
       <ReactMarkdown
         allowedElements={allowedHTMLElements}
         className={styles.MarkdownContent}
         components={components}
-        remarkPlugins={remarkPlugins(limitedMarkdown)}
-        rehypePlugins={rehypePlugins(html)}
+        remarkPlugins={memoRemarkPlugins}
+        rehypePlugins={memoRehypePlugins}
       >
-        {stripCodeFenceFromArtifact(children)}
+        {strippedChildren}
       </ReactMarkdown>
     );
   },

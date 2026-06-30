@@ -35,6 +35,7 @@ import { ClientOnly } from 'remix-utils/client-only';
 import 'virtual:uno.css';
 
 import { AppErrorBoundary } from './components/ui/PanelBoundary';
+import { GlobalTooltip } from './components/ui/GlobalTooltip';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -375,6 +376,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       </ClientOnly>
       <ClientOnly>{() => <GlobalRouteLoader />}</ClientOnly>
       <ClientOnly>{() => <AppToastContainer />}</ClientOnly>
+      <ClientOnly>{() => <GlobalTooltip />}</ClientOnly>
     </>
   );
 }

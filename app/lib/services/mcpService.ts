@@ -21,6 +21,23 @@ import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('mcp-service');
 
+/**
+ * A server config that this deployment deliberately refuses to run (e.g. a
+ * stdio server when stdio is disabled, or an SSE/HTTP URL pointing at a
+ * blocked private/loopback/metadata address). These are EXPECTED rejections of
+ * pre-existing stored config — not runtime failures — so the client init path
+ * logs them quietly (debug) and marks the server unavailable instead of
+ * emitting a full ERROR stack on every chat request (prod log noise that reads
+ * as "the agent is throwing errors"). Genuine transport/tool failures still log
+ * at error level.
+ */
+export class MCPConfigRejectedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'MCPConfigRejectedError';
+  }
+}
+
 export const stdioServerConfigSchema = z
   .object({
     type: z.enum(['stdio']).optional(),
@@ -174,7 +191,7 @@ export class MCPService {
     const allowStdio = (globalThis as any).process?.env?.MCP_ALLOW_STDIO_SERVERS === 'true';
 
     if (config.type === 'stdio' && !allowStdio) {
-      throw new Error(
+      throw new MCPConfigRejectedError(
         `local (stdio) MCP servers are disabled on this deployment; use a remote server (type "sse" or "streamable-http").`,
       );
     }
@@ -200,7 +217,7 @@ export class MCPService {
       typeof config.url === 'string' &&
       isBlockedMcpUrl(config.url)
     ) {
-      throw new Error(
+      throw new MCPConfigRejectedError(
         `MCP server URL "${config.url}" is not allowed (must be a public https endpoint, not a loopback/private/metadata address).`,
       );
     }
@@ -320,7 +337,18 @@ export class MCPService {
           };
         }
       } catch (error) {
-        logger.error(`Failed to initialize MCP client for server: ${serverName}`, error);
+        if (error instanceof MCPConfigRejectedError) {
+          /*
+           * Expected policy rejection of stored config (stdio disabled / blocked
+           * URL): mark unavailable and log once at debug so a user who still has a
+           * default stdio "memory" server saved doesn't spam an ERROR stack on
+           * every chat request.
+           */
+          logger.debug(`Skipping MCP server "${serverName}": ${error.message}`);
+        } else {
+          logger.error(`Failed to initialize MCP client for server: ${serverName}`, error);
+        }
+
         this._mcpToolsPerServer[serverName] = {
           status: 'unavailable',
           error: (error as Error).message,

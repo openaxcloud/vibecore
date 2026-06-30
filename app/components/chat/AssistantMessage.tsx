@@ -16,7 +16,7 @@ import { MessagePatchReview } from './MessagePatchReview';
 import { PlanChecklistView } from './PlanChecklist';
 import ThoughtBox from './ThoughtBox';
 import { ToolInvocations } from './ToolInvocations';
-import { resolveLaneState } from './agent-lane-state';
+import { extractLaneStreamSummary, resolveLaneState } from './agent-lane-state';
 import { ConnectionFailedNote } from './connector-cards/ConnectionFailedNote';
 import { ConnectionRequestCard } from './connector-cards/ConnectionRequestCard';
 import { ConnectionResolvedNote } from './connector-cards/ConnectionResolvedNote';
@@ -553,7 +553,7 @@ export const AssistantMessage = memo(
                       <div className="mt-1 line-clamp-3 text-[11px] text-bolt-elements-textSecondary">
                         {result?.summary ??
                           stream?.summary ??
-                          (stream?.text.trim() || undefined) ??
+                          extractLaneStreamSummary(stream?.text) ??
                           role.responsibility}
                       </div>
                     </div>

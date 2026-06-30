@@ -416,6 +416,16 @@ export const ChatImpl = memo(
         },
         maxLLMSteps: mcpSettings.maxLLMSteps,
       },
+
+      /*
+       * Coalesce token-by-token stream updates into ~40ms frames. Without this
+       * the AI SDK calls setMessages on EVERY SSE delta, so the full assistant
+       * markdown tree re-parses + re-reconciles per token — the visible
+       * stutter/saccade during generation. 40ms (~25fps) keeps streaming smooth
+       * to the eye while cutting React work by an order of magnitude on fast
+       * streams.
+       */
+      experimental_throttle: 40,
       sendExtraMessageFields: true,
       onError: (e) => {
         setFakeLoading(false);
