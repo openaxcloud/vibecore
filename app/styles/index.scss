@@ -4273,7 +4273,12 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-mobile-tab-switcher {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* Track the visual viewport so the search footer stays above the on-screen
+     keyboard instead of being pushed behind it (falls back to full height). */
+  height: var(--vc-mobile-visual-viewport-height, 100dvh);
   z-index: 12000;
   border-radius: 0 !important;
   background: color-mix(in srgb, var(--vc-ide-bg-app) 95%, transparent);
@@ -17779,7 +17784,14 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-project-ide-shell > main {
-    height: 100dvh !important;
+    /*
+     * Track the *visual* viewport (updated in JS from window.visualViewport) so the
+     * shell — and the agent composer pinned to its bottom via margin-top:auto — shrinks
+     * to sit above the on-screen keyboard instead of behind it. Falls back to 100dvh
+     * when no measurement is available (keyboard closed → identical to before). The
+     * frozen bottom dock is position:fixed to the layout viewport and is unaffected.
+     */
+    height: var(--vc-mobile-visual-viewport-height, 100dvh) !important;
     /*
      * The mobile chrome header (.bolt-mobile-ecode-header) is a fixed 48px bar
      * plus the safe-area inset — NOT the 36px desktop topbar var. Clearing only
