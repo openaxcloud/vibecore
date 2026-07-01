@@ -2,13 +2,42 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { LlmErrorAlertType } from '~/types/actions';
 import { classNames } from '~/utils/classNames';
 
+export interface LlmRetryModelOption {
+  name: string;
+  label: string;
+  provider: string;
+}
+
 interface Props {
   alert: LlmErrorAlertType;
   clearAlert: () => void;
+
+  /*
+   * A short list of alternative models the user can retry with (Cursor/Replit
+   * "retry with <model>"). Supplied by BaseChat from its live modelList, current
+   * model excluded. When empty the control is hidden.
+   */
+  alternativeModels?: LlmRetryModelOption[];
 }
 
-export default function LlmErrorAlert({ alert, clearAlert }: Props) {
+export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [] }: Props) {
   const { title, description, provider, errorType } = alert;
+
+  const retryWithModel = (option: LlmRetryModelOption | undefined) => {
+    if (!option) {
+      return;
+    }
+
+    clearAlert();
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('vibecore:llm-retry-with-model', {
+          detail: { model: option.name, provider: option.provider },
+        }),
+      );
+    }
+  };
 
   const getErrorIcon = () => {
     switch (errorType) {
@@ -123,6 +152,33 @@ export default function LlmErrorAlert({ alert, clearAlert }: Props) {
                   >
                     Retry
                   </button>
+                )}
+                {errorType !== 'quota' && alternativeModels.length > 0 && (
+                  <select
+                    aria-label="Retry with a different model"
+                    defaultValue=""
+                    onChange={(event) => {
+                      const option = alternativeModels.find((model) => model.name === event.currentTarget.value);
+                      event.currentTarget.value = '';
+                      retryWithModel(option);
+                    }}
+                    className={classNames(
+                      'max-w-[12rem] px-2 py-1.5 rounded-md text-sm font-medium cursor-pointer',
+                      'bg-bolt-elements-button-secondary-background',
+                      'hover:bg-bolt-elements-button-secondary-backgroundHover',
+                      'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bolt-elements-button-secondary-background',
+                      'text-bolt-elements-button-secondary-text border border-bolt-elements-borderColor',
+                    )}
+                  >
+                    <option value="" disabled>
+                      Retry with…
+                    </option>
+                    {alternativeModels.map((model) => (
+                      <option key={`${model.provider}:${model.name}`} value={model.name}>
+                        {model.label}
+                      </option>
+                    ))}
+                  </select>
                 )}
                 {(errorType === 'authentication' || errorType === 'quota') && (
                   <a

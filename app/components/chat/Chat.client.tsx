@@ -21,7 +21,14 @@ import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { countWorkspaceFiles, resolvePendingPrompt, shouldReplayPendingPrompt } from '~/lib/runtime/pending-generation';
 import { computeRewindTruncation } from '~/utils/chat-rewind';
-import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } from '~/utils/constants';
+import {
+  DEFAULT_MODEL,
+  DEFAULT_PROVIDER,
+  MODEL_REGEX,
+  PROMPT_COOKIE_KEY,
+  PROVIDER_LIST,
+  PROVIDER_REGEX,
+} from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { debounce } from '~/utils/debounce';
@@ -892,6 +899,68 @@ export const ChatImpl = memo(
 
       return () => window.removeEventListener('vibecore:llm-retry', onRetry);
     }, [reload]);
+
+    /*
+     * Retry with a DIFFERENT model from the LLM error alert. reload() re-sends the
+     * existing messages as-is, and the server reads the model/provider from the
+     * LAST user message's [Model:]/[Provider:] tags — so we must REWRITE those tags
+     * to the chosen model before reloading, otherwise the failed model is reused.
+     */
+    useEffect(() => {
+      const onRetryWithModel = (event: Event) => {
+        const detail = (event as CustomEvent<{ model?: string; provider?: string }>).detail;
+        const nextModel = detail?.model?.trim();
+        const nextProvider = detail?.provider?.trim();
+
+        if (!nextModel || !nextProvider) {
+          return;
+        }
+
+        const current = latestMessagesRef.current;
+        const lastUserIndex = [...current].map((message) => message.role).lastIndexOf('user');
+
+        if (lastUserIndex < 0) {
+          return;
+        }
+
+        const target = current[lastUserIndex];
+
+        const rawContent =
+          typeof target.content === 'string'
+            ? target.content
+            : Array.isArray(target.content)
+              ? ((target.content as Array<{ type?: string; text?: string }>).find((part) => part.type === 'text')
+                  ?.text ?? '')
+              : '';
+
+        const cleaned = rawContent.replace(MODEL_REGEX, '').replace(PROVIDER_REGEX, '');
+        const rewritten = `[Model: ${nextModel}]\n\n[Provider: ${nextProvider}]\n\n${cleaned}`;
+
+        const updated = current.map((message, index) =>
+          index === lastUserIndex ? { ...message, content: rewritten } : message,
+        );
+
+        setLlmErrorAlert(undefined);
+        setModel(nextModel);
+
+        const providerObj = PROVIDER_LIST.find((entry) => entry.name === nextProvider) ?? providerForModel(nextModel);
+
+        if (providerObj) {
+          setProvider(providerObj);
+          Cookies.set('selectedProvider', providerObj.name, { expires: 30 });
+        }
+
+        Cookies.set('selectedModel', nextModel, { expires: 30 });
+
+        setMessages(updated);
+        void persistMessageHistory(updated);
+        void reload();
+      };
+
+      window.addEventListener('vibecore:llm-retry-with-model', onRetryWithModel as EventListener);
+
+      return () => window.removeEventListener('vibecore:llm-retry-with-model', onRetryWithModel as EventListener);
+    }, [reload, setMessages, persistMessageHistory, setModel, setProvider]);
 
     useEffect(() => {
       const textarea = textareaRef.current;

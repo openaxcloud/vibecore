@@ -5845,7 +5845,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     }}
                   />
                 )}
-                {llmErrorAlert && <LlmErrorAlert alert={llmErrorAlert} clearAlert={() => clearLlmErrorAlert?.()} />}
+                {llmErrorAlert && (
+                  <LlmErrorAlert
+                    alert={llmErrorAlert}
+                    clearAlert={() => clearLlmErrorAlert?.()}
+                    alternativeModels={(modelList || [])
+                      .filter((entry) => entry.name !== model)
+                      .slice(0, 6)
+                      .map((entry) => ({ name: entry.name, label: entry.label, provider: entry.provider }))}
+                  />
+                )}
                 {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
                 {projectIdeMode && agentToolAction && (
                   <div className="bolt-project-agent-action-card" role="region" aria-label={agentToolAction.title}>
