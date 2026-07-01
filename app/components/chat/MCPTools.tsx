@@ -54,6 +54,53 @@ export function McpTools({ triggerClassName, triggerLabel = 'MCP tools', trigger
   const serverEntries = useMemo(() => Object.entries(serverTools), [serverTools]);
   const isMenuTrigger = triggerVariant === 'menu';
 
+  const allServerNames = useMemo(() => serverEntries.map(([name]) => name), [serverEntries]);
+
+  /*
+   * Per-request MCP server allow-list (null = all enabled). Lets the user disable
+   * specific servers for the NEXT message without editing their saved config.
+   * Synced to Chat.client via localStorage + a custom event (mirrors agentPower).
+   */
+  const [mcpEnabled, setMcpEnabled] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const raw = window.localStorage.getItem('vibecore.mcpEnabledServers');
+      const parsed = raw ? JSON.parse(raw) : null;
+      setMcpEnabled(Array.isArray(parsed) ? parsed.filter((name: unknown) => typeof name === 'string') : null);
+    } catch {
+      // ignore malformed/blocked storage
+    }
+  }, [isDialogOpen]);
+
+  const isServerEnabled = (name: string) => mcpEnabled === null || mcpEnabled.includes(name);
+
+  const toggleServerEnabled = (name: string) => {
+    const current = mcpEnabled === null ? [...allServerNames] : [...mcpEnabled];
+    const next = current.includes(name) ? current.filter((entry) => entry !== name) : [...current, name];
+
+    // When every configured server is enabled, store null ("all") for a clean payload.
+    const payload = allServerNames.length > 0 && allServerNames.every((entry) => next.includes(entry)) ? null : next;
+
+    setMcpEnabled(payload);
+
+    try {
+      if (payload === null) {
+        window.localStorage.removeItem('vibecore.mcpEnabledServers');
+      } else {
+        window.localStorage.setItem('vibecore.mcpEnabledServers', JSON.stringify(payload));
+      }
+
+      window.dispatchEvent(new CustomEvent('vibecore:mcp-enabled-servers-change', { detail: payload }));
+    } catch {
+      // ignore blocked storage
+    }
+  };
+
   return (
     <div className="relative">
       <div className="flex">
@@ -116,6 +163,41 @@ export function McpTools({ triggerClassName, triggerLabel = 'MCP tools', trigger
               </header>
 
               <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 custom-scrollbar">
+                {serverEntries.length > 0 ? (
+                  <div className="mb-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
+                    <p className="mb-2 text-xs font-medium text-bolt-elements-textPrimary">
+                      Active for the next message
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {allServerNames.map((name) => {
+                        const enabled = isServerEnabled(name);
+
+                        return (
+                          <label
+                            key={name}
+                            className={classNames(
+                              'flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-xs',
+                              enabled
+                                ? 'border-bolt-elements-borderColor text-bolt-elements-textPrimary'
+                                : 'border-dashed border-bolt-elements-borderColor text-bolt-elements-textTertiary line-through',
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={enabled}
+                              onChange={() => toggleServerEnabled(name)}
+                              className="accent-bolt-elements-item-contentAccent"
+                            />
+                            {name}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-2 text-[11px] text-bolt-elements-textSecondary">
+                      Unchecked servers are skipped for the next message only — your saved configuration is unchanged.
+                    </p>
+                  </div>
+                ) : null}
                 {serverEntries.length > 0 ? (
                   <McpServerList
                     checkingServers={isCheckingServers}

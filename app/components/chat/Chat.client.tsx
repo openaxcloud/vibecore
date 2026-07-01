@@ -260,6 +260,12 @@ export const ChatImpl = memo(
 
     const [planFirstEnabled, setPlanFirstEnabled] = useState(false);
 
+    /*
+     * Per-request MCP server allow-list (null = all enabled). Synced from the
+     * composer's MCP panel via localStorage + a custom event, like agentPower.
+     */
+    const [enabledMcpServers, setEnabledMcpServers] = useState<string[] | null>(null);
+
     useEffect(() => {
       if (typeof window === 'undefined') {
         return undefined;
@@ -282,8 +288,19 @@ export const ChatImpl = memo(
         }
       };
 
+      const readMcpEnabled = () => {
+        try {
+          const raw = window.localStorage.getItem('vibecore.mcpEnabledServers');
+          const parsed = raw ? JSON.parse(raw) : null;
+          setEnabledMcpServers(Array.isArray(parsed) ? parsed.filter((n) => typeof n === 'string') : null);
+        } catch {
+          // ignore malformed/blocked storage
+        }
+      };
+
       readAgentPower();
       readPlanFirst();
+      readMcpEnabled();
 
       const onPower = (event: Event) => {
         const detail = (event as CustomEvent).detail;
@@ -291,6 +308,10 @@ export const ChatImpl = memo(
       };
       const onPlanFirst = (event: Event) => {
         setPlanFirstEnabled(Boolean((event as CustomEvent).detail));
+      };
+      const onMcpEnabled = (event: Event) => {
+        const detail = (event as CustomEvent).detail;
+        setEnabledMcpServers(Array.isArray(detail) ? detail.filter((n) => typeof n === 'string') : null);
       };
       const onStorage = (event: StorageEvent) => {
         if (event.key === 'vibecore.agentPower') {
@@ -300,15 +321,21 @@ export const ChatImpl = memo(
         if (event.key === 'vibecore:agent-plan-first-default') {
           readPlanFirst();
         }
+
+        if (event.key === 'vibecore.mcpEnabledServers') {
+          readMcpEnabled();
+        }
       };
 
       window.addEventListener('vibecore:agent-power-change', onPower as EventListener);
       window.addEventListener('vibecore:plan-first-change', onPlanFirst as EventListener);
+      window.addEventListener('vibecore:mcp-enabled-servers-change', onMcpEnabled as EventListener);
       window.addEventListener('storage', onStorage);
 
       return () => {
         window.removeEventListener('vibecore:agent-power-change', onPower as EventListener);
         window.removeEventListener('vibecore:plan-first-change', onPlanFirst as EventListener);
+        window.removeEventListener('vibecore:mcp-enabled-servers-change', onMcpEnabled as EventListener);
         window.removeEventListener('storage', onStorage);
       };
     }, []);
@@ -501,6 +528,7 @@ export const ChatImpl = memo(
          */
         ...(agentPower ? { agentPower } : {}),
         planFirstEnabled,
+        ...(enabledMcpServers ? { enabledMcpServers } : {}),
       },
 
       /*

@@ -89,6 +89,30 @@ export const mcpConfigSchema = z.object({
 });
 export type MCPConfig = z.infer<typeof mcpConfigSchema>;
 
+/**
+ * Restrict an MCPConfig to a per-request set of enabled server names.
+ *
+ * Lets the user turn individual MCP servers on/off for the NEXT message from the
+ * composer's MCP panel without touching their saved configuration. Applied
+ * BEFORE the clients are created, so disabled servers are never even connected
+ * (no wasted stdio child / HTTP transport) and their tools never reach the LLM.
+ *
+ * Back-compat: `null`/`undefined` means "no per-request override" → all servers
+ * kept (unchanged behaviour). An empty array means the user disabled everything
+ * → no servers. Unknown names are simply ignored. Pure + exported for testing.
+ */
+export function filterEnabledMcpServers(config: MCPConfig, enabledNames: string[] | null | undefined): MCPConfig {
+  if (!enabledNames) {
+    return config;
+  }
+
+  const enabled = new Set(enabledNames);
+
+  return {
+    mcpServers: Object.fromEntries(Object.entries(config.mcpServers).filter(([name]) => enabled.has(name))),
+  };
+}
+
 export type MCPClient = {
   tools: () => Promise<ToolSet>;
   close: () => Promise<void>;

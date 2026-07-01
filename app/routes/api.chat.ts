@@ -33,7 +33,7 @@ import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { checkChatQuota, recordChatUsage } from '~/lib/.server/ai-usage';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
-import { MCPService } from '~/lib/services/mcpService';
+import { filterEnabledMcpServers, MCPService } from '~/lib/services/mcpService';
 import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
 import { retrieveSkillsForAgentContext } from '~/lib/.server/llm/project-skills';
 import { retrieveProjectRulesContext } from '~/lib/.server/llm/project-rules';
@@ -148,6 +148,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
      */
     planApproved?: boolean;
     approvedPlanTasks?: Array<{ title: string; roleId: AgentRoleId }>;
+
+    /*
+     * Per-request MCP server allow-list (names). undefined/null = all configured
+     * servers (unchanged); [] = none; ['github', …] = only those. Filters which
+     * MCP servers' tools the agent can use for THIS message.
+     */
+    enabledMcpServers?: string[] | null;
   };
 
   try {
@@ -178,7 +185,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     planFirstEnabled,
     planApproved,
     approvedPlanTasks,
+    enabledMcpServers,
   } = parsedBody;
+
+  /*
+   * Normalise the per-request MCP allow-list: a real array (possibly empty) of
+   * strings applies as a filter; anything else (missing/malformed) → null = no
+   * override so all configured servers stay enabled.
+   */
+  const resolvedEnabledMcpServers = Array.isArray(enabledMcpServers)
+    ? enabledMcpServers.filter((name): name is string => typeof name === 'string')
+    : null;
 
   /*
    * Tool-loop step cap actually applied to streamText. Overridden below by the
@@ -264,8 +281,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         resolvedMaxSteps = Math.max(1, Math.min(50, Math.floor(serverMaxLLMSteps)));
       }
 
-      if (Object.keys(mcpConfig.mcpServers).length > 0 || mcpService.configuredServerCount > 0) {
-        await mcpService.updateConfig(mcpConfig);
+      /*
+       * Per-request MCP server toggle: drop servers the user disabled for this
+       * message BEFORE they're connected, so their tools never reach the LLM and
+       * no transport is opened for them. undefined = no override (all kept).
+       */
+      const effectiveMcpConfig = filterEnabledMcpServers(mcpConfig, resolvedEnabledMcpServers);
+
+      if (Object.keys(effectiveMcpConfig.mcpServers).length > 0 || mcpService.configuredServerCount > 0) {
+        await mcpService.updateConfig(effectiveMcpConfig);
       }
     } catch (error) {
       logger.warn('Failed to load MCP config for chat request', error);
