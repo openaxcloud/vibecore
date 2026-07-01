@@ -72,7 +72,8 @@ export default function SecuritySettingsPage() {
       <div className="mt-8">
         <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Enterprise</h2>
         <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-          Organization security policy, verified domains, SSO (SAML/OIDC) and SCIM directory provisioning.
+          Organization security policy, verified domains, SSO (SAML/OIDC), SCIM provisioning, roles &amp;
+          permissions, member invitations, audit-log export and SIEM streaming.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <LinkButton to="/organization-security" variant="outline">
@@ -86,6 +87,18 @@ export default function SecuritySettingsPage() {
           </LinkButton>
           <LinkButton to="/scim-token-settings" variant="outline">
             SCIM provisioning
+          </LinkButton>
+          <LinkButton to="/organization-roles" variant="outline">
+            Roles &amp; permissions
+          </LinkButton>
+          <LinkButton to="/organization-invitations" variant="outline">
+            Invitations
+          </LinkButton>
+          <LinkButton to="/audit-logs" variant="outline">
+            Audit logs
+          </LinkButton>
+          <LinkButton to="/organization-siem" variant="outline">
+            SIEM webhooks
           </LinkButton>
         </div>
       </div>
