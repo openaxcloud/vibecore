@@ -1,10 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   agentMemoryAnnotation,
+  isMeaningfulMemoryCandidate,
   latestUserText,
   persistAgentMemoryCandidate,
   retrieveMemoryForAgentContext,
 } from './agent-memory';
+
+describe('isMeaningfulMemoryCandidate', () => {
+  it('rejects trivial acknowledgements and control words', () => {
+    for (const junk of ['ok', 'okay', 'thanks', 'thank you', 'yes', 'no', 'continue', 'retry', 'cool', '👍']) {
+      expect(isMeaningfulMemoryCandidate(junk)).toBe(false);
+    }
+  });
+
+  it('rejects very short or too-few-word messages', () => {
+    expect(isMeaningfulMemoryCandidate('do it')).toBe(false);
+    expect(isMeaningfulMemoryCandidate('fix')).toBe(false);
+    expect(isMeaningfulMemoryCandidate('   ')).toBe(false);
+  });
+
+  it('accepts messages that carry durable intent', () => {
+    expect(isMeaningfulMemoryCandidate('Always use TypeScript strict mode in this project.')).toBe(true);
+    expect(isMeaningfulMemoryCandidate('Prefer Tailwind over inline styles.')).toBe(true);
+    expect(isMeaningfulMemoryCandidate('Build a dashboard with authentication.')).toBe(true);
+  });
+});
 
 const { apiRequest } = vi.hoisted(() => ({ apiRequest: vi.fn() }));
 

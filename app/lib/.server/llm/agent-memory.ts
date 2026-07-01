@@ -128,13 +128,81 @@ export async function retrieveMemoryForAgentContext(
   }
 }
 
+/*
+ * Trivial acknowledgements / control words that carry no durable intent and
+ * would only pollute the memory store (and cost embedding quota) if captured.
+ */
+const TRIVIAL_MEMORY_PHRASES = new Set([
+  'ok',
+  'okay',
+  'k',
+  'yes',
+  'yep',
+  'yeah',
+  'no',
+  'nope',
+  'thanks',
+  'thank you',
+  'ty',
+  'cool',
+  'nice',
+  'great',
+  'good',
+  'perfect',
+  'done',
+  'go',
+  'continue',
+  'next',
+  'stop',
+  'retry',
+  'again',
+  'hi',
+  'hello',
+  'hey',
+]);
+
+/**
+ * Decide whether a user message is worth persisting as an agent memory.
+ *
+ * Auto-capture previously stored EVERY user message verbatim as both content and
+ * summary, so a store filled up with junk like "ok", "thanks", "continue" — noise
+ * that dilutes semantic retrieval and burns embedding quota. Keep only messages
+ * that carry durable intent: at least a few words / characters and not a bare
+ * acknowledgement or control word. Pure + exported for unit testing.
+ */
+export function isMeaningfulMemoryCandidate(userText: string): boolean {
+  const trimmed = userText.trim();
+
+  if (trimmed.length < 12) {
+    return false;
+  }
+
+  const normalized = trimmed
+    .toLowerCase()
+    .replace(/[.!?,;:]+$/g, '')
+    .trim();
+
+  if (TRIVIAL_MEMORY_PHRASES.has(normalized)) {
+    return false;
+  }
+
+  // Require at least three word-ish tokens so single commands aren't stored.
+  const words = normalized.split(/\s+/).filter((word) => /[a-z0-9]/i.test(word));
+
+  return words.length >= 3;
+}
+
 export async function persistAgentMemoryCandidate(
   request: Request,
   input: { messages: Messages; assistantText: string; projectId?: string },
 ) {
   const userText = latestUserText(input.messages);
 
-  if (!userText || !(await isAgentMemoryEnabled(request, { projectId: input.projectId }))) {
+  if (!userText || !isMeaningfulMemoryCandidate(userText)) {
+    return;
+  }
+
+  if (!(await isAgentMemoryEnabled(request, { projectId: input.projectId }))) {
     return;
   }
 

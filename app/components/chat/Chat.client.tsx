@@ -1488,6 +1488,53 @@ export const ChatImpl = memo(
       [isLoading, messages, setMessages, persistMessageHistory, reload],
     );
 
+    /*
+     * Edit a previous USER message and resubmit (Cursor/Replit parity). We reuse
+     * the proven flow rather than inventing a new submit path: drop that user
+     * message and everything after it, then prefill the composer with its text so
+     * the user edits and sends through the normal handler. UserMessage dispatches
+     * the event (already metadata-stripped) so no callback threads through the
+     * volatile BaseChat.
+     */
+    useEffect(() => {
+      const onEdit = (event: Event) => {
+        if (isLoading) {
+          return;
+        }
+
+        const detail = (event as CustomEvent<{ messageId?: string; text?: string }>).detail;
+        const messageId = detail?.messageId;
+
+        if (!messageId) {
+          return;
+        }
+
+        const index = latestMessagesRef.current.findIndex((message) => message.id === messageId);
+
+        if (index < 0) {
+          return;
+        }
+
+        const truncated = latestMessagesRef.current.slice(0, index);
+        setMessages(truncated);
+        void persistMessageHistory(truncated);
+        setInput(detail?.text ?? '');
+
+        requestAnimationFrame(() => {
+          const textarea = textareaRef.current;
+
+          if (textarea) {
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+          }
+        });
+      };
+
+      window.addEventListener('vibecore:edit-message', onEdit as EventListener);
+
+      return () => window.removeEventListener('vibecore:edit-message', onEdit as EventListener);
+    }, [isLoading, setMessages, persistMessageHistory, setInput]);
+
     return (
       <BaseChat
         ref={animationScope}

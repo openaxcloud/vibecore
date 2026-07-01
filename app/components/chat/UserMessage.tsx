@@ -20,9 +20,36 @@ interface UserMessageProps {
   parts:
     | (TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart)[]
     | undefined;
+  messageId?: string;
+  canEdit?: boolean;
 }
 
-export function UserMessage({ content, parts }: UserMessageProps) {
+/**
+ * Edit-and-resubmit affordance (Cursor/Replit parity). Dispatches a window event
+ * that Chat.client handles by truncating to this message and prefilling the
+ * composer with `text`, so the user edits it and resends through the normal path.
+ */
+function EditMessageButton({ messageId, text }: { messageId: string; text: string }) {
+  return (
+    <button
+      type="button"
+      aria-label="Edit and resend this message"
+      data-vc-tooltip="Edit & resend"
+      className="bolt-user-message-edit opacity-0 group-hover:opacity-100 transition-opacity text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary"
+      onClick={() => {
+        if (typeof window === 'undefined') {
+          return;
+        }
+
+        window.dispatchEvent(new CustomEvent('vibecore:edit-message', { detail: { messageId, text } }));
+      }}
+    >
+      <span className="i-ph:pencil-simple text-sm" aria-hidden />
+    </button>
+  );
+}
+
+export function UserMessage({ content, parts, messageId, canEdit }: UserMessageProps) {
   const profile = useStore(profileStore);
 
   // Extract images from parts - look for file parts with image mime types
@@ -59,7 +86,7 @@ export function UserMessage({ content, parts }: UserMessageProps) {
             <div className="i-ph:user-fill text-accent-500 text-2xl" />
           )}
         </div>
-        <div className="bolt-user-message-bubble flex flex-col gap-3 bg-accent-500/10 backdrop-blur-sm px-3 py-2 w-auto rounded-lg [margin-inline-end:auto]">
+        <div className="group bolt-user-message-bubble flex flex-col gap-3 bg-accent-500/10 backdrop-blur-sm px-3 py-2 w-auto rounded-lg [margin-inline-end:auto]">
           {textContent && <Markdown html>{textContent}</Markdown>}
           {images.map((item, index) => (
             <img
@@ -70,6 +97,11 @@ export function UserMessage({ content, parts }: UserMessageProps) {
               style={{ maxHeight: '512px', objectFit: 'contain' }}
             />
           ))}
+          {canEdit && messageId && textContent ? (
+            <div className="flex justify-end">
+              <EditMessageButton messageId={messageId} text={textContent} />
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -78,7 +110,7 @@ export function UserMessage({ content, parts }: UserMessageProps) {
   const textContent = stripMetadata(content);
 
   return (
-    <div className="bolt-user-message bolt-user-message-bubble flex flex-col bg-accent-500/10 backdrop-blur-sm px-4 py-2.5 w-auto rounded-lg [margin-inline-start:auto]">
+    <div className="group bolt-user-message bolt-user-message-bubble flex flex-col bg-accent-500/10 backdrop-blur-sm px-4 py-2.5 w-auto rounded-lg [margin-inline-start:auto]">
       <div className="flex gap-3 mb-2">
         {images.map((item, index) => (
           <div key={index} className="relative flex rounded-lg border border-bolt-elements-borderColor overflow-hidden">
@@ -94,6 +126,11 @@ export function UserMessage({ content, parts }: UserMessageProps) {
         ))}
       </div>
       <Markdown html>{textContent}</Markdown>
+      {canEdit && messageId && textContent ? (
+        <div className="mt-1 flex justify-end">
+          <EditMessageButton messageId={messageId} text={textContent} />
+        </div>
+      ) : null}
     </div>
   );
 }

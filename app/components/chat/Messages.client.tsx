@@ -94,7 +94,12 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                 >
                   <div className="grid grid-col-1 w-full">
                     {isUserMessage ? (
-                      <UserMessage content={content} parts={parts} />
+                      <UserMessage
+                        content={content}
+                        parts={parts}
+                        messageId={messageId}
+                        canEdit={props.projectIdeMode && !isStreaming}
+                      />
                     ) : (
                       <AssistantMessage
                         content={content}
