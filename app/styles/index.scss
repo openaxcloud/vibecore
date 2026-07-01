@@ -1277,7 +1277,7 @@ body
     [data-message]:not(svg),
     [data-testid*='message']:not(svg),
     [class*='message']:not(svg):not([class*='lucide']),
-    [class*='Message']:not(svg),
+    [class*='Message']:not(svg):not([class*='lucide']),
     [class*='bg-bolt-elements-messages']
   ) {
   border-color: var(--vc-ide-border-visible);
@@ -1313,7 +1313,7 @@ body
     pre,
     code,
     [class*='code']:not(svg):not([class*='lucide']),
-    [class*='Code']:not(svg),
+    [class*='Code']:not(svg):not([class*='lucide']),
     [class*='bg-bolt-elements-actions-code']
   ) {
   border-color: var(--vc-ide-border-visible) !important;
