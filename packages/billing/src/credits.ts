@@ -106,6 +106,41 @@ export function migrateLegacyPlanKey(legacyKey: string | undefined): CreditPlanK
   }
 }
 
+/**
+ * Whether an org's plan may use the **premium agent modes** — Turbo and the
+ * high-power model — which Replit reserves for paid plans (the free/Starter tier
+ * cannot use them). Extended-thinking / High-Effort is NOT gated here (it's
+ * available on all plans).
+ *
+ * FAIL-OPEN by design: only the *unambiguous* free tier (`free`/`starter`) is
+ * blocked. Every other key — including an unknown/undefined one, or the
+ * ambiguous legacy-vs-parity `pro` — is treated as eligible so we NEVER wrongly
+ * block a paying user on stale or ambiguous plan data (correctness of *charging*
+ * is reconciled separately; behaviour just fails toward "allowed"). When the
+ * plan is unresolved the safe default is to let the request proceed.
+ */
+export function premiumAgentModesEligible(planKey: string | undefined | null): boolean {
+  const key = (planKey ?? '').trim().toLowerCase();
+  return key !== 'free' && key !== 'starter';
+}
+
+/**
+ * Apply {@link premiumAgentModesEligible} to a per-request power-controls object:
+ * when the plan is ineligible, strip `turboMode` + `highPowerModel` (leaving the
+ * build tier + extended-thinking untouched) and report whether anything was
+ * stripped so the caller can surface an upsell. Pure; never throws.
+ */
+export function gatePremiumAgentModes<
+  T extends { turboMode?: boolean; highPowerModel?: boolean },
+>(modes: T, planKey: string | undefined | null): { modes: T; gated: boolean } {
+  if (premiumAgentModesEligible(planKey)) {
+    return { modes, gated: false };
+  }
+
+  const gated = Boolean(modes.turboMode || modes.highPowerModel);
+  return { modes: { ...modes, turboMode: false, highPowerModel: false }, gated };
+}
+
 export interface CreditCostInput {
   /** Real provider token cost in cents (from computeAiCostCents). */
   rawProviderCents: number;

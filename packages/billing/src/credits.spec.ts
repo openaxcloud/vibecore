@@ -13,6 +13,8 @@ import {
   ORG_BUDGET_INCREMENT_CENTS,
   isValidOrgBudgetCents,
   roundOrgBudgetToIncrementCents,
+  premiumAgentModesEligible,
+  gatePremiumAgentModes,
 } from './credits.js';
 
 describe('computeCreditCostCents', () => {
@@ -182,5 +184,54 @@ describe('org budget $500 increments', () => {
     expect(roundOrgBudgetToIncrementCents(50_100)).toBe(100_000);
     expect(roundOrgBudgetToIncrementCents(-5)).toBe(0);
     expect(roundOrgBudgetToIncrementCents(Number.NaN)).toBe(0);
+  });
+});
+
+describe('premiumAgentModesEligible (Turbo / high-power gating)', () => {
+  it('blocks only the unambiguous free tier', () => {
+    expect(premiumAgentModesEligible('free')).toBe(false);
+    expect(premiumAgentModesEligible('starter')).toBe(false);
+    expect(premiumAgentModesEligible('STARTER')).toBe(false);
+  });
+
+  it('allows all paid tiers (core / pro / team / enterprise)', () => {
+    for (const key of ['core', 'pro', 'team', 'enterprise']) {
+      expect(premiumAgentModesEligible(key)).toBe(true);
+    }
+  });
+
+  it('fails open for unknown / undefined plans (never block a paying user)', () => {
+    expect(premiumAgentModesEligible(undefined)).toBe(true);
+    expect(premiumAgentModesEligible(null)).toBe(true);
+    expect(premiumAgentModesEligible('')).toBe(true);
+    expect(premiumAgentModesEligible('some-future-plan')).toBe(true);
+  });
+});
+
+describe('gatePremiumAgentModes', () => {
+  it('strips turbo + high-power for an ineligible (free) plan and flags it', () => {
+    const result = gatePremiumAgentModes(
+      { turboMode: true, highPowerModel: true, extendedThinking: true, buildTier: 'power' },
+      'free',
+    );
+    expect(result.gated).toBe(true);
+    expect(result.modes.turboMode).toBe(false);
+    expect(result.modes.highPowerModel).toBe(false);
+    // Extended thinking + build tier are NOT gated.
+    expect(result.modes.extendedThinking).toBe(true);
+    expect(result.modes.buildTier).toBe('power');
+  });
+
+  it('passes modes through untouched for an eligible plan', () => {
+    const modes = { turboMode: true, highPowerModel: true };
+    const result = gatePremiumAgentModes(modes, 'pro');
+    expect(result.gated).toBe(false);
+    expect(result.modes).toBe(modes);
+  });
+
+  it('reports gated=false when an ineligible plan did not request premium modes', () => {
+    const result = gatePremiumAgentModes({ turboMode: false, highPowerModel: false }, 'free');
+    expect(result.gated).toBe(false);
+    expect(result.modes.turboMode).toBe(false);
   });
 });

@@ -320,6 +320,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * checkChatQuota when the api is unreachable; the post-stream
          * recordChatUsage call will still try to charge the ledger.
          */
+        // Turbo / high-power are paid-plan-only premium modes (Replit parity).
+        // Resolved from the quota check's plan below; fail-open (stays true) so an
+        // unknown/degraded plan lookup NEVER blocks a paying user's request.
+        let premiumModesEligible = true;
+
         if (projectId) {
           const estimatedInputTokens = Math.ceil((totalMessageContent.length / 4) * 1.2);
 
@@ -377,6 +382,14 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              */
             throw new ChatQuotaError(quota.message, quota.statusCode, quota.code);
           }
+
+          /*
+           * Premium-mode (Turbo / high-power) eligibility from the resolved plan.
+           * Mirrors premiumAgentModesEligible in @vibecore/billing: only the
+           * unambiguous free/Starter tier is ineligible; an absent byok payload
+           * leaves premium modes enabled (fail-open).
+           */
+          premiumModesEligible = quota.byok ? quota.byok.plan !== 'free' && quota.byok.plan !== 'starter' : true;
 
           /*
            * C1.b.6 — Force managed keys. When the org plan disallows BYOK,
@@ -572,12 +585,35 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * makes the Lite/Economy/Power selector VISIBLY change how many specialist
          * agents run, instead of every request silently fanning out all 5.
          */
-        const parallelAgents = agentPower
-          ? agentPower.turboMode
+        /*
+         * Enforce Turbo / high-power gating on BEHAVIOUR: an ineligible (free)
+         * plan can't fan out the full Turbo roster nor add the high-power lane —
+         * strip those modes so the org gets (and is billed for) only what its plan
+         * allows. Fail-open: premiumModesEligible defaults true on any ambiguity.
+         */
+        const effectivePower = agentPower
+          ? premiumModesEligible
+            ? agentPower
+            : { ...agentPower, turboMode: false, highPowerModel: false }
+          : undefined;
+
+        if (agentPower && !premiumModesEligible && (agentPower.turboMode || agentPower.highPowerModel)) {
+          logger.info(JSON.stringify({ event: 'chat.premiumModes.gated', projectId }));
+          dataStream.writeMessageAnnotation({
+            type: 'agentModesGated',
+            reason: 'plan',
+            gated: ['turboMode', 'highPowerModel'].filter(
+              (mode) => (agentPower as Record<string, unknown>)[mode],
+            ),
+          } as unknown as ContextAnnotation);
+        }
+
+        const parallelAgents = effectivePower
+          ? effectivePower.turboMode
             ? /* Turbo: fan out the full roster for the fastest wall-clock (more lanes
                * finishing concurrently), at the higher cost the control advertises. */
-              parallelAgentsForBuildTier('power', agentPower.highPowerModel)
-            : parallelAgentsForBuildTier(agentPower.buildTier, agentPower.highPowerModel)
+              parallelAgentsForBuildTier('power', effectivePower.highPowerModel)
+            : parallelAgentsForBuildTier(effectivePower.buildTier, effectivePower.highPowerModel)
           : undefined;
 
         /*

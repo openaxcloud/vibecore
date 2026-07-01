@@ -971,7 +971,8 @@ export const ChatImpl = memo(
         setLlmErrorAlert(undefined);
         setModel(nextModel);
 
-        const providerObj = PROVIDER_LIST.find((entry) => entry.name === nextProvider) ?? providerForModel(nextModel);
+        const providerObj = (PROVIDER_LIST.find((entry) => entry.name === nextProvider) ??
+          providerForModel(nextModel)) as ProviderInfo;
 
         if (providerObj) {
           setProvider(providerObj);

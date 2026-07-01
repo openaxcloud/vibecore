@@ -38,6 +38,7 @@ import {
   databaseBillableStorageGib,
   databaseStorageCents,
   findCreditPack,
+  gatePremiumAgentModes,
   objectStorageCents,
   planByKey,
   planCreditConfig,
@@ -18116,15 +18117,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       try {
         const shadow = process.env.BILLING_CREDITS_ENABLED !== 'true';
 
+        /*
+         * Turbo / high-power gating (Replit parity): these premium modes are
+         * paid-plan only. Strip them for an ineligible (free/Starter) plan so the
+         * recorded checkpoint + reservation estimate never reflect a mode the org
+         * can't use. A resolved "no subscription" IS the free plan (→ gated); only
+         * a genuine lookup FAILURE is treated as unknown → fail-open (never
+         * over-block a possibly-paying org on a degraded read).
+         */
+        let gatingPlanKey: string | undefined;
+
+        try {
+          const gatingSub = await store.getSubscription(project.organizationId);
+          gatingPlanKey = gatingSub?.planKey ?? 'free';
+        } catch {
+          gatingPlanKey = undefined; // unknown → eligible (fail-open)
+        }
+
+        const { modes: gatedModes } = gatePremiumAgentModes(
+          { turboMode: body.turboMode, highPowerModel: body.highPowerModel },
+          gatingPlanKey,
+        );
+
         const checkpoint = await openCheckpoint(store, {
           organizationId: project.organizationId,
           userId: request.currentUser?.id,
           projectId: project.id,
           conversationId: body.conversationId,
-          highPowerModel: body.highPowerModel,
+          highPowerModel: gatedModes.highPowerModel,
           extendedThinking: body.extendedThinking,
           buildTier: body.buildTier,
-          turboMode: body.turboMode,
+          turboMode: gatedModes.turboMode,
         });
         const settled = await settleCheckpoint(store, {
           checkpointId: checkpoint.id,

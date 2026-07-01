@@ -19,8 +19,21 @@ export interface AgentPowerControlsProps {
   /** Optional live cost estimate in USD cents (proof-of-work preview). */
   estimatedCents?: number;
   disabled?: boolean;
+
+  /**
+   * Whether the org's plan may use the premium modes (Turbo, high-power). When
+   * false they render locked with a "Pro" badge + an upgrade CTA. Defaults to
+   * true (no gating) so existing callers are unaffected; the server enforces the
+   * gate authoritatively regardless of this prop.
+   */
+  premiumModesAllowed?: boolean;
+  /** Invoked when the user clicks the upgrade CTA shown while premium is locked. */
+  onUpgrade?: () => void;
   className?: string;
 }
+
+/** Boosts reserved for paid plans (Replit parity). Extended-thinking is NOT gated. */
+const PREMIUM_BOOSTS = new Set<'highPowerModel' | 'extendedThinking' | 'turboMode'>(['highPowerModel', 'turboMode']);
 
 const BUILD_TIERS: Array<{ id: AgentBuildTier; label: string; hint: string }> = [
   { id: 'lite', label: 'Lite', hint: 'Fastest, lowest cost' },
@@ -55,7 +68,15 @@ function formatCents(cents?: number): string {
  * tier (Power level), every boost toggle, and the live cost preview
  * (proof-of-work). Controlled component — same value/onChange API as before.
  */
-export function AgentPowerControls({ value, onChange, estimatedCents, disabled, className }: AgentPowerControlsProps) {
+export function AgentPowerControls({
+  value,
+  onChange,
+  estimatedCents,
+  disabled,
+  premiumModesAllowed = true,
+  onUpgrade,
+  className,
+}: AgentPowerControlsProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
@@ -85,10 +106,21 @@ export function AgentPowerControls({ value, onChange, estimatedCents, disabled, 
     };
   }, [open]);
 
-  const toggle = (key: 'highPowerModel' | 'extendedThinking' | 'turboMode') =>
-    onChange({ ...value, [key]: !value[key] });
+  const isLocked = (key: 'highPowerModel' | 'extendedThinking' | 'turboMode') =>
+    !premiumModesAllowed && PREMIUM_BOOSTS.has(key);
 
-  const activeBoosts = BOOSTS.filter((boost) => value[boost.key]).length;
+  const toggle = (key: 'highPowerModel' | 'extendedThinking' | 'turboMode') => {
+    // A locked premium boost can't be turned on (the server would strip it anyway).
+    if (isLocked(key)) {
+      return;
+    }
+
+    onChange({ ...value, [key]: !value[key] });
+  };
+
+  // A locked boost never counts as active in the collapsed pill, even if a stale
+  // value still says true (the server strips it before it takes effect).
+  const activeBoosts = BOOSTS.filter((boost) => value[boost.key] && !isLocked(boost.key)).length;
   const tierLabel = BUILD_TIERS.find((tier) => tier.id === value.buildTier)?.label ?? 'Economy';
 
   return (
@@ -169,7 +201,8 @@ export function AgentPowerControls({ value, onChange, estimatedCents, disabled, 
           </p>
           <div className="flex flex-col gap-0.5">
             {BOOSTS.map((boost) => {
-              const active = value[boost.key];
+              const locked = isLocked(boost.key);
+              const active = value[boost.key] && !locked;
               const BoostIcon = boost.icon;
 
               return (
@@ -178,12 +211,12 @@ export function AgentPowerControls({ value, onChange, estimatedCents, disabled, 
                   type="button"
                   role="switch"
                   aria-checked={active}
-                  disabled={disabled}
+                  disabled={disabled || locked}
                   onClick={() => toggle(boost.key)}
-                  title={boost.hint}
+                  title={locked ? `${boost.label} is available on paid plans` : boost.hint}
                   className={classNames(
-                    'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-                    'hover:bg-bolt-elements-background-depth-2',
+                    'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed',
+                    locked ? 'opacity-60' : 'hover:bg-bolt-elements-background-depth-2 disabled:opacity-50',
                     active ? 'text-bolt-elements-textPrimary' : 'text-bolt-elements-textSecondary',
                   )}
                 >
@@ -191,19 +224,37 @@ export function AgentPowerControls({ value, onChange, estimatedCents, disabled, 
                     <BoostIcon className="h-3.5 w-3.5" style={active ? { color: 'var(--ecode-accent)' } : undefined} />
                     {boost.label}
                   </span>
-                  <span
-                    className={classNames(
-                      'flex h-4 w-4 items-center justify-center rounded border',
-                      active ? 'border-transparent' : 'border-bolt-elements-borderColor',
-                    )}
-                    style={active ? { background: 'var(--ecode-accent)' } : undefined}
-                  >
-                    {active ? <Check className="h-3 w-3 text-white" /> : null}
-                  </span>
+                  {locked ? (
+                    <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+                      Pro
+                    </span>
+                  ) : (
+                    <span
+                      className={classNames(
+                        'flex h-4 w-4 items-center justify-center rounded border',
+                        active ? 'border-transparent' : 'border-bolt-elements-borderColor',
+                      )}
+                      style={active ? { background: 'var(--ecode-accent)' } : undefined}
+                    >
+                      {active ? <Check className="h-3 w-3 text-white" /> : null}
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
+
+          {!premiumModesAllowed ? (
+            <button
+              type="button"
+              onClick={() => onUpgrade?.()}
+              className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
+              style={{ background: 'var(--ecode-accent)' }}
+            >
+              <Zap className="h-3 w-3" />
+              Upgrade to Pro to unlock Turbo &amp; High power
+            </button>
+          ) : null}
 
           <div className="mt-2 flex items-center justify-between border-t border-bolt-elements-borderColor px-1 pt-2 text-xs">
             <span className="text-bolt-elements-textSecondary">Est. cost</span>
