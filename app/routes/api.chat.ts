@@ -140,6 +140,14 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
     /** Composer "Plan" toggle — force a decompose-and-plan pass even for short prompts. */
     planFirstEnabled?: boolean;
+
+    /*
+     * Plan-approval gate (step 2). When the user approves a proposed plan, the
+     * client re-submits with planApproved=true + the approved tasks, so the
+     * server skips re-planning and executes the approved decomposition directly.
+     */
+    planApproved?: boolean;
+    approvedPlanTasks?: Array<{ title: string; roleId: AgentRoleId }>;
   };
 
   try {
@@ -168,6 +176,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     maxLLMSteps,
     agentPower,
     planFirstEnabled,
+    planApproved,
+    approvedPlanTasks,
   } = parsedBody;
 
   /*
@@ -565,18 +575,28 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         let selectedRoleIds: AgentRoleId[] | undefined;
 
         if (willOrchestrate) {
-          const plan = await createAgentPlan({
-            messages: processedMessages,
-            env: context.cloudflare?.env,
-            apiKeys,
-            providerSettings,
-            abortSignal: request.signal,
-            maxRoles: parallelAgents,
-          });
+          if (planApproved && approvedPlanTasks?.length) {
+            /*
+             * Plan-approval step 2: the user already approved this decomposition,
+             * so execute it directly instead of re-planning (saves a model call
+             * and honours exactly what the user reviewed).
+             */
+            agentPlanTasks = approvedPlanTasks;
+            selectedRoleIds = [...new Set(approvedPlanTasks.map((task) => task.roleId))];
+          } else {
+            const plan = await createAgentPlan({
+              messages: processedMessages,
+              env: context.cloudflare?.env,
+              apiKeys,
+              providerSettings,
+              abortSignal: request.signal,
+              maxRoles: parallelAgents,
+            });
 
-          if (plan) {
-            agentPlanTasks = plan.tasks;
-            selectedRoleIds = plan.roleIds;
+            if (plan) {
+              agentPlanTasks = plan.tasks;
+              selectedRoleIds = plan.roleIds;
+            }
           }
         }
 
@@ -590,6 +610,54 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           planFirst: planFirstEnabled,
           selectedRoleIds,
         });
+
+        /*
+         * PLAN-APPROVAL GATE (Plan mode, step 1): when the user turned on "Plan"
+         * and this is the FIRST pass (not yet approved), propose the plan and STOP
+         * before any code generation, so they can review + approve — the
+         * Cursor/Replit "plan first" experience. The approval turn re-submits with
+         * planApproved=true (handled above) and executes. Only gates when we
+         * actually produced a plan; otherwise fall through to normal generation.
+         *
+         * Safe early return: mirror the portfolio-template fast path — stop the
+         * recovery timer, write the finish parts (AI-SDK stream contract), and
+         * close the per-request MCPService so nothing leaks. No memory persist /
+         * usage recording here (the executing turn handles those).
+         */
+        if (planFirstEnabled && !planApproved && agentPlanTasks?.length) {
+          dataStream.writeMessageAnnotation({
+            type: 'agentPlan',
+            planned: true,
+            needsApproval: true,
+            tasks: agentPlanTasks,
+          } satisfies ContextAnnotation);
+
+          streamRecovery.stop();
+
+          dataStream.writeData({
+            type: 'progress',
+            label: 'response',
+            status: 'complete',
+            order: progressCounter++,
+            message: 'Plan ready — approve to build',
+          } satisfies ProgressAnnotation);
+
+          const planUsage = { completionTokens: 0, promptTokens: 0 };
+          dataStream.write(
+            formatDataStreamPart('finish_step', { finishReason: 'stop', usage: planUsage, isContinued: false }),
+          );
+          dataStream.write(formatDataStreamPart('finish_message', { finishReason: 'stop', usage: planUsage }));
+
+          await mcpService.close().catch((closeError) => {
+            logger.warn(
+              `failed to close MCP clients on plan-approval gate: ${
+                closeError instanceof Error ? closeError.message : closeError
+              }`,
+            );
+          });
+
+          return;
+        }
 
         /*
          * Surface the decomposition to the UI BEFORE the lanes start so the user

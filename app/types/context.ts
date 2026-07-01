@@ -58,6 +58,9 @@ export type ContextAnnotation =
 
       /** Whether a tailored, prompt-driven plan was produced (vs. the default full roster). */
       planned: boolean;
+
+      /** Plan mode: this plan is PROPOSED and awaits the user's approval before execution. */
+      needsApproval?: boolean;
       tasks: Array<{
         title: string;
         roleId: 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';

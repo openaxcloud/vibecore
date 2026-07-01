@@ -609,6 +609,28 @@ export const AssistantMessage = memo(
                       );
                     })}
                   </ol>
+                  {agentPlan.needsApproval ? (
+                    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-bolt-elements-borderColor pt-2">
+                      <span className="text-[11px] text-bolt-elements-textSecondary">
+                        Review the plan, then build — or refine it by sending another message.
+                      </span>
+                      <button
+                        type="button"
+                        className="[margin-inline-start:auto] rounded-md bg-bolt-elements-button-primary-background px-2.5 py-1 text-xs font-medium text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover"
+                        onClick={() => {
+                          if (typeof window === 'undefined') {
+                            return;
+                          }
+
+                          window.dispatchEvent(
+                            new CustomEvent('vibecore:plan-approved', { detail: { tasks: agentPlan.tasks } }),
+                          );
+                        }}
+                      >
+                        Approve & build
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               );
             })()

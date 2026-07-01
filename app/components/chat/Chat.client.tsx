@@ -962,6 +962,34 @@ export const ChatImpl = memo(
       return () => window.removeEventListener('vibecore:llm-retry-with-model', onRetryWithModel as EventListener);
     }, [reload, setMessages, persistMessageHistory, setModel, setProvider]);
 
+    /*
+     * Plan-approval gate (step 2): the user approved a proposed plan (Plan mode).
+     * Re-run the same turn, this time carrying planApproved + the approved tasks in
+     * the request body override, so the server skips re-planning and executes the
+     * exact decomposition the user reviewed. reload() regenerates the last turn
+     * from the last user message; the body override is merged for this request.
+     */
+    useEffect(() => {
+      const onPlanApproved = (event: Event) => {
+        if (isLoading) {
+          return;
+        }
+
+        const detail = (event as CustomEvent<{ tasks?: Array<{ title: string; roleId: string }> }>).detail;
+        const tasks = detail?.tasks;
+
+        if (!tasks?.length) {
+          return;
+        }
+
+        void reload({ body: { planApproved: true, approvedPlanTasks: tasks } });
+      };
+
+      window.addEventListener('vibecore:plan-approved', onPlanApproved as EventListener);
+
+      return () => window.removeEventListener('vibecore:plan-approved', onPlanApproved as EventListener);
+    }, [reload, isLoading]);
+
     useEffect(() => {
       const textarea = textareaRef.current;
 
