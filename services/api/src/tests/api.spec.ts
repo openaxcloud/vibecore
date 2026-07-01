@@ -2083,6 +2083,14 @@ describe('SaaS API', () => {
     expect(verify.statusCode).toBe(200);
     expect((await store.findUserByEmail('mfa@example.com'))?.mfaEnabled).toBe(true);
 
+    const statusBefore = await app.inject({
+      method: 'GET',
+      url: '/auth/recovery-codes/status',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(statusBefore.statusCode).toBe(200);
+    expect(statusBefore.json()).toMatchObject({ remaining: 0, total: 10 });
+
     const recovery = await app.inject({
       method: 'POST',
       url: '/auth/recovery-codes',
@@ -2090,6 +2098,15 @@ describe('SaaS API', () => {
     });
     expect(recovery.statusCode).toBe(200);
     expect(recovery.json().codes).toHaveLength(10);
+    // The status endpoint reflects the freshly-minted set and never leaks the codes themselves.
+    const statusAfter = await app.inject({
+      method: 'GET',
+      url: '/auth/recovery-codes/status',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(statusAfter.statusCode).toBe(200);
+    expect(statusAfter.json()).toEqual({ remaining: 10, total: 10 });
+    expect(JSON.stringify(statusAfter.json())).not.toContain(recovery.json().codes[0]);
     await app.close();
   });
 

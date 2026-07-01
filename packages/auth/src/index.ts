@@ -107,7 +107,10 @@ export function createTotpUri(input: { issuer: string; accountName: string; secr
   return `otpauth://totp/${label}?secret=${input.secret}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`;
 }
 
-export function createRecoveryCodes(count = 10) {
+/** Size of a freshly-minted recovery-code set; also the "total" reported to the account UI. */
+export const RECOVERY_CODES_COUNT = 10;
+
+export function createRecoveryCodes(count = RECOVERY_CODES_COUNT) {
   return Array.from({ length: count }, () => `${randomBytes(4).toString('hex')}-${randomBytes(4).toString('hex')}`);
 }
 

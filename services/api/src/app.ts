@@ -15,6 +15,7 @@ import websocket from '@fastify/websocket';
 import {
   createOpaqueToken,
   createRecoveryCodes,
+  RECOVERY_CODES_COUNT,
   createTotpSecret,
   createTotpUri,
   hashToken,
@@ -14219,6 +14220,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { codes };
     },
   );
+
+  /*
+   * Read-only status for the account UI: how many recovery codes are still
+   * usable. Never returns the codes (or their hashes) themselves — only the
+   * unused count and the configured full-set size — so surfacing it does not
+   * weaken the MFA-bypass secret. Shares the `/auth/recovery-codes/` MFA-path
+   * exemption with its sibling rotate route so an enrolled-but-unverified
+   * session can still see when it needs to regenerate.
+   */
+  app.get('/auth/recovery-codes/status', async (request) => {
+    const remaining = await store.countUnusedRecoveryCodes(request.currentUser!.id);
+
+    return { remaining, total: RECOVERY_CODES_COUNT };
+  });
 
   app.patch('/admin/users/:userId/platform-admin', async (request) => {
     const { userId } = parse(platformAdminParams, request.params);

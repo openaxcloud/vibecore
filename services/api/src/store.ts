@@ -912,6 +912,7 @@ export interface ApiStore {
   consumePasswordReset(token: string, passwordHash: string): Promise<UserRecord | undefined>;
   setRecoveryCodes(userId: string, codeHashes: string[]): Promise<RecoveryCodeRecord[]>;
   consumeRecoveryCode(userId: string, codeHash: string): Promise<boolean>;
+  countUnusedRecoveryCodes(userId: string): Promise<number>;
   createOrganization(input: { name: string; slug: string; ownerUserId: string }): Promise<OrganizationRecord>;
   listOrganizations(userId: string): Promise<OrganizationRecord[]>;
   getOrganization(id: string): Promise<OrganizationRecord | undefined>;

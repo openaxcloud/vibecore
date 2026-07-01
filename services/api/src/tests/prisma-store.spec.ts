@@ -354,8 +354,10 @@ runPrismaTests('PrismaApiStore integration', () => {
       expect(await storeB.listSnapshots(project.id)).toHaveLength(1);
       expect(await storeB.consumeOrganizationInvite(`invite-token-${suffix}`, user.id)).toBeTruthy();
       expect(await storeB.consumeOrganizationInvite(`invite-token-${suffix}`, user.id)).toBeUndefined();
+      expect(await storeB.countUnusedRecoveryCodes(user.id)).toBe(1);
       expect(await storeB.consumeRecoveryCode(user.id, hashRecoveryCode('11111111'))).toBe(true);
       expect(await storeB.consumeRecoveryCode(user.id, hashRecoveryCode('11111111'))).toBe(false);
+      expect(await storeB.countUnusedRecoveryCodes(user.id)).toBe(0);
       expect(
         (await storeB.listAuditLogs(organization.id)).some((event) => event.action === 'integration.persist'),
       ).toBe(true);
