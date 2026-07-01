@@ -72,9 +72,15 @@ export default function SecuritySettingsPage() {
       <div className="mt-8">
         <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Enterprise</h2>
         <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-          SSO (SAML/OIDC) and SCIM directory provisioning for your organization.
+          Organization security policy, verified domains, SSO (SAML/OIDC) and SCIM directory provisioning.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
+          <LinkButton to="/organization-security" variant="outline">
+            Organization security
+          </LinkButton>
+          <LinkButton to="/organization-domains" variant="outline">
+            Verified domains
+          </LinkButton>
           <LinkButton to="/enterprise-sso-settings" variant="outline">
             SSO settings
           </LinkButton>
