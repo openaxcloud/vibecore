@@ -4295,6 +4295,7 @@ body :where(.lucide, svg[data-lucide]) {
   min-height: 0;
   flex: 1 1 auto;
   overflow: auto;
+  overscroll-behavior: contain;
   padding: calc(16px + env(safe-area-inset-top, 0px)) 16px 16px;
 }
 
@@ -4352,7 +4353,7 @@ body :where(.lucide, svg[data-lucide]) {
   transform: scale(0.95);
 }
 
-.bolt-mobile-tab-switcher-card[aria-current='true'] {
+.bolt-mobile-tab-switcher-card[aria-current='page'] {
   border-color: color-mix(in srgb, var(--ecode-accent), transparent 32%);
   background: color-mix(in srgb, var(--ecode-accent), transparent 88%);
   color: var(--vc-ide-text-primary);
@@ -4368,7 +4369,7 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-secondary);
 }
 
-.bolt-mobile-tab-switcher-card[aria-current='true'] .bolt-mobile-tab-switcher-card-icon {
+.bolt-mobile-tab-switcher-card[aria-current='page'] .bolt-mobile-tab-switcher-card-icon {
   color: var(--ecode-accent);
 }
 

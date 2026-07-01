@@ -7868,6 +7868,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             aria-label="Tab switcher"
             data-testid="mobile-tab-switcher"
             onKeyDownCapture={handleMobileOverlayEscapeKey}
+            onClick={(event) => {
+              /*
+               * Full-screen switcher: tapping empty (non-interactive) space dismisses it,
+               * matching the backdrop-tap behaviour of the other mobile sheets.
+               */
+              if (!(event.target as HTMLElement).closest('.bolt-mobile-tab-switcher-card, button, input, label')) {
+                closeMobileOverlays();
+              }
+            }}
           >
             <div className="bolt-mobile-tab-switcher-body">
               <div className="bolt-mobile-tab-switcher-content">
@@ -7876,7 +7885,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <div
                       key={tab.id}
                       className="bolt-mobile-tab-switcher-card"
-                      aria-current={activeMobileOpenTabId === tab.id ? 'true' : undefined}
+                      aria-current={activeMobileOpenTabId === tab.id ? 'page' : undefined}
                       data-testid={`tab-card-${tab.id}`}
                     >
                       <button
@@ -7961,7 +7970,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     type="button"
                     aria-label="Close tab switcher"
                     data-testid="button-close-switcher"
-                    onClick={() => setMobileTabSwitcherOpen(false)}
+                    onClick={closeMobileOverlays}
                   >
                     <span className="i-ph:x" aria-hidden />
                   </button>
