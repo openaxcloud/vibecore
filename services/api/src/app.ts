@@ -15042,6 +15042,75 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ project, files: publicFiles(files) });
   });
+
+  /*
+   * GitLab / Bitbucket repo import — parity with the GitHub import above so these
+   * connectors create a real, persistent project (not deploy-only). Reuses the
+   * same SSRF-safe githubImportSchema (HTTPS/SSH only, blocks file://+internal
+   * hosts) and the same gitProvider.importRepository → createProject → writeFiles
+   * chain, org-scoped and quota-gated. sourceType records the origin per provider.
+   */
+  async function importRepositoryIntoProject(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    provider: 'gitlab' | 'bitbucket',
+  ) {
+    const { orgId } = parse(orgParams, request.params);
+    const body = parse(githubImportSchema, request.body);
+    await requireOrg(request, store, orgId, 'projects:write');
+    await requireOrganizationNotSuspended(store, orgId);
+    await ensureQuota(request, orgId, 'projects.count');
+
+    const imported = await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch });
+
+    const name =
+      body.name ??
+      body.repositoryUrl
+        .split('/')
+        .pop()
+        ?.replace(/\.git$/, '') ??
+      'Imported project';
+
+    const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureQuota(request, orgId, 'projects.count');
+
+      return store.createProject({
+        organizationId: orgId,
+        name,
+        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        sourceType: provider,
+        gitRepositoryUrl: imported.remoteUrl,
+        gitDefaultBranch: imported.defaultBranch,
+      });
+    });
+
+    const files = await projectStorage.writeFiles(project.id, imported.files);
+    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
+    await recordUsage(request, orgId, 'projects.count');
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: `project.import_${provider}`,
+      metadata: { repositoryUrl: body.repositoryUrl },
+    });
+    await audit(request, store, {
+      organizationId: orgId,
+      action: `project.import_${provider}`,
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { repositoryUrl: body.repositoryUrl },
+    });
+
+    return reply.code(201).send({ project, files: publicFiles(files) });
+  }
+
+  app.post('/orgs/:orgId/projects/import/gitlab', (request, reply) =>
+    importRepositoryIntoProject(request, reply, 'gitlab'),
+  );
+  app.post('/orgs/:orgId/projects/import/bitbucket', (request, reply) =>
+    importRepositoryIntoProject(request, reply, 'bitbucket'),
+  );
+
   app.post('/orgs/:orgId/projects/import/zip', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     const body = parse(zipImportSchema, request.body);

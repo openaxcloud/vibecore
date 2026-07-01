@@ -73,7 +73,7 @@ export interface ProjectRecord {
   name: string;
   slug: string;
   description?: string;
-  sourceType: 'blank' | 'template' | 'ai' | 'github' | 'zip' | 'duplicate';
+  sourceType: 'blank' | 'template' | 'ai' | 'github' | 'gitlab' | 'bitbucket' | 'zip' | 'duplicate';
   templateName?: string;
   gitRepositoryUrl?: string;
   gitDefaultBranch?: string;

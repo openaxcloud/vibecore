@@ -16,9 +16,29 @@ import {
 import { isReauthRedirect } from '~/lib/route-reauth';
 import { projectIdePath } from '~/utils/project-url';
 
-export const meta: MetaFunction = () => [{ title: 'Import GitHub - E-Code' }];
+export const meta: MetaFunction = () => [{ title: 'Import Git repository - E-Code' }];
 
 type Project = { id: string; slug?: string };
+
+/*
+ * Route the import to the matching server endpoint by repository host so one page
+ * imports GitHub, GitLab and Bitbucket (each backed by its own per-provider,
+ * org-scoped import route). SSH (git@host:org/repo) is normalised to a URL first.
+ * Unknown hosts default to the GitHub endpoint (its schema still SSRF-validates).
+ */
+export function importEndpointForUrl(orgId: string, repositoryUrl: string): string {
+  let host = '';
+
+  try {
+    host = new URL(repositoryUrl.trim().replace(/^git@([^:]+):/, 'https://$1/')).host.toLowerCase();
+  } catch {
+    host = '';
+  }
+
+  const provider = host.includes('gitlab') ? 'gitlab' : host.includes('bitbucket') ? 'bitbucket' : 'github';
+
+  return `/orgs/${orgId}/projects/import/${provider}`;
+}
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
@@ -41,14 +61,18 @@ export async function action({ request }: EnterpriseActionArgs) {
   let result: { project: Project };
 
   try {
-    result = await apiRequest<{ project: Project }>(request, `/orgs/${organization.id}/projects/import/github`, {
-      method: 'POST',
-      body: JSON.stringify({
-        repositoryUrl: body.repositoryUrl,
-        branch: body.branch || undefined,
-        name: body.name || undefined,
-      }),
-    });
+    result = await apiRequest<{ project: Project }>(
+      request,
+      importEndpointForUrl(organization.id, body.repositoryUrl),
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          repositoryUrl: body.repositoryUrl,
+          branch: body.branch || undefined,
+          name: body.name || undefined,
+        }),
+      },
+    );
   } catch (error) {
     /*
      * A 3xx re-auth redirect (session expiry / MFA) must be re-thrown so the
@@ -78,8 +102,8 @@ export default function ImportGithubPage() {
 
   return (
     <AppShell
-      title="Import GitHub"
-      description="Import a repository into a persistent project, then open it in the E-Code IDE."
+      title="Import Git repository"
+      description="Import a GitHub, GitLab or Bitbucket repository into a persistent project, then open it in the E-Code IDE."
     >
       <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6">
         <Github className="mb-4 h-6 w-6 text-bolt-elements-textTertiary" aria-hidden />
@@ -87,7 +111,11 @@ export default function ImportGithubPage() {
         <SettingsForm
           submitLabel="Import repository"
           fields={[
-            { label: 'Repository URL', name: 'repositoryUrl', placeholder: 'https://github.com/org/repo' },
+            {
+              label: 'Repository URL',
+              name: 'repositoryUrl',
+              placeholder: 'https://github.com | gitlab.com | bitbucket.org / org / repo',
+            },
             { label: 'Branch', name: 'branch', placeholder: 'main' },
             { label: 'Project name', name: 'name', placeholder: 'Imported app' },
           ]}
