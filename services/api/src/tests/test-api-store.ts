@@ -8,6 +8,7 @@ import type {
   AgentPatchProposalStatus,
   AgentRepairEventRecord,
   AgentRepairOutcome,
+  ConsensusRecordSummary,
   ApiKeyRecord,
   ApiKeyScope,
   ApiStore,
@@ -1107,6 +1108,21 @@ export class TestApiStore implements ApiStore {
       .filter((event) => event.projectId === projectId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, Math.min(Math.max(options?.take ?? 100, 1), 500));
+  }
+
+  /**
+   * In-memory consensus records keyed by projectId. The real store scopes via
+   * AgentRun.projectId; here the fixture stores the projectId directly so tests
+   * can assert tenant isolation.
+   */
+  readonly consensusRecords: (ConsensusRecordSummary & { projectId: string })[] = [];
+
+  async listConsensusRecords(projectId: string, options?: { take?: number }) {
+    return this.consensusRecords
+      .filter((record) => record.projectId === projectId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, Math.min(Math.max(options?.take ?? 50, 1), 200))
+      .map(({ projectId: _projectId, ...record }) => record);
   }
 
   readonly projectSkillOverrides = new Map<

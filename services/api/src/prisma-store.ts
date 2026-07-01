@@ -11,6 +11,7 @@ import type {
   AgentRepairEventRecord,
   AgentRepairOutcome,
   AgentPatchProposalStatus,
+  ConsensusRecordSummary,
   ApiKeyRecord,
   ApiKeyScope,
   ApiStore,
@@ -1523,6 +1524,21 @@ export class PrismaApiStore implements ApiStore {
         take: Math.min(Math.max(options?.take ?? 100, 1), 500),
       })
     ).map(mapAgentRepairEvent);
+  }
+
+  async listConsensusRecords(projectId: string, options?: { take?: number }) {
+    /*
+     * ConsensusRecord has no projectId of its own; it hangs off AgentRun via runId.
+     * Scope by the parent run's projectId (a nested relation filter) so ONLY this
+     * project's consensus rows are returned — tenant isolation is enforced here.
+     */
+    return (
+      await this.prisma.consensusRecord.findMany({
+        where: { run: { projectId } },
+        orderBy: { createdAt: 'desc' },
+        take: Math.min(Math.max(options?.take ?? 50, 1), 200),
+      })
+    ).map(mapConsensusRecord);
   }
 
   async listProjectSkillOverrides(projectId: string) {
@@ -4585,6 +4601,20 @@ function mapAgentRepairEvent(row: any): AgentRepairEventRecord {
     outcome: row.outcome,
     validationError: row.validationError ?? undefined,
     repairError: row.repairError ?? undefined,
+    createdAt: toIso(row.createdAt)!,
+  };
+}
+
+function mapConsensusRecord(row: any): ConsensusRecordSummary {
+  return {
+    id: row.id,
+    runId: row.runId,
+    algorithm: row.algorithm,
+    threshold: row.threshold,
+    outcome: row.outcome,
+    agreementScore: row.agreementScore,
+    roundCount: row.rounds,
+    durationMs: row.durationMs,
     createdAt: toIso(row.createdAt)!,
   };
 }

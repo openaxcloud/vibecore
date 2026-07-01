@@ -1024,7 +1024,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
      * panel component (they live in client persistence / are fetched directly).
      */
     try {
-      const [proposals, repairEvents] = await Promise.all([
+      const [proposals, repairEvents, consensus] = await Promise.all([
         apiRequest<{ proposals?: unknown[] }>(request, `/projects/${projectId}/agent-patch-proposals`).catch(() => ({
           proposals: [],
         })),
@@ -1033,12 +1033,16 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
             events: [],
           }),
         ),
+        apiRequest<{ records?: unknown[] }>(request, `/projects/${projectId}/agent-consensus?limit=50`).catch(() => ({
+          records: [],
+        })),
       ]);
 
       return json(
         panelEnvelope(panel, project.project, {
           patchProposals: Array.isArray(proposals.proposals) ? proposals.proposals : [],
           repairEvents: Array.isArray(repairEvents.events) ? repairEvents.events : [],
+          consensusRecords: Array.isArray(consensus.records) ? consensus.records : [],
         }),
       );
     } catch (error) {

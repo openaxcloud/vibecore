@@ -13962,6 +13962,75 @@ interface StudioMemorySummary {
   recent: Array<{ id: string; content: string; scope?: string; memoryType?: string; createdAt?: string }>;
 }
 
+/**
+ * Read-only projection of one persisted multi-agent ConsensusRecord as returned
+ * by GET /projects/:projectId/agent-consensus (project-scoped via AgentRun.projectId).
+ */
+interface ConsensusRecordView {
+  id: string;
+  runId: string;
+  algorithm: 'QUORUM' | 'BYZANTINE_PBFT' | 'WEIGHTED_PLURALITY' | string;
+  outcome: 'ACCEPTED' | 'REJECTED' | 'PARTIAL' | 'ABSTAINED' | string;
+  agreementScore: number;
+  roundCount: number;
+  durationMs: number;
+  createdAt: string;
+}
+
+const CONSENSUS_OUTCOME_LABEL: Record<string, string> = {
+  ACCEPTED: 'Accepted',
+  REJECTED: 'Rejected',
+  PARTIAL: 'Partial',
+  ABSTAINED: 'Abstained',
+};
+
+const CONSENSUS_OUTCOME_CLASS: Record<string, string> = {
+  ACCEPTED: 'text-green-500 border-green-500/40',
+  REJECTED: 'text-red-500 border-red-500/40',
+  PARTIAL: 'text-amber-500 border-amber-500/40',
+  ABSTAINED: 'text-bolt-elements-textSecondary border-bolt-elements-borderColor',
+};
+
+const CONSENSUS_ALGORITHM_LABEL: Record<string, string> = {
+  QUORUM: 'Quorum',
+  BYZANTINE_PBFT: 'Byzantine (PBFT)',
+  WEIGHTED_PLURALITY: 'Weighted plurality',
+};
+
+function AgentConsensusOutcomeBadge({ outcome }: { outcome: string }) {
+  const label = CONSENSUS_OUTCOME_LABEL[outcome] ?? outcome;
+
+  const className =
+    CONSENSUS_OUTCOME_CLASS[outcome] ?? 'text-bolt-elements-textSecondary border-bolt-elements-borderColor';
+
+  return <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${className}`}>{label}</span>;
+}
+
+function formatConsensusScore(score: number) {
+  if (!Number.isFinite(score)) {
+    return '—';
+  }
+
+  // Scores are 0–1 agreement ratios; show as a percentage.
+  return `${Math.round(Math.max(0, Math.min(1, score)) * 100)}% agreement`;
+}
+
+function formatConsensusAlgorithm(algorithm: string) {
+  return CONSENSUS_ALGORITHM_LABEL[algorithm] ?? algorithm;
+}
+
+function formatConsensusDuration(durationMs: number) {
+  if (!Number.isFinite(durationMs) || durationMs < 0) {
+    return '—';
+  }
+
+  if (durationMs < 1000) {
+    return `${Math.round(durationMs)} ms`;
+  }
+
+  return `${(durationMs / 1000).toFixed(durationMs < 10_000 ? 1 : 0)} s`;
+}
+
 /*
  * Agent Studio supervisor — a single per-project oversight surface that
  * AGGREGATES the agent signals that already exist elsewhere in the IDE, so an
@@ -13971,16 +14040,16 @@ interface StudioMemorySummary {
  *                                   (approve/reject reuse the EXISTING store path
  *                                   which writes through the patch endpoints).
  *   - Self-repair history        → reuses <AgentRepairHistory> (project-scoped).
+ *   - Multi-agent consensus      → reuses GET /projects/:id/agent-consensus,
+ *                                   a read-only projection of the persisted
+ *                                   ConsensusRecord rows scoped by AgentRun.projectId.
  *   - Conversation branches      → reuses useProjectChatBranches(projectId).
  *   - Agent-memory summary       → reuses GET /api/agent-memory?projectId=…
  *
  * Every signal is scoped to the current projectId; nothing is aggregated across
  * projects. The server-side loader (ide-panel `studio` case) provides initial
- * patch/repair snapshots gated by project read; the live store is the source of
- * truth for the actionable queue. Consensus (ConsensusRecord) is intentionally
- * NOT surfaced: it has no project-scoped read endpoint in the web/API layer
- * (it lives only in the ai-gateway service), so exposing it would require real
- * new backend — out of scope for a reuse-only supervisor.
+ * patch/repair/consensus snapshots gated by project read; the live store is the
+ * source of truth for the actionable patch queue.
  */
 function ProjectAgentStudioPanel({
   data,
@@ -14007,6 +14076,11 @@ function ProjectAgentStudioPanel({
 
   const serverProposalCount = Array.isArray(data?.patchProposals) ? data.patchProposals.length : 0;
   const repairEventsCount = Array.isArray(data?.repairEvents) ? data.repairEvents.length : 0;
+
+  const consensusRecords: ConsensusRecordView[] = useMemo(
+    () => (Array.isArray(data?.consensusRecords) ? (data.consensusRecords as ConsensusRecordView[]) : []),
+    [data?.consensusRecords],
+  );
 
   const [memory, setMemory] = useState<StudioMemorySummary | undefined>();
   const [memoryError, setMemoryError] = useState<string | undefined>();
@@ -14074,6 +14148,11 @@ function ProjectAgentStudioPanel({
       String(repairEventsCount),
       repairEventsCount ? 'AST repair loop activity' : 'No self-repair recorded',
     ],
+    [
+      'Multi-agent runs',
+      String(consensusRecords.length),
+      consensusRecords.length ? 'Consensus records logged' : 'No consensus runs yet',
+    ],
     ['Conversation branches', String(branchCount), branchCount ? 'Archived agent threads' : 'No branches yet'],
     [
       'Agent memories',
@@ -14119,6 +14198,47 @@ function ProjectAgentStudioPanel({
           <AgentRepairHistory projectId={projectId} />
         </section>
       ) : null}
+
+      <section
+        className="mt-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
+        aria-label="Multi-agent consensus"
+      >
+        <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">
+          Multi-agent consensus
+          <span className="ml-2 rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
+            {consensusRecords.length}
+          </span>
+        </h3>
+        {consensusRecords.length ? (
+          <ul className="divide-y divide-bolt-elements-borderColor">
+            {consensusRecords.map((record) => (
+              <li key={record.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm">
+                <AgentConsensusOutcomeBadge outcome={record.outcome} />
+                <span className="font-medium text-bolt-elements-textPrimary">
+                  {formatConsensusScore(record.agreementScore)}
+                </span>
+                <span className="text-xs text-bolt-elements-textSecondary">
+                  {formatConsensusAlgorithm(record.algorithm)}
+                </span>
+                <span className="text-xs text-bolt-elements-textSecondary">
+                  {record.roundCount} {record.roundCount === 1 ? 'round' : 'rounds'}
+                </span>
+                <span className="text-xs text-bolt-elements-textSecondary">
+                  {formatConsensusDuration(record.durationMs)}
+                </span>
+                <span className="ml-auto text-xs text-bolt-elements-textSecondary" title={record.createdAt}>
+                  {timeAgo(record.createdAt)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-bolt-elements-textSecondary">
+            No multi-agent consensus runs recorded for this project yet. Consensus records appear here after a
+            parallel-subagent run reaches a decision.
+          </p>
+        )}
+      </section>
 
       <section
         className="mt-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"

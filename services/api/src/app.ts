@@ -15792,6 +15792,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { event: await store.recordAgentRepairEvent({ projectId: project.id, ...body }) };
   });
 
+  /* -------- Multi-agent consensus records (read-only; powers the Agent Studio panel) -------- */
+  app.get('/projects/:projectId/agent-consensus', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    const query = parse(z.object({ limit: z.coerce.number().int().min(1).max(200).optional() }), request.query ?? {});
+
+    return { records: await store.listConsensusRecords(project.id, { take: query.limit }) };
+  });
+
   /* -------- Skills registry (builtin catalog + per-project enable/disable) -------- */
   app.get('/projects/:projectId/skills', async (request) => {
     const project = await requireProject(
