@@ -236,9 +236,11 @@ export async function action({ request }: EnterpriseActionArgs) {
   }
 
   if (intent === 'buy-credits') {
-    // Replit-parity credit-pack purchase → one-time Stripe Checkout. The pack is
-    // granted by the checkout.session.completed webhook. 503 CREDIT_PACKS_DISABLED
-    // while the credit model is dormant is surfaced as a friendly message.
+    /*
+     * Replit-parity credit-pack purchase → one-time Stripe Checkout. The pack is
+     * granted by the checkout.session.completed webhook. 503 CREDIT_PACKS_DISABLED
+     * while the credit model is dormant is surfaced as a friendly message.
+     */
     const packId = String(form.get('packId') ?? '').trim();
 
     if (!packId) {
@@ -364,6 +366,7 @@ export default function BillingPage() {
   const submitting = navigation.state !== 'idle';
   const submittingPlanKey = submitting ? navigation.formData?.get('planKey') : null;
   const submittingPortal = submitting && navigation.formData?.get('intent') === 'portal';
+
   const submittingPackId =
     submitting && navigation.formData?.get('intent') === 'buy-credits' ? navigation.formData?.get('packId') : null;
 

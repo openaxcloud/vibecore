@@ -17,9 +17,11 @@ export const meta: MetaFunction = () => [{ title: 'Upgrade - E-Code' }];
 // The public pricing page uses display-tier keys; map them to the checkout enum.
 function normalizePlanKey(raw: string | null): 'pro' | 'team' {
   const key = (raw ?? '').toLowerCase();
+
   if (key === 'team' || key === 'teams') {
     return 'team';
   }
+
   // core/pro (and anything else) → 'pro'
   return 'pro';
 }
@@ -27,9 +29,12 @@ function normalizePlanKey(raw: string | null): 'pro' | 'team' {
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const plan = normalizePlanKey(url.searchParams.get('plan'));
-  const interval = url.searchParams.get('interval') === 'annual' || url.searchParams.get('interval') === 'yearly'
-    ? 'annual'
-    : 'monthly';
+
+  const interval =
+    url.searchParams.get('interval') === 'annual' || url.searchParams.get('interval') === 'yearly'
+      ? 'annual'
+      : 'monthly';
+
   return json({ plan, interval });
 }
 

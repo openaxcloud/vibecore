@@ -372,8 +372,10 @@ export default function Pricing() {
       return;
     }
 
-    // Carry the selected plan + monthly/annual interval into the checkout flow so
-    // the annual (discounted) price the user is looking at is the one applied.
+    /*
+     * Carry the selected plan + monthly/annual interval into the checkout flow so
+     * the annual (discounted) price the user is looking at is the one applied.
+     */
     const interval = billingPeriod === 'yearly' ? 'annual' : 'monthly';
     const target = `/subscribe?plan=${encodeURIComponent(tier.tierKey)}&interval=${interval}`;
     navigate(user ? target : `/login?returnTo=${encodeURIComponent(target)}`);

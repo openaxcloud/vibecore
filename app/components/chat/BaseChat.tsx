@@ -10869,7 +10869,7 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'secrets') {
-    return <ProjectSecretsPanel projectId={projectId} data={data} onSubmit={onSubmit} busy={busy} />;
+    return <ProjectSecretsPanel projectId={projectId} data={data} onSubmit={onSubmit} busy={busy} reload={reload} />;
   }
 
   if (panel === 'collaborators') {
@@ -16925,21 +16925,148 @@ function formatLogTime(value?: string) {
   return date.toLocaleTimeString();
 }
 
+/*
+ * Parse a pasted .env blob into KEY=value pairs (skips comments/blanks, strips
+ * `export ` and surrounding quotes, validates env-var key syntax).
+ */
+function parseDotEnv(text: string): Array<{ key: string; value: string }> {
+  const out: Array<{ key: string; value: string }> = [];
+
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+
+    if (!line || line.startsWith('#')) {
+      continue;
+    }
+
+    const eq = line.indexOf('=');
+
+    if (eq <= 0) {
+      continue;
+    }
+
+    const key = line
+      .slice(0, eq)
+      .trim()
+      .replace(/^export\s+/, '');
+
+    let value = line.slice(eq + 1).trim();
+
+    if (
+      value.length >= 2 &&
+      ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'")))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+      out.push({ key, value });
+    }
+  }
+
+  return out;
+}
+
 function ProjectSecretsPanel({
   projectId,
   data,
   onSubmit,
   busy,
+  reload,
 }: {
   projectId?: string;
   data: any;
   onSubmit: any;
   busy: boolean;
+  reload?: () => void | Promise<void>;
 }) {
   const [revealed, setRevealed] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const [editingKey, setEditingKey] = useState('');
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importing, setImporting] = useState(false);
   const secrets = data.secrets ?? [];
+
+  // Fetch a secret's real value (reveal endpoint); shared by copy-value + reveal.
+  async function fetchSecretValue(key: string): Promise<string | undefined> {
+    if (!projectId) {
+      return undefined;
+    }
+
+    const response = await fetch(
+      `/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets?reveal=true&confirm=1&key=${encodeURIComponent(
+        key,
+      )}`,
+      { headers: { accept: 'application/json' } },
+    );
+
+    const result = (await response.json().catch(() => null)) as any;
+
+    return response.ok && typeof result?.data?.secret?.value === 'string' ? result.data.secret.value : undefined;
+  }
+
+  /*
+   * Replit-style bulk .env import: parse the paste, upsert each via the existing
+   * secrets intent, then refresh the list.
+   */
+  async function handleImport() {
+    if (!projectId) {
+      return;
+    }
+
+    const entries = parseDotEnv(importText);
+
+    if (!entries.length) {
+      setMessage('No KEY=value lines found to import.');
+      return;
+    }
+
+    setImporting(true);
+
+    let ok = 0;
+
+    try {
+      for (const { key, value } of entries) {
+        const form = new FormData();
+        form.append('intent', 'upsert');
+        form.append('key', key);
+        form.append('value', value);
+
+        const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets`, {
+          method: 'POST',
+          body: form,
+        });
+
+        if (response.ok) {
+          ok += 1;
+        }
+      }
+
+      setMessage(`Imported ${ok}/${entries.length} secret${entries.length === 1 ? '' : 's'} from .env.`);
+      setImportText('');
+      setImportOpen(false);
+      await reload?.();
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  async function copySecretValue(key: string) {
+    const value = revealed[key] ?? (await fetchSecretValue(key));
+
+    if (typeof value !== 'string') {
+      setMessage(`Unable to reveal ${key}.`);
+      return;
+    }
+
+    try {
+      await navigator.clipboard?.writeText(value);
+      setMessage(`${key} value copied.`);
+    } catch {
+      setMessage(`Unable to copy ${key} to clipboard.`);
+    }
+  }
 
   async function revealSecret(key: string) {
     if (!projectId) {
@@ -17015,7 +17142,35 @@ function ProjectSecretsPanel({
           required
         />
         <PanelButton disabled={busy}>{editingKey ? 'Update secret' : '+ New secret'}</PanelButton>
+        <PanelButton type="button" variant="outline" onClick={() => setImportOpen((open) => !open)}>
+          Import .env
+        </PanelButton>
       </form>
+
+      {importOpen ? (
+        <div className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+          <label className="grid gap-1 text-xs text-bolt-elements-textSecondary">
+            Paste a .env file — one <span className="font-mono">KEY=value</span> per line (comments and blank lines are
+            ignored)
+            <textarea
+              value={importText}
+              onChange={(event) => setImportText(event.target.value)}
+              placeholder={'DATABASE_URL=postgres://…\nSTRIPE_SECRET_KEY=sk_live_…'}
+              spellCheck={false}
+              className="min-h-28 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2 font-mono text-xs text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+            />
+          </label>
+          <div className="flex items-center gap-2">
+            <PanelButton type="button" onClick={() => void handleImport()} disabled={importing || !importText.trim()}>
+              {importing ? 'Importing…' : 'Import secrets'}
+            </PanelButton>
+            <PanelButton type="button" variant="outline" onClick={() => setImportOpen(false)} disabled={importing}>
+              Cancel
+            </PanelButton>
+          </div>
+        </div>
+      ) : null}
+
       {message && <div className="bolt-project-empty-panel">{message}</div>}
       <div className="bolt-project-secret-list">
         {secrets.length ? (
@@ -17026,8 +17181,15 @@ function ProjectSecretsPanel({
               <button type="button" aria-label={`Reveal ${secret.key}`} onClick={() => void revealSecret(secret.key)}>
                 {revealed[secret.key] ? 'Hide' : 'Reveal'}
               </button>
-              <button type="button" aria-label={`Copy ${secret.key}`} onClick={() => void copySecret(secret.key)}>
+              <button type="button" aria-label={`Copy ${secret.key} name`} onClick={() => void copySecret(secret.key)}>
                 Copy
+              </button>
+              <button
+                type="button"
+                aria-label={`Copy ${secret.key} value`}
+                onClick={() => void copySecretValue(secret.key)}
+              >
+                Copy value
               </button>
               <button type="button" aria-label={`Edit ${secret.key}`} onClick={() => setEditingKey(secret.key)}>
                 Edit
