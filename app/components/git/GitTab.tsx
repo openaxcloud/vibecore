@@ -17,6 +17,7 @@ import { findUnserializableStagedFiles, pathBreaksCommaSerialization } from './g
 import { GitBranchSyncControls } from '~/components/git/GitBranchSyncControls';
 import { GitDiffView } from '~/components/git/GitDiffView';
 import { GitMergeEditor } from '~/components/git/GitMergeEditor';
+import { GitProviderConnectPanel } from '~/components/git/GitProviderConnectPanel';
 import { GitSettingsPanel } from '~/components/git/GitSettingsPanel';
 import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
 import { useCurrentWorkspace } from '~/lib/runtime/CurrentWorkspaceContext';
@@ -817,20 +818,33 @@ export function GitTab({ projectId }: GitTabProps) {
          * sub-pane (Connections + Remote sections). When there's no remote, show a
          * single discreet line that opens Settings.
          */}
-        {!hasRemote ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textSecondary">
-            <span className="flex items-center gap-2">
+        {!hasRemote && project?.id ? (
+          <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
+            <div className="mb-2 flex items-center gap-2 text-sm text-bolt-elements-textSecondary">
               <span className="i-ph:plugs text-bolt-elements-textTertiary" aria-hidden />
               No remote connected
-            </span>
+            </div>
+            {/*
+             * Connect a Git provider (GitHub/GitLab/Bitbucket OAuth or a custom
+             * remote) directly in the pane — Replit-style — instead of bouncing to
+             * Settings. Reuses the themed, responsive GitProviderConnectPanel.
+             */}
+            <GitProviderConnectPanel
+              projectId={project.id}
+              gitRepositoryUrl={project?.gitRepositoryUrl}
+              defaultBranch={project?.gitDefaultBranch}
+              workspaceId={resolvedWorkspaceId}
+              busy={busy}
+              onRemoteConfigured={() => loadPanel({ silent: true })}
+            />
             <button
               type="button"
               data-testid="git-connect-cta"
               onClick={() => setShowSettings(true)}
-              className="inline-flex h-7 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 text-xs font-medium text-bolt-elements-item-contentAccent hover:bg-bolt-elements-background-depth-3"
+              className="mt-2 inline-flex h-7 items-center gap-1 rounded-md px-1 text-xs font-medium text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary"
             >
               <span className="i-ph:gear text-sm" aria-hidden />
-              Connect in Settings
+              Advanced Git settings
             </button>
           </div>
         ) : null}

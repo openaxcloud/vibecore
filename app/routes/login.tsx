@@ -48,8 +48,27 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   const oauthError = url.searchParams.get('error');
   const oauthDetail = url.searchParams.get('detail');
 
+  /*
+   * Social-login provider readiness so we only show sign-in buttons that actually
+   * work (an admin can disable / not-configure github or google). Best-effort: on
+   * any failure we fall back to showing both buttons (never hide on an API hiccup).
+   */
+  let providers: Array<{ provider: string; ready: boolean }> = [];
+
+  try {
+    const result = await apiRequest<{ providers: Array<{ provider: string; ready: boolean }> }>(
+      request,
+      '/auth/oauth/providers',
+      { redirectOn401: false },
+    );
+    providers = result.providers ?? [];
+  } catch {
+    providers = [];
+  }
+
   return json({
     oauth: oauth && oauthError ? { provider: oauth, error: oauthError, detail: oauthDetail } : null,
+    providers,
   });
 }
 
@@ -152,8 +171,19 @@ export default function LoginPage() {
   }, []);
 
   const loaderData = useLoaderData<typeof loader>() as
-    | { oauth?: { provider: string; error: string; detail?: string | null } | null }
+    | {
+        oauth?: { provider: string; error: string; detail?: string | null } | null;
+        providers?: Array<{ provider: string; ready: boolean }>;
+      }
     | undefined;
+
+  /*
+   * Show a social-login button only when its provider is ready (or when readiness
+   * is unknown — API hiccup — so we never hide a working provider). A provider
+   * explicitly reported not-ready (admin-disabled / unconfigured) is hidden.
+   */
+  const providerReady = (provider: string) =>
+    loaderData?.providers?.find((p) => p.provider === provider)?.ready !== false;
 
   const loginActionData = actionData as
     | { error?: string; mfaRequired?: boolean; email?: string; password?: string; rememberMe?: boolean }
@@ -341,22 +371,28 @@ export default function LoginPage() {
         <AuthSubmit label="Sign in" loadingLabel="Signing in..." isSubmitting={isSubmitting} />
       </Form>
 
-      <div className="vc-auth-secondary-actions mt-5 grid gap-3 border-t pt-5 sm:grid-cols-2">
-        <Link
-          to="/auth/oauth/github"
-          className="vc-auth-secondary-action inline-flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-[13px] font-semibold transition-colors"
-        >
-          <Github className="h-4 w-4" />
-          GitHub
-        </Link>
-        <Link
-          to="/auth/oauth/google"
-          className="vc-auth-secondary-action inline-flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-[13px] font-semibold transition-colors"
-        >
-          <Chrome className="h-4 w-4" />
-          Google
-        </Link>
-      </div>
+      {providerReady('github') || providerReady('google') ? (
+        <div className="vc-auth-secondary-actions mt-5 grid gap-3 border-t pt-5 sm:grid-cols-2">
+          {providerReady('github') ? (
+            <Link
+              to="/auth/oauth/github"
+              className="vc-auth-secondary-action inline-flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-[13px] font-semibold transition-colors"
+            >
+              <Github className="h-4 w-4" />
+              GitHub
+            </Link>
+          ) : null}
+          {providerReady('google') ? (
+            <Link
+              to="/auth/oauth/google"
+              className="vc-auth-secondary-action inline-flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-[13px] font-semibold transition-colors"
+            >
+              <Chrome className="h-4 w-4" />
+              Google
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
     </AuthScreen>
   );
 }
