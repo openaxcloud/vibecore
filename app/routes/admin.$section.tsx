@@ -1,7 +1,7 @@
 import { AlertTriangle, BarChart3, CheckCircle2, Database, ShieldCheck } from 'lucide-react';
 import React, { useState } from 'react';
 import type { MetaFunction } from 'react-router';
-import { Link, useFetcher, useLoaderData, useNavigate } from 'react-router';
+import { Link, useFetcher, useLoaderData, useNavigate, useNavigation } from 'react-router';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 import {
   apiRequest,
@@ -306,9 +306,17 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
    * whole dashboard.
    */
   if (section === 'monitoring') {
+    /*
+     * `?probe=1` opts into a real, bounded liveness probe of the non-gateway
+     * providers (forwarded to the API). Default loads make no outbound provider
+     * calls — the button below re-loads this route with the flag.
+     */
+    const liveProbe = url.searchParams.get('probe') === '1';
+    const providerHealthPath = `/admin/provider-health${liveProbe ? '?probe=1' : ''}`;
+
     const [costs, providerHealth] = await Promise.allSettled([
       apiRequest<Record<string, JsonValue>>(request, '/admin/costs'),
-      apiRequest<Record<string, JsonValue>>(request, '/admin/provider-health'),
+      apiRequest<Record<string, JsonValue>>(request, providerHealthPath),
     ]);
 
     const payload: Record<string, JsonValue> = {
@@ -316,6 +324,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       providers: providerHealth.status === 'fulfilled' ? (providerHealth.value.providers ?? []) : [],
       providerHealthError: providerHealth.status === 'rejected',
       costsError: costs.status === 'rejected',
+      liveProbe,
     };
 
     return { section, config, payload };
@@ -1032,6 +1041,7 @@ type ProviderHealthRow = {
   enabled?: boolean;
   keyConfigured?: boolean;
   liveChecked?: boolean;
+  latencyMs?: number;
   statusCode?: number;
   error?: string;
 };
@@ -1061,6 +1071,7 @@ function MonitoringPanel({ payload }: { payload: Record<string, JsonValue> }) {
   const aiCosts = (Array.isArray(payload.aiCosts) ? payload.aiCosts : []) as AiCost[];
   const usageEvents = (Array.isArray(payload.usage) ? payload.usage : []) as Array<{ quantity?: number }>;
   const providers = (Array.isArray(payload.providers) ? payload.providers : []) as ProviderHealthRow[];
+  const liveProbe = payload.liveProbe === true;
 
   const totalCostCents =
     typeof payload.aiCostCents === 'number'
@@ -1217,10 +1228,14 @@ function MonitoringPanel({ payload }: { payload: Record<string, JsonValue> }) {
           <MonitoringEmpty />
         ) : (
           <>
-            <p className="mb-3 text-xs text-bolt-elements-textTertiary">
-              Config readiness from the admin provider registry (enabled + platform key); rows marked “live” also
-              reflect the AI gateway’s real upstream probe.
-            </p>
+            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <p className="text-xs text-bolt-elements-textTertiary sm:max-w-[70%]">
+                Config readiness from the admin provider registry (enabled + platform key); rows marked “live” reflect a
+                real upstream probe — the AI gateway’s health check plus, on demand, a direct models-list probe of the
+                remaining configured providers.
+              </p>
+              <ProviderProbeButton liveProbe={liveProbe} />
+            </div>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {providers.map((p, index) => (
                 <ProviderHealthCard key={`${p.provider ?? 'provider'}-${index}`} provider={p} />
@@ -1249,6 +1264,50 @@ const PROVIDER_HEALTH_META: Record<string, { label: string; tone: 'ok' | 'danger
   unknown: { label: 'Unknown', tone: 'muted', dot: 'bg-bolt-elements-textTertiary' },
 };
 
+/*
+ * Opt-in trigger for the direct liveness probe. Navigates this same monitoring
+ * route with `?probe=1`, which the loader forwards to the API — a plain link so
+ * the probe is an explicit, bounded action (never on default load). While the
+ * navigation is in flight we show a "Probing…" label; once probed, the link
+ * offers a re-run and a way back to the fast (no-outbound-call) view.
+ */
+function ProviderProbeButton({ liveProbe }: { liveProbe: boolean }) {
+  const navigation = useNavigation();
+  const isProbing = navigation.state !== 'idle' && (navigation.location?.search ?? '').includes('probe=1');
+
+  return (
+    <div className="flex shrink-0 items-center gap-2">
+      {liveProbe ? (
+        <Link
+          to="/admin/monitoring"
+          className="whitespace-nowrap text-xs text-bolt-elements-textTertiary underline-offset-2 hover:text-bolt-elements-textSecondary hover:underline"
+        >
+          Clear probe
+        </Link>
+      ) : null}
+      <Link
+        to="/admin/monitoring?probe=1"
+        aria-disabled={isProbing}
+        className={[
+          'inline-flex min-h-8 items-center gap-1.5 whitespace-nowrap rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium transition-colors',
+          isProbing
+            ? 'cursor-progress bg-bolt-elements-background-depth-2 text-bolt-elements-textTertiary'
+            : 'bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
+        ].join(' ')}
+      >
+        <span
+          className={[
+            'inline-block h-1.5 w-1.5 rounded-full',
+            isProbing ? 'animate-pulse bg-amber-500' : 'bg-green-500',
+          ].join(' ')}
+          aria-hidden
+        />
+        {isProbing ? 'Probing…' : liveProbe ? 'Re-run live probe' : 'Run live probe'}
+      </Link>
+    </div>
+  );
+}
+
 function ProviderHealthCard({ provider }: { provider: ProviderHealthRow }) {
   const status = String(provider.status ?? 'unknown');
   const meta = PROVIDER_HEALTH_META[status] ?? PROVIDER_HEALTH_META.unknown;
@@ -1267,6 +1326,7 @@ function ProviderHealthCard({ provider }: { provider: ProviderHealthRow }) {
         {provider.enabled ? 'Enabled' : 'Disabled'}
         {' · '}
         {provider.keyConfigured ? 'Platform key set' : 'No platform key'}
+        {typeof provider.latencyMs === 'number' ? ` · ${provider.latencyMs}ms` : ''}
         {typeof provider.statusCode === 'number' ? ` · HTTP ${provider.statusCode}` : ''}
       </p>
       {provider.error ? (
