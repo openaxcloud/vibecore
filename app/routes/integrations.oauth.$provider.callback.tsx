@@ -159,13 +159,13 @@ export default function IntegrationOauthCallbackPage() {
           fontFamily: 'system-ui, sans-serif',
           padding: '32px',
           maxWidth: 480,
-          background: '#ffffff',
-          color: '#111827',
+          background: 'var(--ecode-background)',
+          color: 'var(--ecode-text)',
           minHeight: '100vh',
         }}
       >
         <h1 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Connection successful</h1>
-        <p style={{ color: '#4B5563' }}>
+        <p style={{ color: 'var(--ecode-text-secondary)' }}>
           Connected to {outcome.provider} as <strong>{outcome.accountLabel ?? 'your account'}</strong>. You can close
           this window.
         </p>
@@ -179,14 +179,18 @@ export default function IntegrationOauthCallbackPage() {
         fontFamily: 'system-ui, sans-serif',
         padding: '32px',
         maxWidth: 480,
-        background: '#ffffff',
-        color: '#111827',
+        background: 'var(--ecode-background)',
+        color: 'var(--ecode-text)',
         minHeight: '100vh',
       }}
     >
       <h1 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Connection failed</h1>
-      <p style={{ color: '#4B5563' }}>{outcome.errorMessage ?? 'The provider could not complete the connection.'}</p>
-      <p style={{ color: '#6B7280', fontSize: 12, marginTop: 8 }}>Code: {outcome.errorCode ?? 'unknown'}</p>
+      <p style={{ color: 'var(--ecode-text-secondary)' }}>
+        {outcome.errorMessage ?? 'The provider could not complete the connection.'}
+      </p>
+      <p style={{ color: 'var(--ecode-text-muted)', fontSize: 12, marginTop: 8 }}>
+        Code: {outcome.errorCode ?? 'unknown'}
+      </p>
     </main>
   );
 }
