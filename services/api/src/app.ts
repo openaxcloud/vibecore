@@ -5508,19 +5508,35 @@ async function connectorCredentialsFor(provider: string, store: ApiStore): Promi
   try {
     const cat = await store.getConnectorOAuthCatalog(provider);
 
-    if (cat?.enabled && cat.clientId && cat.clientSecretEnc) {
-      const clientSecret = decryptJson<{ value: string }>(cat.clientSecretEnc).value;
-
-      if (clientSecret) {
-        return {
-          clientId: cat.clientId,
-          clientSecret,
-          scopes: cat.scopes && cat.scopes.length > 0 ? cat.scopes : [],
-          redirectUri:
-            process.env[`${provider.toUpperCase()}_REDIRECT_URI`] ??
-            `https://app.e-code.ai/integrations/oauth/${provider}/callback`,
-        };
+    if (cat) {
+      /*
+       * The admin catalog row is authoritative. An admin who disables a connector
+       * must fully turn it off: previously a disabled row silently fell through to
+       * the INTEGRATION_* env resolvers below, so setting those env vars quietly
+       * re-enabled a connector the admin had disabled. Match the login-flow
+       * semantics (resolveLoginProviderCredentials) — a disabled row → no creds →
+       * the connect/start routes emit 503 PROVIDER_NOT_CONFIGURED.
+       */
+      if (!cat.enabled) {
+        return null;
       }
+
+      if (cat.clientId && cat.clientSecretEnc) {
+        const clientSecret = decryptJson<{ value: string }>(cat.clientSecretEnc).value;
+
+        if (clientSecret) {
+          return {
+            clientId: cat.clientId,
+            clientSecret,
+            scopes: cat.scopes && cat.scopes.length > 0 ? cat.scopes : [],
+            redirectUri:
+              process.env[`${provider.toUpperCase()}_REDIRECT_URI`] ??
+              `https://app.e-code.ai/integrations/oauth/${provider}/callback`,
+          };
+        }
+      }
+
+      // Enabled but no DB creds yet → fall through to env resolvers (still on).
     }
   } catch {
     // Fall through to env-based credentials if the DB row is unreadable/undecryptable.
@@ -7427,6 +7443,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     { config: { rateLimit: { max: Number(process.env.AUTH_OAUTH_RATE_LIMIT_MAX ?? 100), timeWindow: '1 minute' } } },
     async (request, reply) => {
       const provider = (request.params as { provider: string }).provider;
+
+      /*
+       * Whitelist the provider before it is used to construct provider-named env
+       * lookups (`${provider.toUpperCase()}_CLIENT_ID`, …) in
+       * resolveLoginProviderCredentials / resolveOAuthProfile. Only github/google
+       * flow through this route (OIDC has its own /auth/oidc/callback).
+       */
+      if (provider !== 'github' && provider !== 'google') {
+        return reply.code(400).send({ error: 'Unsupported sign-in provider', code: 'OAUTH_PROVIDER_UNKNOWN' });
+      }
+
       const body = parse(oauthCallbackSchema, request.body);
 
       /*
@@ -7581,14 +7608,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         refreshToken: profile.refreshToken,
       });
 
-      // Auto-create organization for users who don't have one (new OIDC users)
-      let oidcOrgId = body.orgId ?? orgIdFromRequest(request);
+      /*
+       * Never trust a caller-supplied org. The old `body.orgId ??` let a client
+       * bind the new session to ANY organization (cross-org IDOR) — the parallel
+       * OAuth (github/google) callback never accepts a body override. Derive the
+       * org from the request only, and honor it solely when the user is actually a
+       * member; otherwise fall back to their own org (or auto-create one for a new
+       * OIDC user).
+       */
+      let oidcOrgId = orgIdFromRequest(request);
+      const oidcUserOrgs = await store.listOrganizations(user.id);
+
+      if (oidcOrgId && !oidcUserOrgs.some((org) => org.id === oidcOrgId)) {
+        oidcOrgId = undefined;
+      }
 
       if (!oidcOrgId) {
-        const existingOrgs = await store.listOrganizations(user.id);
-
-        if (existingOrgs.length > 0) {
-          oidcOrgId = existingOrgs[0].id;
+        if (oidcUserOrgs.length > 0) {
+          oidcOrgId = oidcUserOrgs[0].id;
         } else {
           const org = await store.createOrganization({
             name: `${profile.name ?? profile.email}'s Organization`,
@@ -8504,6 +8541,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
 
+      // Respect an admin-disabled connector: no new tokens once it's turned off.
+      const apiKeyCatalog = await store.getConnectorOAuthCatalog(params.provider);
+
+      if (apiKeyCatalog && !apiKeyCatalog.enabled) {
+        return reply.code(403).send({
+          error: `The ${params.provider} connector is disabled by an administrator.`,
+          code: 'CONNECTOR_DISABLED',
+        });
+      }
+
       let projectId: string | undefined;
       let organizationId: string;
 
@@ -8627,6 +8674,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           error: `Client token read is not available for ${params.provider}.`,
           code: 'CONNECTOR_TOKEN_NOT_EXPOSED',
         });
+      }
+
+      // Respect an admin-disabled connector: stop handing out its token so a
+      // disabled connector can't keep driving deploys from any device.
+      const tokenCatalog = await store.getConnectorOAuthCatalog(params.provider);
+
+      if (tokenCatalog && !tokenCatalog.enabled) {
+        return reply.code(403).send({ token: null, code: 'CONNECTOR_DISABLED' });
       }
 
       const connections = await store.listUserConnectionsByUser(request.currentUser.id, {

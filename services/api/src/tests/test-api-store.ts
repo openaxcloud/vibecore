@@ -2689,7 +2689,11 @@ export class TestApiStore implements ApiStore {
         provider,
         displayName: provider,
         authType: 'oauth',
-        enabled: false,
+        // Matches the prod seed (seed-connector-catalog.ts): every catalogued
+        // connector ships enabled=true, so an un-configured connector still
+        // resolves its INTEGRATION_* env creds (connectorCredentialsFor). Only an
+        // admin explicitly toggling enabled=false blocks it.
+        enabled: true,
         clientId: null,
         clientSecretEnc: null,
         scopes: [],

@@ -8,11 +8,13 @@ import { TestApiStore } from './test-api-store.js';
  * never surface in the masked write-result (only `hasSecret`).
  */
 describe('connector OAuth admin config (store)', () => {
-  it('defaults to disabled / unconfigured before any admin write', async () => {
+  it('is enabled but has no DB creds before any admin write (matches prod seed)', async () => {
     const store = new TestApiStore();
     const cfg = await store.getConnectorOAuthCatalog('github');
 
-    expect(cfg?.enabled).toBe(false);
+    // Prod seeds every connector enabled=true; credentials come from env until an
+    // admin pastes them. Only an explicit enabled=false toggle disables it.
+    expect(cfg?.enabled).toBe(true);
     expect(cfg?.clientId).toBeNull();
     expect(cfg?.clientSecretEnc).toBeNull();
   });
