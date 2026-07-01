@@ -7455,68 +7455,79 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           {!isOnline ? 'Offline mode: edits stay local until the workspace connection returns.' : 'Connection healthy'}
         </div>
         {commandPaletteOpen && (
-          <div className="bolt-project-command-palette" role="dialog" aria-modal="true" aria-label="Command palette">
-            <input
-              type="text"
-              autoFocus
-              autoComplete="off"
-              inputMode="search"
-              placeholder="Search tools, files, and commands..."
-              aria-label="Search commands"
-              data-testid="project-command-palette-search"
-              value={commandPaletteQuery}
-              onChange={(event) => {
-                setCommandPaletteQuery(event.currentTarget.value);
-                setCommandPaletteIndex(0);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Escape') {
-                  setCommandPaletteOpen(false);
-                } else if (event.key === 'ArrowDown') {
-                  event.preventDefault();
-                  setCommandPaletteIndex((index) => Math.min(index + 1, Math.max(commandPaletteEntries.length - 1, 0)));
-                } else if (event.key === 'ArrowUp') {
-                  event.preventDefault();
-                  setCommandPaletteIndex((index) => Math.max(index - 1, 0));
-                } else if (event.key === 'Enter') {
-                  event.preventDefault();
-                  runCommandPaletteEntry();
-                }
-              }}
+          <>
+            <button
+              type="button"
+              className="bolt-project-command-palette-backdrop"
+              aria-label="Close command palette"
+              data-testid="command-palette-backdrop"
+              onClick={() => setCommandPaletteOpen(false)}
             />
-            {commandPaletteSections.map((section) => (
-              <React.Fragment key={section.name}>
-                <div className="bolt-project-command-section">{section.name}</div>
-                {section.entries.map((entry) => {
-                  const index = commandPaletteEntries.findIndex((item) => item.id === entry.id);
+            <div className="bolt-project-command-palette" role="dialog" aria-modal="true" aria-label="Command palette">
+              <input
+                type="text"
+                autoFocus
+                autoComplete="off"
+                inputMode="search"
+                placeholder="Search tools, files, and commands..."
+                aria-label="Search commands"
+                data-testid="project-command-palette-search"
+                value={commandPaletteQuery}
+                onChange={(event) => {
+                  setCommandPaletteQuery(event.currentTarget.value);
+                  setCommandPaletteIndex(0);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    setCommandPaletteOpen(false);
+                  } else if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    setCommandPaletteIndex((index) =>
+                      Math.min(index + 1, Math.max(commandPaletteEntries.length - 1, 0)),
+                    );
+                  } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    setCommandPaletteIndex((index) => Math.max(index - 1, 0));
+                  } else if (event.key === 'Enter') {
+                    event.preventDefault();
+                    runCommandPaletteEntry();
+                  }
+                }}
+              />
+              {commandPaletteSections.map((section) => (
+                <React.Fragment key={section.name}>
+                  <div className="bolt-project-command-section">{section.name}</div>
+                  {section.entries.map((entry) => {
+                    const index = commandPaletteEntries.findIndex((item) => item.id === entry.id);
 
-                  return (
-                    <button
-                      key={entry.id}
-                      type="button"
-                      aria-current={commandPaletteIndex === index ? 'page' : undefined}
-                      onClick={() => {
-                        runCommandPaletteEntry(entry);
-                      }}
-                    >
-                      <span className={entry.icon} aria-hidden />
-                      <span>
-                        <strong>{entry.title}</strong>
-                        <small>{entry.description}</small>
-                      </span>
-                      <kbd>{entry.shortcut || '↵'}</kbd>
-                    </button>
-                  );
-                })}
-              </React.Fragment>
-            ))}
-            {!commandPaletteEntries.length && (
-              <div className="px-4 py-6 text-sm text-bolt-elements-textTertiary">
-                No matching command, tool, or file.
-              </div>
-            )}
-            <footer>↑↓ navigate · ↵ select · esc close</footer>
-          </div>
+                    return (
+                      <button
+                        key={entry.id}
+                        type="button"
+                        aria-current={commandPaletteIndex === index ? 'page' : undefined}
+                        onClick={() => {
+                          runCommandPaletteEntry(entry);
+                        }}
+                      >
+                        <span className={entry.icon} aria-hidden />
+                        <span>
+                          <strong>{entry.title}</strong>
+                          <small>{entry.description}</small>
+                        </span>
+                        <kbd>{entry.shortcut || '↵'}</kbd>
+                      </button>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+              {!commandPaletteEntries.length && (
+                <div className="px-4 py-6 text-sm text-bolt-elements-textTertiary">
+                  No matching command, tool, or file.
+                </div>
+              )}
+              <footer>↑↓ navigate · ↵ select · esc close</footer>
+            </div>
+          </>
         )}
         {keyboardShortcutsOpen && (
           <div

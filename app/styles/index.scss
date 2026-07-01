@@ -14428,6 +14428,28 @@ body :where(.lucide, svg[data-lucide]) {
   opacity: 0.6;
 }
 
+/*
+ * Touch dismissal for the command palette. On desktop the palette closes on Esc /
+ * selection; on mobile there is no Esc key, so a full-screen transparent backdrop
+ * behind the palette lets a tap-outside dismiss it (parity with the mobile sheets).
+ * Hidden on desktop so behaviour there is unchanged.
+ */
+.bolt-project-command-palette-backdrop {
+  display: none;
+}
+
+@media (max-width: 1199px) {
+  .bolt-project-command-palette-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 12017;
+    display: block;
+    border: 0;
+    background: transparent;
+    cursor: default;
+  }
+}
+
 .bolt-project-command-palette {
   position: fixed;
   top: min(120px, calc(100dvh - 480px));
