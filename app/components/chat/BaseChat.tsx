@@ -13477,7 +13477,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                         {object.updated ? ` · ${new Date(object.updated).toLocaleString()}` : ''}
                       </span>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="bolt-project-object-actions flex shrink-0 items-center gap-2">
                       <button type="button" onClick={() => void handleDownload(object.key)} disabled={working}>
                         Download
                       </button>

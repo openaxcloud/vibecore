@@ -17883,6 +17883,22 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* Bare inline action buttons that escape the .bolt-project-* sizing rules:
+     Security "Export audit package" (SARIF/JSON/Print) and the object-storage
+     per-object actions (Download/Move/Delete). Wrap them and give a 40px target. */
+  .bolt-responsive-ide-mobile .bolt-project-security-reports article > div,
+  .bolt-responsive-ide-mobile .bolt-project-object-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-security-reports article > div button,
+  .bolt-responsive-ide-mobile .bolt-project-object-actions button {
+    min-height: 40px;
+    padding-inline: 12px;
+  }
+
   @media (min-width: 768px) {
     .bolt-responsive-ide-mobile {
       --vc-mobile-panel-gutter: clamp(22px, 3vw, 36px);
