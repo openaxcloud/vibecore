@@ -1871,6 +1871,18 @@ export class TestApiStore implements ApiStore {
     return [...this.siemWebhooks.values()].filter((webhook) => webhook.organizationId === organizationId);
   }
 
+  async deleteSiemWebhook(organizationId: string, webhookId: string) {
+    const existing = this.siemWebhooks.get(webhookId);
+
+    if (!existing || existing.organizationId !== organizationId) {
+      return null;
+    }
+
+    this.siemWebhooks.delete(webhookId);
+
+    return existing;
+  }
+
   async createApiKey(input: {
     userId?: string;
     organizationId?: string;
