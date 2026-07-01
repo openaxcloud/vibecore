@@ -18032,6 +18032,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       activePacks: packs,
       ledger: await store.listCreditLedger(orgId, { take: 50 }),
       checkpoints: await store.listAgentCheckpoints(orgId, { take: 50 }),
+      // Purchasable credit-pack catalog (Replit parity: 4 SKUs, 6-month validity)
+      // so the billing UI renders a "Buy credits" selector without hardcoding
+      // prices. Purchase is gated by BILLING_CREDITS_ENABLED at the checkout route.
+      packCatalog: creditPackCatalog.map((p) => ({
+        id: p.id,
+        label: p.label,
+        creditCents: p.creditCents,
+        priceCents: p.priceCents,
+        validityDays: p.validityDays,
+      })),
     };
   });
 

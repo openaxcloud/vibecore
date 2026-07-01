@@ -43,6 +43,9 @@ type CreditsData = {
     buildTier: string;
     startedAt: string;
   }>;
+  activePacks?: Array<{ id: string; remainingCents: number; expiresAt?: string | null }>;
+  ledger?: Array<{ id: string; deltaCents: number; kind: string; reason?: string | null; createdAt?: string }>;
+  packCatalog?: Array<{ id: string; label: string; creditCents: number; priceCents: number; validityDays: number }>;
 };
 
 const EMPTY_CREDITS: CreditsData = {
@@ -56,6 +59,9 @@ const EMPTY_CREDITS: CreditsData = {
   paygSpentCents: 0,
   spendAlertThresholds: [50, 80, 100],
   checkpoints: [],
+  activePacks: [],
+  ledger: [],
+  packCatalog: [],
 };
 
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
@@ -229,6 +235,43 @@ export async function action({ request }: EnterpriseActionArgs) {
     }
   }
 
+  if (intent === 'buy-credits') {
+    // Replit-parity credit-pack purchase → one-time Stripe Checkout. The pack is
+    // granted by the checkout.session.completed webhook. 503 CREDIT_PACKS_DISABLED
+    // while the credit model is dormant is surfaced as a friendly message.
+    const packId = String(form.get('packId') ?? '').trim();
+
+    if (!packId) {
+      return json({ error: 'Choose a credit pack to purchase.' }, { status: 400 });
+    }
+
+    try {
+      const result = await apiRequest<{ checkoutUrl: string }>(
+        request,
+        `/orgs/${organization.id}/credits/packs/checkout`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            packId,
+            successUrl: new URL('/billing?purchase=success', request.url).toString(),
+            cancelUrl: new URL('/billing', request.url).toString(),
+          }),
+        },
+      );
+      return redirect(result.checkoutUrl);
+    } catch (error) {
+      const message = isApiResponse(error)
+        ? await apiErrorMessage(
+            error,
+            error.status === 503
+              ? 'Credit-pack purchases are not available yet.'
+              : 'Could not start the credit-pack purchase.',
+          )
+        : 'Could not start the credit-pack purchase. Please try again.';
+      return json({ error: message }, { status: isApiResponse(error) ? error.status : 503 });
+    }
+  }
+
   if (intent === 'portal') {
     try {
       const result = await apiRequest<{ portalUrl: string }>(request, `/orgs/${organization.id}/billing/portal`, {
@@ -321,6 +364,8 @@ export default function BillingPage() {
   const submitting = navigation.state !== 'idle';
   const submittingPlanKey = submitting ? navigation.formData?.get('planKey') : null;
   const submittingPortal = submitting && navigation.formData?.get('intent') === 'portal';
+  const submittingPackId =
+    submitting && navigation.formData?.get('intent') === 'buy-credits' ? navigation.formData?.get('packId') : null;
 
   return (
     <AppShell
@@ -449,6 +494,87 @@ export default function BillingPage() {
               </Button>
             </Form>
           </div>
+          <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Buy credits</h3>
+              {credits.activePacks && credits.activePacks.length ? (
+                <span className="text-xs text-bolt-elements-textSecondary">
+                  {credits.activePacks.length} active pack{credits.activePacks.length === 1 ? '' : 's'}
+                </span>
+              ) : null}
+            </div>
+            <p className="mb-3 text-xs text-bolt-elements-textSecondary">
+              Pre-paid credit packs never expire for 6 months and are spent earliest-expiry-first, before your monthly
+              credits run to pay-as-you-go.
+            </p>
+            {!credits.creditsEnabled ? (
+              <p className="mb-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-300">
+                Credit-pack purchases are not enabled for this organization yet.
+              </p>
+            ) : null}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {(credits.packCatalog ?? []).map((pack) => {
+                const discount = Math.max(0, pack.creditCents - pack.priceCents);
+
+                return (
+                  <Form key={pack.id} method="post" reloadDocument className="contents">
+                    <input type="hidden" name="intent" value="buy-credits" />
+                    <input type="hidden" name="packId" value={pack.id} />
+                    <button
+                      type="submit"
+                      disabled={submitting || !credits.creditsEnabled}
+                      aria-label={`Buy ${dollars(pack.creditCents)} credit pack for ${dollars(pack.priceCents)}`}
+                      className="flex flex-col items-start gap-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-left transition-colors hover:border-[var(--ecode-accent,#F26207)] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <span className="text-base font-semibold text-bolt-elements-textPrimary">
+                        {dollars(pack.creditCents)}
+                      </span>
+                      <span className="text-xs text-bolt-elements-textSecondary">
+                        {discount > 0 ? (
+                          <>
+                            Pay {dollars(pack.priceCents)}{' '}
+                            <span className="text-green-400">save {dollars(discount)}</span>
+                          </>
+                        ) : (
+                          <>Pay {dollars(pack.priceCents)}</>
+                        )}
+                      </span>
+                      <span className="mt-1 text-[11px] font-medium text-[var(--ecode-accent,#F26207)]">
+                        {submittingPackId === pack.id ? 'Redirecting…' : 'Buy credits'}
+                      </span>
+                    </button>
+                  </Form>
+                );
+              })}
+            </div>
+            {credits.activePacks && credits.activePacks.length ? (
+              <ul className="mt-3 space-y-1">
+                {credits.activePacks.map((pack) => (
+                  <li
+                    key={pack.id}
+                    className="flex items-center justify-between text-xs text-bolt-elements-textSecondary"
+                  >
+                    <span>{dollars(pack.remainingCents)} remaining</span>
+                    <span>
+                      {pack.expiresAt ? `Expires ${new Date(pack.expiresAt).toLocaleDateString()}` : 'No expiry'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+          {credits.ledger && credits.ledger.length ? (
+            <div className="mt-4">
+              <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Credit history</h3>
+              <ActivityList
+                items={credits.ledger.slice(0, 8).map((entry) => ({
+                  title: `${entry.deltaCents >= 0 ? '+' : '-'}${dollars(Math.abs(entry.deltaCents))} — ${entry.kind.toLowerCase()}`,
+                  detail: `${entry.reason ?? ''}${entry.createdAt ? ` · ${new Date(entry.createdAt).toLocaleString()}` : ''}`,
+                  icon: CreditCard,
+                }))}
+              />
+            </div>
+          ) : null}
           <div className="mt-4">
             <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Recent agent checkpoints</h3>
             <ActivityList
