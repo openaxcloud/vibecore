@@ -220,18 +220,25 @@ const inlineThemeCode = stripIndents`
 
     /*
      * Unified precedence (must mirror resolveInitialTheme in
-     * app/lib/stores/theme.ts): shared cookie -> per-origin localStorage ->
-     * OS prefers-color-scheme -> light default. Marketing routes no longer force
-     * light — the shared preference governs every surface so the theme stays the
-     * same across e-code.ai, app.e-code.ai and the IDE.
+     * app/lib/stores/theme.ts): read the stored PREFERENCE (light|dark|system)
+     * from the shared cookie, else per-origin localStorage; an explicit
+     * light/dark applies as-is, system (or nothing stored) follows the OS
+     * prefers-color-scheme. Marketing routes no longer force light — the shared
+     * preference governs every surface so the theme stays the same across
+     * e-code.ai, app.e-code.ai and the IDE.
      */
-    let theme = readThemeCookie();
-
-    if (theme !== 'dark' && theme !== 'light') {
-      theme = readPersistedTheme();
+    function asPreference(value) {
+      return value === 'light' || value === 'dark' || value === 'system' ? value : null;
     }
 
-    if (theme !== 'dark' && theme !== 'light') {
+    const preference = asPreference(readThemeCookie()) || asPreference(readPersistedTheme());
+
+    let theme;
+
+    if (preference === 'light' || preference === 'dark') {
+      theme = preference;
+    } else {
+      // system preference (or nothing stored) follows the OS.
       theme = prefersDarkScheme() ? 'dark' : 'light';
     }
 
@@ -520,7 +527,7 @@ function GlobalRouteLoader() {
 
 import { logStore } from './lib/stores/logs';
 import { reconcileMarketingChrome } from './lib/stores/marketing-chrome';
-import { applyThemeToDocument, isPublicMarketingPath, themeStore } from './lib/stores/theme';
+import { applyThemeToDocument, initSystemThemeSync, isPublicMarketingPath, themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 
 function clearMarketingPageServiceWorkerState() {
@@ -553,6 +560,13 @@ export default function App() {
   useEffect(() => {
     applyThemeToDocument(theme);
   }, [theme]);
+
+  /*
+   * While the preference is `system`, track the OS colour-scheme live so the app
+   * flips the moment the user changes their OS theme (Replit-parity). No-op for
+   * explicit light/dark. Mounted once for the whole app.
+   */
+  useEffect(() => initSystemThemeSync(), []);
 
   /*
    * Re-apply (or clear) the marketing-only document chrome on every SPA

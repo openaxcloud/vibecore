@@ -1,12 +1,12 @@
 import { useStore } from '@nanostores/react';
 import { Minus, Plus } from 'lucide-react';
+import { ThemePreferenceControl } from '~/components/ui/ThemePreferenceControl';
 import {
   editorSettingsStore,
   resetEditorSettings,
   setEditorSettings,
   type EditorSettings,
 } from '~/lib/stores/editor-settings';
-import { themeStore, toggleTheme } from '~/lib/stores/theme';
 
 /*
  * Workspace Settings — the editor/workspace preferences page (Replit "Workspace
@@ -52,7 +52,6 @@ function ToggleRow({
 
 export function WorkspaceSettings() {
   const editor = useStore(editorSettingsStore);
-  const theme = useStore(themeStore);
 
   const patch = (next: Partial<EditorSettings>) => setEditorSettings(next);
 
@@ -115,17 +114,11 @@ export function WorkspaceSettings() {
         </button>
       </Section>
 
-      <Section title="Appearance" description="Theme for the workspace.">
-        <label className="flex items-center justify-between gap-3 text-[13px] text-bolt-elements-textPrimary">
+      <Section title="Appearance" description="Theme for the workspace. System follows your device setting.">
+        <div className="flex items-center justify-between gap-3 text-[13px] text-bolt-elements-textPrimary">
           <span>Theme</span>
-          <button
-            type="button"
-            onClick={() => toggleTheme()}
-            className="rounded-md border border-bolt-elements-borderColor px-3 py-1 text-[13px] capitalize hover:bg-bolt-elements-background-depth-3"
-          >
-            {theme}
-          </button>
-        </label>
+          <ThemePreferenceControl />
+        </div>
       </Section>
 
       <Section title="Layout" description="Panel arrangement.">

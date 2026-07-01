@@ -4,6 +4,16 @@ import { readThemeCookie, writeThemeCookie } from './theme-cookie';
 
 export type Theme = 'dark' | 'light';
 
+/**
+ * What the user actually *chooses* (Replit-parity Appearance control). `system`
+ * follows the OS `prefers-color-scheme` live. The applied theme (`themeStore`,
+ * always `light | dark`) is derived from this. The preference — not the resolved
+ * value — is what we persist to the cookie + localStorage.
+ */
+export type ThemePreference = Theme | 'system';
+
+export const THEME_PREFERENCES: ThemePreference[] = ['light', 'dark', 'system'];
+
 export const kTheme = 'bolt_theme';
 
 const PUBLIC_MARKETING_PATHS = new Set([
@@ -105,8 +115,59 @@ export const DEFAULT_THEME: Theme = 'light';
 
 export const themeStore = atom<Theme>(initStore());
 
+/**
+ * The user's chosen preference (`light | dark | system`). `themeStore` above is
+ * the *resolved* value applied to the DOM; this is what the Appearance control
+ * binds to and what we persist. Initialised from the same shared cookie /
+ * localStorage so it round-trips across every E-Code surface.
+ */
+export const themePreferenceStore = atom<ThemePreference>(initPreference());
+
+function initPreference(): ThemePreference {
+  if (import.meta.env.SSR) {
+    return 'system';
+  }
+
+  try {
+    return resolveThemePreference({ cookie: readThemeCookie(), stored: localStorage.getItem(kTheme) });
+  } catch {
+    return 'system';
+  }
+}
+
 function isTheme(value: string | null | undefined): value is Theme {
   return value === 'dark' || value === 'light';
+}
+
+export function isThemePreference(value: string | null | undefined): value is ThemePreference {
+  return value === 'dark' || value === 'light' || value === 'system';
+}
+
+/**
+ * Resolve the stored *preference* (`light | dark | system`) from the shared
+ * cookie / per-origin localStorage. Defaults to `system` when nothing is stored,
+ * which matches the existing "follow the OS when there's no explicit choice"
+ * behaviour — so it does not change what an unconfigured visitor already sees.
+ */
+export function resolveThemePreference(opts: { cookie?: string | null; stored?: string | null }): ThemePreference {
+  if (isThemePreference(opts.cookie)) {
+    return opts.cookie;
+  }
+
+  if (isThemePreference(opts.stored)) {
+    return opts.stored;
+  }
+
+  return 'system';
+}
+
+/** Collapse a preference to the concrete theme that gets applied to the DOM. */
+export function resolveAppliedTheme(preference: ThemePreference, prefersDarkScheme: boolean): Theme {
+  if (preference === 'light' || preference === 'dark') {
+    return preference;
+  }
+
+  return prefersDarkScheme ? 'dark' : 'light';
 }
 
 /**
@@ -132,12 +193,11 @@ export function resolveInitialTheme(opts: {
   attribute?: string | null;
   prefersDark?: boolean;
 }): Theme {
-  if (isTheme(opts.cookie)) {
-    return opts.cookie;
-  }
+  const preference = isThemePreference(opts.cookie) ? opts.cookie : isThemePreference(opts.stored) ? opts.stored : null;
 
-  if (isTheme(opts.stored)) {
-    return opts.stored;
+  // An explicit preference (including `system`) wins over the seeded attribute.
+  if (preference) {
+    return resolveAppliedTheme(preference, Boolean(opts.prefersDark));
   }
 
   if (isTheme(opts.attribute)) {
@@ -175,13 +235,15 @@ function initStore(): Theme {
       });
 
       /*
-       * Migrate forward: if the choice came from per-origin localStorage (or the
-       * OS preference) but the shared cookie was absent, write it now so the
-       * preference propagates to the other E-Code subdomains without requiring
-       * the visitor to re-toggle.
+       * Migrate an EXPLICIT preference (light/dark/system) from per-origin
+       * localStorage into the shared cookie so it propagates to the other E-Code
+       * subdomains without a re-toggle. Crucially we do NOT synthesise a cookie
+       * from the OS for an unconfigured visitor — that would freeze a `system`
+       * user to whatever their OS happened to be at first load. No stored
+       * preference ⇒ leave the cookie unset so `system` keeps following the OS.
        */
-      if (!isTheme(cookieTheme)) {
-        writeThemeCookie(resolved);
+      if (!isThemePreference(cookieTheme) && isThemePreference(persistedTheme)) {
+        writeThemeCookie(persistedTheme);
       }
 
       return resolved;
@@ -241,7 +303,7 @@ export function applyThemeToDocument(theme: Theme) {
  * caller before the DOM has been updated, otherwise the store/DOM desync and
  * the UI stays on the old theme. See toggleTheme().
  */
-export function persistTheme(theme: Theme): boolean {
+export function persistTheme(theme: ThemePreference): boolean {
   let ok = true;
 
   try {
@@ -275,23 +337,66 @@ export function persistTheme(theme: Theme): boolean {
   return ok;
 }
 
-export function toggleTheme() {
-  const currentTheme = themeStore.get();
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+/**
+ * Apply and persist an explicit user preference (`light | dark | system`). This
+ * is the single entry point behind the Appearance control and the quick toggle.
+ * When `system`, the applied theme tracks the OS; `initSystemThemeSync()` keeps
+ * it live as the OS flips.
+ */
+export function setThemePreference(preference: ThemePreference) {
+  const applied = resolveAppliedTheme(preference, prefersDark());
 
-  // Update the theme store
-  themeStore.set(newTheme);
+  themePreferenceStore.set(preference);
+  themeStore.set(applied);
 
   /*
-   * Update the HTML theme hooks used by both CSS variables and Tailwind dark
-   * variants BEFORE persisting. localStorage writes can throw (Safari Private
-   * Browsing / QuotaExceededError); doing the DOM update first guarantees the
-   * UI actually changes even when persistence fails.
+   * Update the DOM BEFORE persisting. localStorage writes can throw (Safari
+   * Private Browsing / QuotaExceededError); doing the DOM update first guarantees
+   * the UI actually changes even when persistence fails.
    */
-  applyThemeToDocument(newTheme);
+  applyThemeToDocument(applied);
 
-  // Persist (best-effort — never throws past here).
-  persistTheme(newTheme);
+  // Persist the PREFERENCE (not the resolved value) so `system` round-trips.
+  persistTheme(preference);
 
-  logStore.logSystem(`Theme changed to ${newTheme} mode`);
+  logStore.logSystem(`Theme preference set to ${preference} (applied ${applied})`);
+}
+
+export function toggleTheme() {
+  // The quick sun/moon toggle picks an explicit light/dark (leaving `system`).
+  setThemePreference(themeStore.get() === 'dark' ? 'light' : 'dark');
+}
+
+/**
+ * Keep the applied theme in sync with the OS while the preference is `system`.
+ * Call once on the client (root App effect); returns a cleanup fn. No-op on the
+ * server / where matchMedia is unavailable.
+ */
+export function initSystemThemeSync(): () => void {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return () => undefined;
+  }
+
+  const media = window.matchMedia('(prefers-color-scheme: dark)');
+
+  const handler = () => {
+    if (themePreferenceStore.get() !== 'system') {
+      return;
+    }
+
+    const applied: Theme = media.matches ? 'dark' : 'light';
+    themeStore.set(applied);
+    applyThemeToDocument(applied);
+  };
+
+  // Safari < 14 only supports the deprecated addListener signature.
+  if (typeof media.addEventListener === 'function') {
+    media.addEventListener('change', handler);
+
+    return () => media.removeEventListener('change', handler);
+  }
+
+  media.addListener(handler);
+
+  return () => media.removeListener(handler);
 }
