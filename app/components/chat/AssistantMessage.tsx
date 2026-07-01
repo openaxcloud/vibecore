@@ -524,32 +524,95 @@ export const AssistantMessage = memo(
             </div>
           </div>
         </>
-        {agentPlan?.tasks?.length ? (
-          <div
-            className="bolt-agent-plan my-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
-            data-testid="agent-plan-panel"
-          >
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
-              <span className="i-ph:list-checks text-bolt-elements-item-contentAccent" aria-hidden />
-              <span>Plan</span>
-              <span className="[margin-inline-start:auto] text-[11px] font-normal text-bolt-elements-textSecondary">
-                {agentPlan.tasks.length} task{agentPlan.tasks.length === 1 ? '' : 's'} ·{' '}
-                {new Set(agentPlan.tasks.map((task) => task.roleId)).size} agents
-              </span>
-            </div>
-            <ol className="space-y-1">
-              {agentPlan.tasks.map((task, index) => (
-                <li key={`${task.roleId}-${index}`} className="flex min-w-0 items-start gap-2 text-xs">
-                  <span className="mt-[1px] text-bolt-elements-textTertiary">{index + 1}.</span>
-                  <span className="rounded bg-bolt-elements-background-depth-2 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-bolt-elements-item-contentAccent">
-                    {task.roleId}
-                  </span>
-                  <span className="min-w-0 flex-1 break-words text-bolt-elements-textSecondary">{task.title}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        ) : null}
+        {agentPlan?.tasks?.length
+          ? (() => {
+              /*
+               * Live plan status: correlate each planned task with the matching
+               * specialist lane's state (same data the "Parallel agents" panel
+               * uses) so the checklist lights up pending → running → done as the
+               * agents execute — instead of a static list. Only when we actually
+               * have lane data (parallel-subagents run); otherwise the plan is
+               * just a proposal and we show plain numbered steps.
+               */
+              const hasLaneData = Boolean(agentLaneStreams?.length || agentExecution);
+
+              const stateForRole = (roleId: (typeof agentPlan.tasks)[number]['roleId']) => {
+                if (!hasLaneData) {
+                  return undefined;
+                }
+
+                const result = agentExecution?.results.find((r) => r.roleId === roleId);
+                const stream = agentLaneStreams?.find((lane) => lane.roleId === roleId);
+
+                return resolveLaneState({
+                  resultStatus: result?.status,
+                  streamStatus: stream?.status,
+                  hasExecution: Boolean(agentExecution),
+                  isStreaming,
+                });
+              };
+
+              const iconForState = (state: ReturnType<typeof stateForRole>) =>
+                state === 'running'
+                  ? 'i-ph:circle-notch animate-spin text-bolt-elements-item-contentAccent'
+                  : state === 'complete'
+                    ? 'i-ph:check-circle text-emerald-500'
+                    : state === 'partial'
+                      ? 'i-ph:warning-circle text-amber-500'
+                      : state === 'failed'
+                        ? 'i-ph:x-circle text-red-500'
+                        : 'i-ph:circle text-bolt-elements-textTertiary';
+
+              const completed = hasLaneData
+                ? agentPlan.tasks.filter((task) => stateForRole(task.roleId) === 'complete').length
+                : 0;
+
+              return (
+                <div
+                  className="bolt-agent-plan my-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
+                  data-testid="agent-plan-panel"
+                >
+                  <div className="mb-2 flex items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
+                    <span className="i-ph:list-checks text-bolt-elements-item-contentAccent" aria-hidden />
+                    <span>Plan</span>
+                    <span className="[margin-inline-start:auto] text-[11px] font-normal text-bolt-elements-textSecondary">
+                      {hasLaneData
+                        ? `${completed}/${agentPlan.tasks.length} done`
+                        : `${agentPlan.tasks.length} task${agentPlan.tasks.length === 1 ? '' : 's'} · ${
+                            new Set(agentPlan.tasks.map((task) => task.roleId)).size
+                          } agents`}
+                    </span>
+                  </div>
+                  <ol className="space-y-1">
+                    {agentPlan.tasks.map((task, index) => {
+                      const state = stateForRole(task.roleId);
+
+                      return (
+                        <li
+                          key={`${task.roleId}-${index}`}
+                          className="flex min-w-0 items-start gap-2 text-xs"
+                          data-testid={`agent-plan-task-${index}`}
+                          data-state={state ?? 'proposed'}
+                        >
+                          {state ? (
+                            <span className={`mt-[1px] shrink-0 ${iconForState(state)}`} aria-label={state} />
+                          ) : (
+                            <span className="mt-[1px] shrink-0 text-bolt-elements-textTertiary">{index + 1}.</span>
+                          )}
+                          <span className="rounded bg-bolt-elements-background-depth-2 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-bolt-elements-item-contentAccent">
+                            {task.roleId}
+                          </span>
+                          <span className="min-w-0 flex-1 break-words text-bolt-elements-textSecondary">
+                            {task.title}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
+              );
+            })()
+          : null}
         {((agentOrchestration?.mode === 'parallel-subagents' && agentOrchestration.roles.length > 0) ||
           agentLaneStreams?.length) &&
           lanePanelRoles.length > 0 && (
