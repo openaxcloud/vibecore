@@ -425,6 +425,10 @@ export class TestApiStore implements ApiStore {
     return true;
   }
 
+  async countUnusedRecoveryCodes(userId: string) {
+    return [...this.recoveryCodes.values()].filter((item) => item.userId === userId && !item.usedAt).length;
+  }
+
   async createOrganization(input: { name: string; slug: string; ownerUserId: string }) {
     const org = { id: id('org'), slug: input.slug || slugify(input.name), name: input.name, createdAt: now() };
     this.organizations.set(org.id, org);

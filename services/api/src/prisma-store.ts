@@ -582,6 +582,10 @@ export class PrismaApiStore implements ApiStore {
     return result.count > 0;
   }
 
+  async countUnusedRecoveryCodes(userId: string) {
+    return this.prisma.mfaRecoveryCode.count({ where: { userId, usedAt: null } });
+  }
+
   async createOrganization(input: { name: string; slug: string; ownerUserId: string }) {
     const ownerRole = await this.ensureRole('owner');
 
