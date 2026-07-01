@@ -42,6 +42,7 @@ export interface CatalogEntryView {
   installCount: number;
   featured: boolean;
   verified: boolean;
+  featuredForIdePanel: boolean;
   publishedAt: string;
   updatedAt: string;
 }
@@ -97,6 +98,55 @@ export const installInputSchema = z.object({
   config: z.record(z.unknown()),
   organizationId: z.string().min(1).optional(),
 });
+
+const slugPattern = /^[a-z0-9][a-z0-9-]*$/;
+
+/*
+ * Admin catalog write schemas. `configTemplate` / `configSchema` are stored
+ * verbatim (they drive install-time validation via validateConfigAgainstSchema),
+ * so we only enforce the JSON-object envelope here. `slug` is immutable after
+ * creation (installs reference the entry by id; the slug is the public handle).
+ */
+export const adminCatalogCreateSchema = z.object({
+  slug: z.string().min(1).max(100).regex(slugPattern, {
+    message: 'slug must be lowercase alphanumeric with dashes',
+  }),
+  name: z.string().min(1).max(120),
+  description: z.string().min(1).max(2000),
+  domain: z.enum(MCP_DOMAINS),
+  tags: z.array(z.string().min(1).max(40)).max(20).default([]),
+  author: z.string().min(1).max(120),
+  homepageUrl: z.string().url().max(500).optional().nullable(),
+  iconUrl: z.string().url().max(500).optional().nullable(),
+  version: z.string().min(1).max(40),
+  transport: z.enum(MCP_TRANSPORTS),
+  configTemplate: z.record(z.unknown()).default({}),
+  configSchema: z.record(z.unknown()).default({}),
+  featured: z.boolean().optional(),
+  verified: z.boolean().optional(),
+  featuredForIdePanel: z.boolean().optional(),
+});
+
+export const adminCatalogUpdateSchema = z
+  .object({
+    name: z.string().min(1).max(120).optional(),
+    description: z.string().min(1).max(2000).optional(),
+    domain: z.enum(MCP_DOMAINS).optional(),
+    tags: z.array(z.string().min(1).max(40)).max(20).optional(),
+    author: z.string().min(1).max(120).optional(),
+    homepageUrl: z.string().url().max(500).nullable().optional(),
+    iconUrl: z.string().url().max(500).nullable().optional(),
+    version: z.string().min(1).max(40).optional(),
+    transport: z.enum(MCP_TRANSPORTS).optional(),
+    configTemplate: z.record(z.unknown()).optional(),
+    configSchema: z.record(z.unknown()).optional(),
+    featured: z.boolean().optional(),
+    verified: z.boolean().optional(),
+    featuredForIdePanel: z.boolean().optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, { message: 'patch must include at least one field' });
+
+export const adminCatalogParamsSchema = z.object({ id: z.string().min(1).max(64) });
 
 export const installParamsSchema = z.object({ installId: z.string().min(1).max(64) });
 
@@ -245,7 +295,8 @@ function foldIpv4MappedIpv6(host: string): string | undefined {
 
   // IPv6 transition forms embedding an IPv4: NAT64 (64:ff9b::a9fe:a9fe) and 6to4
   // (2002:a9fe:a9fe::) — both → 169.254.169.254. Fold so the blocklist catches them.
-  const transition = host.match(/^64:ff9b::([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i) || host.match(/^2002:([0-9a-f]{1,4}):([0-9a-f]{1,4})/i);
+  const transition =
+    host.match(/^64:ff9b::([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i) || host.match(/^2002:([0-9a-f]{1,4}):([0-9a-f]{1,4})/i);
 
   if (transition) {
     const hi = parseInt(transition[1], 16);
@@ -469,6 +520,111 @@ export interface InstallPatch {
   patch: { enabled?: boolean; alias?: string; config?: Record<string, unknown> };
 }
 
+export interface AdminCatalogCreateInput {
+  slug: string;
+  name: string;
+  description: string;
+  domain: McpDomainKey;
+  tags?: string[];
+  author: string;
+  homepageUrl?: string | null;
+  iconUrl?: string | null;
+  version: string;
+  transport: McpTransportKey;
+  configTemplate?: Record<string, unknown>;
+  configSchema?: Record<string, unknown>;
+  featured?: boolean;
+  verified?: boolean;
+  featuredForIdePanel?: boolean;
+}
+
+export interface AdminCatalogUpdateInput {
+  name?: string;
+  description?: string;
+  domain?: McpDomainKey;
+  tags?: string[];
+  author?: string;
+  homepageUrl?: string | null;
+  iconUrl?: string | null;
+  version?: string;
+  transport?: McpTransportKey;
+  configTemplate?: Record<string, unknown>;
+  configSchema?: Record<string, unknown>;
+  featured?: boolean;
+  verified?: boolean;
+  featuredForIdePanel?: boolean;
+}
+
+/*
+ * Per-org MCP policy, persisted by REUSING the existing
+ * OrganizationConnectorPolicy table (no new migration). Each policied catalog
+ * entry gets one row keyed by `provider = "mcp:<mode>:<slug>"`:
+ *   - forced  ("mcp:force:"): the org MUST have this entry installed — a
+ *     governance/compliance MCP the admin mandates.
+ *   - allowed ("mcp:allow:"): the entry is on the org allow-list. When an
+ *     allow-list exists, ONLY allow-listed (or forced) entries may be installed
+ *     by org members.
+ *   - blocked ("mcp:block:", enabled=false): the entry is explicitly denied.
+ * Absence of any "mcp:*" row means "no allow-list configured" → all catalog
+ * entries are installable (default-open), matching today's behaviour.
+ */
+export type McpOrgPolicyMode = 'forced' | 'allowed' | 'blocked';
+
+export interface McpOrgPolicyEntry {
+  slug: string;
+  name: string;
+  domain: McpDomainKey;
+  mode: McpOrgPolicyMode;
+}
+
+export interface McpOrgPolicyView {
+  organizationId: string;
+  /** True once any allow/forced row exists → install is restricted to the list. */
+  allowListEnforced: boolean;
+  entries: McpOrgPolicyEntry[];
+}
+
+export const MCP_POLICY_PROVIDER_PREFIX = 'mcp:';
+
+function policyProviderKey(slug: string, mode: McpOrgPolicyMode): string {
+  const kind = mode === 'forced' ? 'force' : mode === 'blocked' ? 'block' : 'allow';
+  return `${MCP_POLICY_PROVIDER_PREFIX}${kind}:${slug}`;
+}
+
+function parsePolicyProvider(provider: string): { slug: string; mode: McpOrgPolicyMode } | null {
+  if (!provider.startsWith(MCP_POLICY_PROVIDER_PREFIX)) {
+    return null;
+  }
+
+  const rest = provider.slice(MCP_POLICY_PROVIDER_PREFIX.length);
+  const sep = rest.indexOf(':');
+
+  if (sep < 0) {
+    return null;
+  }
+
+  const kind = rest.slice(0, sep);
+  const slug = rest.slice(sep + 1);
+
+  if (!slug) {
+    return null;
+  }
+
+  const mode: McpOrgPolicyMode | null =
+    kind === 'force' ? 'forced' : kind === 'block' ? 'blocked' : kind === 'allow' ? 'allowed' : null;
+
+  return mode ? { slug, mode } : null;
+}
+
+export const adminOrgPolicySetSchema = z.object({
+  slug: z.string().min(1).max(100),
+  mode: z.enum(['forced', 'allowed', 'blocked']),
+});
+
+export const adminOrgPolicyClearSchema = z.object({
+  slug: z.string().min(1).max(100),
+});
+
 export interface McpMarketplaceServiceDeps {
   prisma: DatabaseClient;
 }
@@ -541,6 +697,11 @@ export class McpMarketplaceService {
     }
 
     assertInstallConfigUrlAllowed(input.config);
+
+    // Enforce org MCP policy for org-scoped installs (allow-list / block).
+    if (input.organizationId) {
+      await this.assertOrgInstallAllowed(input.organizationId, input.catalogEntrySlug);
+    }
 
     const conflict = await this.deps.prisma.mcpInstall.findUnique({
       where: { userId_alias: { userId: input.userId, alias: input.alias } },
@@ -718,6 +879,255 @@ export class McpMarketplaceService {
     return { config: { mcpServers }, maxLLMSteps: row.maxLLMSteps };
   }
 
+  // --- Admin catalog management ---------------------------------------------
+
+  /** Full catalog listing for the admin console (no cursor; ordered by name). */
+  async listCatalogForAdmin(): Promise<CatalogEntryView[]> {
+    const entries = await this.deps.prisma.mcpCatalogEntry.findMany({
+      orderBy: [{ name: 'asc' }],
+    });
+
+    return entries.map((entry) => this.toEntryView(entry));
+  }
+
+  async getCatalogEntryById(id: string): Promise<CatalogEntryView> {
+    const entry = await this.deps.prisma.mcpCatalogEntry.findUnique({ where: { id } });
+
+    if (!entry) {
+      throw new McpMarketplaceError('Catalog entry not found', 404, 'MCP_CATALOG_NOT_FOUND');
+    }
+
+    return this.toEntryView(entry);
+  }
+
+  async createCatalogEntry(input: AdminCatalogCreateInput): Promise<CatalogEntryView> {
+    const existing = await this.deps.prisma.mcpCatalogEntry.findUnique({ where: { slug: input.slug } });
+
+    if (existing) {
+      throw new McpMarketplaceError(`Slug '${input.slug}' is already in use`, 409, 'MCP_CATALOG_SLUG_CONFLICT');
+    }
+
+    const created = await this.deps.prisma.mcpCatalogEntry.create({
+      data: {
+        slug: input.slug,
+        name: input.name,
+        description: input.description,
+        domain: input.domain,
+        tags: input.tags ?? [],
+        author: input.author,
+        homepageUrl: input.homepageUrl ?? null,
+        iconUrl: input.iconUrl ?? null,
+        version: input.version,
+        transport: input.transport,
+        configTemplate: (input.configTemplate ?? {}) as never,
+        configSchema: (input.configSchema ?? {}) as never,
+        ...(input.featured !== undefined ? { featured: input.featured } : {}),
+        ...(input.verified !== undefined ? { verified: input.verified } : {}),
+        ...(input.featuredForIdePanel !== undefined ? { featuredForIdePanel: input.featuredForIdePanel } : {}),
+      },
+    });
+
+    return this.toEntryView(created);
+  }
+
+  async updateCatalogEntry(id: string, patch: AdminCatalogUpdateInput): Promise<CatalogEntryView> {
+    const existing = await this.deps.prisma.mcpCatalogEntry.findUnique({ where: { id } });
+
+    if (!existing) {
+      throw new McpMarketplaceError('Catalog entry not found', 404, 'MCP_CATALOG_NOT_FOUND');
+    }
+
+    const updated = await this.deps.prisma.mcpCatalogEntry.update({
+      where: { id },
+      data: {
+        ...(patch.name !== undefined ? { name: patch.name } : {}),
+        ...(patch.description !== undefined ? { description: patch.description } : {}),
+        ...(patch.domain !== undefined ? { domain: patch.domain } : {}),
+        ...(patch.tags !== undefined ? { tags: patch.tags } : {}),
+        ...(patch.author !== undefined ? { author: patch.author } : {}),
+        ...(patch.homepageUrl !== undefined ? { homepageUrl: patch.homepageUrl } : {}),
+        ...(patch.iconUrl !== undefined ? { iconUrl: patch.iconUrl } : {}),
+        ...(patch.version !== undefined ? { version: patch.version } : {}),
+        ...(patch.transport !== undefined ? { transport: patch.transport } : {}),
+        ...(patch.configTemplate !== undefined ? { configTemplate: patch.configTemplate as never } : {}),
+        ...(patch.configSchema !== undefined ? { configSchema: patch.configSchema as never } : {}),
+        ...(patch.featured !== undefined ? { featured: patch.featured } : {}),
+        ...(patch.verified !== undefined ? { verified: patch.verified } : {}),
+        ...(patch.featuredForIdePanel !== undefined ? { featuredForIdePanel: patch.featuredForIdePanel } : {}),
+      },
+    });
+
+    return this.toEntryView(updated);
+  }
+
+  async deleteCatalogEntry(id: string): Promise<{ id: string; slug: string; installCount: number }> {
+    const existing = await this.deps.prisma.mcpCatalogEntry.findUnique({
+      where: { id },
+      select: { id: true, slug: true, installCount: true },
+    });
+
+    if (!existing) {
+      throw new McpMarketplaceError('Catalog entry not found', 404, 'MCP_CATALOG_NOT_FOUND');
+    }
+
+    // McpInstall.catalogEntry is onDelete:Cascade, so any org/user installs of
+    // this entry are removed with it. That is the intended "hard unpublish".
+    await this.deps.prisma.mcpCatalogEntry.delete({ where: { id } });
+
+    return existing;
+  }
+
+  // --- Org MCP policy (reuses OrganizationConnectorPolicy) -------------------
+
+  /*
+   * Install-time gate: reject an org-scoped install that the org policy forbids.
+   * Rules: a blocked entry is always denied; if the org has ANY allow-listed or
+   * forced entry (i.e. an allow-list exists), only allow-listed/forced entries
+   * may be installed. With no policy rows the org is default-open.
+   */
+  private async assertOrgInstallAllowed(organizationId: string, slug: string): Promise<void> {
+    const rows = await this.deps.prisma.organizationConnectorPolicy.findMany({
+      where: { organizationId, provider: { startsWith: MCP_POLICY_PROVIDER_PREFIX } },
+      select: { provider: true },
+    });
+
+    if (rows.length === 0) {
+      return;
+    }
+
+    let allowListExists = false;
+    let thisAllowedOrForced = false;
+
+    for (const row of rows) {
+      const info = parsePolicyProvider(row.provider);
+
+      if (!info) {
+        continue;
+      }
+
+      if (info.mode === 'blocked' && info.slug === slug) {
+        throw new McpMarketplaceError(
+          `MCP server '${slug}' is blocked by your organization's policy`,
+          403,
+          'MCP_ORG_POLICY_BLOCKED',
+        );
+      }
+
+      if (info.mode === 'allowed' || info.mode === 'forced') {
+        allowListExists = true;
+
+        if (info.slug === slug) {
+          thisAllowedOrForced = true;
+        }
+      }
+    }
+
+    if (allowListExists && !thisAllowedOrForced) {
+      throw new McpMarketplaceError(
+        `MCP server '${slug}' is not on your organization's allow-list`,
+        403,
+        'MCP_ORG_POLICY_NOT_ALLOWED',
+      );
+    }
+  }
+
+  async getOrgPolicy(organizationId: string): Promise<McpOrgPolicyView> {
+    const rows = await this.deps.prisma.organizationConnectorPolicy.findMany({
+      where: { organizationId, provider: { startsWith: MCP_POLICY_PROVIDER_PREFIX } },
+    });
+
+    const parsed = rows
+      .map((row) => parsePolicyProvider(row.provider))
+      .filter((value): value is { slug: string; mode: McpOrgPolicyMode } => value !== null);
+
+    // Resolve entry names/domains for display (skip rows whose entry was deleted).
+    const slugs = [...new Set(parsed.map((p) => p.slug))];
+    const entries =
+      slugs.length > 0
+        ? await this.deps.prisma.mcpCatalogEntry.findMany({
+            where: { slug: { in: slugs } },
+            select: { slug: true, name: true, domain: true },
+          })
+        : [];
+    const bySlug = new Map(entries.map((e) => [e.slug, e]));
+
+    const list: McpOrgPolicyEntry[] = parsed
+      .map((p) => {
+        const entry = bySlug.get(p.slug);
+        return entry ? { slug: p.slug, name: entry.name, domain: entry.domain as McpDomainKey, mode: p.mode } : null;
+      })
+      .filter((value): value is McpOrgPolicyEntry => value !== null)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return {
+      organizationId,
+      allowListEnforced: list.some((entry) => entry.mode === 'allowed' || entry.mode === 'forced'),
+      entries: list,
+    };
+  }
+
+  /**
+   * Set the policy for a single catalog entry within an org. A slug has at most
+   * ONE policy row; changing the mode replaces the prior row (the provider key
+   * encodes the mode, so we clear any existing mode-keyed rows first).
+   */
+  async setOrgPolicy(input: {
+    organizationId: string;
+    slug: string;
+    mode: McpOrgPolicyMode;
+  }): Promise<McpOrgPolicyView> {
+    const entry = await this.deps.prisma.mcpCatalogEntry.findUnique({
+      where: { slug: input.slug },
+      select: { id: true },
+    });
+
+    if (!entry) {
+      throw new McpMarketplaceError('Catalog entry not found', 404, 'MCP_CATALOG_NOT_FOUND');
+    }
+
+    const provider = policyProviderKey(input.slug, input.mode);
+
+    await this.deps.prisma.$transaction(async (tx) => {
+      // Remove any prior policy row(s) for this slug regardless of mode.
+      for (const mode of ['forced', 'allowed', 'blocked'] as McpOrgPolicyMode[]) {
+        if (mode === input.mode) {
+          continue;
+        }
+
+        await tx.organizationConnectorPolicy.deleteMany({
+          where: { organizationId: input.organizationId, provider: policyProviderKey(input.slug, mode) },
+        });
+      }
+
+      await tx.organizationConnectorPolicy.upsert({
+        where: { organizationId_provider: { organizationId: input.organizationId, provider } },
+        create: {
+          organizationId: input.organizationId,
+          provider,
+          enabled: input.mode !== 'blocked',
+          allowedRoleKeys: [],
+        },
+        update: { enabled: input.mode !== 'blocked' },
+      });
+    });
+
+    return this.getOrgPolicy(input.organizationId);
+  }
+
+  /** Remove any MCP policy for a slug (back to default-open for that entry). */
+  async clearOrgPolicy(input: { organizationId: string; slug: string }): Promise<McpOrgPolicyView> {
+    await this.deps.prisma.organizationConnectorPolicy.deleteMany({
+      where: {
+        organizationId: input.organizationId,
+        provider: {
+          in: (['forced', 'allowed', 'blocked'] as McpOrgPolicyMode[]).map((m) => policyProviderKey(input.slug, m)),
+        },
+      },
+    });
+
+    return this.getOrgPolicy(input.organizationId);
+  }
+
   private toEntryView = (entry: {
     id: string;
     slug: string;
@@ -735,6 +1145,7 @@ export class McpMarketplaceService {
     installCount: number;
     featured: boolean;
     verified: boolean;
+    featuredForIdePanel?: boolean;
     publishedAt: Date;
     updatedAt: Date;
   }): CatalogEntryView => ({
@@ -754,6 +1165,7 @@ export class McpMarketplaceService {
     installCount: entry.installCount,
     featured: entry.featured,
     verified: entry.verified,
+    featuredForIdePanel: entry.featuredForIdePanel ?? false,
     publishedAt: entry.publishedAt.toISOString(),
     updatedAt: entry.updatedAt.toISOString(),
   });

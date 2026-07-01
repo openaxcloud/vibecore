@@ -165,6 +165,11 @@ import {
   installParamsSchema,
   installPatchSchema,
   mcpUserConfigSchema,
+  adminCatalogCreateSchema,
+  adminCatalogUpdateSchema,
+  adminCatalogParamsSchema,
+  adminOrgPolicySetSchema,
+  adminOrgPolicyClearSchema,
   createDefaultMcpMarketplaceService,
 } from './mcp-marketplace.js';
 import {
@@ -10477,6 +10482,211 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
   );
 
+  /*
+   * --- Admin MCP catalog management -----------------------------------------
+   * Platform-admin CRUD over the marketplace catalog (the read side is
+   * /mcp/catalog*). Reuses the McpMarketplaceService so install-time config
+   * validation stays consistent. Creative/destructive writes require a recent
+   * admin re-auth (step-up), mirroring the other /admin write routes.
+   */
+  app.get('/admin/mcp/catalog', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    try {
+      return { entries: await service.listCatalogForAdmin() };
+    } catch (error) {
+      const mapped = mapMcpMarketplaceError(error);
+
+      if (mapped) {
+        return reply.code(mapped.statusCode).send(mapped.payload);
+      }
+
+      throw error;
+    }
+  });
+
+  app.post('/admin/mcp/catalog', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const body = parse(adminCatalogCreateSchema, request.body ?? {});
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    try {
+      const entry = await service.createCatalogEntry(body);
+
+      await audit(request, store, {
+        action: 'admin.mcp_catalog.create',
+        resourceType: 'mcpCatalogEntry',
+        resourceId: entry.id,
+        metadata: { slug: entry.slug, domain: entry.domain },
+      });
+
+      return reply.code(201).send({ entry });
+    } catch (error) {
+      const mapped = mapMcpMarketplaceError(error);
+
+      if (mapped) {
+        return reply.code(mapped.statusCode).send(mapped.payload);
+      }
+
+      throw error;
+    }
+  });
+
+  app.patch('/admin/mcp/catalog/:id', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { id } = parse(adminCatalogParamsSchema, request.params);
+    const patch = parse(adminCatalogUpdateSchema, request.body ?? {});
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    try {
+      const entry = await service.updateCatalogEntry(id, patch);
+
+      await audit(request, store, {
+        action: 'admin.mcp_catalog.update',
+        resourceType: 'mcpCatalogEntry',
+        resourceId: entry.id,
+        metadata: {
+          slug: entry.slug,
+          featured: entry.featured,
+          verified: entry.verified,
+          featuredForIdePanel: entry.featuredForIdePanel,
+          fields: Object.keys(patch),
+        },
+      });
+
+      return { entry };
+    } catch (error) {
+      const mapped = mapMcpMarketplaceError(error);
+
+      if (mapped) {
+        return reply.code(mapped.statusCode).send(mapped.payload);
+      }
+
+      throw error;
+    }
+  });
+
+  app.delete('/admin/mcp/catalog/:id', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { id } = parse(adminCatalogParamsSchema, request.params);
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    try {
+      const removed = await service.deleteCatalogEntry(id);
+
+      await audit(request, store, {
+        action: 'admin.mcp_catalog.delete',
+        resourceType: 'mcpCatalogEntry',
+        resourceId: removed.id,
+        metadata: { slug: removed.slug, installsRemoved: removed.installCount },
+      });
+
+      return { entry: removed };
+    } catch (error) {
+      const mapped = mapMcpMarketplaceError(error);
+
+      if (mapped) {
+        return reply.code(mapped.statusCode).send(mapped.payload);
+      }
+
+      throw error;
+    }
+  });
+
+  /*
+   * --- Org-scoped MCP policy ------------------------------------------------
+   * Reuses OrganizationConnectorPolicy (provider = "mcp:<mode>:<slug>") so a
+   * platform admin can force-enable, allow-list or block a catalog entry for a
+   * specific org. Platform-admin gated; step-up on writes. The allow-list/block
+   * is enforced at install time in McpMarketplaceService.install.
+   */
+  app.get('/admin/orgs/:orgId/mcp-policy', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    const { orgId } = parse(z.object({ orgId: z.string().min(1).max(64) }), request.params);
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    try {
+      return { policy: await service.getOrgPolicy(orgId) };
+    } catch (error) {
+      const mapped = mapMcpMarketplaceError(error);
+
+      if (mapped) {
+        return reply.code(mapped.statusCode).send(mapped.payload);
+      }
+
+      throw error;
+    }
+  });
+
+  app.post('/admin/orgs/:orgId/mcp-policy', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { orgId } = parse(z.object({ orgId: z.string().min(1).max(64) }), request.params);
+    const body = parse(adminOrgPolicySetSchema, request.body ?? {});
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    try {
+      const policy = await service.setOrgPolicy({ organizationId: orgId, slug: body.slug, mode: body.mode });
+
+      await audit(request, store, {
+        organizationId: orgId,
+        action: 'admin.mcp_policy.set',
+        resourceType: 'organizationMcpPolicy',
+        resourceId: orgId,
+        metadata: { slug: body.slug, mode: body.mode },
+      });
+
+      return { policy };
+    } catch (error) {
+      const mapped = mapMcpMarketplaceError(error);
+
+      if (mapped) {
+        return reply.code(mapped.statusCode).send(mapped.payload);
+      }
+
+      throw error;
+    }
+  });
+
+  app.delete('/admin/orgs/:orgId/mcp-policy', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { orgId } = parse(z.object({ orgId: z.string().min(1).max(64) }), request.params);
+    const body = parse(adminOrgPolicyClearSchema, request.body ?? {});
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    try {
+      const policy = await service.clearOrgPolicy({ organizationId: orgId, slug: body.slug });
+
+      await audit(request, store, {
+        organizationId: orgId,
+        action: 'admin.mcp_policy.clear',
+        resourceType: 'organizationMcpPolicy',
+        resourceId: orgId,
+        metadata: { slug: body.slug },
+      });
+
+      return { policy };
+    } catch (error) {
+      const mapped = mapMcpMarketplaceError(error);
+
+      if (mapped) {
+        return reply.code(mapped.statusCode).send(mapped.payload);
+      }
+
+      throw error;
+    }
+  });
+
   app.patch('/agent-memory/:memoryId', async (request, reply) => {
     const { memoryId } = parse(agentMemoryParams, request.params);
     const body = parse(agentMemoryPatchSchema, request.body);
@@ -18724,9 +18934,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const end = new Date(subscription.currentPeriodEnd);
       periodEndIso = Number.isNaN(end.getTime()) ? undefined : end.toISOString();
     } else if (periodStart) {
-      periodEndIso = new Date(
-        Date.UTC(periodStart.getUTCFullYear(), periodStart.getUTCMonth() + 1, 1),
-      ).toISOString();
+      periodEndIso = new Date(Date.UTC(periodStart.getUTCFullYear(), periodStart.getUTCMonth() + 1, 1)).toISOString();
     }
 
     return {
@@ -21613,9 +21821,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const categories = [
       { key: 'agent', label: 'Agent', unit: 'checkpoints', quantity: checkpoints.length, costCents: agentCents },
-      { key: 'compute', label: 'Workspace compute', unit: 'compute units', quantity: computeUnits, costCents: computeCents },
+      {
+        key: 'compute',
+        label: 'Workspace compute',
+        unit: 'compute units',
+        quantity: computeUnits,
+        costCents: computeCents,
+      },
       { key: 'deployments', label: 'Deployments', unit: 'deploys', quantity: deployCount, costCents: 0 },
-      { key: 'objectStorage', label: 'Object storage', unit: 'GiB-months', quantity: objGiBMonths, costCents: objectCents },
+      {
+        key: 'objectStorage',
+        label: 'Object storage',
+        unit: 'GiB-months',
+        quantity: objGiBMonths,
+        costCents: objectCents,
+      },
       { key: 'database', label: 'Database', unit: 'GiB-months', quantity: dbGiBMonths, costCents: dbCents },
     ];
 
