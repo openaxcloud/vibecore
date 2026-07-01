@@ -13028,6 +13028,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
 
   // Replit App Storage parity: a per-bucket Objects | Settings view switch.
   const [view, setView] = useState<'objects' | 'settings'>('objects');
+  const [filter, setFilter] = useState('');
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -13241,6 +13242,16 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     return idx >= 0 ? trimmed.slice(0, idx + 1) : '';
   })();
 
+  // Client-side search/filter over the current prefix (Replit App Storage parity).
+  const normalizedFilter = filter.trim().toLowerCase();
+
+  const visibleFolders = normalizedFilter
+    ? folders.filter((folder) => folder.replace(prefix, '').toLowerCase().includes(normalizedFilter))
+    : folders;
+  const visibleObjects = normalizedFilter
+    ? objects.filter((object) => object.key.replace(prefix, '').toLowerCase().includes(normalizedFilter))
+    : objects;
+
   if (enabled === false) {
     return (
       <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
@@ -13382,9 +13393,19 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
               </div>
             ) : null}
 
-            {folders.length ? (
+            <input
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+              placeholder="Search this folder…"
+              autoCapitalize="none"
+              spellCheck={false}
+              aria-label="Search objects"
+              className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 text-xs text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+            />
+
+            {visibleFolders.length ? (
               <div className="flex flex-wrap gap-2">
-                {folders.map((folder) => (
+                {visibleFolders.map((folder) => (
                   <span key={folder} className="inline-flex items-center gap-1">
                     <button
                       type="button"
@@ -13407,9 +13428,9 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
               </div>
             ) : null}
 
-            {objects.length ? (
+            {visibleObjects.length ? (
               <div className="grid gap-1">
-                {objects.map((object) => (
+                {visibleObjects.map((object) => (
                   <div
                     key={object.key}
                     className="flex items-center justify-between gap-2 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs"
@@ -13446,7 +13467,13 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
               </div>
             ) : (
               <div className="bolt-project-empty-panel">
-                {loading ? 'Loading objects…' : prefix ? 'No objects under this prefix.' : 'The bucket is empty.'}
+                {loading
+                  ? 'Loading objects…'
+                  : normalizedFilter
+                    ? 'No objects match your search.'
+                    : prefix
+                      ? 'No objects under this prefix.'
+                      : 'The bucket is empty.'}
               </div>
             )}
 

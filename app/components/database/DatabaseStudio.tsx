@@ -84,6 +84,34 @@ function sqlLit(v: unknown): string {
   return `'${String(v).replace(/'/g, "''")}'`;
 }
 
+/*
+ * Serialize a result grid to RFC-4180 CSV (quote fields with comma/quote/newline;
+ * escape quotes by doubling). BigInts/objects fall back to String()/JSON.
+ */
+function toCsv(columns: string[], rows: unknown[][]): string {
+  const cell = (value: unknown): string => {
+    if (value == null) {
+      return '';
+    }
+
+    const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
+
+    return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  };
+
+  return [columns.map(cell).join(','), ...rows.map((row) => row.map(cell).join(','))].join('\n');
+}
+
+function downloadCsv(columns: string[], rows: unknown[][]): void {
+  const blob = new Blob([toCsv(columns, rows)], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = 'query-result.csv';
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 function normalizeRows(result: QueryResult): { columns: string[]; rows: unknown[][] } {
   const rows = result.rows ?? [];
 
@@ -249,6 +277,15 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                 {running ? 'Running…' : 'Run'}
               </button>
               <span className="text-[11px] text-bolt-elements-textTertiary">⌘/Ctrl + Enter</span>
+              {result && result.rows.length ? (
+                <button
+                  type="button"
+                  onClick={() => downloadCsv(result.columns, result.rows)}
+                  className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+                >
+                  Export CSV
+                </button>
+              ) : null}
               {selectedTable ? (
                 <>
                   <span className="mx-1 h-4 w-px bg-bolt-elements-borderColor" aria-hidden />
