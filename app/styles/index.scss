@@ -14089,7 +14089,7 @@ body :where(.lucide, svg[data-lucide]) {
   left: 8px;
   z-index: 30;
   display: flex;
-  max-height: min(620px, calc(100vh - 72px));
+  max-height: min(620px, calc(100dvh - 72px));
   min-height: 260px;
   flex-direction: column;
   border: 1px solid var(--vc-ide-border-visible);
@@ -19666,6 +19666,47 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
       0 24px 80px rgb(0 0 0 / 0.45);
     padding: 10px;
     transform: translateX(-50%) !important;
+  }
+
+  /*
+   * The agent mode dropdown (Agent/Assistant/Plan) is anchored absolute inside the
+   * composer scroll container, so it was clipped on mobile like the tools menu and
+   * power popover were. Lift it to the same fixed bottom-sheet treatment.
+   */
+  .bolt-responsive-ide-mobile .bolt-chatbox-mode-menu {
+    position: fixed !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: calc(var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
+    left: 50% !important;
+    z-index: 12022;
+    width: min(calc(100vw - 24px), var(--vc-mobile-sheet-max-width)) !important;
+    min-width: 0;
+    max-width: var(--vc-mobile-sheet-max-width);
+    max-height: min(64dvh, 520px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transform: translateX(-50%) !important;
+  }
+
+  /* "Edit & resend" on a user message is hover-only; reveal it on touch (no hover). */
+  .bolt-responsive-ide-mobile .bolt-user-message-edit {
+    opacity: 1 !important;
+  }
+
+  /* Touch-size the assistant message actions (copy/regenerate/fork/feedback), 26px -> 40px. */
+  .bolt-responsive-ide-mobile .bolt-assistant-message-action {
+    width: 40px;
+    height: 40px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-assistant-message-footer {
+    gap: 4px;
+  }
+
+  /* Agent context-bar "Prompt" shortcut to a 40px tap target. */
+  .bolt-responsive-ide-mobile .bolt-mobile-agent-context-bar button {
+    min-height: 40px;
   }
 
   .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu::before {

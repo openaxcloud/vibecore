@@ -545,6 +545,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 onStop={props.stopListening}
                 disabled={props.isStreaming}
                 triggerVariant="icon"
+                triggerClassName="bolt-chatbox-toolbar-button"
               />
             ) : null}
 
