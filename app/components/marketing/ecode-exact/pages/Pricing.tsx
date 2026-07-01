@@ -55,6 +55,8 @@ type ApiPlan = {
 };
 
 interface PricingTier {
+  /** Internal tier key (free/core/teams/enterprise) — used to route checkout. */
+  tierKey: string;
   name: string;
   description: string;
   monthlyPrice: number;
@@ -250,6 +252,7 @@ export default function Pricing() {
       const displayName = tierDisplayNames[tierKey] ?? tierKey;
 
       return {
+        tierKey,
         name: displayName,
         description: ui.description,
         monthlyPrice,
@@ -361,11 +364,19 @@ export default function Pricing() {
   const handleSelectPlan = (tier: PricingTier) => {
     if (tier.enterprise) {
       navigate('/contact-sales');
-    } else if (user) {
-      navigate('/subscribe');
-    } else {
-      navigate('/login');
+      return;
     }
+
+    if (tier.tierKey === 'free') {
+      navigate(user ? '/dashboard' : '/register');
+      return;
+    }
+
+    // Carry the selected plan + monthly/annual interval into the checkout flow so
+    // the annual (discounted) price the user is looking at is the one applied.
+    const interval = billingPeriod === 'yearly' ? 'annual' : 'monthly';
+    const target = `/subscribe?plan=${encodeURIComponent(tier.tierKey)}&interval=${interval}`;
+    navigate(user ? target : `/login?returnTo=${encodeURIComponent(target)}`);
   };
 
   // Show loading only if actually loading AND no error (use fallback on error)

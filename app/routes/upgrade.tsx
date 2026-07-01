@@ -1,5 +1,5 @@
-import type { MetaFunction } from 'react-router';
-import { Form, Link, useActionData } from 'react-router';
+import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
+import { Form, Link, useActionData, useLoaderData } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton, SelectField } from '~/components/enterprise/EnterpriseFormPage';
 import {
   apiErrorMessage,
@@ -14,6 +14,25 @@ import { isReauthRedirect } from '~/lib/route-reauth';
 
 export const meta: MetaFunction = () => [{ title: 'Upgrade - E-Code' }];
 
+// The public pricing page uses display-tier keys; map them to the checkout enum.
+function normalizePlanKey(raw: string | null): 'pro' | 'team' {
+  const key = (raw ?? '').toLowerCase();
+  if (key === 'team' || key === 'teams') {
+    return 'team';
+  }
+  // core/pro (and anything else) → 'pro'
+  return 'pro';
+}
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  const url = new URL(request.url);
+  const plan = normalizePlanKey(url.searchParams.get('plan'));
+  const interval = url.searchParams.get('interval') === 'annual' || url.searchParams.get('interval') === 'yearly'
+    ? 'annual'
+    : 'monthly';
+  return json({ plan, interval });
+}
+
 export async function action({ request }: EnterpriseActionArgs) {
   const organization = await firstOrganizationOrNull(request);
 
@@ -22,12 +41,15 @@ export async function action({ request }: EnterpriseActionArgs) {
   }
 
   const form = await request.formData();
+  const planKey = normalizePlanKey(String(form.get('planKey') ?? 'pro'));
+  const interval = String(form.get('interval') ?? 'monthly') === 'annual' ? 'annual' : 'monthly';
 
   try {
     const result = await apiRequest<{ checkoutUrl: string }>(request, `/orgs/${organization.id}/billing/checkout`, {
       method: 'POST',
       body: JSON.stringify({
-        planKey: String(form.get('planKey') ?? 'pro'),
+        planKey,
+        interval,
         successUrl: new URL('/billing', request.url).toString(),
         cancelUrl: new URL('/upgrade', request.url).toString(),
       }),
@@ -65,6 +87,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 
 export default function UpgradePage() {
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
+  const { plan, interval } = useLoaderData<typeof loader>();
 
   return (
     <EnterpriseFormPage
@@ -76,11 +99,25 @@ export default function UpgradePage() {
         <SelectField
           label="Plan"
           name="planKey"
+          defaultValue={plan}
           options={[
-            { value: 'pro', label: 'Pro' },
-            { value: 'team', label: 'Team' },
+            { value: 'pro', label: 'Core' },
+            { value: 'team', label: 'Pro' },
           ]}
         />
+        <fieldset className="space-y-1">
+          <legend className="text-sm font-medium text-bolt-elements-textPrimary">Billing interval</legend>
+          <div className="flex gap-4 text-sm text-bolt-elements-textSecondary">
+            <label className="flex items-center gap-1.5">
+              <input type="radio" name="interval" value="monthly" defaultChecked={interval !== 'annual'} />
+              Monthly
+            </label>
+            <label className="flex items-center gap-1.5">
+              <input type="radio" name="interval" value="annual" defaultChecked={interval === 'annual'} />
+              Annual <span className="text-[var(--ecode-accent,#F26207)]">(save ~20%)</span>
+            </label>
+          </div>
+        </fieldset>
         <PrimaryButton type="submit">Start checkout</PrimaryButton>
       </Form>
       <p className="mt-4 text-sm text-bolt-elements-textSecondary">
