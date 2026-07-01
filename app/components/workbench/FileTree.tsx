@@ -1116,10 +1116,17 @@ function FileContextMenu({
     <>
       <ContextMenu.Root>
         <ContextMenu.Trigger>
+          {/*
+           * Radix ContextMenu already opens on a ~700ms touch long-press, but iOS
+           * Safari's native touch-callout / text selection races and preempts it,
+           * making file-row actions (rename/duplicate/delete) unreliable on touch.
+           * Suppressing the callout lets the long-press menu open dependably.
+           */}
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
+            style={{ WebkitTouchCallout: 'none', touchAction: 'manipulation' }}
             className={classNames('relative', {
               'bg-bolt-elements-background-depth-2 border border-dashed border-bolt-elements-item-contentAccent rounded-md':
                 isDragging,
