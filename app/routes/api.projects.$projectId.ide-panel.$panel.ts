@@ -2445,7 +2445,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
   } else if (panel === 'git') {
     const workspaceId = body.workspaceId?.trim() || undefined;
 
-    if (intent === 'commit') {
+    if (intent === 'commit' || intent === 'commit-push') {
       const files = body.stagedFiles
         ?.split(',')
         .map((file) => file.trim())
@@ -2461,6 +2461,32 @@ export async function action({ request, params }: EnterpriseActionArgs) {
           authorEmail: body.authorEmail?.trim() || undefined,
         }),
       });
+
+      /*
+       * Atomic "Commit & push": push the fresh commit to origin (SSH runs in the
+       * per-tenant workspace pod, HTTPS on the api-pod git path — same as `push`).
+       */
+      if (intent === 'commit-push') {
+        const branchName = body.branch || 'main';
+        const remoteUrl = await resolveProjectRemoteUrl(request, projectId, workspaceId);
+
+        if (remoteUrl && isSshGitUrl(remoteUrl)) {
+          await runWorkspaceSshGit({
+            request,
+            projectId,
+            workspaceId,
+            op: 'push',
+            branch: branchName,
+            remoteUrl,
+            message: body.message,
+          });
+        } else {
+          await apiRequest(request, `/projects/${projectId}/git/push`, {
+            method: 'POST',
+            body: JSON.stringify({ branch: branchName, workspaceId }),
+          });
+        }
+      }
     } else if (intent === 'push' || intent === 'pull' || intent === 'sync') {
       const branchName = body.branch || 'main';
       const remoteUrl = await resolveProjectRemoteUrl(request, projectId, workspaceId);

@@ -436,7 +436,7 @@ export function GitTab({ projectId }: GitTabProps) {
        * commit while still reporting success. Refuse rather than lose the
        * change.
        */
-      if (intent === 'commit') {
+      if (intent === 'commit' || intent === 'commit-push') {
         const unserializable = findUnserializableStagedFiles(stagedFiles);
 
         if (unserializable.length) {
@@ -1261,7 +1261,6 @@ export function GitTab({ projectId }: GitTabProps) {
             onSubmit={submitAction}
             className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
           >
-            <input name="intent" value="commit" type="hidden" />
             <input name="stagedFiles" value={stagedFiles.join(',')} type="hidden" />
             <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
               Commit message
@@ -1301,13 +1300,28 @@ export function GitTab({ projectId }: GitTabProps) {
                 {unserializableStagedFiles.join(', ')}
               </p>
             ) : null}
-            <PanelButton
-              disabled={busy || stagedFiles.length === 0 || unserializableStagedFiles.length > 0}
-              className="w-full font-semibold text-white hover:opacity-90"
-              style={{ background: 'var(--ecode-accent, #F26207)' }}
-            >
-              Commit changes
-            </PanelButton>
+            <div className="grid grid-cols-2 gap-2">
+              <PanelButton
+                type="submit"
+                name="intent"
+                value="commit"
+                disabled={busy || stagedFiles.length === 0 || unserializableStagedFiles.length > 0}
+                className="font-semibold text-white hover:opacity-90"
+                style={{ background: 'var(--ecode-accent, #F26207)' }}
+              >
+                Commit changes
+              </PanelButton>
+              <PanelButton
+                type="submit"
+                name="intent"
+                value="commit-push"
+                variant="outline"
+                disabled={busy || stagedFiles.length === 0 || unserializableStagedFiles.length > 0}
+                title="Commit the staged files and push to origin in one step"
+              >
+                Commit &amp; push
+              </PanelButton>
+            </div>
           </form>
 
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
