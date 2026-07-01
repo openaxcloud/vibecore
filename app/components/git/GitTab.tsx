@@ -1515,7 +1515,7 @@ export function GitTab({ projectId }: GitTabProps) {
               Pull request title
             </label>
             <PanelInput id="git-tab-pr-title" name="title" placeholder="Project update" />
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <PanelInput name="sourceBranch" defaultValue={branch} aria-label="Source branch" />
               <PanelInput
                 name="targetBranch"

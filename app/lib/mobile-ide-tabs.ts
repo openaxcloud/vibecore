@@ -137,6 +137,13 @@ export const ECODE_MOBILE_TOOLS: readonly MobileToolItem[] = [
     icon: 'i-ph:sparkle',
   },
   {
+    id: 'studio',
+    section: 'tools',
+    title: 'Agent Studio',
+    description: 'Agent supervisor',
+    icon: 'i-ph:robot',
+  },
+  {
     id: 'integrations',
     section: 'tools',
     title: 'Integrations',
@@ -259,6 +266,7 @@ export const ECODE_MOBILE_MORE_ITEMS: readonly string[] = [
   'git',
   'packages',
   'skills',
+  'studio',
   'database',
   'object-storage',
   'secrets',
@@ -320,6 +328,7 @@ export const MOBILE_TOOL_TO_MANAGEMENT_PANEL: Record<string, string> = {
   monitoring: 'monitoring',
   ports: 'ports',
   skills: 'skills',
+  studio: 'studio',
   domains: 'domains',
   overview: 'overview',
 };

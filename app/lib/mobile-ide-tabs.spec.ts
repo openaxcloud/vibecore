@@ -12,6 +12,7 @@ const MOBILE_MANAGEMENT_PANELS = [
   'object-storage',
   'packages',
   'skills',
+  'studio',
   'monitoring',
   'ports',
   'extensions',

@@ -16389,7 +16389,7 @@ function ProjectDebuggerPanel({
 
   return (
     <div className="grid gap-4">
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {[
           ['Launch configs', launchConfigs.length],
           ['Breakpoints', breakpoints.filter((breakpoint: any) => breakpoint.enabled !== false).length],

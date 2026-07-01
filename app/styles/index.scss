@@ -4705,7 +4705,7 @@ body :where(.lucide, svg[data-lucide]) {
   background: color-mix(in srgb, var(--ecode-surface-secondary) 88%, transparent);
   color: var(--vc-ide-text-primary);
   padding: 10px;
-  text-align: left;
+  text-align: start;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
@@ -4752,19 +4752,19 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-mobile-more-item[data-tone='assistant'] .bolt-mobile-more-item-icon,
 .bolt-mobile-more-item[data-tone='warning'] .bolt-mobile-more-item-icon {
-  color: #f59e0b;
+  color: var(--vc-ide-accent-warning);
 }
 
 .bolt-mobile-more-item[data-tone='success'] .bolt-mobile-more-item-icon {
-  color: #22c55e;
+  color: var(--vc-ide-accent-success);
 }
 
 .bolt-mobile-more-item[data-tone='info'] .bolt-mobile-more-item-icon {
-  color: #3b82f6;
+  color: var(--vc-ide-accent-action);
 }
 
 .bolt-mobile-more-item[data-tone='danger'] .bolt-mobile-more-item-icon {
-  color: #ef4444;
+  color: var(--vc-ide-accent-error);
 }
 
 .bolt-mobile-more-item-copy {
@@ -5123,7 +5123,7 @@ body :where(.lucide, svg[data-lucide]) {
   font-weight: 600;
   line-height: 1.2;
   padding: 0 12px;
-  text-align: left;
+  text-align: start;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
@@ -9246,6 +9246,16 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 14px;
   font-weight: 400;
   line-height: normal;
+}
+
+/* Touch-friendly file-tree rows on mobile/tablet. The Files panel renders inside
+   .bolt-workbench-mobile (not the .bolt-workbench-mobile-service block), so it does
+   not receive that block's control sizing — bump rows to a 40px tap target here. */
+@media (max-width: 1199px) {
+  .bolt-workbench-mobile .bolt-project-file-tree .bolt-file-tree-node {
+    height: 40px;
+    min-height: 40px;
+  }
 }
 
 .bolt-project-file-tree .bolt-file-tree-node:hover {
@@ -17891,6 +17901,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     min-width: 0;
   }
 
+  /* Panel-header action buttons (e.g. the kebab/overflow trigger) default to 28px;
+     bump to a 40px tap target on mobile/tablet. */
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-ide-panel-header button {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
   .bolt-responsive-ide-mobile
     .bolt-workbench-mobile.bolt-workbench-mobile-service.fixed
     .bolt-project-service-panel
@@ -24337,8 +24354,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     height: 24px;
     align-items: center;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--vc-ide-success) 14%, transparent);
-    color: var(--vc-ide-success);
+    background: color-mix(in srgb, var(--vc-ide-accent-success) 14%, transparent);
+    color: var(--vc-ide-accent-success);
     font-size: 11px;
     font-weight: 700;
     padding: 0 8px;
