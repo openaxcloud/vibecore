@@ -1368,6 +1368,11 @@ export interface ApiStore {
     refreshToken?: string;
   }): Promise<OAuthConnectionRecord>;
   listOAuthConnections(userId: string): Promise<OAuthConnectionRecord[]>;
+  /** Look up an OAuth connection by its provider identity, to reject linking a
+   *  provider account already bound to a DIFFERENT user (account-takeover guard). */
+  findOAuthConnectionByExternalId(provider: string, externalId: string): Promise<OAuthConnectionRecord | null>;
+  /** Unlink a provider from a user (account settings). Returns whether a row was removed. */
+  deleteOAuthConnection(userId: string, provider: string): Promise<boolean>;
   upsertUserConnection(input: {
     userId: string;
     provider: string;

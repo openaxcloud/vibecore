@@ -2037,6 +2037,23 @@ export class TestApiStore implements ApiStore {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
+  async findOAuthConnectionByExternalId(provider: string, externalId: string) {
+    return this.oauthConnections.get(`${provider}:${externalId}`) ?? null;
+  }
+
+  async deleteOAuthConnection(userId: string, provider: string) {
+    let removed = false;
+
+    for (const [key, connection] of this.oauthConnections) {
+      if (connection.userId === userId && connection.provider === provider) {
+        this.oauthConnections.delete(key);
+        removed = true;
+      }
+    }
+
+    return removed;
+  }
+
   private userConnectionKey(userId: string, provider: string, externalAccountId: string) {
     return `${userId}:${provider}:${externalAccountId}`;
   }

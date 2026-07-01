@@ -2750,6 +2750,20 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapOAuthConnection);
   }
 
+  async findOAuthConnectionByExternalId(provider: string, externalId: string) {
+    const row = await this.prisma.oAuthConnection.findUnique({
+      where: { provider_externalId: { provider, externalId } },
+    });
+
+    return row ? mapOAuthConnection(row) : null;
+  }
+
+  async deleteOAuthConnection(userId: string, provider: string) {
+    const result = await this.prisma.oAuthConnection.deleteMany({ where: { userId, provider } });
+
+    return result.count > 0;
+  }
+
   async upsertUserConnection(input: {
     userId: string;
     provider: string;

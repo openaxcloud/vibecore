@@ -7438,6 +7438,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { provider: 'github', authorizationUrl, ready: Boolean(authorizationUrl) };
   });
+
+  /*
+   * Readiness of the social-login providers, so the login page can hide a button
+   * whose provider an admin disabled / never configured (Replit shows only usable
+   * sign-in options). One round-trip instead of hitting each /start. `ready`
+   * reflects resolveLoginProviderCredentials (enabled + a usable client_id).
+   */
+  app.get('/auth/oauth/providers', async () => {
+    const providers = await Promise.all(
+      (['github', 'google'] as const).map(async (provider) => ({
+        provider,
+        ready: Boolean(await oauthAuthorizationUrl(provider)),
+      })),
+    );
+
+    return { providers };
+  });
+
   app.post(
     '/auth/oauth/:provider/callback',
     { config: { rateLimit: { max: Number(process.env.AUTH_OAUTH_RATE_LIMIT_MAX ?? 100), timeWindow: '1 minute' } } },
@@ -7550,6 +7568,82 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     },
   );
+
+  /*
+   * Link a SECOND OAuth provider to the SIGNED-IN account (Replit "connected
+   * accounts"). Unlike /callback this binds to request.currentUser.id — never
+   * findUserByEmail — and creates NO session. Guards against account takeover: a
+   * provider identity already bound to a DIFFERENT user is rejected (409) rather
+   * than silently re-pointed. Same provider whitelist + disabled-gate as login.
+   */
+  app.post(
+    '/auth/oauth/:provider/link',
+    { config: { rateLimit: { max: Number(process.env.AUTH_OAUTH_RATE_LIMIT_MAX ?? 100), timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      if (!request.currentUser) {
+        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      }
+
+      const provider = (request.params as { provider: string }).provider;
+
+      if (provider !== 'github' && provider !== 'google') {
+        return reply.code(400).send({ error: 'Unsupported sign-in provider', code: 'OAUTH_PROVIDER_UNKNOWN' });
+      }
+
+      const body = parse(oauthCallbackSchema, request.body);
+
+      if (body.code && (!body.state || !verifyOauthState(body.state, provider))) {
+        return reply.code(401).send({ error: 'Invalid or expired OAuth state', code: 'OAUTH_STATE_INVALID' });
+      }
+
+      const linkCreds = await resolveLoginProviderCredentials(provider, store);
+
+      if (!linkCreds.enabled) {
+        return reply.code(503).send({ error: 'This sign-in provider is disabled', code: 'OAUTH_PROVIDER_DISABLED' });
+      }
+
+      let profile;
+
+      try {
+        profile = await resolveOAuthProfile(provider, body, {
+          clientId: linkCreds.clientId,
+          clientSecret: linkCreds.clientSecret,
+        });
+      } catch (err: any) {
+        request.log.error({ provider, code: err?.code, msg: err?.message }, 'oauth link resolveOAuthProfile failed');
+        return reply
+          .code(err?.statusCode ?? 500)
+          .send({ error: 'OAuth resolve failed', code: err?.code ?? 'OAUTH_RESOLVE_FAILED' });
+      }
+
+      // Account-takeover guard: refuse if this provider identity is already linked
+      // to someone else.
+      const existing = await store.findOAuthConnectionByExternalId(provider, profile.externalId);
+
+      if (existing && existing.userId !== request.currentUser.id) {
+        return reply.code(409).send({
+          error: `This ${provider} account is already linked to another user.`,
+          code: 'OAUTH_ALREADY_LINKED',
+        });
+      }
+
+      const connection = await store.upsertOAuthConnection({
+        userId: request.currentUser.id,
+        provider,
+        externalId: profile.externalId,
+        accessToken: profile.accessToken,
+        refreshToken: profile.refreshToken,
+      });
+      await audit(request, store, {
+        action: `auth.oauth.${provider}.link`,
+        resourceType: 'user',
+        resourceId: request.currentUser.id,
+      });
+
+      return { provider: connection.provider, externalId: connection.externalId, createdAt: connection.createdAt };
+    },
+  );
+
   app.get('/auth/oidc/start', async () => {
     const authorizationUrl = await oauthAuthorizationUrl('oidc');
 
@@ -7847,7 +7941,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/auth/login') ||
       request.url.startsWith('/auth/verify-email') ||
       request.url.startsWith('/auth/password-reset') ||
-      request.url.startsWith('/auth/oauth') ||
+      // The OAuth login flow (start/callback/providers) is public, but the
+      // account-LINK endpoint must stay authenticated (it binds a provider to the
+      // signed-in user), so it is NOT exempt.
+      (request.url.startsWith('/auth/oauth') && !request.url.includes('/link')) ||
       request.url.startsWith('/auth/oidc') ||
       request.url.startsWith('/auth/saml') ||
       request.url.startsWith('/contact-sales') ||
@@ -13879,6 +13976,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       })),
     };
   });
+
+  /*
+   * Unlink a provider from the signed-in account (account settings). Refuses to
+   * remove the user's ONLY remaining login method (no password + this is their
+   * last OAuth connection) so they can't lock themselves out.
+   */
+  app.delete('/auth/connections/:provider', async (request, reply) => {
+    const provider = (request.params as { provider: string }).provider;
+    const userId = request.currentUser!.id;
+    const connections = await store.listOAuthConnections(userId);
+    const target = connections.find((c) => c.provider === provider);
+
+    if (!target) {
+      return reply.code(404).send({ error: 'No such linked provider', code: 'CONNECTION_NOT_FOUND' });
+    }
+
+    const user = await store.findUserById(userId);
+
+    if (!user?.passwordHash && connections.length <= 1) {
+      return reply.code(400).send({
+        error: 'Cannot unlink your only sign-in method. Set a password or link another provider first.',
+        code: 'LAST_LOGIN_METHOD',
+      });
+    }
+
+    const deleted = await store.deleteOAuthConnection(userId, provider);
+    await audit(request, store, {
+      action: `auth.oauth.${provider}.unlink`,
+      resourceType: 'user',
+      resourceId: userId,
+    });
+
+    return { deleted };
+  });
+
   app.post(
     '/auth/logout',
     { config: { rateLimit: { max: Number(process.env.AUTH_LOGOUT_RATE_LIMIT_MAX ?? 30), timeWindow: '1 minute' } } },
