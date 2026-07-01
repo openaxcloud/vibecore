@@ -18474,6 +18474,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const periodStart = await resolveUsagePeriodStart(orgId).catch(() => undefined);
     const paygSpentCents = periodStart ? await store.sumPaygSpendSince(orgId, periodStart.getTime()) : 0;
 
+    /*
+     * Plan's monthly included credit grant (Replit "included credits") + the
+     * billing-cycle window, so the UI can show the burndown ("$X of $Y used")
+     * and when the period resets. Free/Starter grant 0 monthly (Starter is daily).
+     */
+    const subscription = await store.getSubscription(orgId).catch(() => undefined);
+    const creditPlan = planCreditConfig[toCreditPlanKey(subscription?.planKey ?? 'free')];
+    const monthlyGrantCents = creditPlan?.monthlyCreditCents ?? 0;
+    const entitled = subscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(subscription.status);
+    let periodEndIso: string | undefined;
+
+    if (entitled && subscription?.currentPeriodEnd) {
+      const end = new Date(subscription.currentPeriodEnd);
+      periodEndIso = Number.isNaN(end.getTime()) ? undefined : end.toISOString();
+    } else if (periodStart) {
+      periodEndIso = new Date(
+        Date.UTC(periodStart.getUTCFullYear(), periodStart.getUTCMonth() + 1, 1),
+      ).toISOString();
+    }
+
     return {
       creditsEnabled: process.env.BILLING_CREDITS_ENABLED === 'true',
       shadow: process.env.BILLING_CREDITS_SHADOW === 'true',
@@ -18483,6 +18503,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       budgetCapCents: wallet?.budgetCapCents ?? null,
       serviceShutdownCents: wallet?.serviceShutdownCents ?? null,
       paygSpentCents,
+      monthlyGrantCents,
+      periodStart: periodStart ? periodStart.toISOString() : null,
+      periodEnd: periodEndIso ?? null,
       spendAlertThresholds: [50, 80, 100],
       activePacks: packs,
       ledger: await store.listCreditLedger(orgId, { take: 50 }),

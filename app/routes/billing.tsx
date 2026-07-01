@@ -32,6 +32,9 @@ type CreditsData = {
   budgetCapCents: number | null;
   serviceShutdownCents: number | null;
   paygSpentCents?: number;
+  monthlyGrantCents?: number;
+  periodStart?: string | null;
+  periodEnd?: string | null;
   spendAlertThresholds?: number[];
   checkpoints: Array<{
     id: string;
@@ -221,10 +224,18 @@ export async function action({ request }: EnterpriseActionArgs) {
       );
     }
 
+    // Service Shutdown Limit (hard stop — suspends usage-based services when hit).
+    const rawShutdown = String(form.get('serviceShutdownDollars') ?? '').trim();
+    const serviceShutdownCents = rawShutdown === '' ? null : Math.round(Number(rawShutdown) * 100);
+
+    if (serviceShutdownCents != null && (!Number.isFinite(serviceShutdownCents) || serviceShutdownCents < 0)) {
+      return json({ error: 'Enter a valid service-shutdown limit in dollars (or leave blank).' }, { status: 400 });
+    }
+
     try {
       await apiRequest(request, `/orgs/${organization.id}/credits/limits`, {
         method: 'POST',
-        body: JSON.stringify({ budgetCapCents }),
+        body: JSON.stringify({ budgetCapCents, serviceShutdownCents }),
       });
       return json({ ok: 'Spend limit updated.' });
     } catch (error) {
@@ -370,6 +381,15 @@ export default function BillingPage() {
   const submittingPackId =
     submitting && navigation.formData?.get('intent') === 'buy-credits' ? navigation.formData?.get('packId') : null;
 
+  // Included-credit burndown ("$X of $Y used this cycle") + the billing-cycle window.
+  const monthlyGrantCents = credits.monthlyGrantCents ?? 0;
+  const includedUsedCents =
+    monthlyGrantCents > 0 ? Math.max(0, Math.min(monthlyGrantCents, monthlyGrantCents - credits.balanceCents)) : 0;
+  const cycleLabel =
+    credits.periodStart && credits.periodEnd
+      ? `${new Date(credits.periodStart).toLocaleDateString()} – ${new Date(credits.periodEnd).toLocaleDateString()}`
+      : null;
+
   return (
     <AppShell
       title="Billing overview"
@@ -436,7 +456,10 @@ export default function BillingPage() {
               {
                 label: 'Credit balance',
                 value: dollars(credits.balanceCents),
-                detail: 'Included monthly credits',
+                detail:
+                  monthlyGrantCents > 0
+                    ? `${dollars(includedUsedCents)} of ${dollars(monthlyGrantCents)} included used`
+                    : 'Included monthly credits',
                 icon: CreditCard,
               },
               {
@@ -460,11 +483,21 @@ export default function BillingPage() {
             ]}
           />
           <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-            <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Spend limit (pay-as-you-go)</h3>
+            <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Spend limit (pay-as-you-go)</h3>
+              {cycleLabel ? (
+                <span className="text-xs text-bolt-elements-textSecondary">Billing period: {cycleLabel}</span>
+              ) : null}
+            </div>
             <p className="mb-3 text-xs text-bolt-elements-textSecondary">
               Cap usage-based spend beyond your included credits. Leave blank for no cap; set $0.01 to restrict to
               credits only. Org limits are set in $500 increments.
             </p>
+            {!credits.creditsEnabled ? (
+              <p className="mb-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-300">
+                Usage-based billing isn&apos;t enabled for this organization yet — limits you set here apply once it is.
+              </p>
+            ) : null}
             <SpendUsageIndicator
               spentCents={credits.paygSpentCents ?? 0}
               capCents={credits.budgetCapCents}
@@ -492,6 +525,18 @@ export default function BillingPage() {
               <span className="w-full text-[11px] text-bolt-elements-textSecondary sm:w-auto">
                 $500 increments (or $0.01 to cap at credits)
               </span>
+              <span className="w-full text-sm text-bolt-elements-textSecondary sm:ml-2 sm:w-auto">Hard stop $</span>
+              <input
+                type="number"
+                name="serviceShutdownDollars"
+                min="0"
+                step="any"
+                defaultValue={credits.serviceShutdownCents != null ? (credits.serviceShutdownCents / 100).toString() : ''}
+                placeholder="No hard stop"
+                aria-label="Service shutdown limit in dollars"
+                title="Service Shutdown Limit — suspends usage-based services when reached (no grace)."
+                className="w-32 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-1.5 text-sm text-bolt-elements-textPrimary"
+              />
               <Button type="submit" variant="outline" disabled={submitting}>
                 {submitting && navigation.formData?.get('intent') === 'set-limits' ? 'Saving…' : 'Save limit'}
               </Button>
