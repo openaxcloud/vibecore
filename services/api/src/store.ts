@@ -391,6 +391,7 @@ export interface SiemWebhookRecord {
   secretCiphertext: string;
   enabled: boolean;
   lastDeliveredAt?: string;
+  lastDeliveredId?: string;
   createdAt: string;
 }
 
@@ -1332,6 +1333,7 @@ export interface ApiStore {
     enabled: boolean;
   }): Promise<SiemWebhookRecord>;
   listSiemWebhooks(organizationId: string): Promise<SiemWebhookRecord[]>;
+  deleteSiemWebhook(organizationId: string, webhookId: string): Promise<SiemWebhookRecord | null>;
   createApiKey(input: {
     userId?: string;
     organizationId?: string;

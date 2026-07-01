@@ -1,4 +1,5 @@
-import { Form, useActionData, useLoaderData } from 'react-router';
+import { CheckCircle2, Clock, Radio, Trash2 } from 'lucide-react';
+import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import {
   apiErrorMessage,
@@ -11,22 +12,26 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { shouldRethrowActionError } from '~/lib/route-reauth';
+import { isReauthRedirect, shouldRethrowActionError } from '~/lib/route-reauth';
 
 /*
- * SIEM webhook configuration.
- *
- * The API exposes exactly ONE endpoint for SIEM webhooks:
- *   POST /orgs/:orgId/siem-webhooks   (services/api/src/app.ts:14824)
- * gated on the `audit:export` permission plus a recent admin re-auth. It upserts
- * a webhook (url + secret + enabled) that the server later delivers abuse
- * signals to (`deliverSiemAbuseSignal`), tracking lastDeliveredAt/Id server-side.
- *
- * There is NO GET or DELETE for siem-webhooks, and the current org/enterprise
- * payloads do not surface the stored config, so we intentionally render the
- * config form WITHOUT a list of existing webhooks and note that listing needs a
- * GET endpoint — rather than fabricating a list the backend can't provide.
+ * SIEM webhook configuration, backed by the org-scoped endpoints:
+ *   GET    /orgs/:orgId/siem-webhooks              (app.ts, list — never returns the secret)
+ *   POST   /orgs/:orgId/siem-webhooks              (create/upsert; audit:export + admin re-auth)
+ *   DELETE /orgs/:orgId/siem-webhooks/:webhookId   (delete; audit:export + admin re-auth)
+ * The server signs deliveries with the stored secret and delivers abuse signals
+ * (`deliverSiemAbuseSignal`), tracking lastDeliveredAt/Id server-side. The list
+ * endpoint intentionally omits the secret/hash/ciphertext.
  */
+
+type SiemWebhook = {
+  id: string;
+  url: string;
+  enabled: boolean;
+  lastDeliveredAt?: string;
+  lastDeliveredId?: string;
+  createdAt: string;
+};
 
 async function readErrorCode(error: unknown): Promise<string | undefined> {
   if (!(error instanceof Response)) {
@@ -48,25 +53,63 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return redirect('/');
   }
 
-  return json({ orgId: organization.id });
+  let webhooks: SiemWebhook[] = [];
+  let loadError: string | null = null;
+
+  try {
+    const result = await apiRequest<{ webhooks: SiemWebhook[] }>(request, `/orgs/${organization.id}/siem-webhooks`);
+    webhooks = result.webhooks;
+  } catch (error) {
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
+    if (isApiResponse(error, 403)) {
+      loadError = 'You do not have permission to view SIEM webhooks. This requires the audit:export permission.';
+    } else {
+      loadError = await apiErrorMessage(error, 'Configured SIEM webhooks are temporarily unavailable.');
+    }
+  }
+
+  return json({ orgId: organization.id, webhooks, loadError });
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
-  const body = formObject(await request.formData()) as Record<string, string>;
+  const body = formObject(await request.formData()) as {
+    intent?: string;
+    orgId?: string;
+    url?: string;
+    secret?: string;
+    enabled?: string;
+    webhookId?: string;
+  };
 
   if (!body.orgId) {
     return json({ error: 'Organization ID is required.' }, { status: 400 });
   }
 
-  if (!body.url) {
-    return json({ error: 'Webhook URL is required.' }, { status: 400 });
-  }
-
-  if (!body.secret || body.secret.length < 16) {
-    return json({ error: 'Signing secret must be at least 16 characters.' }, { status: 400 });
-  }
-
   try {
+    if (body.intent === 'delete') {
+      if (!body.webhookId) {
+        return json({ error: 'Missing webhook.' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/orgs/${body.orgId}/siem-webhooks/${encodeURIComponent(body.webhookId)}`, {
+        method: 'DELETE',
+      });
+
+      return json({ status: 'SIEM webhook removed. Events will no longer be delivered to that endpoint.' });
+    }
+
+    // Default intent: create/upsert a webhook.
+    if (!body.url) {
+      return json({ error: 'Webhook URL is required.' }, { status: 400 });
+    }
+
+    if (!body.secret || body.secret.length < 16) {
+      return json({ error: 'Signing secret must be at least 16 characters.' }, { status: 400 });
+    }
+
     await apiRequest(request, `/orgs/${body.orgId}/siem-webhooks`, {
       method: 'POST',
       body: JSON.stringify({
@@ -77,14 +120,16 @@ export async function action({ request }: EnterpriseActionArgs) {
         enabled: body.enabled !== 'false',
       }),
     });
+
+    return json({ status: 'SIEM webhook saved. Abuse and security events will now be delivered to this endpoint.' });
   } catch (error) {
     /*
      * Redirect (3xx re-auth) and 5xx errors are re-thrown for the framework /
-     * error boundary. The POST handler additionally requires a recent admin
-     * re-auth (403 ADMIN_REAUTH_REQUIRED) and the `audit:export` permission
-     * (403); both surface inline so the user keeps their form input.
+     * error boundary. The POST and DELETE handlers additionally require a recent
+     * admin re-auth (403 ADMIN_REAUTH_REQUIRED) and the `audit:export`
+     * permission (403); both surface inline so the user keeps their form input.
      */
-    if (shouldRethrowActionError(error)) {
+    if (isReauthRedirect(error) || shouldRethrowActionError(error)) {
       throw error;
     }
 
@@ -104,13 +149,31 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return json({ error: await apiErrorMessage(error, 'Could not save the SIEM webhook.') });
   }
+}
 
-  return json({ status: 'SIEM webhook saved. Abuse and security events will now be delivered to this endpoint.' });
+function DeliveryStatus({ webhook }: { webhook: SiemWebhook }) {
+  if (webhook.lastDeliveredAt) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-bolt-elements-textSecondary">
+        <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" aria-hidden />
+        Last delivered {new Date(webhook.lastDeliveredAt).toLocaleString()}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-bolt-elements-textSecondary">
+      <Clock className="h-3.5 w-3.5" aria-hidden />
+      No deliveries yet
+    </span>
+  );
 }
 
 export default function OrganizationSiemPage() {
-  const { orgId } = useLoaderData<typeof loader>();
+  const { orgId, webhooks, loadError } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
+  const navigation = useNavigation();
+  const busy = navigation.state !== 'idle';
 
   return (
     <EnterpriseFormPage
@@ -119,35 +182,126 @@ export default function OrganizationSiemPage() {
       status={actionData?.status}
       error={actionData?.error}
     >
-      <Form method="post" className="space-y-4">
-        <TextField label="Organization ID" name="orgId" defaultValue={orgId} required />
-        <TextField
-          label="Webhook URL"
-          name="url"
-          type="url"
-          placeholder="https://siem.example.com/ingest/vibecore"
-          required
-        />
-        <TextField label="Signing secret" name="secret" type="password" placeholder="At least 16 characters" required />
-        <SelectField
-          label="Status"
-          name="enabled"
-          defaultValue="true"
-          options={[
-            { value: 'true', label: 'Enabled' },
-            { value: 'false', label: 'Disabled' },
-          ]}
-        />
-        <PrimaryButton>Save SIEM webhook</PrimaryButton>
-      </Form>
+      {loadError ? (
+        <p
+          role="alert"
+          className="mb-6 rounded-md border border-amber-500/40 px-3 py-2 text-sm text-amber-500 dark:text-amber-400"
+        >
+          {loadError}
+        </p>
+      ) : null}
 
-      <p className="mt-6 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-2 text-xs text-bolt-elements-textSecondary">
-        Listing and removing existing webhooks is not shown here: the API currently exposes only a create/upsert
-        endpoint for SIEM webhooks (no GET or DELETE). Once a read endpoint is available, configured webhooks and their
-        last-delivery status will appear on this page.
-      </p>
+      <div className="space-y-8">
+        <section>
+          <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Add a webhook</h2>
+          <Form method="post" className="mt-3 space-y-4">
+            <input type="hidden" name="orgId" value={orgId} />
+            <input type="hidden" name="intent" value="create" />
+            <TextField
+              label="Webhook URL"
+              name="url"
+              type="url"
+              placeholder="https://siem.example.com/ingest/vibecore"
+              required
+            />
+            <TextField
+              label="Signing secret"
+              name="secret"
+              type="password"
+              placeholder="At least 16 characters"
+              required
+            />
+            <SelectField
+              label="Status"
+              name="enabled"
+              defaultValue="true"
+              options={[
+                { value: 'true', label: 'Enabled' },
+                { value: 'false', label: 'Disabled' },
+              ]}
+            />
+            <PrimaryButton disabled={busy}>Save SIEM webhook</PrimaryButton>
+          </Form>
+        </section>
 
-      <p className="mt-3 text-xs text-bolt-elements-textSecondary">
+        <section className="border-t border-bolt-elements-borderColor pt-8">
+          <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Configured webhooks</h2>
+
+          {webhooks.length === 0 ? (
+            <div className="mt-4 flex flex-col items-center gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-6 py-10 text-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-bolt-elements-background-depth-3">
+                <Radio className="h-5 w-5 text-bolt-elements-textTertiary" aria-hidden />
+              </span>
+              <p className="text-sm text-bolt-elements-textSecondary">
+                No SIEM webhooks configured yet. Add one above to start streaming events.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-4 overflow-x-auto rounded-lg border border-bolt-elements-borderColor">
+              <table className="w-full min-w-[36rem] border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-left">
+                    <th className="px-4 py-2.5 font-medium text-bolt-elements-textSecondary">Endpoint</th>
+                    <th className="px-4 py-2.5 font-medium text-bolt-elements-textSecondary">Status</th>
+                    <th className="px-4 py-2.5 font-medium text-bolt-elements-textSecondary">Last delivered</th>
+                    <th className="px-4 py-2.5 font-medium text-bolt-elements-textSecondary">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {webhooks.map((webhook) => (
+                    <tr key={webhook.id} className="border-b border-bolt-elements-borderColor last:border-b-0">
+                      <td className="max-w-[16rem] break-all px-4 py-3 font-mono text-xs text-bolt-elements-textPrimary">
+                        {webhook.url}
+                      </td>
+                      <td className="px-4 py-3">
+                        {webhook.enabled ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                            Enabled
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs font-medium text-bolt-elements-textSecondary">
+                            Disabled
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <DeliveryStatus webhook={webhook} />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Form
+                          method="post"
+                          onSubmit={(event) => {
+                            if (!confirm('Remove this SIEM webhook? Events will stop being delivered to it.')) {
+                              event.preventDefault();
+                            }
+                          }}
+                        >
+                          <input type="hidden" name="orgId" value={orgId} />
+                          <input type="hidden" name="intent" value="delete" />
+                          <input type="hidden" name="webhookId" value={webhook.id} />
+                          <button
+                            type="submit"
+                            disabled={busy}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:border-red-500/50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            aria-label={`Delete SIEM webhook ${webhook.url}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                            Delete
+                          </button>
+                        </Form>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </div>
+
+      <p className="mt-6 text-xs text-bolt-elements-textSecondary">
         Organization <span className="font-mono">{orgId}</span> ·{' '}
         <a className="underline hover:text-bolt-elements-textPrimary" href="/audit-logs">
           View and export audit logs

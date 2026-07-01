@@ -15006,6 +15006,48 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .code(201)
       .send({ webhook: { id: webhook.id, url: webhook.url, enabled: webhook.enabled, createdAt: webhook.createdAt } });
   });
+  app.get('/orgs/:orgId/siem-webhooks', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'audit:export');
+
+    const webhooks = await store.listSiemWebhooks(orgId);
+
+    /*
+     * Never expose the signing secret (or its hash / ciphertext) over the read
+     * API — only the config needed to display and manage the webhook.
+     */
+    return {
+      webhooks: webhooks.map((webhook) => ({
+        id: webhook.id,
+        url: webhook.url,
+        enabled: webhook.enabled,
+        lastDeliveredAt: webhook.lastDeliveredAt,
+        lastDeliveredId: webhook.lastDeliveredId,
+        createdAt: webhook.createdAt,
+      })),
+    };
+  });
+  app.delete('/orgs/:orgId/siem-webhooks/:webhookId', async (request, reply) => {
+    const params = parse(z.object({ orgId: z.string().min(1), webhookId: z.string().min(1) }), request.params);
+    await requireOrg(request, store, params.orgId, 'audit:export');
+    await requireRecentAdminReauth(request);
+
+    // deleteSiemWebhook is org-scoped, so it returns null (→ 404) for another tenant's id.
+    const deleted = await store.deleteSiemWebhook(params.orgId, params.webhookId);
+
+    if (!deleted) {
+      return reply.code(404).send({ error: 'SIEM webhook not found', code: 'SIEM_WEBHOOK_NOT_FOUND' });
+    }
+
+    await audit(request, store, {
+      organizationId: params.orgId,
+      action: 'siem.webhook.delete',
+      resourceType: 'siemWebhook',
+      resourceId: deleted.id,
+    });
+
+    return reply.code(204).send();
+  });
 
   app.get('/orgs/:orgId/projects', async (request) => {
     const { orgId } = parse(orgParams, request.params);

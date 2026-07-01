@@ -2557,6 +2557,24 @@ export class PrismaApiStore implements ApiStore {
     return (await this.prisma.siemWebhook.findMany({ where: { organizationId } })).map(mapSiemWebhook);
   }
 
+  async deleteSiemWebhook(organizationId: string, webhookId: string) {
+    /*
+     * Scope the delete by BOTH id and organizationId so an admin of one org can
+     * never remove another tenant's webhook by guessing an id. deleteMany
+     * returns a count (0 when no row matched the org-scoped filter) rather than
+     * throwing, so we look the record up first to return it (and 404 upstream).
+     */
+    const existing = await this.prisma.siemWebhook.findFirst({ where: { id: webhookId, organizationId } });
+
+    if (!existing) {
+      return null;
+    }
+
+    await this.prisma.siemWebhook.deleteMany({ where: { id: webhookId, organizationId } });
+
+    return mapSiemWebhook(existing);
+  }
+
   async createApiKey(input: {
     userId?: string;
     organizationId?: string;
@@ -4725,6 +4743,7 @@ function mapSiemWebhook(webhook: any): SiemWebhookRecord {
     secretCiphertext: webhook.secretCiphertext,
     enabled: webhook.enabled,
     lastDeliveredAt: toIso(webhook.lastDeliveredAt),
+    lastDeliveredId: webhook.lastDeliveredId ?? undefined,
     createdAt: toIso(webhook.createdAt)!,
   };
 }
