@@ -9520,6 +9520,189 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
   );
 
+  /*
+   * Server-side API proxy for GitLab / Bitbucket, mirroring /api/github-proxy so
+   * these git connectors get the SAME security posture GitHub already has: the
+   * user's token is resolved + decrypted server-side (per-user isolation) and
+   * NEVER handed to the browser — the client passes only { method, path, query,
+   * body } and the token stays on the API pod. Hosts are fixed (no SSRF surface),
+   * an admin-disabled connector is refused, and a 401 flips the connection to
+   * needs_reconnect exactly like the GitHub path.
+   */
+  const CONNECTOR_PROXY_CONFIG: Record<string, { host: string; accept: string }> = {
+    gitlab: { host: 'https://gitlab.com', accept: 'application/json' },
+    bitbucket: { host: 'https://api.bitbucket.org', accept: 'application/json' },
+  };
+
+  async function resolveActiveConnectorToken(
+    request: any,
+    reply: any,
+    provider: string,
+  ): Promise<string | null> {
+    if (!request.currentUser) {
+      reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+
+      return null;
+    }
+
+    // Respect an admin-disabled connector (consistent with the token route).
+    const catalog = await store.getConnectorOAuthCatalog(provider);
+
+    if (catalog && !catalog.enabled) {
+      reply.code(403).send({ error: `The ${provider} connector is disabled.`, code: 'CONNECTOR_DISABLED' });
+
+      return null;
+    }
+
+    const connections = await store.listUserConnectionsByUser(request.currentUser.id, { provider });
+    const active = connections.find((row) => row.status === 'active');
+
+    if (!active) {
+      reply.code(401).send({ error: `${provider} is not connected for this account.`, code: 'CONNECTOR_NOT_LINKED' });
+
+      return null;
+    }
+
+    if (!active.accessTokenEncrypted) {
+      reply.code(503).send({ error: `${provider} token unavailable`, code: 'CONNECTOR_TOKEN_UNAVAILABLE' });
+
+      return null;
+    }
+
+    try {
+      return decryptJson<{ value: string }>(active.accessTokenEncrypted).value;
+    } catch {
+      reply.code(503).send({ error: `${provider} token could not be decrypted`, code: 'CONNECTOR_TOKEN_DECRYPT_FAILED' });
+
+      return null;
+    }
+  }
+
+  async function handleConnectorProviderResponse(request: any, reply: any, response: Response, provider: string) {
+    // Only a 401 means the token is dead → flip to needs_reconnect (mirrors GitHub).
+    if (response.status === 401) {
+      const connections = await store.listUserConnectionsByUser(request.currentUser?.id ?? '', { provider });
+      const active = connections.find((row) => row.status === 'active');
+
+      if (active) {
+        await store.markUserConnectionStatus({ id: active.id, status: 'needs_reconnect' });
+        await audit(request, store, {
+          action: `connector.oauth.${provider}.needs_reconnect`,
+          resourceType: 'UserConnection',
+          resourceId: active.id,
+          metadata: { reason: 'token_expired_or_revoked', upstreamStatus: response.status },
+        });
+      }
+
+      return reply.code(401).send({
+        error: `${provider} rejected the stored access token`,
+        code: 'CONNECTOR_NEEDS_RECONNECT',
+        upstreamStatus: response.status,
+      });
+    }
+
+    if (response.status === 403) {
+      return reply.code(403).send({
+        error: `${provider} forbade the request (rate limit, scope, or policy)`,
+        code: 'PROVIDER_FORBIDDEN',
+        upstreamStatus: response.status,
+      });
+    }
+
+    return reply.code(502).send({
+      error: `${provider} upstream returned HTTP ${response.status}`,
+      code: 'PROVIDER_API_FAILED',
+      upstreamStatus: response.status,
+    });
+  }
+
+  for (const provider of Object.keys(CONNECTOR_PROXY_CONFIG)) {
+    const cfg = CONNECTOR_PROXY_CONFIG[provider];
+
+    app.post(
+      `/api/${provider}-proxy`,
+      { config: { rateLimit: { max: Number(process.env.CONNECTOR_PROXY_RATE_LIMIT_MAX ?? 30), timeWindow: '1 minute' } } },
+      async (request, reply) => {
+        const body = request.body as
+          | { method?: string; path?: string; query?: Record<string, string>; body?: unknown }
+          | undefined;
+
+        if (!body || typeof body.path !== 'string') {
+          return reply.code(400).send({ error: 'path is required', code: 'PROXY_BAD_REQUEST' });
+        }
+
+        const method = (body.method ?? 'GET').toUpperCase();
+
+        if (method !== 'GET' && method !== 'POST' && method !== 'PUT' && method !== 'PATCH' && method !== 'DELETE') {
+          return reply.code(400).send({ error: 'Unsupported HTTP method', code: 'PROXY_BAD_REQUEST' });
+        }
+
+        if (!body.path.startsWith('/')) {
+          return reply.code(400).send({ error: 'path must start with /', code: 'PROXY_BAD_REQUEST' });
+        }
+
+        const accessToken = await resolveActiveConnectorToken(request, reply, provider);
+
+        if (!accessToken) {
+          return reply;
+        }
+
+        let url: URL;
+
+        try {
+          url = new URL(`${cfg.host}${body.path}`);
+        } catch {
+          return reply.code(400).send({ error: 'invalid path', code: 'PROXY_BAD_REQUEST' });
+        }
+
+        // Pin the host: reject any path that resolved to a different origin.
+        if (url.origin !== new URL(cfg.host).origin) {
+          return reply.code(400).send({ error: 'path must stay on the provider host', code: 'PROXY_BAD_REQUEST' });
+        }
+
+        if (body.query) {
+          for (const [key, value] of Object.entries(body.query)) {
+            if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
+              return reply.code(400).send({ error: 'query values must be primitive', code: 'PROXY_BAD_REQUEST' });
+            }
+
+            url.searchParams.set(key, String(value));
+          }
+        }
+
+        const response = await fetch(url, {
+          method,
+          headers: {
+            authorization: `Bearer ${accessToken}`,
+            accept: cfg.accept,
+            'user-agent': 'e-code-api',
+            ...(method !== 'GET' && body.body ? { 'content-type': 'application/json' } : {}),
+          },
+          body: method !== 'GET' && body.body ? JSON.stringify(body.body) : undefined,
+          signal: AbortSignal.timeout(15_000),
+        });
+
+        if (!response.ok) {
+          return handleConnectorProviderResponse(request, reply, response, provider);
+        }
+
+        const contentType = response.headers.get('content-type') ?? '';
+
+        if (contentType.includes('application/json')) {
+          try {
+            return await response.json();
+          } catch {
+            return reply
+              .code(502)
+              .send({ error: `${provider} returned a malformed JSON response`, code: 'PROVIDER_RESPONSE_MALFORMED' });
+          }
+        }
+
+        return await response.text();
+      },
+    );
+  }
+
   app.post('/webhooks/github', async (request, reply) => {
     const signingSecret = process.env.INTEGRATION_GITHUB_WEBHOOK_SIGNING_SECRET;
 
