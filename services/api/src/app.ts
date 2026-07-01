@@ -3872,19 +3872,109 @@ const GATEWAY_ID_TO_DISPLAY: Record<string, string> = {
   ollama: 'Ollama',
 };
 
+/*
+ * Cheap, safe, best-effort liveness probes for the non-gateway providers.
+ *
+ * Each entry describes a GET to the SAME models-list endpoint the web LLM
+ * registry (app/lib/modules/llm/providers/*) already fetches from — a read-only,
+ * cost-free, un-metered call that lists available models. We reuse those exact
+ * URLs and auth-header styles (no hardcoded secrets, no invented endpoints). The
+ * key is read from the platform env var declared in PROVIDER_KEY_ENV and passed
+ * only in the auth header; it is never logged, returned, or placed in an error.
+ *
+ * DELIBERATELY OMITTED (kept readiness-only, never faked):
+ *   - OpenAI, Anthropic, Google, OpenRouter, Mistral, Groq, xAI, Ollama — already
+ *     get a real liveness overlay from the ai-gateway's /providers/health probe.
+ *   - Cohere, AmazonBedrock, HuggingFace, OpenAILike, LMStudio — no cheap safe
+ *     models-list URL declared in the codebase (custom/self-hosted base URLs, or
+ *     SDK-only auth), so probing risks cost/misconfig; we label them readiness-only.
+ *
+ * `keyStyle` selects how the platform key is attached:
+ *   'bearer' → Authorization: Bearer <key>   (OpenAI-compatible)
+ *   'query'  → ?key=<key>                     (Google-style; not used here today)
+ */
+type ProviderProbe = { url: string; keyStyle: 'bearer' | 'query' };
+
+const PROVIDER_LIVENESS_PROBE: Record<string, ProviderProbe> = {
+  Cerebras: { url: 'https://api.cerebras.ai/v1/models', keyStyle: 'bearer' },
+  Deepseek: { url: 'https://api.deepseek.com/models', keyStyle: 'bearer' },
+  Fireworks: { url: 'https://api.fireworks.ai/v1/accounts/fireworks/models?page_size=1', keyStyle: 'bearer' },
+  Github: { url: 'https://models.github.ai/v1/models', keyStyle: 'bearer' },
+  Hyperbolic: { url: 'https://api.hyperbolic.xyz/v1/models', keyStyle: 'bearer' },
+  Moonshot: { url: 'https://api.moonshot.ai/v1/models', keyStyle: 'bearer' },
+  Perplexity: { url: 'https://api.perplexity.ai/models', keyStyle: 'bearer' },
+  Together: { url: 'https://api.together.xyz/v1/models', keyStyle: 'bearer' },
+  'Z.ai': { url: 'https://api.z.ai/api/coding/paas/v4/models', keyStyle: 'bearer' },
+};
+
+/** Per-request probe timeout (short so a slow provider can't hang the page). */
+const PROVIDER_PROBE_TIMEOUT_MS = 3000;
+
 type ProviderHealthRow = {
   provider: string;
   status: 'ready' | 'no_key' | 'disabled' | 'degraded' | 'unknown';
   enabled: boolean;
   keyConfigured: boolean;
 
-  /** Set when the row's status was confirmed by the ai-gateway live upstream probe. */
+  /** Set when the row's status was confirmed by a real live probe (gateway overlay or direct). */
   liveChecked?: boolean;
+  /** Measured round-trip of a successful direct liveness probe, in ms. */
+  latencyMs?: number;
   statusCode?: number;
   error?: string;
 };
 
-async function providerHealth(store: ApiStore, aiGatewayUrl: string): Promise<ProviderHealthRow[]> {
+/*
+ * Best-effort direct liveness probe for a single non-gateway provider. Issues one
+ * cheap models-list GET with a short per-request timeout; returns the outcome so
+ * the caller can decide status. NEVER throws (bounded by AbortSignal + try/catch),
+ * NEVER logs/returns the key. Latency is only reported on a real 2xx.
+ */
+async function probeProviderLiveness(
+  probe: ProviderProbe,
+  apiKey: string,
+): Promise<{ ok: boolean; statusCode?: number; latencyMs?: number; error?: string }> {
+  const headers: Record<string, string> = { accept: 'application/json' };
+  let url = probe.url;
+
+  if (probe.keyStyle === 'bearer') {
+    headers.Authorization = `Bearer ${apiKey}`;
+  } else {
+    url += `${url.includes('?') ? '&' : '?'}key=${encodeURIComponent(apiKey)}`;
+  }
+
+  const startedAt = Date.now();
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+      signal: AbortSignal.timeout(PROVIDER_PROBE_TIMEOUT_MS),
+    });
+    const latencyMs = Date.now() - startedAt;
+
+    if (response.ok) {
+      return { ok: true, statusCode: response.status, latencyMs };
+    }
+
+    // Non-2xx: genuinely reachable-but-unhealthy (auth/ratelimit/5xx). No latency claim.
+    return { ok: false, statusCode: response.status };
+  } catch (error) {
+    // Timeout or network failure. Surface a sanitized reason — never the key/URL query.
+    const reason =
+      error instanceof Error && error.name === 'TimeoutError'
+        ? `No response within ${PROVIDER_PROBE_TIMEOUT_MS}ms`
+        : 'Provider unreachable';
+
+    return { ok: false, error: reason };
+  }
+}
+
+async function providerHealth(
+  store: ApiStore,
+  aiGatewayUrl: string,
+  options: { probe?: boolean } = {},
+): Promise<ProviderHealthRow[]> {
   // 1. Config-readiness from the admin provider registry (reuse, no probe).
   const configs = (await store.listProviderConfigs()).filter((p) => KNOWN_LLM_PROVIDER_SET.has(p.provider));
   const byProvider = new Map(configs.map((c) => [c.provider, c] as const));
@@ -3949,6 +4039,57 @@ async function providerHealth(store: ApiStore, aiGatewayUrl: string): Promise<Pr
     }
   } catch {
     // Gateway unreachable: keep pure config-readiness; do not fabricate liveness.
+  }
+
+  /*
+   * 3. Opt-in direct liveness probe for the non-gateway providers (?probe=1).
+   * Default page loads NEVER reach here — no outbound calls, no cost/ratelimit
+   * exposure. When requested, we probe only rows that are enabled AND have a
+   * platform env-var key AND declare a cheap safe endpoint; a row already
+   * confirmed by the gateway overlay is left alone. All probes run concurrently
+   * under Promise.allSettled with a short per-request timeout so one slow
+   * provider can't hang the page. Success → ready + measured latencyMs; non-2xx
+   * or timeout → degraded. Providers without a probe stay readiness-only (never
+   * given synthetic latency).
+   */
+  if (options.probe) {
+    const candidates = KNOWN_LLM_PROVIDERS.map((name) => {
+      const row = rows.get(name);
+      const probe = PROVIDER_LIVENESS_PROBE[name];
+      const envKey = PROVIDER_KEY_ENV[name];
+      const apiKey = envKey ? process.env[envKey]?.trim() : undefined;
+
+      // Only probe enabled providers with a real env key, a known endpoint, and
+      // not already confirmed by the gateway's live overlay.
+      if (!row || !row.enabled || row.liveChecked || !probe || !apiKey) {
+        return undefined;
+      }
+
+      return { row, probe, apiKey } as const;
+    }).filter((c): c is NonNullable<typeof c> => Boolean(c));
+
+    await Promise.allSettled(
+      candidates.map(async ({ row, probe, apiKey }) => {
+        const result = await probeProviderLiveness(probe, apiKey);
+
+        row.liveChecked = true;
+
+        if (result.ok) {
+          row.status = 'ready';
+          row.latencyMs = result.latencyMs;
+        } else {
+          row.status = 'degraded';
+        }
+
+        if (typeof result.statusCode === 'number') {
+          row.statusCode = result.statusCode;
+        }
+
+        if (result.error) {
+          row.error = result.error;
+        }
+      }),
+    );
   }
 
   return [...rows.values()];
@@ -19583,7 +19724,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/provider-health', async (request) => {
     await requirePlatformAdmin(request);
-    return { providers: await providerHealth(store, aiGatewayUrl) };
+
+    /*
+     * `?probe=1` opts into a real, bounded, best-effort direct liveness probe for
+     * the non-gateway providers (a cheap models-list GET per configured provider).
+     * Default loads stay fast and make no outbound provider calls.
+     */
+    const probe = (request.query as { probe?: string } | undefined)?.probe === '1';
+
+    return { providers: await providerHealth(store, aiGatewayUrl, { probe }) };
   });
 
   // --- Replit-parity admin supervision: registry, wallets, checkpoints --------
