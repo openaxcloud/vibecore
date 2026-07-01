@@ -208,6 +208,13 @@ const adminSections: Record<string, AdminSectionConfig> = {
     description: 'Stripe secret-key configuration and connectivity (live/test mode).',
     endpoint: '/admin/stripe-health',
   },
+  'mcp-catalog': {
+    title: 'MCP catalog',
+    description:
+      'Manage the MCP marketplace catalog — create, edit, feature/verify/unpublish and delete entries. Also set per-organization MCP policy (force-enable, allow-list or block a catalog entry for an org).',
+    endpoint: '/admin/mcp/catalog',
+    primaryKey: 'entries',
+  },
   'developer-tools': {
     title: 'Developer tools',
     description:
@@ -244,6 +251,7 @@ const navItems = [
   'wallets',
   'checkpoints',
   'stripe-health',
+  'mcp-catalog',
   'developer-tools',
 ];
 
@@ -694,6 +702,101 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json({ ok: true, rowId: ticketId, message: `Response sent (${status}).` });
     }
 
+    // --- MCP catalog management (no userId) ---
+    if (intent === 'mcp-catalog-create' || intent === 'mcp-catalog-update') {
+      let entryPayload: Record<string, unknown>;
+
+      try {
+        entryPayload = JSON.parse(String(form.get('entry') ?? '{}')) as Record<string, unknown>;
+      } catch {
+        return json({ ok: false, error: 'Entry must be valid JSON.' }, { status: 400 });
+      }
+
+      if (intent === 'mcp-catalog-create') {
+        const created = await apiRequest<{ entry: { id: string; slug: string } }>(request, '/admin/mcp/catalog', {
+          method: 'POST',
+          redirectOn401: false,
+          body: JSON.stringify(entryPayload),
+        });
+
+        return json({ ok: true, rowId: created.entry.id, message: `Catalog entry "${created.entry.slug}" created.` });
+      }
+
+      const id = String(form.get('id') ?? '');
+
+      if (!id) {
+        return json({ ok: false, error: 'Missing catalog entry id.' }, { status: 400 });
+      }
+
+      const updated = await apiRequest<{ entry: { id: string; slug: string } }>(request, `/admin/mcp/catalog/${id}`, {
+        method: 'PATCH',
+        redirectOn401: false,
+        body: JSON.stringify(entryPayload),
+      });
+
+      return json({ ok: true, rowId: updated.entry.id, message: `Catalog entry "${updated.entry.slug}" saved.` });
+    }
+
+    if (intent === 'mcp-catalog-toggle') {
+      const id = String(form.get('id') ?? '');
+      const field = String(form.get('field') ?? '');
+      const value = String(form.get('value')) === 'true';
+
+      if (!id || !['featured', 'verified', 'featuredForIdePanel'].includes(field)) {
+        return json({ ok: false, error: 'Invalid toggle.' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/admin/mcp/catalog/${id}`, {
+        method: 'PATCH',
+        redirectOn401: false,
+        body: JSON.stringify({ [field]: value }),
+      });
+
+      return json({ ok: true, rowId: id, message: `${field} ${value ? 'enabled' : 'disabled'}.` });
+    }
+
+    if (intent === 'mcp-catalog-delete') {
+      const id = String(form.get('id') ?? '');
+
+      if (!id) {
+        return json({ ok: false, error: 'Missing catalog entry id.' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/admin/mcp/catalog/${id}`, { method: 'DELETE', redirectOn401: false });
+
+      return json({ ok: true, rowId: id, message: 'Catalog entry deleted.' });
+    }
+
+    // --- Org MCP policy ---
+    if (intent === 'mcp-policy-set' || intent === 'mcp-policy-clear') {
+      const orgId = String(form.get('organizationId') ?? '').trim();
+      const slug = String(form.get('slug') ?? '').trim();
+
+      if (!orgId || !slug) {
+        return json({ ok: false, error: 'Organization ID and catalog slug are required.' }, { status: 400 });
+      }
+
+      if (intent === 'mcp-policy-set') {
+        const mode = String(form.get('mode') ?? '');
+
+        await apiRequest(request, `/admin/orgs/${orgId}/mcp-policy`, {
+          method: 'POST',
+          redirectOn401: false,
+          body: JSON.stringify({ slug, mode }),
+        });
+
+        return json({ ok: true, rowId: `${orgId}:${slug}`, message: `Policy set: ${slug} → ${mode}.` });
+      }
+
+      await apiRequest(request, `/admin/orgs/${orgId}/mcp-policy`, {
+        method: 'DELETE',
+        redirectOn401: false,
+        body: JSON.stringify({ slug }),
+      });
+
+      return json({ ok: true, rowId: `${orgId}:${slug}`, message: `Policy cleared for ${slug}.` });
+    }
+
     if (!userId) {
       return json({ ok: false, error: 'Missing user.' }, { status: 400 });
     }
@@ -800,6 +903,7 @@ export default function AdminSectionPage() {
           {section === 'organizations' ? <OrganizationsPanel payload={payload} /> : null}
           {section === 'support-tickets' ? <SupportTicketsPanel payload={payload} /> : null}
           {section === 'audit-logs' || section === 'admin-audit-logs' ? <AuditExportPanel section={section} /> : null}
+          {section === 'mcp-catalog' ? <McpCatalogPanel payload={payload} /> : null}
           {section === 'developer-tools' ? <DeveloperToolsPanel /> : null}
           {![
             'overview',
@@ -816,6 +920,7 @@ export default function AdminSectionPage() {
             'support-tickets',
             'developer-tools',
             'ops-controls',
+            'mcp-catalog',
           ].includes(section) ? (
             <DataPanel config={config} payload={payload} />
           ) : null}
@@ -1551,6 +1656,582 @@ function ToggleListPanel({ payload, kind }: { payload: Record<string, JsonValue>
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+/*
+ * MCP marketplace catalog management. Lists every catalog entry with its
+ * install count and feature/verify flags; each row can be featured / verified /
+ * IDE-featured toggled, edited (full JSON entry), or deleted. A create form adds
+ * a new entry, and an org-policy form force-enables / allow-lists / blocks an
+ * entry for a specific organization. Every write is step-up protected (password
+ * confirm → /auth/reauth) exactly like the other admin panels.
+ */
+const MCP_DOMAIN_OPTIONS = [
+  'AI_AGENTS',
+  'CODE_EXECUTION',
+  'DATABASES',
+  'DEVOPS',
+  'DEVELOPER_TOOLS',
+  'COMMUNICATION',
+  'PRODUCTIVITY',
+  'KNOWLEDGE',
+  'WEB_BROWSING',
+  'SEARCH',
+  'CLOUD',
+  'SECURITY',
+  'FILESYSTEM',
+  'VERSION_CONTROL',
+  'MONITORING',
+  'OTHER',
+] as const;
+
+const MCP_TRANSPORT_OPTIONS = ['STDIO', 'SSE', 'STREAMABLE_HTTP'] as const;
+
+const mcpInputClass =
+  'mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive';
+
+function McpCatalogPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const entries = (Array.isArray(payload.entries) ? payload.entries : []) as Array<Record<string, JsonValue>>;
+  const [password, setPassword] = useState('');
+
+  return (
+    <div className="grid gap-4">
+      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+        <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Confirm changes with your password</h3>
+        <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+          Enter your password once. Every create / edit / toggle / delete below re-authenticates (≤5 min) before it is
+          applied. Your password is sent only with the action and never stored.
+        </p>
+        <input
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete="current-password"
+          placeholder="Your password"
+          data-testid="admin-reauth-password"
+          className="mt-3 w-full max-w-sm rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
+        />
+      </div>
+
+      <McpCatalogCreateForm password={password} />
+
+      <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
+        <table className="w-full min-w-[720px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
+              <th className="px-4 py-3 font-medium">Name</th>
+              <th className="px-4 py-3 font-medium">Slug</th>
+              <th className="px-4 py-3 font-medium">Domain</th>
+              <th className="px-4 py-3 font-medium">Installs</th>
+              <th className="px-4 py-3 font-medium">Flags</th>
+              <th className="px-4 py-3 font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-6 text-center text-xs text-bolt-elements-textTertiary">
+                  No catalog entries yet. Use the form above to create one.
+                </td>
+              </tr>
+            ) : (
+              entries.map((entry) => <McpCatalogRow key={String(entry.id)} entry={entry} password={password} />)
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <McpOrgPolicyForm entries={entries} password={password} />
+    </div>
+  );
+}
+
+function McpCatalogCreateForm({ password }: { password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+
+  const [slug, setSlug] = useState('');
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [author, setAuthor] = useState('');
+  const [version, setVersion] = useState('1.0.0');
+  const [domain, setDomain] = useState<(typeof MCP_DOMAIN_OPTIONS)[number]>('OTHER');
+  const [transport, setTransport] = useState<(typeof MCP_TRANSPORT_OPTIONS)[number]>('STREAMABLE_HTTP');
+  const [tags, setTags] = useState('');
+  const [homepageUrl, setHomepageUrl] = useState('');
+  const [configSchema, setConfigSchema] = useState('{}');
+  const [configTemplate, setConfigTemplate] = useState('{}');
+  const [localError, setLocalError] = useState('');
+
+  const create = () => {
+    setLocalError('');
+
+    let schema: unknown;
+    let template: unknown;
+
+    try {
+      schema = JSON.parse(configSchema || '{}');
+      template = JSON.parse(configTemplate || '{}');
+    } catch {
+      setLocalError('Config schema and template must be valid JSON.');
+      return;
+    }
+
+    const entry: Record<string, unknown> = {
+      slug,
+      name,
+      description,
+      author,
+      version,
+      domain,
+      transport,
+      tags: tags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean),
+      configSchema: schema,
+      configTemplate: template,
+    };
+
+    if (homepageUrl.trim()) {
+      entry.homepageUrl = homepageUrl.trim();
+    }
+
+    fetcher.submit({ intent: 'mcp-catalog-create', entry: JSON.stringify(entry), password }, { method: 'post' });
+  };
+
+  return (
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Create catalog entry</h3>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Slug
+          <input
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            placeholder="my-server"
+            className={mcpInputClass}
+          />
+        </label>
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Name
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="My Server"
+            className={mcpInputClass}
+          />
+        </label>
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Author
+          <input
+            value={author}
+            onChange={(e) => setAuthor(e.target.value)}
+            placeholder="Vendor"
+            className={mcpInputClass}
+          />
+        </label>
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Version
+          <input value={version} onChange={(e) => setVersion(e.target.value)} className={mcpInputClass} />
+        </label>
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Domain
+          <select
+            value={domain}
+            onChange={(e) => setDomain(e.target.value as (typeof MCP_DOMAIN_OPTIONS)[number])}
+            className={mcpInputClass}
+          >
+            {MCP_DOMAIN_OPTIONS.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Transport
+          <select
+            value={transport}
+            onChange={(e) => setTransport(e.target.value as (typeof MCP_TRANSPORT_OPTIONS)[number])}
+            className={mcpInputClass}
+          >
+            {MCP_TRANSPORT_OPTIONS.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-xs text-bolt-elements-textSecondary sm:col-span-2 lg:col-span-3">
+          Description
+          <input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="What this MCP server does"
+            className={mcpInputClass}
+          />
+        </label>
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Tags (comma-separated)
+          <input
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+            placeholder="db, sql"
+            className={mcpInputClass}
+          />
+        </label>
+        <label className="block text-xs text-bolt-elements-textSecondary sm:col-span-2">
+          Homepage URL
+          <input
+            value={homepageUrl}
+            onChange={(e) => setHomepageUrl(e.target.value)}
+            placeholder="https://example.com"
+            className={mcpInputClass}
+          />
+        </label>
+        <label className="block text-xs text-bolt-elements-textSecondary sm:col-span-2 lg:col-span-3">
+          Config schema (JSON)
+          <textarea
+            value={configSchema}
+            onChange={(e) => setConfigSchema(e.target.value)}
+            rows={3}
+            className={`${mcpInputClass} font-mono`}
+          />
+        </label>
+        <label className="block text-xs text-bolt-elements-textSecondary sm:col-span-2 lg:col-span-3">
+          Config template (JSON)
+          <textarea
+            value={configTemplate}
+            onChange={(e) => setConfigTemplate(e.target.value)}
+            rows={3}
+            className={`${mcpInputClass} font-mono`}
+          />
+        </label>
+      </div>
+
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          type="button"
+          disabled={busy || !password || !slug || !name}
+          onClick={create}
+          className="inline-flex items-center rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {busy ? 'Creating…' : 'Create entry'}
+        </button>
+        {localError ? <span className="text-xs text-rose-400">{localError}</span> : null}
+        {fetcher.data?.message ? <span className="text-xs text-emerald-400">{fetcher.data.message}</span> : null}
+        {fetcher.data?.error ? <span className="text-xs text-rose-400">{fetcher.data.error}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+function McpCatalogRow({ entry, password }: { entry: Record<string, JsonValue>; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+  const id = String(entry.id ?? '');
+  const [editing, setEditing] = useState(false);
+
+  const featured = entry.featured === true;
+  const verified = entry.verified === true;
+  const idePanel = entry.featuredForIdePanel === true;
+
+  const toggle = (field: 'featured' | 'verified' | 'featuredForIdePanel', current: boolean) => {
+    fetcher.submit({ intent: 'mcp-catalog-toggle', id, field, value: String(!current), password }, { method: 'post' });
+  };
+
+  const remove = () => {
+    if (!window.confirm(`Delete "${String(entry.slug)}"? This also removes all installs of it.`)) {
+      return;
+    }
+
+    fetcher.submit({ intent: 'mcp-catalog-delete', id, password }, { method: 'post' });
+  };
+
+  const flagBtn = (active: boolean) =>
+    active
+      ? 'rounded-md bg-bolt-elements-item-contentAccent px-2 py-1 text-[11px] font-medium text-white disabled:opacity-50'
+      : 'rounded-md border border-bolt-elements-borderColor px-2 py-1 text-[11px] text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 disabled:opacity-50';
+
+  return (
+    <>
+      <tr className="border-b border-bolt-elements-borderColor align-top">
+        <td className="px-4 py-3 text-bolt-elements-textPrimary">{String(entry.name ?? '')}</td>
+        <td className="px-4 py-3 font-mono text-xs text-bolt-elements-textSecondary">{String(entry.slug ?? '')}</td>
+        <td className="px-4 py-3 text-xs text-bolt-elements-textSecondary">{String(entry.domain ?? '')}</td>
+        <td className="px-4 py-3 text-bolt-elements-textSecondary">{Number(entry.installCount ?? 0)}</td>
+        <td className="px-4 py-3">
+          <div className="flex flex-wrap gap-1">
+            <button
+              type="button"
+              disabled={busy || !password}
+              onClick={() => toggle('featured', featured)}
+              className={flagBtn(featured)}
+            >
+              Featured
+            </button>
+            <button
+              type="button"
+              disabled={busy || !password}
+              onClick={() => toggle('verified', verified)}
+              className={flagBtn(verified)}
+            >
+              Verified
+            </button>
+            <button
+              type="button"
+              disabled={busy || !password}
+              onClick={() => toggle('featuredForIdePanel', idePanel)}
+              className={flagBtn(idePanel)}
+            >
+              IDE panel
+            </button>
+          </div>
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setEditing((v) => !v)}
+              className="rounded-md border border-bolt-elements-borderColor px-2 py-1 text-[11px] text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+            >
+              {editing ? 'Close' : 'Edit'}
+            </button>
+            <button
+              type="button"
+              disabled={busy || !password}
+              onClick={remove}
+              className="rounded-md border border-rose-500/40 px-2 py-1 text-[11px] text-rose-400 hover:bg-rose-500/10 disabled:opacity-50"
+            >
+              Delete
+            </button>
+          </div>
+          {fetcher.data?.message ? (
+            <div className="mt-1 text-[11px] text-emerald-400">{fetcher.data.message}</div>
+          ) : null}
+          {fetcher.data?.error ? <div className="mt-1 text-[11px] text-rose-400">{fetcher.data.error}</div> : null}
+        </td>
+      </tr>
+      {editing ? (
+        <tr className="border-b border-bolt-elements-borderColor">
+          <td colSpan={6} className="px-4 py-3">
+            <McpCatalogEditForm entry={entry} password={password} onDone={() => setEditing(false)} />
+          </td>
+        </tr>
+      ) : null}
+    </>
+  );
+}
+
+function McpCatalogEditForm({
+  entry,
+  password,
+  onDone,
+}: {
+  entry: Record<string, JsonValue>;
+  password: string;
+  onDone: () => void;
+}) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+  const id = String(entry.id ?? '');
+
+  const [name, setName] = useState(String(entry.name ?? ''));
+  const [description, setDescription] = useState(String(entry.description ?? ''));
+  const [author, setAuthor] = useState(String(entry.author ?? ''));
+  const [version, setVersion] = useState(String(entry.version ?? ''));
+  const [domain, setDomain] = useState(String(entry.domain ?? 'OTHER'));
+  const [transport, setTransport] = useState(String(entry.transport ?? 'STREAMABLE_HTTP'));
+  const [tags, setTags] = useState(Array.isArray(entry.tags) ? entry.tags.join(', ') : '');
+  const [homepageUrl, setHomepageUrl] = useState(String(entry.homepageUrl ?? ''));
+  const [configSchema, setConfigSchema] = useState(JSON.stringify(entry.configSchema ?? {}, null, 2));
+  const [localError, setLocalError] = useState('');
+
+  const save = () => {
+    setLocalError('');
+
+    let schema: unknown;
+
+    try {
+      schema = JSON.parse(configSchema || '{}');
+    } catch {
+      setLocalError('Config schema must be valid JSON.');
+      return;
+    }
+
+    const patch: Record<string, unknown> = {
+      name,
+      description,
+      author,
+      version,
+      domain,
+      transport,
+      tags: tags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean),
+      homepageUrl: homepageUrl.trim() ? homepageUrl.trim() : null,
+      configSchema: schema,
+    };
+
+    fetcher.submit({ intent: 'mcp-catalog-update', id, entry: JSON.stringify(patch), password }, { method: 'post' });
+    onDone();
+  };
+
+  return (
+    <div className="grid gap-3 rounded-md bg-bolt-elements-background-depth-1 p-3 sm:grid-cols-2 lg:grid-cols-3">
+      <label className="block text-xs text-bolt-elements-textSecondary">
+        Name
+        <input value={name} onChange={(e) => setName(e.target.value)} className={mcpInputClass} />
+      </label>
+      <label className="block text-xs text-bolt-elements-textSecondary">
+        Author
+        <input value={author} onChange={(e) => setAuthor(e.target.value)} className={mcpInputClass} />
+      </label>
+      <label className="block text-xs text-bolt-elements-textSecondary">
+        Version
+        <input value={version} onChange={(e) => setVersion(e.target.value)} className={mcpInputClass} />
+      </label>
+      <label className="block text-xs text-bolt-elements-textSecondary">
+        Domain
+        <select value={domain} onChange={(e) => setDomain(e.target.value)} className={mcpInputClass}>
+          {MCP_DOMAIN_OPTIONS.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block text-xs text-bolt-elements-textSecondary">
+        Transport
+        <select value={transport} onChange={(e) => setTransport(e.target.value)} className={mcpInputClass}>
+          {MCP_TRANSPORT_OPTIONS.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block text-xs text-bolt-elements-textSecondary">
+        Tags (comma-separated)
+        <input value={tags} onChange={(e) => setTags(e.target.value)} className={mcpInputClass} />
+      </label>
+      <label className="block text-xs text-bolt-elements-textSecondary sm:col-span-2 lg:col-span-3">
+        Description
+        <input value={description} onChange={(e) => setDescription(e.target.value)} className={mcpInputClass} />
+      </label>
+      <label className="block text-xs text-bolt-elements-textSecondary sm:col-span-2">
+        Homepage URL
+        <input value={homepageUrl} onChange={(e) => setHomepageUrl(e.target.value)} className={mcpInputClass} />
+      </label>
+      <label className="block text-xs text-bolt-elements-textSecondary sm:col-span-2 lg:col-span-3">
+        Config schema (JSON)
+        <textarea
+          value={configSchema}
+          onChange={(e) => setConfigSchema(e.target.value)}
+          rows={4}
+          className={`${mcpInputClass} font-mono`}
+        />
+      </label>
+      <div className="flex items-center gap-3 sm:col-span-2 lg:col-span-3">
+        <button
+          type="button"
+          disabled={busy || !password}
+          onClick={save}
+          className="inline-flex items-center rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {busy ? 'Saving…' : 'Save changes'}
+        </button>
+        {localError ? <span className="text-xs text-rose-400">{localError}</span> : null}
+        {fetcher.data?.error ? <span className="text-xs text-rose-400">{fetcher.data.error}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+function McpOrgPolicyForm({ entries, password }: { entries: Array<Record<string, JsonValue>>; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+
+  const [organizationId, setOrganizationId] = useState('');
+  const [slug, setSlug] = useState(entries.length > 0 ? String(entries[0].slug ?? '') : '');
+  const [mode, setMode] = useState<'forced' | 'allowed' | 'blocked'>('allowed');
+
+  const apply = (intent: 'mcp-policy-set' | 'mcp-policy-clear') => {
+    fetcher.submit({ intent, organizationId, slug, mode, password }, { method: 'post' });
+  };
+
+  return (
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Organization MCP policy</h3>
+      <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+        Govern which catalog entries an organization may install. <strong>Forced</strong> and <strong>allowed</strong>{' '}
+        entries form the org allow-list — once any exist, org members can install only those. <strong>Blocked</strong>{' '}
+        denies a single entry. Clear removes the policy for that entry (back to default-open). Step-up protected and
+        audited.
+      </p>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Organization ID
+          <input
+            value={organizationId}
+            onChange={(e) => setOrganizationId(e.target.value)}
+            placeholder="org_…"
+            data-testid="mcp-policy-org"
+            className={mcpInputClass}
+          />
+        </label>
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Catalog entry
+          <select value={slug} onChange={(e) => setSlug(e.target.value)} className={mcpInputClass}>
+            {entries.length === 0 ? <option value="">No entries</option> : null}
+            {entries.map((entry) => (
+              <option key={String(entry.slug)} value={String(entry.slug)}>
+                {String(entry.name ?? entry.slug)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Mode
+          <select
+            value={mode}
+            onChange={(e) => setMode(e.target.value as 'forced' | 'allowed' | 'blocked')}
+            className={mcpInputClass}
+          >
+            <option value="allowed">Allow-list</option>
+            <option value="forced">Force-enable</option>
+            <option value="blocked">Block</option>
+          </select>
+        </label>
+        <div className="flex items-end gap-2">
+          <button
+            type="button"
+            disabled={busy || !password || !organizationId || !slug}
+            onClick={() => apply('mcp-policy-set')}
+            className="inline-flex items-center rounded-md border border-bolt-elements-borderColor px-3 py-2 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {busy ? 'Applying…' : 'Apply'}
+          </button>
+          <button
+            type="button"
+            disabled={busy || !password || !organizationId || !slug}
+            onClick={() => apply('mcp-policy-clear')}
+            className="inline-flex items-center rounded-md border border-bolt-elements-borderColor px-3 py-2 text-xs font-medium text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-2 min-h-[1rem] text-xs">
+        {fetcher.data?.message ? <span className="text-emerald-400">{fetcher.data.message}</span> : null}
+        {fetcher.data?.error ? <span className="text-rose-400">{fetcher.data.error}</span> : null}
       </div>
     </div>
   );

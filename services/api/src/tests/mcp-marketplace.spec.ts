@@ -221,6 +221,120 @@ runDbTests('McpMarketplaceService integration (real Postgres)', () => {
       await prisma.$disconnect();
     }
   });
+
+  it('admin catalog create → update → delete round-trips', { timeout: 15_000 }, async () => {
+    const prisma = createDatabaseClient();
+    const service = new McpMarketplaceService({ prisma });
+    const slug = `test-admin-${Date.now().toString(36)}`;
+
+    try {
+      const created = await service.createCatalogEntry({
+        slug,
+        name: 'Test Admin Entry',
+        description: 'Created by the admin catalog test',
+        domain: 'OTHER',
+        author: 'tester',
+        version: '1.0.0',
+        transport: 'STREAMABLE_HTTP',
+        tags: ['test'],
+        configSchema: { type: 'object' },
+        configTemplate: {},
+      });
+      expect(created.slug).toBe(slug);
+      expect(created.featured).toBe(false);
+
+      // Duplicate slug → 409.
+      await expect(
+        service.createCatalogEntry({
+          slug,
+          name: 'dup',
+          description: 'dup',
+          domain: 'OTHER',
+          author: 'tester',
+          version: '1',
+          transport: 'SSE',
+        }),
+      ).rejects.toMatchObject({ statusCode: 409, code: 'MCP_CATALOG_SLUG_CONFLICT' });
+
+      const updated = await service.updateCatalogEntry(created.id, {
+        featured: true,
+        verified: true,
+        name: 'Renamed',
+      });
+      expect(updated.featured).toBe(true);
+      expect(updated.verified).toBe(true);
+      expect(updated.name).toBe('Renamed');
+
+      const removed = await service.deleteCatalogEntry(created.id);
+      expect(removed.slug).toBe(slug);
+
+      await expect(service.getCatalogEntryById(created.id)).rejects.toMatchObject({
+        statusCode: 404,
+        code: 'MCP_CATALOG_NOT_FOUND',
+      });
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('org policy allow-list gates org-scoped installs', { timeout: 20_000 }, async () => {
+    const prisma = createDatabaseClient();
+    const service = new McpMarketplaceService({ prisma });
+    const stamp = Date.now().toString(36);
+
+    try {
+      // Real org + user for FK integrity.
+      const org = await prisma.organization.create({ data: { name: `PolicyOrg-${stamp}`, slug: `policy-${stamp}` } });
+      const user = await prisma.user.create({
+        data: { email: `policy-${stamp}@example.com`, name: 'Policy', passwordHash: 'x' },
+      });
+
+      // Default-open: no policy rows yet.
+      const before = await service.getOrgPolicy(org.id);
+      expect(before.allowListEnforced).toBe(false);
+      expect(before.entries).toEqual([]);
+
+      // Allow-list only 'postgres' (a seeded entry). filesystem is now NOT allowed.
+      const policy = await service.setOrgPolicy({ organizationId: org.id, slug: 'postgres', mode: 'allowed' });
+      expect(policy.allowListEnforced).toBe(true);
+      expect(policy.entries.some((e) => e.slug === 'postgres' && e.mode === 'allowed')).toBe(true);
+
+      await expect(
+        service.install({
+          userId: user.id,
+          organizationId: org.id,
+          catalogEntrySlug: 'filesystem',
+          alias: `fs-${stamp}`,
+          config: { rootDir: '/tmp/x' },
+        }),
+      ).rejects.toMatchObject({ statusCode: 403, code: 'MCP_ORG_POLICY_NOT_ALLOWED' });
+
+      // Blocking postgres denies it explicitly.
+      await service.setOrgPolicy({ organizationId: org.id, slug: 'postgres', mode: 'blocked' });
+      await expect(
+        service.install({
+          userId: user.id,
+          organizationId: org.id,
+          catalogEntrySlug: 'postgres',
+          alias: `pg-${stamp}`,
+          config: { connectionString: 'postgres://localhost/db' },
+        }),
+      ).rejects.toMatchObject({ statusCode: 403, code: 'MCP_ORG_POLICY_BLOCKED' });
+
+      // Clearing the policy restores default-open.
+      const cleared = await service.clearOrgPolicy({ organizationId: org.id, slug: 'postgres' });
+      expect(cleared.allowListEnforced).toBe(false);
+
+      // Cleanup.
+      await prisma.mcpInstall.deleteMany({ where: { organizationId: org.id } });
+      await prisma.organizationConnectorPolicy.deleteMany({ where: { organizationId: org.id } });
+      await prisma.mcpInstall.deleteMany({ where: { userId: user.id } });
+      await prisma.user.delete({ where: { id: user.id } });
+      await prisma.organization.delete({ where: { id: org.id } });
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
 });
 
 const runApiTests = (await canReachDatabase()) ? describe : describe.skip;
