@@ -132,6 +132,7 @@ export async function streamText(props: {
   agentOrchestrationContext?: string;
   agentMemoryContext?: string;
   skillsContext?: string;
+  projectRulesContext?: string;
 }) {
   const {
     messages,
@@ -151,6 +152,7 @@ export async function streamText(props: {
     agentOrchestrationContext,
     agentMemoryContext,
     skillsContext,
+    projectRulesContext,
   } = props;
 
   let currentModel = DEFAULT_MODEL;
@@ -304,6 +306,12 @@ ${agentMemoryContext}`;
 ${skillsContext}`;
   }
 
+  if (projectRulesContext) {
+    systemPrompt = `${systemPrompt}
+
+${projectRulesContext}`;
+  }
+
   if (chatMode === 'build' && contextFiles && contextOptimization) {
     const codeContext = createFilesContext(contextFiles, true);
 
@@ -419,7 +427,9 @@ ${skillsContext}`;
    * appended to systemPrompt above). Re-append them here so persistent memory and
    * enabled skills actually inform discuss-mode answers too, not just builds.
    */
-  const discussSystem = [discussPrompt(), agentMemoryContext, skillsContext].filter(Boolean).join('\n\n');
+  const discussSystem = [discussPrompt(), agentMemoryContext, skillsContext, projectRulesContext]
+    .filter(Boolean)
+    .join('\n\n');
 
   const streamParams = {
     model: removeUnsupportedModelSettings(modelInstance, modelDetails.name, modelDetails.provider),

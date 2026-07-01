@@ -95,7 +95,50 @@ export default function LlmErrorAlert({ alert, clearAlert }: Props) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                {/*
+                 * Retry re-runs the last generation. A transient error (rate limit,
+                 * network, a 5xx) usually clears on retry, and the reload button was
+                 * previously buried elsewhere in the UI — so a one-click retry right
+                 * on the error is the obvious Replit/Cursor affordance. Self-contained
+                 * via a window event that Chat.client listens for (reload()), so no
+                 * callback threading through BaseChat.
+                 */}
+                {errorType !== 'quota' && (
+                  <button
+                    onClick={() => {
+                      clearAlert();
+
+                      if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('vibecore:llm-retry'));
+                      }
+                    }}
+                    className={classNames(
+                      'px-2 py-1.5 rounded-md text-sm font-medium',
+                      'bg-bolt-elements-button-primary-background',
+                      'hover:bg-bolt-elements-button-primary-backgroundHover',
+                      'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bolt-elements-button-primary-background',
+                      'text-bolt-elements-button-primary-text',
+                    )}
+                  >
+                    Retry
+                  </button>
+                )}
+                {(errorType === 'authentication' || errorType === 'quota') && (
+                  <a
+                    href={errorType === 'quota' ? '/billing' : '/settings'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={classNames(
+                      'px-2 py-1.5 rounded-md text-sm font-medium inline-flex items-center',
+                      'bg-bolt-elements-button-secondary-background',
+                      'hover:bg-bolt-elements-button-secondary-backgroundHover',
+                      'text-bolt-elements-button-secondary-text',
+                    )}
+                  >
+                    {errorType === 'quota' ? 'View plan & limits' : 'Open settings'}
+                  </a>
+                )}
                 <button
                   onClick={clearAlert}
                   className={classNames(

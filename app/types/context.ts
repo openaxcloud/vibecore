@@ -64,6 +64,12 @@ export type ContextAnnotation =
       }>;
     }
   | {
+      type: 'agentRules';
+
+      /** Project-relative paths of the rules files (AGENTS.md / .cursorrules) applied. */
+      files: string[];
+    }
+  | {
       type: 'agentMemory';
       memories: Array<{
         id: string;

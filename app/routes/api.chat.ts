@@ -36,6 +36,7 @@ import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { MCPService } from '~/lib/services/mcpService';
 import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
 import { retrieveSkillsForAgentContext } from '~/lib/.server/llm/project-skills';
+import { retrieveProjectRulesContext } from '~/lib/.server/llm/project-rules';
 import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
 import { classifyStreamError, streamErrorCodeMessages } from '~/types/context';
 import type { DesignScheme } from '~/types/design-scheme';
@@ -497,6 +498,21 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * actually changes agent behaviour. Fails open to "no skills".
          */
         const projectSkills = await retrieveSkillsForAgentContext(request, { projectId });
+
+        /*
+         * Project rules → agent context (AGENTS.md / .cursorrules / .cursor/rules).
+         * Read straight from the project files the request carries and injected as
+         * BINDING system-prompt instructions, matching Cursor/Replit. Emit an
+         * annotation so the UI can show which rules files steered the response.
+         */
+        const projectRules = retrieveProjectRulesContext(files as FileMap | undefined);
+
+        if (projectRules?.files.length) {
+          dataStream.writeMessageAnnotation({
+            type: 'agentRules',
+            files: projectRules.files.map((rule) => rule.path),
+          } satisfies ContextAnnotation);
+        }
 
         /*
          * Connector-need detection: scan the latest user message and emit a
@@ -1062,6 +1078,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   agentOrchestrationPlan: orchestrationPlan,
                   agentOrchestrationContext,
                   agentMemoryContext: agentMemory?.context,
+                  projectRulesContext: projectRules?.context,
                   skillsContext: projectSkills?.context,
                 });
 

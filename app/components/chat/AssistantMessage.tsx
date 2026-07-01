@@ -140,6 +140,9 @@ export const AssistantMessage = memo(
     const agentPlan = filteredAnnotations.find((annotation) => annotation.type === 'agentPlan') as
       | Extract<ContextAnnotation, { type: 'agentPlan' }>
       | undefined;
+    const agentRules = filteredAnnotations.find((annotation) => annotation.type === 'agentRules') as
+      | Extract<ContextAnnotation, { type: 'agentRules' }>
+      | undefined;
 
     /*
      * Live per-lane streaming: the executor emits agentLaneStream {kind} events —
@@ -258,7 +261,7 @@ export const AssistantMessage = memo(
             <strong>Agent</strong>
           </div>
           <div className="flex gap-1.5 items-center text-sm text-bolt-elements-textSecondary mb-1">
-            {(codeContext || chatSummary || agentOrchestration || agentExecution || agentMemory) && (
+            {(codeContext || chatSummary || agentOrchestration || agentExecution || agentMemory || agentRules) && (
               <Popover
                 side="right"
                 align="start"
@@ -307,6 +310,27 @@ export const AssistantMessage = memo(
                               </div>
                             ) : null}
                           </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {agentRules && agentRules.files.length > 0 && (
+                    <div className="agent-rules bolt-message-context-card">
+                      <div>
+                        <h2 className="bolt-message-context-title">Project rules</h2>
+                        <p className="bolt-message-context-subtitle">
+                          Applied {agentRules.files.length} project rules file
+                          {agentRules.files.length === 1 ? '' : 's'} to this response
+                        </p>
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {agentRules.files.map((path) => (
+                          <span
+                            key={path}
+                            className="rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] font-medium text-bolt-elements-textSecondary"
+                          >
+                            {path}
+                          </span>
                         ))}
                       </div>
                     </div>
@@ -515,12 +539,12 @@ export const AssistantMessage = memo(
             </div>
             <ol className="space-y-1">
               {agentPlan.tasks.map((task, index) => (
-                <li key={`${task.roleId}-${index}`} className="flex items-start gap-2 text-xs">
+                <li key={`${task.roleId}-${index}`} className="flex min-w-0 items-start gap-2 text-xs">
                   <span className="mt-[1px] text-bolt-elements-textTertiary">{index + 1}.</span>
                   <span className="rounded bg-bolt-elements-background-depth-2 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-bolt-elements-item-contentAccent">
                     {task.roleId}
                   </span>
-                  <span className="text-bolt-elements-textSecondary">{task.title}</span>
+                  <span className="min-w-0 flex-1 break-words text-bolt-elements-textSecondary">{task.title}</span>
                 </li>
               ))}
             </ol>

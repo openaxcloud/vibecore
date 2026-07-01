@@ -877,6 +877,22 @@ export const ChatImpl = memo(
       setLlmErrorAlert(undefined);
     }, []);
 
+    /*
+     * One-click Retry from the LLM error alert (LLMApiAlert dispatches this event
+     * so it doesn't need a callback threaded through the volatile BaseChat). Clear
+     * the alert and re-run the last generation.
+     */
+    useEffect(() => {
+      const onRetry = () => {
+        setLlmErrorAlert(undefined);
+        void reload();
+      };
+
+      window.addEventListener('vibecore:llm-retry', onRetry);
+
+      return () => window.removeEventListener('vibecore:llm-retry', onRetry);
+    }, [reload]);
+
     useEffect(() => {
       const textarea = textareaRef.current;
 
