@@ -5282,8 +5282,8 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .vc-touch-symbol-toolbar button {
-  min-width: 36px;
-  min-height: 34px;
+  min-width: 40px;
+  min-height: 40px;
   border: 1px solid var(--bolt-elements-borderColor);
   border-radius: 7px;
   background: var(--bolt-elements-bg-depth-1);
@@ -9254,12 +9254,39 @@ body :where(.lucide, svg[data-lucide]) {
   line-height: normal;
 }
 
-/* Touch-friendly file-tree rows on mobile/tablet. The Files panel renders inside
-   .bolt-workbench-mobile (not the .bolt-workbench-mobile-service block), so it does
-   not receive that block's control sizing — bump rows to a 40px tap target here. */
+/* Touch-friendly controls on mobile/tablet for the core workbench panels (Files,
+   Search, Locks). These render inside .bolt-workbench-mobile — NOT the
+   .bolt-workbench-mobile-service block — so they don't receive that block's 40px
+   control sizing. Bump the sub-40px controls to a proper tap target here. */
 @media (max-width: 1199px) {
   .bolt-workbench-mobile .bolt-project-file-tree .bolt-file-tree-node {
     height: 40px;
+    min-height: 40px;
+  }
+
+  /* Secondary file-tree views (Open editors / Outline / Timeline / Bookmarks) use
+     their own `button.group` rows, not .bolt-file-tree-node. */
+  .bolt-workbench-mobile .bolt-project-file-tree button.group {
+    min-height: 40px;
+  }
+
+  /* Locks panel: search input + type filter (24px), unlock buttons (~20px). */
+  [data-testid='mobile-locks-panel'] input,
+  [data-testid='mobile-locks-panel'] select,
+  [data-testid='mobile-locks-panel'] button {
+    min-height: 40px;
+  }
+
+  [data-testid='mobile-locks-panel'] input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+    min-height: 20px;
+  }
+
+  /* Search panel: case/regex toggles + inputs + replace-all (28px), result rows. */
+  [data-testid='mobile-search-panel'] input,
+  [data-testid='mobile-search-panel'] button,
+  [data-testid='mobile-search-panel'] [role='button'] {
     min-height: 40px;
   }
 }
