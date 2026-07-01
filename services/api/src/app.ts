@@ -1703,7 +1703,6 @@ function isBlockedGitHost(rawHost: string): boolean {
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
-
     /*
      * ULA fc00::/7 + link-local fe80::/10, but only as IPv6 LITERALS (hextets +
      * ':'). The old startsWith('fc'/'fd'/'fe80') wrongly blocked public hosts like
@@ -2412,7 +2411,6 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
     mfaPathname.startsWith('/auth/recovery-codes/') ||
     mfaPathname === '/auth/sessions' ||
     mfaPathname.startsWith('/auth/sessions/') ||
-
     /*
      * Re-auth is the gateway to enrolling MFA (mfa/setup now requires it); a
      * platform admin without MFA must be able to reach it or they'd be deadlocked.
@@ -2911,8 +2909,11 @@ async function meterDeploymentOnce(store: ApiStore, deployment: DeploymentRecord
       kind,
       shadow,
       nowMs: Date.now(),
-      // metered exactly once (guarded by lastMeteredAt), so the deployment id is a
-      // stable PAYG dedup key for any overage beyond included credits.
+
+      /*
+       * metered exactly once (guarded by lastMeteredAt), so the deployment id is a
+       * stable PAYG dedup key for any overage beyond included credits.
+       */
       paygReference: `deployment:${fresh.id}`,
     }).catch(() => {});
 
@@ -7387,8 +7388,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       process.env[`${provider.toUpperCase()}_AUTHORIZATION_URL`] ??
       wellKnownOauthEndpoints[provider]?.authorizationUrl;
 
-    // DB-first client_id (admin-configured) → env fallback. A disabled admin row
-    // turns sign-in off (null URL → start route reports ready:false).
+    /*
+     * DB-first client_id (admin-configured) → env fallback. A disabled admin row
+     * turns sign-in off (null URL → start route reports ready:false).
+     */
     const creds = await resolveLoginProviderCredentials(provider, store);
 
     if (!creds.enabled) {
@@ -7483,14 +7486,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply.code(401).send({ error: 'Invalid or expired OAuth state', code: 'OAUTH_STATE_INVALID' });
       }
 
-      // Admin-configured credentials (DB-first) win over env; a disabled provider
-      // is rejected before any code exchange.
+      /*
+       * Admin-configured credentials (DB-first) win over env; a disabled provider
+       * is rejected before any code exchange.
+       */
       const loginCreds = await resolveLoginProviderCredentials(provider, store);
 
       if (!loginCreds.enabled) {
-        return reply
-          .code(503)
-          .send({ error: 'This sign-in provider is disabled', code: 'OAUTH_PROVIDER_DISABLED' });
+        return reply.code(503).send({ error: 'This sign-in provider is disabled', code: 'OAUTH_PROVIDER_DISABLED' });
       }
 
       let profile;
@@ -7662,9 +7665,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const oidcCreds = await resolveLoginProviderCredentials('oidc', store);
 
       if (!oidcCreds.enabled) {
-        return reply
-          .code(503)
-          .send({ error: 'This sign-in provider is disabled', code: 'OAUTH_PROVIDER_DISABLED' });
+        return reply.code(503).send({ error: 'This sign-in provider is disabled', code: 'OAUTH_PROVIDER_DISABLED' });
       }
 
       let profile;
@@ -7711,6 +7712,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * OIDC user).
        */
       let oidcOrgId = orgIdFromRequest(request);
+
       const oidcUserOrgs = await store.listOrganizations(user.id);
 
       if (oidcOrgId && !oidcUserOrgs.some((org) => org.id === oidcOrgId)) {
@@ -7952,14 +7954,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/') ||
-
       /*
        * Service-to-service internal endpoints (metering ingest, inactivity GC).
        * Exempt from user auth; each route self-authenticates with the shared
        * internal secret via requireInternalSecret(). P8.
        */
       request.url.startsWith('/internal/') ||
-
       /*
        * Public read of a shared conversation snapshot — the signed token is the
        * capability. Only the token-scoped GET path is exempt; POST /chat-shares
@@ -8773,8 +8773,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
 
-      // Respect an admin-disabled connector: stop handing out its token so a
-      // disabled connector can't keep driving deploys from any device.
+      /*
+       * Respect an admin-disabled connector: stop handing out its token so a
+       * disabled connector can't keep driving deploys from any device.
+       */
       const tokenCatalog = await store.getConnectorOAuthCatalog(params.provider);
 
       if (tokenCatalog && !tokenCatalog.enabled) {
@@ -8784,6 +8786,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const connections = await store.listUserConnectionsByUser(request.currentUser.id, {
         provider: params.provider,
       });
+
       const active = connections.find((row) => row.status === 'active');
 
       if (!active) {
@@ -8852,7 +8855,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
     }
 
-    const query = parse(userConnectionListQuerySchema.extend({ organizationId: z.string().min(1).optional() }), request.query);
+    const query = parse(
+      userConnectionListQuerySchema.extend({ organizationId: z.string().min(1).optional() }),
+      request.query,
+    );
 
     let organizationId: string | undefined;
 
@@ -9631,11 +9637,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     bitbucket: { host: 'https://api.bitbucket.org', accept: 'application/json' },
   };
 
-  async function resolveActiveConnectorToken(
-    request: any,
-    reply: any,
-    provider: string,
-  ): Promise<string | null> {
+  async function resolveActiveConnectorToken(request: any, reply: any, provider: string): Promise<string | null> {
     if (!request.currentUser) {
       reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
 
@@ -9669,7 +9671,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       return decryptJson<{ value: string }>(active.accessTokenEncrypted).value;
     } catch {
-      reply.code(503).send({ error: `${provider} token could not be decrypted`, code: 'CONNECTOR_TOKEN_DECRYPT_FAILED' });
+      reply
+        .code(503)
+        .send({ error: `${provider} token could not be decrypted`, code: 'CONNECTOR_TOKEN_DECRYPT_FAILED' });
 
       return null;
     }
@@ -9718,7 +9722,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     app.post(
       `/api/${provider}-proxy`,
-      { config: { rateLimit: { max: Number(process.env.CONNECTOR_PROXY_RATE_LIMIT_MAX ?? 30), timeWindow: '1 minute' } } },
+      {
+        config: {
+          rateLimit: { max: Number(process.env.CONNECTOR_PROXY_RATE_LIMIT_MAX ?? 30), timeWindow: '1 minute' },
+        },
+      },
       async (request, reply) => {
         const body = request.body as
           | { method?: string; path?: string; query?: Record<string, string>; body?: unknown }
@@ -16010,9 +16018,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               id: secret.id,
               projectId: secret.projectId,
               key: secret.key,
-              // valueEncrypted is nullable in the schema; never feed null to
-              // decryptJson (it would throw a 500). A secret with no ciphertext
-              // simply reveals as empty.
+
+              /*
+               * valueEncrypted is nullable in the schema; never feed null to
+               * decryptJson (it would throw a 500). A secret with no ciphertext
+               * simply reveals as empty.
+               */
               value: secret.valueEncrypted ? decryptJson<{ value: string }>(secret.valueEncrypted).value : '',
               updatedAt: secret.updatedAt,
             }
@@ -18471,9 +18482,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       activePacks: packs,
       ledger: await store.listCreditLedger(orgId, { take: 50 }),
       checkpoints: await store.listAgentCheckpoints(orgId, { take: 50 }),
-      // Purchasable credit-pack catalog (Replit parity: 4 SKUs, 6-month validity)
-      // so the billing UI renders a "Buy credits" selector without hardcoding
-      // prices. Purchase is gated by BILLING_CREDITS_ENABLED at the checkout route.
+
+      /*
+       * Purchasable credit-pack catalog (Replit parity: 4 SKUs, 6-month validity)
+       * so the billing UI renders a "Buy credits" selector without hardcoding
+       * prices. Purchase is gated by BILLING_CREDITS_ENABLED at the checkout route.
+       */
       packCatalog: creditPackCatalog.map((p) => ({
         id: p.id,
         label: p.label,
@@ -19055,7 +19069,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           : undefined;
         const isStaleByTimestamp = Boolean(
           eventCreatedAt &&
-
             /*
              * Deletion is terminal and must ALWAYS be applied: a `deleted` event
              * can legitimately carry an older event.created than a previously
@@ -19622,6 +19635,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     { provider: 'netlify', tokenConsoleUrl: 'https://app.netlify.com/user/applications#personal-access-tokens' },
     { provider: 'supabase', tokenConsoleUrl: 'https://supabase.com/dashboard/account/tokens' },
   ] as const;
+
   const API_KEY_CONNECTOR_KEYS = ['vercel', 'netlify', 'supabase'] as const;
 
   app.get('/admin/connectors/api-key', async (request) => {
@@ -19674,9 +19688,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * `envClientIdPresent` lets the UI show whether env still provides a fallback.
    */
   const LOGIN_OAUTH_PROVIDERS = [
-    { provider: 'github', displayName: 'GitHub (sign-in)', callbackUrl: 'https://app.e-code.ai/auth/oauth/github/callback' },
-    { provider: 'google', displayName: 'Google (sign-in)', callbackUrl: 'https://app.e-code.ai/auth/oauth/google/callback' },
+    {
+      provider: 'github',
+      displayName: 'GitHub (sign-in)',
+      callbackUrl: 'https://app.e-code.ai/auth/oauth/github/callback',
+    },
+    {
+      provider: 'google',
+      displayName: 'Google (sign-in)',
+      callbackUrl: 'https://app.e-code.ai/auth/oauth/google/callback',
+    },
   ] as const;
+
   const LOGIN_OAUTH_PROVIDER_KEYS = ['github', 'google'] as const;
 
   app.get('/admin/login-providers', async (request) => {
@@ -19721,6 +19744,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const hasNewSecret = typeof body.clientSecret === 'string' && body.clientSecret.length > 0;
+
     const scopes =
       typeof body.scopes === 'string'
         ? body.scopes
@@ -20514,8 +20538,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const shadow = body.shadow ?? process.env.BILLING_CREDITS_ENABLED !== 'true';
     const nowMs = Date.now();
 
-    // Stable PAYG dedup key: producer-supplied reference, else a per-(kind,org,
-    // minute) fallback so retries inside a minute don't double-record/charge.
+    /*
+     * Stable PAYG dedup key: producer-supplied reference, else a per-(kind,org,
+     * minute) fallback so retries inside a minute don't double-record/charge.
+     */
     const paygReference =
       ('reference' in body && body.reference) || `${body.kind}:${body.organizationId}:${Math.floor(nowMs / 60_000)}`;
 
@@ -20544,6 +20570,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         paygReference,
       });
       await reportPayg(result);
+
       return { kind: body.kind, shadow, result };
     }
 
@@ -20559,6 +20586,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         paygReference,
       });
       await reportPayg(result);
+
       return { kind: body.kind, shadow, result };
     }
 
@@ -20573,6 +20601,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         paygReference,
       });
       await reportPayg(result);
+
       return { kind: body.kind, shadow, result };
     }
 
@@ -20586,6 +20615,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         paygReference,
       });
       await reportPayg(result);
+
       return { kind: body.kind, shadow, result };
     }
 
@@ -20603,6 +20633,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     await reportPayg(result);
+
     return { kind: body.kind, shadow, result };
   });
 
@@ -22181,6 +22212,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     try {
       return reply.send(await resolveObjectStorage().ensureBucket(project.id));
+    } catch (error) {
+      return sendObjectStorageError(reply, error);
+    }
+  });
+
+  app.delete('/projects/:projectId/object-storage/bucket', async (request, reply) => {
+    if (!isObjectStorageEnabled()) {
+      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireObjectStorageProject(request, 'projects:write');
+
+    try {
+      return reply.send(await resolveObjectStorage().deleteBucket(project.id));
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }

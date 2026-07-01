@@ -1675,6 +1675,15 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       } catch (error) {
         return objectStorageResultOrDisabled(error);
       }
+    } else if (intent === 'delete-bucket') {
+      try {
+        const result = await apiRequest(request, `/projects/${projectId}/object-storage/bucket`, {
+          method: 'DELETE',
+        });
+        return json({ enabled: true, ok: true, ...(result as any) });
+      } catch (error) {
+        return objectStorageResultOrDisabled(error);
+      }
     } else if (intent === 'upload-url') {
       const key = (body.key ?? '').trim();
 

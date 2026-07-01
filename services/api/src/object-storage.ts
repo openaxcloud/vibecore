@@ -117,6 +117,7 @@ export interface ObjectStorage {
   moveObject(projectId: string, input: { from: string; to: string }): Promise<{ moved: boolean; key: string }>;
   deleteObject(projectId: string, input: { key: string }): Promise<{ deleted: boolean; count: number }>;
   deletePrefix(projectId: string, input: { prefix: string }): Promise<{ deleted: boolean; count: number }>;
+  deleteBucket(projectId: string): Promise<{ deleted: boolean; bucket: string }>;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -138,6 +139,8 @@ export interface BucketLike {
   setMetadata(metadata: Record<string, unknown>): Promise<unknown>;
   getFiles(query: Record<string, unknown>): Promise<[FileLike[], unknown, { prefixes?: string[] } | undefined]>;
   file(name: string): FileLike;
+  deleteFiles(opts: Record<string, unknown>): Promise<unknown>;
+  delete(): Promise<unknown>;
 }
 
 export interface StorageLike {
@@ -174,6 +177,10 @@ export class NoopObjectStorage implements ObjectStorage {
 
   async deletePrefix() {
     return { deleted: false, count: 0 };
+  }
+
+  async deleteBucket(projectId: string) {
+    return { deleted: false, bucket: projectBucketName(projectId) };
   }
 }
 
@@ -290,6 +297,25 @@ export class GcsObjectStorage implements ObjectStorage {
     await Promise.all(files.map((file) => bucket.file(file.name).delete()));
 
     return { deleted: true, count: files.length };
+  }
+
+  async deleteBucket(projectId: string) {
+    const name = projectBucketName(projectId);
+    const bucket = this._storage.bucket(name);
+    const [exists] = await bucket.exists();
+
+    if (!exists) {
+      return { deleted: false, bucket: name };
+    }
+
+    /*
+     * GCS refuses to delete a non-empty bucket, so purge objects first (force
+     * ignores per-object failures), then remove the bucket itself.
+     */
+    await bucket.deleteFiles({ force: true });
+    await bucket.delete();
+
+    return { deleted: true, bucket: name };
   }
 }
 

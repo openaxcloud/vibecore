@@ -93,6 +93,16 @@ class FakeStorage implements StorageLike {
       file(fileName: string) {
         return self._file(name, fileName);
       },
+      async deleteFiles() {
+        self.buckets.set(name, new Map());
+
+        return undefined;
+      },
+      async delete() {
+        self.buckets.delete(name);
+
+        return undefined;
+      },
     };
   }
 
@@ -276,5 +286,25 @@ describe('GcsObjectStorage', () => {
   it('rejects traversal keys before touching the backend', async () => {
     const svc = new GcsObjectStorage(new FakeStorage());
     await expect(svc.deleteObject('p', { key: '../escape' })).rejects.toThrow(ObjectStorageError);
+  });
+
+  it('deleteBucket purges all objects then removes the bucket', async () => {
+    const storage = new FakeStorage();
+    storage.seed(projectBucketName('p1'), ['a.txt', 'dir/b.txt']);
+
+    const svc = new GcsObjectStorage(storage);
+
+    const result = await svc.deleteBucket('p1');
+
+    expect(result.deleted).toBe(true);
+    expect(result.bucket).toBe(projectBucketName('p1'));
+    expect(storage.buckets.has(projectBucketName('p1'))).toBe(false);
+  });
+
+  it('deleteBucket returns deleted:false when the bucket does not exist', async () => {
+    const svc = new GcsObjectStorage(new FakeStorage());
+    const result = await svc.deleteBucket('missing');
+
+    expect(result.deleted).toBe(false);
   });
 });

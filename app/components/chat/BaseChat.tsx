@@ -13325,9 +13325,22 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                 Delete bucket
               </h4>
               <p className="text-xs text-bolt-elements-textTertiary">
-                Permanently deleting the bucket is coming soon — backend pending. Until then, delete objects
-                individually from the Objects tab.
+                Permanently deletes the project bucket and every object in it. This cannot be undone.
               </p>
+              <button
+                type="button"
+                className="w-fit rounded-md border border-red-500/40 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-500/10 disabled:opacity-60"
+                disabled={busy || working}
+                onClick={() => {
+                  if (
+                    window.confirm('Permanently delete this project bucket and ALL its objects? This cannot be undone.')
+                  ) {
+                    void runOperation({ intent: 'delete-bucket' }, 'Bucket deleted.');
+                  }
+                }}
+              >
+                Delete bucket
+              </button>
             </section>
             {status ? (
               <p className="text-xs text-bolt-elements-textSecondary" role="status">
