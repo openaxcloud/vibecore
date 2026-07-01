@@ -31,11 +31,16 @@ import {
   assertConcurrentPublishedApps,
   aiModelCatalog,
   billingPlans,
+  ceilCents,
   computeAiCostCents,
+  computeUnitsCents,
   creditPackCatalog,
   databaseBillableStorageGib,
+  databaseStorageCents,
   findCreditPack,
+  objectStorageCents,
   planByKey,
+  planCreditConfig,
   toCreditPlanKey,
   verifyStripeSignature,
   type AiPlanKey,
@@ -21265,6 +21270,98 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       subscription: state.subscription,
       plan: state.plan,
       overrides: (await store.listQuotaOverrides(orgId)).filter((o) => isQuotaOverrideActive(o)),
+    };
+  });
+
+  /*
+   * Replit-parity Usage breakdown: spend + metered quantity per resource category
+   * (Agent effort, Workspace compute, Deployments, Object storage, Database) for
+   * the current billing period. Read-only aggregation over the metered usage
+   * events + agent checkpoints — no billing side effects, safe when the credit
+   * model is dormant (shows projected cost at the exact Replit rates). Agent cost
+   * is the real settled checkpoint cost; the metered quantities (compute units,
+   * GiB-months, minutes) are exact, so this is a faithful "what did each service
+   * cost me this period" view.
+   */
+  app.get('/orgs/:orgId/usage/breakdown', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'usage:read');
+
+    const periodStart = await resolveUsagePeriodStart(orgId).catch(() => new Date(0));
+    const sinceMs = periodStart.getTime();
+    const nowIso = new Date().toISOString();
+
+    const events = (await store.listUsageEvents(orgId, { take: 2000 })).filter(
+      (e) => (e.createdAt ? new Date(e.createdAt).getTime() : 0) >= sinceMs,
+    );
+    const checkpoints = (await store.listAgentCheckpoints(orgId, { take: 500 })).filter(
+      (c) => (c.startedAt ? new Date(c.startedAt).getTime() : 0) >= sinceMs,
+    );
+
+    const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+    const metaOf = (e: { metadata?: unknown }) =>
+      e.metadata && typeof e.metadata === 'object' ? (e.metadata as Record<string, unknown>) : {};
+
+    // Agent effort — the real settled per-checkpoint credit cost.
+    const agentCents = checkpoints.reduce((a, c) => a + Math.max(0, num(c.creditCents)), 0);
+
+    // Workspace compute — sum exact compute units from event metadata.
+    let computeUnits = 0;
+    let runtimeMinutes = 0;
+    // Object storage — GiB-months + transfer.
+    let objGiBMonths = 0;
+    let transferGib = 0;
+    // Database — storage GiB-months + active hours.
+    let dbGiBMonths = 0;
+    let dbActiveHours = 0;
+    // Deployments — count of metered deployment slices.
+    let deployCount = 0;
+
+    for (const e of events) {
+      switch (e.type) {
+        case 'workspaces.runtimeMinutes':
+          computeUnits += num(metaOf(e).computeUnits);
+          runtimeMinutes += num(e.quantity);
+          break;
+        case 'storage.objectGiBMonths':
+          objGiBMonths += num(e.quantity);
+          transferGib += num(metaOf(e).transferGib);
+          break;
+        case 'database.storageGiBMonths':
+          dbGiBMonths += num(e.quantity);
+          break;
+        case 'database.activeHours':
+          dbActiveHours += num(e.quantity);
+          break;
+        case 'deployment.compute':
+          deployCount += 1;
+          break;
+        default:
+          break;
+      }
+    }
+
+    const computeCents = ceilCents(computeUnitsCents(computeUnits));
+    const objectCents = ceilCents(objectStorageCents({ gibMonths: objGiBMonths, transferGib }));
+    const dbCents = ceilCents(databaseStorageCents(dbGiBMonths));
+
+    const categories = [
+      { key: 'agent', label: 'Agent', unit: 'checkpoints', quantity: checkpoints.length, costCents: agentCents },
+      { key: 'compute', label: 'Workspace compute', unit: 'compute units', quantity: computeUnits, costCents: computeCents },
+      { key: 'deployments', label: 'Deployments', unit: 'deploys', quantity: deployCount, costCents: 0 },
+      { key: 'objectStorage', label: 'Object storage', unit: 'GiB-months', quantity: objGiBMonths, costCents: objectCents },
+      { key: 'database', label: 'Database', unit: 'GiB-months', quantity: dbGiBMonths, costCents: dbCents },
+    ];
+
+    return {
+      creditsEnabled: process.env.BILLING_CREDITS_ENABLED === 'true',
+      shadow: process.env.BILLING_CREDITS_SHADOW === 'true',
+      periodStart: periodStart.toISOString(),
+      periodEnd: nowIso,
+      categories,
+      totalCents: categories.reduce((a, c) => a + c.costCents, 0),
+      runtimeMinutes,
+      dbActiveHours,
     };
   });
   app.get('/usage/:orgId', async (request) => {

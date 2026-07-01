@@ -12,6 +12,17 @@ import {
 
 type UsageEvent = { id: string; type: string; quantity: number; createdAt?: string };
 type QuotaOverride = { id: string; key: string; limit: number; reason?: string; expiresAt?: string };
+type BreakdownCategory = { key: string; label: string; unit: string; quantity: number; costCents: number };
+type Breakdown = {
+  creditsEnabled: boolean;
+  shadow: boolean;
+  periodStart: string;
+  periodEnd: string;
+  categories: BreakdownCategory[];
+  totalCents: number;
+  runtimeMinutes: number;
+  dbActiveHours: number;
+} | null;
 type UsageData = {
   usage: UsageEvent[];
   quotas: Record<string, number>;
@@ -28,8 +39,15 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return redirect('/');
   }
 
+  // Per-resource spend breakdown is a lower-sensitivity read; never let it break
+  // the usage page (missing on older API pods → null → section simply hidden).
+  const breakdownPromise = apiRequest<Breakdown>(request, `/orgs/${organization.id}/usage/breakdown`).catch(
+    () => null as Breakdown,
+  );
+
   try {
-    return await apiRequest<UsageData>(request, `/orgs/${organization.id}/usage`);
+    const data = await apiRequest<UsageData>(request, `/orgs/${organization.id}/usage`);
+    return { ...data, breakdown: await breakdownPromise };
   } catch (error) {
     /*
      * A member without `usage:read` gets 403; render a friendly empty state
@@ -42,7 +60,8 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         quotaUsage: {},
         overrides: [],
         plan: { name: 'Unavailable' },
-      } satisfies UsageData;
+        breakdown: null as Breakdown,
+      } satisfies UsageData & { breakdown: Breakdown };
     }
 
     throw error;
@@ -58,12 +77,70 @@ export default function UsagePage() {
 
   const overrides = data.overrides ?? [];
   const overrideFor = (key: string) => overrides.find((override) => override.key === key);
+  const breakdown = data.breakdown;
+  const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+  const iconFor: Record<string, typeof Sparkles> = {
+    agent: Sparkles,
+    compute: Activity,
+    deployments: Boxes,
+    objectStorage: Database,
+    database: Database,
+  };
 
   return (
     <AppShell
       title="Usage overview"
       description="Track backend-enforced quota usage across projects, workspaces, AI, storage, snapshots, previews and deployments."
     >
+      {breakdown && breakdown.categories.length ? (
+        <section className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-5">
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Spend by resource</h2>
+            <div className="flex items-center gap-2">
+              {breakdown.shadow || !breakdown.creditsEnabled ? (
+                <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-300">
+                  Projected (not charged)
+                </span>
+              ) : null}
+              <span className="text-sm font-semibold text-bolt-elements-textPrimary">
+                {dollars(breakdown.totalCents)}
+              </span>
+            </div>
+          </div>
+          <p className="mb-4 text-xs text-bolt-elements-textSecondary">
+            This billing period ({new Date(breakdown.periodStart).toLocaleDateString()} –{' '}
+            {new Date(breakdown.periodEnd).toLocaleDateString()}) at the metered rates, broken down by resource.
+          </p>
+          <ul className="flex flex-col gap-3">
+            {breakdown.categories.map((category) => {
+              const Icon = iconFor[category.key] ?? Activity;
+              const pct =
+                breakdown.totalCents > 0 ? Math.round((category.costCents / breakdown.totalCents) * 100) : 0;
+
+              return (
+                <li key={category.key} className="flex flex-col gap-1">
+                  <div className="flex items-baseline justify-between gap-2 text-sm">
+                    <span className="flex items-center gap-2 text-bolt-elements-textPrimary">
+                      <Icon className="h-4 w-4 text-[var(--ecode-accent,#F26207)]" />
+                      {category.label}
+                    </span>
+                    <span className="text-bolt-elements-textSecondary">
+                      {category.quantity.toLocaleString()} {category.unit} ·{' '}
+                      <span className="font-medium text-bolt-elements-textPrimary">{dollars(category.costCents)}</span>
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-bolt-elements-background-depth-3">
+                    <div
+                      className="h-full rounded-full bg-[var(--ecode-accent,#F26207)]"
+                      style={{ width: `${Math.min(100, pct)}%` }}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
       <StatGrid
         stats={[
           {
