@@ -752,6 +752,29 @@ export interface AgentRepairEventRecord {
   createdAt: string;
 }
 
+/** Consensus algorithm used to consolidate a multi-agent run (mirrors the ConsensusAlgorithm enum). */
+export type ConsensusRecordAlgorithm = 'QUORUM' | 'BYZANTINE_PBFT' | 'WEIGHTED_PLURALITY';
+
+/** Outcome of a multi-agent consensus round (mirrors the ConsensusOutcome enum). */
+export type ConsensusRecordOutcome = 'ACCEPTED' | 'REJECTED' | 'PARTIAL' | 'ABSTAINED';
+
+/**
+ * A read-only projection of one persisted multi-agent ConsensusRecord, joined to
+ * its parent AgentRun so the read path can scope by the run's projectId. Populated
+ * by the ai-gateway; surfaced (read-only) in the Agent Studio panel.
+ */
+export interface ConsensusRecordSummary {
+  id: string;
+  runId: string;
+  algorithm: ConsensusRecordAlgorithm;
+  threshold: number;
+  outcome: ConsensusRecordOutcome;
+  agreementScore: number;
+  roundCount: number;
+  durationMs: number;
+  createdAt: string;
+}
+
 /** A per-project Skills override row (absent => the skill is at its catalog default). */
 export interface ProjectSkillOverrideRecord {
   skillId: string;
@@ -1095,6 +1118,13 @@ export interface ApiStore {
   }): Promise<AgentRepairEventRecord>;
   /** List recent self-repair events for a project (newest first). */
   listAgentRepairEvents(projectId: string, options?: { take?: number }): Promise<AgentRepairEventRecord[]>;
+
+  /**
+   * List recent multi-agent consensus records for a project (newest first).
+   * Scoped via the parent AgentRun.projectId so only the caller's project rows
+   * are returned — never another tenant's consensus data.
+   */
+  listConsensusRecords(projectId: string, options?: { take?: number }): Promise<ConsensusRecordSummary[]>;
   /** Sparse per-project enable/disable overrides for the builtin Skills catalog. */
   listProjectSkillOverrides(projectId: string): Promise<ProjectSkillOverrideRecord[]>;
   setProjectSkillEnabled(input: {
