@@ -40,10 +40,11 @@ tmp/
 .claude/
 .playwright-mcp/
 /connected-accounts-fixed.png
-.env.local
+# Secrets: ignore EVERY .env* (real values) — keep only the *.example templates.
 .env
-.env.production
-.env.production.local
+.env.*
+!.env.example
+!.env.production.example
 .dev.vars
 *.vars
 .wrangler
@@ -70,5 +71,6 @@ docs/instructions/Roadmap.md
 *.md
 !docs/*.md
 !docs/**/*.md
+!outputs/SECURITY_ENV_LEAK_REMEDIATION.md
 .qodo
 .vibecore-audit/

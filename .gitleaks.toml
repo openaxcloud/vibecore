@@ -1,0 +1,49 @@
+# gitleaks configuration for vibecore.
+# Used by the pre-commit hook (gitleaks protect --staged) and the blocking CI
+# job (gitleaks detect --no-git on the working tree). Extends the built-in rule
+# set; the allowlist below only excludes paths that provably hold no real
+# secrets — committed templates, lockfiles, generated code, and built bundles —
+# so the scan never goes red on known-clean files while still catching any real
+# credential added to source.
+
+title = "vibecore gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Templates, lockfiles, generated code and built assets contain no real secrets"
+regexTarget = "match"
+
+paths = [
+  # Committed env TEMPLATES (placeholder values only — never real secrets).
+  '''(^|/)\.env\.example$''',
+  '''(^|/)\.env\.production\.example$''',
+  '''(^|/)[^/]*\.example$''',
+  # Dependency lockfiles (hashes, not secrets).
+  '''(^|/)pnpm-lock\.yaml$''',
+  '''(^|/)package-lock\.json$''',
+  # Generated Prisma client + other generated output.
+  '''(^|/)packages/database/generated/''',
+  # Built/minified browser bundles shipped in the repo.
+  '''(^|/)public/assets/''',
+  # Test fixtures and specs (synthetic keys used to exercise crypto/SAML/OIDC).
+  '''\.spec\.(ts|tsx|js)$''',
+  '''\.test\.(ts|tsx|js)$''',
+  '''(^|/)(services/api/src/)?tests?/''',
+  # Production-config VALIDATOR: builds a mock env of obviously-synthetic values
+  # (e.g. "…-prod-123456", "sk_live_prod123456") to exercise the validator itself.
+  '''(^|/)scripts/validate-production-enterprise\.mjs$''',
+]
+
+# Common non-secret placeholder / synthetic-fixture shapes (templates, docs,
+# validation fixtures). These are values that are provably NOT real credentials.
+regexes = [
+  '''(?i)your[_-]?[a-z0-9]*[_-]?(api[_-]?key|token|secret|password)[_-]?(here)?''',
+  '''(?i)(changeme|placeholder|example|dummy|redacted|xxxxx+)''',
+  '''github_pat_your_personal_access_token_here''',
+  # Synthetic fixtures in validate-production-enterprise.mjs.
+  '''(?i)(prod-?123456|prod123456|-prod-\d{6})''',
+  '''sk_live_prod123456''',
+  '''whsec_prod123456''',
+]

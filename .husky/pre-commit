@@ -13,6 +13,34 @@ if ! command -v pnpm >/dev/null 2>&1; then
     exit 1
 fi
 
+# ── Secret gate (fail fast, before the slow checks) ─────────────────────────
+# 1) Never commit a real .env* file — only *.example templates are allowed.
+echo "Scanning staged changes for secrets..."
+staged_env="$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '(^|/)\.env($|\.)' \
+  | grep -vE '\.example$' || true)"
+if [ -n "$staged_env" ]; then
+    echo "❌ Refusing to commit environment file(s) that may hold secrets:"
+    echo "$staged_env" | sed 's/^/     - /'
+    echo "   Only *.example templates belong in git. Unstage them:"
+    echo "     git rm --cached <file>   # keeps your local copy"
+    exit 1
+fi
+
+# 2) Run gitleaks on the staged diff when available (hard block on findings).
+#    Not every machine has gitleaks installed; when absent we warn (CI has a
+#    blocking gitleaks job as the backstop) rather than block the commit.
+if command -v gitleaks >/dev/null 2>&1; then
+    if ! gitleaks protect --staged --redact --no-banner --config .gitleaks.toml; then
+        echo "❌ gitleaks found a potential secret in your staged changes."
+        echo "   Remove it (and rotate the credential if it was ever real) before committing."
+        exit 1
+    fi
+else
+    echo "⚠️  gitleaks not installed — skipping local secret scan (CI will still block)."
+    echo "   Install: https://github.com/gitleaks/gitleaks#installing (e.g. 'brew install gitleaks')."
+fi
+
 # Run typecheck
 echo "Running typecheck..."
 if ! pnpm typecheck; then
