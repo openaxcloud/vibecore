@@ -113,6 +113,47 @@ function createFetchMock() {
       return new Response(new Uint8Array([1, 2, 3]));
     }
 
+    /*
+     * Content search: model the real runtime endpoint at the network boundary.
+     * The endpoint scans the workspace-pod filesystem and returns per-line
+     * FileSearchMatch hits. Here we deterministically derive matches from the
+     * posted { query, options } so a test can assert both the request contract
+     * (URL is per-workspace, body carries the toggles) and the response mapping.
+     */
+    if (url.includes('/files/search') && init?.method === 'POST') {
+      const payload = JSON.parse(String(init.body)) as {
+        query: string;
+        options?: {
+          isRegex?: boolean;
+          caseSensitive?: boolean;
+          includes?: string[];
+          excludes?: string[];
+          resultLimit?: number;
+        };
+      };
+
+      if (payload.query === '__none__') {
+        return Response.json([]);
+      }
+
+      if (payload.options?.isRegex && payload.query === 'v[0-9]+') {
+        return Response.json([
+          { path: 'src/api.ts', lineNumber: 3, line: 'const route = "/v2/users";', startColumn: 20, endColumn: 22 },
+        ]);
+      }
+
+      return Response.json([
+        {
+          path: 'src/App.tsx',
+          lineNumber: 12,
+          line: 'export const Widget = () => null;',
+          startColumn: 14,
+          endColumn: 20,
+        },
+        { path: 'src/util.ts', lineNumber: 4, line: 'const Widget = 1;', startColumn: 7, endColumn: 13 },
+      ]);
+    }
+
     return Response.json([]);
   });
 }
@@ -194,6 +235,109 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
 
     const writeCall = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/files/write'));
     expect((writeCall?.[1]?.headers as Headers).get('authorization')).toBe('Bearer token-123');
+  });
+
+  it('runs project-wide content search against the runtime files/search endpoint (per-tenant, options + results round-trip)', async () => {
+    /*
+     * Certifies the real search path the IDE uses in remote-kubernetes mode: the
+     * Search pane calls runtimeAdapter.searchFiles(query, options), which must POST
+     * to the CURRENT project's workspace pod endpoint (tenant isolation) carrying
+     * the query and every toggle, then map the runtime's FileSearchMatch rows back
+     * to the UI. No in-memory file-map shortcut — full repo coverage via the pod.
+     */
+    const fetchMock = createFetchMock();
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token-search',
+      workspaceId: 'ws-tenant-7',
+      fetchImpl: fetchMock as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    const results = await adapter.searchFiles('Widget', {
+      caseSensitive: true,
+      isRegex: false,
+      includes: ['**/*'],
+      excludes: ['**/node_modules/**'],
+      resultLimit: 500,
+    });
+
+    // Response mapped straight through from the runtime endpoint (real content hits).
+    expect(results).toEqual([
+      {
+        path: 'src/App.tsx',
+        lineNumber: 12,
+        line: 'export const Widget = () => null;',
+        startColumn: 14,
+        endColumn: 20,
+      },
+      { path: 'src/util.ts', lineNumber: 4, line: 'const Widget = 1;', startColumn: 7, endColumn: 13 },
+    ]);
+
+    const searchCall = fetchMock.mock.calls.find(([url]) => String(url).includes('/files/search'));
+    expect(searchCall).toBeDefined();
+
+    // Tenant isolation: the call targets THIS project's workspace, not a shared/global path.
+    expect(String(searchCall![0])).toBe('https://runtime.example.com/workspaces/ws-tenant-7/files/search');
+    expect(searchCall![1]?.method).toBe('POST');
+    expect((searchCall![1]?.headers as Headers).get('authorization')).toBe('Bearer token-search');
+
+    // Every search toggle is forwarded to the backend that actually applies it.
+    expect(JSON.parse(String(searchCall![1]?.body))).toEqual({
+      query: 'Widget',
+      options: {
+        caseSensitive: true,
+        isRegex: false,
+        includes: ['**/*'],
+        excludes: ['**/node_modules/**'],
+        resultLimit: 500,
+      },
+    });
+  });
+
+  it('forwards the regex toggle and returns regex content matches from the runtime endpoint', async () => {
+    const fetchMock = createFetchMock();
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token',
+      workspaceId: 'ws-1',
+      fetchImpl: fetchMock as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    const results = await adapter.searchFiles('v[0-9]+', { isRegex: true });
+
+    expect(results).toEqual([
+      { path: 'src/api.ts', lineNumber: 3, line: 'const route = "/v2/users";', startColumn: 20, endColumn: 22 },
+    ]);
+
+    const searchCall = fetchMock.mock.calls.find(([url]) => String(url).includes('/files/search'));
+    expect(JSON.parse(String(searchCall![1]?.body)).options.isRegex).toBe(true);
+  });
+
+  it('returns an empty result set (no-results state) without throwing when the runtime finds nothing', async () => {
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token',
+      workspaceId: 'ws-1',
+      fetchImpl: createFetchMock() as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    await expect(adapter.searchFiles('__none__')).resolves.toEqual([]);
+  });
+
+  it('refuses to search before a workspace is bound (no cross-tenant / global search)', async () => {
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token',
+      fetchImpl: createFetchMock() as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    await expect(adapter.searchFiles('anything')).rejects.toThrow(/workspace has not been started/i);
   });
 
   it('grows the file-watch reconnect backoff when the socket opens then immediately closes (no 1s flood)', async () => {
@@ -663,6 +807,7 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
   it('invalidates the runtime token and retries once on a 401, self-healing a rejected/rotated token', async () => {
     let attempts = 0;
     let currentToken = 'stale-token';
+
     const invalidateAuthToken = vi.fn(() => {
       currentToken = 'fresh-token';
     });
@@ -702,6 +847,7 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
 
   it('does not loop forever when the refreshed token is also rejected (single 401 retry)', async () => {
     let attempts = 0;
+
     const invalidateAuthToken = vi.fn();
 
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
@@ -763,6 +909,7 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     FakeWebSocket.authCloseNextOpenCount = 1;
 
     let currentToken = 'stale-socket-token';
+
     const invalidateAuthToken = vi.fn(() => {
       currentToken = 'fresh-socket-token';
     });
@@ -789,11 +936,14 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
 
   it('shouldRefreshAuthToken only refreshes once, on a 401, when a hook is available', () => {
     expect(shouldRefreshAuthToken(401, 0, true)).toBe(true);
+
     // Already retried once.
     expect(shouldRefreshAuthToken(401, 1, true)).toBe(false);
+
     // Non-auth status.
     expect(shouldRefreshAuthToken(502, 0, true)).toBe(false);
     expect(shouldRefreshAuthToken(403, 0, true)).toBe(false);
+
     // No refresh hook (static token).
     expect(shouldRefreshAuthToken(401, 0, false)).toBe(false);
   });
