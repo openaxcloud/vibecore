@@ -365,7 +365,7 @@ export const AssistantMessage = memo(
                                   agentExecution.consensus.outcome === 'ACCEPTED'
                                     ? 'whitespace-nowrap text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                                     : agentExecution.consensus.outcome === 'REJECTED'
-                                      ? 'whitespace-nowrap text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-500/10 text-red-600 dark:text-red-400'
+                                      ? 'whitespace-nowrap text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-500/10 text-[var(--status-error-text)]'
                                       : 'whitespace-nowrap text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400'
                                 }
                               >

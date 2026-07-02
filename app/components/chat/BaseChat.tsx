@@ -8878,7 +8878,7 @@ function ProjectIdeServicePanel({
       <div className="min-h-0 flex-1 overflow-auto p-4 pb-20">
         {error ? (
           <div
-            className="mb-4 flex items-start gap-3 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300"
+            className="mb-4 flex items-start gap-3 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-[var(--status-error-text)]"
             role="alert"
           >
             <span className="flex-1">{error}</span>
@@ -13352,7 +13352,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
               </p>
               <button
                 type="button"
-                className="w-fit rounded-md border border-red-500/40 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-500/10 disabled:opacity-60"
+                className="w-fit rounded-md border border-red-500/40 px-3 py-1.5 text-xs font-medium text-[var(--status-error-text)] hover:bg-red-500/10 disabled:opacity-60"
                 disabled={busy || working}
                 onClick={() => {
                   if (
@@ -13929,7 +13929,9 @@ function ProjectPortsPanel({
                       :{portNumber}
                       {isPrimary ? ' · primary' : ''}
                     </strong>
-                    <span className={`ml-2 ${entry.ready ? 'text-green-500' : 'text-amber-500'}`}>
+                    <span
+                      className={`ml-2 ${entry.ready ? 'text-[var(--status-success-text)]' : 'text-[var(--status-warning-text)]'}`}
+                    >
                       {entry.ready ? 'ready' : 'starting'}
                     </span>
                     <span className="ml-2 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-bolt-elements-textSecondary">
@@ -14004,8 +14006,8 @@ const CONSENSUS_OUTCOME_LABEL: Record<string, string> = {
 };
 
 const CONSENSUS_OUTCOME_CLASS: Record<string, string> = {
-  ACCEPTED: 'text-green-500 border-green-500/40',
-  REJECTED: 'text-red-500 border-red-500/40',
+  ACCEPTED: 'text-[var(--status-success-text)] border-green-500/40',
+  REJECTED: 'text-[var(--status-error-text)] border-red-500/40',
   PARTIAL: 'text-amber-500 border-amber-500/40',
   ABSTAINED: 'text-bolt-elements-textSecondary border-bolt-elements-borderColor',
 };
@@ -14305,7 +14307,7 @@ function ProjectAgentStudioPanel({
       >
         <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Agent memory</h3>
         {memoryError ? (
-          <p className="text-sm text-red-500">{memoryError}</p>
+          <p className="text-sm text-[var(--status-error-text)]">{memoryError}</p>
         ) : !memory ? (
           <p className="text-sm text-bolt-elements-textSecondary">Loading agent memory…</p>
         ) : memory.recent.length === 0 ? (
@@ -15294,7 +15296,7 @@ function AddAuthenticationCard({ projectId }: { projectId?: string }) {
         <div className="text-xs text-bolt-elements-textSecondary">
           {result.scaffolded?.length ? (
             <>
-              <span className="text-green-500">Added:</span>{' '}
+              <span className="text-[var(--status-success-text)]">Added:</span>{' '}
               <span className="font-mono">{result.scaffolded.join(', ')}</span>. Next:{' '}
               <span className="font-mono">npm i pg bcryptjs jsonwebtoken cookie-parser</span>, run the migration, then{' '}
               <span className="font-mono">app.use(require(&apos;./auth&apos;).router)</span> (see auth/README.md).

@@ -1203,7 +1203,7 @@ function FileContextMenu({
             {/* Add delete option in a new group */}
             <ContextMenu.Group className="p-1 border-t-px border-solid border-bolt-elements-borderColor">
               <ContextMenuItem onSelect={handleDelete}>
-                <div className="flex items-center gap-2 text-red-500">
+                <div className="flex items-center gap-2 text-[var(--status-error-text)]">
                   <div className="i-ph:trash" />
                   Delete {isFolder ? 'Folder' : 'File'}
                 </div>
@@ -1365,8 +1365,8 @@ function File({
           <div className="flex items-center gap-1">
             {showStats && (
               <div className="flex items-center gap-1 text-xs">
-                {additions > 0 && <span className="text-green-500">+{additions}</span>}
-                {deletions > 0 && <span className="text-red-500">-{deletions}</span>}
+                {additions > 0 && <span className="text-[var(--status-success-text)]">+{additions}</span>}
+                {deletions > 0 && <span className="text-[var(--status-error-text)]">-{deletions}</span>}
               </div>
             )}
             {locked && (

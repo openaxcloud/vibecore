@@ -280,8 +280,12 @@ const FileModifiedDropdown = memo(
                                       return (
                                         showStats && (
                                           <div className="flex items-center gap-1 text-xs shrink-0">
-                                            {additions > 0 && <span className="text-green-500">+{additions}</span>}
-                                            {deletions > 0 && <span className="text-red-500">-{deletions}</span>}
+                                            {additions > 0 && (
+                                              <span className="text-[var(--status-success-text)]">+{additions}</span>
+                                            )}
+                                            {deletions > 0 && (
+                                              <span className="text-[var(--status-error-text)]">-{deletions}</span>
+                                            )}
                                           </div>
                                         )
                                       );

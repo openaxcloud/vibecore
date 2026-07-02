@@ -107,17 +107,19 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
               {apiKey ? (
                 <>
                   <div className="i-ph:check-circle-fill h-4 w-4 flex-shrink-0 text-green-500" />
-                  <span className="text-xs text-green-500">Set via UI</span>
+                  <span className="text-xs text-[var(--status-success-text)]">Set via UI</span>
                 </>
               ) : isEnvKeySet ? (
                 <>
                   <div className="i-ph:check-circle-fill h-4 w-4 flex-shrink-0 text-green-500" />
-                  <span className="text-xs text-green-500">Set via environment variable</span>
+                  <span className="text-xs text-[var(--status-success-text)]">Set via environment variable</span>
                 </>
               ) : (
                 <>
                   <div className="i-ph:x-circle-fill h-4 w-4 flex-shrink-0 text-red-500" />
-                  <span className="text-xs text-red-500">Not Set (Please set via UI or ENV_VAR)</span>
+                  <span className="text-xs text-[var(--status-error-text)]">
+                    Not Set (Please set via UI or ENV_VAR)
+                  </span>
                 </>
               )}
             </div>

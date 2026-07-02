@@ -25,9 +25,9 @@ const OUTCOME_LABEL: Record<AgentRepairEvent['outcome'], string> = {
 };
 
 const OUTCOME_CLASS: Record<AgentRepairEvent['outcome'], string> = {
-  repaired: 'text-green-500',
+  repaired: 'text-[var(--status-success-text)]',
   failed: 'text-amber-500',
-  gave_up: 'text-red-500',
+  gave_up: 'text-[var(--status-error-text)]',
 };
 
 function formatTime(iso: string): string {

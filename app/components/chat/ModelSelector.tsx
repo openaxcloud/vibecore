@@ -892,7 +892,7 @@ export const ModelSelector = ({
                             {formatContextSize(modelOption.maxTokenAllowed)} tokens
                           </span>
                           {debouncedModelSearchQuery && (modelOption as any).searchScore > 70 && (
-                            <span className="text-xs text-green-500 font-medium">
+                            <span className="text-xs text-[var(--status-success-text)] font-medium">
                               {(modelOption as any).searchScore.toFixed(0)}% match
                             </span>
                           )}

@@ -439,8 +439,8 @@ const diffLineStyles = {
 };
 
 const changeColorStyles = {
-  added: 'text-green-700 dark:text-green-500 bg-green-500/10 dark:bg-green-500/20',
-  removed: 'text-red-700 dark:text-red-500 bg-red-500/10 dark:bg-red-500/20',
+  added: 'text-[var(--status-success-text)] bg-green-500/10 dark:bg-green-500/20',
+  removed: 'text-[var(--status-error-text)] bg-red-500/10 dark:bg-red-500/20',
   unchanged: 'text-bolt-elements-textPrimary',
 };
 
@@ -571,8 +571,8 @@ const CodeLine = memo(
         <div className={lineNumberStyles}>{lineNumber + 1}</div>
         <div className={`${lineContentStyles} ${bgColor}`}>
           <span className="mr-2 text-bolt-elements-textTertiary">
-            {type === 'added' && <span className="text-green-700 dark:text-green-500">+</span>}
-            {type === 'removed' && <span className="text-red-700 dark:text-red-500">-</span>}
+            {type === 'added' && <span className="text-[var(--status-success-text)]">+</span>}
+            {type === 'removed' && <span className="text-[var(--status-error-text)]">-</span>}
             {type === 'unchanged' && ' '}
           </span>
           {renderContent()}
@@ -632,17 +632,17 @@ const FileInfo = memo(
             <>
               {showStats && (
                 <div className="flex items-center gap-1 text-xs">
-                  {additions > 0 && <span className="text-green-700 dark:text-green-500">+{additions}</span>}
-                  {deletions > 0 && <span className="text-red-700 dark:text-red-500">-{deletions}</span>}
+                  {additions > 0 && <span className="text-[var(--status-success-text)]">+{additions}</span>}
+                  {deletions > 0 && <span className="text-[var(--status-error-text)]">-{deletions}</span>}
                 </div>
               )}
-              <span className="text-yellow-600 dark:text-yellow-400">Modified</span>
+              <span className="text-[var(--status-warning-text)]">Modified</span>
               {formatModifiedTime(lastModified) && (
                 <span className="text-bolt-elements-textTertiary text-xs">{formatModifiedTime(lastModified)}</span>
               )}
             </>
           ) : (
-            <span className="text-green-700 dark:text-green-400">No Changes</span>
+            <span className="text-[var(--status-success-text)]">No Changes</span>
           )}
           <FullscreenButton onClick={onToggleFullscreen} isFullscreen={isFullscreen} />
         </span>
@@ -886,7 +886,7 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
   } catch (error) {
     console.error('DiffView render error:', error);
     return (
-      <div className="flex w-full h-full justify-center items-center bg-bolt-elements-background-depth-1 text-red-400">
+      <div className="flex w-full h-full justify-center items-center bg-bolt-elements-background-depth-1 text-[var(--status-error-text)]">
         <div className="text-center">
           <div className="i-ph:warning-circle text-4xl mb-2" />
           <p>Failed to render diff view</p>
