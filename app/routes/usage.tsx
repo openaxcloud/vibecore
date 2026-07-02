@@ -1,6 +1,6 @@
 import { Activity, Boxes, Database, Sparkles } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
-import { useLoaderData } from 'react-router';
+import { Link, useLoaderData } from 'react-router';
 import { AppShell, StatGrid } from '~/components/dashboard/SaaSLayout';
 import {
   apiRequest,
@@ -32,6 +32,15 @@ type UsageData = {
 };
 
 export const meta: MetaFunction = () => [{ title: 'Usage - E-Code' }];
+
+/** 'ai.inputTokens' -> 'ai input tokens' for the threshold notes. */
+function humanizeQuotaKey(key: string): string {
+  return key
+    .replace(/\./g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .toLowerCase();
+}
+
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
 
@@ -181,22 +190,68 @@ export default function UsagePage() {
           </div>
           {Object.entries(data.quotas).map(([quota, limit]) => {
             const override = overrideFor(quota);
+            const effectiveLimit = override ? override.limit : limit;
+            const usedValue = used(quota);
+            const pct = effectiveLimit > 0 ? Math.round((usedValue / effectiveLimit) * 100) : 0;
+            const tone = pct >= 100 ? 'error' : pct >= 80 ? 'warning' : 'ok';
 
             return (
               <div
                 key={quota}
-                className="grid grid-cols-[1fr_120px_120px] border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-3 text-sm last:border-b-0"
+                className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-3 text-sm last:border-b-0"
               >
-                <span className="min-w-0 truncate">
-                  {quota}
-                  {override ? (
-                    <span className="ml-2 rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] uppercase text-bolt-elements-textTertiary">
-                      override
+                <div className="grid grid-cols-[1fr_120px_120px]">
+                  <span className="min-w-0 truncate">
+                    {quota}
+                    {override ? (
+                      <span className="ml-2 rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] uppercase text-bolt-elements-textTertiary">
+                        override
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="text-right text-bolt-elements-textSecondary">{usedValue}</span>
+                  <span className="text-right text-bolt-elements-textSecondary">{effectiveLimit}</span>
+                </div>
+                <div
+                  role="progressbar"
+                  aria-label={`${humanizeQuotaKey(quota)} usage`}
+                  aria-valuemin={0}
+                  aria-valuemax={effectiveLimit}
+                  aria-valuenow={Math.min(usedValue, effectiveLimit)}
+                  className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-bolt-elements-background-depth-3"
+                >
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.min(100, pct)}%`,
+                      background:
+                        tone === 'error'
+                          ? 'var(--vc-ide-accent-error)'
+                          : tone === 'warning'
+                            ? 'var(--vc-ide-accent-warning)'
+                            : 'var(--vc-ide-accent-action)',
+                    }}
+                  />
+                </div>
+                {tone !== 'ok' ? (
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span
+                      style={{
+                        color: tone === 'error' ? 'var(--status-error-text)' : 'var(--status-warning-text)',
+                      }}
+                    >
+                      {`You've used ${pct}% of your ${humanizeQuotaKey(quota)}`}
                     </span>
-                  ) : null}
-                </span>
-                <span className="text-right text-bolt-elements-textSecondary">{used(quota)}</span>
-                <span className="text-right text-bolt-elements-textSecondary">{override ? override.limit : limit}</span>
+                    {tone === 'error' ? (
+                      <Link
+                        to="/upgrade"
+                        className="inline-flex h-7 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+                      >
+                        Increase limits
+                      </Link>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             );
           })}
