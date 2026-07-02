@@ -2,6 +2,7 @@ import { redirect, type LoaderFunctionArgs } from 'react-router';
 import { apiBaseUrl, cookieSecure, sessionCookie } from '~/lib/enterprise-api.server';
 
 const oauthStateCookie = 'vc_oauth_state';
+const oauthLinkCookie = 'vc_oauth_link';
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const provider = providerName(params.provider);
@@ -9,6 +10,22 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
   const expected = readCookie(request, oauthStateCookie);
+
+  /*
+   * Link mode (set by /auth/oauth/:provider?mode=link): bind the provider to the
+   * already-signed-in user via /auth/oauth/:provider/link instead of creating a
+   * new login session. On any exit we clear BOTH cookies so a stale link marker
+   * can never make a subsequent plain login POST to /link.
+   */
+  const isLink = readCookie(request, oauthLinkCookie) === '1';
+  const failRedirect = (detail: string) =>
+    isLink
+      ? redirect(`/connected-accounts?linkError=${provider}&detail=${encodeURIComponent(detail)}`, {
+          headers: clearAuthCookies(),
+        })
+      : redirect(`/login?oauth=${provider}&error=callback_failed&detail=${encodeURIComponent(detail)}`, {
+          headers: clearAuthCookies(),
+        });
 
   /*
    * When the provider rejects the request after the consent screen — the user
@@ -23,25 +40,43 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   if (providerError) {
     const detail = url.searchParams.get('error_description') ?? undefined;
     console.error('[oauth-callback]', provider, 'provider_error', providerError, detail ?? '');
+
+    if (isLink) {
+      throw failRedirect(providerError + (detail ? `: ${detail}` : ''));
+    }
+
     throw redirect(
       `/login?oauth=${provider}&error=${encodeURIComponent(providerError)}` +
         (detail ? `&detail=${encodeURIComponent(detail)}` : ''),
-      { headers: { 'Set-Cookie': clearStateCookie() } },
+      { headers: clearAuthCookies() },
     );
   }
 
   if (!code || !state || expected !== `${provider}:${state}`) {
+    if (isLink) {
+      throw failRedirect('invalid_callback');
+    }
+
     throw redirect(`/login?oauth=${provider}&error=invalid_callback`, {
-      headers: { 'Set-Cookie': clearStateCookie() },
+      headers: clearAuthCookies(),
     });
   }
 
   let response: Response;
 
   try {
-    response = await fetch(`${apiBaseUrl()}/auth/oauth/${provider}/callback`, {
+    response = await fetch(`${apiBaseUrl()}/auth/oauth/${provider}/${isLink ? 'link' : 'callback'}`, {
       method: 'POST',
-      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        /*
+         * Link mode binds to the CURRENT user, so forward their session cookie so
+         * the (authenticated) /link endpoint sees request.currentUser. Login mode
+         * forwards nothing — the callback issues a brand-new session.
+         */
+        ...(isLink ? { cookie: request.headers.get('cookie') ?? '' } : {}),
+      },
 
       /*
        * Forward the signed state so the API can verify its HMAC signature. The
@@ -58,9 +93,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
      */
     const detail = error instanceof Error ? error.message : 'api_unreachable';
     console.error('[oauth-callback]', provider, 'fetch_failed', detail);
-    throw redirect(`/login?oauth=${provider}&error=callback_failed&detail=${encodeURIComponent('api_unreachable')}`, {
-      headers: { 'Set-Cookie': clearStateCookie() },
-    });
+    throw failRedirect('api_unreachable');
   }
 
   if (!response.ok) {
@@ -77,7 +110,16 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
       }
     }
     console.error('[oauth-callback]', provider, response.status, detail);
-    throw redirect(`/login?oauth=${provider}&error=callback_failed&detail=${encodeURIComponent(detail)}`);
+    throw failRedirect(detail);
+  }
+
+  /*
+   * Link mode succeeded — the /link endpoint returns no session token (the user
+   * is already signed in); just clear the OAuth cookies and return to the account
+   * page with the newly-linked provider.
+   */
+  if (isLink) {
+    return redirect(`/connected-accounts?linked=${provider}`, { headers: clearAuthCookies() });
   }
 
   let result: { token?: string };
@@ -94,26 +136,33 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
      */
     const detail = error instanceof Error ? error.message : 'bad_response';
     console.error('[oauth-callback]', provider, 'bad_response', detail);
-    throw redirect(`/login?oauth=${provider}&error=callback_failed&detail=bad_response`, {
-      headers: { 'Set-Cookie': clearStateCookie() },
-    });
+    throw failRedirect('bad_response');
   }
 
   if (!result.token || typeof result.token !== 'string') {
     console.error('[oauth-callback]', provider, 'missing token in successful response');
-    throw redirect(`/login?oauth=${provider}&error=callback_failed&detail=missing_token`);
+    throw failRedirect('missing_token');
   }
 
   return redirect('/dashboard', {
-    headers: [
-      ['Set-Cookie', sessionCookie(result.token)],
-      ['Set-Cookie', clearStateCookie()],
-    ],
+    headers: [['Set-Cookie', sessionCookie(result.token)], ...clearAuthCookies()],
   });
 }
 
 function clearStateCookie() {
   return `${oauthStateCookie}=; Path=/; HttpOnly; SameSite=Lax${cookieSecure()}; Max-Age=0`;
+}
+
+function clearLinkCookie() {
+  return `${oauthLinkCookie}=; Path=/; HttpOnly; SameSite=Lax${cookieSecure()}; Max-Age=0`;
+}
+
+/** Both OAuth cookies cleared, as a Set-Cookie header tuple array. */
+function clearAuthCookies(): Array<[string, string]> {
+  return [
+    ['Set-Cookie', clearStateCookie()],
+    ['Set-Cookie', clearLinkCookie()],
+  ];
 }
 
 function providerName(value: string | undefined) {

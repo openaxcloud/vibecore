@@ -3,9 +3,19 @@ import { apiRequest, cookieSecure } from '~/lib/enterprise-api.server';
 import { classifyOAuthStartFailure } from '~/lib/oauth-start-failure';
 
 const oauthStateCookie = 'vc_oauth_state';
+const oauthLinkCookie = 'vc_oauth_link';
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const provider = providerName(params.provider);
+
+  /*
+   * `?mode=link` marks this OAuth round-trip as LINKING a provider to the
+   * already-signed-in account (from /connected-accounts) rather than logging in.
+   * We reuse the exact same authorize URL + redirect_uri (no new callback URL to
+   * register); a first-party vc_oauth_link cookie tells the callback to POST to
+   * /auth/oauth/:provider/link instead of /callback.
+   */
+  const isLink = new URL(request.url).searchParams.get('mode') === 'link';
 
   let result: { authorizationUrl?: string | null; ready?: boolean };
 
@@ -53,11 +63,21 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     throw redirect(`/login?oauth=${provider}&error=not_configured`);
   }
 
-  return redirect(url.toString(), {
-    headers: {
-      'Set-Cookie': `${oauthStateCookie}=${encodeURIComponent(`${provider}:${state}`)}; Path=/; HttpOnly; SameSite=Lax${cookieSecure()}; Max-Age=600`,
-    },
-  });
+  const headers = new Headers();
+  headers.append(
+    'Set-Cookie',
+    `${oauthStateCookie}=${encodeURIComponent(`${provider}:${state}`)}; Path=/; HttpOnly; SameSite=Lax${cookieSecure()}; Max-Age=600`,
+  );
+
+  // Mark link intent (or clear any stale marker so a plain login never link-POSTs).
+  headers.append(
+    'Set-Cookie',
+    isLink
+      ? `${oauthLinkCookie}=1; Path=/; HttpOnly; SameSite=Lax${cookieSecure()}; Max-Age=600`
+      : `${oauthLinkCookie}=; Path=/; HttpOnly; SameSite=Lax${cookieSecure()}; Max-Age=0`,
+  );
+
+  return redirect(url.toString(), { headers });
 }
 
 function providerName(value: string | undefined) {

@@ -1,15 +1,22 @@
 import { AlertTriangle, Chrome, Github, Link2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { MetaFunction } from 'react-router';
-import { Link, useLoaderData, useRevalidator } from 'react-router';
+import { Form, Link, useActionData, useLoaderData, useNavigation, useRevalidator, useSearchParams } from 'react-router';
 import { AppShell, StatusPill } from '~/components/dashboard/SaaSLayout';
 import { useConnectorPopup } from '~/lib/chat/use-connector-popup';
-import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import {
+  apiErrorMessage,
+  apiRequest,
+  formObject,
+  isApiResponse,
+  json,
+  type EnterpriseActionArgs,
+  type EnterpriseLoaderArgs,
+} from '~/lib/enterprise-api.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 import { classNames } from '~/utils/classNames';
 
 export const meta: MetaFunction = () => [{ title: 'Connected accounts - E-Code' }];
-
-type ProviderKey = 'github' | 'google' | 'microsoft';
 
 /*
  * `integration` providers are wired through the connector OAuth flow that
@@ -21,7 +28,7 @@ type ProviderKey = 'github' | 'google' | 'microsoft';
 type ProviderKind = 'integration' | 'identity';
 
 type ProviderDescriptor = {
-  key: ProviderKey;
+  key: string;
   apiProvider: string;
   title: string;
   detail: string;
@@ -40,12 +47,21 @@ const PROVIDERS: ProviderDescriptor[] = [
     icon: Github,
   },
   {
+    key: 'github-signin',
+    apiProvider: 'github',
+    title: 'GitHub (sign-in)',
+    detail: 'Use GitHub to sign in to this account.',
+    kind: 'identity',
+    connectPath: '/auth/oauth/github?mode=link',
+    icon: Github,
+  },
+  {
     key: 'google',
     apiProvider: 'google',
     title: 'Google',
     detail: 'Sign in with Google and verify enterprise domains.',
     kind: 'identity',
-    connectPath: '/auth/oauth/google',
+    connectPath: '/auth/oauth/google?mode=link',
     icon: Chrome,
   },
   {
@@ -104,6 +120,39 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 }
 
 /*
+ * Unlink a sign-in provider (identity) from this account. The API enforces the
+ * anti-lockout rule (400 LAST_LOGIN_METHOD when it is the user's only sign-in
+ * method) which we surface inline. Integration (connector) disconnects use their
+ * own client button + route, not this action.
+ */
+export async function action({ request }: EnterpriseActionArgs) {
+  const body = formObject(await request.formData()) as { intent?: string; provider?: string };
+
+  if (body.intent !== 'unlink-identity' || !body.provider) {
+    return json({ error: 'Unsupported action.' }, { status: 400 });
+  }
+
+  try {
+    await apiRequest(request, `/auth/connections/${encodeURIComponent(body.provider)}`, {
+      method: 'DELETE',
+      redirectOn401: false,
+    });
+
+    return json({ ok: true });
+  } catch (error) {
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
+    if (isApiResponse(error)) {
+      return json({ error: await apiErrorMessage(error, 'Could not unlink this provider.') }, { status: 400 });
+    }
+
+    throw error;
+  }
+}
+
+/*
  * Human-readable copy for the machine reason recorded by the worker / proxy
  * (e.g. `token_revoked`). Unknown reasons fall back to a generic message.
  */
@@ -143,11 +192,33 @@ export default function ConnectedAccountsPage() {
 
   const identityByProvider = new Map(identityConnections.map((connection) => [connection.provider, connection]));
 
+  const actionData = useActionData<typeof action>() as { error?: string; ok?: boolean } | undefined;
+  const [searchParams] = useSearchParams();
+  const linked = searchParams.get('linked');
+  const linkError = searchParams.get('linkError');
+  const linkErrorDetail = searchParams.get('detail');
+
   return (
     <AppShell
       title="Connected accounts"
       description="Manage OAuth connections for source control, identity and deployment providers."
     >
+      {linked ? (
+        <div className="mb-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm text-bolt-elements-textPrimary">
+          Linked {linked} to your account.
+        </div>
+      ) : null}
+      {linkError ? (
+        <div className="mb-3 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-500">
+          Could not link {linkError}
+          {linkErrorDetail ? `: ${linkErrorDetail}` : ''}.
+        </div>
+      ) : null}
+      {actionData?.error ? (
+        <div className="mb-3 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-500">
+          {actionData.error}
+        </div>
+      ) : null}
       {dedupedAlerts.length > 0 ? <ReconnectionAlertsBanner alerts={dedupedAlerts} /> : null}
 
       <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
@@ -202,10 +273,12 @@ export default function ConnectedAccountsPage() {
                     reloadDocument
                     className="inline-flex h-8 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
                   >
-                    Connect
+                    {provider.kind === 'identity' ? 'Link' : 'Connect'}
                   </Link>
                 ) : isConnected && provider.kind === 'integration' && integration ? (
                   <IntegrationDisconnectButton connectionId={integration.id} />
+                ) : isConnected && provider.kind === 'identity' ? (
+                  <IdentityUnlinkButton provider={provider.apiProvider} />
                 ) : null}
               </div>
             </div>
@@ -467,5 +540,29 @@ function IntegrationDisconnectButton({ connectionId }: { connectionId: string })
         </span>
       ) : null}
     </div>
+  );
+}
+
+/*
+ * Unlink a sign-in (identity) provider via this route's action. The anti-lockout
+ * guard lives server-side (400 LAST_LOGIN_METHOD) and is surfaced by the page's
+ * action-error banner.
+ */
+function IdentityUnlinkButton({ provider }: { provider: string }) {
+  const navigation = useNavigation();
+  const busy = navigation.state !== 'idle' && navigation.formData?.get('provider') === provider;
+
+  return (
+    <Form method="post">
+      <input type="hidden" name="intent" value="unlink-identity" />
+      <input type="hidden" name="provider" value={provider} />
+      <button
+        type="submit"
+        disabled={busy}
+        className="inline-flex h-8 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
+      >
+        {busy ? 'Unlinking…' : 'Unlink'}
+      </button>
+    </Form>
   );
 }
