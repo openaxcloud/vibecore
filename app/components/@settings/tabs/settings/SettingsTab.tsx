@@ -329,12 +329,12 @@ export default function SettingsTab() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between p-2 rounded-lg bg-bolt-elements-background-depth-1">
+          <div className="flex flex-wrap items-center justify-between gap-y-2 p-2 rounded-lg bg-bolt-elements-background-depth-1">
             <div className="flex flex-col">
               <span className="text-sm text-bolt-elements-textPrimary">Toggle Theme</span>
               <span className="text-xs text-bolt-elements-textSecondary">Switch between light and dark mode</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               <ThemeSwitch size="lg" title="Switch light/dark theme" />
               <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor rounded shadow-sm">
                 {getModifierSymbol('meta')}

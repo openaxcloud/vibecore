@@ -163,10 +163,10 @@ export default function OrganizationMembersPage() {
           {memberships.map((member) => (
             <div
               key={member.id}
-              className="grid gap-3 border-b border-bolt-elements-borderColor p-4 last:border-b-0 md:grid-cols-[1fr_240px_auto]"
+              className="grid gap-3 border-b border-bolt-elements-borderColor p-4 last:border-b-0 md:grid-cols-[minmax(0,1fr)_minmax(180px,220px)_auto]"
             >
-              <div>
-                <div className="font-medium text-bolt-elements-textPrimary">{member.userId}</div>
+              <div className="min-w-0">
+                <div className="truncate font-medium text-bolt-elements-textPrimary">{member.userId}</div>
                 <div className="text-xs text-bolt-elements-textSecondary">{member.roleKey}</div>
               </div>
               <Form method="post" className="flex gap-2">

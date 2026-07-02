@@ -282,7 +282,7 @@ export default function ApiKeysPage() {
                       <button
                         type="submit"
                         disabled={busy}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-red-400 hover:bg-red-500/10 disabled:opacity-60"
+                        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-red-400 hover:bg-red-500/10 disabled:opacity-60"
                       >
                         <Trash2 className="h-3.5 w-3.5" aria-hidden />
                         Revoke

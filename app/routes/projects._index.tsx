@@ -109,7 +109,7 @@ export default function ProjectsPage() {
         </label>
         <div className="flex gap-2">
           <button
-            className="rounded-md border border-bolt-elements-borderColor p-2"
+            className="flex h-9 w-9 items-center justify-center rounded-md border border-bolt-elements-borderColor"
             aria-label="Grid view"
             aria-pressed={view === 'grid'}
             onClick={() => setView('grid')}
@@ -117,7 +117,7 @@ export default function ProjectsPage() {
             <Grid2X2 className="h-4 w-4" aria-hidden />
           </button>
           <button
-            className="rounded-md border border-bolt-elements-borderColor p-2"
+            className="flex h-9 w-9 items-center justify-center rounded-md border border-bolt-elements-borderColor"
             aria-label="List view"
             aria-pressed={view === 'list'}
             onClick={() => setView('list')}

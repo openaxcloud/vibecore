@@ -72,7 +72,7 @@ export function WorkspaceSettings() {
               type="button"
               aria-label="Decrease font size"
               onClick={() => patch({ fontSize: editor.fontSize - 1 })}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3"
             >
               <Minus className="h-3.5 w-3.5" aria-hidden />
             </button>
@@ -81,7 +81,7 @@ export function WorkspaceSettings() {
               type="button"
               aria-label="Increase font size"
               onClick={() => patch({ fontSize: editor.fontSize + 1 })}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3"
             >
               <Plus className="h-3.5 w-3.5" aria-hidden />
             </button>
