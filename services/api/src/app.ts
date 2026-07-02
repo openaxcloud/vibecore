@@ -11347,6 +11347,163 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
   };
 
+  /*
+   * Cold-start guard for agent MUTATIONS (file writes/creates). A brand-new
+   * project's first AI patch (or any write) can land before its workspace pod is
+   * provisioned/Ready — the agent hop then exhausts its short in-request retry
+   * (~1s) and threw a hard 502 (WORKSPACE_AGENT_REQUEST_FAILED), surfacing as
+   * "AI patch failed: … Remote runtime request failed: 502" with a blank preview.
+   * These helpers turn that into: (idempotently) provision the workspace, WAIT
+   * (bounded) for the agent to become reachable, then retry once — and if it is
+   * still starting past the budget, surface a *transient* WORKSPACE_NOT_STARTED
+   * (425) that the IDE's runtime retry keeps polling, never a dead-end 502.
+   */
+  const COLD_START_REACH_BUDGET_MS = Math.max(
+    5_000,
+    Math.min(Number(process.env.WORKSPACE_COLD_START_BUDGET_MS) || 30_000, 90_000),
+  );
+
+  // A single cheap, token-authed GET /health. true iff the agent answered 2xx.
+  const probeAgentHealth = async (workspaceId: string, timeoutMs = 2_500): Promise<boolean> => {
+    let token: string;
+
+    try {
+      token = await agentToken(workspaceId);
+    } catch {
+      // agent-token mint can fail while the manager record is mid-provision.
+      return false;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(`${agentBaseUrl(workspaceId)}/health`, {
+        headers: { authorization: `Bearer ${token}` },
+        signal: controller.signal,
+      });
+      await response.body?.cancel().catch(() => undefined);
+
+      return response.ok;
+    } catch {
+      return false;
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  /*
+   * Fire an IDEMPOTENT manager start so a never-provisioned (or reclaimed) pod
+   * comes up. The manager blocks on readiness far longer than our api->manager
+   * timeout, so we do NOT await it — kick it off and let the /health poll below
+   * observe the pod arriving. Reopening with the same deterministic id returns
+   * the existing pod, so this is safe to call even while a start is in flight.
+   */
+  const provisionWorkspaceOnDemand = async (
+    request: any,
+    authorized: { workspaceId: string; projectId: string; organizationId?: string },
+  ) => {
+    const [projectEnvVars, projectSecrets] = await Promise.all([
+      store.listProjectEnvVars(authorized.projectId),
+      store.listProjectSecrets(authorized.projectId),
+    ]);
+
+    const env = Object.fromEntries(projectEnvVars.map((entry) => [entry.key, entry.value]));
+    const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
+    const allowedSecrets = await resolveProjectSecretValues(store, authorized.projectId).catch(() => undefined);
+
+    void managerRequest('/workspaces/start', {
+      method: 'POST',
+      body: JSON.stringify({
+        namespace: runtimeNamespace(),
+        orgId: authorized.organizationId ?? 'unknown-org',
+        projectId: authorized.projectId,
+        workspaceId: authorized.workspaceId,
+        userId: request.currentUser?.id,
+        image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
+        plan: process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
+        env,
+        allowedSecretKeys,
+        allowedSecrets,
+        objectStorage: buildWorkspaceObjectStorage({
+          projectId: authorized.projectId,
+          userId: request.currentUser?.id,
+          workspaceId: authorized.workspaceId,
+        }),
+      }),
+    }).catch(() => undefined);
+
+    await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STARTING' }).catch(() => undefined);
+  };
+
+  // Ensure the workspace agent is reachable, provisioning + waiting if needed.
+  const ensureWorkspaceReachable = async (
+    request: any,
+    authorized: { workspaceId: string; projectId: string; organizationId?: string },
+    budgetMs = COLD_START_REACH_BUDGET_MS,
+  ): Promise<void> => {
+    if (await probeAgentHealth(authorized.workspaceId)) {
+      return;
+    }
+
+    await provisionWorkspaceOnDemand(request, authorized);
+
+    const deadline = Date.now() + budgetMs;
+    let attempt = 0;
+
+    while (Date.now() < deadline) {
+      // Stop the moment the client hangs up — no point holding a provisioning wait.
+      if (request.raw?.aborted) {
+        break;
+      }
+
+      attempt += 1;
+      await agentSleep(Math.min(2_000, 500 + attempt * 250));
+
+      if (await probeAgentHealth(authorized.workspaceId)) {
+        metrics.increment('workspace_cold_start_write_recovered_total', {});
+
+        return;
+      }
+    }
+
+    throw Object.assign(new Error('Workspace is starting — retrying automatically.'), {
+      statusCode: 425,
+      code: 'WORKSPACE_NOT_STARTED',
+      publicMessage: 'Workspace is starting — retrying automatically.',
+    });
+  };
+
+  /*
+   * agentRequest for a MUTATION that must survive a cold start. On the first
+   * WORKSPACE_AGENT_REQUEST_FAILED (agent unreachable), provision + wait for the
+   * pod, then retry once. The healthy hot path pays nothing (no extra probe) —
+   * the ensure only runs after a real unreachable failure.
+   */
+  const agentMutateEnsuring = async <T = unknown>(
+    request: any,
+    authorized: { workspaceId: string; projectId: string; organizationId?: string },
+    path: string,
+    init: RequestInit = {},
+  ): Promise<T> => {
+    try {
+      return await agentRequest<T>(authorized.workspaceId, path, init);
+    } catch (error) {
+      if ((error as { code?: string } | undefined)?.code !== 'WORKSPACE_AGENT_REQUEST_FAILED') {
+        throw error;
+      }
+
+      if (init.signal?.aborted || request.raw?.aborted) {
+        throw error;
+      }
+
+      // Bring the workspace up (throws transient WORKSPACE_NOT_STARTED past budget).
+      await ensureWorkspaceReachable(request, authorized);
+
+      return agentRequest<T>(authorized.workspaceId, path, init);
+    }
+  };
+
   const agentFileRead = async (workspaceId: string, path: string) => {
     return agentRequest<{ content: string; encoding?: 'utf8' | 'base64' }>(
       workspaceId,
@@ -13121,7 +13278,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeFileWriteSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
-    await agentRequest(authorized.workspaceId, '/files/write', { method: 'POST', body: JSON.stringify(body) });
+    await agentMutateEnsuring(request, authorized, '/files/write', { method: 'POST', body: JSON.stringify(body) });
     await audit(request, store, {
       organizationId: authorized.organizationId,
       action: 'runtime.file.write',
@@ -13135,7 +13292,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeFileCreateSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
-    await agentRequest(authorized.workspaceId, '/files/create', { method: 'POST', body: JSON.stringify(body) });
+    await agentMutateEnsuring(request, authorized, '/files/create', { method: 'POST', body: JSON.stringify(body) });
 
     return reply.code(204).send();
   });
@@ -13143,7 +13300,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeFileCreateSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
-    await agentRequest(authorized.workspaceId, '/files/create', {
+    await agentMutateEnsuring(request, authorized, '/files/create', {
       method: 'POST',
       body: JSON.stringify({ ...body, directory: true }),
     });
