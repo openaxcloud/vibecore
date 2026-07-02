@@ -210,15 +210,15 @@ export default function ProjectDomainsPage() {
                   Add this DNS TXT record at your domain registrar, then click Verify once it propagates:
                 </p>
                 <dl className="grid gap-1 text-xs">
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
                     <dt className="text-bolt-elements-textTertiary">Type</dt>
                     <dd className="font-mono">TXT</dd>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
                     <dt className="text-bolt-elements-textTertiary">Name / Host</dt>
                     <dd className="select-all break-all font-mono">{`_vibecore.${item.domain}`}</dd>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
                     <dt className="text-bolt-elements-textTertiary">Value</dt>
                     <dd className="select-all break-all font-mono">{`vibecore-domain-verification=${item.verificationToken}`}</dd>
                   </div>
