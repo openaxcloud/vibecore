@@ -1118,11 +1118,41 @@ function OverviewPanel({ payload }: { payload: Record<string, JsonValue> }) {
 function HealthPanel({ payload }: { payload: Record<string, JsonValue> }) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      {Object.entries(payload).map(([key, value]) => (
-        <SectionCard key={key} title={labelize(key)} icon="health">
-          <KeyValueGrid value={asRecord(value)} />
-        </SectionCard>
-      ))}
+      {Object.entries(payload).map(([key, value]) => {
+        const record = asRecord(value);
+
+        return (
+          <SectionCard key={key} title={labelize(key)} icon="health">
+            <KeyValueGrid value={record} />
+            {key === 'kubernetes' && record.status === 'not-configured' ? (
+              <div
+                role="note"
+                className="mt-3 rounded-md px-3 py-2 text-sm text-bolt-elements-textPrimary"
+                style={{
+                  background: 'color-mix(in srgb, var(--vc-ide-accent-warning) 12%, transparent)',
+                  borderLeft: '3px solid var(--vc-ide-accent-warning)',
+                }}
+              >
+                Workspace runtimes need a Kubernetes pod. Local dev runs shell-only.
+                <span className="mt-1 block text-xs">
+                  <a
+                    href="https://github.com/openaxcloud/vibecore/blob/main/docs/ACTIVATION_RUNBOOK.md"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium underline"
+                  >
+                    Runbook
+                  </a>
+                  {' · '}
+                  <Link to="/admin/system-settings" className="font-medium underline">
+                    Configure
+                  </Link>
+                </span>
+              </div>
+            ) : null}
+          </SectionCard>
+        );
+      })}
     </div>
   );
 }
