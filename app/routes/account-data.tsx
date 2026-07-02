@@ -1,4 +1,4 @@
-import { AlertTriangle, ShieldAlert, Trash2, Undo2 } from 'lucide-react';
+import { AlertTriangle, Download, ShieldAlert, Trash2, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { data as json } from 'react-router';
@@ -34,7 +34,44 @@ type DeletionView = {
 
 const CONFIRM_PHRASE = 'DELETE';
 
+const EXPORT_INCLUDES = [
+  'Profile and account preferences',
+  'Organizations and your membership roles',
+  'Projects (names and metadata)',
+  'API keys (names and prefixes only)',
+  'Connected accounts (provider and status)',
+  'Recent account activity',
+] as const;
+
+const EXPORT_EXCLUDES = [
+  'Passwords and password hashes',
+  'API key secrets',
+  'OAuth / connection access tokens',
+] as const;
+
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  /*
+   * Data export (GDPR right of access) is served FROM the loader, not a raw
+   * browser anchor: the API base URL is server-only and the request must carry
+   * the session cookie. We fetch the export over the same authenticated channel,
+   * then stream it back as a downloadable attachment — mirroring the audit-log
+   * export (app/routes/audit-logs.tsx). Triggered by `?export=data`.
+   */
+  const url = new URL(request.url);
+
+  if (url.searchParams.get('export') === 'data') {
+    const document = await apiRequest<unknown>(request, '/account/data-export', { redirectOn401: true });
+    const stamp = new Date().toISOString().slice(0, 10);
+
+    return new Response(JSON.stringify(document, null, 2), {
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'content-disposition': `attachment; filename="ecode-data-export-${stamp}.json"`,
+        'cache-control': 'no-store',
+      },
+    });
+  }
+
   const view = await apiRequest<DeletionView>(request, '/account/deletion');
 
   return json({ view });
@@ -219,6 +256,50 @@ export default function AccountDataPage() {
               </ul>
             </div>
           </div>
+        </section>
+
+        {/* Download my data (GDPR export) */}
+        <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
+          <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Download my data</h2>
+          <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+            Export a copy of your personal data as a JSON file. The export is generated server-side over your session —
+            no secrets, tokens, or passwords are ever included.
+          </p>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4">
+              <p className="text-sm font-medium text-bolt-elements-textPrimary">Included</p>
+              <ul className="mt-2 space-y-1 text-sm text-bolt-elements-textSecondary">
+                {EXPORT_INCLUDES.map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <Download className="mt-0.5 h-3.5 w-3.5 shrink-0 text-bolt-elements-textTertiary" aria-hidden />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4">
+              <p className="text-sm font-medium text-bolt-elements-textPrimary">Never included</p>
+              <ul className="mt-2 space-y-1 text-sm text-bolt-elements-textSecondary">
+                {EXPORT_EXCLUDES.map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-bolt-elements-textTertiary" aria-hidden />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <a
+            href="/account-data?export=data"
+            download
+            data-testid="account-data-export"
+            className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+          >
+            <Download className="h-4 w-4" aria-hidden />
+            Download my data (JSON)
+          </a>
         </section>
 
         {/* Danger zone: request deletion */}

@@ -1732,6 +1732,7 @@ function isBlockedGitHost(rawHost: string): boolean {
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
+
     /*
      * ULA fc00::/7 + link-local fe80::/10, but only as IPv6 LITERALS (hextets +
      * ':'). The old startsWith('fc'/'fd'/'fe80') wrongly blocked public hosts like
@@ -2440,6 +2441,7 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
     mfaPathname.startsWith('/auth/recovery-codes/') ||
     mfaPathname === '/auth/sessions' ||
     mfaPathname.startsWith('/auth/sessions/') ||
+
     /*
      * Re-auth is the gateway to enrolling MFA (mfa/setup now requires it); a
      * platform admin without MFA must be able to reach it or they'd be deadlocked.
@@ -3940,6 +3942,7 @@ type ProviderHealthRow = {
 
   /** Set when the row's status was confirmed by a real live probe (gateway overlay or direct). */
   liveChecked?: boolean;
+
   /** Measured round-trip of a successful direct liveness probe, in ms. */
   latencyMs?: number;
   statusCode?: number;
@@ -3957,6 +3960,7 @@ async function probeProviderLiveness(
   apiKey: string,
 ): Promise<{ ok: boolean; statusCode?: number; latencyMs?: number; error?: string }> {
   const headers: Record<string, string> = { accept: 'application/json' };
+
   let url = probe.url;
 
   if (probe.keyStyle === 'bearer') {
@@ -3973,6 +3977,7 @@ async function probeProviderLiveness(
       headers,
       signal: AbortSignal.timeout(PROVIDER_PROBE_TIMEOUT_MS),
     });
+
     const latencyMs = Date.now() - startedAt;
 
     if (response.ok) {
@@ -4081,8 +4086,10 @@ async function providerHealth(
       const envKey = PROVIDER_KEY_ENV[name];
       const apiKey = envKey ? process.env[envKey]?.trim() : undefined;
 
-      // Only probe enabled providers with a real env key, a known endpoint, and
-      // not already confirmed by the gateway's live overlay.
+      /*
+       * Only probe enabled providers with a real env key, a known endpoint, and
+       * not already confirmed by the gateway's live overlay.
+       */
       if (!row || !row.enabled || row.liveChecked || !probe || !apiKey) {
         return undefined;
       }
@@ -7268,6 +7275,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/metrics', async (_request, reply) =>
     reply.header('content-type', 'text/plain; version=0.0.4; charset=utf-8').send(metrics.render()),
   );
+
   /*
    * Structured JSON view of the SAME live Prometheus registry that `/metrics`
    * exposes, for the admin Monitoring dashboard. Platform-admin only. Reading
@@ -7856,8 +7864,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           .send({ error: 'OAuth resolve failed', code: err?.code ?? 'OAUTH_RESOLVE_FAILED' });
       }
 
-      // Account-takeover guard: refuse if this provider identity is already linked
-      // to someone else.
+      /*
+       * Account-takeover guard: refuse if this provider identity is already linked
+       * to someone else.
+       */
       const existing = await store.findOAuthConnectionByExternalId(provider, profile.externalId);
 
       if (existing && existing.userId !== request.currentUser.id) {
@@ -8180,9 +8190,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/auth/login') ||
       request.url.startsWith('/auth/verify-email') ||
       request.url.startsWith('/auth/password-reset') ||
-      // The OAuth login flow (start/callback/providers) is public, but the
-      // account-LINK endpoint must stay authenticated (it binds a provider to the
-      // signed-in user), so it is NOT exempt.
+
+      /*
+       * The OAuth login flow (start/callback/providers) is public, but the
+       * account-LINK endpoint must stay authenticated (it binds a provider to the
+       * signed-in user), so it is NOT exempt.
+       */
       (request.url.startsWith('/auth/oauth') && !request.url.includes('/link')) ||
       request.url.startsWith('/auth/oidc') ||
       request.url.startsWith('/auth/saml') ||
@@ -8191,12 +8204,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/') ||
+
       /*
        * Service-to-service internal endpoints (metering ingest, inactivity GC).
        * Exempt from user auth; each route self-authenticates with the shared
        * internal secret via requireInternalSecret(). P8.
        */
       request.url.startsWith('/internal/') ||
+
       /*
        * Public read of a shared conversation snapshot — the signed token is the
        * capability. Only the token-scoped GET path is exempt; POST /chat-shares
@@ -8497,6 +8512,207 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await audit(request, store, { action: 'account.deletion_cancelled', resourceType: 'user', resourceId: userId });
 
       return { status: 'none' as const, cancelled: true };
+    },
+  );
+
+  /*
+   * ===== Self-serve GDPR data export (the counterpart to /account/deletion) =====
+   * Assembles the CURRENT USER's exportable data into a single downloadable JSON
+   * document (GDPR right of access / data portability). Strictly user-scoped:
+   * every read is keyed on request.currentUser.id (or an org the user belongs
+   * to), so one user can never obtain another's data.
+   *
+   * SECRET REDACTION is mandatory and enforced by construction — we never spread
+   * whole records into the response. Instead we hand-pick non-sensitive fields
+   * and reuse the same redacting serializers the read APIs already use:
+   *   - API keys via `publicApiKey(...)` (drops keyHash)
+   *   - connected accounts mirror `/api/account/connections` (drops the three
+   *     *Encrypted token fields)
+   *   - user fields exclude passwordHash / mfaSecretEncrypted
+   *   - sessions exclude tokenHash
+   *   - audit rows exclude `metadata` (may embed secrets) and ipAddress
+   * Preferences are filtered to a known-safe allowlist (notification / UI
+   * toggles) so internal sub-keys (accountDeletion, moderationStrikes, …) and
+   * any future secret-bearing key never leak.
+   */
+  function accountDataExportEnabled(): boolean {
+    /*
+     * Read-only (assembles the user's own data); default-on. Set
+     * ACCOUNT_DATA_EXPORT_ENABLED=false to hide the endpoint.
+     */
+    return process.env.ACCOUNT_DATA_EXPORT_ENABLED !== 'false';
+  }
+
+  /*
+   * Preference keys that are safe to include in a data export. Everything else
+   * in the free-form `preferences` blob is intentionally omitted.
+   */
+  const EXPORTABLE_PREFERENCE_KEYS = ['notifications', 'eventLogs', 'language', 'timezone', 'theme'] as const;
+
+  function exportablePreferences(preferences: Record<string, unknown> | undefined): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+
+    if (!preferences) {
+      return out;
+    }
+
+    for (const key of EXPORTABLE_PREFERENCE_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(preferences, key)) {
+        out[key] = preferences[key];
+      }
+    }
+
+    return out;
+  }
+
+  app.get(
+    '/account/data-export',
+    {
+      config: {
+        rateLimit: { max: Number(process.env.ACCOUNT_DATA_EXPORT_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' },
+      },
+    },
+    async (request, reply) => {
+      if (!accountDataExportEnabled()) {
+        return reply.code(404).send({ error: 'not_found' });
+      }
+
+      const userId = request.currentUser!.id;
+      const user = await store.findUserById(userId);
+
+      if (!user) {
+        return reply.code(404).send({ error: 'not_found' });
+      }
+
+      /*
+       * Orgs the user belongs to, then per-org projects (there is no per-user
+       * project list — this mirrors the existing walk-orgs-then-projects pattern)
+       * and the user's own membership within each org.
+       */
+      const organizations = await store.listOrganizations(userId);
+
+      const organizationExports = await Promise.all(
+        organizations.map(async (organization) => {
+          const [projects, members] = await Promise.all([
+            store.listProjects(organization.id),
+            store.listMembers(organization.id),
+          ]);
+
+          const membership = members.find((member) => member.userId === userId);
+
+          return {
+            organization: {
+              id: organization.id,
+              slug: organization.slug,
+              name: organization.name,
+              createdAt: organization.createdAt,
+            },
+            membership: membership ? { roleKey: membership.roleKey } : null,
+            projects: projects.map((project) => ({
+              id: project.id,
+              name: project.name,
+              slug: project.slug,
+              description: project.description ?? null,
+              sourceType: project.sourceType,
+              templateName: project.templateName ?? null,
+              gitRepositoryUrl: project.gitRepositoryUrl ?? null,
+              gitDefaultBranch: project.gitDefaultBranch ?? null,
+              createdAt: project.createdAt,
+              updatedAt: project.updatedAt,
+              deletedAt: project.deletedAt ?? null,
+            })),
+          };
+        }),
+      );
+
+      // API keys — metadata only; publicApiKey() strips the keyHash secret.
+      const apiKeys = (await store.listApiKeys({ userId })).map(publicApiKey);
+
+      /*
+       * Connected accounts — provider + status only; the three *Encrypted token
+       * fields are never spread in (mirrors /api/account/connections).
+       */
+      const connections = (await store.listUserConnectionsByUser(userId)).map((connection) => ({
+        id: connection.id,
+        provider: connection.provider,
+        externalAccountId: connection.externalAccountId,
+        externalAccountLabel: connection.externalAccountLabel,
+        scopes: connection.scopes,
+        status: connection.status,
+        forAgentUse: connection.forAgentUse,
+        oauthAppSource: connection.oauthAppSource,
+        createdAt: connection.createdAt,
+        updatedAt: connection.updatedAt,
+        lastUsedAt: connection.lastUsedAt ?? null,
+        tokenExpiresAt: connection.tokenExpiresAt ?? null,
+        revokedAt: connection.revokedAt ?? null,
+      }));
+
+      // Active sessions — metadata only; tokenHash is deliberately excluded.
+      const sessions = (await store.listSessions(userId)).map((session) => ({
+        id: session.id,
+        createdAt: session.createdAt,
+        expiresAt: session.expiresAt,
+        ipAddress: session.ipAddress ?? null,
+        userAgent: session.userAgent ?? null,
+        revokedAt: session.revokedAt ?? null,
+        lastReauthAt: session.lastReauthAt ?? null,
+      }));
+
+      /*
+       * The user's own recent actions. listAuditLogs() has no per-user query, so
+       * we scope to the user's orgs and filter to actorUserId === userId (never a
+       * global/cross-tenant scan). `metadata` (may embed secrets) and `ipAddress`
+       * are intentionally omitted.
+       */
+      const auditLogRows = (
+        await Promise.all(organizations.map((organization) => store.listAuditLogs(organization.id).catch(() => [])))
+      ).flat();
+
+      const recentActions = auditLogRows
+        .filter((event) => event.actorUserId === userId)
+        .map((event) => ({
+          action: event.action,
+          resourceType: event.resourceType,
+          resourceId: event.resourceId ?? null,
+          organizationId: event.organizationId ?? null,
+          createdAt: (event as { createdAt?: string }).createdAt ?? null,
+        }))
+        .slice(0, 500);
+
+      const exportedAt = new Date().toISOString();
+
+      await audit(request, store, { action: 'account.data_export', resourceType: 'user', resourceId: userId });
+
+      const document = {
+        export: {
+          version: 1,
+          kind: 'gdpr-data-export' as const,
+          exportedAt,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name ?? null,
+            emailVerifiedAt: user.emailVerifiedAt ?? null,
+            mfaEnabled: user.mfaEnabled ?? false,
+            language: user.language ?? null,
+            timezone: user.timezone ?? null,
+            createdAt: user.createdAt,
+            lastActiveAt: user.lastActiveAt ?? null,
+          },
+          preferences: exportablePreferences(user.preferences),
+          organizations: organizationExports,
+          apiKeys,
+          connectedAccounts: connections,
+          sessions,
+          recentActions,
+        },
+      };
+
+      return reply
+        .header('content-disposition', `attachment; filename="ecode-data-export-${exportedAt.slice(0, 10)}.json"`)
+        .header('cache-control', 'no-store')
+        .send(document);
     },
   );
 
@@ -10575,6 +10791,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.get('/admin/mcp/catalog', async (request, reply) => {
     await requirePlatformAdmin(request);
+
     const service = requireMcpMarketplaceService(mcpMarketplace);
 
     try {
@@ -10693,6 +10910,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.get('/admin/orgs/:orgId/mcp-policy', async (request, reply) => {
     await requirePlatformAdmin(request);
+
     const { orgId } = parse(z.object({ orgId: z.string().min(1).max(64) }), request.params);
     const service = requireMcpMarketplaceService(mcpMarketplace);
 
@@ -19160,6 +19378,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const creditPlan = planCreditConfig[toCreditPlanKey(subscription?.planKey ?? 'free')];
     const monthlyGrantCents = creditPlan?.monthlyCreditCents ?? 0;
     const entitled = subscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(subscription.status);
+
     let periodEndIso: string | undefined;
 
     if (entitled && subscription?.currentPeriodEnd) {
@@ -19772,6 +19991,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           : undefined;
         const isStaleByTimestamp = Boolean(
           eventCreatedAt &&
+
             /*
              * Deletion is terminal and must ALWAYS be applied: a `deleted` event
              * can legitimately carry an older event.created than a previously
@@ -22005,6 +22225,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+
     const metaOf = (e: { metadata?: unknown }) =>
       e.metadata && typeof e.metadata === 'object' ? (e.metadata as Record<string, unknown>) : {};
 
@@ -22014,12 +22235,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     // Workspace compute — sum exact compute units from event metadata.
     let computeUnits = 0;
     let runtimeMinutes = 0;
+
     // Object storage — GiB-months + transfer.
     let objGiBMonths = 0;
     let transferGib = 0;
+
     // Database — storage GiB-months + active hours.
     let dbGiBMonths = 0;
     let dbActiveHours = 0;
+
     // Deployments — count of metered deployment slices.
     let deployCount = 0;
 
