@@ -15,6 +15,55 @@ import { Badge } from '~/components/marketing/ecode-exact/EcodeExactUi';
 
 const PRODUCT = '/ecode-static/assets/product';
 
+type StatusIncident = {
+  /** UTC day the incident happened, YYYY-MM-DD. */
+  date: string;
+  severity: 'warning' | 'error';
+  title: string;
+  durationMinutes: number;
+  href?: string;
+};
+
+/*
+ * Static incident seed for the history section. Days without an entry render
+ * the quiet "No incidents reported" row. Append a row here when an incident is
+ * resolved (this page has no incident backend yet — the seed IS the record; an
+ * empty list truthfully means no incidents in the window).
+ */
+const incidentHistory: StatusIncident[] = [];
+
+const INCIDENT_SEVERITY_STYLES: Record<StatusIncident['severity'], { label: string; color: string }> = {
+  warning: { label: 'Degraded', color: 'var(--status-warning-text)' },
+  error: { label: 'Outage', color: 'var(--status-error-text)' },
+};
+
+const historyDayFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: '2-digit',
+  timeZone: 'UTC',
+});
+
+function lastSevenDaysUtc(): Array<{ key: string; label: string }> {
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = new Date();
+    day.setUTCHours(0, 0, 0, 0);
+    day.setUTCDate(day.getUTCDate() - index);
+
+    return { key: day.toISOString().slice(0, 10), label: historyDayFormatter.format(day) };
+  });
+}
+
+function formatIncidentDuration(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+
+  return rest > 0 ? `${hours}h ${rest}m` : `${hours}h`;
+}
+
 export default function StatusPage() {
   const components = [
     {
@@ -148,6 +197,63 @@ export default function StatusPage() {
                       </div>
                     </CardContent>
                   </Card>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* Incident history */}
+        <section className="bg-bolt-elements-background-depth-1">
+          <div className="container-responsive py-16 sm:py-24">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <h2 className="mkt-h2 font-bold text-bolt-elements-textPrimary mb-4">Incident history (last 7 days)</h2>
+              <p className="mkt-body text-bolt-elements-textSecondary leading-relaxed">
+                A day-by-day record of platform incidents, most recent first.
+              </p>
+            </div>
+
+            <div className="mx-auto max-w-3xl overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
+              {lastSevenDaysUtc().map((day) => {
+                const incident = incidentHistory.find((entry) => entry.date === day.key);
+                const severity = incident ? INCIDENT_SEVERITY_STYLES[incident.severity] : null;
+
+                return (
+                  <div
+                    key={day.key}
+                    className="flex items-center gap-4 border-b border-bolt-elements-borderColor px-4 py-3 last:border-b-0"
+                  >
+                    <span
+                      className="w-20 shrink-0 text-[13px] text-bolt-elements-textPrimary"
+                      style={{ fontFamily: 'var(--vc-font-code)' }}
+                    >
+                      {day.label}
+                    </span>
+                    {incident && severity ? (
+                      <span className="flex min-w-0 flex-wrap items-center gap-2 text-[13px]">
+                        <span
+                          className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                          style={{
+                            color: severity.color,
+                            background: `color-mix(in srgb, ${severity.color} 12%, transparent)`,
+                          }}
+                        >
+                          {severity.label}
+                        </span>
+                        <span className="text-bolt-elements-textPrimary">{incident.title}</span>
+                        <span className="text-bolt-elements-textSecondary">
+                          · {formatIncidentDuration(incident.durationMinutes)}
+                        </span>
+                        {incident.href ? (
+                          <a href={incident.href} className="underline" style={{ color: severity.color }}>
+                            Details
+                          </a>
+                        ) : null}
+                      </span>
+                    ) : (
+                      <span className="text-[13px] text-bolt-elements-textSecondary">No incidents reported</span>
+                    )}
+                  </div>
                 );
               })}
             </div>
