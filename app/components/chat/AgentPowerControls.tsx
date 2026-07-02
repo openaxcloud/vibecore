@@ -143,7 +143,7 @@ export function AgentPowerControls({
             ? 'border-transparent text-white'
             : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
         )}
-        style={open || activeBoosts > 0 ? { background: 'var(--ecode-accent)' } : undefined}
+        style={open || activeBoosts > 0 ? { background: 'var(--vc-ide-accent-action)' } : undefined}
       >
         <Zap className="h-3.5 w-3.5" />
         <span>Power</span>
@@ -158,7 +158,7 @@ export function AgentPowerControls({
         className="ml-2 inline-flex items-center gap-1 self-center rounded-full bg-bolt-elements-background-depth-2 px-2.5 py-1 text-xs font-semibold text-bolt-elements-textPrimary"
         title="Estimated cost for this request (proof-of-work)"
       >
-        <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--ecode-accent)' }} />
+        <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--vc-ide-accent-action)' }} />
         {formatCents(estimatedCents)}
       </span>
 
@@ -193,7 +193,7 @@ export function AgentPowerControls({
                     <span className="font-medium">{tier.label}</span>
                     <span className="text-[10px] text-bolt-elements-textSecondary">{tier.hint}</span>
                   </span>
-                  {active ? <Check className="h-3.5 w-3.5" style={{ color: 'var(--ecode-accent)' }} /> : null}
+                  {active ? <Check className="h-3.5 w-3.5" style={{ color: 'var(--vc-ide-accent-action)' }} /> : null}
                 </button>
               );
             })}
@@ -224,7 +224,7 @@ export function AgentPowerControls({
                   )}
                 >
                   <span className="flex items-center gap-2">
-                    <BoostIcon className="h-3.5 w-3.5" style={active ? { color: 'var(--ecode-accent)' } : undefined} />
+                    <BoostIcon className="h-3.5 w-3.5" style={active ? { color: 'var(--vc-ide-accent-action)' } : undefined} />
                     {boost.label}
                   </span>
                   {locked ? (
@@ -237,7 +237,7 @@ export function AgentPowerControls({
                         'flex h-4 w-4 items-center justify-center rounded border',
                         active ? 'border-transparent' : 'border-bolt-elements-borderColor',
                       )}
-                      style={active ? { background: 'var(--ecode-accent)' } : undefined}
+                      style={active ? { background: 'var(--vc-ide-accent-action)' } : undefined}
                     >
                       {active ? <Check className="h-3 w-3 text-white" /> : null}
                     </span>
@@ -262,7 +262,7 @@ export function AgentPowerControls({
           <div className="mt-2 flex items-center justify-between border-t border-bolt-elements-borderColor px-1 pt-2 text-xs">
             <span className="text-bolt-elements-textSecondary">Est. cost</span>
             <span className="inline-flex items-center gap-1 font-semibold text-bolt-elements-textPrimary">
-              <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--ecode-accent)' }} />
+              <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--vc-ide-accent-action)' }} />
               {formatCents(estimatedCents)}
             </span>
           </div>
