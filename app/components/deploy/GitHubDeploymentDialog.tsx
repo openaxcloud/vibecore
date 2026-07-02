@@ -891,9 +891,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                     {repoName && sanitizeRepoName(repoName) !== repoName && (
                       <p className="text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark mt-1">
                         Will be created as:{' '}
-                        <span className="font-mono text-[var(--ecode-accent)]">
-                          {sanitizeRepoName(repoName)}
-                        </span>
+                        <span className="font-mono text-[var(--ecode-accent)]">{sanitizeRepoName(repoName)}</span>
                       </p>
                     )}
                   </div>

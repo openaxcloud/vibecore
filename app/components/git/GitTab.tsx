@@ -892,7 +892,11 @@ export function GitTab({ projectId }: GitTabProps) {
                   data-testid="git-disconnect-remote"
                   disabled={busy}
                   onClick={() => {
-                    if (window.confirm('Disconnect this Git remote from the project? Your files and local history stay; only the remote link is removed.')) {
+                    if (
+                      window.confirm(
+                        'Disconnect this Git remote from the project? Your files and local history stay; only the remote link is removed.',
+                      )
+                    ) {
                       void runIntent('remove-remote');
                     }
                   }}

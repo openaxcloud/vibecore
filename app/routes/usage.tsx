@@ -39,8 +39,10 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return redirect('/');
   }
 
-  // Per-resource spend breakdown is a lower-sensitivity read; never let it break
-  // the usage page (missing on older API pods → null → section simply hidden).
+  /*
+   * Per-resource spend breakdown is a lower-sensitivity read; never let it break
+   * the usage page (missing on older API pods → null → section simply hidden).
+   */
   const breakdownPromise = apiRequest<Breakdown>(request, `/orgs/${organization.id}/usage/breakdown`).catch(
     () => null as Breakdown,
   );
@@ -79,6 +81,7 @@ export default function UsagePage() {
   const overrideFor = (key: string) => overrides.find((override) => override.key === key);
   const breakdown = data.breakdown;
   const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+
   const iconFor: Record<string, typeof Sparkles> = {
     agent: Sparkles,
     compute: Activity,
@@ -114,8 +117,8 @@ export default function UsagePage() {
           <ul className="flex flex-col gap-3">
             {breakdown.categories.map((category) => {
               const Icon = iconFor[category.key] ?? Activity;
-              const pct =
-                breakdown.totalCents > 0 ? Math.round((category.costCents / breakdown.totalCents) * 100) : 0;
+
+              const pct = breakdown.totalCents > 0 ? Math.round((category.costCents / breakdown.totalCents) * 100) : 0;
 
               return (
                 <li key={category.key} className="flex flex-col gap-1">

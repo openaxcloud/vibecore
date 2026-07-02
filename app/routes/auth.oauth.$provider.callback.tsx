@@ -18,6 +18,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
    * can never make a subsequent plain login POST to /link.
    */
   const isLink = readCookie(request, oauthLinkCookie) === '1';
+
   const failRedirect = (detail: string) =>
     isLink
       ? redirect(`/connected-accounts?linkError=${provider}&detail=${encodeURIComponent(detail)}`, {
@@ -70,6 +71,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
       headers: {
         accept: 'application/json',
         'content-type': 'application/json',
+
         /*
          * Link mode binds to the CURRENT user, so forward their session cookie so
          * the (authenticated) /link endpoint sees request.currentUser. Login mode

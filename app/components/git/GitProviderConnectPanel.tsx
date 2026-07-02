@@ -316,7 +316,10 @@ export function GitProviderConnectPanel({
       </div>
 
       {showRepoPicker ? (
-        <GitHubRepoPicker busy={configuringRemote || busy} onSelect={(url, repoBranch) => void submitRemote(url, repoBranch)} />
+        <GitHubRepoPicker
+          busy={configuringRemote || busy}
+          onSelect={(url, repoBranch) => void submitRemote(url, repoBranch)}
+        />
       ) : null}
 
       {networkError ? (
@@ -501,15 +504,22 @@ function GitHubRepoPicker({
                   className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <span className="flex min-w-0 items-center gap-2">
-                    <span className="i-ph:git-branch h-3.5 w-3.5 shrink-0 text-bolt-elements-textTertiary" aria-hidden />
-                    <span className="truncate text-xs font-medium text-bolt-elements-textPrimary">{repo.full_name}</span>
+                    <span
+                      className="i-ph:git-branch h-3.5 w-3.5 shrink-0 text-bolt-elements-textTertiary"
+                      aria-hidden
+                    />
+                    <span className="truncate text-xs font-medium text-bolt-elements-textPrimary">
+                      {repo.full_name}
+                    </span>
                     {repo.private ? (
                       <span className="shrink-0 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-[10px] text-bolt-elements-textTertiary">
                         private
                       </span>
                     ) : null}
                   </span>
-                  <span className="shrink-0 text-[11px] font-medium text-bolt-elements-item-contentAccent">Connect</span>
+                  <span className="shrink-0 text-[11px] font-medium text-bolt-elements-item-contentAccent">
+                    Connect
+                  </span>
                 </button>
               </li>
             ))}

@@ -27,6 +27,7 @@ export interface AgentPowerControlsProps {
    * gate authoritatively regardless of this prop.
    */
   premiumModesAllowed?: boolean;
+
   /** Invoked when the user clicks the upgrade CTA shown while premium is locked. */
   onUpgrade?: () => void;
   className?: string;
@@ -118,8 +119,10 @@ export function AgentPowerControls({
     onChange({ ...value, [key]: !value[key] });
   };
 
-  // A locked boost never counts as active in the collapsed pill, even if a stale
-  // value still says true (the server strips it before it takes effect).
+  /*
+   * A locked boost never counts as active in the collapsed pill, even if a stale
+   * value still says true (the server strips it before it takes effect).
+   */
   const activeBoosts = BOOSTS.filter((boost) => value[boost.key] && !isLocked(boost.key)).length;
   const tierLabel = BUILD_TIERS.find((tier) => tier.id === value.buildTier)?.label ?? 'Economy';
 

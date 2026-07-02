@@ -383,6 +383,7 @@ export default function BillingPage() {
 
   // Included-credit burndown ("$X of $Y used this cycle") + the billing-cycle window.
   const monthlyGrantCents = credits.monthlyGrantCents ?? 0;
+
   const includedUsedCents =
     monthlyGrantCents > 0 ? Math.max(0, Math.min(monthlyGrantCents, monthlyGrantCents - credits.balanceCents)) : 0;
   const cycleLabel =
@@ -531,7 +532,9 @@ export default function BillingPage() {
                 name="serviceShutdownDollars"
                 min="0"
                 step="any"
-                defaultValue={credits.serviceShutdownCents != null ? (credits.serviceShutdownCents / 100).toString() : ''}
+                defaultValue={
+                  credits.serviceShutdownCents != null ? (credits.serviceShutdownCents / 100).toString() : ''
+                }
                 placeholder="No hard stop"
                 aria-label="Service shutdown limit in dollars"
                 title="Service Shutdown Limit — suspends usage-based services when reached (no grace)."
