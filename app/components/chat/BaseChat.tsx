@@ -16897,7 +16897,7 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
     const anchor = document.createElement('a');
 
     anchor.href = url;
-    anchor.download = `vibecore-${activeStream}-logs.txt`;
+    anchor.download = `ecode-${activeStream}-logs.txt`;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();

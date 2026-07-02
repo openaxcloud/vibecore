@@ -57,7 +57,7 @@ function App() {
       <aside className="sidebar">
         <div className="brand">
           <div>
-            <h1>VibeCore Admin</h1>
+            <h1>E-Code Admin</h1>
             <div className="muted">Platform console</div>
           </div>
           <span className="status">live</span>
