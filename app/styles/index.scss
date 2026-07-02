@@ -24820,3 +24820,17 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 [data-ecode-public-chrome] ::selection {
   background: var(--ecode-selection);
 }
+
+// Global reduced-motion: collapse every animation/transition to a near-zero
+// duration (not `none`, so animation/transitionend events still fire) and
+// disable smooth scrolling when the OS asks for reduced motion.
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
