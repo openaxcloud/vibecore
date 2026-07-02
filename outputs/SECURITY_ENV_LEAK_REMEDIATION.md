@@ -88,6 +88,8 @@ For each: **regenerate at the source**, then **update where the platform reads i
 
 Preferred tool: **`git filter-repo`** (safer/faster than `filter-branch`; BFG is an alternative for blob-by-size/path).
 
+**Ready-to-run script:** [`outputs/purge-env-production-from-history.sh`](./purge-env-production-from-history.sh) — it does the SAFE local steps (mirror clone → `filter-repo` rewrite in a scratch dir → verifies the path is gone) and then **STOPS**, printing the exact `git push --force --mirror` for a human to run manually. It never pushes by itself. Run it after rotation to preview the rewrite; the force-push stays Avi's explicit call.
+
 Dry-run / plan (safe to review, run on a **fresh mirror clone**, never on a working checkout):
 
 ```sh
