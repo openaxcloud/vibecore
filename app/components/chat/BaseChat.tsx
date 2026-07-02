@@ -2968,10 +2968,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
              * failure). In auto-apply mode the review queue is hidden, so without
              * an explicit toast the user would never learn the edit didn't land.
              */
-            toast.error(describeAutoApplyFailure(filePath));
+            toast.error(describeAutoApplyFailure(filePath), { toastId: 'agent-apply-failed' });
           })
           .catch((error) => {
-            toast.error(describeAutoApplyFailure(filePath, error));
+            toast.error(describeAutoApplyFailure(filePath, error), { toastId: 'agent-apply-failed' });
           });
       }
     }, [agentPatchProposals, scheduleAppliedFilesToast]);

@@ -46,7 +46,9 @@ async function defaultApplyHandler(detail: InlineFileActionDiffApplyDetail) {
       undo: () => workbenchStore.writeFileContent(detail.absolutePath, detail.originalContent),
     });
   } catch (error) {
-    toast.error(`Failed to apply ${detail.filePath}: ${(error as Error).message}`);
+    toast.error(`Failed to apply ${detail.filePath}: ${(error as Error).message}`, {
+      toastId: 'patch-apply-failed',
+    });
   }
 }
 

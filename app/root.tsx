@@ -460,7 +460,8 @@ function AppToastContainer() {
       pauseOnFocusLoss
       transition={toastAnimation}
       autoClose={4000}
-      limit={5}
+      limit={3}
+      stacked
       newestOnTop={false}
       theme={theme}
     />
