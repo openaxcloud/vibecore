@@ -6,6 +6,7 @@
 @use 'components/code.scss';
 @use 'components/editor.scss';
 @use 'components/toast.scss';
+@use 'ios-input-zoom';
 
 // IBM Plex Sans — the e-code marketing theme's typeface (matches the reference
 // e-code bundle). Loaded here so the in-repo SSR marketing pages render

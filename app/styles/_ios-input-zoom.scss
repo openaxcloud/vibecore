@@ -1,0 +1,10 @@
+// iOS Safari auto-zooms the page when a focused form control has a computed
+// font-size under 16px. Enforcing a 16px floor on small viewports prevents the
+// zoom without disabling user pinch-zoom (never add maximum-scale=1).
+@media (max-width: 639.98px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
