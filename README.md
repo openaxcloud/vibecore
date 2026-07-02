@@ -1,10 +1,10 @@
-# E-Code (VibeCore)
+# E-Code
 
 [![E-Code: AI-Powered Full-Stack Web Development in the Browser](./public/social_preview_index.jpg)](https://e-code.ai)
 
 E-Code is an AI web IDE for building, running and deploying full-stack apps from your browser. Choose the LLM you use for each prompt — OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together, Perplexity, Moonshot (Kimi), Hyperbolic, GitHub Models, Amazon Bedrock, and OpenAI-like providers — and it is easily extended to any other model supported by the Vercel AI SDK. See the instructions below for running it locally and extending it with more models.
 
-E-Code (codename VibeCore) builds on the open-source [bolt.diy](https://github.com/stackblitz-labs/bolt.diy) project.
+E-Code builds on the open-source [bolt.diy](https://github.com/stackblitz-labs/bolt.diy) project.
 
 bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMedin) but has quickly grown into a massive community effort to build the BEST open source AI coding assistant!
 
@@ -86,7 +86,7 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 
 If you're new to installing software from GitHub, don't worry! If you encounter any issues, feel free to submit an "issue" using the provided links or improve this documentation by forking the repository, editing the instructions, and submitting a pull request. The following instruction will help you get the stable branch up and running on your local machine in no time.
 
-Let's get you up and running with the stable version of Bolt.DIY!
+Let's get you up and running with the stable version of E-Code!
 
 ## Quick Installation
 
@@ -95,7 +95,7 @@ Let's get you up and running with the stable version of Bolt.DIY!
 - Download the binary for your platform (available for Windows, macOS, and Linux)
 - **Note**: For macOS, if you get the error "This app is damaged", run:
   ```bash
-  xattr -cr /path/to/Bolt.app
+  xattr -cr /path/to/E-Code.app
   ```
 
 ## Manual installation
@@ -124,7 +124,7 @@ Node.js is required to run the application.
 
 ## Running the Application
 
-You have two options for running Bolt.DIY: directly on your machine or using Docker.
+You have two options for running E-Code: directly on your machine or using Docker.
 
 ### Option 1: Direct Installation (Recommended for Beginners)
 
@@ -196,7 +196,7 @@ This option requires Docker and is great when you want an isolated environment o
 
 ### Option 3: Desktop Application (Electron)
 
-For users who prefer a native desktop experience, bolt.diy is also available as an Electron desktop application:
+For users who prefer a native desktop experience, E-Code is also available as an Electron desktop application:
 
 1. **Download the Desktop App**:
    - Visit the [latest release](https://github.com/stackblitz-labs/bolt.diy/releases/latest)
@@ -222,7 +222,7 @@ The desktop app provides the same full functionality as the web version with add
 
 ## Configuring API Keys and Providers
 
-Bolt.diy features a modern, intuitive settings interface for managing AI providers and API keys. The settings are organized into dedicated panels for easy navigation and configuration.
+E-Code features a modern, intuitive settings interface for managing AI providers and API keys. The settings are organized into dedicated panels for easy navigation and configuration.
 
 ### Accessing Provider Settings
 
@@ -269,7 +269,7 @@ The Local Providers tab manages local AI installations and custom endpoints:
 
 ### Environment Variables vs UI Configuration
 
-Bolt.diy supports both methods for maximum flexibility:
+E-Code supports both methods for maximum flexibility:
 
 #### Environment Variables (Recommended for Production)
 Set API keys and base URLs in your `.env.local` file:
@@ -397,7 +397,7 @@ This method is recommended for developers who want to:
 >**Open the WebUI to test (Default: http://localhost:5173)**
 >   - Beginners: 
 >     - Try to use a sophisticated Provider/Model like Anthropic with Claude Sonnet 3.x Models to get best results
->     - Explanation: The System Prompt currently implemented in bolt.diy cant cover the best performance for all providers and models out there. So it works better with some models, then other, even if the models itself are perfect for >programming
+>     - Explanation: The System Prompt currently implemented in E-Code cant cover the best performance for all providers and models out there. So it works better with some models, then other, even if the models itself are perfect for >programming
 >     - Future: Planned is a Plugin/Extentions-Library so there can be different System Prompts for different Models, which will help to get better results
 
 #### Staying Updated

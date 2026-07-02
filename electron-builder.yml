@@ -1,5 +1,5 @@
 appId: com.vibecore.desktop
-productName: VibeCore
+productName: E-Code
 directories:
   buildResources: build
   output: dist
