@@ -1,7 +1,9 @@
 import { ChevronLeft, Sparkles } from 'lucide-react';
+import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { EcodeBrandMark } from '~/components/brand/EcodeBrandMark';
+import { RevealButton } from '~/components/ui/RevealButton';
 
 const heroImage = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=2070&auto=format&fit=crop';
 
@@ -175,6 +177,29 @@ export function AuthField({
   maxLength,
   icon,
 }: AuthFieldProps) {
+  const isPassword = type === 'password';
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [revealed, setRevealed] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+
+  /*
+   * Swapping type password<->text can drop the caret in some browsers, so
+   * capture the selection and restore it right after the re-render — the
+   * toggle itself never takes focus (RevealButton prevents mousedown).
+   */
+  const toggleRevealed = () => {
+    const input = inputRef.current;
+    const selection = input ? ([input.selectionStart, input.selectionEnd] as const) : null;
+
+    setRevealed((current) => !current);
+
+    requestAnimationFrame(() => {
+      if (input && selection && document.activeElement === input) {
+        input.setSelectionRange(selection[0], selection[1]);
+      }
+    });
+  };
+
   return (
     <label className="block">
       <span className="vc-auth-label text-[13px] font-medium">{label}</span>
@@ -185,8 +210,9 @@ export function AuthField({
           </span>
         ) : null}
         <input
+          ref={inputRef}
           name={name}
-          type={type}
+          type={isPassword && revealed ? 'text' : type}
           required={required}
           defaultValue={defaultValue}
           placeholder={placeholder}
@@ -194,11 +220,25 @@ export function AuthField({
           inputMode={inputMode}
           minLength={minLength}
           maxLength={maxLength}
+          onKeyUp={isPassword ? (event) => setCapsLockOn(event.getModifierState('CapsLock')) : undefined}
+          onBlur={isPassword ? () => setCapsLockOn(false) : undefined}
           className={`vc-auth-input h-12 w-full rounded-md border ${
-            icon ? 'px-10' : 'px-3'
-          } text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]`}
+            icon ? 'pl-10' : 'pl-3'
+          } ${isPassword ? 'pr-11' : icon ? 'pr-10' : 'pr-3'} text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]`}
         />
+        {isPassword ? (
+          <RevealButton
+            revealed={revealed}
+            onToggle={toggleRevealed}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2"
+          />
+        ) : null}
       </span>
+      {isPassword && capsLockOn ? (
+        <span className="mt-2 block text-[12px] leading-5" style={{ color: 'var(--status-warning-text)' }}>
+          Caps Lock is on
+        </span>
+      ) : null}
       {hint ? <span className="vc-auth-hint mt-2 block text-[11px] leading-5">{hint}</span> : null}
     </label>
   );
