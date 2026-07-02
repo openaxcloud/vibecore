@@ -1092,6 +1092,11 @@ const userConnectionListQuerySchema = z.object({ provider: z.string().min(1).opt
 const userConnectionIdParams = z.object({ userConnectionId: z.string().min(1) });
 const reconnectionAlertIdParams = z.object({ alertId: z.string().min(1) });
 
+const notificationIdParams = z.object({ notificationId: z.string().min(1) });
+const notificationListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+});
+
 const integrationFeatureRequestCreateSchema = z.object({
   integrationName: z.string().trim().min(1).max(120),
   useCaseDescription: z.string().trim().min(1).max(2000),
@@ -9305,6 +9310,96 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
 
       return { alertId: existing.id, resolvedAt: updated?.resolvedAt ?? new Date().toISOString() };
+    },
+  );
+
+  /*
+   * In-app notification feed. A durable, user-scoped inbox: producers (e.g. the
+   * connector reconnection-alert path above) drop a Notification row, and these
+   * endpoints let the owning user list their feed with an unread count and mark
+   * items read. Every query is scoped to `request.currentUser.id` and each
+   * mark-read verifies row ownership before mutating, so a user can only ever
+   * see and modify their own notifications.
+   */
+  function publicNotification(notification: {
+    id: string;
+    category: string;
+    title: string;
+    body?: string;
+    linkUrl?: string;
+    metadata?: Record<string, unknown>;
+    readAt?: string;
+    createdAt: string;
+  }) {
+    return {
+      id: notification.id,
+      category: notification.category,
+      title: notification.title,
+      body: notification.body ?? null,
+      linkUrl: notification.linkUrl ?? null,
+      metadata: notification.metadata ?? null,
+      read: Boolean(notification.readAt),
+      readAt: notification.readAt ?? null,
+      createdAt: notification.createdAt,
+    };
+  }
+
+  app.get('/user/notifications', async (request, reply) => {
+    if (!request.currentUser) {
+      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+    }
+
+    const query = parse(notificationListQuerySchema, request.query);
+    const [notifications, unreadCount] = await Promise.all([
+      store.listNotificationsByUser({ userId: request.currentUser.id, limit: query.limit }),
+      store.countUnreadNotificationsByUser(request.currentUser.id),
+    ]);
+
+    return { notifications: notifications.map(publicNotification), unreadCount };
+  });
+
+  app.post(
+    '/user/notifications/:notificationId/read',
+    {
+      config: {
+        rateLimit: { max: Number(process.env.NOTIFICATION_READ_RATE_LIMIT_MAX ?? 120), timeWindow: '1 minute' },
+      },
+    },
+    async (request, reply) => {
+      if (!request.currentUser) {
+        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      }
+
+      const params = parse(notificationIdParams, request.params);
+      const existing = await store.getNotificationById(params.notificationId);
+
+      // Not-found on a mismatch too, so we never confirm another user's row exists.
+      if (!existing || existing.userId !== request.currentUser.id) {
+        return reply.code(404).send({ error: 'Notification not found', code: 'NOTIFICATION_NOT_FOUND' });
+      }
+
+      const updated = await store.markNotificationRead({ id: existing.id });
+      const unreadCount = await store.countUnreadNotificationsByUser(request.currentUser.id);
+
+      return { notification: publicNotification(updated ?? existing), unreadCount };
+    },
+  );
+
+  app.post(
+    '/user/notifications/read-all',
+    {
+      config: {
+        rateLimit: { max: Number(process.env.NOTIFICATION_READ_ALL_RATE_LIMIT_MAX ?? 30), timeWindow: '1 minute' },
+      },
+    },
+    async (request, reply) => {
+      if (!request.currentUser) {
+        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      }
+
+      const marked = await store.markAllNotificationsRead({ userId: request.currentUser.id });
+
+      return { marked, unreadCount: 0 };
     },
   );
 

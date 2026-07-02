@@ -189,22 +189,112 @@ export async function ecodeNotificationPreferencesAction({ request }: Enterprise
   return json(normalizeEcodeNotificationPreferences(payload.preferences?.notifications), { headers: noStoreHeaders });
 }
 
-export function emptyNotificationsLoader() {
-  return json([], { headers: noStoreHeaders });
+/**
+ * One in-app notification as surfaced to the SaaS account feed. Mirrors the
+ * `publicNotification` shape returned by the API `/user/notifications` routes.
+ */
+export type EcodeNotification = {
+  id: string;
+  category: string;
+  title: string;
+  body: string | null;
+  linkUrl: string | null;
+  read: boolean;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export type EcodeNotificationFeed = {
+  notifications: EcodeNotification[];
+  unreadCount: number;
+};
+
+type NotificationFeedPayload = {
+  notifications?: unknown;
+  unreadCount?: unknown;
+};
+
+function normalizeNotification(input: unknown): EcodeNotification | null {
+  if (!input || typeof input !== 'object') {
+    return null;
+  }
+
+  const raw = input as Record<string, unknown>;
+
+  if (typeof raw.id !== 'string' || typeof raw.title !== 'string' || typeof raw.createdAt !== 'string') {
+    return null;
+  }
+
+  return {
+    id: raw.id,
+    category: typeof raw.category === 'string' ? raw.category : 'system',
+    title: raw.title,
+    body: typeof raw.body === 'string' ? raw.body : null,
+    linkUrl: typeof raw.linkUrl === 'string' ? raw.linkUrl : null,
+    read: raw.read === true,
+    readAt: typeof raw.readAt === 'string' ? raw.readAt : null,
+    createdAt: raw.createdAt,
+  };
+}
+
+function normalizeNotificationFeed(payload: NotificationFeedPayload | undefined): EcodeNotificationFeed {
+  const notifications = Array.isArray(payload?.notifications)
+    ? payload!.notifications.map(normalizeNotification).filter((n): n is EcodeNotification => n !== null)
+    : [];
+  const unreadCount =
+    typeof payload?.unreadCount === 'number' && Number.isFinite(payload.unreadCount)
+      ? payload.unreadCount
+      : notifications.filter((n) => !n.read).length;
+
+  return { notifications, unreadCount };
+}
+
+/**
+ * Loads the current user's in-app notification feed (unread first, newest
+ * next) with the unread count for the badge. Strictly user-scoped server-side;
+ * a 401 redirects to login on page navigations.
+ */
+export async function notificationFeedLoader({ request }: EnterpriseLoaderArgs) {
+  const payload = await apiRequest<NotificationFeedPayload>(request, '/user/notifications');
+
+  return json(normalizeNotificationFeed(payload), { headers: noStoreHeaders });
 }
 
 export async function notificationsCollectionAction({ request }: EnterpriseActionArgs) {
-  if (request.method !== 'DELETE') {
+  // POST (or legacy DELETE) marks the whole feed read; anything else is rejected.
+  if (request.method !== 'POST' && request.method !== 'DELETE') {
     return json({ ok: false, error: 'Method not allowed' }, { status: 405, headers: noStoreHeaders });
   }
 
-  return json({ ok: true, cleared: 0 }, { headers: noStoreHeaders });
+  const payload = await apiRequest<{ marked?: number; unreadCount?: number }>(request, '/user/notifications/read-all', {
+    method: 'POST',
+  });
+
+  return json(
+    { ok: true, marked: payload.marked ?? 0, unreadCount: payload.unreadCount ?? 0 },
+    {
+      headers: noStoreHeaders,
+    },
+  );
 }
 
-export async function notificationMutationAction({ request }: EnterpriseActionArgs) {
-  if (request.method !== 'DELETE' && request.method !== 'PATCH') {
+export async function notificationMutationAction({ request, params }: EnterpriseActionArgs) {
+  // POST/PATCH mark a single notification read; the id comes from the route.
+  if (request.method !== 'POST' && request.method !== 'PATCH') {
     return json({ ok: false, error: 'Method not allowed' }, { status: 405, headers: noStoreHeaders });
   }
 
-  return json({ ok: true }, { headers: noStoreHeaders });
+  const notificationId = params.notificationId;
+
+  if (!notificationId) {
+    return json({ ok: false, error: 'Missing notification id' }, { status: 400, headers: noStoreHeaders });
+  }
+
+  const payload = await apiRequest<{ unreadCount?: number }>(
+    request,
+    `/user/notifications/${encodeURIComponent(notificationId)}/read`,
+    { method: 'POST' },
+  );
+
+  return json({ ok: true, unreadCount: payload.unreadCount ?? 0 }, { headers: noStoreHeaders });
 }

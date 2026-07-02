@@ -213,12 +213,49 @@ export function createPrismaConnectionFailureReporter(deps: PrismaResolverDeps =
     }
 
     try {
-      await prisma.reconnectionAlert.create({
-        data: {
-          userConnectionId: update.userConnectionId,
-          reason: 'token_revoked',
-        },
+      const existing = await prisma.reconnectionAlert.findFirst({
+        where: { userConnectionId: update.userConnectionId, resolvedAt: null },
       });
+
+      // Skip when an unresolved alert already exists so a repeated 401 does not
+      // stack duplicate alerts / feed entries for the same reconnect episode.
+      if (!existing) {
+        await prisma.reconnectionAlert.create({
+          data: {
+            userConnectionId: update.userConnectionId,
+            reason: 'token_revoked',
+          },
+        });
+
+        /*
+         * Also surface the event in the owner's in-app notification feed. We
+         * load the connection for its userId/provider; a missing row means it
+         * was deleted concurrently and we simply skip the feed write.
+         */
+        const connection = await prisma.userConnection.findUnique({
+          where: { id: update.userConnectionId },
+          select: { userId: true, provider: true, externalAccountLabel: true },
+        });
+
+        if (connection) {
+          await prisma.notification.create({
+            data: {
+              userId: connection.userId,
+              category: 'security',
+              title: `Reconnect ${connection.provider}`,
+              body: `Your ${connection.provider} connection${
+                connection.externalAccountLabel ? ` (${connection.externalAccountLabel})` : ''
+              } needs to be reconnected — its access was revoked or expired.`,
+              linkUrl: '/account/connections',
+              metadata: {
+                source: 'reconnection_alert',
+                userConnectionId: update.userConnectionId,
+                provider: connection.provider,
+              },
+            },
+          });
+        }
+      }
     } catch {
       // Best-effort; the API service will also detect 401s on the
       // /api/github-user route and create the alert there.
