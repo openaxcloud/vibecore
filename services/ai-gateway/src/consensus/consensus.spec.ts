@@ -178,6 +178,25 @@ describe('QuorumConsensus', () => {
     expect(out.conflicts.some((c) => c.type === 'role-failure')).toBe(true);
   });
 
+  it('does NOT reject a healthy fan-out where every lane succeeds but opinions differ', () => {
+    /*
+     * Regression: 5 specialists that each raise DIFFERENT (complementary) risks +
+     * verification steps score low agreement, but every lane completed with real
+     * work — that is PARTIAL usable consensus, not "REJECTED · 0-20%". Full
+     * participation + low overlap must NOT be labelled REJECTED.
+     */
+    const divergentButComplete: AgentRunResult[] = [
+      { roleId: 'architect', status: 'complete', summary: 'a', risks: ['only architect risk'], verification: ['check A'] },
+      { roleId: 'frontend', status: 'complete', summary: 'b', risks: ['only frontend risk'], verification: ['check B'] },
+      { roleId: 'backend', status: 'complete', summary: 'c', risks: ['only backend risk'], verification: ['check C'] },
+    ];
+
+    const out = engine.run({ results: divergentButComplete, algorithm: 'QUORUM', threshold: 0.66 });
+    expect(out.outcome).toBe('PARTIAL');
+    // The score is still reported honestly (genuinely low), only the label changed.
+    expect(out.agreementScore).toBeLessThan(0.66);
+  });
+
   it('returns ABSTAINED when no claims emit', () => {
     const empty: AgentRunResult[] = [
       { roleId: 'architect', status: 'complete', summary: 'no risks no checks' },

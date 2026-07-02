@@ -64,7 +64,18 @@ function computeOutcome(
   const agreementScore = computeAgreementScore(votes);
   if (agreementScore >= threshold && participatingCount === totalCount) return 'ACCEPTED';
   if (agreementScore >= threshold) return 'PARTIAL';
-  if (agreementScore <= 1 - threshold) return 'REJECTED';
+
+  /*
+   * Low agreement REJECTS only when a lane actually FAILED (participation <
+   * total). A multi-specialist BUILD fan-out where every lane succeeded but
+   * raised DIFFERENT (complementary, non-overlapping) risks/verification steps
+   * has a naturally low opinion-agreement score — that is usable PARTIAL
+   * consensus, NOT a rejection. Previously this branch labelled such a healthy
+   * run "REJECTED · 0-20% agreement", which read as a total failure to the user
+   * even though all agents produced real work.
+   */
+  if (agreementScore <= 1 - threshold && participatingCount < totalCount) return 'REJECTED';
+
   return 'PARTIAL';
 }
 
