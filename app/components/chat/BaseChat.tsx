@@ -2967,11 +2967,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
              * A 'failed' return means the patch was rejected (validation / write
              * failure). In auto-apply mode the review queue is hidden, so without
              * an explicit toast the user would never learn the edit didn't land.
+             * Use a per-file toastId so repeated failures for the SAME file (e.g.
+             * several package.json proposals during streaming) collapse into ONE
+             * toast instead of stacking 3-4 identical ones.
              */
-            toast.error(describeAutoApplyFailure(filePath), { toastId: 'agent-apply-failed' });
+            toast.error(describeAutoApplyFailure(filePath), { toastId: `auto-apply-error-${filePath}` });
           })
           .catch((error) => {
-            toast.error(describeAutoApplyFailure(filePath, error), { toastId: 'agent-apply-failed' });
+            toast.error(describeAutoApplyFailure(filePath, error), { toastId: `auto-apply-error-${filePath}` });
           });
       }
     }, [agentPatchProposals, scheduleAppliedFilesToast]);

@@ -15,6 +15,8 @@
  * the existing quota alert.
  */
 
+import { classifyStreamError, streamErrorCodeMessages } from '~/types/context';
+
 /** Structured failure raised on the pre-flight quota-block path. */
 export class ChatQuotaError extends Error {
   readonly statusCode: number;
@@ -55,14 +57,28 @@ export function buildChatStreamErrorPayload(error: unknown): SerializedChatStrea
     };
   }
 
-  const message = error instanceof Error && error.message ? error.message : 'An unexpected error occurred';
+  /*
+   * Preserve the REAL provider/SDK error message. The route previously returned a
+   * generic "Custom error: [UNKNOWN] An unknown streaming error occurred" string
+   * the client couldn't parse, so the user never saw the actual cause. Classify it
+   * so the client shows an actionable message + can decide retryability.
+   */
+  const code = classifyStreamError(error);
+  const rawMessage = error instanceof Error && error.message ? error.message : '';
+  const message = rawMessage || streamErrorCodeMessages[code];
+
+  // Transient failures are safe to auto-retry; auth/token/model/abort are not.
+  const nonRetryable =
+    code === 'AUTH_FAILED' || code === 'TOKEN_LIMIT' || code === 'MODEL_NOT_FOUND' || code === 'STREAM_ABORTED';
+
+  const statusCode = code === 'AUTH_FAILED' ? 401 : code === 'RATE_LIMIT' ? 429 : code === 'TOKEN_LIMIT' ? 413 : 500;
 
   return {
     error: true,
     message,
-    statusCode: 500,
-    code: 'STREAM_ERROR',
-    isRetryable: true,
+    statusCode,
+    code,
+    isRetryable: !nonRetryable,
   };
 }
 

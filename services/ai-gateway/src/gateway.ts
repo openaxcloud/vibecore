@@ -34,6 +34,15 @@ export interface AiChatRequest {
   stream?: boolean;
   maxTokens?: number;
   temperature?: number;
+
+  /*
+   * When set, a model that is not allowed on the plan is transparently swapped
+   * for the plan's default allowed model instead of throwing AI_MODEL_PLAN_BLOCKED.
+   * Used by multi-agent lanes so a Free-plan run degrades gracefully (each lane
+   * runs on a plan-allowed model) instead of failing the whole consensus. The main
+   * chat leaves this unset, keeping its hard plan-gate.
+   */
+  planFallback?: boolean;
 }
 
 export interface AiChatChunk {
@@ -706,6 +715,29 @@ export class AiGateway {
 
   route(request: AiChatRequest) {
     const plan = request.plan ?? 'free';
+
+    /*
+     * Plan-fallback (multi-agent lanes): a lane must NEVER hard-fail because the
+     * user's selected model isn't on their plan — that failed every lane and made
+     * the whole consensus REJECTED (0% agreement) on Free. When planFallback is
+     * set and the requested model is missing/blocked for the plan, transparently
+     * resolve to the plan's default allowed model (e.g. Free → gpt-4.1-mini) so the
+     * lane runs and the run succeeds. The main chat leaves planFallback unset and
+     * keeps the hard plan-gate below.
+     */
+    if (request.planFallback) {
+      const requested = request.model ? modelCatalog.find((model) => model.id === request.model) : undefined;
+      const allowedForPlan = Boolean(requested && requested.plans.includes(plan));
+
+      if (!allowedForPlan) {
+        const planDefault = this.models(plan)[0];
+
+        if (planDefault) {
+          request = { ...request, model: planDefault.id, provider: planDefault.provider };
+        }
+      }
+    }
+
     const requestedModel = request.model ? modelCatalog.find((model) => model.id === request.model) : undefined;
 
     let selectedModel: AiModel;

@@ -41,6 +41,27 @@ describe('AiGateway', () => {
     expect(countTokens([{ role: 'user', content: 'hello world' }])).toBe(2);
   });
 
+  it('hard-blocks a plan-forbidden model by default, but planFallback swaps in a plan-allowed model', () => {
+    process.env.OPENAI_API_KEY = 'k';
+    const gateway = new AiGateway();
+
+    // Default (main chat): a premium model on Free is rejected.
+    expect(() =>
+      gateway.route({ plan: 'free', provider: 'anthropic', model: 'claude-3-5-sonnet-latest', messages: [] }),
+    ).toThrow('Model is not available on this plan');
+
+    // planFallback (agent lanes): transparently resolves to a Free-allowed model — no throw.
+    const routed = gateway.route({
+      plan: 'free',
+      provider: 'anthropic',
+      model: 'claude-3-5-sonnet-latest',
+      planFallback: true,
+      messages: [],
+    });
+    expect(routed.model.plans).toContain('free');
+    expect(routed.model.id).toBe('gpt-4.1-mini');
+  });
+
   it('routes by plan and falls back to the next configured provider', async () => {
     const failing = await startProvider((_body, response) => {
       response.writeHead(503).end('down');

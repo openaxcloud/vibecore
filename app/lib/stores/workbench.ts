@@ -54,6 +54,7 @@ import {
   dropResolvedMissingImportPatchLogs,
   isResolvedMissingImportPatchFailure,
 } from '~/utils/agent-patch-logs';
+import { mergeJsonContent } from '~/lib/chat/merge-json-content';
 import { createSampler } from '~/utils/sampler';
 import { syncWriteContent } from '~/lib/stores/workbench-sync';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
@@ -2011,13 +2012,39 @@ export class WorkbenchStore {
     this.#syncAgentPatchProposalToServer(proposalId);
 
     try {
-      const acceptedContent = applyReviewableDiffHunks({
+      let acceptedContent = applyReviewableDiffHunks({
         originalContent: proposal.originalContent,
         hunks: proposal.hunks,
         acceptedHunkIds: acceptedIds,
       });
 
-      await this.#validateAgentPatchProposal(proposal, acceptedContent);
+      try {
+        await this.#validateAgentPatchProposal(proposal, acceptedContent);
+      } catch (validationError) {
+        /*
+         * JSON files (package.json, tsconfig.json, …) frequently fail to apply
+         * cleanly during generation: the template writes the file AFTER the
+         * proposal's base was captured, or the proposed content is truncated
+         * mid-stream → invalid JSON. Rather than hard-fail (and repeatedly toast
+         * "Couldn't apply package.json"), MERGE the agent's intent onto the CURRENT
+         * file — never overwriting a valid file with garbage nor dropping template
+         * keys. Re-throw only if a valid merge is impossible.
+         */
+        if (!proposal.relativePath.endsWith('.json')) {
+          throw validationError;
+        }
+
+        const currentContent = this.#filesStore.getFile(proposal.filePath)?.content ?? proposal.originalContent;
+        const merged = mergeJsonContent(currentContent, proposal.proposedContent);
+
+        if (merged === undefined) {
+          throw validationError;
+        }
+
+        acceptedContent = merged;
+        await this.#validateAgentPatchProposal(proposal, acceptedContent);
+        this.appendWorkspaceLog(`AI patch for ${proposal.relativePath} applied via tolerant JSON merge`);
+      }
 
       const fileExistsInEditor = Boolean(this.#editorStore.documents.get()[proposal.filePath]);
 

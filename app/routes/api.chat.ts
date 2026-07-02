@@ -38,7 +38,7 @@ import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
 import { retrieveSkillsForAgentContext } from '~/lib/.server/llm/project-skills';
 import { retrieveProjectRulesContext } from '~/lib/.server/llm/project-rules';
 import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
-import { classifyStreamError, streamErrorCodeMessages } from '~/types/context';
+import { classifyStreamError } from '~/types/context';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
@@ -1314,12 +1314,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         }
 
         const code = clientDisconnected ? 'STREAM_ABORTED' : classifyStreamError(error);
-        const baseMessage = streamErrorCodeMessages[code];
         const detail = error?.message ? ` (${error.message})` : '';
 
         logger.info(`stream onError code=${code}${detail}`);
 
-        return `Custom error: [${code}] ${baseMessage}`;
+        /*
+         * Serialise as a JSON error part carrying the REAL error message + code +
+         * isRetryable, instead of the opaque "Custom error: [UNKNOWN] …" string the
+         * client couldn't parse. Chat.client.handleError JSON-parses this and shows
+         * the actual cause (and auto-retries transient failures).
+         */
+        return serializeChatStreamError(error);
       },
     }).pipeThrough(
       new TransformStream({

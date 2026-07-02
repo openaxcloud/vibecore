@@ -826,6 +826,8 @@ export const ChatImpl = memo(
       });
     };
 
+    const lastAutoStreamRetryAtRef = useRef(0);
+
     const handleError = useCallback(
       (error: any, context: 'chat' | 'template' | 'llmcall' = 'chat') => {
         logger.error(`${context} request failed`, error);
@@ -895,6 +897,29 @@ export const ChatImpl = memo(
           provider: provider.name,
         });
 
+        /*
+         * Auto-retry once on a TRANSIENT error (network/5xx/provider rate-limit)
+         * before bothering the user — these usually clear on a second attempt, so
+         * project creation shouldn't hard-fail on a blip. Time-boxed (one retry per
+         * 30s window) so a persistent failure can't loop; quota/auth/token errors
+         * are not transient and fall straight through to the alert.
+         */
+        const isTransient =
+          (errorType === 'network' || errorType === 'rate_limit') &&
+          errorInfo.isRetryable !== false &&
+          context === 'chat';
+
+        const now = Date.now();
+
+        if (isTransient && now - lastAutoStreamRetryAtRef.current > 30_000) {
+          lastAutoStreamRetryAtRef.current = now;
+          logger.warn(`Transient ${errorType} stream error — auto-retrying once`);
+          setData([]);
+          void reload();
+
+          return;
+        }
+
         // Create API error alert
         setLlmErrorAlert({
           type: 'error',
@@ -905,7 +930,7 @@ export const ChatImpl = memo(
         });
         setData([]);
       },
-      [provider.name, stop],
+      [provider.name, stop, reload],
     );
 
     const clearApiErrorAlert = useCallback(() => {

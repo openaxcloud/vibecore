@@ -12,6 +12,7 @@ import type {
 } from '@ai-sdk/ui-utils';
 import { useStore } from '@nanostores/react';
 import { Markdown } from './Markdown';
+import { stripInternalAgentScaffolding } from '~/lib/chat/agent-message-scaffolding';
 import { profileStore } from '~/lib/stores/profile';
 import { MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
 
@@ -139,7 +140,7 @@ function stripMetadata(content: string) {
   const artifactRegex = /<boltArtifact\s+[^>]*>[\s\S]*?<\/boltArtifact>/gm;
   const actionRegex = /<boltAction\s+[^>]*>[\s\S]*?<\/boltAction>/gm;
 
-  let text = content
+  let text = stripInternalAgentScaffolding(content)
     .replace(MODEL_REGEX, '')
     .replace(PROVIDER_REGEX, '')
     .replace(/\[Model:[^\]]*\]/gi, '')

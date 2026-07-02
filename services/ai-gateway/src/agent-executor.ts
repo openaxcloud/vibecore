@@ -521,6 +521,14 @@ export async function executeAgentRun(input: {
             model: input.request.model,
             messages: buildRoleMessages(input.request, role),
             maxTokens: input.request.maxTokens ?? defaultAgentMaxTokens,
+
+            /*
+             * Degrade gracefully instead of failing the lane: if the requested
+             * model isn't on the plan, the gateway swaps in the plan's default
+             * allowed model rather than throwing AI_MODEL_PLAN_BLOCKED. This is what
+             * makes multi-agent project creation succeed on the Free plan.
+             */
+            planFallback: true,
           },
           input.signal,
         );
@@ -672,6 +680,9 @@ export async function* executeAgentRunStream(input: {
             model: input.request.model,
             messages: buildRoleMessages(input.request, role),
             maxTokens: input.request.maxTokens ?? defaultAgentMaxTokens,
+
+            /* Degrade to a plan-allowed model instead of failing the lane (see executeAgentRun). */
+            planFallback: true,
           },
           laneSignal,
         )) {

@@ -184,5 +184,40 @@ export function classifyStreamError(error: unknown): StreamErrorCode {
     return 'NETWORK_ERROR';
   }
 
+  /*
+   * Many provider/SDK errors carry the useful signal on a numeric status or a
+   * connection code, not in the message text (AWS Bedrock puts it on
+   * $metadata.httpStatusCode; node net errors use error.code like ECONNRESET).
+   * Inspecting those turns a lot of previously-"UNKNOWN" errors into an
+   * actionable, retryable classification.
+   */
+  const err = (error ?? {}) as {
+    status?: unknown;
+    statusCode?: unknown;
+    code?: unknown;
+    $metadata?: { httpStatusCode?: unknown };
+  };
+  const status = [err.status, err.statusCode, err.$metadata?.httpStatusCode].find(
+    (value): value is number => typeof value === 'number',
+  );
+
+  if (status === 429) {
+    return 'RATE_LIMIT';
+  }
+
+  if (status === 401 || status === 403) {
+    return 'AUTH_FAILED';
+  }
+
+  if (typeof status === 'number' && status >= 500) {
+    return 'NETWORK_ERROR';
+  }
+
+  const connCode = typeof err.code === 'string' ? err.code.toUpperCase() : '';
+
+  if (['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EPIPE', 'EAI_AGAIN', 'ENOTFOUND'].includes(connCode)) {
+    return 'NETWORK_ERROR';
+  }
+
   return 'UNKNOWN';
 }
