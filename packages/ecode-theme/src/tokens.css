@@ -8,7 +8,8 @@
  * Tailwind, or vanilla. Light = :root, dark = .dark, explicit light = .light.
  */
 
-:root {
+:root,
+.light {
   color-scheme: light;
 
   /* RUI foreground / background / accent / border / status */
@@ -30,6 +31,12 @@
   --status-warning: #f59e0b;
   --status-error: #ef4444;
   --status-info: #3b82f6;
+
+  /* Status TEXT colors (AA on the theme background; fills keep --status-*) */
+  --status-success-text: #178a4c;
+  --status-warning-text: #b45309;
+  --status-error-text: #dc2626;
+  --status-info-text: #2563eb;
 
   /* RUI shadows */
   --shadow1: 0 1px 2px color-mix(in srgb, var(--foreground-default) 5%, transparent);
@@ -75,7 +82,7 @@
   /* E-Code corporate light palette */
   --ecode-background: #ffffff;
   --ecode-surface: #ffffff;
-  --ecode-surface-secondary: #ffffff;
+  --ecode-surface-secondary: #fcfcfd;
   --ecode-surface-tertiary: #f8f9fa;
   --ecode-border: #e0e0e0;
   --ecode-border-strong: #c1c8cd;
@@ -84,6 +91,9 @@
   --ecode-text-muted: #666666;
   --ecode-accent: #f26207; /* E-Code Orange */
   --ecode-accent-hover: #d04e00;
+  --ecode-accent-text: #c74e00; /* AA orange for text/links; fills stay --ecode-accent */
+  --ecode-focus-ring: rgba(242, 98, 7, 0.35);
+  --ecode-selection: rgba(242, 98, 7, 0.25);
   --ecode-danger: 354 70% 54%;
   --ecode-warning: 37 92% 50%;
   --ecode-info: 219 91% 60%;
@@ -166,6 +176,10 @@
   --status-warning: #f59e0b;
   --status-error: #ef4444;
   --status-info: #3b82f6;
+  --status-success-text: #4ade80;
+  --status-warning-text: #fbbf24;
+  --status-error-text: #f87171;
+  --status-info-text: #60a5fa;
   --shadow1: 0 1px 2px rgba(0, 0, 0, 0.2);
   --shadow2: 0 2px 4px rgba(0, 0, 0, 0.25);
   --shadow3: 0 4px 8px rgba(0, 0, 0, 0.3);
@@ -190,11 +204,12 @@
   --border: 221.1 16.2% 22.9%;
   --input: 221.1 16.2% 22.9%;
   --ring: 24 96 49;
-  --chart-1: 24 96 49;
-  --chart-2: 160.1 84.1% 39.4%;
-  --chart-3: 24.6 95% 61%;
-  --chart-4: 258.3 89.5% 70.3%;
-  --chart-5: 0 84.2% 65.2%;
+  /* Charts: same hues as light, +10 lightness for dark backgrounds */
+  --chart-1: 24 96 59;
+  --chart-2: 39 96 66;
+  --chart-3: 142 71% 55%;
+  --chart-4: 38 92% 60%;
+  --chart-5: 280 87% 75%;
   --sidebar-background: 221.7 29.1% 15.5%;
   --sidebar-foreground: 205.7 53.8% 97.5%;
   --sidebar-primary: 24 96 49;
@@ -215,6 +230,8 @@
   --ecode-text-muted: #8b95a7;
   --ecode-accent: #f26207;
   --ecode-accent-hover: #ff7a2b;
+  --ecode-accent-text: #ff8a3d; /* AA orange for text/links; fills stay --ecode-accent */
+  --ecode-focus-ring: rgba(255, 122, 43, 0.4);
   --ecode-danger: 0 84% 60%;
   --ecode-warning: 37 92% 50%;
   --ecode-info: 199 89% 48%;
@@ -223,11 +240,11 @@
   --ecode-surface-elevated: rgba(28, 35, 51, 0.92);
   --ecode-blue: #3b82f6;
   --ecode-purple: #a78bfa;
-  --ecode-orange: #fb923c;
-  --ecode-orange-light: #fdba74;
+  --ecode-orange: #ff7a2b;
+  --ecode-orange-light: #ffb64d;
   --ecode-orange-tint: #7c2d12;
-  --ecode-yellow: #fbbf24;
-  --ecode-secondary-accent: #fbbf24;
+  --ecode-yellow: #f99d25;
+  --ecode-secondary-accent: #f99d25;
   --ecode-red: #f87171;
   --ecode-sidebar-bg: #1c2333;
   --ecode-sidebar-hover: #262c3b;
@@ -244,9 +261,9 @@
   --ecode-shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.5);
 }
 
-/* Explicit light selector (parity with e-code's .light compatibility block) */
-.light {
-  color-scheme: light;
-  --background: 0 0% 99%;
-  --foreground: 222 47% 11%;
-}
+/*
+ * Explicit light (`.light`) is asserted with the FULL light set via the
+ * `:root, .light` selector at the top of this file. A partial re-assert here
+ * (after `.dark`) would leave every non-re-asserted token dark when `.light`
+ * is applied under a dark root.
+ */
