@@ -1,6 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion } from 'framer-motion';
 import React, { useState } from 'react';
+import { RevealButton } from '~/components/ui/RevealButton';
 import { useGitHubConnection } from '~/lib/hooks';
 import { classNames } from '~/utils/classNames';
 
@@ -13,6 +14,7 @@ interface GitHubAuthDialogProps {
 export function GitHubAuthDialog({ isOpen, onClose, onSuccess }: GitHubAuthDialogProps) {
   const { connect, isConnecting, error } = useGitHubConnection();
   const [token, setToken] = useState('');
+  const [tokenRevealed, setTokenRevealed] = useState(false);
   const [tokenType, setTokenType] = useState<'classic' | 'fine-grained'>('classic');
 
   const handleConnect = async (e: React.FormEvent) => {
@@ -99,23 +101,38 @@ export function GitHubAuthDialog({ isOpen, onClose, onSuccess }: GitHubAuthDialo
                   <label className="block text-sm text-bolt-elements-textSecondary mb-2">
                     {tokenType === 'classic' ? 'Personal Access Token' : 'Fine-grained Token'}
                   </label>
-                  <input
-                    type="password"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                    disabled={isConnecting}
-                    placeholder={`Enter your GitHub ${
-                      tokenType === 'classic' ? 'personal access token' : 'fine-grained token'
-                    }`}
-                    className={classNames(
-                      'w-full px-3 py-2 rounded-lg text-sm',
-                      'bg-bolt-elements-background-depth-1',
-                      'border border-bolt-elements-borderColor',
-                      'text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary',
-                      'focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive',
-                      'disabled:opacity-50',
-                    )}
-                  />
+                  <div className="relative">
+                    <input
+                      type={tokenRevealed ? 'text' : 'password'}
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
+                      onPaste={(e) => {
+                        e.preventDefault();
+                        setToken(e.clipboardData.getData('text').trim());
+                      }}
+                      autoComplete="off"
+                      spellCheck={false}
+                      disabled={isConnecting}
+                      placeholder={`Enter your GitHub ${
+                        tokenType === 'classic' ? 'personal access token' : 'fine-grained token'
+                      }`}
+                      style={{ fontFamily: 'var(--vc-font-code)' }}
+                      className={classNames(
+                        'w-full pl-3 pr-11 py-2 rounded-lg text-sm',
+                        'bg-bolt-elements-background-depth-1',
+                        'border border-bolt-elements-borderColor',
+                        'text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary',
+                        'focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive',
+                        'disabled:opacity-50',
+                      )}
+                    />
+                    <RevealButton
+                      revealed={tokenRevealed}
+                      onToggle={() => setTokenRevealed((current) => !current)}
+                      subject="token"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2"
+                    />
+                  </div>
                   <div className="mt-2 text-sm text-bolt-elements-textSecondary">
                     <a
                       href={`https://github.com/settings/tokens${tokenType === 'fine-grained' ? '/beta' : '/new'}`}

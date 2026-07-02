@@ -2,6 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { RevealButton } from '~/components/ui/RevealButton';
 import { useGitLabConnection } from '~/lib/hooks';
 import { classNames } from '~/utils/classNames';
 
@@ -13,6 +14,7 @@ interface GitLabAuthDialogProps {
 export function GitLabAuthDialog({ isOpen, onClose }: GitLabAuthDialogProps) {
   const { isConnecting, error, connect } = useGitLabConnection();
   const [token, setToken] = useState('');
+  const [tokenRevealed, setTokenRevealed] = useState(false);
   const [gitlabUrl, setGitlabUrl] = useState('https://gitlab.com');
 
   const handleConnect = async (event: React.FormEvent) => {
@@ -107,23 +109,38 @@ export function GitLabAuthDialog({ isOpen, onClose }: GitLabAuthDialogProps) {
                   <label className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark mb-2">
                     Access Token
                   </label>
-                  <input
-                    type="password"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                    disabled={isConnecting}
-                    placeholder="Enter your GitLab access token"
-                    className={classNames(
-                      'w-full px-3 py-2 rounded-lg text-sm',
-                      'bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3',
-                      'border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
-                      'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark',
-                      'placeholder-bolt-elements-textTertiary dark:placeholder-bolt-elements-textTertiary-dark',
-                      'focus:outline-none focus:ring-2 focus:ring-orange-500',
-                      'disabled:opacity-50 disabled:cursor-not-allowed',
-                    )}
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      type={tokenRevealed ? 'text' : 'password'}
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
+                      onPaste={(e) => {
+                        e.preventDefault();
+                        setToken(e.clipboardData.getData('text').trim());
+                      }}
+                      autoComplete="off"
+                      spellCheck={false}
+                      disabled={isConnecting}
+                      placeholder="Enter your GitLab access token"
+                      style={{ fontFamily: 'var(--vc-font-code)' }}
+                      className={classNames(
+                        'w-full pl-3 pr-11 py-2 rounded-lg text-sm',
+                        'bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3',
+                        'border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
+                        'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark',
+                        'placeholder-bolt-elements-textTertiary dark:placeholder-bolt-elements-textTertiary-dark',
+                        'focus:outline-none focus:ring-2 focus:ring-orange-500',
+                        'disabled:opacity-50 disabled:cursor-not-allowed',
+                      )}
+                      required
+                    />
+                    <RevealButton
+                      revealed={tokenRevealed}
+                      onToggle={() => setTokenRevealed((current) => !current)}
+                      subject="token"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2"
+                    />
+                  </div>
                   <div className="mt-2 text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
                     <a
                       href={`${gitlabUrl}/-/user_settings/personal_access_tokens`}
