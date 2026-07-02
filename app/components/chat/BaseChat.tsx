@@ -14898,10 +14898,27 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                   <span data-status={run.status}>{run.status}</span>
                   <small>{new Date(run.startedAt).toLocaleString()}</small>
                 </summary>
-                <pre>
-                  {(run.logs ?? []).map((log: any) => `[${log.level}] ${log.message}`).join('\n') ||
-                    'No output captured.'}
-                </pre>
+                {Array.isArray(run.steps) && run.steps.length ? (
+                  <ol className="bolt-project-workflow-run-steps" data-testid={`run-steps-${run.id}`}>
+                    {run.steps.map((step: any, stepIndex: number) => (
+                      <li key={`${step.taskId}-${stepIndex}`} data-status={step.status}>
+                        <div className="bolt-project-workflow-run-step-head">
+                          <span data-status={step.status}>{step.status}</span>
+                          <code>{step.command || '(no command)'}</code>
+                          {step.exitCode !== null && step.exitCode !== undefined ? (
+                            <small>exit {step.exitCode}</small>
+                          ) : null}
+                        </div>
+                        {step.outputTail ? <pre>{step.outputTail}</pre> : null}
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <pre>
+                    {(run.logs ?? []).map((log: any) => `[${log.level}] ${log.message}`).join('\n') ||
+                      'No output captured.'}
+                  </pre>
+                )}
               </details>
             ))}
           </section>
@@ -14955,6 +14972,44 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                 >
                   Parallel
                 </button>
+              </form>
+              {/* Schedule (persisted cron + enable toggle + computed nextRunAt). */}
+              <form
+                onSubmit={onSubmit}
+                className="bolt-project-workflow-schedule"
+                data-testid={`workflow-schedule-${workflow.id}`}
+              >
+                <input type="hidden" name="intent" value="set-schedule" />
+                <input type="hidden" name="workflowId" value={workflow.id} />
+                <label>
+                  Schedule (cron)
+                  <PanelInput
+                    name="cron"
+                    defaultValue={workflow.schedule?.cron ?? ''}
+                    placeholder="0 3 * * *"
+                    data-testid={`workflow-cron-${workflow.id}`}
+                  />
+                </label>
+                <label className="bolt-project-workflow-schedule-toggle">
+                  <input
+                    type="checkbox"
+                    name="scheduleEnabled"
+                    value="true"
+                    defaultChecked={workflow.schedule?.enabled === true}
+                    data-testid={`workflow-schedule-enabled-${workflow.id}`}
+                  />
+                  Enabled
+                </label>
+                <PanelButton disabled={busy}>Save schedule</PanelButton>
+                {workflow.schedule?.enabled && workflow.schedule?.nextRunAt ? (
+                  <small className="bolt-project-workflow-nextrun" data-testid={`workflow-nextrun-${workflow.id}`}>
+                    Next run {new Date(workflow.schedule.nextRunAt).toLocaleString()}
+                  </small>
+                ) : (
+                  <small className="bolt-project-workflow-nextrun">
+                    Not scheduled. The scheduler runs in the cluster; this stores when it should fire.
+                  </small>
+                )}
               </form>
             </div>
 

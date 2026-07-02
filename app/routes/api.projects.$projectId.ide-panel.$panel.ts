@@ -14,6 +14,16 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 import { isSecurityScheduleDue, vulnerabilitiesFromSecretScan } from '~/lib/ide-panel-security';
+import {
+  computeNextRunFromCron,
+  defaultWorkflowSchedule,
+  isWorkflowScheduleDue,
+  normalizeWorkflowSchedule,
+  runWorkflowSteps,
+  validateCron,
+  type WorkflowLike,
+  type WorkflowStateLike,
+} from '~/lib/ide-panel-workflows';
 import { defaultProjectKeybindings, serializeKeybindingOverrides } from '~/lib/keybindings';
 import { buildProjectOverviewInsights } from '~/lib/project-overview';
 import { generateSshKeyPair } from '~/lib/ssh-keygen.server';
@@ -822,6 +832,8 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       ]);
 
       const packageData = packages as Record<string, any> | null;
+      const workflowsState = readWorkflowsState(envVars);
+      const scheduleNow = new Date();
 
       return json(
         panelEnvelope(panel, project.project, {
@@ -832,7 +844,16 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           // For the "Install Packages" task type's package selector (Replit parity).
           packageManager: packageData?.packageManager ?? null,
           dependencies: packageData?.dependencies ?? [],
-          workflowsState: readWorkflowsState(envVars),
+          workflowsState,
+
+          /*
+           * The workflow ids whose enabled cron schedule is now due. The actual
+           * scheduler tick that fires these is cluster/worker-owned; this only
+           * surfaces due-ness so the panel can badge it.
+           */
+          scheduledWorkflowsDue: (workflowsState.workflows ?? [])
+            .filter((workflow: any) => isWorkflowScheduleDue(workflow.schedule, scheduleNow))
+            .map((workflow: any) => workflow.id),
         }),
       );
     } catch (error) {
@@ -2047,6 +2068,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         isGenerated: body.isGenerated === 'true',
         isSystem: false,
         enabled: true,
+        schedule: defaultWorkflowSchedule(),
         createdAt: now,
         updatedAt: now,
         tasks: [
@@ -2082,6 +2104,38 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         isRunButton: workflow.id === workflowId,
         updatedAt: workflow.id === workflowId ? now : workflow.updatedAt,
       }));
+    } else if (intent === 'set-schedule') {
+      /*
+       * Persist an optional cron schedule + enabled flag on the workflow. We
+       * VALIDATE the cron and compute nextRunAt here; the actual scheduler tick
+       * that fires the run at nextRunAt is cluster/worker-owned (kube CronJob /
+       * BullMQ) and would call the run-workflow endpoint — it is not built here.
+       */
+      const scheduleEnabled = body.scheduleEnabled === 'true';
+      const cronRaw = typeof body.cron === 'string' ? body.cron.trim() : '';
+      const validation = cronRaw ? validateCron(cronRaw) : { valid: false, error: 'Schedule is empty.' };
+
+      if (scheduleEnabled && !validation.valid) {
+        throw json({ error: validation.error ?? 'Invalid cron schedule.' }, { status: 400 });
+      }
+
+      const cron = validation.valid ? validation.normalized! : cronRaw || null;
+      const enabled = scheduleEnabled && Boolean(validation.valid);
+
+      state.workflows = state.workflows.map((workflow: any) =>
+        workflow.id === workflowId
+          ? {
+              ...workflow,
+              updatedAt: now,
+              schedule: {
+                enabled,
+                cron,
+                nextRunAt: enabled && cron ? computeNextRunFromCron(cron, new Date(now)) : null,
+                lastRunAt: workflow.schedule?.lastRunAt ?? null,
+              },
+            }
+          : workflow,
+      );
     } else if (intent === 'add-task') {
       state.workflows = state.workflows.map((workflow: any) => {
         if (workflow.id !== workflowId) {
@@ -2209,7 +2263,23 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       state.runs = state.runs.slice(0, 25);
       state.workflows = state.workflows.map((item: any) =>
         item.id === workflow.id
-          ? { ...item, lastRunAt: run.startedAt, lastRunStatus: run.status, updatedAt: run.finishedAt ?? now }
+          ? {
+              ...item,
+              lastRunAt: run.startedAt,
+              lastRunStatus: run.status,
+              updatedAt: run.finishedAt ?? now,
+
+              // Advance the persisted schedule as the infra scheduler tick would.
+              schedule: item.schedule?.enabled
+                ? {
+                    ...item.schedule,
+                    lastRunAt: run.startedAt,
+                    nextRunAt: item.schedule.cron
+                      ? computeNextRunFromCron(item.schedule.cron, new Date(run.finishedAt ?? now))
+                      : item.schedule.nextRunAt,
+                  }
+                : item.schedule,
+            }
           : item,
       );
     }
@@ -3997,6 +4067,7 @@ function defaultWorkflowsState() {
         isGenerated: true,
         isSystem: true,
         enabled: true,
+        schedule: defaultWorkflowSchedule(),
         tasks: [
           {
             id: 1002,
@@ -4045,6 +4116,7 @@ function normalizeWorkflowsState(input: any) {
       updatedAt: workflow.updatedAt,
       lastRunAt: workflow.lastRunAt,
       lastRunStatus: workflow.lastRunStatus,
+      schedule: normalizeWorkflowSchedule(workflow.schedule, new Date()),
       tasks: normalizeWorkflowTasks(Array.isArray(workflow.tasks) ? workflow.tasks : []),
     })),
     runs: Array.isArray(input?.runs) ? input.runs.slice(0, 25) : [],
@@ -4064,110 +4136,39 @@ function normalizeWorkflowTasks(tasks: any[]) {
     .map((task, index) => ({ ...task, orderIndex: index }));
 }
 
+/**
+ * Run a workflow's ordered steps SEQUENTIALLY (or in parallel) inside the
+ * project's own isolated workspace pod.
+ *
+ * The actual per-step shell exec is delegated to the SAME authorized runtime
+ * command dispatch (`POST /api/runtime/workspaces/:id/commands`) used by the
+ * terminal and package tasks. The API validates that `workspaceId` belongs to
+ * this project and that the caller holds `workspaces:write` before running
+ * anything, so tenant isolation is enforced at the dispatch boundary — this
+ * orchestrator only sequences the already-authorized calls.
+ */
 async function runWorkflowTasks(
   request: Request,
   projectId: string,
   workspaceId: string,
-  state: any,
-  workflow: any,
+  state: WorkflowStateLike,
+  workflow: WorkflowLike,
   startedAt: string,
-  depth = 0,
-): Promise<any> {
-  const run = {
-    id: randomUUID(),
-    workflowId: workflow.id,
-    workflowName: workflow.name,
-    status: 'running',
+) {
+  return runWorkflowSteps({
+    state,
+    workflow,
     startedAt,
-    finishedAt: undefined as string | undefined,
-    logs: [] as Array<{ level: string; message: string; timestamp: string }>,
-  };
-
-  const tasks = normalizeWorkflowTasks(workflow.tasks ?? []);
-
-  if (!workflow.enabled) {
-    run.status = 'skipped';
-    run.finishedAt = new Date().toISOString();
-    run.logs.push({ level: 'warn', message: 'Workflow is disabled.', timestamp: run.finishedAt });
-
-    return run;
-  }
-
-  async function executeTask(task: any) {
-    const timestamp = new Date().toISOString();
-
-    if (task.taskType === 'workflow') {
-      if (depth >= 3) {
-        throw new Error('Nested workflow depth limit reached');
-      }
-
-      const target = state.workflows.find((item: any) => item.id === task.targetWorkflowId);
-
-      if (!target) {
-        throw new Error(`Target workflow ${task.targetWorkflowId ?? ''} was not found`);
-      }
-
-      const nestedRun = await runWorkflowTasks(request, projectId, workspaceId, state, target, timestamp, depth + 1);
-      run.logs.push(...nestedRun.logs);
-
-      if (nestedRun.status === 'failed') {
-        throw new Error(`Nested workflow "${target.name}" failed`);
-      }
-
-      return;
-    }
-
-    const command = String(task.command || (task.taskType === 'packages' ? 'pnpm install' : '')).trim();
-
-    if (!command) {
-      throw new Error('Workflow task has no command');
-    }
-
-    run.logs.push({ level: 'info', message: `$ ${command}`, timestamp });
-
-    const result = await apiRequest<{ exitCode?: number; output?: string }>(
-      request,
-      `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/commands`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ command: 'sh', args: ['-lc', command], timeoutMs: 120_000 }),
-      },
-    );
-
-    if (result.output) {
-      run.logs.push({
-        level: result.exitCode && result.exitCode !== 0 ? 'error' : 'info',
-        message: result.output.slice(-4000),
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    if (result.exitCode && result.exitCode !== 0) {
-      throw new Error(`Command exited with ${result.exitCode}`);
-    }
-  }
-
-  try {
-    if (workflow.executionMode === 'parallel') {
-      await Promise.all(tasks.map((task) => executeTask(task)));
-    } else {
-      for (const task of tasks) {
-        await executeTask(task);
-      }
-    }
-
-    run.status = 'succeeded';
-  } catch (error) {
-    const timestamp = new Date().toISOString();
-    run.status = 'failed';
-    run.logs.push({
-      level: 'error',
-      message: error instanceof Error ? error.message : String(error),
-      timestamp,
-    });
-  }
-
-  run.finishedAt = new Date().toISOString();
-
-  return run;
+    now: () => new Date().toISOString(),
+    makeId: () => randomUUID(),
+    execCommand: (command) =>
+      apiRequest<{ exitCode?: number; output?: string }>(
+        request,
+        `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/commands`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ command: 'sh', args: ['-lc', command], timeoutMs: 120_000 }),
+        },
+      ),
+  });
 }

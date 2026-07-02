@@ -17156,6 +17156,102 @@ button.bolt-project-statusbar-pill:focus-visible,
   white-space: pre-wrap;
 }
 
+.bolt-project-workflow-run-steps {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bolt-project-workflow-run-steps li {
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 8px;
+  background: var(--vc-ide-surface-0);
+  padding: 8px;
+}
+
+.bolt-project-workflow-run-step-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bolt-project-workflow-run-step-head code {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--vc-ide-text-primary);
+  font-size: 11px;
+}
+
+.bolt-project-workflow-run-step-head small {
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+}
+
+.bolt-project-workflow-run-steps span[data-status] {
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--vc-ide-text-primary);
+  background: var(--vc-ide-surface-2);
+}
+
+.bolt-project-workflow-run-steps span[data-status='succeeded'] {
+  color: var(--vc-ide-success, var(--vc-ide-text-primary));
+}
+
+.bolt-project-workflow-run-steps span[data-status='failed'] {
+  color: var(--vc-ide-danger, var(--vc-ide-text-primary));
+}
+
+.bolt-project-workflow-run-steps span[data-status='skipped'] {
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-project-workflow-run-steps pre {
+  max-height: 200px;
+}
+
+.bolt-project-workflow-schedule {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  grid-template-columns: minmax(160px, 1fr) auto auto;
+  align-items: end;
+}
+
+.bolt-project-workflow-schedule label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
+.bolt-project-workflow-schedule-toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.bolt-project-workflow-nextrun {
+  grid-column: 1 / -1;
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+}
+
+@media (max-width: 860px) {
+  .bolt-project-workflow-schedule {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 860px) {
   .bolt-project-workflows-head,
   .bolt-project-workflow-card header,
