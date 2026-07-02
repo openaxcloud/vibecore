@@ -410,6 +410,15 @@ html[data-ecode-public-chrome='homepage'] body {
   --ring: 24 96% 49%;
   --ecode-accent: #f26207;
   --ecode-accent-hover: #ff7a2b;
+  // AA orange for TEXT/links on this theme's backgrounds; fills stay --ecode-accent.
+  // Mirrors @vibecore/ecode-theme tokens.css (which the web app does not import).
+  --ecode-accent-text: #ff8a3d;
+  --ecode-focus-ring: rgba(255, 122, 43, 0.4);
+  --ecode-selection: rgba(242, 98, 7, 0.25);
+  --status-success-text: #4ade80;
+  --status-warning-text: #fbbf24;
+  --status-error-text: #f87171;
+  --status-info-text: #60a5fa;
   --ecode-accent-contrast: #111827;
   --ecode-secondary-accent: #f77f00;
   --ecode-orange: #f26207;
@@ -681,6 +690,14 @@ html[data-ecode-public-chrome='homepage'] body {
   --ring: 24 96% 49%;
   --ecode-accent: #f26207;
   --ecode-accent-hover: #d04e00;
+  // AA orange for TEXT/links on light backgrounds; fills stay --ecode-accent.
+  --ecode-accent-text: #c74e00;
+  --ecode-focus-ring: rgba(242, 98, 7, 0.35);
+  --ecode-selection: rgba(242, 98, 7, 0.25);
+  --status-success-text: #178a4c;
+  --status-warning-text: #b45309;
+  --status-error-text: #dc2626;
+  --status-info-text: #2563eb;
   --ecode-accent-contrast: #111827;
   --ecode-secondary-accent: #f77f00;
   --ecode-orange: #f26207;
