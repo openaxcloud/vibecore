@@ -13,7 +13,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { type ProjectRecord } from '~/lib/project-route.server';
+import type { ProjectRecord } from '~/lib/project-route.server';
 import { isReauthRedirect } from '~/lib/route-reauth';
 import { classNames } from '~/utils/classNames';
 
