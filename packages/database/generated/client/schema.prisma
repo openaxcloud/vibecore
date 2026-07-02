@@ -96,6 +96,7 @@ model User {
   linkedProjectConnections    ProjectConnectionLink[]        @relation("LinkedByUser")
   configuredOauthAppOverrides OrganizationOAuthAppOverride[] @relation("ConfiguredByUser")
   integrationFeatureRequests  IntegrationFeatureRequest[]
+  notifications               Notification[]
 }
 
 model Account {
@@ -1555,6 +1556,35 @@ model ReconnectionAlert {
   userConnection UserConnection @relation(fields: [userConnectionId], references: [id], onDelete: Cascade)
 
   @@index([userConnectionId, resolvedAt])
+}
+
+/// Per-user in-app notification feed (2026-07-02). A durable, user-scoped
+/// inbox surfaced in the SaaS account area: producers write a row, the user
+/// lists unread + recent and marks items read. Distinct from ReconnectionAlert
+/// (a connector-domain resolve queue) — this is the general feed. The first
+/// real producer is the connector reconnection alert: when one is raised the
+/// API also drops a Notification so the feed is non-empty in reality.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  /// Coarse routing/tone bucket, aligned with the preferences surfaces:
+  /// "security" | "billing" | "deployments" | "team" | "system".
+  category  String    @default("system")
+  title     String
+  body      String?
+  /// Optional in-app link the notification points at (e.g. /account/connections).
+  linkUrl   String?
+  /// Free-form producer metadata (e.g. the source alert id / provider) so the
+  /// feed can be traced back to its origin without extra columns.
+  metadata  Json?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Feed query is "this user's rows, unread first / newest first"; the partial
+  // shape is covered well enough by the composite index below.
+  @@index([userId, readAt, createdAt])
 }
 
 model IntegrationFeatureRequest {

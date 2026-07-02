@@ -1,1 +1,1 @@
-export { notificationMutationAction as action } from '~/lib/marketing/ecode-public-shell.server';
+export { notificationsCollectionAction as action } from '~/lib/marketing/ecode-public-shell.server';

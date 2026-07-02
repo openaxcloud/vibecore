@@ -16,6 +16,7 @@ import type {
   AiConversationRecord,
   AiMessageRecord,
   IntegrationFeatureRequestRecord,
+  NotificationRecord,
   AiTokenUsageRecord,
   AiToolCallRecord,
   AgentCheckpointRecord,
@@ -143,6 +144,7 @@ export class TestApiStore implements ApiStore {
   readonly userConnections = new Map<string, UserConnectionRecord>();
   readonly projectConnectionLinks = new Map<string, ProjectConnectionLinkRecord>();
   readonly reconnectionAlerts = new Map<string, ReconnectionAlertRecord>();
+  readonly notifications = new Map<string, NotificationRecord>();
   readonly aiConversations = new Map<string, AiConversationRecord>();
   readonly aiMessages = new Map<string, AiMessageRecord>();
   readonly aiToolCalls = new Map<string, AiToolCallRecord>();
@@ -2222,6 +2224,87 @@ export class TestApiStore implements ApiStore {
     return Array.from(this.projectConnectionLinks.values()).filter(
       (row) => row.projectId === projectId && (opts?.includeUnlinked || !row.unlinkedAt),
     );
+  }
+
+  async createNotification(input: {
+    userId: string;
+    category?: string;
+    title: string;
+    body?: string;
+    linkUrl?: string;
+    metadata?: Record<string, unknown>;
+  }) {
+    const notification: NotificationRecord = {
+      id: id('notif'),
+      userId: input.userId,
+      category: input.category ?? 'system',
+      title: input.title,
+      body: input.body,
+      linkUrl: input.linkUrl,
+      metadata: input.metadata,
+      readAt: undefined,
+      createdAt: now(),
+    };
+    this.notifications.set(notification.id, notification);
+
+    return notification;
+  }
+
+  async listNotificationsByUser(input: { userId: string; limit?: number }) {
+    return Array.from(this.notifications.values())
+      .filter((notification) => notification.userId === input.userId)
+      // Unread first, then newest — matches the prisma-store ordering.
+      .sort((a, b) => {
+        const aRead = a.readAt ? 1 : 0;
+        const bRead = b.readAt ? 1 : 0;
+
+        if (aRead !== bRead) {
+          return aRead - bRead;
+        }
+
+        return b.createdAt.localeCompare(a.createdAt);
+      })
+      .slice(0, Math.min(Math.max(input.limit ?? 50, 1), 200));
+  }
+
+  async countUnreadNotificationsByUser(userId: string) {
+    return Array.from(this.notifications.values()).filter(
+      (notification) => notification.userId === userId && !notification.readAt,
+    ).length;
+  }
+
+  async getNotificationById(idValue: string) {
+    return this.notifications.get(idValue);
+  }
+
+  async markNotificationRead(input: { id: string; readAt?: Date }) {
+    const existing = this.notifications.get(input.id);
+
+    if (!existing) {
+      return undefined;
+    }
+
+    const updated: NotificationRecord = {
+      ...existing,
+      readAt: (existing.readAt ? new Date(existing.readAt) : (input.readAt ?? new Date())).toISOString(),
+    };
+    this.notifications.set(updated.id, updated);
+
+    return updated;
+  }
+
+  async markAllNotificationsRead(input: { userId: string; readAt?: Date }) {
+    const readAt = (input.readAt ?? new Date()).toISOString();
+    let count = 0;
+
+    for (const notification of this.notifications.values()) {
+      if (notification.userId === input.userId && !notification.readAt) {
+        this.notifications.set(notification.id, { ...notification, readAt });
+        count += 1;
+      }
+    }
+
+    return count;
   }
 
   /**

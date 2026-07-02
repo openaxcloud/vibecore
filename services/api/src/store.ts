@@ -311,6 +311,18 @@ export interface IntegrationFeatureRequestRecord {
   createdAt: string;
 }
 
+export interface NotificationRecord {
+  id: string;
+  userId: string;
+  category: string;
+  title: string;
+  body?: string;
+  linkUrl?: string;
+  metadata?: Record<string, unknown>;
+  readAt?: string;
+  createdAt: string;
+}
+
 export interface SystemSettingRecord {
   key: string;
   value?: unknown;
@@ -1442,6 +1454,19 @@ export interface ApiStore {
     projectId: string,
     opts?: { includeUnlinked?: boolean },
   ): Promise<ProjectConnectionLinkRecord[]>;
+  createNotification(input: {
+    userId: string;
+    category?: string;
+    title: string;
+    body?: string;
+    linkUrl?: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<NotificationRecord>;
+  listNotificationsByUser(input: { userId: string; limit?: number }): Promise<NotificationRecord[]>;
+  countUnreadNotificationsByUser(userId: string): Promise<number>;
+  getNotificationById(id: string): Promise<NotificationRecord | undefined>;
+  markNotificationRead(input: { id: string; readAt?: Date }): Promise<NotificationRecord | undefined>;
+  markAllNotificationsRead(input: { userId: string; readAt?: Date }): Promise<number>;
   listUnresolvedReconnectionAlertsByUser(userId: string): Promise<ReconnectionAlertRecord[]>;
   getReconnectionAlertById(id: string): Promise<ReconnectionAlertRecord | undefined>;
   resolveReconnectionAlert(input: { id: string; resolvedAt?: Date }): Promise<ReconnectionAlertRecord | undefined>;

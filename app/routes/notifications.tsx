@@ -1,3 +1,4 @@
+import { formatDistanceToNow } from 'date-fns';
 import {
   Bell,
   CircleCheck,
@@ -16,7 +17,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
+import { Form, useActionData, useFetcher, useLoaderData, useNavigation } from 'react-router';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
@@ -116,13 +117,33 @@ function resolvePreferences(saved: Partial<NotificationPreferences> | undefined)
   };
 }
 
-export async function loader({ request }: EnterpriseLoaderArgs) {
-  const data = await apiRequest<{ preferences?: { notifications?: Partial<NotificationPreferences> } }>(
-    request,
-    '/user/preferences',
-  );
+type FeedNotification = {
+  id: string;
+  category: string;
+  title: string;
+  body: string | null;
+  linkUrl: string | null;
+  read: boolean;
+  readAt: string | null;
+  createdAt: string;
+};
 
-  return { preferences: resolvePreferences(data.preferences?.notifications) };
+type NotificationFeed = { notifications: FeedNotification[]; unreadCount: number };
+
+export async function loader({ request }: EnterpriseLoaderArgs) {
+  /*
+   * Preferences and the real per-user feed load together. The feed is fetched
+   * best-effort so a transient feed error never blanks the whole preferences
+   * page — the preferences call already redirects on 401 for us.
+   */
+  const [data, feed] = await Promise.all([
+    apiRequest<{ preferences?: { notifications?: Partial<NotificationPreferences> } }>(request, '/user/preferences'),
+    apiRequest<NotificationFeed>(request, '/user/notifications').catch(
+      () => ({ notifications: [], unreadCount: 0 }) as NotificationFeed,
+    ),
+  ]);
+
+  return { preferences: resolvePreferences(data.preferences?.notifications), feed };
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
@@ -143,7 +164,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 export default function NotificationsPage() {
-  const { preferences } = useLoaderData<typeof loader>();
+  const { preferences, feed } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   const saving = navigation.state === 'submitting';
 
@@ -163,6 +184,8 @@ export default function NotificationsPage() {
       description="Control high-signal product, billing, deployment and security notifications across your workspace."
       actions={<LinkButton to="/security-settings">Security rules</LinkButton>}
     >
+      <NotificationFeedSection feed={feed} />
+
       <Form method="post" className="space-y-6">
         {actionData?.status ? (
           <p className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm text-bolt-elements-textSecondary">
@@ -273,6 +296,140 @@ export default function NotificationsPage() {
         </div>
       </Form>
     </AppShell>
+  );
+}
+
+const categoryTone: Record<string, NotificationSurface['tone']> = {
+  security: 'critical',
+  billing: 'warning',
+  deployments: 'info',
+  team: 'success',
+  system: 'info',
+};
+
+function toneClasses(tone: NotificationSurface['tone']) {
+  return classNames(
+    tone === 'critical' && 'border-red-500/35 bg-red-500/10 text-red-400',
+    tone === 'warning' && 'border-amber-500/35 bg-amber-500/10 text-amber-400',
+    tone === 'info' && 'border-blue-500/35 bg-blue-500/10 text-blue-400',
+    tone === 'success' && 'border-emerald-500/35 bg-emerald-500/10 text-emerald-400',
+  );
+}
+
+function NotificationFeedSection({ feed }: { feed: NotificationFeed }) {
+  const markAllFetcher = useFetcher();
+  const { notifications, unreadCount } = feed;
+  const markingAll = markAllFetcher.state !== 'idle';
+
+  return (
+    <section className="mb-6 overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
+      <div className="flex flex-col gap-3 border-b border-bolt-elements-borderColor p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
+            <Bell className="h-5 w-5" aria-hidden />
+          </span>
+          <div>
+            <h2 className="flex items-center gap-2 text-base font-semibold tracking-normal">
+              Inbox
+              {unreadCount > 0 ? (
+                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-bolt-elements-item-contentAccent px-1.5 py-0.5 text-[11px] font-semibold text-bolt-elements-textPrimary">
+                  {unreadCount}
+                </span>
+              ) : null}
+            </h2>
+            <p className="mt-0.5 text-sm text-bolt-elements-textSecondary">
+              {unreadCount > 0 ? `${unreadCount} unread` : 'You are all caught up.'}
+            </p>
+          </div>
+        </div>
+        {unreadCount > 0 ? (
+          <markAllFetcher.Form method="post" action="/api/notifications/read-all">
+            <Button type="submit" variant="secondary" disabled={markingAll} aria-busy={markingAll}>
+              {markingAll ? 'Marking…' : 'Mark all as read'}
+            </Button>
+          </markAllFetcher.Form>
+        ) : null}
+      </div>
+
+      {notifications.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 p-8 text-center">
+          <Bell className="h-8 w-8 text-bolt-elements-textTertiary" aria-hidden />
+          <p className="text-sm font-medium">No notifications yet</p>
+          <p className="text-sm text-bolt-elements-textSecondary">
+            Security, billing and deployment events will appear here.
+          </p>
+        </div>
+      ) : (
+        <ul className="divide-y divide-bolt-elements-borderColor">
+          {notifications.map((notification) => (
+            <NotificationRow key={notification.id} notification={notification} />
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function NotificationRow({ notification }: { notification: FeedNotification }) {
+  const readFetcher = useFetcher();
+  const tone = categoryTone[notification.category] ?? 'info';
+
+  // Optimistically reflect an in-flight mark-read so the row updates instantly.
+  const isRead = notification.read || readFetcher.state !== 'idle';
+
+  return (
+    <li
+      className={classNames(
+        'flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between',
+        isRead ? 'bg-bolt-elements-background-depth-2' : 'bg-bolt-elements-background-depth-1',
+      )}
+    >
+      <div className="flex min-w-0 items-start gap-3">
+        <span
+          className={classNames(
+            'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border',
+            toneClasses(tone),
+          )}
+        >
+          <Bell className="h-4 w-4" aria-hidden />
+        </span>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className={classNames('text-sm', isRead ? 'font-medium' : 'font-semibold')}>{notification.title}</h3>
+            {!isRead ? (
+              <span className="h-2 w-2 shrink-0 rounded-full bg-bolt-elements-item-contentAccent" aria-label="Unread" />
+            ) : null}
+          </div>
+          {notification.body ? (
+            <p className="mt-1 text-sm leading-6 text-bolt-elements-textSecondary">{notification.body}</p>
+          ) : null}
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textTertiary">
+            <time dateTime={notification.createdAt}>
+              {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+            </time>
+            {notification.linkUrl ? (
+              <>
+                <span aria-hidden>·</span>
+                <a className="text-bolt-elements-item-contentAccent hover:underline" href={notification.linkUrl}>
+                  View
+                </a>
+              </>
+            ) : null}
+          </div>
+        </div>
+      </div>
+      {!isRead ? (
+        <readFetcher.Form
+          method="post"
+          action={`/api/notifications/${encodeURIComponent(notification.id)}/read`}
+          className="shrink-0"
+        >
+          <Button type="submit" variant="secondary" disabled={readFetcher.state !== 'idle'}>
+            Mark read
+          </Button>
+        </readFetcher.Form>
+      ) : null}
+    </li>
   );
 }
 

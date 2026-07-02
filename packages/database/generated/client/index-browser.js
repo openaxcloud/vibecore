@@ -1051,6 +1051,18 @@ exports.Prisma.ReconnectionAlertScalarFieldEnum = {
   notifiedAt: 'notifiedAt'
 };
 
+exports.Prisma.NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  category: 'category',
+  title: 'title',
+  body: 'body',
+  linkUrl: 'linkUrl',
+  metadata: 'metadata',
+  readAt: 'readAt',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.IntegrationFeatureRequestScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1424,6 +1436,7 @@ exports.Prisma.ModelName = {
   OrganizationOAuthAppOverride: 'OrganizationOAuthAppOverride',
   OrganizationConnectorPolicy: 'OrganizationConnectorPolicy',
   ReconnectionAlert: 'ReconnectionAlert',
+  Notification: 'Notification',
   IntegrationFeatureRequest: 'IntegrationFeatureRequest',
   EmailDeliveryEvent: 'EmailDeliveryEvent',
   CreditWallet: 'CreditWallet',

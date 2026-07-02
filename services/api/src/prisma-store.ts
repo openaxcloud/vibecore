@@ -18,6 +18,7 @@ import type {
   AiCostLedgerRecord,
   AiConversationRecord,
   IntegrationFeatureRequestRecord,
+  NotificationRecord,
   AiMessageRecord,
   AiTokenUsageRecord,
   AiToolCallRecord,
@@ -2959,6 +2960,71 @@ export class PrismaApiStore implements ApiStore {
     return rows.map(mapProjectConnectionLink);
   }
 
+  async createNotification(input: {
+    userId: string;
+    category?: string;
+    title: string;
+    body?: string;
+    linkUrl?: string;
+    metadata?: Record<string, unknown>;
+  }) {
+    const row = await this.prisma.notification.create({
+      data: {
+        userId: input.userId,
+        category: input.category ?? 'system',
+        title: input.title,
+        body: input.body,
+        linkUrl: input.linkUrl,
+        metadata: (input.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
+      },
+    });
+
+    return mapNotification(row);
+  }
+
+  async listNotificationsByUser(input: { userId: string; limit?: number }) {
+    const rows = await this.prisma.notification.findMany({
+      where: { userId: input.userId },
+      // Unread first, then newest — a compact, actionable feed.
+      orderBy: [{ readAt: { sort: 'asc', nulls: 'first' } }, { createdAt: 'desc' }],
+      take: Math.min(Math.max(input.limit ?? 50, 1), 200),
+    });
+
+    return rows.map(mapNotification);
+  }
+
+  async countUnreadNotificationsByUser(userId: string) {
+    return this.prisma.notification.count({ where: { userId, readAt: null } });
+  }
+
+  async getNotificationById(id: string) {
+    const row = await this.prisma.notification.findUnique({ where: { id } });
+
+    return row ? mapNotification(row) : undefined;
+  }
+
+  async markNotificationRead(input: { id: string; readAt?: Date }) {
+    try {
+      const updated = await this.prisma.notification.update({
+        where: { id: input.id },
+        data: { readAt: input.readAt ?? new Date() },
+      });
+
+      return mapNotification(updated);
+    } catch {
+      return undefined;
+    }
+  }
+
+  async markAllNotificationsRead(input: { userId: string; readAt?: Date }) {
+    const result = await this.prisma.notification.updateMany({
+      where: { userId: input.userId, readAt: null },
+      data: { readAt: input.readAt ?? new Date() },
+    });
+
+    return result.count;
+  }
+
   async listUnresolvedReconnectionAlertsByUser(userId: string) {
     const rows = await this.prisma.reconnectionAlert.findMany({
       where: {
@@ -4852,6 +4918,20 @@ function mapProjectConnectionLink(link: any): ProjectConnectionLinkRecord {
     linkedByUserId: link.linkedByUserId,
     linkedAt: toIso(link.linkedAt)!,
     unlinkedAt: toIso(link.unlinkedAt),
+  };
+}
+
+function mapNotification(notification: any): NotificationRecord {
+  return {
+    id: notification.id,
+    userId: notification.userId,
+    category: notification.category,
+    title: notification.title,
+    body: notification.body ?? undefined,
+    linkUrl: notification.linkUrl ?? undefined,
+    metadata: (notification.metadata as Record<string, unknown> | null) ?? undefined,
+    readAt: toIso(notification.readAt),
+    createdAt: toIso(notification.createdAt)!,
   };
 }
 

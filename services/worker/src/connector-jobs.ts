@@ -255,6 +255,25 @@ export async function runConnectorTokenHealthCheck(
               reason: 'token_revoked',
             },
           });
+
+          /*
+           * Surface the same event in the user's in-app notification feed. Gated
+           * on !existing so it fires exactly once per reconnect episode, matching
+           * the alert. Best-effort: it shares the outer try/catch so a feed write
+           * failure never aborts the sweep or the alert.
+           */
+          await input.prisma.notification.create({
+            data: {
+              userId: connection.userId,
+              category: 'security',
+              title: `Reconnect ${connection.provider}`,
+              body: `Your ${connection.provider} connection${
+                connection.externalAccountLabel ? ` (${connection.externalAccountLabel})` : ''
+              } needs to be reconnected — its access was revoked or expired.`,
+              linkUrl: '/account/connections',
+              metadata: { source: 'reconnection_alert', userConnectionId: connection.id, provider: connection.provider },
+            },
+          });
         }
 
         flaggedReconnect += 1;
