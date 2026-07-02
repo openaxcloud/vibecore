@@ -18414,33 +18414,34 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     overflow-wrap: anywhere;
   }
 
+  /*
+   * Agent-panel UX refonte (point 5): action chips are a SINGLE horizontal
+   * scrollable row of pills, not a stacked 2-column grid — so they take one line
+   * of height instead of pushing the agent's answer / composer down. Matches the
+   * base (desktop) suggestion row; the 44px min-height keeps the touch target.
+   */
   .bolt-responsive-ide-mobile .bolt-project-agent-suggestions {
     order: 2;
-    display: grid;
+    display: flex;
+    flex-wrap: nowrap;
     width: 100%;
     max-width: 100%;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
-    overflow: visible;
-    padding: 0;
-    scroll-snap-type: none;
-  }
-
-  @media (min-width: 768px) {
-    .bolt-responsive-ide-mobile .bolt-project-agent-suggestions {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 2px 4px;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-suggestions button {
-    width: 100%;
-    max-width: none;
-    min-width: 0;
-    min-height: 44px;
-    flex: initial;
-    justify-content: center;
-    padding-inline: 10px;
-    scroll-snap-align: none;
+    width: auto;
+    max-width: 240px;
+    min-width: max-content;
+    min-height: 40px;
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    padding-inline: 12px;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-suggestions button > span:last-child {

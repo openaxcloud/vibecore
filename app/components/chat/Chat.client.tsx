@@ -637,7 +637,13 @@ export const ChatImpl = memo(
     const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
     const { parsedMessages, parseMessages } = useMessageParser();
 
-    const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
+    /*
+     * Compact composer in the agent panel (UX refonte, point 3): auto-grows from
+     * ~1 line up to ~4-5 lines (140px) then scrolls internally, instead of the big
+     * 400px box that ate ~40% of a mobile screen. Standalone/landing composer keeps
+     * the roomier sizing.
+     */
+    const TEXTAREA_MAX_HEIGHT = projectIdeMode ? 140 : chatStarted ? 400 : 200;
 
     useEffect(() => {
       latestMessagesRef.current = messages;

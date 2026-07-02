@@ -5771,6 +5771,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             aria-relevant={projectIdeMode ? 'additions text' : undefined}
             aria-label={projectIdeMode ? 'Agent conversation history' : undefined}
           >
+            {/*
+             * Thin agent status line, sticky at the TOP of the panel (agent-panel
+             * UX refonte, point 2). Full-bleed via negative margins that cancel the
+             * scroll container's pt-6/px padding; stays pinned while the transcript
+             * scrolls underneath it.
+             */}
+            {progressAnnotations && (
+              <div className="sticky top-0 z-10 -mt-6 -mx-2 sm:-mx-6">
+                <ProgressCompilation data={progressAnnotations} />
+              </div>
+            )}
             <ClientOnly>
               {() => {
                 return chatStarted ? (
@@ -5858,7 +5869,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       .map((entry) => ({ name: entry.name, label: entry.label, provider: entry.provider }))}
                   />
                 )}
-                {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
                 {projectIdeMode && agentToolAction && (
                   <div className="bolt-project-agent-action-card" role="region" aria-label={agentToolAction.title}>
                     <div>
@@ -5934,7 +5944,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 handleInputChange={handleInputChange}
                 handlePaste={handlePaste}
                 TEXTAREA_MIN_HEIGHT={projectIdeMode ? 28 : TEXTAREA_MIN_HEIGHT}
-                TEXTAREA_MAX_HEIGHT={TEXTAREA_MAX_HEIGHT}
+                TEXTAREA_MAX_HEIGHT={projectIdeMode ? 140 : TEXTAREA_MAX_HEIGHT}
                 isStreaming={isStreaming}
                 handleStop={handleStop}
                 handleSendMessage={projectIdeMode ? handleProjectAgentSendMessage : handleSendMessage}
