@@ -762,7 +762,25 @@ export class GitCliProvider implements GitProvider {
 
     await mkdir(target, { recursive: true });
 
-    if (await pathExists(gitDir)) {
+    /*
+     * Validate the repo is REAL, not merely that a `.git` path exists. A stale,
+     * empty, or partially-written `.git` (an interrupted init/clone, a zip import
+     * that carried a broken `.git`, or a snapshot-restore/storage-sync artifact)
+     * passes a bare pathExists check, so ensureRepository used to SKIP `git init`
+     * — then every subsequent command failed with "fatal: not a git repository",
+     * surfacing in the IDE Git tab as PANEL_BACKEND_UNAVAILABLE (status + branches
+     * both 500). `git rev-parse --git-dir` is the cheap, authoritative "is this a
+     * real repo?" probe; on failure we fall through and (re)init, which safely
+     * reinitialises an existing partial `.git`.
+     */
+    const isValidRepo = await execFile('git', ['--git-dir', gitDir, '--work-tree', target, 'rev-parse', '--git-dir'], {
+      cwd: target,
+      env: this.gitEnv(),
+    })
+      .then(() => true)
+      .catch(() => false);
+
+    if (isValidRepo) {
       await execFile('git', ['--git-dir', gitDir, '--work-tree', target, 'config', 'user.name', 'You'], {
         cwd: target,
         env: this.gitEnv(),

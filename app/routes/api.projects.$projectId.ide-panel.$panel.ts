@@ -407,9 +407,22 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         return path.includes('?') ? `${path}&${workspaceQueryParam}` : `${path}?${workspaceQueryParam}`;
       };
 
+      /*
+       * status + branches were the only un-caught calls here, so a single 5xx
+       * from either (e.g. a workspace whose repo momentarily fails) nuked the
+       * WHOLE Git panel with PANEL_BACKEND_UNAVAILABLE. Degrade each to a clean
+       * empty state (with a soft gitLoadError marker the UI can surface inline)
+       * so the panel still renders — matching how graph/stashes already behave.
+       */
       const [status, branches, graph, stashes] = await Promise.all([
-        apiRequest(request, withWorkspace(`/projects/${projectId}/git/status`)),
-        apiRequest(request, withWorkspace(`/projects/${projectId}/git/branches`)),
+        apiRequest(request, withWorkspace(`/projects/${projectId}/git/status`)).catch((error) => ({
+          status: { branch: 'main', changedFiles: [], fileStatuses: [], conflicts: [], ahead: 0, behind: 0 },
+          gitLoadError: panelErrorMessage(error),
+        })),
+        apiRequest(request, withWorkspace(`/projects/${projectId}/git/branches`)).catch(() => ({
+          branches: [],
+          selected: 'main',
+        })),
         apiRequest(request, withWorkspace(`/projects/${projectId}/git/graph`)).catch(() => ({ commits: [] })),
         apiRequest(request, withWorkspace(`/projects/${projectId}/git/stashes`)).catch(() => ({ stashes: [] })),
       ]);
