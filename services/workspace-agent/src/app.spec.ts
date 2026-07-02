@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { signAgentToken } from '@vibecore/workspace-sdk';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
-import { buildWorkspaceAgentApp, detectPortsFromOutput, type ProcessRecord } from './app.js';
+import { buildPreviewHosts, buildWorkspaceAgentApp, detectPortsFromOutput, type ProcessRecord } from './app.js';
 
 const tokenSecret = 'test-secret';
 const workspaceId = 'workspace_1';
@@ -221,6 +221,34 @@ describe('workspace-agent', () => {
 
     // Plain commands with no port signal yield nothing.
     expect(detectPortsFromOutput(new Map([['e', record('e', 'echo hi', 'hi')]]))).toEqual([]);
+  });
+
+  it('builds preview hosts: loopback first, pod IPv4 next, [::1] last, no internal/IPv6 interface addrs', () => {
+    const hosts = buildPreviewHosts({
+      lo: [
+        { family: 'IPv4', address: '127.0.0.1', internal: true } as never,
+        { family: 'IPv6', address: '::1', internal: true } as never,
+      ],
+      eth0: [
+        { family: 'IPv4', address: '10.20.0.10', internal: false } as never,
+        { family: 'IPv6', address: 'fe80::1', internal: false } as never,
+      ],
+    });
+
+    // 127.0.0.1 is the fast path and must be tried first.
+    expect(hosts[0]).toBe('127.0.0.1');
+    // The pod's routable IPv4 (Vite's `Network:` addr) reaches a `[::]` bind on gVisor.
+    expect(hosts).toContain('10.20.0.10');
+    // IPv6 loopback is the last resort (no-op on pods without IPv6 loopback).
+    expect(hosts[hosts.length - 1]).toBe('[::1]');
+    // Interface IPv6 addresses and internal loopbacks are never dialed directly.
+    expect(hosts).not.toContain('::1');
+    expect(hosts).not.toContain('fe80::1');
+  });
+
+  it('preview hosts stay de-duplicated when an interface repeats the loopback address', () => {
+    const hosts = buildPreviewHosts({ lo: [{ family: 'IPv4', address: '127.0.0.1', internal: false } as never] });
+    expect(hosts.filter((h) => h === '127.0.0.1')).toHaveLength(1);
   });
 
   it('exposes the /ports endpoint with a well-formed port list', async () => {

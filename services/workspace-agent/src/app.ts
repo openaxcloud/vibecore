@@ -2,6 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { lstat, mkdir, readdir, readFile, readlink, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { networkInterfaces, type NetworkInterfaceInfo } from 'node:os';
 import { basename, dirname, relative, resolve, sep } from 'node:path';
 import { Readable } from 'node:stream';
 import { StringDecoder } from 'node:string_decoder';
@@ -444,15 +445,22 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const search = queryIndex >= 0 ? request.url.slice(queryIndex) : '';
 
     /*
-     * Dev servers (Vite, CRA, etc.) default to binding "localhost". On a
-     * dual-stack container "localhost" can resolve to ::1 (IPv6) ONLY, so a
-     * fetch to 127.0.0.1 ECONNREFUSEs — and that throw used to escape this
-     * handler as an opaque 500, leaving the preview iframe blank even though
-     * the dev server was up. Try IPv4 then IPv6 loopback so we reach the server
-     * whichever stack it bound; on total failure return a clear, logged 502
-     * (the dev server is starting / crashed) instead of an unhandled 500.
+     * Dev servers (Vite `host: true`, CRA, etc.) commonly bind the IPv6 wildcard
+     * `[::]` and lean on dual-stack to also accept IPv4. Two things break the
+     * naive loopback assumption on the gVisor sandbox the workspace pods run in:
+     *   1. there is NO IPv6 loopback (`::1` → EADDRNOTAVAIL), so an `[::1]`
+     *      attempt can never connect — it is dead weight, not a real fallback;
+     *   2. gVisor's netstack does not reliably deliver a 127.0.0.1 *loopback*
+     *      connection to a `[::]`-bound socket (IPv4-mapped-IPv6 over loopback),
+     *      so the connect ECONNREFUSEs even though the dev server is up — which
+     *      surfaced as a repeated `preview.proxy.unreachable` and a blank preview.
+     * A connection to the pod's OWN routable IPv4 (the address the dev server
+     * prints as its `Network:` URL) IS delivered to the `[::]` socket, so we try
+     * loopback first, then every non-internal interface IPv4, then IPv6 loopback
+     * last. On total failure return a clear, logged 502 (dev server starting /
+     * crashed) instead of an unhandled 500.
      */
-    const candidateHosts = ['127.0.0.1', '[::1]'];
+    const candidateHosts = localPreviewHosts();
 
     let response: Response | undefined;
     let lastError: unknown;
@@ -2017,6 +2025,53 @@ async function parentPid(pid: number): Promise<number | undefined> {
   } catch {
     return undefined;
   }
+}
+
+/*
+ * Ordered list of hosts the preview proxy tries to reach a dev server, given a
+ * snapshot of the pod's network interfaces. Pure (interfaces passed in) so the
+ * ordering/filtering is unit-testable without the host's real interfaces:
+ *   - 127.0.0.1 first: the fast path that works whenever the dev server bound
+ *     0.0.0.0 or a working dual-stack `[::]`.
+ *   - then every non-internal IPv4 interface address (the pod IP the dev server
+ *     advertises as `Network:`) — reaches a `[::]`-bound socket on gVisor pods
+ *     where the 127.0.0.1→`[::]` loopback path is not delivered.
+ *   - `[::1]` last: harmless where IPv6 loopback exists, skipped-fast where it
+ *     does not (the gVisor workspace pods have no IPv6 loopback at all).
+ */
+export function buildPreviewHosts(interfaces: NodeJS.Dict<NetworkInterfaceInfo[]>): string[] {
+  const hosts = ['127.0.0.1'];
+
+  for (const addresses of Object.values(interfaces)) {
+    for (const address of addresses ?? []) {
+      // node typings expose family as 'IPv4'; some runtimes use the number 4.
+      const isIPv4 = address.family === 'IPv4' || (address.family as unknown as number) === 4;
+
+      if (isIPv4 && !address.internal && !hosts.includes(address.address)) {
+        hosts.push(address.address);
+      }
+    }
+  }
+
+  hosts.push('[::1]');
+
+  return hosts;
+}
+
+// Pod interfaces don't change at runtime, so resolve the candidate list once.
+let cachedPreviewHosts: string[] | undefined;
+
+function localPreviewHosts(): string[] {
+  if (!cachedPreviewHosts) {
+    try {
+      cachedPreviewHosts = buildPreviewHosts(networkInterfaces());
+    } catch {
+      // networkInterfaces() should never throw; never let discovery break preview.
+      cachedPreviewHosts = ['127.0.0.1', '[::1]'];
+    }
+  }
+
+  return cachedPreviewHosts;
 }
 
 /*
