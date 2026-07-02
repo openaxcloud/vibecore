@@ -6860,7 +6860,9 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 12px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1199px) {
+  /* Collapse across the whole mobile-shell range (was 640) so the snapshots panel
+     matches every other service panel on tablet portrait/landscape. */
   .bolt-project-snapshots-create,
   .bolt-project-snapshot-body {
     grid-template-columns: minmax(0, 1fr);
@@ -17899,6 +17901,19 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     padding-inline: 12px;
   }
 
+  /* Catch-all touch-target floor for service-panel buttons (PanelButton is h-9=36px
+     and used ~79x across panels not covered by the enumerated rules: checkpoints,
+     deploy wizard, git SSH, etc.). min-height only raises, never shrinks. */
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service button {
+    min-height: 42px;
+  }
+
+  /* A long deployment URL (no spaces) in the deploy-card header could push past the
+     card; allow it to break. */
+  .bolt-responsive-ide-mobile .bolt-project-deploy-card span {
+    overflow-wrap: anywhere;
+  }
+
   @media (min-width: 768px) {
     .bolt-responsive-ide-mobile {
       --vc-mobile-panel-gutter: clamp(22px, 3vw, 36px);
@@ -24331,7 +24346,11 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 }
 
-@media (max-width: 1024px) {
+/* Widened 1024 -> 1199 so the agent context bar is styled across the whole mobile
+   shell range (useMobileIde is active to 1199); the header-title rules here are
+   already duplicated in the ≤1199 block above, so this only adds context-bar
+   styling and does not alter the frozen header. */
+@media (max-width: 1199px) {
   .bolt-mobile-ecode-header-title > span:last-child {
     display: inline-flex !important;
     min-width: 0;
