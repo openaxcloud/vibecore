@@ -359,14 +359,14 @@ export const AssistantMessage = memo(
                             <h3 className="text-xs font-medium text-bolt-elements-textPrimary">
                               Consensus · {agentExecution.consensus.algorithm.toLowerCase().replace('_', ' ')}
                             </h3>
-                            <div className="flex items-center gap-2">
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
                               <span
                                 className={
                                   agentExecution.consensus.outcome === 'ACCEPTED'
-                                    ? 'text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                    ? 'whitespace-nowrap text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                                     : agentExecution.consensus.outcome === 'REJECTED'
-                                      ? 'text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-500/10 text-red-600 dark:text-red-400'
-                                      : 'text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                      ? 'whitespace-nowrap text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-500/10 text-red-600 dark:text-red-400'
+                                      : 'whitespace-nowrap text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400'
                                 }
                               >
                                 {agentExecution.consensus.outcome}
@@ -642,10 +642,10 @@ export const AssistantMessage = memo(
               className="bolt-agent-lanes my-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
               data-testid="agent-lanes-panel"
             >
-              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
+              <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium text-bolt-elements-textPrimary">
                 <span className="i-ph:users-three text-bolt-elements-item-contentAccent" aria-hidden />
                 <span>Parallel agents</span>
-                <span className="[margin-inline-start:auto] text-[11px] font-normal text-bolt-elements-textSecondary">
+                <span className="min-w-0 truncate [margin-inline-start:auto] text-[11px] font-normal text-bolt-elements-textSecondary">
                   {agentExecution
                     ? `consensus: ${(agentExecution.consensus?.outcome ?? agentExecution.status).toString().toLowerCase()}`
                     : agentLaneStreams?.some((lane) => lane.status === 'running')
@@ -655,7 +655,7 @@ export const AssistantMessage = memo(
                       : 'finalizing consensus...'}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
                 {lanePanelRoles.map((role) => {
                   const result = agentExecution?.results.find((r) => r.roleId === role.id);
                   const stream = agentLaneStreams?.find((lane) => lane.roleId === role.id);
