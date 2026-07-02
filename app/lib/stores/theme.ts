@@ -288,6 +288,7 @@ export function applyThemeToDocument(theme: Theme) {
 
   root.setAttribute('data-theme', theme);
   root.classList.toggle('dark', theme === 'dark');
+  root.classList.toggle('light', theme === 'light');
   root.style.colorScheme = theme;
 
   refreshChromeMeta('theme-color', theme === 'dark' ? '#0a0f1c' : '#f6f8fb');

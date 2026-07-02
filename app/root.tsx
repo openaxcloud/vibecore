@@ -246,6 +246,7 @@ const inlineThemeCode = stripIndents`
 
     root?.setAttribute('data-theme', theme);
     root?.classList.toggle('dark', theme === 'dark');
+    root?.classList.toggle('light', theme === 'light');
     root && (root.style.colorScheme = theme);
     if (publicMarketingRoute) {
       root?.setAttribute('data-ecode-public-chrome', 'homepage');
@@ -318,9 +319,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" suppressHydrationWarning />
         <meta name="apple-mobile-web-app-title" content="E-Code" />
+        {/*
+          The theme boot script must run BEFORE any stylesheet (<Links />) so the
+          resolved data-theme/.light/.dark classes are on <html> for the very
+          first paint — no light/dark flash even on slow CSS.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
         <Meta />
         <Links />
-        <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
       </head>
       <body>
         <div id="root" className="w-full h-full">
