@@ -524,6 +524,30 @@ describe('E-Code agent orchestration', () => {
   });
 
   /*
+   * The persisted AgentRun needs projectId or the consensus panel (which scopes by
+   * run.projectId) finds nothing — so the request body MUST carry it through.
+   */
+  it('threads projectId into the agent-run request body (trimmed, omitted when blank)', () => {
+    const plan = buildAgentOrchestrationPlan({
+      chatMode: 'build',
+      messages: [{ role: 'user', content: COMPLEX_BUILD_PROMPT }],
+      subagentsAvailable: true,
+    });
+
+    expect(
+      buildAgentRunRequestBody({ plan, messages: [{ role: 'user', content: 'Build it.' }], projectId: '  proj_1  ' }),
+    ).toMatchObject({ projectId: 'proj_1' });
+
+    expect(
+      buildAgentRunRequestBody({ plan, messages: [{ role: 'user', content: 'Build it.' }], projectId: '   ' }),
+    ).not.toHaveProperty('projectId');
+
+    expect(buildAgentRunRequestBody({ plan, messages: [{ role: 'user', content: 'Build it.' }] })).not.toHaveProperty(
+      'projectId',
+    );
+  });
+
+  /*
    * Bug: the plan-tier parallel-agent limit ('Up to 2 / 10 parallel agents')
    * was never enforced — every plan always ran all 5 fixed roles.
    */

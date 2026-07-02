@@ -49,12 +49,21 @@ describe('agent executor', () => {
       provider: 'openai',
       model: 'gpt-4.1',
       maxTokens: 900,
+      projectId: 'proj_abc',
     });
 
     expect(request.roles).toEqual([architect]);
     expect(request.messages).toEqual([{ role: 'user', content: 'Build a dashboard app.' }]);
     expect(request.plan).toBe('pro');
     expect(request.maxTokens).toBe(900);
+    // projectId must survive parsing so it can be persisted on the AgentRun (consensus panel scope).
+    expect(request.projectId).toBe('proj_abc');
+  });
+
+  it('leaves projectId undefined when absent or non-string', () => {
+    const base = { mode: 'parallel-subagents', roles: [architect], messages: [{ role: 'user', content: 'Build.' }] };
+    expect(parseAgentRunRequest(base).projectId).toBeUndefined();
+    expect(parseAgentRunRequest({ ...base, projectId: 123 }).projectId).toBeUndefined();
   });
 
   it('rejects invalid requests before execution', () => {

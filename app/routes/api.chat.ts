@@ -320,9 +320,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * checkChatQuota when the api is unreachable; the post-stream
          * recordChatUsage call will still try to charge the ledger.
          */
-        // Turbo / high-power are paid-plan-only premium modes (Replit parity).
-        // Resolved from the quota check's plan below; fail-open (stays true) so an
-        // unknown/degraded plan lookup NEVER blocks a paying user's request.
+        /*
+         * Turbo / high-power are paid-plan-only premium modes (Replit parity).
+         * Resolved from the quota check's plan below; fail-open (stays true) so an
+         * unknown/degraded plan lookup NEVER blocks a paying user's request.
+         */
         let premiumModesEligible = true;
 
         if (projectId) {
@@ -602,9 +604,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           dataStream.writeMessageAnnotation({
             type: 'agentModesGated',
             reason: 'plan',
-            gated: ['turboMode', 'highPowerModel'].filter(
-              (mode) => (agentPower as Record<string, unknown>)[mode],
-            ),
+            gated: ['turboMode', 'highPowerModel'].filter((mode) => (agentPower as Record<string, unknown>)[mode]),
           } as unknown as ContextAnnotation);
         }
 
@@ -787,6 +787,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                    * available here) so one project can't exhaust the global limit.
                    */
                   rateLimitKey: projectId,
+
+                  /*
+                   * Persist this run against the project so the multi-agent consensus
+                   * panel (which scopes by AgentRun.projectId) can actually find it —
+                   * without this every run is saved project-less and the panel is empty.
+                   */
+                  projectId,
 
                   /*
                    * Cancelling the chat must abort the upstream agent-run stream so

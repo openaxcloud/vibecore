@@ -382,6 +382,16 @@ export function buildAgentRunRequestBody(input: {
   provider?: string;
   model?: string;
   rateLimitKey?: string;
+
+  /*
+   * The project this run belongs to. Threaded to the executor so the persisted
+   * AgentRow row gets its projectId FK-equivalent set — the multi-agent consensus
+   * panel scopes its query by AgentRun.projectId, so without this every run is
+   * saved project-less and the panel shows nothing. Distinct from rateLimitKey
+   * (which also happens to carry the project id but is a rate-limit discriminator,
+   * not persisted).
+   */
+  projectId?: string;
 }): {
   mode: AgentOrchestrationMode;
   roles: AgentOrchestrationRole[];
@@ -389,9 +399,11 @@ export function buildAgentRunRequestBody(input: {
   provider?: string;
   model?: string;
   rateLimitKey?: string;
+  projectId?: string;
 } {
   const provider = input.provider?.trim();
   const model = input.model?.trim();
+  const projectId = input.projectId?.trim();
 
   return {
     mode: input.plan.mode,
@@ -403,6 +415,7 @@ export function buildAgentRunRequestBody(input: {
     ...(provider ? { provider } : {}),
     ...(model ? { model } : {}),
     ...(input.rateLimitKey ? { rateLimitKey: input.rateLimitKey } : {}),
+    ...(projectId ? { projectId } : {}),
   };
 }
 
@@ -451,6 +464,9 @@ export async function executeAgentOrchestration(input: {
    * one shared rate-limit bucket.
    */
   rateLimitKey?: string;
+
+  /* Project id persisted on the AgentRun so the consensus panel can find this run. */
+  projectId?: string;
 
   /*
    * Caller-supplied cancellation (e.g. the chat request's AbortSignal). Combined
@@ -504,6 +520,7 @@ export async function executeAgentOrchestration(input: {
           provider: input.provider,
           model: input.model,
           rateLimitKey: input.rateLimitKey,
+          projectId: input.projectId,
         }),
       ),
       signal: fetchSignal,
@@ -606,6 +623,9 @@ export async function executeAgentOrchestrationStream(input: {
   model?: string;
   rateLimitKey?: string;
 
+  /* Project id persisted on the AgentRun so the consensus panel can find this run. */
+  projectId?: string;
+
   /*
    * Caller-supplied cancellation (e.g. the chat request's AbortSignal). Combined
    * with the idle timeout so cancelling mid-stream aborts the upstream SSE
@@ -688,6 +708,7 @@ export async function executeAgentOrchestrationStream(input: {
           provider: input.provider,
           model: input.model,
           rateLimitKey: input.rateLimitKey,
+          projectId: input.projectId,
         }),
       ),
       signal: fetchSignal,

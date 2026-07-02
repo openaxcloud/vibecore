@@ -30,6 +30,7 @@ runDbTests('PrismaAgentRunPersistence (real Postgres)', () => {
       const persistence = new PrismaAgentRunPersistence(prisma);
       const runId = `test-run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+      const projectId = `test-project-${Date.now()}`;
       const request: AgentRunRequest = {
         mode: 'parallel-subagents',
         roles: [
@@ -37,6 +38,7 @@ runDbTests('PrismaAgentRunPersistence (real Postgres)', () => {
           { id: 'qa', title: 'QA', responsibility: 'Plan tests', output: 'JSON' },
         ],
         messages: [{ role: 'user', content: 'Build a feature.' }],
+        projectId,
       };
 
       const response: AgentRunResponse['results'] = [
@@ -72,6 +74,12 @@ runDbTests('PrismaAgentRunPersistence (real Postgres)', () => {
 
       expect(stored).toBeTruthy();
       expect(stored!.status).toBe('COMPLETE');
+      // The consensus panel scopes by run.projectId — it must be persisted, not null.
+      expect(stored!.projectId).toBe(projectId);
+
+      // And the panel's exact query shape must find the record via the parent run.
+      const viaProject = await prisma.consensusRecord.findMany({ where: { run: { projectId } } });
+      expect(viaProject).toHaveLength(1);
       expect(stored!.results).toHaveLength(2);
       expect(stored!.consensus).toBeTruthy();
       expect(stored!.consensus!.algorithm).toBe('QUORUM');

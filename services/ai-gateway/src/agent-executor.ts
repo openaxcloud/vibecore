@@ -35,6 +35,14 @@ export interface AgentRunRequest {
    * persistence FK column.
    */
   rateLimitKey?: string;
+
+  /*
+   * The project this run belongs to. Persisted on the AgentRun row (nullable, no
+   * FK) so the multi-agent consensus panel — which scopes its query by
+   * AgentRun.projectId — can surface the run. Without it every run is saved
+   * project-less and the panel stays empty.
+   */
+  projectId?: string;
   plan?: AiChatRequest['plan'];
   provider?: AiChatRequest['provider'];
   model?: string;
@@ -407,6 +415,7 @@ export function parseAgentRunRequest(value: unknown): AgentRunRequest {
     messages,
     organizationId: typeof value.organizationId === 'string' ? value.organizationId : undefined,
     rateLimitKey: typeof value.rateLimitKey === 'string' ? value.rateLimitKey : undefined,
+    projectId: typeof value.projectId === 'string' ? value.projectId : undefined,
     plan: typeof value.plan === 'string' ? (value.plan as AgentRunRequest['plan']) : undefined,
     provider: typeof value.provider === 'string' ? (value.provider as AgentRunRequest['provider']) : undefined,
     model: typeof value.model === 'string' ? value.model : undefined,

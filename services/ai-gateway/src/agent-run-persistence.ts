@@ -61,6 +61,14 @@ export class PrismaAgentRunPersistence implements AgentRunPersistence {
         data: {
           id: runId,
           organizationId,
+
+          /*
+           * Persist the owning project so the consensus panel can find this run
+           * (it queries ConsensusRecord where run.projectId === the open project).
+           * projectId is a plain nullable column (no FK), so an unknown id can't
+           * raise a P2003 — write it as-is, or null when absent.
+           */
+          projectId: request.projectId && request.projectId.length > 0 ? request.projectId : null,
           mode: request.mode,
           status: mapRunStatus(response.status),
           rolesPlanned: request.roles.map((role) => ({
