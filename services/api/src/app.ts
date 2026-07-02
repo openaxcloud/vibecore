@@ -976,6 +976,15 @@ const runtimeCommandSchema = z.object({
   args: z.array(z.string()).optional(),
   timeoutMs: z.number().int().positive().optional(),
 });
+const packagesInstallSchema = z.object({
+  // Zero packages runs a plain lockfile install; otherwise these get added.
+  packages: z.array(z.string().trim().min(1)).max(50).optional(),
+  dev: z.boolean().optional(),
+
+  // Optional override; when omitted the manager is detected from the lockfile.
+  packageManager: z.enum(['npm', 'pnpm', 'yarn', 'bun']).optional(),
+  timeoutMs: z.number().int().positive().max(600_000).optional(),
+});
 const domainSchema = z.object({
   domain: z
     .string()
@@ -5530,6 +5539,63 @@ function summarizeProjectPackages(files: ProjectFile[]) {
     dependencies: dependencies.sort((left, right) => left.name.localeCompare(right.name)),
     lockfiles,
   };
+}
+
+/*
+ * npm package-spec validation. Accepts a bare name (`react`), a scoped name
+ * (`@scope/pkg`), and an optional version/tag/range suffix (`react@18`,
+ * `@scope/pkg@^1.2.3`). Rejects anything with shell metacharacters, path
+ * traversal, or flag-injection so the value can never break out of the argv
+ * array we hand to the runtime shell-exec (which already runs with shell:false).
+ */
+const packageSpecPattern = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*(@[^\s]+)?$/i;
+
+function isValidPackageSpec(spec: string): boolean {
+  if (spec.length === 0 || spec.length > 214 || spec.startsWith('-')) {
+    return false;
+  }
+
+  if (/[\s;&|`$(){}<>\\'"]/.test(spec)) {
+    return false;
+  }
+
+  return packageSpecPattern.test(spec);
+}
+
+/*
+ * Build the install argv for the detected package manager. With no explicit
+ * packages this runs a plain lockfile install (`npm install` / `pnpm install`
+ * / …); with packages it adds them to the manifest (`npm install <pkgs>` /
+ * `pnpm add <pkgs>` / …). Returned as { command, args } so it drops straight
+ * into runtimeCommandSchema and the SAME /commands/run dispatch every other
+ * runtime shell surface uses — no new execution path.
+ */
+function buildInstallCommand(
+  manager: ProjectPackageManager,
+  packages: string[],
+  options: { dev?: boolean } = {},
+): { command: string; args: string[] } {
+  const hasPackages = packages.length > 0;
+
+  if (manager === 'pnpm') {
+    const args = hasPackages ? ['add', ...(options.dev ? ['-D'] : []), ...packages] : ['install'];
+    return { command: 'pnpm', args };
+  }
+
+  if (manager === 'yarn') {
+    const args = hasPackages ? ['add', ...(options.dev ? ['--dev'] : []), ...packages] : ['install'];
+    return { command: 'yarn', args };
+  }
+
+  if (manager === 'bun') {
+    const args = hasPackages ? ['add', ...(options.dev ? ['-d'] : []), ...packages] : ['install'];
+    return { command: 'bun', args };
+  }
+
+  // npm (default)
+  const args = hasPackages ? ['install', ...(options.dev ? ['--save-dev'] : []), ...packages] : ['install'];
+
+  return { command: 'npm', args };
 }
 
 interface AgentNode {
@@ -15821,6 +15887,154 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       recentActivity: await store.listProjectActivity(project.id, { limit: 20, order: 'desc' }),
       ...summarizeProjectPackages(files),
     };
+  });
+
+  /*
+   * Execute a real dependency install inside the project's own isolated
+   * workspace pod. This is the "install, not just plan" action for the IDE
+   * Packages panel: it detects the package manager from the lockfile/manifest,
+   * builds the install argv, and dispatches it through the SAME per-project
+   * runtime shell-exec (/commands/run) that Workflows and the terminal use —
+   * no new execution path, no shared pod. Scoped by projectId and gated with
+   * the same 'projects:write' mutation permission as other project writes;
+   * authorizeRuntimeWorkspace then resolves the caller's deterministic
+   * per-user workspace id so the command lands only in this tenant's pod.
+   */
+  app.post('/projects/:projectId/packages/install', async (request, reply) => {
+    const projectId = parse(projectParams, request.params).projectId;
+
+    // Gate exactly like other project mutations before touching the runtime.
+    await requireProject(request, store, projectId, 'projects:write');
+
+    const body = parse(packagesInstallSchema, request.body ?? {});
+
+    /*
+     * Validate every requested spec up-front; reject the whole batch on any bad
+     * entry so nothing that could break argv boundaries reaches the shell-exec.
+     */
+    const packages = (body.packages ?? []).map((entry) => entry.trim()).filter((entry) => entry.length > 0);
+    const invalid = packages.filter((entry) => !isValidPackageSpec(entry));
+
+    if (invalid.length > 0) {
+      throw Object.assign(new Error(`Invalid package name(s): ${invalid.join(', ')}`), {
+        statusCode: 400,
+        code: 'INVALID_PACKAGE_SPEC',
+      });
+    }
+
+    // Resolve to the project's dedicated per-user workspace pod (never shared).
+    const authorized = await authorizeRuntimeWorkspace(request, projectId, 'workspaces:write');
+
+    if (await isTerminalAccessRevoked(authorized, request)) {
+      throw Object.assign(new Error('Terminal access is restricted for this project role'), {
+        statusCode: 403,
+        code: 'TERMINAL_ACCESS_DENIED',
+      });
+    }
+
+    /*
+     * Detect the package manager from the project's manifests/lockfiles unless
+     * the caller explicitly pinned one. Merge the persisted storage view with
+     * the live runtime tree's package.json/lockfiles — exactly like the GET
+     * packages route — so a lockfile created inside the running pod (the real
+     * source of truth for what install will use) drives the decision.
+     */
+    const filesByPath = new Map(
+      (await listProjectFilesIncludingIdeState(store, projectStorage, authorized.projectId)).map((file) => [
+        file.path,
+        file,
+      ]),
+    );
+
+    try {
+      const nodes = await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree');
+
+      const runtimePackageFiles = flattenRuntimeFiles(nodes).filter((file) => {
+        const basename = file.path.split('/').pop() ?? '';
+        return (
+          (basename === 'package.json' || packageLockFiles.includes(basename)) &&
+          !file.path.includes('node_modules/') &&
+          !file.path.includes('.vite/')
+        );
+      });
+
+      for (const file of runtimePackageFiles) {
+        const basename = file.path.split('/').pop() ?? '';
+        filesByPath.set(file.path, {
+          path: file.path,
+          content: basename === 'bun.lockb' ? '' : await agentFileContent(authorized.workspaceId, file.path),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    } catch {
+      // Storage view remains authoritative when the runtime is not reachable.
+    }
+
+    const projectFiles = [...filesByPath.values()];
+    const { manifests } = summarizeProjectPackages(projectFiles);
+    const manager = body.packageManager ?? detectPackageManager(projectFiles, manifests);
+    const { command, args } = buildInstallCommand(manager, packages, { dev: body.dev });
+
+    const commandBody: z.infer<typeof runtimeCommandSchema> = {
+      command,
+      args,
+      timeoutMs: body.timeoutMs ?? 300_000,
+    };
+
+    // Same abuse gate the raw runtime-command endpoint enforces.
+    const signal = detectCommandAbuse(commandBody.command, commandBody.args);
+
+    if (signal) {
+      await recordAbuseSignal(request, store, {
+        organizationId: authorized.organizationId,
+        userId: request.currentUser!.id,
+        workspaceId: authorized.workspaceId,
+        type: signal.type,
+        severity: signal.severity,
+        reason: signal.reason,
+        action: signal.action,
+      });
+      throw Object.assign(new Error('Command blocked by abuse prevention policy'), {
+        statusCode: 409,
+        code: `ABUSE_${signal.type.toUpperCase()}`,
+      });
+    }
+
+    let result: { code: number; stdout?: string; stderr?: string; localRuntime?: boolean };
+
+    try {
+      result = await agentRequest<{ code: number; stdout?: string; stderr?: string }>(
+        authorized.workspaceId,
+        '/commands/run',
+        { method: 'POST', body: JSON.stringify(commandBody) },
+      );
+    } catch (error) {
+      if (!shouldUseLocalRuntimeFallback(error)) {
+        throw error;
+      }
+
+      result = await runLocalRuntimeCommand(authorized, commandBody);
+    }
+
+    const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+    const exitCode = result.code ?? 0;
+
+    return reply.code(201).send({
+      projectId: authorized.projectId,
+      workspaceId: authorized.workspaceId,
+      packageManager: manager,
+      packages,
+      command: [command, ...args].join(' '),
+      exitCode,
+      success: exitCode === 0,
+      output,
+      localRuntime: result.localRuntime === true,
+      events: [
+        ...(result.stdout ? [{ type: 'stdout', data: result.stdout, timestamp: new Date().toISOString() }] : []),
+        ...(result.stderr ? [{ type: 'stderr', data: result.stderr, timestamp: new Date().toISOString() }] : []),
+        { type: 'exit', exitCode, timestamp: new Date().toISOString() },
+      ],
+    });
   });
   app.get('/projects/:projectId/homepage-preview.svg', async (request, reply) => {
     const project = await requireProject(
