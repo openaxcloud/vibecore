@@ -1063,6 +1063,15 @@ exports.Prisma.NotificationScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.NewsletterSubscriberScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  source: 'source',
+  createdAt: 'createdAt',
+  confirmedAt: 'confirmedAt',
+  unsubscribedAt: 'unsubscribedAt'
+};
+
 exports.Prisma.IntegrationFeatureRequestScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1437,6 +1446,7 @@ exports.Prisma.ModelName = {
   OrganizationConnectorPolicy: 'OrganizationConnectorPolicy',
   ReconnectionAlert: 'ReconnectionAlert',
   Notification: 'Notification',
+  NewsletterSubscriber: 'NewsletterSubscriber',
   IntegrationFeatureRequest: 'IntegrationFeatureRequest',
   EmailDeliveryEvent: 'EmailDeliveryEvent',
   CreditWallet: 'CreditWallet',

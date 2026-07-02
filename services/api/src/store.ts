@@ -979,6 +979,12 @@ export interface ApiStore {
     gitDefaultBranch?: string;
   }): Promise<ProjectRecord>;
   listProjects(organizationId: string, options?: { includeArchived?: boolean }): Promise<ProjectRecord[]>;
+
+  /**
+   * Idempotent public newsletter opt-in: creates the subscriber, re-activates a
+   * previously-unsubscribed address, and reports an already-active one.
+   */
+  subscribeNewsletter(input: { email: string; source?: string }): Promise<{ alreadySubscribed: boolean }>;
   countProjects(organizationId: string): Promise<number>;
   softDeleteProject(projectId: string): Promise<ProjectRecord>;
   restoreProject(projectId: string): Promise<ProjectRecord>;

@@ -1587,6 +1587,18 @@ model Notification {
   @@index([userId, readAt, createdAt])
 }
 
+model NewsletterSubscriber {
+  id             String    @id @default(cuid())
+  /// Normalized (lowercased, trimmed) address; unique so re-subscribing is an
+  /// idempotent upsert rather than a duplicate row.
+  email          String    @unique
+  /// Where the subscription came from ("footer", "newsletter-page", ...).
+  source         String    @default("footer")
+  createdAt      DateTime  @default(now())
+  confirmedAt    DateTime?
+  unsubscribedAt DateTime?
+}
+
 model IntegrationFeatureRequest {
   id                 String   @id @default(cuid())
   userId             String

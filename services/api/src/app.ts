@@ -326,6 +326,11 @@ const contactSalesSchema = z.object({
   requirements: z.string().min(1),
 });
 
+const newsletterSubscribeSchema = z.object({
+  email: z.string().email().max(320),
+  source: z.string().max(64).optional(),
+});
+
 /*
  * Supported BCP-47 primary language tags. Kept narrow to match the bundles
  * shipped by `app/lib/i18n/messages/` — adding a language is a coordinated
@@ -7333,6 +7338,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
   );
 
+  /*
+   * Public newsletter opt-in behind the marketing footer mini-form. Idempotent:
+   * an existing subscriber is reported as such and a previously-unsubscribed
+   * address is quietly re-activated. Rate-limited like /contact-sales.
+   */
+  app.post(
+    '/newsletter/subscribe',
+    { config: { rateLimit: { max: Number(process.env.NEWSLETTER_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = parse(newsletterSubscribeSchema, request.body);
+      const result = await store.subscribeNewsletter({ email: body.email, source: body.source ?? 'footer' });
+
+      return reply.code(202).send({ ok: true, alreadySubscribed: result.alreadySubscribed });
+    },
+  );
+
   app.post(
     '/auth/register',
     {
@@ -8205,6 +8226,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/auth/oidc') ||
       request.url.startsWith('/auth/saml') ||
       request.url.startsWith('/contact-sales') ||
+      request.url.startsWith('/newsletter/subscribe') ||
       request.url.startsWith('/billing/stripe/webhook') ||
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||

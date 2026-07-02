@@ -831,6 +831,20 @@ export class PrismaApiStore implements ApiStore {
     return this.prisma.project.count({ where: { organizationId, deletedAt: null } });
   }
 
+  async subscribeNewsletter(input: { email: string; source?: string }) {
+    const email = input.email.trim().toLowerCase();
+    const existing = await this.prisma.newsletterSubscriber.findUnique({ where: { email } });
+
+    // Upsert (not create) so a concurrent duplicate submit can't P2002-500.
+    await this.prisma.newsletterSubscriber.upsert({
+      where: { email },
+      create: { email, source: input.source ?? 'footer' },
+      update: { unsubscribedAt: null },
+    });
+
+    return { alreadySubscribed: Boolean(existing && !existing.unsubscribedAt) };
+  }
+
   async softDeleteProject(projectId: string) {
     return mapProject(await this.prisma.project.update({ where: { id: projectId }, data: { deletedAt: new Date() } }));
   }

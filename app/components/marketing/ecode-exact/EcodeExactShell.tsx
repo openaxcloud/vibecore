@@ -19,6 +19,7 @@ import {
   Youtube,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useFetcher } from 'react-router';
 import { Badge, Button, cn, Link, useMarketingNavigate, useWouterLocation } from './EcodeExactUi';
 import { publicChromeUserChoseDark, resolvePublicChromeTheme } from './ecode-public-theme';
 import { getThemeSwitcherPresentation } from './theme-switcher-presentation';
@@ -810,7 +811,10 @@ export function EcodeExactPublicFooter() {
 
           <nav aria-label="Footer navigation" className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <FooterColumn title="Product" links={footerLinks.product} />
-            <FooterColumn title="Resources" links={footerLinks.resources} />
+            <div>
+              <FooterColumn title="Resources" links={footerLinks.resources} />
+              <NewsletterMiniForm />
+            </div>
             <FooterColumn title="Company" links={footerLinks.company} />
             <FooterColumn title="Legal" links={footerLinks.legal} />
             <div className="sm:col-span-2 lg:col-span-4">
@@ -915,6 +919,65 @@ function FooterColumn({ title, links }: { title: string; links: readonly { label
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/*
+ * Footer newsletter opt-in (Resources column). Posts to the /newsletter route
+ * action, which proxies to the public API subscribe endpoint. Includes a
+ * honeypot field bots fill and humans never see.
+ */
+function NewsletterMiniForm() {
+  const fetcher = useFetcher<{ ok?: boolean; error?: string }>();
+  const submitting = fetcher.state !== 'idle';
+  const succeeded = fetcher.data?.ok === true;
+
+  return (
+    <div className="mt-8">
+      <h4 className="text-[13px] font-semibold uppercase tracking-[0.3em] text-[var(--ecode-text-muted)] dark:text-slate-400">
+        Newsletter
+      </h4>
+      {succeeded ? (
+        <p className="mt-4 text-[13px]" style={{ color: 'var(--status-success-text)' }}>
+          You&apos;re subscribed — watch your inbox.
+        </p>
+      ) : (
+        <fetcher.Form method="post" action="/newsletter" className="mt-4">
+          <div className="flex flex-col gap-2">
+            <input
+              type="email"
+              name="email"
+              required
+              autoComplete="email"
+              placeholder="you@company.com"
+              aria-label="Email address"
+              disabled={submitting}
+              className="w-full rounded-md border border-[var(--ecode-border)] dark:border-border bg-[var(--ecode-surface-secondary)] dark:bg-surface-solid px-3 py-2 text-[16px] text-[var(--ecode-text)] dark:text-slate-100 placeholder:text-[var(--ecode-text-muted)] outline-none"
+            />
+            <input
+              type="text"
+              name="company"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              className="pointer-events-none absolute h-0 w-0 opacity-0"
+            />
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="w-full min-h-[40px] bg-ecode-accent hover:bg-ecode-accent-hover text-white"
+            >
+              {submitting ? 'Subscribing…' : 'Subscribe'}
+            </Button>
+          </div>
+          {fetcher.data && fetcher.data.ok === false ? (
+            <p className="mt-2 text-[12px]" style={{ color: 'var(--status-error-text)' }}>
+              {fetcher.data.error ?? 'Subscription failed. Please try again.'}
+            </p>
+          ) : null}
+        </fetcher.Form>
+      )}
     </div>
   );
 }

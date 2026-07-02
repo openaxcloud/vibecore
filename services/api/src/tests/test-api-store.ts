@@ -570,6 +570,21 @@ export class TestApiStore implements ApiStore {
     return (await this.listProjects(organizationId)).length;
   }
 
+  newsletterSubscribers = new Map<string, { email: string; source: string; unsubscribedAt: string | null }>();
+
+  async subscribeNewsletter(input: { email: string; source?: string }) {
+    const email = input.email.trim().toLowerCase();
+    const existing = this.newsletterSubscribers.get(email);
+
+    this.newsletterSubscribers.set(email, {
+      email,
+      source: existing?.source ?? input.source ?? 'footer',
+      unsubscribedAt: null,
+    });
+
+    return { alreadySubscribed: Boolean(existing && !existing.unsubscribedAt) };
+  }
+
   async softDeleteProject(projectId: string) {
     const project = await this.updateProject({ projectId });
     project.deletedAt = now();
