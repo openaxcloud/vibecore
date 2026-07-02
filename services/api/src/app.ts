@@ -263,6 +263,13 @@ export interface ApiAppOptions {
    * build command on the host. Tests inject a deterministic implementation.
    */
   staticBuildRunner?: typeof runStaticBuild;
+
+  /**
+   * Override the platform Prometheus registry. Production/dev create a fresh one;
+   * tests inject a shared registry so they can record known metrics and then
+   * assert the `/admin/platform-metrics` JSON reflects them.
+   */
+  metricsRegistry?: ReturnType<typeof createPrometheusRegistry>;
 }
 
 function createDefaultStore() {
@@ -6711,7 +6718,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * row and broadcasts a false presence.leave, making a connected user vanish.
    */
   const collaborationPresenceOwners = new Map<string, CollaborationSocket>();
-  const metrics = createPrometheusRegistry();
+  const metrics = options.metricsRegistry ?? createPrometheusRegistry();
   const sentry = createSentryReporter({ environment: process.env.NODE_ENV, release: process.env.SENTRY_RELEASE });
   const localRuntimeProcesses = new Map<string, Map<string, LocalRuntimeProcess>>();
 
@@ -7194,6 +7201,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/metrics', async (_request, reply) =>
     reply.header('content-type', 'text/plain; version=0.0.4; charset=utf-8').send(metrics.render()),
   );
+  /*
+   * Structured JSON view of the SAME live Prometheus registry that `/metrics`
+   * exposes, for the admin Monitoring dashboard. Platform-admin only. Reading
+   * the registry objects directly (registry.toJSON()) avoids re-scraping and
+   * re-parsing the text exposition on every dashboard poll.
+   */
+  app.get('/admin/platform-metrics', async (request) => {
+    await requirePlatformAdmin(request);
+    return metrics.toJSON();
+  });
   app.get('/synthetic/health', async () => ({
     status: 'ok',
     checks: {

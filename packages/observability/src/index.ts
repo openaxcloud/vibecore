@@ -73,6 +73,82 @@ type HistogramValue = {
   sum: number;
 };
 
+/**
+ * Structured, JSON-serialisable view of a single metric. This is what the admin
+ * Monitoring dashboard consumes: instead of re-scraping and re-parsing the
+ * Prometheus text exposition, callers read the live registry objects directly.
+ */
+export type MetricSampleJson = {
+  labels: Record<string, string>;
+  value: number;
+};
+
+export type HistogramSampleJson = {
+  labels: Record<string, string>;
+  count: number;
+  sum: number;
+  /** Cumulative bucket counts keyed by the upper bound (`le`). */
+  buckets: Array<{ le: number; count: number }>;
+  /** Estimated quantiles from bucket interpolation (undefined when no observations). */
+  p50?: number;
+  p95?: number;
+  p99?: number;
+  /** Arithmetic mean of observations (sum / count), undefined when no observations. */
+  avg?: number;
+};
+
+export type MetricJson = {
+  name: string;
+  help: string;
+  type: MetricDefinition['type'];
+  /** True when no sample has ever been recorded for this metric. */
+  empty: boolean;
+  /** Sum of all series values (counters/gauges) — a quick headline number. */
+  total?: number;
+  /** Per-label-set series for counters and gauges. */
+  samples?: MetricSampleJson[];
+  /** Per-label-set histogram series (histograms only). */
+  histograms?: HistogramSampleJson[];
+};
+
+export type RegistrySnapshotJson = {
+  generatedAt: string;
+  metrics: MetricJson[];
+};
+
+/**
+ * Estimate a quantile from cumulative histogram buckets via linear interpolation
+ * within the containing bucket. Returns undefined when there are no observations.
+ * Mirrors the intent of Prometheus `histogram_quantile` for a single series.
+ */
+function estimateQuantile(buckets: Array<{ le: number; count: number }>, total: number, quantile: number) {
+  if (total <= 0 || buckets.length === 0) {
+    return undefined;
+  }
+
+  const rank = quantile * total;
+  let previousLe = 0;
+  let previousCount = 0;
+
+  for (const bucket of buckets) {
+    if (bucket.count >= rank) {
+      const bucketCount = bucket.count - previousCount;
+
+      if (bucketCount <= 0) {
+        return bucket.le;
+      }
+
+      const fraction = (rank - previousCount) / bucketCount;
+      return previousLe + (bucket.le - previousLe) * fraction;
+    }
+
+    previousLe = bucket.le;
+    previousCount = bucket.count;
+  }
+
+  return buckets[buckets.length - 1]?.le;
+}
+
 export class PrometheusRegistry {
   #definitions = new Map<string, MetricDefinition>();
   #samples = new Map<string, SampleValue>();
@@ -171,6 +247,71 @@ export class PrometheusRegistry {
     }
 
     return `${lines.join('\n')}\n`;
+  }
+
+  /**
+   * Structured JSON snapshot of every defined metric with its current values and
+   * per-label-set breakdowns. Reads the live in-memory series directly (no text
+   * re-parse), so the admin dashboard sees exactly what `/metrics` exposes.
+   */
+  toJSON(): RegistrySnapshotJson {
+    const metrics: MetricJson[] = [];
+
+    for (const definition of this.#definitions.values()) {
+      if (definition.type === 'histogram') {
+        const entries = [...this.#histograms.entries()].filter(
+          ([key]) => key === definition.name || key.startsWith(`${definition.name}{`),
+        );
+
+        const histograms: HistogramSampleJson[] = entries.map(([, histogram]) => {
+          const buckets = [...histogram.buckets.entries()]
+            .sort(([left], [right]) => left - right)
+            .map(([le, count]) => ({ le, count }));
+          // Include the implicit +Inf bucket (total count) for quantile math.
+          const cumulative = [...buckets, { le: Number.POSITIVE_INFINITY, count: histogram.count }];
+
+          return {
+            labels: histogram.labels,
+            count: histogram.count,
+            sum: histogram.sum,
+            buckets,
+            p50: estimateQuantile(cumulative, histogram.count, 0.5),
+            p95: estimateQuantile(cumulative, histogram.count, 0.95),
+            p99: estimateQuantile(cumulative, histogram.count, 0.99),
+            avg: histogram.count > 0 ? histogram.sum / histogram.count : undefined,
+          };
+        });
+
+        metrics.push({
+          name: definition.name,
+          help: definition.help,
+          type: definition.type,
+          empty: histograms.length === 0 || histograms.every((h) => h.count === 0),
+          histograms,
+        });
+        continue;
+      }
+
+      const entries = [...this.#samples.entries()].filter(
+        ([key]) => key === definition.name || key.startsWith(`${definition.name}{`),
+      );
+
+      const samples: MetricSampleJson[] = entries.map(([, sample]) => ({
+        labels: sample.labels,
+        value: sample.value,
+      }));
+
+      metrics.push({
+        name: definition.name,
+        help: definition.help,
+        type: definition.type,
+        empty: samples.length === 0,
+        total: samples.reduce((accumulator, sample) => accumulator + sample.value, 0),
+        samples,
+      });
+    }
+
+    return { generatedAt: new Date().toISOString(), metrics };
   }
 
   #assertType(name: string, type: MetricDefinition['type']) {

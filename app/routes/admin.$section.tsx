@@ -322,9 +322,10 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     const liveProbe = url.searchParams.get('probe') === '1';
     const providerHealthPath = `/admin/provider-health${liveProbe ? '?probe=1' : ''}`;
 
-    const [costs, providerHealth] = await Promise.allSettled([
+    const [costs, providerHealth, platformMetrics] = await Promise.allSettled([
       apiRequest<Record<string, JsonValue>>(request, '/admin/costs'),
       apiRequest<Record<string, JsonValue>>(request, providerHealthPath),
+      apiRequest<Record<string, JsonValue>>(request, '/admin/platform-metrics'),
     ]);
 
     const payload: Record<string, JsonValue> = {
@@ -332,6 +333,8 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       providers: providerHealth.status === 'fulfilled' ? (providerHealth.value.providers ?? []) : [],
       providerHealthError: providerHealth.status === 'rejected',
       costsError: costs.status === 'rejected',
+      platformMetrics: platformMetrics.status === 'fulfilled' ? platformMetrics.value : null,
+      platformMetricsError: platformMetrics.status === 'rejected',
       liveProbe,
     };
 
@@ -978,6 +981,15 @@ const MonitoringCharts = {
   CostByOrgChart: React.lazy(() =>
     import('~/components/admin/MonitoringCharts').then((m) => ({ default: m.CostByOrgChart })),
   ),
+  CategoryBarChart: React.lazy(() =>
+    import('~/components/admin/MonitoringCharts').then((m) => ({ default: m.CategoryBarChart })),
+  ),
+  GroupedBarChart: React.lazy(() =>
+    import('~/components/admin/MonitoringCharts').then((m) => ({ default: m.GroupedBarChart })),
+  ),
+  HistogramBucketChart: React.lazy(() =>
+    import('~/components/admin/MonitoringCharts').then((m) => ({ default: m.HistogramBucketChart })),
+  ),
 };
 
 const DEV_TOOLS = [
@@ -1153,6 +1165,82 @@ type ProviderHealthRow = {
 
 const usd = (cents: number) => `$${(cents / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 
+/*
+ * Structured shape returned by GET /admin/platform-metrics, which reads the SAME
+ * live Prometheus registry that /metrics exposes (packages/observability
+ * registry.toJSON()). Every series here is a real recorded metric — workspace
+ * lifecycle, queue depth, error counters, request-latency histograms, AI tokens.
+ */
+type PlatformMetricSample = { labels: Record<string, string>; value: number };
+type PlatformHistogramSample = {
+  labels: Record<string, string>;
+  count: number;
+  sum: number;
+  buckets: Array<{ le: number; count: number }>;
+  p50?: number;
+  p95?: number;
+  p99?: number;
+  avg?: number;
+};
+type PlatformMetric = {
+  name: string;
+  help: string;
+  type: 'counter' | 'gauge' | 'histogram';
+  empty: boolean;
+  total?: number;
+  samples?: PlatformMetricSample[];
+  histograms?: PlatformHistogramSample[];
+};
+type PlatformMetricsSnapshot = { generatedAt: string; metrics: PlatformMetric[] };
+
+/** Human-readable value for a single label set (drops empties, joins the rest). */
+function labelKey(labels: Record<string, string>, preferred?: string): string {
+  if (preferred && labels[preferred]) {
+    return labels[preferred];
+  }
+
+  const parts = Object.entries(labels)
+    .filter(([, value]) => value !== '')
+    .map(([key, value]) => `${key}=${value}`);
+
+  return parts.length > 0 ? parts.join(', ') : '(no labels)';
+}
+
+/** Find a metric by name in the snapshot; undefined when the registry never defined it. */
+function findMetric(snapshot: PlatformMetricsSnapshot | null, name: string): PlatformMetric | undefined {
+  return snapshot?.metrics.find((metric) => metric.name === name);
+}
+
+/** True when the metric exists and has at least one recorded observation. */
+function hasData(metric: PlatformMetric | undefined): boolean {
+  return Boolean(metric && !metric.empty);
+}
+
+/** Turn a counter/gauge metric's per-label samples into a {labels, values} series. */
+function metricSeries(metric: PlatformMetric | undefined, preferredLabel?: string, limit = 12): Labeled {
+  if (!metric?.samples) {
+    return { labels: [], values: [] };
+  }
+
+  const sorted = [...metric.samples].sort((a, b) => b.value - a.value).slice(0, limit);
+
+  return {
+    labels: sorted.map((sample) => labelKey(sample.labels, preferredLabel)),
+    values: sorted.map((sample) => sample.value),
+  };
+}
+
+/** Sum a metric's series values (headline number for counters/gauges). */
+function metricTotal(metric: PlatformMetric | undefined): number {
+  if (typeof metric?.total === 'number') {
+    return metric.total;
+  }
+
+  return (metric?.samples ?? []).reduce((accumulator, sample) => accumulator + sample.value, 0);
+}
+
+type Labeled = { labels: string[]; values: number[] };
+
 /** Group a list into { key → summed number } via a value selector, returning the top N descending. */
 function topGroups<T>(
   rows: T[],
@@ -1177,6 +1265,11 @@ function MonitoringPanel({ payload }: { payload: Record<string, JsonValue> }) {
   const usageEvents = (Array.isArray(payload.usage) ? payload.usage : []) as Array<{ quantity?: number }>;
   const providers = (Array.isArray(payload.providers) ? payload.providers : []) as ProviderHealthRow[];
   const liveProbe = payload.liveProbe === true;
+
+  const platformMetrics =
+    payload.platformMetrics && typeof payload.platformMetrics === 'object' && !Array.isArray(payload.platformMetrics)
+      ? (payload.platformMetrics as unknown as PlatformMetricsSnapshot)
+      : null;
 
   const totalCostCents =
     typeof payload.aiCostCents === 'number'
@@ -1241,6 +1334,13 @@ function MonitoringPanel({ payload }: { payload: Record<string, JsonValue> }) {
           Cost metrics are temporarily unavailable. Provider health below is unaffected.
         </div>
       ) : null}
+
+      {/* Real platform observability from the live Prometheus registry. */}
+      <PlatformMetricsSection
+        snapshot={platformMetrics}
+        errored={payload.platformMetricsError === true}
+        chartFallback={chartFallback}
+      />
 
       {/* KPI cards — collapse 4 → 2 → 1 col on narrower viewports. */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -1350,6 +1450,293 @@ function MonitoringPanel({ payload }: { payload: Record<string, JsonValue> }) {
         )}
       </SectionCard>
     </>
+  );
+}
+
+/*
+ * Real platform observability, sourced from the live Prometheus registry via
+ * GET /admin/platform-metrics (which reads the SAME registry objects /metrics
+ * renders — no re-scrape, no mocks). We surface the operationally important
+ * families the dashboard previously collected but never visualized: workspace
+ * lifecycle (starts vs failures + cold-start latency), queue depth per queue,
+ * error rates by type, request-latency histogram (p50/p95/p99), and AI tokens.
+ *
+ * Only metrics that ACTUALLY have recorded data render a chart; anything the
+ * registry defines but has never observed is shown as an explicit "no data"
+ * card, so an operator can tell "healthy/idle" apart from "not wired".
+ */
+function PlatformMetricsSection({
+  snapshot,
+  errored,
+  chartFallback,
+}: {
+  snapshot: PlatformMetricsSnapshot | null;
+  errored: boolean;
+  chartFallback: React.ReactNode;
+}) {
+  if (errored || !snapshot) {
+    return (
+      <SectionCard title="Platform metrics" icon="health">
+        <p className="text-sm text-bolt-elements-textSecondary">
+          Live platform metrics are temporarily unavailable (the /admin/platform-metrics probe did not respond). Cost
+          and provider health below are unaffected.
+        </p>
+      </SectionCard>
+    );
+  }
+
+  // --- Workspace lifecycle -------------------------------------------------
+  const starts = findMetric(snapshot, 'workspace_starts_total');
+  const failures = findMetric(snapshot, 'workspace_failures_total');
+  const startLatency = findMetric(snapshot, 'workspace_start_latency_seconds');
+  const activeWorkspaces = findMetric(snapshot, 'active_workspaces');
+  const startsTotal = metricTotal(starts);
+  const failuresTotal = metricTotal(failures);
+  const startLatencyHist = startLatency?.histograms?.[0];
+  const successRate = startsTotal > 0 ? ((startsTotal - failuresTotal) / startsTotal) * 100 : undefined;
+
+  // Grouped starts-vs-failures per outcome/reason label bucket (union of labels).
+  const lifecycleSeries = (() => {
+    if (!hasData(starts) && !hasData(failures)) {
+      return null;
+    }
+
+    const startsByLabel = new Map((starts?.samples ?? []).map((s) => [labelKey(s.labels), s.value]));
+    const failsByLabel = new Map((failures?.samples ?? []).map((s) => [labelKey(s.labels), s.value]));
+    const labels = [...new Set([...startsByLabel.keys(), ...failsByLabel.keys()])].slice(0, 10);
+
+    return {
+      labels,
+      datasets: [
+        { label: 'Starts', values: labels.map((l) => startsByLabel.get(l) ?? 0), colorIndex: 2 },
+        { label: 'Failures', values: labels.map((l) => failsByLabel.get(l) ?? 0), colorIndex: 4 },
+      ],
+    };
+  })();
+
+  // --- Queue depth ---------------------------------------------------------
+  const queueDepth = findMetric(snapshot, 'queue_depth');
+  const queueSeries = metricSeries(queueDepth, 'queue');
+
+  // --- Error rates by type -------------------------------------------------
+  const apiErrors = findMetric(snapshot, 'api_errors_total');
+  const errorSeries = metricSeries(apiErrors, 'type');
+  const jobFailures = findMetric(snapshot, 'job_failures_total');
+  const podFailures = findMetric(snapshot, 'kubernetes_pod_failures_total');
+  const aiErrors = findMetric(snapshot, 'ai_provider_errors_total');
+  const authFailures = findMetric(snapshot, 'auth_failures_total');
+
+  // --- Request latency histogram ------------------------------------------
+  const requestLatency = findMetric(snapshot, 'api_request_duration_seconds');
+  const latencyHist = requestLatency?.histograms?.[0];
+
+  const latencyBuckets = latencyHist
+    ? {
+        labels: latencyHist.buckets.map((b) => (b.le >= 1 ? `${b.le}s` : `${Math.round(b.le * 1000)}ms`)),
+        values: latencyHist.buckets.map((b) => b.count),
+      }
+    : { labels: [], values: [] };
+
+  // --- AI tokens -----------------------------------------------------------
+  const aiTokens = findMetric(snapshot, 'ai_tokens_total');
+  const aiTokensSeries = metricSeries(aiTokens, 'provider');
+
+  const secs = (value: number | undefined) =>
+    typeof value === 'number' ? (value >= 1 ? `${value.toFixed(2)}s` : `${Math.round(value * 1000)}ms`) : 'no data';
+
+  return (
+    <SectionCard title="Platform metrics (live registry)" icon="health">
+      <p className="mb-3 text-xs text-bolt-elements-textTertiary">
+        Real observability from the in-cluster Prometheus registry (the same series exposed at{' '}
+        <code className="rounded bg-bolt-elements-background-depth-3 px-1 py-0.5">/metrics</code>). Snapshot at{' '}
+        {new Date(snapshot.generatedAt).toLocaleString()}. Metrics with no recorded observations are labelled “no data”.
+      </p>
+
+      {/* Headline stat cards. */}
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <PlatformStatCard
+          label="Workspace starts"
+          value={hasData(starts) ? startsTotal.toLocaleString() : 'no data'}
+          available={hasData(starts)}
+        />
+        <PlatformStatCard
+          label="Workspace failures"
+          value={hasData(failures) ? failuresTotal.toLocaleString() : 'no data'}
+          available={hasData(failures)}
+          tone={failuresTotal > 0 ? 'danger' : 'default'}
+        />
+        <PlatformStatCard
+          label="Start success rate"
+          value={typeof successRate === 'number' ? `${successRate.toFixed(1)}%` : 'no data'}
+          available={typeof successRate === 'number'}
+        />
+        <PlatformStatCard
+          label="Active workspaces"
+          value={hasData(activeWorkspaces) ? metricTotal(activeWorkspaces).toLocaleString() : 'no data'}
+          available={hasData(activeWorkspaces)}
+        />
+        <PlatformStatCard
+          label="Cold-start p50"
+          value={secs(startLatencyHist?.p50)}
+          available={Boolean(startLatencyHist && startLatencyHist.count > 0)}
+        />
+        <PlatformStatCard
+          label="Cold-start p95"
+          value={secs(startLatencyHist?.p95)}
+          available={Boolean(startLatencyHist && startLatencyHist.count > 0)}
+        />
+        <PlatformStatCard
+          label="Request latency p50"
+          value={secs(latencyHist?.p50)}
+          available={Boolean(latencyHist && latencyHist.count > 0)}
+        />
+        <PlatformStatCard
+          label="Request latency p95"
+          value={secs(latencyHist?.p95)}
+          available={Boolean(latencyHist && latencyHist.count > 0)}
+          tone={typeof latencyHist?.p95 === 'number' && latencyHist.p95 > 1 ? 'danger' : 'default'}
+        />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <PlatformChartCard title="Workspace starts vs failures" available={Boolean(lifecycleSeries)}>
+          {lifecycleSeries ? (
+            <React.Suspense fallback={chartFallback}>
+              <MonitoringCharts.GroupedBarChart labels={lifecycleSeries.labels} datasets={lifecycleSeries.datasets} />
+            </React.Suspense>
+          ) : null}
+        </PlatformChartCard>
+
+        <PlatformChartCard title="Queue depth by queue" available={hasData(queueDepth)}>
+          <React.Suspense fallback={chartFallback}>
+            <MonitoringCharts.CategoryBarChart
+              labels={queueSeries.labels}
+              values={queueSeries.values}
+              axisLabel="Depth"
+              colorOffset={6}
+            />
+          </React.Suspense>
+        </PlatformChartCard>
+
+        <PlatformChartCard title="API errors by type" available={hasData(apiErrors)}>
+          <React.Suspense fallback={chartFallback}>
+            <MonitoringCharts.CategoryBarChart
+              labels={errorSeries.labels}
+              values={errorSeries.values}
+              axisLabel="Errors"
+              colorOffset={4}
+            />
+          </React.Suspense>
+        </PlatformChartCard>
+
+        <PlatformChartCard
+          title="Request latency distribution"
+          available={Boolean(latencyHist && latencyHist.count > 0)}
+        >
+          <React.Suspense fallback={chartFallback}>
+            <MonitoringCharts.HistogramBucketChart labels={latencyBuckets.labels} values={latencyBuckets.values} />
+          </React.Suspense>
+        </PlatformChartCard>
+
+        <PlatformChartCard title="AI tokens by provider" available={hasData(aiTokens)}>
+          <React.Suspense fallback={chartFallback}>
+            <MonitoringCharts.CategoryBarChart
+              labels={aiTokensSeries.labels}
+              values={aiTokensSeries.values}
+              axisLabel="Tokens"
+              colorOffset={0}
+            />
+          </React.Suspense>
+        </PlatformChartCard>
+
+        {lifecycleSeries ? null : (
+          <PlatformChartCard title="Workspace lifecycle" available={false}>
+            {null}
+          </PlatformChartCard>
+        )}
+      </div>
+
+      {/* Other error counters as compact stat chips (no chart needed for a single number). */}
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <PlatformStatCard
+          label="Background job failures"
+          value={hasData(jobFailures) ? metricTotal(jobFailures).toLocaleString() : 'no data'}
+          available={hasData(jobFailures)}
+          tone={metricTotal(jobFailures) > 0 ? 'danger' : 'default'}
+        />
+        <PlatformStatCard
+          label="AI provider errors"
+          value={hasData(aiErrors) ? metricTotal(aiErrors).toLocaleString() : 'no data'}
+          available={hasData(aiErrors)}
+          tone={metricTotal(aiErrors) > 0 ? 'danger' : 'default'}
+        />
+        <PlatformStatCard
+          label="K8s pod failures"
+          value={hasData(podFailures) ? metricTotal(podFailures).toLocaleString() : 'no data'}
+          available={hasData(podFailures)}
+          tone={metricTotal(podFailures) > 0 ? 'danger' : 'default'}
+        />
+        <PlatformStatCard
+          label="Auth failures"
+          value={hasData(authFailures) ? metricTotal(authFailures).toLocaleString() : 'no data'}
+          available={hasData(authFailures)}
+          tone={metricTotal(authFailures) > 0 ? 'danger' : 'default'}
+        />
+      </div>
+    </SectionCard>
+  );
+}
+
+/** Compact stat chip for a platform metric; muted styling + "no data" when absent. */
+function PlatformStatCard({
+  label,
+  value,
+  available,
+  tone = 'default',
+}: {
+  label: string;
+  value: string;
+  available: boolean;
+  tone?: 'default' | 'danger';
+}) {
+  const valueClass = !available
+    ? 'text-bolt-elements-textTertiary'
+    : tone === 'danger'
+      ? 'text-red-600 dark:text-red-400'
+      : 'text-bolt-elements-textPrimary';
+
+  return (
+    <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
+      <p className="text-xs text-bolt-elements-textSecondary">{label}</p>
+      <p className={['mt-1 text-xl font-semibold tabular-nums', valueClass].join(' ')}>{value}</p>
+    </div>
+  );
+}
+
+/** Height-bounded, responsive chart wrapper; renders a "no data" state when empty. */
+function PlatformChartCard({
+  title,
+  available,
+  children,
+}: {
+  title: string;
+  available: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h4 className="text-sm font-medium text-bolt-elements-textPrimary">{title}</h4>
+        {available ? null : <StatusPill tone="muted">no data</StatusPill>}
+      </div>
+      {available ? (
+        <div className="h-56 w-full sm:h-64">{children}</div>
+      ) : (
+        <div className="flex h-56 items-center justify-center text-sm text-bolt-elements-textTertiary sm:h-64">
+          No observations recorded yet.
+        </div>
+      )}
+    </div>
   );
 }
 
