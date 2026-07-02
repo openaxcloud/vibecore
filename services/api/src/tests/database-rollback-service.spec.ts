@@ -64,7 +64,12 @@ describe('validateRestoreTarget', () => {
   });
 
   it('rejects when the feature flag is off', () => {
-    const result = validateRestoreTarget({ enabled: false, entitlement: pro, targetTimestampMs: NOW - DAY, nowMs: NOW });
+    const result = validateRestoreTarget({
+      enabled: false,
+      entitlement: pro,
+      targetTimestampMs: NOW - DAY,
+      nowMs: NOW,
+    });
     expect(result).toMatchObject({ ok: false, code: 'ROLLBACK_DISABLED' });
   });
 
@@ -91,6 +96,21 @@ describe('validateRestoreTarget', () => {
       nowMs: NOW,
     });
     expect(result).toMatchObject({ ok: false, code: 'TARGET_TOO_OLD' });
+  });
+
+  it('accepts a target exactly at the retention floor (inclusive boundary)', () => {
+    const result = validateRestoreTarget({
+      enabled: true,
+      entitlement: pro,
+      targetTimestampMs: NOW - 28 * DAY,
+      nowMs: NOW,
+    });
+    expect(result).toEqual({ ok: true });
+  });
+
+  it('accepts a target exactly at now (inclusive upper boundary)', () => {
+    const result = validateRestoreTarget({ enabled: true, entitlement: pro, targetTimestampMs: NOW, nowMs: NOW });
+    expect(result).toEqual({ ok: true });
   });
 });
 

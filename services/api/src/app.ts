@@ -112,6 +112,7 @@ import { clusterName, resolveDatabaseTier, resolveDefaultDatabaseProvisioner } f
 import {
   databaseRollbackEntitlement,
   isDatabaseRollbackEnabled,
+  retentionFloorMs,
   validateRestoreTarget,
 } from './database-rollback-service.js';
 import { shouldRecordDeploymentUsage } from './deployment-billing.js';
@@ -22748,6 +22749,194 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return reply.code(202).send({ snapshot });
+  });
+
+  /**
+   * List a project's point-in-time recovery points (Phase 2, dormant behind
+   * DB_ROLLBACK_ENABLED). Returns:
+   *   - `window`: the continuous PITR window `[floor, latest]` (WAL replay range)
+   *     bounded below by the plan's retention floor — the range a bare
+   *     `targetTimestamp` restore may target;
+   *   - `recoveryPoints`: the discrete base backups (auto/manual snapshots, with
+   *     their WAL LSN when known), filtered to those still inside the retention
+   *     floor (older ones are effectively pruned / un-restorable).
+   * Tenant isolation: `requireProject` scopes to the caller's own project DB.
+   */
+  app.get('/projects/:projectId/database/recovery-points', async (request, reply) => {
+    if (!isDatabaseRollbackEnabled()) {
+      return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    const environment = parse(databaseEnvironmentQuery, request.query ?? {}).environment;
+    const state = await billingState(project.organizationId).catch(() => undefined);
+    const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
+
+    const instance = await store.getDatabaseInstanceByProject(project.id, environment);
+
+    if (!instance) {
+      return { entitlement, window: null, recoveryPoints: [] };
+    }
+
+    const nowMs = Date.now();
+    const floorMs = retentionFloorMs(entitlement.retentionDays, nowMs);
+    const snapshots = await store.listDatabaseSnapshots(instance.id);
+
+    /*
+     * Only snapshots at-or-after the retention floor are restorable — a base
+     * backup older than the window cannot anchor a WAL replay to any in-window
+     * target. Map to a stable recovery-point shape (time range + kind + LSN).
+     */
+    const recoveryPoints = snapshots
+      .filter((snapshot) => Date.parse(snapshot.createdAt) >= floorMs)
+      .map((snapshot) => ({
+        id: snapshot.id,
+        kind: snapshot.kind,
+        label: snapshot.label,
+        lsn: snapshot.lsn,
+        timestamp: snapshot.createdAt,
+        expiresAt: snapshot.expiresAt,
+      }));
+
+    /*
+     * The continuous restore window: WAL archiving lets a restore target any
+     * instant in `[floor, latest]`. `latest` is the most recent recovery point
+     * (or now, when none exist yet but the instance is live). Only exposed for an
+     * entitled plan; otherwise the window is null (no rollback).
+     */
+    const window = entitlement.allowed
+      ? {
+          earliestMs: floorMs,
+          earliest: new Date(floorMs).toISOString(),
+          latestMs: nowMs,
+          latest: new Date(nowMs).toISOString(),
+          retentionDays: entitlement.retentionDays,
+        }
+      : null;
+
+    return { entitlement, window, recoveryPoints };
+  });
+
+  /**
+   * Request a point-in-time restore (Phase 2, dormant behind DB_ROLLBACK_ENABLED).
+   * Validates the target against the plan's retention window via
+   * `validateRestoreTarget`, records a PENDING `DatabaseRestore`, then invokes the
+   * provisioner's `startRestore` (real CNPG recovery-cluster bootstrap when the
+   * operator is wired; a Noop otherwise). Returns the restore job for polling.
+   * Alias of `POST …/database/restores`; kept as the canonical singular route.
+   */
+  app.post('/projects/:projectId/database/restore', async (request, reply) => {
+    if (!isDatabaseRollbackEnabled()) {
+      return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+
+    const body = parse(
+      z
+        .object({
+          snapshotId: z.string().min(1).optional(),
+          targetTimestamp: z.string().datetime().optional(),
+          environment: z.enum(['development', 'production']).default('development'),
+        })
+        .refine((value) => Boolean(value.snapshotId || value.targetTimestamp), {
+          message: 'Provide a snapshotId or a targetTimestamp',
+        }),
+      request.body ?? {},
+    );
+
+    const instance = await store.getDatabaseInstanceByProject(project.id, body.environment);
+
+    if (!instance) {
+      return reply.code(409).send({ error: 'No database for this project', code: 'NO_DATABASE' });
+    }
+
+    const state = await billingState(project.organizationId).catch(() => undefined);
+    const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
+    const nowMs = Date.now();
+
+    /*
+     * A snapshot restore targets that snapshot's creation time; a bare target is
+     * true PITR. Either way the resolved target must sit inside the plan's
+     * retention window (validateRestoreTarget enforces enabled + plan + bounds).
+     */
+    let targetTimestampMs = nowMs;
+
+    if (body.targetTimestamp) {
+      targetTimestampMs = Date.parse(body.targetTimestamp);
+    } else if (body.snapshotId) {
+      const snapshots = await store.listDatabaseSnapshots(instance.id);
+      const snapshot = snapshots.find((entry) => entry.id === body.snapshotId);
+
+      if (!snapshot) {
+        return reply.code(404).send({ error: 'Snapshot not found', code: 'SNAPSHOT_NOT_FOUND' });
+      }
+
+      targetTimestampMs = Date.parse(snapshot.createdAt);
+    }
+
+    const validation = validateRestoreTarget({ enabled: true, entitlement, targetTimestampMs, nowMs });
+
+    if (!validation.ok) {
+      return reply.code(validation.code === 'PLAN_NOT_ELIGIBLE' ? 403 : 422).send({
+        error: validation.message,
+        code: validation.code,
+      });
+    }
+
+    const restore = await store.createDatabaseRestore({
+      databaseInstanceId: instance.id,
+      snapshotId: body.snapshotId,
+      targetTimestamp: body.targetTimestamp,
+      requestedByUserId: request.currentUser?.id,
+    });
+
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'database.restore.request',
+      metadata: { restoreId: restore.id, targetTimestamp: new Date(targetTimestampMs).toISOString() },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'database.restore.request',
+      resourceType: 'projectDatabase',
+      resourceId: project.id,
+      metadata: { restoreId: restore.id, snapshotId: body.snapshotId, targetTimestamp: body.targetTimestamp },
+    });
+
+    /*
+     * Kick off the recovery cluster (Noop while dormant). The worker
+     * `database.maintenance` job polls it to COMPLETED/FAILED. Best-effort:
+     * failure here just leaves the restore PENDING for the worker to retry.
+     */
+    const provisioner = resolveDefaultDatabaseProvisioner();
+
+    if (provisioner.active) {
+      await provisioner
+        .startRestore({
+          projectId: project.id,
+          organizationId: project.organizationId,
+          restoreId: restore.id,
+          targetTimeIso: new Date(targetTimestampMs).toISOString(),
+          retentionDays: entitlement.retentionDays,
+        })
+        .then(() => store.updateDatabaseRestore(restore.id, { status: 'RUNNING', startedAt: new Date().toISOString() }))
+        .catch((error) => request.log?.warn?.({ err: error }, 'restore kickoff failed (non-fatal)'));
+    }
+
+    return reply.code(202).send({ restore });
   });
 
   /* -------- Object Storage (GCS, per-project) — dormant unless OBJECT_STORAGE_ENABLED -------- */
