@@ -46,6 +46,7 @@ function buildRecorder(
     connections: [...(initial.connections ?? [])],
     alerts: [...(initial.alerts ?? [])],
     auditLogs: [] as RecordedAuditLog[],
+    notifications: [] as Array<Record<string, unknown>>,
   };
 
   const prisma = {
@@ -139,6 +140,13 @@ function buildRecorder(
     auditLog: {
       create: async ({ data }: any) => {
         state.auditLogs.push(data);
+
+        return data;
+      },
+    },
+    notification: {
+      create: async ({ data }: any) => {
+        state.notifications.push(data);
 
         return data;
       },

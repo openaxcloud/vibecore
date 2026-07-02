@@ -85,6 +85,9 @@ interface ConnectorJobsDatabase {
       };
     }): Promise<unknown>;
   };
+  notification: {
+    create(args: { data: Record<string, unknown> }): Promise<unknown>;
+  };
 }
 
 const PROVIDER_PING_TARGETS: Record<string, ProviderPingTarget> = {
