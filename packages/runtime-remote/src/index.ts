@@ -1030,12 +1030,33 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     return socket;
   }
 
-  async #watchSocket(path: string, hello: unknown, onMessage: (event: { data: string }) => void): Promise<() => void> {
+  async #watchSocket(
+    path: string,
+    hello: unknown,
+    onMessage: (event: { data: string }) => void,
+    options: { maxReconnects?: number; onGiveUp?: () => void } = {},
+  ): Promise<() => void> {
     let stopped = false;
     let socket: WebSocketLike | undefined;
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
     let stableTimer: ReturnType<typeof setTimeout> | undefined;
+    let gaveUp = false;
+
+    /*
+     * Bound the reconnect. Unlike the terminal (MAX_RECONNECT_ATTEMPTS) and the
+     * FilesStore watch retry, this loop previously reconnected FOREVER: an
+     * auth-rejected socket (expired/revoked session — /api/runtime-token 401s, so
+     * every reconnect opens with no token and closes 4401) or a permanently-gone
+     * workspace would flap every ≤15s for the whole page lifetime. That is the
+     * mechanical source of the thousands of "WebSocket CLOSING/CLOSED" errors on
+     * files/watch + ports/watch. The stability timer resets `attempts` after the
+     * socket holds for STABLE_CONNECTION_MS, so a healthy socket that drops
+     * occasionally NEVER accumulates toward this cap — only a socket that never
+     * stabilises does. On give-up we stop and notify the caller so it can surface
+     * a "reload to reconnect" state instead of silently going stale.
+     */
+    const maxReconnects = options.maxReconnects ?? 15;
 
     /*
      * Reset the reconnect backoff only after the socket has STAYED open this long,
@@ -1122,7 +1143,20 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         stableTimer = undefined;
       }
 
-      if (stopped || reconnectTimer) {
+      if (stopped || reconnectTimer || gaveUp) {
+        return;
+      }
+
+      /*
+       * Give up once the socket has failed to stabilise this many times in a row.
+       * A genuinely dead session/workspace stops flooding; a transient outage that
+       * eventually reconnects for STABLE_CONNECTION_MS has already had `attempts`
+       * reset to 0, so it never reaches here.
+       */
+      if (attempts >= maxReconnects) {
+        gaveUp = true;
+        options.onGiveUp?.();
+
         return;
       }
 

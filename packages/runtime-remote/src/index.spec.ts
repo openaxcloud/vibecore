@@ -241,6 +241,65 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     }
   });
 
+  it('gives up reconnecting a watch socket after a bounded number of never-stable attempts (no infinite auth-close flood)', async () => {
+    /*
+     * Regression: #watchSocket reconnected FOREVER. An expired/revoked session
+     * (every reconnect opens with no token and 4401-closes) or a permanently-gone
+     * workspace flapped every ≤15s for the whole page lifetime — the thousands of
+     * files/watch + ports/watch "WebSocket CLOSING/CLOSED" errors reported in the
+     * IDE. The reconnect must give up once the socket never holds long enough to
+     * prove stable. A socket that DOES stabilise resets the counter (covered by
+     * the backoff test above), so a healthy session is unaffected.
+     */
+    vi.useFakeTimers();
+
+    try {
+      FakeWebSocket.instances = [];
+      FakeWebSocket.failNextOpenCount = 0;
+      FakeWebSocket.authCloseNextOpenCount = 0;
+
+      const adapter = new RemoteKubernetesRuntimeAdapter({
+        baseUrl: 'https://runtime.example.com',
+        authToken: 'token-cap',
+        workspaceId: 'ws-1',
+        fetchImpl: createFetchMock() as typeof fetch,
+        WebSocketImpl: FakeWebSocket,
+      });
+
+      const stop = await adapter.watchPorts(() => {});
+      expect(FakeWebSocket.instances.length).toBe(1);
+
+      /*
+       * Close every socket the instant it opens — well inside the 5s stability
+       * window — so `attempts` only ever climbs toward the cap and never resets.
+       */
+      let prevLen = FakeWebSocket.instances.length;
+      FakeWebSocket.instances.at(-1)!.close(1006);
+
+      for (let i = 0; i < 200; i += 1) {
+        await vi.advanceTimersByTimeAsync(2000);
+
+        const len = FakeWebSocket.instances.length;
+
+        if (len > prevLen) {
+          prevLen = len;
+          FakeWebSocket.instances.at(-1)!.close(1006);
+        }
+      }
+
+      // 1 initial connect + 15 bounded reconnects, then it stops — NOT unbounded.
+      expect(FakeWebSocket.instances.length).toBe(16);
+
+      // Advancing far past every backoff window spawns no further sockets: flood over.
+      await vi.advanceTimersByTimeAsync(120_000);
+      expect(FakeWebSocket.instances.length).toBe(16);
+
+      stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('supports terminal, file watch, and log WebSockets with realistic messages', async () => {
     FakeWebSocket.instances = [];
 

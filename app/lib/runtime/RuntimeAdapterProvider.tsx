@@ -89,6 +89,18 @@ export function createRuntimeAdapter(
     return new RemoteKubernetesRuntimeAdapter({
       baseUrl: import.meta.env.RUNTIME_API_BASE_URL ?? import.meta.env.VITE_RUNTIME_API_BASE_URL ?? '/api/runtime',
       authToken: resolveRuntimeAuthToken,
+
+      /*
+       * Activate the adapter's token self-heal. Without this hook wired,
+       * shouldRefreshAuthToken() is permanently false, so a runtime token the API
+       * rejects BEFORE its client-side expiry clock elapses (session rotation, an
+       * api pod restart on deploy, signing-key change) is replayed dead on every
+       * HTTP request and every WS reconnect — the file/port-watch sockets 401/4401
+       * in a tight loop instead of dropping the stale token and re-minting a fresh
+       * one from /api/runtime-token. Clearing the cache lets the next resolve
+       * re-fetch, so an interrupted session recovers instead of storming.
+       */
+      invalidateAuthToken: invalidateRuntimeToken,
       workspaceId: options.workspaceId ?? options.projectId,
     });
   }
