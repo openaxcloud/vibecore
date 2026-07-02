@@ -81,6 +81,7 @@ export function GitProviderConnectPanel({
   const [branch, setBranch] = useState(defaultBranch ?? 'main');
   const [configuringRemote, setConfiguringRemote] = useState(false);
   const [remoteError, setRemoteError] = useState<string | null>(null);
+  const [showRepoPicker, setShowRepoPicker] = useState(false);
   const handledConnectionRef = useRef<string | null>(null);
 
   const activeRemoteProvider = useMemo(
@@ -167,17 +168,16 @@ export function GitProviderConnectPanel({
     [defaultBranch, gitRepositoryUrl],
   );
 
-  const configureRemote = useCallback(
-    async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
+  const submitRemote = useCallback(
+    async (url: string, branchName: string) => {
       setRemoteError(null);
       setConfiguringRemote(true);
 
       try {
         const formData = new FormData();
         formData.set('intent', 'configure-remote');
-        formData.set('remoteUrl', remoteUrl.trim());
-        formData.set('branch', branch.trim() || 'main');
+        formData.set('remoteUrl', url.trim());
+        formData.set('branch', branchName.trim() || 'main');
 
         if (workspaceId) {
           formData.set('workspaceId', workspaceId);
@@ -194,8 +194,9 @@ export function GitProviderConnectPanel({
           throw new Error(result.error ?? `Failed to configure remote (HTTP ${response.status})`);
         }
 
-        toast.success(`Git origin configured for ${branch.trim() || 'main'}`);
+        toast.success(`Git origin configured for ${branchName.trim() || 'main'}`);
         setRemoteProvider(null);
+        setShowRepoPicker(false);
         void onRemoteConfigured?.();
       } catch (error) {
         setRemoteError(error instanceof Error ? error.message : 'Unable to configure this Git remote.');
@@ -203,7 +204,15 @@ export function GitProviderConnectPanel({
         setConfiguringRemote(false);
       }
     },
-    [branch, onRemoteConfigured, projectId, remoteUrl, workspaceId],
+    [onRemoteConfigured, projectId, workspaceId],
+  );
+
+  const configureRemote = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      void submitRemote(remoteUrl, branch);
+    },
+    [branch, remoteUrl, submitRemote],
   );
 
   const isLaunching = state.phase === 'launching';
@@ -290,6 +299,26 @@ export function GitProviderConnectPanel({
         })}
       </div>
 
+      {/*
+       * Pick from the user's GitHub repositories (Replit parity): reuses the
+       * signed-in user's encrypted OAuth token server-side via /api/github-stats;
+       * selecting a repo sets it as the project origin (configure-remote).
+       */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setShowRepoPicker((value) => !value)}
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2"
+        >
+          <span className="i-ph:git-fork h-4 w-4 text-bolt-elements-item-contentAccent" aria-hidden />
+          {showRepoPicker ? 'Hide your GitHub repositories' : 'Choose from your GitHub repositories'}
+        </button>
+      </div>
+
+      {showRepoPicker ? (
+        <GitHubRepoPicker busy={configuringRemote || busy} onSelect={(url, repoBranch) => void submitRemote(url, repoBranch)} />
+      ) : null}
+
       {networkError ? (
         <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500" role="alert">
           {networkError}
@@ -357,6 +386,136 @@ export function GitProviderConnectPanel({
           ) : null}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+type GitHubRepo = {
+  id: number;
+  full_name: string;
+  html_url: string;
+  clone_url?: string;
+  default_branch: string;
+  private: boolean;
+};
+
+/*
+ * Lists the signed-in user's GitHub repositories (via the encrypted OAuth token,
+ * server-side /api/github-stats) so they can connect one as the project origin
+ * with a single click — no need to paste a URL. Falls back to a clear message
+ * when GitHub isn't connected yet.
+ */
+function GitHubRepoPicker({
+  busy = false,
+  onSelect,
+}: {
+  busy?: boolean;
+  onSelect: (cloneUrl: string, defaultBranch: string) => void;
+}) {
+  const [repos, setRepos] = useState<GitHubRepo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch('/api/github-stats');
+
+        if (response.status === 401) {
+          throw new Error('Connect GitHub above first to list your repositories.');
+        }
+
+        if (!response.ok) {
+          throw new Error(`Could not load your GitHub repositories (HTTP ${response.status}).`);
+        }
+
+        const data = (await response.json()) as { repos?: GitHubRepo[] };
+
+        if (!cancelled) {
+          setRepos(Array.isArray(data.repos) ? data.repos : []);
+        }
+      } catch (cause) {
+        if (!cancelled) {
+          setError(cause instanceof Error ? cause.message : 'Could not load your GitHub repositories.');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+
+    if (!needle) {
+      return repos;
+    }
+
+    return repos.filter((repo) => repo.full_name.toLowerCase().includes(needle));
+  }, [query, repos]);
+
+  return (
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+      <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
+        Search your repositories
+        <input
+          className="h-9 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+          value={query}
+          onChange={(event) => setQuery(event.currentTarget.value)}
+          placeholder="owner/name"
+        />
+      </label>
+
+      <div className="mt-2 max-h-64 overflow-y-auto rounded-md border border-bolt-elements-borderColor">
+        {loading ? (
+          <p className="flex items-center gap-2 p-3 text-xs text-bolt-elements-textSecondary">
+            <span className="i-ph:spinner-gap-bold h-3.5 w-3.5 animate-spin" aria-hidden />
+            Loading your repositories…
+          </p>
+        ) : error ? (
+          <p className="p-3 text-xs text-red-500" role="alert">
+            {error}
+          </p>
+        ) : filtered.length === 0 ? (
+          <p className="p-3 text-xs text-bolt-elements-textSecondary">No repositories match “{query}”.</p>
+        ) : (
+          <ul>
+            {filtered.map((repo) => (
+              <li key={repo.id} className="border-b border-bolt-elements-borderColor last:border-b-0">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onSelect(repo.clone_url || `${repo.html_url}.git`, repo.default_branch || 'main')}
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="i-ph:git-branch h-3.5 w-3.5 shrink-0 text-bolt-elements-textTertiary" aria-hidden />
+                    <span className="truncate text-xs font-medium text-bolt-elements-textPrimary">{repo.full_name}</span>
+                    {repo.private ? (
+                      <span className="shrink-0 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-[10px] text-bolt-elements-textTertiary">
+                        private
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="shrink-0 text-[11px] font-medium text-bolt-elements-item-contentAccent">Connect</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

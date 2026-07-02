@@ -887,6 +887,21 @@ export function GitTab({ projectId }: GitTabProps) {
                   />
                   Fetch
                 </button>
+                <button
+                  type="button"
+                  data-testid="git-disconnect-remote"
+                  disabled={busy}
+                  onClick={() => {
+                    if (window.confirm('Disconnect this Git remote from the project? Your files and local history stay; only the remote link is removed.')) {
+                      void runIntent('remove-remote');
+                    }
+                  }}
+                  title="Disconnect remote"
+                  className="inline-flex h-7 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 text-xs font-medium text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-red-500 disabled:opacity-50"
+                >
+                  <span className="i-ph:plugs text-sm" aria-hidden />
+                  Disconnect
+                </button>
               </div>
             </div>
             <a
@@ -898,7 +913,9 @@ export function GitTab({ projectId }: GitTabProps) {
               {project.gitRepositoryUrl.replace(/^https?:\/\/[^/]+\//, '').replace(/\.git$/, '')}
             </a>
             <span className="text-xs text-bolt-elements-textTertiary">
-              origin/{branch} • upstream · last fetched {timeAgo(lastLoadedAt)}
+              origin/{branch} • upstream
+              {project.gitDefaultBranch ? ` · default ${project.gitDefaultBranch}` : ''} · last fetched{' '}
+              {timeAgo(lastLoadedAt)}
             </span>
           </div>
         ) : null}
