@@ -224,7 +224,10 @@ export function AgentPowerControls({
                   )}
                 >
                   <span className="flex items-center gap-2">
-                    <BoostIcon className="h-3.5 w-3.5" style={active ? { color: 'var(--vc-ide-accent-action)' } : undefined} />
+                    <BoostIcon
+                      className="h-3.5 w-3.5"
+                      style={active ? { color: 'var(--vc-ide-accent-action)' } : undefined}
+                    />
                     {boost.label}
                   </span>
                   {locked ? (

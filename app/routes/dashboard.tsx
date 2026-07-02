@@ -192,18 +192,16 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     },
     billingAccessLimited,
     onboarding,
-    projects: sortedProjects
-      .slice(0, 6)
-      .map((project) => ({
-        id: project.id,
-        name: project.name,
-        status: 'Ready',
-        updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
-        stack: projectStackLabel(project),
-        sourceType: project.sourceType,
-        previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
-        ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
-      })),
+    projects: sortedProjects.slice(0, 6).map((project) => ({
+      id: project.id,
+      name: project.name,
+      status: 'Ready',
+      updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
+      stack: projectStackLabel(project),
+      sourceType: project.sourceType,
+      previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
+      ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
+    })),
   };
 }
 

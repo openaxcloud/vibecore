@@ -842,7 +842,10 @@ export function EcodeExactPublicFooter() {
             <span>© {new Date().getFullYear()} E-Code.AI (Snatch Group Limited). All rights reserved.</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/newsletter/unsubscribe" className="hover:text-[var(--ecode-accent-text)] dark:hover:text-white">
+            <Link
+              href="/newsletter/unsubscribe"
+              className="hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
+            >
               Email preferences
             </Link>
             <Link href="/newsletter-confirmed" className="hover:text-[var(--ecode-accent-text)] dark:hover:text-white">
