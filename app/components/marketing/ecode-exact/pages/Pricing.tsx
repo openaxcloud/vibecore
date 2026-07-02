@@ -631,11 +631,17 @@ export default function Pricing() {
                         <button
                           className="text-[13px] text-[var(--ecode-accent)] font-medium mt-4 hover:underline transition-all duration-200 hover:text-[var(--ecode-accent-hover)]"
                           onClick={() => {
-                            // Smooth scroll to comparison section or expand list
                             const comparisonSection = document.getElementById('section-comparison');
 
                             if (comparisonSection) {
-                              comparisonSection.scrollIntoView({ behavior: 'smooth' });
+                              /*
+                               * Respect reduced motion, then move real focus to the
+                               * section heading so keyboard/AT users land where they scrolled.
+                               */
+                              const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+                              comparisonSection.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
+                              comparisonSection.querySelector('h2')?.focus({ preventScroll: true });
                             }
                           }}
                           data-testid={`button-more-features-${tier.name.toLowerCase()}`}
@@ -660,7 +666,9 @@ export default function Pricing() {
       >
         <div className="container-responsive max-w-7xl">
           <div className="text-center mb-12">
-            <h2 className="mkt-h2 font-bold mb-4 text-[var(--ecode-text)] animate-fadeIn">Compare plans in detail</h2>
+            <h2 tabIndex={-1} className="mkt-h2 font-bold mb-4 text-[var(--ecode-text)] outline-none animate-fadeIn">
+              Compare plans in detail
+            </h2>
             <p className="mkt-lead text-[var(--ecode-text-muted)] animate-fadeIn">
               Every feature, every detail, side by side
             </p>
