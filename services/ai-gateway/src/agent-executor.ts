@@ -43,6 +43,16 @@ export interface AgentRunRequest {
    * project-less and the panel stays empty.
    */
   projectId?: string;
+
+  /*
+   * Optional owning user + conversation. userId resolves against a real FK
+   * (User) in persistence — an unknown id is dropped to null there rather than
+   * raising P2003 — while conversationId is a plain nullable column. Both let
+   * future queries scope agent runs by user/conversation without another schema
+   * change; the current consensus panel only needs projectId.
+   */
+  userId?: string;
+  conversationId?: string;
   plan?: AiChatRequest['plan'];
   provider?: AiChatRequest['provider'];
   model?: string;
@@ -416,6 +426,8 @@ export function parseAgentRunRequest(value: unknown): AgentRunRequest {
     organizationId: typeof value.organizationId === 'string' ? value.organizationId : undefined,
     rateLimitKey: typeof value.rateLimitKey === 'string' ? value.rateLimitKey : undefined,
     projectId: typeof value.projectId === 'string' ? value.projectId : undefined,
+    userId: typeof value.userId === 'string' ? value.userId : undefined,
+    conversationId: typeof value.conversationId === 'string' ? value.conversationId : undefined,
     plan: typeof value.plan === 'string' ? (value.plan as AgentRunRequest['plan']) : undefined,
     provider: typeof value.provider === 'string' ? (value.provider as AgentRunRequest['provider']) : undefined,
     model: typeof value.model === 'string' ? value.model : undefined,

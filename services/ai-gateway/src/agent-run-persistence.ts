@@ -56,6 +56,21 @@ export class PrismaAgentRunPersistence implements AgentRunPersistence {
           )?.id ?? null)
         : null;
 
+    /*
+     * userId is also a real FK column (relation to User). Resolve it the same way
+     * as organizationId so an unknown/stale id can't raise a P2003 that aborts the
+     * whole persistence transaction (which would silently drop the run).
+     */
+    const userId =
+      request.userId && request.userId.length > 0
+        ? ((
+            await this.prisma.user.findUnique({
+              where: { id: request.userId },
+              select: { id: true },
+            })
+          )?.id ?? null)
+        : null;
+
     await this.prisma.$transaction(async (tx) => {
       await tx.agentRun.create({
         data: {
@@ -69,6 +84,11 @@ export class PrismaAgentRunPersistence implements AgentRunPersistence {
            * raise a P2003 — write it as-is, or null when absent.
            */
           projectId: request.projectId && request.projectId.length > 0 ? request.projectId : null,
+          userId,
+
+          /* conversationId is a plain nullable column (no FK) — write it as-is or null. */
+          conversationId:
+            request.conversationId && request.conversationId.length > 0 ? request.conversationId : null,
           mode: request.mode,
           status: mapRunStatus(response.status),
           rolesPlanned: request.roles.map((role) => ({
