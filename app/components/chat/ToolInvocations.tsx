@@ -101,82 +101,71 @@ export const ToolInvocations = memo(({ toolInvocations, toolCallAnnotations, add
     return null;
   }
 
+  /*
+   * Compact, inline, collapsed-by-default summary (agent-panel UX refonte): the
+   * tool activity is an EVENT inside the agent turn, not a fixed widget that
+   * hides the agent's answer. Header is a single line — "🔧 Tool calls · R/T ·
+   * P% ▸" — and both the in-flight calls and the results only expand on tap, so
+   * the agent's streamed text stays the primary content.
+   */
+  const total = toolCalls.length + toolResults.length;
+  const resolved = toolResults.length;
+  const pct = total > 0 ? Math.round((resolved / total) * 100) : 0;
+  const running = hasToolCalls;
+
   return (
     <div className="tool-invocation border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150">
-      <div className="flex">
-        <button
-          className="flex items-stretch bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-artifacts-backgroundHover w-full overflow-hidden"
-          onClick={toggleDetails}
-          aria-label={showDetails ? 'Collapse details' : 'Expand details'}
-        >
-          <div className="p-2.5">
-            <div className="i-ph:wrench text-xl text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"></div>
-          </div>
-          <div className="p-2.5 w-full text-left">
-            <div className="w-full text-bolt-elements-textPrimary font-medium leading-5 text-sm">
-              MCP Tool Invocations{' '}
-              {hasToolResults && (
-                <span className="w-full w-full text-bolt-elements-textSecondary text-xs mt-0.5">
-                  ({toolResults.length} tool{hasToolResults ? 's' : ''} used)
-                </span>
-              )}
-            </div>
-          </div>
-        </button>
-        <AnimatePresence>
-          {hasToolResults && (
-            <motion.button
-              initial={{ width: 0 }}
-              animate={{ width: 'auto' }}
-              exit={{ width: 0 }}
-              transition={{ duration: 0.15, ease: cubicEasingFn }}
-              className="bg-bolt-elements-artifacts-background hover:bg-bolt-elements-artifacts-backgroundHover"
-              onClick={toggleDetails}
-            >
-              <div className="p-2">
-                <div
-                  className={`${showDetails ? 'i-ph:caret-up-bold' : 'i-ph:caret-down-bold'} text-xl text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors`}
-                ></div>
+      <button
+        type="button"
+        onClick={toggleDetails}
+        aria-expanded={showDetails}
+        aria-label={showDetails ? 'Collapse tool calls' : 'Expand tool calls'}
+        className="flex items-center gap-2 w-full px-2.5 py-1.5 text-left text-xs bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-artifacts-backgroundHover"
+      >
+        <span
+          className={`${running ? 'i-ph:circle-notch animate-spin text-bolt-elements-item-contentAccent' : 'i-ph:wrench text-bolt-elements-textSecondary'} text-base shrink-0`}
+          aria-hidden
+        />
+        <span className="font-medium text-bolt-elements-textPrimary">Tool calls</span>
+        <span className="text-bolt-elements-textSecondary truncate">
+          · {resolved}/{total} · {pct}%
+        </span>
+        <span
+          className={`[margin-inline-start:auto] shrink-0 ${showDetails ? 'i-ph:caret-down' : 'i-ph:caret-right'} text-bolt-elements-textSecondary`}
+          aria-hidden
+        />
+      </button>
+      <AnimatePresence initial={false}>
+        {showDetails && (
+          <motion.div
+            className="details overflow-hidden"
+            initial={{ height: 0 }}
+            animate={{ height: 'auto' }}
+            exit={{ height: 0 }}
+            transition={{ duration: 0.15, ease: cubicEasingFn }}
+          >
+            <div className="bg-bolt-elements-artifacts-borderColor h-[1px]" />
+
+            {hasToolCalls && (
+              <div className="px-3 py-3 text-left bg-bolt-elements-background-depth-2">
+                <ToolCallsList
+                  toolInvocations={toolCalls}
+                  toolCallAnnotations={toolCallAnnotations}
+                  addToolResult={addToolResult}
+                  theme={theme}
+                />
               </div>
-            </motion.button>
-          )}
-        </AnimatePresence>
-      </div>
-      <AnimatePresence>
-        {hasToolCalls && (
-          <motion.div
-            className="details"
-            initial={{ height: 0 }}
-            animate={{ height: 'auto' }}
-            exit={{ height: '0px' }}
-            transition={{ duration: 0.15 }}
-          >
-            <div className="bg-bolt-elements-artifacts-borderColor h-[1px]" />
+            )}
 
-            <div className="px-3 py-3 text-left bg-bolt-elements-background-depth-2">
-              <ToolCallsList
-                toolInvocations={toolCalls}
-                toolCallAnnotations={toolCallAnnotations}
-                addToolResult={addToolResult}
-                theme={theme}
-              />
-            </div>
-          </motion.div>
-        )}
-
-        {hasToolResults && showDetails && (
-          <motion.div
-            className="details"
-            initial={{ height: 0 }}
-            animate={{ height: 'auto' }}
-            exit={{ height: '0px' }}
-            transition={{ duration: 0.15 }}
-          >
-            <div className="bg-bolt-elements-artifacts-borderColor h-[1px]" />
-
-            <div className="p-5 text-left bg-bolt-elements-actions-background">
-              <ToolResultsList toolInvocations={toolResults} toolCallAnnotations={toolCallAnnotations} theme={theme} />
-            </div>
+            {hasToolResults && (
+              <div className="p-5 text-left bg-bolt-elements-actions-background">
+                <ToolResultsList
+                  toolInvocations={toolResults}
+                  toolCallAnnotations={toolCallAnnotations}
+                  theme={theme}
+                />
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
