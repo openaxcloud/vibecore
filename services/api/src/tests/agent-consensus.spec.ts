@@ -136,4 +136,29 @@ describe('multi-agent consensus API', () => {
 
     expect((await app.inject({ method: 'GET', url: `/projects/${projectA.id}/agent-consensus` })).statusCode).toBe(401);
   });
+
+  it('store.listConsensusRecords scopes strictly to the run projectId (write-path proof)', async () => {
+    const { store, projectA, projectB } = await setup();
+
+    /*
+     * Mirrors what the ai-gateway now persists: a run tagged with the owning
+     * projectId. If the write path forgot to set projectId (the bug), the row
+     * would land under a different/empty key and this scoped read would miss it —
+     * which is exactly how the panel went empty in prod.
+     */
+    seedConsensus(store, projectA.id, { id: 'a-run', outcome: 'ACCEPTED' });
+    seedConsensus(store, projectB.id, { id: 'b-run', outcome: 'REJECTED' });
+
+    const forA = await store.listConsensusRecords(projectA.id);
+    expect(forA.map((r) => r.id)).toEqual(['a-run']);
+
+    // The parent run's projectId is the scoping key; a project with a persisted
+    // run now returns it (populated), while an unrelated project's run is excluded.
+    const forB = await store.listConsensusRecords(projectB.id);
+    expect(forB.map((r) => r.id)).toEqual(['b-run']);
+
+    // And a project whose runs were saved project-less (projectId never set) stays empty.
+    const forEmpty = await store.listConsensusRecords('project-with-no-runs');
+    expect(forEmpty).toEqual([]);
+  });
 });

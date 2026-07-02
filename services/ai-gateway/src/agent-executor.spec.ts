@@ -50,6 +50,8 @@ describe('agent executor', () => {
       model: 'gpt-4.1',
       maxTokens: 900,
       projectId: 'proj_abc',
+      userId: 'user_abc',
+      conversationId: 'conv_abc',
     });
 
     expect(request.roles).toEqual([architect]);
@@ -58,12 +60,18 @@ describe('agent executor', () => {
     expect(request.maxTokens).toBe(900);
     // projectId must survive parsing so it can be persisted on the AgentRun (consensus panel scope).
     expect(request.projectId).toBe('proj_abc');
+    expect(request.userId).toBe('user_abc');
+    expect(request.conversationId).toBe('conv_abc');
   });
 
-  it('leaves projectId undefined when absent or non-string', () => {
+  it('leaves projectId/userId/conversationId undefined when absent or non-string', () => {
     const base = { mode: 'parallel-subagents', roles: [architect], messages: [{ role: 'user', content: 'Build.' }] };
     expect(parseAgentRunRequest(base).projectId).toBeUndefined();
     expect(parseAgentRunRequest({ ...base, projectId: 123 }).projectId).toBeUndefined();
+    expect(parseAgentRunRequest(base).userId).toBeUndefined();
+    expect(parseAgentRunRequest({ ...base, userId: 123 }).userId).toBeUndefined();
+    expect(parseAgentRunRequest(base).conversationId).toBeUndefined();
+    expect(parseAgentRunRequest({ ...base, conversationId: {} }).conversationId).toBeUndefined();
   });
 
   it('rejects invalid requests before execution', () => {

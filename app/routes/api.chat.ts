@@ -839,6 +839,14 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   provider: orchestrationProvider,
                   model: orchestrationModel,
                   rateLimitKey: projectId,
+
+                  /*
+                   * Same as the streaming path: persist against the project so the
+                   * consensus panel finds this run. The streaming attempt fell back
+                   * here, so omitting projectId would silently save the run
+                   * project-less and leave the panel empty on the slow path.
+                   */
+                  projectId,
                   signal: request.signal,
                 });
               }

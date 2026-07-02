@@ -1,8 +1,153 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createDatabaseClient } from '@vibecore/database';
 import { PrismaAgentRunPersistence } from './agent-run-persistence.js';
 import type { AgentRunRequest, AgentRunResponse } from './agent-executor.js';
 import { runConsensus } from './consensus/index.js';
+
+/*
+ * Fake Prisma that records the exact `data` handed to agentRun.create — enough to
+ * assert the write-path mapping (projectId/userId/conversationId) WITHOUT a real
+ * Postgres, so this runs in CI where DATABASE_URL is unset. The FK columns
+ * (organizationId, userId) are resolved via findUnique first; the fake returns a
+ * hit only for ids we pre-seed, mirroring the "unknown id → null" behaviour.
+ */
+function createRecordingPrisma(knownIds: { orgIds?: string[]; userIds?: string[] } = {}) {
+  const orgIds = new Set(knownIds.orgIds ?? []);
+  const userIds = new Set(knownIds.userIds ?? []);
+  const created = { agentRun: undefined as unknown, consensusRecord: undefined as unknown };
+
+  const tx = {
+    agentRun: {
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+        created.agentRun = data;
+        return data;
+      }),
+    },
+    agentRunResult: { create: vi.fn(async () => ({})) },
+    consensusRecord: {
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+        created.consensusRecord = data;
+        return data;
+      }),
+    },
+  };
+
+  const prisma = {
+    organization: {
+      findUnique: vi.fn(async ({ where }: { where: { id: string } }) =>
+        orgIds.has(where.id) ? { id: where.id } : null,
+      ),
+    },
+    user: {
+      findUnique: vi.fn(async ({ where }: { where: { id: string } }) =>
+        userIds.has(where.id) ? { id: where.id } : null,
+      ),
+    },
+    $transaction: vi.fn(async (fn: (t: typeof tx) => Promise<void>) => fn(tx)),
+  };
+
+  return { prisma, tx, created };
+}
+
+function baseRequest(overrides: Partial<AgentRunRequest> = {}): AgentRunRequest {
+  return {
+    mode: 'parallel-subagents',
+    roles: [{ id: 'architect', title: 'Architect', responsibility: 'Plan', output: 'JSON' }],
+    messages: [{ role: 'user', content: 'Build a feature.' }],
+    ...overrides,
+  };
+}
+
+describe('PrismaAgentRunPersistence write-path mapping (no DB)', () => {
+  it('persists projectId + conversationId as-is and resolves a known userId', async () => {
+    const userId = 'user-known';
+    const { prisma, created } = createRecordingPrisma({ userIds: [userId] });
+    const persistence = new PrismaAgentRunPersistence(prisma as never);
+
+    const request = baseRequest({
+      projectId: 'proj-42',
+      userId,
+      conversationId: 'conv-7',
+    });
+    const results: AgentRunResponse['results'] = [
+      { roleId: 'architect', status: 'complete', summary: 'ok', files: [], risks: [], verification: [] },
+    ];
+    const consensus = runConsensus({ results, algorithm: 'QUORUM' });
+
+    await persistence.recordRun({
+      runId: 'run-1',
+      request,
+      response: { runId: 'run-1', status: 'complete', results, consensus },
+      consensus,
+      startedAt: new Date(),
+      completedAt: new Date(),
+    });
+
+    const data = created.agentRun as Record<string, unknown>;
+    expect(data.projectId).toBe('proj-42');
+    expect(data.userId).toBe(userId);
+    expect(data.conversationId).toBe('conv-7');
+  });
+
+  it('drops an unknown userId to null (no P2003) while keeping projectId', async () => {
+    const { prisma, created } = createRecordingPrisma({ userIds: [] });
+    const persistence = new PrismaAgentRunPersistence(prisma as never);
+
+    await persistence.recordRun({
+      runId: 'run-2',
+      request: baseRequest({ projectId: 'proj-9', userId: 'ghost-user' }),
+      response: {
+        runId: 'run-2',
+        status: 'complete',
+        results: [{ roleId: 'architect', status: 'complete', summary: 'ok' }],
+        consensus: runConsensus({
+          results: [{ roleId: 'architect', status: 'complete', summary: 'ok' }],
+          algorithm: 'QUORUM',
+        }),
+      },
+      consensus: runConsensus({
+        results: [{ roleId: 'architect', status: 'complete', summary: 'ok' }],
+        algorithm: 'QUORUM',
+      }),
+      startedAt: new Date(),
+      completedAt: new Date(),
+    });
+
+    const data = created.agentRun as Record<string, unknown>;
+    expect(data.projectId).toBe('proj-9');
+    expect(data.userId).toBeNull();
+  });
+
+  it('nulls projectId/userId/conversationId when the request omits them', async () => {
+    const { prisma, created } = createRecordingPrisma();
+    const persistence = new PrismaAgentRunPersistence(prisma as never);
+
+    await persistence.recordRun({
+      runId: 'run-3',
+      request: baseRequest(),
+      response: {
+        runId: 'run-3',
+        status: 'complete',
+        results: [{ roleId: 'architect', status: 'complete', summary: 'ok' }],
+        consensus: runConsensus({
+          results: [{ roleId: 'architect', status: 'complete', summary: 'ok' }],
+          algorithm: 'QUORUM',
+        }),
+      },
+      consensus: runConsensus({
+        results: [{ roleId: 'architect', status: 'complete', summary: 'ok' }],
+        algorithm: 'QUORUM',
+      }),
+      startedAt: new Date(),
+      completedAt: new Date(),
+    });
+
+    const data = created.agentRun as Record<string, unknown>;
+    expect(data.projectId).toBeNull();
+    expect(data.userId).toBeNull();
+    expect(data.conversationId).toBeNull();
+  });
+});
 
 async function canReachDatabase() {
   if (!process.env.DATABASE_URL) {
