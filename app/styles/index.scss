@@ -24821,6 +24821,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   background: var(--ecode-selection);
 }
 
+// Marketing announcement bar: the inline boot script flags <html> before first
+// paint when the current campaign is already dismissed (see announcement.ts),
+// so the bar never flashes for returning visitors.
+html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
+  display: none;
+}
+
 // Global reduced-motion: collapse every animation/transition to a near-zero
 // duration (not `none`, so animation/transitionend events still fire) and
 // disable smooth scrolling when the OS asks for reduced motion.

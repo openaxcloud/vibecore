@@ -6,6 +6,7 @@ interface CloseButtonProps {
   onClick?: () => void;
   className?: string;
   size?: 'sm' | 'md' | 'lg';
+  ariaLabel?: string;
 }
 
 /**
@@ -14,7 +15,7 @@ interface CloseButtonProps {
  * A button with an X icon used for closing dialogs, modals, etc.
  * The button has a transparent background and only shows a background on hover.
  */
-export function CloseButton({ onClick, className, size = 'md' }: CloseButtonProps) {
+export function CloseButton({ onClick, className, size = 'md', ariaLabel = 'Close' }: CloseButtonProps) {
   const sizeClasses = {
     sm: 'p-1',
     md: 'p-2',
@@ -35,13 +36,13 @@ export function CloseButton({ onClick, className, size = 'md' }: CloseButtonProp
         'text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary dark:text-bolt-elements-textTertiary-dark dark:hover:text-bolt-elements-textSecondary-dark',
         'rounded-lg hover:bg-bolt-elements-background-depth-2 dark:hover:bg-bolt-elements-background-depth-3',
         'transition-colors duration-200',
-        'focus:outline-none focus:ring-2 focus:ring-purple-500/50',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-focus-ring)]',
         sizeClasses[size],
         className,
       )}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
-      aria-label="Close"
+      aria-label={ariaLabel}
     >
       <div className={classNames('i-ph:x', iconSizeClasses[size])} />
     </motion.button>

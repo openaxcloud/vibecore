@@ -22,6 +22,11 @@ import { useEffect, useState } from 'react';
 import { Badge, Button, cn, Link, useMarketingNavigate, useWouterLocation } from './EcodeExactUi';
 import { publicChromeUserChoseDark, resolvePublicChromeTheme } from './ecode-public-theme';
 import { getThemeSwitcherPresentation } from './theme-switcher-presentation';
+import {
+  persistAnnouncementDismissed,
+  readAnnouncementDismissed,
+} from '~/components/marketing/ecode-exact/announcement';
+import { CloseButton } from '~/components/ui/CloseButton';
 import { ScrollArea } from '~/components/ui/ScrollArea';
 import { SkipLink } from '~/components/ui/SkipLink';
 import { applyThemeToDocument, kTheme, resolveInitialTheme, themeStore, toggleTheme } from '~/lib/stores/theme';
@@ -382,6 +387,23 @@ export function EcodeExactPublicNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   /*
+   * Announcement dismissal: the server and first client render always include
+   * the bar (hydration-safe); the C13 boot script hides it pre-paint via the
+   * data-ecode-announcement-dismissed attribute when this campaign was already
+   * dismissed, and this state catches up after mount.
+   */
+  const [announcementDismissed, setAnnouncementDismissed] = useState(false);
+
+  useEffect(() => {
+    setAnnouncementDismissed(readAnnouncementDismissed());
+  }, []);
+
+  const dismissAnnouncement = () => {
+    persistAnnouncementDismissed();
+    setAnnouncementDismissed(true);
+  };
+
+  /*
    * Guarantee marketing document chrome whenever this navbar is mounted. The
    * boot script + root-level reconcileMarketingChrome() cover most routes, but
    * some marketing pages (confirmed live: /partners) end up with
@@ -413,29 +435,42 @@ export function EcodeExactPublicNavbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full">
-      <div className="hidden md:block border-b border-[var(--ecode-border)] dark:border-border bg-background dark:bg-background">
-        <div className="container-responsive flex h-10 items-center justify-between text-[11px] text-[var(--ecode-text)] dark:text-slate-100">
-          <div className="flex items-center gap-3">
-            <Badge
-              variant="secondary"
-              className="bg-surface-solid text-[var(--ecode-accent-text)] dark:bg-surface-solid dark:text-white border-border dark:border-border uppercase tracking-[0.2em]"
-            >
-              NEW
-            </Badge>
-            <p className="font-medium">
-              Introducing E-Code Enterprise Cloud with dedicated AI governance and auditability.
-            </p>
+      {!announcementDismissed ? (
+        <div
+          data-ecode-announcement
+          className="hidden md:block border-b border-[var(--ecode-border)] dark:border-border bg-background dark:bg-background"
+        >
+          <div className="container-responsive flex h-10 items-center justify-between text-[11px] text-[var(--ecode-text)] dark:text-slate-100">
+            <div className="flex items-center gap-3">
+              <Badge
+                variant="secondary"
+                className="bg-surface-solid text-[var(--ecode-accent-text)] dark:bg-surface-solid dark:text-white border-border dark:border-border uppercase tracking-[0.2em]"
+              >
+                NEW
+              </Badge>
+              <p className="font-medium">
+                Introducing E-Code Enterprise Cloud with dedicated AI governance and auditability.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                className="inline-flex items-center gap-1 text-[var(--ecode-accent-text)] hover:text-[var(--ecode-accent-hover)] dark:hover:text-white transition-colors"
+                onClick={() => navigate('/contact-sales')}
+                aria-label="Talk to a sales expert"
+              >
+                Talk to an expert
+                <ChevronRight className="h-3 w-3" aria-hidden="true" />
+              </button>
+              <CloseButton
+                size="sm"
+                ariaLabel="Dismiss announcement"
+                onClick={dismissAnnouncement}
+                className="flex h-7 w-7 items-center justify-center"
+              />
+            </div>
           </div>
-          <button
-            className="inline-flex items-center gap-1 text-[var(--ecode-accent-text)] hover:text-[var(--ecode-accent-hover)] dark:hover:text-white transition-colors"
-            onClick={() => navigate('/contact-sales')}
-            aria-label="Talk to a sales expert"
-          >
-            Talk to an expert
-            <ChevronRight className="h-3 w-3" aria-hidden="true" />
-          </button>
         </div>
-      </div>
+      ) : null}
 
       <nav
         aria-label="Main navigation"

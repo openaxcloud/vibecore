@@ -16,6 +16,10 @@ import {
   useRouteError,
 } from 'react-router';
 import { LinkButton, PublicShell } from './components/dashboard/SaaSLayout';
+import {
+  ANNOUNCEMENT_DISMISSED_ATTRIBUTE,
+  ANNOUNCEMENT_DISMISSED_STORAGE_KEY,
+} from './components/marketing/ecode-exact/announcement';
 import { ImpersonationBanner } from './components/dashboard/ImpersonationBanner';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { installEditorPwaServiceWorker } from '@vibecore/editor';
@@ -77,6 +81,22 @@ export const links: LinksFunction = () => [
 
 const inlineThemeCode = stripIndents`
   setTutorialKitTheme();
+  markDismissedAnnouncement();
+
+  /*
+   * Marketing announcement bar: if this campaign was already dismissed, flag
+   * <html> before first paint so the CSS rule hides the bar with no flash.
+   * Kept in sync with app/components/marketing/ecode-exact/announcement.ts.
+   */
+  function markDismissedAnnouncement() {
+    try {
+      if (localStorage.getItem('${ANNOUNCEMENT_DISMISSED_STORAGE_KEY}') === '1') {
+        document.documentElement.setAttribute('${ANNOUNCEMENT_DISMISSED_ATTRIBUTE}', 'true');
+      }
+    } catch (e) {
+      // Storage blocked — the bar just shows.
+    }
+  }
 
   function isEcodePublicMarketingPath(pathname) {
     const exactPaths = new Set([
