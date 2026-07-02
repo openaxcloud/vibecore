@@ -1344,6 +1344,76 @@ export function EmptyPanel({
   );
 }
 
+export type OnboardingStep = {
+  key: string;
+  title: string;
+  description: string;
+  done: boolean;
+  actionLabel: string;
+  to?: string;
+};
+
+/*
+ * "Get set up" onboarding checklist shown on a fresh dashboard (≤1 project).
+ * Hides itself once every step is complete. Step CTAs use the app's blue
+ * action accent (--vc-ide-accent-action) — orange stays a brand color here.
+ */
+export function OnboardingChecklistCard({ steps }: { steps: OnboardingStep[] }) {
+  if (steps.every((step) => step.done)) {
+    return null;
+  }
+
+  return (
+    <section
+      aria-label="Get set up"
+      className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6"
+    >
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-5 w-5 text-bolt-elements-textTertiary" aria-hidden />
+        <h2 className="text-lg font-semibold">Get set up</h2>
+      </div>
+      <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+        Three quick steps to get your first app live on E-Code.
+      </p>
+      <ol className="mt-4 grid gap-3 md:grid-cols-3">
+        {steps.map((step, index) => (
+          <li
+            key={step.key}
+            className="flex flex-col rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4"
+          >
+            <div className="flex items-center gap-2">
+              {step.done ? (
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-bolt-elements-icon-success" aria-hidden />
+              ) : (
+                <span
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-bolt-elements-borderColor text-[11px] font-semibold text-bolt-elements-textSecondary"
+                  aria-hidden
+                >
+                  {index + 1}
+                </span>
+              )}
+              <h3 className="text-sm font-semibold">{step.title}</h3>
+            </div>
+            <p className="mt-2 flex-1 text-sm text-bolt-elements-textSecondary">{step.description}</p>
+            <div className="mt-3">
+              {step.done ? (
+                <span className="text-xs font-medium text-bolt-elements-icon-success">Done</span>
+              ) : step.to ? (
+                <Link
+                  to={step.to}
+                  className="inline-flex h-8 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] focus-visible:ring-offset-1"
+                >
+                  {step.actionLabel}
+                </Link>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 export function SettingsForm({
   fields,
   submitLabel = 'Save changes',

@@ -6,6 +6,7 @@ import {
   ActivityList,
   AppShell,
   CommandPalettePreview,
+  OnboardingChecklistCard,
   ProjectGrid,
   StatGrid,
   importOptions,
@@ -76,6 +77,66 @@ async function optionalAiCostCents(request: Request, organizationId: string) {
   }
 }
 
+type OnboardingSummary = {
+  show: boolean;
+  createdFirstApp: boolean;
+  deployedFirstApp: boolean;
+  invitedTeammate: boolean;
+  deployTo?: string;
+};
+
+/*
+ * "Get set up" card signals for a fresh dashboard (≤1 project). Each probe is
+ * best-effort: onboarding hints must never break the dashboard, so a failed
+ * lookup simply reports its step as not done.
+ */
+async function onboardingSignals(
+  request: Request,
+  organizationId: string,
+  projectCount: number,
+  mostRecentProjectId?: string,
+): Promise<OnboardingSummary> {
+  if (projectCount > 1) {
+    return { show: false, createdFirstApp: true, deployedFirstApp: false, invitedTeammate: false };
+  }
+
+  const [deployedFirstApp, invitedTeammate] = await Promise.all([
+    (async () => {
+      if (!mostRecentProjectId) {
+        return false;
+      }
+
+      try {
+        const result = await apiRequest<{ deployments?: unknown[] }>(
+          request,
+          `/projects/${mostRecentProjectId}/deployments`,
+        );
+
+        return Array.isArray(result?.deployments) && result.deployments.length > 0;
+      } catch {
+        return false;
+      }
+    })(),
+    (async () => {
+      try {
+        const result = await apiRequest<{ invitations?: unknown[] }>(request, `/orgs/${organizationId}/invitations`);
+
+        return Array.isArray(result?.invitations) && result.invitations.length > 0;
+      } catch {
+        return false;
+      }
+    })(),
+  ]);
+
+  return {
+    show: true,
+    createdFirstApp: projectCount >= 1,
+    deployedFirstApp,
+    invitedTeammate,
+    deployTo: mostRecentProjectId ? `/projects/${mostRecentProjectId}/deployments` : undefined,
+  };
+}
+
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const orgs = await apiRequest<{ organizations: Organization[] }>(request, '/orgs');
   const organization = Array.isArray(orgs?.organizations) ? orgs.organizations[0] : undefined;
@@ -85,6 +146,12 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       usageSummary: { projects: 0, activeWorkspaces: 0, planName: 'Free', usageEvents: 0, aiCostCents: 0 },
       billingAccessLimited: false,
       projects: [] satisfies ProjectCard[],
+      onboarding: {
+        show: true,
+        createdFirstApp: false,
+        deployedFirstApp: false,
+        invitedTeammate: false,
+      } satisfies OnboardingSummary,
     };
   }
 
@@ -96,6 +163,19 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
   const { billing, billingAccessLimited } = billingResult;
   const projects = Array.isArray(result?.projects) ? result.projects : [];
+
+  const sortedProjects = [...projects].sort((a, b) => {
+    /*
+     * "Recent" must mean most-recently-updated, matching the /recent-projects
+     * page this card links to (the API returns createdAt-desc order).
+     */
+    const at = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+    const bt = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+
+    return bt - at;
+  });
+
+  const onboarding = await onboardingSignals(request, organization.id, projects.length, sortedProjects[0]?.id);
 
   return {
     usageSummary: {
@@ -111,17 +191,8 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       aiCostCents,
     },
     billingAccessLimited,
-    projects: [...projects]
-      .sort((a, b) => {
-        /*
-         * "Recent" must mean most-recently-updated, matching the /recent-projects
-         * page this card links to (the API returns createdAt-desc order).
-         */
-        const at = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-        const bt = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-
-        return bt - at;
-      })
+    onboarding,
+    projects: sortedProjects
       .slice(0, 6)
       .map((project) => ({
         id: project.id,
@@ -139,7 +210,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 export const meta: MetaFunction = () => [{ title: 'Dashboard - E-Code' }];
 
 export default function DashboardPage() {
-  const { projects, usageSummary, billingAccessLimited } = useLoaderData<typeof loader>();
+  const { projects, usageSummary, billingAccessLimited, onboarding } = useLoaderData<typeof loader>();
 
   return (
     <AppShell
@@ -155,6 +226,36 @@ export default function DashboardPage() {
       }
     >
       <div className="grid gap-6">
+        {onboarding.show ? (
+          <OnboardingChecklistCard
+            steps={[
+              {
+                key: 'create',
+                title: 'Create your first app',
+                description: 'Describe what you want to build and the E-Code agent scaffolds a real project.',
+                done: onboarding.createdFirstApp,
+                actionLabel: 'New project',
+                to: '/projects/new',
+              },
+              {
+                key: 'deploy',
+                title: 'Deploy it',
+                description: 'Ship your app to a live URL from the project deployments page.',
+                done: onboarding.deployedFirstApp,
+                actionLabel: 'Open deployments',
+                to: onboarding.deployTo,
+              },
+              {
+                key: 'invite',
+                title: 'Invite a teammate',
+                description: 'Bring a collaborator into your organization to build together.',
+                done: onboarding.invitedTeammate,
+                actionLabel: 'Invite teammates',
+                to: '/invitations',
+              },
+            ]}
+          />
+        ) : null}
         <StatGrid stats={statsFromUsage(usageSummary)} />
         <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
           <div>
