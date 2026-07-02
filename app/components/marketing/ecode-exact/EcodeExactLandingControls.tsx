@@ -380,13 +380,13 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
               </div>
             ) : null}
             {modelsError ? (
-              <div className="flex items-center gap-2 text-[11px] sm:text-[13px] text-amber-700 dark:text-amber-400">
+              <div className="flex items-center gap-2 text-[11px] sm:text-[13px] text-[var(--status-warning-text)]">
                 <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
                 <span>Using the static model fallback while the catalog reconnects.</span>
               </div>
             ) : null}
             {currentModel ? (
-              <div className="flex items-center gap-2 text-[11px] sm:text-[13px] text-green-600 dark:text-green-500">
+              <div className="flex items-center gap-2 text-[11px] sm:text-[13px] text-[var(--status-success-text)]">
                 <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
                 <span>Model preference saved</span>
               </div>

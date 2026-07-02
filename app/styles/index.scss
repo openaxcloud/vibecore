@@ -24696,3 +24696,14 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     align-items: center;
   }
 }
+
+// Marketing (public chrome) focus & selection — branded orange, scoped so the
+// app/IDE keep their own focus treatment (blue action accent, Replit parity).
+[data-ecode-public-chrome] :is(a, button, input, select, textarea):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ecode-focus-ring);
+}
+
+[data-ecode-public-chrome] ::selection {
+  background: var(--ecode-selection);
+}

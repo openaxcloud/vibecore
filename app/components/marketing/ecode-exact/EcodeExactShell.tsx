@@ -414,7 +414,7 @@ export function EcodeExactPublicNavbar() {
           <div className="flex items-center gap-3">
             <Badge
               variant="secondary"
-              className="bg-surface-solid text-[var(--ecode-accent)] dark:bg-surface-solid dark:text-white border-border dark:border-border uppercase tracking-[0.2em]"
+              className="bg-surface-solid text-[var(--ecode-accent-text)] dark:bg-surface-solid dark:text-white border-border dark:border-border uppercase tracking-[0.2em]"
             >
               NEW
             </Badge>
@@ -423,7 +423,7 @@ export function EcodeExactPublicNavbar() {
             </p>
           </div>
           <button
-            className="inline-flex items-center gap-1 text-[var(--ecode-accent)] hover:text-[var(--ecode-accent-hover)] dark:text-[#F99D25] dark:hover:text-white transition-colors"
+            className="inline-flex items-center gap-1 text-[var(--ecode-accent-text)] hover:text-[var(--ecode-accent-hover)] dark:hover:text-white transition-colors"
             onClick={() => navigate('/contact-sales')}
             aria-label="Talk to a sales expert"
           >
@@ -463,7 +463,7 @@ export function EcodeExactPublicNavbar() {
               <ThemeSwitcher />
               <Button
                 variant="ghost"
-                className="text-[var(--ecode-text)] dark:text-slate-200 hover:text-[var(--ecode-accent)] dark:hover:text-white min-h-[44px] px-3 sm:px-4"
+                className="text-[var(--ecode-text)] dark:text-slate-200 hover:text-[var(--ecode-accent-text)] dark:hover:text-white min-h-[44px] px-3 sm:px-4"
                 onClick={() => navigate('/login')}
                 data-testid="link-login"
               >
@@ -678,8 +678,8 @@ function NavPill({ href, children }: { href: string; children: React.ReactNode }
       className={cn(
         'group inline-flex h-10 w-max items-center justify-center rounded-full border px-5 text-[13px] font-medium transition-colors',
         active
-          ? 'border-[var(--ecode-accent)] text-[var(--ecode-accent)]'
-          : 'border-[var(--ecode-border)] dark:border-border text-[var(--ecode-text)] dark:text-slate-200 hover:border-[var(--ecode-accent)] dark:hover:border-surface-hover-solid hover:text-[var(--ecode-accent)] dark:hover:text-white',
+          ? 'border-[var(--ecode-accent)] text-[var(--ecode-accent-text)]'
+          : 'border-[var(--ecode-border)] dark:border-border text-[var(--ecode-text)] dark:text-slate-200 hover:border-[var(--ecode-accent)] dark:hover:border-surface-hover-solid hover:text-[var(--ecode-accent-text)] dark:hover:text-white',
       )}
     >
       {children}
@@ -724,7 +724,7 @@ export function EcodeExactPublicFooter() {
       <div className="relative container-responsive py-16">
         <div className="grid gap-12 lg:grid-cols-[1.2fr_2fr]">
           <div className="space-y-6">
-            <Badge className="bg-surface-solid text-[var(--ecode-accent)] border-border dark:bg-surface-solid dark:text-white dark:border-border">
+            <Badge className="bg-surface-solid text-[var(--ecode-accent-text)] border-border dark:bg-surface-solid dark:text-white dark:border-border">
               <Sparkles className="mr-2 h-3 w-3" />
               Built for Fortune 500
             </Badge>
@@ -746,7 +746,7 @@ export function EcodeExactPublicFooter() {
               </Button>
               <Button
                 variant="outline"
-                className="border-[var(--ecode-border)] text-[var(--ecode-text)] hover:text-[var(--ecode-accent)] dark:border-border dark:text-slate-100 dark:hover:text-white min-h-[44px]"
+                className="border-[var(--ecode-border)] text-[var(--ecode-text)] hover:text-[var(--ecode-accent-text)] dark:border-border dark:text-slate-100 dark:hover:text-white min-h-[44px]"
                 onClick={() => navigate('/register')}
                 data-testid="button-footer-start-building"
               >
@@ -790,7 +790,7 @@ export function EcodeExactPublicFooter() {
                       <Link
                         key={link.href}
                         href={link.href}
-                        className="rounded-full border border-[var(--ecode-border)] dark:border-border px-3 py-1.5 text-[11px] text-[var(--ecode-text-secondary)] dark:text-slate-200 transition hover:border-[var(--ecode-accent)] dark:hover:border-surface-hover-solid hover:text-[var(--ecode-accent)] dark:hover:text-white"
+                        className="rounded-full border border-[var(--ecode-border)] dark:border-border px-3 py-1.5 text-[11px] text-[var(--ecode-text-secondary)] dark:text-slate-200 transition hover:border-[var(--ecode-accent)] dark:hover:border-surface-hover-solid hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
                       >
                         {link.label}
                       </Link>
@@ -823,7 +823,7 @@ export function EcodeExactPublicFooter() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`Follow us on ${social.label}`}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--ecode-border)] dark:border-border bg-[var(--ecode-surface-secondary)] dark:bg-surface-solid text-[var(--ecode-text-secondary)] dark:text-slate-200 transition hover:border-[var(--ecode-accent)] dark:hover:border-surface-hover-solid hover:text-[var(--ecode-accent)] dark:hover:text-white"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--ecode-border)] dark:border-border bg-[var(--ecode-surface-secondary)] dark:bg-surface-solid text-[var(--ecode-text-secondary)] dark:text-slate-200 transition hover:border-[var(--ecode-accent)] dark:hover:border-surface-hover-solid hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
                 data-testid={`link-social-${social.label.toLowerCase()}`}
               >
                 <social.icon className="h-5 w-5" aria-hidden="true" />
@@ -842,10 +842,10 @@ export function EcodeExactPublicFooter() {
             <span>© {new Date().getFullYear()} E-Code.AI (Snatch Group Limited). All rights reserved.</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/newsletter/unsubscribe" className="hover:text-[var(--ecode-accent)] dark:hover:text-white">
+            <Link href="/newsletter/unsubscribe" className="hover:text-[var(--ecode-accent-text)] dark:hover:text-white">
               Email preferences
             </Link>
-            <Link href="/newsletter-confirmed" className="hover:text-[var(--ecode-accent)] dark:hover:text-white">
+            <Link href="/newsletter-confirmed" className="hover:text-[var(--ecode-accent-text)] dark:hover:text-white">
               Newsletter
             </Link>
           </div>
@@ -866,7 +866,7 @@ function FooterColumn({ title, links }: { title: string; links: readonly { label
           <li key={link.href}>
             <Link
               href={link.href}
-              className="text-[var(--ecode-text-secondary)] dark:text-slate-300 transition hover:text-[var(--ecode-accent)] dark:hover:text-white"
+              className="text-[var(--ecode-text-secondary)] dark:text-slate-300 transition hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
             >
               {link.label}
             </Link>
