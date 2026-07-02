@@ -285,7 +285,8 @@ export default function LandingOptimized() {
               Fortune 500 development velocity to every team.
             </p>
 
-            <div className="max-w-4xl mx-auto mt-8 animate-fade-in" style={{ animationDelay: '300ms' }}>
+            {/* <sm the model picker collapses into the prompt card below to keep the 390px hero short. */}
+            <div className="hidden sm:block max-w-4xl mx-auto mt-8 animate-fade-in" style={{ animationDelay: '300ms' }}>
               <div className="flex justify-center">
                 <AIModelSelector variant="card" className="w-full max-w-2xl" />
               </div>
@@ -326,20 +327,53 @@ export default function LandingOptimized() {
                 </div>
               </div>
 
+              <details className="sm:hidden mt-3 rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-3 py-2 text-left">
+                <summary className="cursor-pointer list-none text-[13px] font-medium text-[var(--ecode-text-secondary)]">
+                  AI model
+                </summary>
+                <div className="mt-2">
+                  <AIModelSelector variant="inline" className="w-full" />
+                </div>
+              </details>
+
+              {/* Mobile-only: surface the secondary CTAs right under the prompt (hidden at sm+, where the original row below renders). */}
+              <div className="sm:hidden mt-4 flex flex-col gap-3">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="gap-2 px-6 py-4 text-base border-2 border-[var(--ecode-border)] hover:border-ecode-accent/50 w-full min-h-[48px]"
+                  onClick={scrollToVideoDemo}
+                  data-testid="button-watch-demo-mobile"
+                >
+                  <PlayCircle className="h-4 w-4 text-ecode-accent" />
+                  Watch Demo (2 min)
+                </Button>
+                <Button
+                  size="lg"
+                  variant="ghost"
+                  className="gap-2 px-6 py-4 text-base w-full min-h-[48px] text-[var(--ecode-text)] hover:text-ecode-accent"
+                  onClick={() => navigate('/pricing')}
+                  data-testid="button-view-pricing-mobile"
+                >
+                  View Pricing
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+
               <div className="mt-8 space-y-4 animate-fade-in" style={{ animationDelay: '500ms' }}>
                 <p className="text-[13px] text-[var(--ecode-text-muted)] text-center">Try these popular examples:</p>
-                <div className="flex flex-wrap justify-center gap-3">
+                <div className="flex flex-nowrap justify-start gap-3 overflow-x-auto pb-1 sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0">
                   {examples.map((example, index) => (
                     <button
                       key={index}
                       onClick={() => setAppDescription(example.text)}
-                      className="group flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-[var(--ecode-surface)] border border-[var(--ecode-border)] hover:border-ecode-accent/50 transition-all duration-300 hover:scale-105 min-h-[44px]"
+                      className="group flex shrink-0 items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-[var(--ecode-surface)] border border-[var(--ecode-border)] hover:border-ecode-accent/50 transition-all duration-300 hover:scale-105 min-h-[44px]"
                       data-testid={`button-example-${example.id}`}
                     >
                       <div className={`bg-gradient-to-r ${example.color} text-white p-1.5 rounded-md`}>
                         {example.icon}
                       </div>
-                      <span className="text-[11px] sm:text-[13px] font-medium text-[var(--ecode-text)]">
+                      <span className="whitespace-nowrap text-[11px] sm:text-[13px] font-medium text-[var(--ecode-text)]">
                         {example.label}
                       </span>
                     </button>
@@ -367,7 +401,7 @@ export default function LandingOptimized() {
             </div>
 
             <div
-              className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mt-8 animate-fade-in"
+              className="hidden sm:flex sm:flex-row gap-3 sm:gap-4 justify-center items-center mt-8 animate-fade-in"
               style={{ animationDelay: '700ms' }}
             >
               <Button
