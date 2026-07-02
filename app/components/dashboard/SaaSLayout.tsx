@@ -78,6 +78,7 @@ import { EcodeBrandMark } from '~/components/brand/EcodeBrandMark';
 import { EcodeExactPublicShell } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import { Button } from '~/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/Card';
+import { SkipLink } from '~/components/ui/SkipLink';
 import { profileStore } from '~/lib/stores/profile';
 import { themeStore, toggleTheme } from '~/lib/stores/theme';
 import { classNames } from '~/utils/classNames';
@@ -766,6 +767,7 @@ export function AppShell({
         mainClassName,
       )}
     >
+      <SkipLink />
       <div
         className={classNames(
           'vc-app-shell-grid grid min-h-screen',
@@ -774,7 +776,7 @@ export function AppShell({
       >
         <DesktopSidebar collapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
         <MobileSidebarDrawer open={drawerOpen} onClose={closeDrawer} />
-        <section className="min-w-0">
+        <section id="main-content" tabIndex={-1} className="min-w-0 outline-none">
           {!hideTopBar ? <TopBar onOpenDrawer={openDrawer} /> : null}
           <div className={classNames('mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8', contentClassName)}>
             {!hideHeader ? (

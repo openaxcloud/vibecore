@@ -23,6 +23,7 @@ import { Badge, Button, cn, Link, useMarketingNavigate, useWouterLocation } from
 import { publicChromeUserChoseDark, resolvePublicChromeTheme } from './ecode-public-theme';
 import { getThemeSwitcherPresentation } from './theme-switcher-presentation';
 import { ScrollArea } from '~/components/ui/ScrollArea';
+import { SkipLink } from '~/components/ui/SkipLink';
 import { applyThemeToDocument, kTheme, resolveInitialTheme, themeStore, toggleTheme } from '~/lib/stores/theme';
 import type { Theme } from '~/lib/stores/theme';
 import { readThemeCookie } from '~/lib/stores/theme-cookie';
@@ -319,8 +320,11 @@ export function EcodeExactPublicShell({ children }: { children: React.ReactNode 
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground" data-ecode-static-shell>
+      <SkipLink />
       <EcodeExactPublicNavbar />
-      {children}
+      <div id="main-content" tabIndex={-1} className="flex flex-1 flex-col outline-none">
+        {children}
+      </div>
       <EcodeExactPublicFooter />
     </div>
   );
