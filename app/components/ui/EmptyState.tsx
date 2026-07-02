@@ -1,37 +1,39 @@
-import { motion } from 'framer-motion';
-import React from 'react';
-import { Button } from './Button';
+import type { LucideIcon } from 'lucide-react';
+import { Link } from 'react-router';
 import { classNames } from '~/utils/classNames';
 
-// Variant-specific styles
+/*
+ * Variant-specific styles (canonical empty state: 40px icon tile on depth-3,
+ * 15/600 title, 13px description, at most two CTAs).
+ */
 const VARIANT_STYLES = {
   default: {
-    container: 'py-8 p-6',
+    container: 'p-8',
     icon: {
-      container: 'w-12 h-12 mb-3',
-      size: 'w-6 h-6',
+      container: 'mb-3 h-10 w-10',
+      size: 'h-5 w-5',
     },
-    title: 'text-base',
-    description: 'text-sm mt-1',
-    actions: 'mt-4',
-    buttonSize: 'default' as const,
+    title: 'text-[15px] font-semibold',
+    description: 'text-[13px] mt-2',
+    actions: 'mt-5',
+    button: 'h-9 px-4 text-sm',
   },
   compact: {
-    container: 'py-4 p-4',
+    container: 'p-4 py-4',
     icon: {
-      container: 'w-10 h-10 mb-2',
-      size: 'w-5 h-5',
+      container: 'mb-2 h-10 w-10',
+      size: 'h-5 w-5',
     },
-    title: 'text-sm',
-    description: 'text-xs mt-0.5',
+    title: 'text-[15px] font-semibold',
+    description: 'text-[13px] mt-1',
     actions: 'mt-3',
-    buttonSize: 'sm' as const,
+    button: 'h-8 px-3 text-xs',
   },
 };
 
 interface EmptyStateProps {
-  /** Icon class name */
-  icon?: string;
+  /** Icon: a UnoCSS icon class (e.g. 'i-ph:folder-simple-dashed') or a lucide component. */
+  icon?: string | LucideIcon;
 
   /** Title text */
   title: string;
@@ -39,17 +41,23 @@ interface EmptyStateProps {
   /** Optional description text */
   description?: string;
 
-  /** Primary action button label */
+  /** Primary action button label (blue action accent) */
   actionLabel?: string;
 
   /** Primary action button callback */
   onAction?: () => void;
 
-  /** Secondary action button label */
+  /** Primary action as an internal link (alternative to onAction) */
+  to?: string;
+
+  /** Secondary action button label (outline) */
   secondaryActionLabel?: string;
 
   /** Secondary action button callback */
   onSecondaryAction?: () => void;
+
+  /** Secondary action as an internal link */
+  secondaryTo?: string;
 
   /** Additional class name */
   className?: string;
@@ -58,10 +66,16 @@ interface EmptyStateProps {
   variant?: 'default' | 'compact';
 }
 
+const PRIMARY_CTA_CLASSES =
+  'inline-flex items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] focus-visible:ring-offset-1';
+
+const SECONDARY_CTA_CLASSES =
+  'inline-flex items-center justify-center rounded-md border border-bolt-elements-borderColor font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]';
+
 /**
- * EmptyState component
- *
- * A component for displaying empty states with optional actions.
+ * Canonical empty state, shared by the dashboard (formerly EmptyPanel in
+ * SaaSLayout) and panel UIs. Primary CTA uses the app's blue action accent per
+ * docs/DESIGN_ACCENTS.md; secondary CTA is an outline button.
  */
 export function EmptyState({
   icon = 'i-ph:folder-simple-dashed',
@@ -69,86 +83,75 @@ export function EmptyState({
   description,
   actionLabel,
   onAction,
+  to,
   secondaryActionLabel,
   onSecondaryAction,
+  secondaryTo,
   className,
   variant = 'default',
 }: EmptyStateProps) {
-  // Get styles based on variant
   const styles = VARIANT_STYLES[variant];
+  const IconComponent = typeof icon === 'string' ? null : icon;
 
-  // Animation variants for buttons
-  const buttonAnimation = {
-    whileHover: { scale: 1.02 },
-    whileTap: { scale: 0.98 },
-  };
+  const primary =
+    actionLabel && (to || onAction) ? (
+      to ? (
+        <Link to={to} className={classNames(PRIMARY_CTA_CLASSES, styles.button)}>
+          {actionLabel}
+        </Link>
+      ) : (
+        <button type="button" onClick={onAction} className={classNames(PRIMARY_CTA_CLASSES, styles.button)}>
+          {actionLabel}
+        </button>
+      )
+    ) : null;
+
+  const secondary =
+    secondaryActionLabel && (secondaryTo || onSecondaryAction) ? (
+      secondaryTo ? (
+        <Link to={secondaryTo} className={classNames(SECONDARY_CTA_CLASSES, styles.button)}>
+          {secondaryActionLabel}
+        </Link>
+      ) : (
+        <button type="button" onClick={onSecondaryAction} className={classNames(SECONDARY_CTA_CLASSES, styles.button)}>
+          {secondaryActionLabel}
+        </button>
+      )
+    ) : null;
 
   return (
     <div
       className={classNames(
-        'flex flex-col items-center justify-center',
-        'text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark',
-        'bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 rounded-lg',
+        'flex flex-col items-center justify-center rounded-lg border border-dashed border-bolt-elements-borderColor',
+        'bg-bolt-elements-background-depth-2 text-center text-bolt-elements-textSecondary shadow-sm',
         styles.container,
         className,
       )}
     >
-      {/* Icon */}
-      <div
+      <span
         className={classNames(
-          'rounded-full bg-bolt-elements-background-depth-3 dark:bg-bolt-elements-background-depth-4 flex items-center justify-center',
+          'flex items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3',
           styles.icon.container,
         )}
       >
-        <span
-          className={classNames(
-            icon,
-            styles.icon.size,
-            'text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark',
-          )}
-        />
-      </div>
-
-      {/* Title */}
-      <p className={classNames('font-medium', styles.title)}>{title}</p>
-
-      {/* Description */}
-      {description && (
-        <p
-          className={classNames(
-            'text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark text-center max-w-xs',
-            styles.description,
-          )}
-        >
+        {IconComponent ? (
+          <IconComponent className={classNames(styles.icon.size, 'text-bolt-elements-textSecondary')} aria-hidden />
+        ) : (
+          <span className={classNames(icon as string, styles.icon.size, 'text-bolt-elements-textTertiary')} />
+        )}
+      </span>
+      <h2 className={classNames('text-bolt-elements-textPrimary', styles.title)}>{title}</h2>
+      {description ? (
+        <p className={classNames('mx-auto max-w-xl text-bolt-elements-textSecondary', styles.description)}>
           {description}
         </p>
-      )}
-
-      {/* Action buttons */}
-      {(actionLabel || secondaryActionLabel) && (
+      ) : null}
+      {primary || secondary ? (
         <div className={classNames('flex items-center gap-2', styles.actions)}>
-          {actionLabel && onAction && (
-            <motion.div {...buttonAnimation}>
-              <Button
-                onClick={onAction}
-                variant="default"
-                size={styles.buttonSize}
-                className="bg-purple-500 hover:bg-purple-600 text-white"
-              >
-                {actionLabel}
-              </Button>
-            </motion.div>
-          )}
-
-          {secondaryActionLabel && onSecondaryAction && (
-            <motion.div {...buttonAnimation}>
-              <Button onClick={onSecondaryAction} variant="outline" size={styles.buttonSize}>
-                {secondaryActionLabel}
-              </Button>
-            </motion.div>
-          )}
+          {primary}
+          {secondary}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -78,6 +78,7 @@ import { EcodeBrandMark } from '~/components/brand/EcodeBrandMark';
 import { EcodeExactPublicShell } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import { Button } from '~/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/Card';
+import { EmptyState } from '~/components/ui/EmptyState';
 import { SkipLink } from '~/components/ui/SkipLink';
 import { profileStore } from '~/lib/stores/profile';
 import { themeStore, toggleTheme } from '~/lib/stores/theme';
@@ -1153,7 +1154,7 @@ export function StatGrid({ stats }: { stats: Array<{ label: string; value: strin
 export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
   if (projects.length === 0) {
     return (
-      <EmptyPanel
+      <EmptyState
         title="No projects yet"
         description="Create a persistent project to open the E-Code IDE with saved files, runtime sessions and snapshots."
         actionLabel="Create project"
@@ -1315,36 +1316,12 @@ export function TemplateGallery({
   );
 }
 
-export function EmptyPanel({
-  title,
-  description,
-  actionLabel,
-  to,
-  icon = Search,
-}: {
-  title: string;
-  description: string;
-  actionLabel?: string;
-  to?: string;
-  icon?: Icon;
-}) {
-  const PanelIcon = icon;
-
-  return (
-    <div className="rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-8 text-center shadow-sm">
-      <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
-        <PanelIcon className="h-6 w-6 text-bolt-elements-textSecondary" aria-hidden />
-      </span>
-      <h2 className="text-base font-semibold">{title}</h2>
-      <p className="mx-auto mt-2 max-w-xl text-sm text-bolt-elements-textSecondary">{description}</p>
-      {actionLabel && to ? (
-        <div className="mt-5">
-          <LinkButton to={to}>{actionLabel}</LinkButton>
-        </div>
-      ) : null}
-    </div>
-  );
-}
+/**
+ * @deprecated Use `EmptyState` from `~/components/ui/EmptyState` — this alias
+ * only remains so stray imports keep compiling until they migrate, and will be
+ * removed.
+ */
+export const EmptyPanel = EmptyState;
 
 export type OnboardingStep = {
   key: string;
