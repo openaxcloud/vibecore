@@ -180,6 +180,124 @@ export function TokensByProviderChart({ labels, values }: Labeled) {
   return <Doughnut data={data} options={options} />;
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Platform-metrics charts (real Prometheus registry, via /admin/platform-metrics)
+ * ---------------------------------------------------------------------------
+ */
+
+/** Generic categorical vertical bar — queue depth by queue, error rates by type, etc. */
+export function CategoryBarChart({
+  labels,
+  values,
+  axisLabel,
+  colorOffset = 0,
+  format,
+}: Labeled & { axisLabel: string; colorOffset?: number; format?: (value: number) => string }) {
+  const t = useChartTheme();
+  const fmt = format ?? ((value: number) => value.toLocaleString());
+
+  const options: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: (c) => `${c.label}: ${fmt(Number(c.parsed.y))}` } },
+    },
+    scales: {
+      x: { ticks: { color: t.text, autoSkip: false, maxRotation: 30 }, grid: { color: t.grid } },
+      y: { ticks: { color: t.text, precision: 0 }, grid: { color: t.grid }, beginAtZero: true },
+    },
+  };
+
+  const data = {
+    labels,
+    datasets: [
+      {
+        label: axisLabel,
+        data: values,
+        backgroundColor: labels.map((_, i) => seriesColor(i + colorOffset)),
+        borderRadius: 4,
+      },
+    ],
+  };
+
+  return <Bar data={data} options={options} />;
+}
+
+type Dataset = { label: string; values: number[]; colorIndex: number };
+
+/** Multi-series grouped bar — e.g. workspace starts vs failures per label bucket. */
+export function GroupedBarChart({ labels, datasets }: { labels: string[]; datasets: Dataset[] }) {
+  const t = useChartTheme();
+
+  const options: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { color: t.text, boxWidth: 12, padding: 12 } },
+      tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${Number(c.parsed.y).toLocaleString()}` } },
+    },
+    scales: {
+      x: { ticks: { color: t.text, autoSkip: false, maxRotation: 30 }, grid: { color: t.grid } },
+      y: { ticks: { color: t.text, precision: 0 }, grid: { color: t.grid }, beginAtZero: true },
+    },
+  };
+
+  const data = {
+    labels,
+    datasets: datasets.map((set) => ({
+      label: set.label,
+      data: set.values,
+      backgroundColor: seriesColor(set.colorIndex),
+      borderRadius: 4,
+    })),
+  };
+
+  return <Bar data={data} options={options} />;
+}
+
+/** Latency histogram — per-bucket observation counts as a vertical bar. */
+export function HistogramBucketChart({ labels, values }: Labeled) {
+  const t = useChartTheme();
+
+  const options: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          title: (items) => `≤ ${items[0]?.label ?? ''}`,
+          label: (c) => `${Number(c.parsed.y).toLocaleString()} observations`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        title: { display: true, text: 'Bucket upper bound (seconds)', color: t.text },
+        ticks: { color: t.text, autoSkip: false, maxRotation: 0 },
+        grid: { color: t.grid },
+      },
+      y: { ticks: { color: t.text, precision: 0 }, grid: { color: t.grid }, beginAtZero: true },
+    },
+  };
+
+  const data = {
+    labels,
+    datasets: [
+      {
+        label: 'Observations',
+        data: values,
+        backgroundColor: seriesColor(1),
+        borderRadius: 3,
+      },
+    ],
+  };
+
+  return <Bar data={data} options={options} />;
+}
+
 /** Cost (USD) by organization — vertical bar. */
 export function CostByOrgChart({ labels, values }: Labeled) {
   const t = useChartTheme();
