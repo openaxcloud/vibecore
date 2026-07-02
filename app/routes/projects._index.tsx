@@ -1,8 +1,11 @@
-import { Grid2X2, List, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Grid2X2, List, SearchX } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import type { MetaFunction } from 'react-router';
-import { useLoaderData } from 'react-router';
+import { useLoaderData, useSearchParams } from 'react-router';
 import { AppShell, ProjectGrid, LinkButton, StatusPill, type ProjectCard } from '~/components/dashboard/SaaSLayout';
+import { EmptyState } from '~/components/ui/EmptyState';
+import { FilterChip } from '~/components/ui/FilterChip';
+import { SearchInput } from '~/components/ui/SearchInput';
 import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { projectIdePath } from '~/utils/project-url';
 
@@ -16,7 +19,22 @@ type ApiProject = {
   updatedAt?: string;
   sourceType?: string;
   gitRepositoryUrl?: string;
+  deletedAt?: string | null;
+  deploymentCount?: number;
 };
+
+type LifecycleFilter = 'all' | 'deployed' | 'draft' | 'archived';
+
+const LIFECYCLE_FILTERS: Array<{ id: LifecycleFilter; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'deployed', label: 'Deployed' },
+  { id: 'draft', label: 'Draft' },
+  { id: 'archived', label: 'Archived' },
+];
+
+function isLifecycleFilter(value: string | null): value is LifecycleFilter {
+  return LIFECYCLE_FILTERS.some((filter) => filter.id === value);
+}
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const orgs = await apiRequest<{ organizations: Organization[] }>(request, '/orgs');
@@ -35,21 +53,36 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
    * single degraded org (revoked access, backend hiccup, timeout) would reject
    * the whole page and the user would lose access to *every* org's projects.
    * A failing org degrades to "no projects from that org" instead.
+   *
+   * includeArchived=1 lets the Archived filter show soft-deleted projects; the
+   * default All view still hides them client-side, matching the old listing.
    */
   const perOrg = await Promise.allSettled(
     orgs.organizations.map(async (organization) => {
-      const result = await apiRequest<{ projects: ApiProject[] }>(request, `/orgs/${organization.id}/projects`);
+      const result = await apiRequest<{ projects: ApiProject[] }>(
+        request,
+        `/orgs/${organization.id}/projects?includeArchived=1`,
+      );
 
-      return result.projects.map((project) => ({
-        id: project.id,
-        name: project.name,
-        status: 'Ready',
-        updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
-        stack: project.gitRepositoryUrl ?? project.sourceType ?? 'E-Code project',
-        sourceType: project.sourceType,
-        previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
-        ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
-      }));
+      return result.projects.map((project) => {
+        const lifecycle: NonNullable<ProjectCard['lifecycle']> = project.deletedAt
+          ? 'archived'
+          : (project.deploymentCount ?? 0) > 0
+            ? 'deployed'
+            : 'draft';
+
+        return {
+          id: project.id,
+          name: project.name,
+          status: lifecycle === 'archived' ? 'Archived' : 'Ready',
+          lifecycle,
+          updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
+          stack: project.gitRepositoryUrl ?? project.sourceType ?? 'E-Code project',
+          sourceType: project.sourceType,
+          previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
+          ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
+        };
+      });
     }),
   );
 
@@ -66,22 +99,82 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
 export default function ProjectsPage() {
   const { projects } = useLoaderData<typeof loader>();
-  const [query, setQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [view, setView] = useState<'grid' | 'list'>('grid');
+
+  const statusParam = searchParams.get('status');
+  const statusFilter: LifecycleFilter = isLifecycleFilter(statusParam) ? statusParam : 'all';
+
+  /*
+   * Keep ?q= in sync with the input, debounced 150ms so typing doesn't spam
+   * history (replace) and shared URLs restore the same filtered view.
+   */
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setSearchParams(
+        (params) => {
+          const next = new URLSearchParams(params);
+          const trimmed = query.trim();
+
+          if (trimmed) {
+            next.set('q', trimmed);
+          } else {
+            next.delete('q');
+          }
+
+          return next;
+        },
+        { replace: true },
+      );
+    }, 150);
+
+    return () => window.clearTimeout(handle);
+  }, [query, setSearchParams]);
+
+  const setStatusFilter = (filter: LifecycleFilter) => {
+    setSearchParams(
+      (params) => {
+        const next = new URLSearchParams(params);
+
+        if (filter === 'all') {
+          next.delete('status');
+        } else {
+          next.set('status', filter);
+        }
+
+        return next;
+      },
+      { replace: true },
+    );
+  };
+
+  const clearFilters = () => {
+    setQuery('');
+    setSearchParams({}, { replace: true });
+  };
 
   const filteredProjects = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    if (!normalizedQuery) {
-      return projects;
-    }
+    return projects.filter((project) => {
+      // The default view hides archived projects, exactly like the old listing.
+      if (statusFilter === 'all' ? project.lifecycle === 'archived' : project.lifecycle !== statusFilter) {
+        return false;
+      }
 
-    return projects.filter((project) =>
-      [project.name, project.stack, project.sourceType]
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      return [project.name, project.stack, project.sourceType]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalizedQuery)),
-    );
-  }, [projects, query]);
+        .some((value) => String(value).toLowerCase().includes(normalizedQuery));
+    });
+  }, [projects, query, statusFilter]);
+
+  const isFiltering = Boolean(query.trim()) || statusFilter !== 'all';
+  const noMatches = filteredProjects.length === 0 && projects.length > 0 && isFiltering;
 
   return (
     <AppShell
@@ -96,37 +189,59 @@ export default function ProjectsPage() {
         </>
       }
     >
-      <div className="mb-5 flex flex-col gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 sm:flex-row sm:items-center">
-        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm">
-          <Search className="h-4 w-4 text-bolt-elements-textTertiary" aria-hidden />
-          <input
-            className="min-w-0 flex-1 bg-transparent outline-none"
-            placeholder="Search projects"
-            aria-label="Search projects"
+      <div className="mb-5 flex flex-col gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <SearchInput
             value={query}
             onChange={(event) => setQuery(event.target.value)}
+            onClear={() => setQuery('')}
+            placeholder="Search projects"
+            aria-label="Search projects"
+            containerClassName="min-w-0 flex-1"
           />
-        </label>
-        <div className="flex gap-2">
-          <button
-            className="flex h-9 w-9 items-center justify-center rounded-md border border-bolt-elements-borderColor"
-            aria-label="Grid view"
-            aria-pressed={view === 'grid'}
-            onClick={() => setView('grid')}
-          >
-            <Grid2X2 className="h-4 w-4" aria-hidden />
-          </button>
-          <button
-            className="flex h-9 w-9 items-center justify-center rounded-md border border-bolt-elements-borderColor"
-            aria-label="List view"
-            aria-pressed={view === 'list'}
-            onClick={() => setView('list')}
-          >
-            <List className="h-4 w-4" aria-hidden />
-          </button>
+          <div className="flex gap-2">
+            <button
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-bolt-elements-borderColor"
+              aria-label="Grid view"
+              aria-pressed={view === 'grid'}
+              onClick={() => setView('grid')}
+            >
+              <Grid2X2 className="h-4 w-4" aria-hidden />
+            </button>
+            <button
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-bolt-elements-borderColor"
+              aria-label="List view"
+              aria-pressed={view === 'list'}
+              onClick={() => setView('list')}
+            >
+              <List className="h-4 w-4" aria-hidden />
+            </button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter projects by status">
+          {LIFECYCLE_FILTERS.map((filter) => (
+            <FilterChip
+              key={filter.id}
+              label={filter.label}
+              active={statusFilter === filter.id}
+              onClick={() => setStatusFilter(filter.id)}
+            />
+          ))}
         </div>
       </div>
-      {view === 'grid' ? <ProjectGrid projects={filteredProjects} /> : <ProjectList projects={filteredProjects} />}
+      {noMatches ? (
+        <EmptyState
+          icon={SearchX}
+          title={query.trim() ? `No projects match “${query.trim()}”` : 'No projects match these filters'}
+          description="Try a different search or clear the filters."
+          actionLabel="Clear filters"
+          onAction={clearFilters}
+        />
+      ) : view === 'grid' ? (
+        <ProjectGrid projects={filteredProjects} />
+      ) : (
+        <ProjectList projects={filteredProjects} />
+      )}
     </AppShell>
   );
 }

@@ -15801,7 +15801,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:read');
 
-    return { projects: await store.listProjects(orgId) };
+    // Soft-deleted ("archived") projects are excluded by default; the /projects
+    // Archived filter opts in explicitly.
+    const includeArchived = (request.query as Record<string, unknown>)?.includeArchived === '1';
+
+    return { projects: await store.listProjects(orgId, { includeArchived }) };
   });
   app.post('/orgs/:orgId/projects', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);

@@ -81,6 +81,9 @@ export interface ProjectRecord {
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
+
+  /** Number of deployment records; drives the Deployed/Draft project filters. */
+  deploymentCount?: number;
 }
 
 export interface WorkspaceRecord {
@@ -975,7 +978,7 @@ export interface ApiStore {
     gitRepositoryUrl?: string;
     gitDefaultBranch?: string;
   }): Promise<ProjectRecord>;
-  listProjects(organizationId: string): Promise<ProjectRecord[]>;
+  listProjects(organizationId: string, options?: { includeArchived?: boolean }): Promise<ProjectRecord[]>;
   countProjects(organizationId: string): Promise<number>;
   softDeleteProject(projectId: string): Promise<ProjectRecord>;
   restoreProject(projectId: string): Promise<ProjectRecord>;

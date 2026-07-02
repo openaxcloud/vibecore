@@ -373,6 +373,9 @@ export interface ProjectCard {
   sourceType?: string;
   previewImageUrl?: string;
   ideUrl?: string;
+
+  /** Real lifecycle derived from API data (deployments count / soft-delete). */
+  lifecycle?: 'deployed' | 'draft' | 'archived';
 }
 
 export function PublicShell({ children }: { children: React.ReactNode }) {

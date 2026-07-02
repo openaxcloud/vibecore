@@ -560,9 +560,9 @@ export class TestApiStore implements ApiStore {
     return project;
   }
 
-  async listProjects(organizationId: string) {
+  async listProjects(organizationId: string, options: { includeArchived?: boolean } = {}) {
     return [...this.projects.values()].filter(
-      (project) => project.organizationId === organizationId && !project.deletedAt,
+      (project) => project.organizationId === organizationId && (options.includeArchived || !project.deletedAt),
     );
   }
 

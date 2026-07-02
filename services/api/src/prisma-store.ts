@@ -817,9 +817,13 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
-  async listProjects(organizationId: string) {
+  async listProjects(organizationId: string, options: { includeArchived?: boolean } = {}) {
     return (
-      await this.prisma.project.findMany({ where: { organizationId, deletedAt: null }, orderBy: { createdAt: 'desc' } })
+      await this.prisma.project.findMany({
+        where: { organizationId, ...(options.includeArchived ? {} : { deletedAt: null }) },
+        orderBy: { createdAt: 'desc' },
+        include: { _count: { select: { deployments: true } } },
+      })
     ).map(mapProject);
   }
 
@@ -4454,6 +4458,7 @@ function mapProject(project: any): ProjectRecord {
     createdAt: toIso(project.createdAt)!,
     updatedAt: toIso(project.updatedAt)!,
     deletedAt: toIso(project.deletedAt),
+    ...(typeof project._count?.deployments === 'number' ? { deploymentCount: project._count.deployments } : {}),
   };
 }
 
