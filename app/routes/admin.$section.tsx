@@ -222,37 +222,36 @@ const adminSections: Record<string, AdminSectionConfig> = {
   },
 };
 
-const navItems = [
-  'overview',
-  'health',
-  'monitoring',
-  'users',
-  'organizations',
-  'projects',
-  'workspaces',
-  'previews',
-  'deployments',
-  'usage',
-  'ai-usage',
-  'quotas',
-  'abuse-events',
-  'security-events',
-  'audit-logs',
-  'admin-audit-logs',
-  'support-tickets',
-  'account-deletions',
-  'feature-flags',
-  'system-settings',
-  'ops-controls',
-  'costs',
-  'providers',
-  'models',
-  'oauth-providers',
-  'wallets',
-  'checkpoints',
-  'stripe-health',
-  'mcp-catalog',
-  'developer-tools',
+/*
+ * Admin nav in 6 labelled groups (design-handoff B6). Routes and the relative
+ * order of entries WITHIN each group are unchanged from the historical flat
+ * list — only the grouping and labels are new.
+ */
+const navGroups: Array<{ label: string; items: string[] }> = [
+  {
+    label: 'Platform',
+    items: ['overview', 'health', 'monitoring', 'projects', 'workspaces', 'previews', 'deployments'],
+  },
+  {
+    label: 'People',
+    items: ['users', 'organizations', 'support-tickets', 'account-deletions'],
+  },
+  {
+    label: 'Usage & billing',
+    items: ['usage', 'ai-usage', 'quotas', 'costs', 'wallets', 'checkpoints', 'stripe-health'],
+  },
+  {
+    label: 'Security',
+    items: ['abuse-events', 'security-events', 'audit-logs', 'admin-audit-logs', 'oauth-providers'],
+  },
+  {
+    label: 'AI',
+    items: ['providers', 'models', 'mcp-catalog'],
+  },
+  {
+    label: 'Ops',
+    items: ['feature-flags', 'system-settings', 'ops-controls', 'developer-tools'],
+  },
 ];
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
@@ -1054,10 +1053,14 @@ function AdminNav({ active }: { active: string }) {
           data-testid="admin-section-picker"
           className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
         >
-          {navItems.map((item) => (
-            <option key={item} value={item}>
-              {adminSections[item].title}
-            </option>
+          {navGroups.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.items.map((item) => (
+                <option key={item} value={item}>
+                  {adminSections[item].title}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </div>
@@ -1067,19 +1070,26 @@ function AdminNav({ active }: { active: string }) {
         aria-label="Admin sections"
         className="hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 shadow-sm lg:block lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto"
       >
-        {navItems.map((item) => (
-          <Link
-            key={item}
-            to={`/admin/${item}`}
-            className={[
-              'flex min-h-8 items-center rounded-md px-2 text-sm transition-colors',
-              active === item
-                ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
-                : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
-            ].join(' ')}
-          >
-            {adminSections[item].title}
-          </Link>
+        {navGroups.map((group) => (
+          <div key={group.label} className="mb-2 last:mb-0">
+            <p className="vc-sidebar-group-label px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
+              {group.label}
+            </p>
+            {group.items.map((item) => (
+              <Link
+                key={item}
+                to={`/admin/${item}`}
+                className={[
+                  'flex min-h-8 items-center rounded-md px-2 text-sm transition-colors',
+                  active === item
+                    ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
+                    : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
+                ].join(' ')}
+              >
+                {adminSections[item].title}
+              </Link>
+            ))}
+          </div>
         ))}
       </nav>
     </>
