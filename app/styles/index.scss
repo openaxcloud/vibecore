@@ -3499,8 +3499,17 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   user-select: none;
 }
 
+// No delay and no fill mode: with `150ms both` the label sat at the from-state
+// (opacity: 0) whenever the animation never ran, leaving sidebar labels
+// permanently invisible.
 .vc-sidebar-fade-label {
-  animation: vc-sidebar-fade-label-in 150ms ease-out 150ms both;
+  animation: vc-sidebar-fade-label-in 150ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vc-sidebar-fade-label {
+    animation: none;
+  }
 }
 
 @keyframes vc-sidebar-fade-label-in {
