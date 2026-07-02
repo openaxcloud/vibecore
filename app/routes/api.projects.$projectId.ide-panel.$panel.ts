@@ -1788,15 +1788,32 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     const workspaceId = packages?.workspace?.id ?? projectId;
     const state = readPackagesState(envVars);
     const now = new Date().toISOString();
+    const isInstall = intent === 'install-package' || intent === 'install-all';
 
-    const command = packagePanelCommand({
-      intent,
-      packageManager,
-      packages: packageNames,
-      dev: body.devDependency === 'true',
-    });
+    /*
+     * Installs go through the dedicated first-class endpoint
+     * POST /projects/:projectId/packages/install, which validates each package
+     * spec, builds the install argv server-side (no shell-string interpolation),
+     * and dispatches it through the SAME per-project runtime shell-exec the
+     * terminal uses — scoped to this project's own workspace pod. Audit/outdated
+     * are not installs, so they keep the generic terminal-command path.
+     */
+    const run = isInstall
+      ? await runPackageInstall(request, projectId, {
+          packageManager,
+          packages: packageNames,
+          dev: body.devDependency === 'true',
+          name: packageRunName(intent, packageManager),
+          startedAt: now,
+        })
+      : await runTerminalCommand(
+          request,
+          workspaceId,
+          packagePanelCommand({ intent, packageManager, packages: packageNames, dev: body.devDependency === 'true' }),
+          packageRunName(intent, packageManager),
+          now,
+        );
 
-    const run = await runTerminalCommand(request, workspaceId, command, packageRunName(intent, packageManager), now);
     state.runs.unshift({
       ...run,
       output: run.output ? run.output.slice(-4000) : '',
@@ -3658,6 +3675,65 @@ async function runTerminalCommand(
       output: panelErrorMessage(error),
       startedAt,
       finishedAt,
+    };
+  }
+}
+
+/*
+ * Execute a dependency install through the dedicated first-class endpoint
+ * POST /projects/:projectId/packages/install (server-side command builder +
+ * per-project runtime dispatch). Returns the same run-record shape as
+ * runTerminalCommand so the Packages panel renders install output identically
+ * to audit/outdated runs.
+ */
+async function runPackageInstall(
+  request: Request,
+  projectId: string,
+  input: {
+    packageManager: ProjectPackageManager;
+    packages: string[];
+    dev: boolean;
+    name: string;
+    startedAt: string;
+  },
+) {
+  const finishedAt = () => new Date().toISOString();
+
+  try {
+    const result = await apiRequest<{
+      command?: string;
+      exitCode?: number;
+      output?: string;
+      success?: boolean;
+    }>(request, `/projects/${encodeURIComponent(projectId)}/packages/install`, {
+      method: 'POST',
+      body: JSON.stringify({
+        packages: input.packages,
+        dev: input.dev,
+        packageManager: input.packageManager,
+      }),
+    });
+
+    return {
+      id: randomUUID(),
+      name: input.name,
+      script: result.command ?? `${input.packageManager} install`,
+      exitCode: result.exitCode ?? 0,
+      status: result.success === false || (result.exitCode && result.exitCode !== 0) ? 'failed' : 'succeeded',
+      output: result.output ?? '',
+      startedAt: input.startedAt,
+      finishedAt: finishedAt(),
+    };
+  } catch (error) {
+    return {
+      id: randomUUID(),
+      name: input.name,
+      script: `${input.packageManager} install`,
+      exitCode: 1,
+      status: 'failed',
+      output: panelErrorMessage(error),
+      startedAt: input.startedAt,
+      finishedAt: finishedAt(),
     };
   }
 }

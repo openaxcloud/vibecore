@@ -13842,19 +13842,35 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
             )}
           </div>
           <div>
-            <h4>Runtime checks</h4>
+            <h4>Install &amp; runtime checks</h4>
             {runs.length ? (
-              runs.map((run: any) => (
-                <article key={run.id}>
-                  <strong>{run.name}</strong>
-                  <span>
-                    {run.status} · exit {run.exitCode ?? 0}
-                  </span>
-                  <small>{run.finishedAt ? new Date(run.finishedAt).toLocaleString() : run.script}</small>
-                </article>
-              ))
+              runs.map((run: any) => {
+                const failed = run.status === 'failed' || (run.exitCode != null && run.exitCode !== 0);
+                const outputTail = typeof run.output === 'string' ? run.output.trim().slice(-1200) : '';
+
+                return (
+                  <article key={run.id}>
+                    <strong>{run.name}</strong>
+                    <span className={failed ? 'text-bolt-elements-icon-error' : 'text-bolt-elements-icon-success'}>
+                      {failed ? 'failed' : 'succeeded'} · exit {run.exitCode ?? 0}
+                    </span>
+                    <small>{run.script}</small>
+                    {outputTail ? (
+                      <pre
+                        className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-md bg-bolt-elements-background-depth-3 p-2 text-[11px] leading-snug text-bolt-elements-textSecondary"
+                        aria-label={`${run.name} output`}
+                      >
+                        {outputTail}
+                      </pre>
+                    ) : null}
+                    <small>{run.finishedAt ? new Date(run.finishedAt).toLocaleString() : ''}</small>
+                  </article>
+                );
+              })
             ) : (
-              <p>Run audit or outdated to capture real package manager output from the workspace.</p>
+              <p>
+                Install a package, or run audit/outdated, to capture real package-manager output from the workspace.
+              </p>
             )}
           </div>
         </aside>

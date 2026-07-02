@@ -258,6 +258,9 @@ async function startRuntimeServices(
 ) {
   const files = new Map<string, string>([['README.md', '# Runtime project\n']]);
   const calls: string[] = [];
+  // Captures the parsed body of every POST /commands/run so tests can assert
+  // the exact argv the API dispatched to the workspace pod.
+  const commandBodies: Array<{ command: string; args?: string[]; timeoutMs?: number }> = [];
 
   const agent = createServer((request, response) => {
     const url = new URL(request.url ?? '/', 'http://agent.local');
@@ -291,6 +294,7 @@ async function startRuntimeServices(
         files.delete(payload.from);
         response.end(JSON.stringify({ ok: true }));
       } else if (request.method === 'POST' && url.pathname === '/commands/run') {
+        commandBodies.push({ command: payload.command, args: payload.args, timeoutMs: payload.timeoutMs });
         response.end(
           JSON.stringify({
             code: 0,
@@ -410,6 +414,7 @@ async function startRuntimeServices(
   return {
     files,
     calls,
+    commandBodies,
     managerCalls,
     async close() {
       process.env.WORKSPACE_MANAGER_URL = previousManager;
@@ -5277,6 +5282,117 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
         type: 'port_scanning',
       });
       expect(store.auditLogs.some((event) => event.action === 'abuse.signal.detected')).toBe(true);
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('executes a package install by dispatching the detected package-manager command to the project workspace', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const runtime = await startRuntimeServices({ commandStdout: 'added 1 package in 2s\n' });
+    const app = await buildTestApiApp({ store, projectStorage });
+    const auth = await register(app, { email: 'pkg-install@example.com', organizationName: 'Package Install Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Package Install Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+    const expectedWorkspaceId = deterministicRuntimeWorkspaceId(projectId, auth.user.id);
+
+    /*
+     * A pnpm lockfile in the running pod must make the builder pick `pnpm add`.
+     * The install endpoint reads the live runtime tree (like the GET packages
+     * route), so seed the lockfile into the workspace-agent file map.
+     */
+    runtime.files.set('package.json', '{\n  "name": "app",\n  "dependencies": {}\n}\n');
+    runtime.files.set('pnpm-lock.yaml', 'lockfileVersion: 6.0\n');
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/packages/install`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { packages: ['left-pad', '@scope/util@^1.2.0'], dev: true },
+      });
+
+      expect(response.statusCode).toBe(201);
+
+      const payload = response.json();
+
+      // Reused the real runtime shell-exec (/commands/run) in this project's pod.
+      expect(runtime.calls).toContain('POST /commands/run');
+      expect(payload.workspaceId).toBe(expectedWorkspaceId);
+      expect(payload.projectId).toBe(projectId);
+      expect(payload.packageManager).toBe('pnpm');
+      expect(payload.success).toBe(true);
+      expect(payload.exitCode).toBe(0);
+      expect(payload.output).toContain('added 1 package');
+
+      // The command builder picked pnpm and produced a well-formed argv.
+      expect(runtime.commandBodies).toHaveLength(1);
+      expect(runtime.commandBodies[0]).toMatchObject({
+        command: 'pnpm',
+        args: ['add', '-D', 'left-pad', '@scope/util@^1.2.0'],
+      });
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('defaults to npm install and rejects package specs with shell metacharacters', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const runtime = await startRuntimeServices();
+    const app = await buildTestApiApp({ store, projectStorage });
+    const auth = await register(app, { email: 'pkg-npm@example.com', organizationName: 'Package Npm Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Package Npm Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    // No lockfile → detection falls back to npm.
+    await projectStorage.writeFiles(projectId, [{ path: 'package.json', content: '{\n  "name": "app"\n}\n' }]);
+
+    try {
+      // Injection attempt must be rejected before any runtime dispatch.
+      const rejected = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/packages/install`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { packages: ['react; rm -rf /'] },
+      });
+
+      expect(rejected.statusCode).toBe(400);
+      expect(rejected.json().code).toBe('INVALID_PACKAGE_SPEC');
+      expect(runtime.calls).not.toContain('POST /commands/run');
+
+      // A clean single package resolves to `npm install <pkg>`.
+      const response = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/packages/install`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { packages: ['react'] },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(response.json().packageManager).toBe('npm');
+      expect(runtime.commandBodies).toHaveLength(1);
+      expect(runtime.commandBodies[0]).toMatchObject({
+        command: 'npm',
+        args: ['install', 'react'],
+      });
     } finally {
       await runtime.close();
       await app.close();
