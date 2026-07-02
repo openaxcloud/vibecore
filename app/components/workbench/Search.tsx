@@ -1,3 +1,4 @@
+import { useStore } from '@nanostores/react';
 import type { FileSearchOptions } from '@vibecore/runtime-contract';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
@@ -52,6 +53,19 @@ export function Search() {
   const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>({});
   const [hasSearched, setHasSearched] = useState(false);
   const [searchError, setSearchError] = useState<string | undefined>(undefined);
+
+  /*
+   * Files the last Replace All skipped because they had unsaved editor edits.
+   * The note derives its visibility from the LIVE unsaved set, so it disappears
+   * by itself once the user saves (or Save all & retry runs).
+   */
+  const [skippedUnsavedPaths, setSkippedUnsavedPaths] = useState<string[]>([]);
+  const unsavedFilesNow = useStore(workbenchStore.unsavedFiles);
+
+  const pendingUnsavedPaths = useMemo(
+    () => skippedUnsavedPaths.filter((path) => unsavedFilesNow.has(path)),
+    [skippedUnsavedPaths, unsavedFilesNow],
+  );
 
   /*
    * Track the trailing min-loader timer and a monotonic token for the latest search.
@@ -249,6 +263,8 @@ export function Search() {
       let unreadableSkipped = 0;
       let unsavedSkipped = 0;
 
+      const skippedUnsaved: string[] = [];
+
       for (const filePath of targetPaths) {
         const entry = files[filePath];
 
@@ -266,6 +282,7 @@ export function Search() {
          */
         if (hasUnsavedEdits(unsavedFiles, filePath)) {
           unsavedSkipped += 1;
+          skippedUnsaved.push(filePath);
           continue;
         }
 
@@ -308,6 +325,8 @@ export function Search() {
         }
       }
 
+      setSkippedUnsavedPaths(skippedUnsaved);
+
       const skippedNotes = [
         lockedSkipped > 0 ? `${lockedSkipped} locked file${lockedSkipped === 1 ? '' : 's'} skipped` : undefined,
         unsavedSkipped > 0
@@ -340,6 +359,12 @@ export function Search() {
     searchQuery,
     searchResults,
   ]);
+
+  const saveAllAndRetry = useCallback(async () => {
+    await workbenchStore.saveAllFiles();
+    setSkippedUnsavedPaths([]);
+    await replaceAll();
+  }, [replaceAll]);
 
   return (
     <div className="flex flex-col h-full bg-bolt-elements-background-depth-2">
@@ -397,6 +422,38 @@ export function Search() {
 
       {/* Results */}
       <div className="flex-1 overflow-auto py-2">
+        {pendingUnsavedPaths.length > 0 && (
+          <div
+            role="note"
+            className="mx-3 mb-2 rounded-md px-3 py-2 text-xs"
+            style={{
+              background: 'color-mix(in srgb, var(--vc-ide-accent-warning) 12%, transparent)',
+              borderLeft: '3px solid var(--vc-ide-accent-warning)',
+              color: 'var(--status-warning-text)',
+            }}
+          >
+            <p className="font-medium">
+              Replace All skipped {pendingUnsavedPaths.length} file{pendingUnsavedPaths.length === 1 ? '' : 's'} with
+              unsaved edits:
+            </p>
+            <ul className="mt-1 list-disc pl-4">
+              {pendingUnsavedPaths.slice(0, 5).map((path) => (
+                <li key={path} className="truncate">
+                  {path.startsWith(`${WORK_DIR}/`) ? path.slice(WORK_DIR.length + 1) : path}
+                </li>
+              ))}
+            </ul>
+            {pendingUnsavedPaths.length > 5 ? <p className="mt-1">and {pendingUnsavedPaths.length - 5} more</p> : null}
+            <button
+              type="button"
+              onClick={saveAllAndRetry}
+              disabled={isReplacing}
+              className="mt-2 inline-flex h-7 items-center rounded-md bg-[var(--vc-ide-accent-action)] px-2.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Save all & retry
+            </button>
+          </div>
+        )}
         {isSearching && (
           <div className="flex items-center justify-center h-32 text-bolt-elements-textTertiary">
             <div className="i-ph:circle-notch animate-spin mr-2" /> Searching...
