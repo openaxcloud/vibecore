@@ -74,6 +74,7 @@ import {
   filterCommandPaletteItems,
   resolveCommandPaletteKey,
 } from './command-palette-search';
+import { pushRecentCommand, readRecentCommands, recordRecentCommand } from './recent-commands';
 import { EcodeBrandMark } from '~/components/brand/EcodeBrandMark';
 import { EcodeExactPublicShell } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import { Button } from '~/components/ui/Button';
@@ -1478,6 +1479,31 @@ export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCar
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
 
+  /*
+   * Recents load after mount (localStorage is client-only) so the server and
+   * first client render stay identical — the Recent section pops in hydration-
+   * safely. Stored as destinations and resolved against the live item list, so
+   * a deleted project simply drops out.
+   */
+  const [recentDestinations, setRecentDestinations] = useState<string[]>([]);
+
+  useEffect(() => {
+    setRecentDestinations(readRecentCommands());
+  }, []);
+
+  const recentItems = useMemo(
+    () =>
+      recentDestinations
+        .map((destination) => allItems.find((item) => item.to === destination))
+        .filter((item): item is CommandPaletteItem => Boolean(item)),
+    [allItems, recentDestinations],
+  );
+
+  const rememberCommand = useCallback((to: string) => {
+    recordRecentCommand(to);
+    setRecentDestinations((existing) => pushRecentCommand(existing, to));
+  }, []);
+
   const visibleItems = useMemo(() => filterCommandPaletteItems(allItems, query), [allItems, query]);
 
   /* Keep the highlight in range whenever the filtered list shrinks/grows. */
@@ -1497,10 +1523,11 @@ export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCar
       setActiveIndex(result.nextIndex);
 
       if (result.navigateTo) {
+        rememberCommand(result.navigateTo.to);
         navigate(result.navigateTo.to);
       }
     },
-    [activeIndex, navigate, visibleItems],
+    [activeIndex, navigate, rememberCommand, visibleItems],
   );
 
   return (
@@ -1519,9 +1546,36 @@ export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCar
           K
         </kbd>
       </label>
+      {query.trim().length === 0 && recentItems.length > 0 ? (
+        <div className="mt-3">
+          <p className="vc-sidebar-group-label px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
+            Recent
+          </p>
+          <div className="grid gap-1">
+            {recentItems.map((command) => (
+              <Link
+                key={`recent-${command.to}`}
+                to={command.to}
+                onClick={() => rememberCommand(command.to)}
+                className="flex items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-bolt-elements-background-depth-3"
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate">{command.label}</span>
+                  {command.hint ? (
+                    <span className="shrink-0 text-xs text-bolt-elements-textTertiary">{command.hint}</span>
+                  ) : null}
+                </span>
+                <span className="text-xs text-bolt-elements-textTertiary">Recent</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="mt-3 grid gap-1" role="listbox" aria-label="Command palette results">
         {visibleItems.length === 0 ? (
-          <p className="px-3 py-2 text-sm text-bolt-elements-textTertiary">No matching commands or projects.</p>
+          <p className="px-3 py-6 text-center text-[13px] text-bolt-elements-textTertiary">
+            No results for “{query.trim()}”
+          </p>
         ) : (
           visibleItems.map((command, index) => (
             <Link
@@ -1530,6 +1584,7 @@ export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCar
               role="option"
               aria-selected={index === activeIndex}
               onMouseEnter={() => setActiveIndex(index)}
+              onClick={() => rememberCommand(command.to)}
               className={classNames(
                 'flex items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-bolt-elements-background-depth-3',
                 index === activeIndex && 'bg-bolt-elements-background-depth-3',
