@@ -4,6 +4,7 @@ import { useFetcher } from 'react-router';
 import { QueryHistoryControl } from './QueryHistoryControl';
 import { clearQueryHistory, readQueryHistory, recordQueryHistory, removeQueryHistory } from './query-history';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
+import { EmptyState } from '~/components/ui/EmptyState';
 import Popover from '~/components/ui/Popover';
 import { classNames } from '~/utils/classNames';
 
@@ -280,6 +281,13 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
 
   const tables = useMemo(() => readTables(schemaFetcher.data), [schemaFetcher.data]);
   const loadingSchema = schemaFetcher.state !== 'idle';
+
+  // Connection/schema fetch failure surfaced by the ide-panel proxy envelope ({ ok, error }).
+  const schemaError =
+    schemaFetcher.data && typeof schemaFetcher.data === 'object'
+      ? ((schemaFetcher.data as { error?: unknown }).error as string | undefined)
+      : undefined;
+
   const running = queryFetcher.state !== 'idle';
 
   const loadSchema = (key: string) => {
@@ -381,9 +389,23 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
             <Table2 className="h-3.5 w-3.5" aria-hidden /> Tables
           </div>
           {tables.length === 0 ? (
-            <p className="px-1 text-[12px] text-bolt-elements-textTertiary">
-              {loadingSchema ? 'Loading schema…' : 'No tables found for this connection.'}
-            </p>
+            schemaError && !loadingSchema ? (
+              <div className="px-1 py-2" role="alert">
+                <p className="text-[12px] font-medium text-[var(--status-error-text)]">Connection failed</p>
+                <p className="mt-1 break-words text-[12px] text-[var(--status-error-text)]">{schemaError}</p>
+              </div>
+            ) : loadingSchema ? (
+              <EmptyState variant="compact" icon="i-ph:circle-notch" title="Loading schema…" />
+            ) : (
+              <EmptyState
+                variant="compact"
+                icon={Table2}
+                title="No tables"
+                description="No tables found for this connection."
+                actionLabel="Refresh schema"
+                onAction={() => loadSchema(connectionKey)}
+              />
+            )
           ) : (
             <ul className="flex flex-col">
               {tables.map((t) => (
@@ -500,7 +522,12 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
 
           <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
             {queryError ? (
-              <p className="p-3 font-mono text-[12px] text-red-500">{queryError}</p>
+              <div className="p-3" role="alert">
+                <p className="text-[12px] font-medium text-[var(--status-error-text)]">Query failed</p>
+                <p className="mt-1 whitespace-pre-wrap break-words font-mono text-[12px] text-[var(--status-error-text)]">
+                  {queryError}
+                </p>
+              </div>
             ) : result && result.rows.length ? (
               <table className="w-full border-collapse text-left font-mono text-[12px]">
                 <thead className="sticky top-0 bg-bolt-elements-background-depth-3">
@@ -546,10 +573,24 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                   ))}
                 </tbody>
               </table>
+            ) : running ? (
+              <EmptyState variant="compact" icon="i-ph:circle-notch" title="Running query…" className="m-3" />
+            ) : result ? (
+              <EmptyState
+                variant="compact"
+                icon="i-ph:rows"
+                title="No rows returned"
+                description="The query ran successfully but returned no rows."
+                className="m-3"
+              />
             ) : (
-              <p className="p-3 text-[12px] text-bolt-elements-textTertiary">
-                {result ? 'Query returned no rows.' : 'Run a query or pick a table to see results.'}
-              </p>
+              <EmptyState
+                variant="compact"
+                icon="i-ph:table"
+                title="No results yet"
+                description="Run a query or pick a table on the left to see results."
+                className="m-3"
+              />
             )}
           </div>
         </section>
