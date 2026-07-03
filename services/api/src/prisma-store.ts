@@ -851,6 +851,37 @@ export class PrismaApiStore implements ApiStore {
     return { alreadySubscribed: Boolean(existing && !existing.unsubscribedAt) };
   }
 
+  async createContactRequest(input: {
+    email: string;
+    name?: string;
+    company: string;
+    teamSize?: string;
+    message: string;
+    pagePath?: string;
+  }) {
+    const row = await this.prisma.contactRequest.create({
+      data: {
+        email: input.email.trim().toLowerCase(),
+        name: input.name,
+        company: input.company,
+        teamSize: input.teamSize,
+        message: input.message,
+        pagePath: input.pagePath,
+      },
+    });
+
+    return {
+      id: row.id,
+      email: row.email,
+      name: row.name ?? undefined,
+      company: row.company,
+      teamSize: row.teamSize ?? undefined,
+      message: row.message,
+      pagePath: row.pagePath ?? undefined,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
   async softDeleteProject(projectId: string) {
     return mapProject(await this.prisma.project.update({ where: { id: projectId }, data: { deletedAt: new Date() } }));
   }

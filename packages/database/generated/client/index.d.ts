@@ -450,6 +450,14 @@ export type Notification = $Result.DefaultSelection<Prisma.$NotificationPayload>
  */
 export type NewsletterSubscriber = $Result.DefaultSelection<Prisma.$NewsletterSubscriberPayload>
 /**
+ * Model ContactRequest
+ * Sales-contact leads submitted through the public /contact-sales form.
+ * The row id doubles as the reference number quoted back to the prospect
+ * (first 8 chars, uppercased), so sales can locate the lead from the
+ * reference alone.
+ */
+export type ContactRequest = $Result.DefaultSelection<Prisma.$ContactRequestPayload>
+/**
  * Model IntegrationFeatureRequest
  * 
  */
@@ -1688,6 +1696,16 @@ export class PrismaClient<
   get newsletterSubscriber(): Prisma.NewsletterSubscriberDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.contactRequest`: Exposes CRUD operations for the **ContactRequest** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ContactRequests
+    * const contactRequests = await prisma.contactRequest.findMany()
+    * ```
+    */
+  get contactRequest(): Prisma.ContactRequestDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.integrationFeatureRequest`: Exposes CRUD operations for the **IntegrationFeatureRequest** model.
     * Example usage:
     * ```ts
@@ -2312,6 +2330,7 @@ export namespace Prisma {
     ReconnectionAlert: 'ReconnectionAlert',
     Notification: 'Notification',
     NewsletterSubscriber: 'NewsletterSubscriber',
+    ContactRequest: 'ContactRequest',
     IntegrationFeatureRequest: 'IntegrationFeatureRequest',
     EmailDeliveryEvent: 'EmailDeliveryEvent',
     CreditWallet: 'CreditWallet',
@@ -2338,7 +2357,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -8394,6 +8413,80 @@ export namespace Prisma {
           }
         }
       }
+      ContactRequest: {
+        payload: Prisma.$ContactRequestPayload<ExtArgs>
+        fields: Prisma.ContactRequestFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ContactRequestFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContactRequestPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ContactRequestFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContactRequestPayload>
+          }
+          findFirst: {
+            args: Prisma.ContactRequestFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContactRequestPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ContactRequestFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContactRequestPayload>
+          }
+          findMany: {
+            args: Prisma.ContactRequestFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContactRequestPayload>[]
+          }
+          create: {
+            args: Prisma.ContactRequestCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContactRequestPayload>
+          }
+          createMany: {
+            args: Prisma.ContactRequestCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ContactRequestCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContactRequestPayload>[]
+          }
+          delete: {
+            args: Prisma.ContactRequestDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContactRequestPayload>
+          }
+          update: {
+            args: Prisma.ContactRequestUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContactRequestPayload>
+          }
+          deleteMany: {
+            args: Prisma.ContactRequestDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ContactRequestUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ContactRequestUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContactRequestPayload>[]
+          }
+          upsert: {
+            args: Prisma.ContactRequestUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContactRequestPayload>
+          }
+          aggregate: {
+            args: Prisma.ContactRequestAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateContactRequest>
+          }
+          groupBy: {
+            args: Prisma.ContactRequestGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ContactRequestGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ContactRequestCountArgs<ExtArgs>
+            result: $Utils.Optional<ContactRequestCountAggregateOutputType> | number
+          }
+        }
+      }
       IntegrationFeatureRequest: {
         payload: Prisma.$IntegrationFeatureRequestPayload<ExtArgs>
         fields: Prisma.IntegrationFeatureRequestFieldRefs
@@ -9398,6 +9491,7 @@ export namespace Prisma {
     reconnectionAlert?: ReconnectionAlertOmit
     notification?: NotificationOmit
     newsletterSubscriber?: NewsletterSubscriberOmit
+    contactRequest?: ContactRequestOmit
     integrationFeatureRequest?: IntegrationFeatureRequestOmit
     emailDeliveryEvent?: EmailDeliveryEventOmit
     creditWallet?: CreditWalletOmit
@@ -105172,6 +105266,1048 @@ export namespace Prisma {
 
 
   /**
+   * Model ContactRequest
+   */
+
+  export type AggregateContactRequest = {
+    _count: ContactRequestCountAggregateOutputType | null
+    _min: ContactRequestMinAggregateOutputType | null
+    _max: ContactRequestMaxAggregateOutputType | null
+  }
+
+  export type ContactRequestMinAggregateOutputType = {
+    id: string | null
+    email: string | null
+    name: string | null
+    company: string | null
+    teamSize: string | null
+    message: string | null
+    pagePath: string | null
+    createdAt: Date | null
+  }
+
+  export type ContactRequestMaxAggregateOutputType = {
+    id: string | null
+    email: string | null
+    name: string | null
+    company: string | null
+    teamSize: string | null
+    message: string | null
+    pagePath: string | null
+    createdAt: Date | null
+  }
+
+  export type ContactRequestCountAggregateOutputType = {
+    id: number
+    email: number
+    name: number
+    company: number
+    teamSize: number
+    message: number
+    pagePath: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ContactRequestMinAggregateInputType = {
+    id?: true
+    email?: true
+    name?: true
+    company?: true
+    teamSize?: true
+    message?: true
+    pagePath?: true
+    createdAt?: true
+  }
+
+  export type ContactRequestMaxAggregateInputType = {
+    id?: true
+    email?: true
+    name?: true
+    company?: true
+    teamSize?: true
+    message?: true
+    pagePath?: true
+    createdAt?: true
+  }
+
+  export type ContactRequestCountAggregateInputType = {
+    id?: true
+    email?: true
+    name?: true
+    company?: true
+    teamSize?: true
+    message?: true
+    pagePath?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ContactRequestAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ContactRequest to aggregate.
+     */
+    where?: ContactRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ContactRequests to fetch.
+     */
+    orderBy?: ContactRequestOrderByWithRelationInput | ContactRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ContactRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ContactRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ContactRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ContactRequests
+    **/
+    _count?: true | ContactRequestCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ContactRequestMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ContactRequestMaxAggregateInputType
+  }
+
+  export type GetContactRequestAggregateType<T extends ContactRequestAggregateArgs> = {
+        [P in keyof T & keyof AggregateContactRequest]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateContactRequest[P]>
+      : GetScalarType<T[P], AggregateContactRequest[P]>
+  }
+
+
+
+
+  export type ContactRequestGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ContactRequestWhereInput
+    orderBy?: ContactRequestOrderByWithAggregationInput | ContactRequestOrderByWithAggregationInput[]
+    by: ContactRequestScalarFieldEnum[] | ContactRequestScalarFieldEnum
+    having?: ContactRequestScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ContactRequestCountAggregateInputType | true
+    _min?: ContactRequestMinAggregateInputType
+    _max?: ContactRequestMaxAggregateInputType
+  }
+
+  export type ContactRequestGroupByOutputType = {
+    id: string
+    email: string
+    name: string | null
+    company: string
+    teamSize: string | null
+    message: string
+    pagePath: string | null
+    createdAt: Date
+    _count: ContactRequestCountAggregateOutputType | null
+    _min: ContactRequestMinAggregateOutputType | null
+    _max: ContactRequestMaxAggregateOutputType | null
+  }
+
+  type GetContactRequestGroupByPayload<T extends ContactRequestGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ContactRequestGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ContactRequestGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ContactRequestGroupByOutputType[P]>
+            : GetScalarType<T[P], ContactRequestGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ContactRequestSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    email?: boolean
+    name?: boolean
+    company?: boolean
+    teamSize?: boolean
+    message?: boolean
+    pagePath?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["contactRequest"]>
+
+  export type ContactRequestSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    email?: boolean
+    name?: boolean
+    company?: boolean
+    teamSize?: boolean
+    message?: boolean
+    pagePath?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["contactRequest"]>
+
+  export type ContactRequestSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    email?: boolean
+    name?: boolean
+    company?: boolean
+    teamSize?: boolean
+    message?: boolean
+    pagePath?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["contactRequest"]>
+
+  export type ContactRequestSelectScalar = {
+    id?: boolean
+    email?: boolean
+    name?: boolean
+    company?: boolean
+    teamSize?: boolean
+    message?: boolean
+    pagePath?: boolean
+    createdAt?: boolean
+  }
+
+  export type ContactRequestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "name" | "company" | "teamSize" | "message" | "pagePath" | "createdAt", ExtArgs["result"]["contactRequest"]>
+
+  export type $ContactRequestPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ContactRequest"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      email: string
+      name: string | null
+      company: string
+      teamSize: string | null
+      message: string
+      /**
+       * Marketing page the form was submitted from ("/contact-sales", ...).
+       */
+      pagePath: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["contactRequest"]>
+    composites: {}
+  }
+
+  type ContactRequestGetPayload<S extends boolean | null | undefined | ContactRequestDefaultArgs> = $Result.GetResult<Prisma.$ContactRequestPayload, S>
+
+  type ContactRequestCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ContactRequestFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ContactRequestCountAggregateInputType | true
+    }
+
+  export interface ContactRequestDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ContactRequest'], meta: { name: 'ContactRequest' } }
+    /**
+     * Find zero or one ContactRequest that matches the filter.
+     * @param {ContactRequestFindUniqueArgs} args - Arguments to find a ContactRequest
+     * @example
+     * // Get one ContactRequest
+     * const contactRequest = await prisma.contactRequest.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ContactRequestFindUniqueArgs>(args: SelectSubset<T, ContactRequestFindUniqueArgs<ExtArgs>>): Prisma__ContactRequestClient<$Result.GetResult<Prisma.$ContactRequestPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ContactRequest that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ContactRequestFindUniqueOrThrowArgs} args - Arguments to find a ContactRequest
+     * @example
+     * // Get one ContactRequest
+     * const contactRequest = await prisma.contactRequest.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ContactRequestFindUniqueOrThrowArgs>(args: SelectSubset<T, ContactRequestFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ContactRequestClient<$Result.GetResult<Prisma.$ContactRequestPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ContactRequest that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContactRequestFindFirstArgs} args - Arguments to find a ContactRequest
+     * @example
+     * // Get one ContactRequest
+     * const contactRequest = await prisma.contactRequest.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ContactRequestFindFirstArgs>(args?: SelectSubset<T, ContactRequestFindFirstArgs<ExtArgs>>): Prisma__ContactRequestClient<$Result.GetResult<Prisma.$ContactRequestPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ContactRequest that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContactRequestFindFirstOrThrowArgs} args - Arguments to find a ContactRequest
+     * @example
+     * // Get one ContactRequest
+     * const contactRequest = await prisma.contactRequest.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ContactRequestFindFirstOrThrowArgs>(args?: SelectSubset<T, ContactRequestFindFirstOrThrowArgs<ExtArgs>>): Prisma__ContactRequestClient<$Result.GetResult<Prisma.$ContactRequestPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ContactRequests that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContactRequestFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ContactRequests
+     * const contactRequests = await prisma.contactRequest.findMany()
+     * 
+     * // Get first 10 ContactRequests
+     * const contactRequests = await prisma.contactRequest.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const contactRequestWithIdOnly = await prisma.contactRequest.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ContactRequestFindManyArgs>(args?: SelectSubset<T, ContactRequestFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ContactRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ContactRequest.
+     * @param {ContactRequestCreateArgs} args - Arguments to create a ContactRequest.
+     * @example
+     * // Create one ContactRequest
+     * const ContactRequest = await prisma.contactRequest.create({
+     *   data: {
+     *     // ... data to create a ContactRequest
+     *   }
+     * })
+     * 
+     */
+    create<T extends ContactRequestCreateArgs>(args: SelectSubset<T, ContactRequestCreateArgs<ExtArgs>>): Prisma__ContactRequestClient<$Result.GetResult<Prisma.$ContactRequestPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ContactRequests.
+     * @param {ContactRequestCreateManyArgs} args - Arguments to create many ContactRequests.
+     * @example
+     * // Create many ContactRequests
+     * const contactRequest = await prisma.contactRequest.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ContactRequestCreateManyArgs>(args?: SelectSubset<T, ContactRequestCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ContactRequests and returns the data saved in the database.
+     * @param {ContactRequestCreateManyAndReturnArgs} args - Arguments to create many ContactRequests.
+     * @example
+     * // Create many ContactRequests
+     * const contactRequest = await prisma.contactRequest.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ContactRequests and only return the `id`
+     * const contactRequestWithIdOnly = await prisma.contactRequest.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ContactRequestCreateManyAndReturnArgs>(args?: SelectSubset<T, ContactRequestCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ContactRequestPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ContactRequest.
+     * @param {ContactRequestDeleteArgs} args - Arguments to delete one ContactRequest.
+     * @example
+     * // Delete one ContactRequest
+     * const ContactRequest = await prisma.contactRequest.delete({
+     *   where: {
+     *     // ... filter to delete one ContactRequest
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ContactRequestDeleteArgs>(args: SelectSubset<T, ContactRequestDeleteArgs<ExtArgs>>): Prisma__ContactRequestClient<$Result.GetResult<Prisma.$ContactRequestPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ContactRequest.
+     * @param {ContactRequestUpdateArgs} args - Arguments to update one ContactRequest.
+     * @example
+     * // Update one ContactRequest
+     * const contactRequest = await prisma.contactRequest.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ContactRequestUpdateArgs>(args: SelectSubset<T, ContactRequestUpdateArgs<ExtArgs>>): Prisma__ContactRequestClient<$Result.GetResult<Prisma.$ContactRequestPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ContactRequests.
+     * @param {ContactRequestDeleteManyArgs} args - Arguments to filter ContactRequests to delete.
+     * @example
+     * // Delete a few ContactRequests
+     * const { count } = await prisma.contactRequest.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ContactRequestDeleteManyArgs>(args?: SelectSubset<T, ContactRequestDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ContactRequests.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContactRequestUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ContactRequests
+     * const contactRequest = await prisma.contactRequest.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ContactRequestUpdateManyArgs>(args: SelectSubset<T, ContactRequestUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ContactRequests and returns the data updated in the database.
+     * @param {ContactRequestUpdateManyAndReturnArgs} args - Arguments to update many ContactRequests.
+     * @example
+     * // Update many ContactRequests
+     * const contactRequest = await prisma.contactRequest.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ContactRequests and only return the `id`
+     * const contactRequestWithIdOnly = await prisma.contactRequest.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ContactRequestUpdateManyAndReturnArgs>(args: SelectSubset<T, ContactRequestUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ContactRequestPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ContactRequest.
+     * @param {ContactRequestUpsertArgs} args - Arguments to update or create a ContactRequest.
+     * @example
+     * // Update or create a ContactRequest
+     * const contactRequest = await prisma.contactRequest.upsert({
+     *   create: {
+     *     // ... data to create a ContactRequest
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ContactRequest we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ContactRequestUpsertArgs>(args: SelectSubset<T, ContactRequestUpsertArgs<ExtArgs>>): Prisma__ContactRequestClient<$Result.GetResult<Prisma.$ContactRequestPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ContactRequests.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContactRequestCountArgs} args - Arguments to filter ContactRequests to count.
+     * @example
+     * // Count the number of ContactRequests
+     * const count = await prisma.contactRequest.count({
+     *   where: {
+     *     // ... the filter for the ContactRequests we want to count
+     *   }
+     * })
+    **/
+    count<T extends ContactRequestCountArgs>(
+      args?: Subset<T, ContactRequestCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ContactRequestCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ContactRequest.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContactRequestAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ContactRequestAggregateArgs>(args: Subset<T, ContactRequestAggregateArgs>): Prisma.PrismaPromise<GetContactRequestAggregateType<T>>
+
+    /**
+     * Group by ContactRequest.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContactRequestGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ContactRequestGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ContactRequestGroupByArgs['orderBy'] }
+        : { orderBy?: ContactRequestGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ContactRequestGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetContactRequestGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ContactRequest model
+   */
+  readonly fields: ContactRequestFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ContactRequest.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ContactRequestClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ContactRequest model
+   */
+  interface ContactRequestFieldRefs {
+    readonly id: FieldRef<"ContactRequest", 'String'>
+    readonly email: FieldRef<"ContactRequest", 'String'>
+    readonly name: FieldRef<"ContactRequest", 'String'>
+    readonly company: FieldRef<"ContactRequest", 'String'>
+    readonly teamSize: FieldRef<"ContactRequest", 'String'>
+    readonly message: FieldRef<"ContactRequest", 'String'>
+    readonly pagePath: FieldRef<"ContactRequest", 'String'>
+    readonly createdAt: FieldRef<"ContactRequest", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ContactRequest findUnique
+   */
+  export type ContactRequestFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContactRequest
+     */
+    select?: ContactRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ContactRequest
+     */
+    omit?: ContactRequestOmit<ExtArgs> | null
+    /**
+     * Filter, which ContactRequest to fetch.
+     */
+    where: ContactRequestWhereUniqueInput
+  }
+
+  /**
+   * ContactRequest findUniqueOrThrow
+   */
+  export type ContactRequestFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContactRequest
+     */
+    select?: ContactRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ContactRequest
+     */
+    omit?: ContactRequestOmit<ExtArgs> | null
+    /**
+     * Filter, which ContactRequest to fetch.
+     */
+    where: ContactRequestWhereUniqueInput
+  }
+
+  /**
+   * ContactRequest findFirst
+   */
+  export type ContactRequestFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContactRequest
+     */
+    select?: ContactRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ContactRequest
+     */
+    omit?: ContactRequestOmit<ExtArgs> | null
+    /**
+     * Filter, which ContactRequest to fetch.
+     */
+    where?: ContactRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ContactRequests to fetch.
+     */
+    orderBy?: ContactRequestOrderByWithRelationInput | ContactRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ContactRequests.
+     */
+    cursor?: ContactRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ContactRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ContactRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ContactRequests.
+     */
+    distinct?: ContactRequestScalarFieldEnum | ContactRequestScalarFieldEnum[]
+  }
+
+  /**
+   * ContactRequest findFirstOrThrow
+   */
+  export type ContactRequestFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContactRequest
+     */
+    select?: ContactRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ContactRequest
+     */
+    omit?: ContactRequestOmit<ExtArgs> | null
+    /**
+     * Filter, which ContactRequest to fetch.
+     */
+    where?: ContactRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ContactRequests to fetch.
+     */
+    orderBy?: ContactRequestOrderByWithRelationInput | ContactRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ContactRequests.
+     */
+    cursor?: ContactRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ContactRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ContactRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ContactRequests.
+     */
+    distinct?: ContactRequestScalarFieldEnum | ContactRequestScalarFieldEnum[]
+  }
+
+  /**
+   * ContactRequest findMany
+   */
+  export type ContactRequestFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContactRequest
+     */
+    select?: ContactRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ContactRequest
+     */
+    omit?: ContactRequestOmit<ExtArgs> | null
+    /**
+     * Filter, which ContactRequests to fetch.
+     */
+    where?: ContactRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ContactRequests to fetch.
+     */
+    orderBy?: ContactRequestOrderByWithRelationInput | ContactRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ContactRequests.
+     */
+    cursor?: ContactRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ContactRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ContactRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ContactRequests.
+     */
+    distinct?: ContactRequestScalarFieldEnum | ContactRequestScalarFieldEnum[]
+  }
+
+  /**
+   * ContactRequest create
+   */
+  export type ContactRequestCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContactRequest
+     */
+    select?: ContactRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ContactRequest
+     */
+    omit?: ContactRequestOmit<ExtArgs> | null
+    /**
+     * The data needed to create a ContactRequest.
+     */
+    data: XOR<ContactRequestCreateInput, ContactRequestUncheckedCreateInput>
+  }
+
+  /**
+   * ContactRequest createMany
+   */
+  export type ContactRequestCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ContactRequests.
+     */
+    data: ContactRequestCreateManyInput | ContactRequestCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ContactRequest createManyAndReturn
+   */
+  export type ContactRequestCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContactRequest
+     */
+    select?: ContactRequestSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ContactRequest
+     */
+    omit?: ContactRequestOmit<ExtArgs> | null
+    /**
+     * The data used to create many ContactRequests.
+     */
+    data: ContactRequestCreateManyInput | ContactRequestCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ContactRequest update
+   */
+  export type ContactRequestUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContactRequest
+     */
+    select?: ContactRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ContactRequest
+     */
+    omit?: ContactRequestOmit<ExtArgs> | null
+    /**
+     * The data needed to update a ContactRequest.
+     */
+    data: XOR<ContactRequestUpdateInput, ContactRequestUncheckedUpdateInput>
+    /**
+     * Choose, which ContactRequest to update.
+     */
+    where: ContactRequestWhereUniqueInput
+  }
+
+  /**
+   * ContactRequest updateMany
+   */
+  export type ContactRequestUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ContactRequests.
+     */
+    data: XOR<ContactRequestUpdateManyMutationInput, ContactRequestUncheckedUpdateManyInput>
+    /**
+     * Filter which ContactRequests to update
+     */
+    where?: ContactRequestWhereInput
+    /**
+     * Limit how many ContactRequests to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ContactRequest updateManyAndReturn
+   */
+  export type ContactRequestUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContactRequest
+     */
+    select?: ContactRequestSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ContactRequest
+     */
+    omit?: ContactRequestOmit<ExtArgs> | null
+    /**
+     * The data used to update ContactRequests.
+     */
+    data: XOR<ContactRequestUpdateManyMutationInput, ContactRequestUncheckedUpdateManyInput>
+    /**
+     * Filter which ContactRequests to update
+     */
+    where?: ContactRequestWhereInput
+    /**
+     * Limit how many ContactRequests to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ContactRequest upsert
+   */
+  export type ContactRequestUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContactRequest
+     */
+    select?: ContactRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ContactRequest
+     */
+    omit?: ContactRequestOmit<ExtArgs> | null
+    /**
+     * The filter to search for the ContactRequest to update in case it exists.
+     */
+    where: ContactRequestWhereUniqueInput
+    /**
+     * In case the ContactRequest found by the `where` argument doesn't exist, create a new ContactRequest with this data.
+     */
+    create: XOR<ContactRequestCreateInput, ContactRequestUncheckedCreateInput>
+    /**
+     * In case the ContactRequest was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ContactRequestUpdateInput, ContactRequestUncheckedUpdateInput>
+  }
+
+  /**
+   * ContactRequest delete
+   */
+  export type ContactRequestDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContactRequest
+     */
+    select?: ContactRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ContactRequest
+     */
+    omit?: ContactRequestOmit<ExtArgs> | null
+    /**
+     * Filter which ContactRequest to delete.
+     */
+    where: ContactRequestWhereUniqueInput
+  }
+
+  /**
+   * ContactRequest deleteMany
+   */
+  export type ContactRequestDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ContactRequests to delete
+     */
+    where?: ContactRequestWhereInput
+    /**
+     * Limit how many ContactRequests to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ContactRequest without action
+   */
+  export type ContactRequestDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContactRequest
+     */
+    select?: ContactRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ContactRequest
+     */
+    omit?: ContactRequestOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Model IntegrationFeatureRequest
    */
 
@@ -119246,6 +120382,20 @@ export namespace Prisma {
   export type NewsletterSubscriberScalarFieldEnum = (typeof NewsletterSubscriberScalarFieldEnum)[keyof typeof NewsletterSubscriberScalarFieldEnum]
 
 
+  export const ContactRequestScalarFieldEnum: {
+    id: 'id',
+    email: 'email',
+    name: 'name',
+    company: 'company',
+    teamSize: 'teamSize',
+    message: 'message',
+    pagePath: 'pagePath',
+    createdAt: 'createdAt'
+  };
+
+  export type ContactRequestScalarFieldEnum = (typeof ContactRequestScalarFieldEnum)[keyof typeof ContactRequestScalarFieldEnum]
+
+
   export const IntegrationFeatureRequestScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
@@ -126190,6 +127340,73 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"NewsletterSubscriber"> | Date | string
     confirmedAt?: DateTimeNullableWithAggregatesFilter<"NewsletterSubscriber"> | Date | string | null
     unsubscribedAt?: DateTimeNullableWithAggregatesFilter<"NewsletterSubscriber"> | Date | string | null
+  }
+
+  export type ContactRequestWhereInput = {
+    AND?: ContactRequestWhereInput | ContactRequestWhereInput[]
+    OR?: ContactRequestWhereInput[]
+    NOT?: ContactRequestWhereInput | ContactRequestWhereInput[]
+    id?: StringFilter<"ContactRequest"> | string
+    email?: StringFilter<"ContactRequest"> | string
+    name?: StringNullableFilter<"ContactRequest"> | string | null
+    company?: StringFilter<"ContactRequest"> | string
+    teamSize?: StringNullableFilter<"ContactRequest"> | string | null
+    message?: StringFilter<"ContactRequest"> | string
+    pagePath?: StringNullableFilter<"ContactRequest"> | string | null
+    createdAt?: DateTimeFilter<"ContactRequest"> | Date | string
+  }
+
+  export type ContactRequestOrderByWithRelationInput = {
+    id?: SortOrder
+    email?: SortOrder
+    name?: SortOrderInput | SortOrder
+    company?: SortOrder
+    teamSize?: SortOrderInput | SortOrder
+    message?: SortOrder
+    pagePath?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ContactRequestWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ContactRequestWhereInput | ContactRequestWhereInput[]
+    OR?: ContactRequestWhereInput[]
+    NOT?: ContactRequestWhereInput | ContactRequestWhereInput[]
+    email?: StringFilter<"ContactRequest"> | string
+    name?: StringNullableFilter<"ContactRequest"> | string | null
+    company?: StringFilter<"ContactRequest"> | string
+    teamSize?: StringNullableFilter<"ContactRequest"> | string | null
+    message?: StringFilter<"ContactRequest"> | string
+    pagePath?: StringNullableFilter<"ContactRequest"> | string | null
+    createdAt?: DateTimeFilter<"ContactRequest"> | Date | string
+  }, "id">
+
+  export type ContactRequestOrderByWithAggregationInput = {
+    id?: SortOrder
+    email?: SortOrder
+    name?: SortOrderInput | SortOrder
+    company?: SortOrder
+    teamSize?: SortOrderInput | SortOrder
+    message?: SortOrder
+    pagePath?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: ContactRequestCountOrderByAggregateInput
+    _max?: ContactRequestMaxOrderByAggregateInput
+    _min?: ContactRequestMinOrderByAggregateInput
+  }
+
+  export type ContactRequestScalarWhereWithAggregatesInput = {
+    AND?: ContactRequestScalarWhereWithAggregatesInput | ContactRequestScalarWhereWithAggregatesInput[]
+    OR?: ContactRequestScalarWhereWithAggregatesInput[]
+    NOT?: ContactRequestScalarWhereWithAggregatesInput | ContactRequestScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ContactRequest"> | string
+    email?: StringWithAggregatesFilter<"ContactRequest"> | string
+    name?: StringNullableWithAggregatesFilter<"ContactRequest"> | string | null
+    company?: StringWithAggregatesFilter<"ContactRequest"> | string
+    teamSize?: StringNullableWithAggregatesFilter<"ContactRequest"> | string | null
+    message?: StringWithAggregatesFilter<"ContactRequest"> | string
+    pagePath?: StringNullableWithAggregatesFilter<"ContactRequest"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ContactRequest"> | Date | string
   }
 
   export type IntegrationFeatureRequestWhereInput = {
@@ -134057,6 +135274,83 @@ export namespace Prisma {
     unsubscribedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
+  export type ContactRequestCreateInput = {
+    id?: string
+    email: string
+    name?: string | null
+    company: string
+    teamSize?: string | null
+    message: string
+    pagePath?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ContactRequestUncheckedCreateInput = {
+    id?: string
+    email: string
+    name?: string | null
+    company: string
+    teamSize?: string | null
+    message: string
+    pagePath?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ContactRequestUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    company?: StringFieldUpdateOperationsInput | string
+    teamSize?: NullableStringFieldUpdateOperationsInput | string | null
+    message?: StringFieldUpdateOperationsInput | string
+    pagePath?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ContactRequestUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    company?: StringFieldUpdateOperationsInput | string
+    teamSize?: NullableStringFieldUpdateOperationsInput | string | null
+    message?: StringFieldUpdateOperationsInput | string
+    pagePath?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ContactRequestCreateManyInput = {
+    id?: string
+    email: string
+    name?: string | null
+    company: string
+    teamSize?: string | null
+    message: string
+    pagePath?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ContactRequestUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    company?: StringFieldUpdateOperationsInput | string
+    teamSize?: NullableStringFieldUpdateOperationsInput | string | null
+    message?: StringFieldUpdateOperationsInput | string
+    pagePath?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ContactRequestUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    company?: StringFieldUpdateOperationsInput | string
+    teamSize?: NullableStringFieldUpdateOperationsInput | string | null
+    message?: StringFieldUpdateOperationsInput | string
+    pagePath?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type IntegrationFeatureRequestCreateInput = {
     id?: string
     integrationName: string
@@ -139467,6 +140761,39 @@ export namespace Prisma {
     createdAt?: SortOrder
     confirmedAt?: SortOrder
     unsubscribedAt?: SortOrder
+  }
+
+  export type ContactRequestCountOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    name?: SortOrder
+    company?: SortOrder
+    teamSize?: SortOrder
+    message?: SortOrder
+    pagePath?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ContactRequestMaxOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    name?: SortOrder
+    company?: SortOrder
+    teamSize?: SortOrder
+    message?: SortOrder
+    pagePath?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ContactRequestMinOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    name?: SortOrder
+    company?: SortOrder
+    teamSize?: SortOrder
+    message?: SortOrder
+    pagePath?: SortOrder
+    createdAt?: SortOrder
   }
 
   export type IntegrationFeatureRequestCountOrderByAggregateInput = {

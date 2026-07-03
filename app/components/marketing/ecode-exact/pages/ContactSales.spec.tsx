@@ -185,21 +185,62 @@ describe('ContactSales submit', () => {
     });
   });
 
-  it('shows a success toast and resets the form when the server accepts the lead', async () => {
+  it('replaces the form with a confirmation carrying the API-allocated reference number', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ success: true }),
+      json: async () => ({ ok: true, reference: 'CMCX42AB' }),
     }) as unknown as typeof fetch;
 
     render(<ContactSales />);
     fillAndSubmit();
 
     await waitFor(() => {
-      expect(toastSpy).toHaveBeenCalledWith(expect.objectContaining({ title: 'Request received' }));
+      expect(screen.getByTestId('contact-sales-success')).toBeDefined();
     });
+
+    // The confirmation replaces the form and quotes the server-issued reference.
+    expect(screen.queryByTestId('form-contact-sales')).toBeNull();
+    expect(screen.getByTestId('contact-sales-reference').textContent).toBe('CMCX42AB');
+    expect(screen.getByTestId('contact-sales-success').textContent).toContain('1 business day');
 
     // No mailto navigation on success.
     expect(hrefAssigned).toBeUndefined();
-    expect((screen.getByLabelText('Company') as HTMLInputElement).value).toBe('');
+  });
+
+  it('blocks submit and shows inline errors when required fields are missing', async () => {
+    const fetchSpy = vi.fn();
+    globalThis.fetch = fetchSpy as unknown as typeof fetch;
+
+    render(<ContactSales />);
+    fireEvent.submit(screen.getByTestId('form-contact-sales'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Enter your work email.')).toBeDefined();
+    });
+
+    expect(screen.getByText('Enter your name.')).toBeDefined();
+    expect(screen.getByText('Enter your company name.')).toBeDefined();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(hrefAssigned).toBeUndefined();
+  });
+
+  it('validates the email format on blur', async () => {
+    render(<ContactSales />);
+
+    const email = screen.getByLabelText('Work email');
+    fireEvent.change(email, { target: { value: 'not-an-email' } });
+    fireEvent.blur(email);
+
+    await waitFor(() => {
+      expect(screen.getByText('Enter a valid email address.')).toBeDefined();
+    });
+
+    // Correcting the address and blurring again clears the error.
+    fireEvent.change(email, { target: { value: 'ada@acme.com' } });
+    fireEvent.blur(email);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Enter a valid email address.')).toBeNull();
+    });
   });
 });

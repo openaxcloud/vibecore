@@ -1073,6 +1073,17 @@ exports.Prisma.NewsletterSubscriberScalarFieldEnum = {
   unsubscribedAt: 'unsubscribedAt'
 };
 
+exports.Prisma.ContactRequestScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  name: 'name',
+  company: 'company',
+  teamSize: 'teamSize',
+  message: 'message',
+  pagePath: 'pagePath',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.IntegrationFeatureRequestScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1448,6 +1459,7 @@ exports.Prisma.ModelName = {
   ReconnectionAlert: 'ReconnectionAlert',
   Notification: 'Notification',
   NewsletterSubscriber: 'NewsletterSubscriber',
+  ContactRequest: 'ContactRequest',
   IntegrationFeatureRequest: 'IntegrationFeatureRequest',
   EmailDeliveryEvent: 'EmailDeliveryEvent',
   CreditWallet: 'CreditWallet',

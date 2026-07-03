@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { Badge } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import { FieldError, FormErrorSummary, fieldErrorProps } from '~/components/ui/FieldError';
 
 export type ContactSalesLead = {
   name: string;
@@ -24,10 +25,47 @@ export type ContactSalesLead = {
 };
 
 type ContactSalesResponse = {
+  ok?: boolean;
   success?: boolean;
+
+  /** Reference number allocated by the API (from the stored lead's id). */
+  reference?: string;
   fallbackMailto?: string;
   error?: string;
 };
+
+type ContactSalesField = 'name' | 'email' | 'company' | 'message';
+
+const FIELD_IDS: Record<ContactSalesField, string> = {
+  name: 'contact-name',
+  email: 'contact-email',
+  company: 'contact-company',
+  message: 'contact-message',
+};
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function validateContactSalesField(field: ContactSalesField, value: string): string | undefined {
+  const trimmed = value.trim();
+
+  switch (field) {
+    case 'name':
+      return trimmed ? undefined : 'Enter your name.';
+    case 'email': {
+      if (!trimmed) {
+        return 'Enter your work email.';
+      }
+
+      return EMAIL_PATTERN.test(trimmed) ? undefined : 'Enter a valid email address.';
+    }
+    case 'company':
+      return trimmed ? undefined : 'Enter your company name.';
+    case 'message':
+      return trimmed ? undefined : 'Tell us briefly how we can help.';
+    default:
+      return undefined;
+  }
+}
 
 export function buildContactSalesMailto(lead: ContactSalesLead) {
   const subject = `E-Code Enterprise inquiry${lead.company ? ` — ${lead.company}` : ''}`;
@@ -48,14 +86,14 @@ export function buildContactSalesMailto(lead: ContactSalesLead) {
   return `mailto:sales@e-code.ai?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-async function submitContactSalesLead(lead: ContactSalesLead) {
+async function submitContactSalesLead(lead: ContactSalesLead, honeypot: string) {
   const response = await fetch('/api/contact/sales', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     credentials: 'include',
-    body: JSON.stringify(lead),
+    body: JSON.stringify({ ...lead, website: honeypot }),
   });
 
   const data = (await response.json().catch(() => ({}))) as ContactSalesResponse;
@@ -74,10 +112,15 @@ async function submitContactSalesLead(lead: ContactSalesLead) {
 export default function ContactSales() {
   const { toast } = useEcodeToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<ContactSalesField, string>>>({});
+  const [sent, setSent] = useState<{ reference?: string } | null>(null);
+
+  const handleBlur = (field: ContactSalesField, value: string) => {
+    setErrors((previous) => ({ ...previous, [field]: validateContactSalesField(field, value) }));
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
     const formElement = e.currentTarget;
     const formData = new FormData(formElement);
@@ -92,8 +135,31 @@ export default function ContactSales() {
       pagePath,
     };
 
+    /*
+     * Re-validate everything on submit: per-field blur validation only covers
+     * fields the user actually visited. Nothing leaves the browser until the
+     * lead is well-formed, so the mailto fallback below never fires for a
+     * simple typo either.
+     */
+    const validation: Partial<Record<ContactSalesField, string>> = {};
+
+    for (const field of Object.keys(FIELD_IDS) as ContactSalesField[]) {
+      validation[field] = validateContactSalesField(field, lead[field]);
+    }
+
+    setErrors(validation);
+
+    const firstInvalid = (Object.keys(FIELD_IDS) as ContactSalesField[]).find((field) => validation[field]);
+
+    if (firstInvalid) {
+      formElement.querySelector<HTMLElement>(`#${FIELD_IDS[firstInvalid]}`)?.focus();
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-      const result = await submitContactSalesLead(lead);
+      const result = await submitContactSalesLead(lead, String(formData.get('website') ?? ''));
 
       if (result.fallbackMailto) {
         if (typeof window !== 'undefined') {
@@ -105,19 +171,16 @@ export default function ContactSales() {
           description: 'Your details were prepared for sales@e-code.ai.',
         });
       } else {
-        toast({
-          title: 'Request received',
-          description: 'Thanks for reaching out. Our sales team will be in touch within one business day.',
-        });
-        formElement.reset();
+        // The reference is the API-allocated id of the stored lead, never invented here.
+        setSent({ reference: result.reference });
       }
     } catch (error) {
       /*
-       * No contact-sales intake backend is wired yet (the POST 404s in dev/prod),
-       * and even once it exists it may reject or be unreachable. Rather than
-       * silently dropping the lead — the original bug, where the native form did
-       * a GET navigation and lost everything — fall back to a client-built mailto
-       * so the prospect can still reach sales@e-code.ai with their message intact.
+       * The intake backend (/api/contact/sales → API /contact-sales) may still
+       * reject or be unreachable. Rather than silently dropping the lead — the
+       * original bug, where the native form did a GET navigation and lost
+       * everything — fall back to a client-built mailto so the prospect can
+       * still reach sales@e-code.ai with their message intact.
        */
       if (typeof window !== 'undefined') {
         window.location.href = buildContactSalesMailto(lead);
@@ -259,112 +322,162 @@ export default function ContactSales() {
           <div className="container-responsive">
             <div className="max-w-2xl mx-auto">
               <Card>
-                <CardHeader>
-                  <CardTitle>Contact sales</CardTitle>
-                  <CardDescription>
-                    Tell us about your team and we&apos;ll be in touch within one business day.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form className="space-y-6" onSubmit={handleSubmit} data-testid="form-contact-sales">
-                    <div className="grid sm:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label htmlFor="contact-name" className="mkt-small font-medium">
-                          Name
-                        </label>
+                {sent ? (
+                  <CardContent className="pt-6">
+                    <div className="text-center space-y-4 py-8" role="status" data-testid="contact-sales-success">
+                      <CheckCircle className="h-12 w-12 mx-auto text-primary" />
+                      <h3 className="mkt-h3 font-semibold">Request received</h3>
+                      <p className="mkt-body text-muted-foreground">
+                        Thanks for reaching out — we&apos;ll get back within 1 business day.
+                      </p>
+                      {sent.reference ? (
+                        <p className="mkt-body">
+                          Your reference number is{' '}
+                          <span className="font-mono font-semibold" data-testid="contact-sales-reference">
+                            {sent.reference}
+                          </span>{' '}
+                          — quote it in any follow-up.
+                        </p>
+                      ) : null}
+                    </div>
+                  </CardContent>
+                ) : (
+                  <>
+                    <CardHeader>
+                      <CardTitle>Contact sales</CardTitle>
+                      <CardDescription>
+                        Tell us about your team and we&apos;ll be in touch within one business day.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <form className="space-y-6" onSubmit={handleSubmit} noValidate data-testid="form-contact-sales">
+                        <FormErrorSummary
+                          errors={(Object.keys(FIELD_IDS) as ContactSalesField[])
+                            .filter((field) => errors[field])
+                            .map((field) => ({ fieldId: FIELD_IDS[field], message: errors[field] as string }))}
+                        />
+                        <div className="grid sm:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label htmlFor="contact-name" className="mkt-small font-medium">
+                              Name
+                            </label>
+                            <input
+                              id="contact-name"
+                              name="name"
+                              type="text"
+                              autoComplete="name"
+                              placeholder="Ada Lovelace"
+                              onBlur={(event) => handleBlur('name', event.currentTarget.value)}
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-[15px] min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ring"
+                              {...fieldErrorProps('contact-name', errors.name)}
+                            />
+                            <FieldError fieldId="contact-name" error={errors.name} />
+                          </div>
+                          <div className="space-y-2">
+                            <label htmlFor="contact-email" className="mkt-small font-medium">
+                              Work email
+                            </label>
+                            <input
+                              id="contact-email"
+                              name="email"
+                              type="email"
+                              autoComplete="email"
+                              placeholder="you@company.com"
+                              onBlur={(event) => handleBlur('email', event.currentTarget.value)}
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-[15px] min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ring"
+                              {...fieldErrorProps('contact-email', errors.email)}
+                            />
+                            <FieldError fieldId="contact-email" error={errors.email} />
+                          </div>
+                          <div className="space-y-2">
+                            <label htmlFor="contact-company" className="mkt-small font-medium">
+                              Company
+                            </label>
+                            <input
+                              id="contact-company"
+                              name="company"
+                              type="text"
+                              autoComplete="organization"
+                              placeholder="Acme Inc."
+                              onBlur={(event) => handleBlur('company', event.currentTarget.value)}
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-[15px] min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ring"
+                              {...fieldErrorProps('contact-company', errors.company)}
+                            />
+                            <FieldError fieldId="contact-company" error={errors.company} />
+                          </div>
+                          <div className="space-y-2">
+                            <label htmlFor="contact-team-size" className="mkt-small font-medium">
+                              Team size
+                            </label>
+                            <select
+                              id="contact-team-size"
+                              name="teamSize"
+                              defaultValue=""
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-[15px] min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ring"
+                            >
+                              <option value="" disabled>
+                                Select team size
+                              </option>
+                              {teamSizes.map((size) => (
+                                <option key={size} value={size}>
+                                  {size} developers
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label htmlFor="contact-message" className="mkt-small font-medium">
+                            How can we help?
+                          </label>
+                          <textarea
+                            id="contact-message"
+                            name="message"
+                            rows={4}
+                            placeholder="Tell us about your use case, security requirements, or timeline."
+                            onBlur={(event) => handleBlur('message', event.currentTarget.value)}
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-ring"
+                            {...fieldErrorProps('contact-message', errors.message)}
+                          />
+                          <FieldError fieldId="contact-message" error={errors.message} />
+                        </div>
+
+                        {/* Honeypot: bots fill it, humans never see it (mirrors the newsletter mini-form). */}
                         <input
-                          id="contact-name"
-                          name="name"
                           type="text"
-                          autoComplete="name"
-                          placeholder="Ada Lovelace"
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-[15px] min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ring"
+                          name="website"
+                          tabIndex={-1}
+                          autoComplete="off"
+                          aria-hidden="true"
+                          className="pointer-events-none absolute h-0 w-0 opacity-0"
                         />
-                      </div>
-                      <div className="space-y-2">
-                        <label htmlFor="contact-email" className="mkt-small font-medium">
-                          Work email
-                        </label>
-                        <input
-                          id="contact-email"
-                          name="email"
-                          type="email"
-                          autoComplete="email"
-                          placeholder="you@company.com"
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-[15px] min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ring"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label htmlFor="contact-company" className="mkt-small font-medium">
-                          Company
-                        </label>
-                        <input
-                          id="contact-company"
-                          name="company"
-                          type="text"
-                          autoComplete="organization"
-                          placeholder="Acme Inc."
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-[15px] min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ring"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label htmlFor="contact-team-size" className="mkt-small font-medium">
-                          Team size
-                        </label>
-                        <select
-                          id="contact-team-size"
-                          name="teamSize"
-                          defaultValue=""
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-[15px] min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ring"
+
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-md px-6 py-3 text-[15px] font-medium text-white min-h-[44px] hover:opacity-90 transition-opacity disabled:opacity-60 disabled:pointer-events-none"
+                          style={{ backgroundColor: 'var(--ecode-accent)' }}
+                          data-testid="button-contact-sales-submit"
                         >
-                          <option value="" disabled>
-                            Select team size
-                          </option>
-                          {teamSizes.map((size) => (
-                            <option key={size} value={size}>
-                              {size} developers
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
+                          {isSubmitting ? (
+                            <>Sending...</>
+                          ) : (
+                            <>
+                              <Send className="h-4 w-4" />
+                              Contact sales
+                            </>
+                          )}
+                        </button>
 
-                    <div className="space-y-2">
-                      <label htmlFor="contact-message" className="mkt-small font-medium">
-                        How can we help?
-                      </label>
-                      <textarea
-                        id="contact-message"
-                        name="message"
-                        rows={4}
-                        placeholder="Tell us about your use case, security requirements, or timeline."
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-ring"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-md px-6 py-3 text-[15px] font-medium text-white min-h-[44px] hover:opacity-90 transition-opacity disabled:opacity-60 disabled:pointer-events-none"
-                      style={{ backgroundColor: 'var(--ecode-accent)' }}
-                      data-testid="button-contact-sales-submit"
-                    >
-                      {isSubmitting ? (
-                        <>Sending...</>
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4" />
-                          Contact sales
-                        </>
-                      )}
-                    </button>
-
-                    <p className="mkt-small text-muted-foreground text-center">
-                      By submitting, you agree to be contacted about E-Code Enterprise. We&apos;ll never share your
-                      details.
-                    </p>
-                  </form>
-                </CardContent>
+                        <p className="mkt-small text-muted-foreground text-center">
+                          By submitting, you agree to be contacted about E-Code Enterprise. We&apos;ll never share your
+                          details.
+                        </p>
+                      </form>
+                    </CardContent>
+                  </>
+                )}
               </Card>
             </div>
           </div>

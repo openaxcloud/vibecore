@@ -883,6 +883,17 @@ export interface EmailDeliveryEventRecord {
   receivedAt: string;
 }
 
+export interface ContactRequestRecord {
+  id: string;
+  email: string;
+  name?: string;
+  company: string;
+  teamSize?: string;
+  message: string;
+  pagePath?: string;
+  createdAt: string;
+}
+
 export interface ApiStore {
   /**
    * Lightweight liveness probe that issues a trivial query against the backing
@@ -992,6 +1003,20 @@ export interface ApiStore {
    * previously-unsubscribed address, and reports an already-active one.
    */
   subscribeNewsletter(input: { email: string; source?: string }): Promise<{ alreadySubscribed: boolean }>;
+
+  /**
+   * Persist a sales-contact lead from the public /contact-sales form. The
+   * returned record's id doubles as the reference number quoted back to the
+   * prospect (first 8 chars, uppercased).
+   */
+  createContactRequest(input: {
+    email: string;
+    name?: string;
+    company: string;
+    teamSize?: string;
+    message: string;
+    pagePath?: string;
+  }): Promise<ContactRequestRecord>;
   countProjects(organizationId: string): Promise<number>;
   softDeleteProject(projectId: string): Promise<ProjectRecord>;
   restoreProject(projectId: string): Promise<ProjectRecord>;

@@ -1601,6 +1601,22 @@ model NewsletterSubscriber {
   unsubscribedAt DateTime?
 }
 
+/// Sales-contact leads submitted through the public /contact-sales form.
+/// The row id doubles as the reference number quoted back to the prospect
+/// (first 8 chars, uppercased), so sales can locate the lead from the
+/// reference alone.
+model ContactRequest {
+  id        String   @id @default(cuid())
+  email     String
+  name      String?
+  company   String
+  teamSize  String?
+  message   String
+  /// Marketing page the form was submitted from ("/contact-sales", ...).
+  pagePath  String?
+  createdAt DateTime @default(now())
+}
+
 model IntegrationFeatureRequest {
   id                 String   @id @default(cuid())
   userId             String

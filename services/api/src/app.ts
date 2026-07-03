@@ -320,10 +320,12 @@ const loginSchema = z.object({
 });
 
 const contactSalesSchema = z.object({
-  email: z.string().email(),
-  company: z.string().min(1),
-  teamSize: z.string().optional(),
-  requirements: z.string().min(1),
+  email: z.string().email().max(320),
+  name: z.string().trim().max(200).optional(),
+  company: z.string().trim().min(1).max(200),
+  teamSize: z.string().trim().max(32).optional(),
+  requirements: z.string().trim().min(1).max(5000),
+  pagePath: z.string().trim().max(300).optional(),
 });
 
 const newsletterSubscribeSchema = z.object({
@@ -7371,28 +7373,49 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const body = parse(contactSalesSchema, request.body);
 
       /*
+       * Persist the lead FIRST: the stored row is the source of truth (the
+       * email below is best-effort) and its id doubles as the reference
+       * number quoted back to the prospect, so it must exist before we answer.
+       */
+      const record = await store.createContactRequest({
+        email: body.email,
+        name: body.name,
+        company: body.company,
+        teamSize: body.teamSize,
+        message: body.requirements,
+        pagePath: body.pagePath,
+      });
+      const reference = record.id.slice(0, 8).toUpperCase();
+
+      /*
        * The sales notification email is a best-effort side effect. An SMTP/webhook
        * failure must not surface a 500 to a prospect filling out the form (matching
        * /auth/register, which already degrades gracefully). Log and still return
-       * 202 so the lead isn't told the request failed; operators see the error.
+       * 202 so the lead isn't told the request failed; operators see the error and
+       * the lead is already persisted above.
        */
       try {
         await emailProvider.send({
           to: process.env.SALES_EMAIL_TO ?? process.env.EMAIL_FROM ?? 'sales@vibecore.local',
-          subject: `E-Code sales request - ${body.company}`,
+          subject: `E-Code sales request - ${body.company} [${reference}]`,
           text: [
+            `Reference: ${reference} (record ${record.id})`,
             `Email: ${body.email}`,
+            body.name ? `Name: ${body.name}` : undefined,
             `Company: ${body.company}`,
             `Team size: ${body.teamSize ?? 'not provided'}`,
+            body.pagePath ? `Page: ${body.pagePath}` : undefined,
             '',
             body.requirements,
-          ].join('\n'),
+          ]
+            .filter((line) => line !== undefined)
+            .join('\n'),
         });
       } catch (error) {
         request.log.error({ err: error, company: body.company }, 'failed to send contact-sales email');
       }
 
-      return reply.code(202).send({ ok: true });
+      return reply.code(202).send({ ok: true, reference });
     },
   );
 

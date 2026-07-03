@@ -9,6 +9,7 @@ import type {
   AgentRepairEventRecord,
   AgentRepairOutcome,
   ConsensusRecordSummary,
+  ContactRequestRecord,
   ApiKeyRecord,
   ApiKeyScope,
   ApiStore,
@@ -595,6 +596,31 @@ export class TestApiStore implements ApiStore {
     });
 
     return { alreadySubscribed: Boolean(existing && !existing.unsubscribedAt) };
+  }
+
+  contactRequests = new Map<string, ContactRequestRecord>();
+
+  async createContactRequest(input: {
+    email: string;
+    name?: string;
+    company: string;
+    teamSize?: string;
+    message: string;
+    pagePath?: string;
+  }): Promise<ContactRequestRecord> {
+    const record: ContactRequestRecord = {
+      id: id('contact'),
+      email: input.email.trim().toLowerCase(),
+      name: input.name,
+      company: input.company,
+      teamSize: input.teamSize,
+      message: input.message,
+      pagePath: input.pagePath,
+      createdAt: now(),
+    };
+    this.contactRequests.set(record.id, record);
+
+    return record;
   }
 
   async softDeleteProject(projectId: string) {
