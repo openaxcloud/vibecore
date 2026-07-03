@@ -1,12 +1,14 @@
-import { KeyRound, Trash2 } from 'lucide-react';
+import * as RadixDialog from '@radix-ui/react-dialog';
+import { Check, Copy, KeyRound, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { data as json } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { AppShell, StatusPill } from '~/components/dashboard/SaaSLayout';
-import { Button } from '~/components/ui/Button';
+import { Dialog, DialogTitle } from '~/components/ui/Dialog';
+import { RelativeTime } from '~/components/ui/RelativeTime';
 import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { shouldRethrowActionError } from '~/lib/route-reauth';
-import { classNames } from '~/utils/classNames';
 
 export const meta: MetaFunction = () => [{ title: 'API keys - E-Code' }];
 
@@ -117,108 +119,95 @@ function formatDate(value: string | null) {
   return value ? new Date(value).toLocaleDateString(undefined, dateFormat) : null;
 }
 
+const BLUE_CTA =
+  'inline-flex h-9 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60';
+
 export default function ApiKeysPage() {
   const { keys } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as ActionResult | undefined;
   const navigation = useNavigation();
   const busy = navigation.state !== 'idle';
+  const [createOpen, setCreateOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const createdToken = actionData?.ok && actionData.intent === 'create' ? actionData.token : null;
   const error = actionData && !actionData.ok ? actionData.error : null;
+
+  /* Close the create dialog once the key lands (the banner takes over). */
+  useEffect(() => {
+    if (createdToken) {
+      setCreateOpen(false);
+      setCopied(false);
+    }
+  }, [createdToken]);
+
+  const copyToken = async () => {
+    if (!createdToken) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(createdToken);
+      setCopied(true);
+    } catch {
+      // Clipboard blocked — the token is still selectable in the <code> block.
+    }
+  };
 
   return (
     <AppShell title="API keys" description="Create, scope, rotate and revoke API keys for automation.">
       <div className="space-y-6">
         {createdToken ? (
-          <div role="status" aria-live="polite" className="rounded-lg border border-green-500/40 bg-green-500/5 p-4">
-            <p className="text-sm font-semibold text-bolt-elements-textPrimary">Key created — copy it now</p>
-            <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-              This is the only time the full key is shown. Store it securely; you won&apos;t be able to see it again.
+          <div
+            role="status"
+            aria-live="polite"
+            className="rounded-md px-4 py-3"
+            style={{
+              background: 'color-mix(in srgb, var(--vc-ide-accent-warning) 12%, transparent)',
+              borderLeft: '3px solid var(--vc-ide-accent-warning)',
+            }}
+          >
+            <p className="text-sm font-semibold" style={{ color: 'var(--status-warning-text)' }}>
+              Key created — copy it now. This is the only time the full key is shown.
             </p>
-            <code className="mt-3 block overflow-x-auto rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-2 font-mono text-sm text-bolt-elements-textPrimary">
-              {createdToken}
-            </code>
+            <div className="mt-2 flex items-center gap-2">
+              <code
+                className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-2 text-sm text-bolt-elements-textPrimary"
+                style={{ fontFamily: 'var(--vc-font-code)' }}
+              >
+                {createdToken}
+              </code>
+              <button
+                type="button"
+                onClick={copyToken}
+                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
+              >
+                {copied ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+            </div>
           </div>
         ) : null}
 
         {error ? (
-          <p role="alert" className="rounded-md border border-red-500/40 bg-red-500/5 px-3 py-2 text-sm text-red-400">
+          <p
+            role="alert"
+            className="rounded-md border border-red-500/40 bg-red-500/5 px-3 py-2 text-sm"
+            style={{ color: 'var(--status-error-text)' }}
+          >
             {error}
           </p>
         ) : null}
 
-        <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
-          <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Create a key</h2>
-          <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-            Scoped, least-privilege tokens authenticate as you for programmatic access.
-          </p>
-
-          <Form method="post" className="mt-4 space-y-5">
-            <input type="hidden" name="intent" value="create" />
-
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-bolt-elements-textPrimary">
-                Name
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                maxLength={120}
-                placeholder="CI deploy bot"
-                className="mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none"
-              />
-            </div>
-
-            <fieldset>
-              <legend className="text-sm font-medium text-bolt-elements-textPrimary">Scopes</legend>
-              <div className="mt-2 space-y-2">
-                {SCOPE_OPTIONS.map((option) => (
-                  <label key={option.value} className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      name={`scope.${option.value}`}
-                      defaultChecked={option.value === 'read'}
-                      className="mt-0.5 h-4 w-4 rounded border-bolt-elements-borderColor"
-                    />
-                    <span>
-                      <span className="text-sm font-medium text-bolt-elements-textPrimary">{option.label}</span>
-                      <span className="block text-xs text-bolt-elements-textTertiary">{option.detail}</span>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-
-            <div>
-              <label htmlFor="expiresInDays" className="block text-sm font-medium text-bolt-elements-textPrimary">
-                Expiration
-              </label>
-              <select
-                id="expiresInDays"
-                name="expiresInDays"
-                defaultValue="90"
-                className="mt-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none"
-              >
-                {EXPIRY_OPTIONS.map((option) => (
-                  <option key={option.label} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <Button type="submit" disabled={busy} aria-busy={busy}>
-              {busy ? 'Creating…' : 'Create key'}
-            </Button>
-          </Form>
-        </section>
-
         <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
-          <div className="flex items-center justify-between border-b border-bolt-elements-borderColor p-5 sm:p-6">
-            <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Active keys</h2>
-            <StatusPill label={`${keys.length} key${keys.length === 1 ? '' : 's'}`} />
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-bolt-elements-borderColor p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Active keys</h2>
+              <StatusPill label={`${keys.length} key${keys.length === 1 ? '' : 's'}`} />
+            </div>
+            <button type="button" onClick={() => setCreateOpen(true)} className={BLUE_CTA}>
+              Create key
+            </button>
           </div>
 
           {keys.length === 0 ? (
@@ -226,75 +215,174 @@ export default function ApiKeysPage() {
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-bolt-elements-background-depth-3">
                 <KeyRound className="h-5 w-5 text-bolt-elements-textTertiary" aria-hidden />
               </span>
-              <p className="text-sm text-bolt-elements-textSecondary">No API keys yet. Create one above.</p>
+              <p className="text-sm text-bolt-elements-textSecondary">No API keys yet. Create one to get started.</p>
             </div>
           ) : (
-            <ul>
-              {keys.map((key, index) => {
-                const lastUsed = formatDate(key.lastUsedAt);
-                const expires = formatDate(key.expiresAt);
-
-                return (
-                  <li
-                    key={key.id}
-                    className={classNames(
-                      'flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5',
-                      index > 0 && 'border-t border-bolt-elements-borderColor',
-                    )}
-                  >
-                    <div className="min-w-0">
-                      <p className="break-words text-sm font-medium text-bolt-elements-textPrimary" title={key.name}>
-                        {key.name}
-                      </p>
-                      <p className="mt-1 font-mono text-xs text-bolt-elements-textTertiary">
-                        {key.keyPrefix ? `${key.keyPrefix}…` : 'vck_…'}
-                      </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        {key.scopes.map((scope) => (
-                          <span
-                            key={scope}
-                            className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-xs text-bolt-elements-textSecondary"
-                          >
-                            {scope}
-                          </span>
-                        ))}
-                      </div>
-                      <p className="mt-2 text-xs text-bolt-elements-textTertiary">
-                        {lastUsed ? `Last used ${lastUsed}` : 'Never used'}
-                        {expires ? ` · Expires ${expires}` : ' · Never expires'}
-                      </p>
-                    </div>
-                    <Form
-                      method="post"
-                      className="sm:shrink-0"
-                      onSubmit={(e) => {
-                        if (
-                          !window.confirm(
-                            `Revoke key "${key.name}"? Any client using it will immediately lose access. This cannot be undone.`,
-                          )
-                        ) {
-                          e.preventDefault();
-                        }
-                      }}
-                    >
-                      <input type="hidden" name="intent" value="revoke" />
-                      <input type="hidden" name="keyId" value={key.id} />
-                      <button
-                        type="submit"
-                        disabled={busy}
-                        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-red-400 hover:bg-red-500/10 disabled:opacity-60"
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
+                    <th className="px-5 py-3 font-medium">Name</th>
+                    <th className="px-5 py-3 font-medium">Key</th>
+                    <th className="px-5 py-3 font-medium">Scopes</th>
+                    <th className="px-5 py-3 font-medium">Last used</th>
+                    <th className="px-5 py-3 font-medium">Created</th>
+                    <th className="px-5 py-3 font-medium">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {keys.map((key) => (
+                    <tr key={key.id} className="border-b border-bolt-elements-borderColor align-middle last:border-b-0">
+                      <td className="px-5 py-3 font-medium text-bolt-elements-textPrimary">{key.name}</td>
+                      <td
+                        className="px-5 py-3 text-xs text-bolt-elements-textTertiary"
+                        style={{ fontFamily: 'var(--vc-font-code)' }}
                       >
-                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                        Revoke
-                      </button>
-                    </Form>
-                  </li>
-                );
-              })}
-            </ul>
+                        {key.keyPrefix ? `${key.keyPrefix}…` : 'vck_…'}
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex flex-wrap gap-1.5">
+                          {key.scopes.map((scope) => (
+                            <span
+                              key={scope}
+                              className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-xs text-bolt-elements-textSecondary"
+                            >
+                              {scope}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-bolt-elements-textSecondary">
+                        {key.lastUsedAt ? <RelativeTime value={key.lastUsedAt} /> : 'Never'}
+                      </td>
+                      <td className="px-5 py-3 text-bolt-elements-textSecondary">
+                        <RelativeTime value={key.createdAt} />
+                        <span className="block text-xs text-bolt-elements-textTertiary">
+                          {key.expiresAt ? `Expires ${formatDate(key.expiresAt)}` : 'Never expires'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <Form
+                          method="post"
+                          className="inline"
+                          onSubmit={(e) => {
+                            if (
+                              !window.confirm(
+                                `Revoke key "${key.name}"? Any client using it will immediately lose access. This cannot be undone.`,
+                              )
+                            ) {
+                              e.preventDefault();
+                            }
+                          }}
+                        >
+                          <input type="hidden" name="intent" value="revoke" />
+                          <input type="hidden" name="keyId" value={key.id} />
+                          <button
+                            type="submit"
+                            disabled={busy}
+                            style={{ color: 'var(--status-error-text)' }}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium hover:bg-red-500/10 disabled:opacity-60"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                            Revoke
+                          </button>
+                        </Form>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
       </div>
+
+      <RadixDialog.Root open={createOpen} onOpenChange={setCreateOpen}>
+        {createOpen ? (
+          <Dialog onClose={() => setCreateOpen(false)} onBackdrop={() => setCreateOpen(false)}>
+            <div className="p-6">
+              <DialogTitle asChild>
+                <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Create an API key</h2>
+              </DialogTitle>
+              <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+                Scoped, least-privilege tokens authenticate as you for programmatic access.
+              </p>
+
+              <Form method="post" className="mt-4 space-y-5">
+                <input type="hidden" name="intent" value="create" />
+
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-bolt-elements-textPrimary">
+                    Name
+                  </label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    required
+                    maxLength={120}
+                    placeholder="CI deploy bot"
+                    className="mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none"
+                  />
+                </div>
+
+                <fieldset>
+                  <legend className="text-sm font-medium text-bolt-elements-textPrimary">Scopes</legend>
+                  <div className="mt-2 space-y-2">
+                    {SCOPE_OPTIONS.map((option) => (
+                      <label key={option.value} className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          name={`scope.${option.value}`}
+                          defaultChecked={option.value === 'read'}
+                          className="mt-0.5 h-4 w-4 rounded border-bolt-elements-borderColor"
+                        />
+                        <span>
+                          <span className="text-sm font-medium text-bolt-elements-textPrimary">{option.label}</span>
+                          <span className="block text-xs text-bolt-elements-textTertiary">{option.detail}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <div>
+                  <label htmlFor="expiresInDays" className="block text-sm font-medium text-bolt-elements-textPrimary">
+                    Expiration
+                  </label>
+                  <select
+                    id="expiresInDays"
+                    name="expiresInDays"
+                    defaultValue="90"
+                    className="mt-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none"
+                  >
+                    {EXPIRY_OPTIONS.map((option) => (
+                      <option key={option.label} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreateOpen(false)}
+                    className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={busy} aria-busy={busy} className={BLUE_CTA}>
+                    {busy ? 'Creating…' : 'Create key'}
+                  </button>
+                </div>
+              </Form>
+            </div>
+          </Dialog>
+        ) : null}
+      </RadixDialog.Root>
     </AppShell>
   );
 }
