@@ -20964,8 +20964,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       ({ passwordHash: _passwordHash, mfaSecretEncrypted: _mfaSecretEncrypted, ...safe }) => safe,
     );
 
+    /*
+     * Surface each user's organization membership (id/name/slug only) so the
+     * admin Users rows can link to the tenant an account belongs to.
+     */
+    const usersWithOrganizations = await Promise.all(
+      users.map(async (user) => ({
+        ...user,
+        organizations: (await store.listOrganizations(user.id)).map((org) => ({
+          id: org.id,
+          name: org.name,
+          slug: org.slug,
+        })),
+      })),
+    );
+
     return {
-      users,
+      users: usersWithOrganizations,
       total,
       page,
       pageSize: ADMIN_USERS_PAGE_SIZE,
@@ -21690,11 +21705,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { aiCostCents: aiCosts.reduce((sum, item) => sum + item.costCents, 0), aiCosts, usage };
   });
 
+  /*
+   * Suspension state changes require a mandatory operator-supplied reason; it is
+   * persisted in the admin audit event so every account action stays reviewable.
+   */
+  const adminSuspendReasonBody = z.object({ reason: z.string().trim().min(1).max(2000) });
+
   app.post('/admin/users/:userId/suspend', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
 
     const { userId } = parse(adminUserParams, request.params);
+    const { reason } = parse(adminSuspendReasonBody, request.body ?? {});
 
     /*
      * Don't let an admin suspend the last remaining administrator (incl. self).
@@ -21706,7 +21728,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await store.mutateSystemSettingIds('admin.suspendedUserIds', { add: userId });
     });
     await store.revokeAllSessions(userId);
-    await recordAdminAction(request, store, { action: 'admin.user.suspend', metadata: { userId } });
+    await recordAdminAction(request, store, { action: 'admin.user.suspend', metadata: { userId, reason } });
 
     return { suspended: true };
   });
@@ -21716,8 +21738,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireRecentAdminReauth(request);
 
     const { userId } = parse(adminUserParams, request.params);
+    const { reason } = parse(adminSuspendReasonBody, request.body ?? {});
     await store.mutateSystemSettingIds('admin.suspendedUserIds', { remove: userId });
-    await recordAdminAction(request, store, { action: 'admin.user.unsuspend', metadata: { userId } });
+    await recordAdminAction(request, store, { action: 'admin.user.unsuspend', metadata: { userId, reason } });
 
     return { suspended: false };
   });

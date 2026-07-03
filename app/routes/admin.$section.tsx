@@ -3,6 +3,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Link, useFetcher, useLoaderData, useNavigate, useNavigation, useSearchParams } from 'react-router';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
+import { Dialog, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
+import { Dropdown, DropdownItem, DropdownSeparator } from '~/components/ui/Dropdown';
 import { FilterChip } from '~/components/ui/FilterChip';
 import { RelativeTime } from '~/components/ui/RelativeTime';
 import {
@@ -426,8 +428,6 @@ async function adminMutationError(error: unknown): Promise<string> {
 }
 
 const USER_POST_INTENTS: Record<string, string> = {
-  suspend: 'suspend',
-  unsuspend: 'unsuspend',
   'force-logout': 'force-logout',
   'reset-mfa': 'reset-mfa',
 };
@@ -889,6 +889,26 @@ export async function action({ request }: EnterpriseActionArgs) {
     if (intent === 'clear-strikes') {
       await apiRequest(request, `/admin/users/${userId}/strikes`, { method: 'DELETE', redirectOn401: false });
       return json({ ok: true, userId, message: 'Strikes cleared.' });
+    }
+
+    /*
+     * Suspend / Reactivate require a reason: it is persisted server-side in the
+     * admin audit event (admin.user.suspend / admin.user.unsuspend metadata).
+     */
+    if (intent === 'suspend' || intent === 'unsuspend') {
+      const reason = String(form.get('reason') ?? '').trim();
+
+      if (!reason) {
+        return json({ ok: false, userId, error: 'A reason is required for this action.' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/admin/users/${userId}/${intent}`, {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({ reason }),
+      });
+
+      return json({ ok: true, userId, message: USER_INTENT_OK[intent] });
     }
 
     const endpoint = USER_POST_INTENTS[intent];
@@ -1952,6 +1972,9 @@ type AdminUser = {
   platformAdmin?: boolean;
   mfaEnabled?: boolean;
   createdAt?: string;
+
+  /* Tenant membership (id/name/slug only), provided by GET /admin/users. */
+  organizations?: { id: string; name?: string; slug?: string }[];
 };
 
 /*
@@ -2130,16 +2153,18 @@ function UsersPanel({ payload }: { payload: Record<string, JsonValue> }) {
 
 function UserRow({ user, suspended, password }: { user: AdminUser; suspended: boolean; password: string }) {
   const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const navigate = useNavigate();
   const busy = fetcher.state !== 'idle';
+
+  /* Suspend / Reactivate go through a mandatory-reason confirmation dialog. */
+  const [confirmKind, setConfirmKind] = useState<'suspend' | 'unsuspend' | null>(null);
 
   const run = (fields: Record<string, string>) => {
     fetcher.submit({ ...fields, userId: user.id, password }, { method: 'post' });
   };
 
-  const btn =
-    'inline-flex items-center rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50';
-
-  const danger = `${btn} border-red-500/40 text-red-600 hover:bg-red-500/10 dark:text-red-400`;
+  const organizations = user.organizations ?? [];
+  const canImpersonate = !user.platformAdmin && !suspended;
 
   return (
     <tr className="border-b border-bolt-elements-borderColor align-top last:border-b-0">
@@ -2162,86 +2187,200 @@ function UserRow({ user, suspended, password }: { user: AdminUser; suspended: bo
         </div>
       </td>
       <td className="px-4 py-3">
-        <div className="flex flex-wrap gap-1.5">
+        <Dropdown
+          trigger={
+            <button
+              type="button"
+              disabled={busy}
+              aria-label={`Actions for ${user.email ?? user.id}`}
+              data-testid={`user-actions-${user.id}`}
+              className="inline-flex h-7 w-8 items-center justify-center rounded-md border border-bolt-elements-borderColor text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span aria-hidden>⋯</span>
+            </button>
+          }
+        >
+          {canImpersonate ? (
+            <DropdownItem onSelect={() => run({ intent: 'impersonate' })}>
+              <span className="text-[var(--vc-ide-accent-action)]" data-testid={`user-impersonate-${user.id}`}>
+                View as
+              </span>
+            </DropdownItem>
+          ) : null}
+
+          {organizations.map((org) => (
+            <DropdownItem key={org.id} onSelect={() => navigate('/admin/organizations')}>
+              Organization: {org.name ?? org.slug ?? org.id}
+            </DropdownItem>
+          ))}
+
+          {canImpersonate || organizations.length > 0 ? <DropdownSeparator /> : null}
+
           {user.platformAdmin ? (
-            <button
-              type="button"
-              className={danger}
-              disabled={busy}
-              data-testid={`user-demote-${user.id}`}
-              onClick={() => run({ intent: 'platform-admin', value: 'false' })}
-            >
-              Revoke admin
-            </button>
+            <DropdownItem onSelect={() => run({ intent: 'platform-admin', value: 'false' })}>
+              <span className="text-[var(--status-error-text)]" data-testid={`user-demote-${user.id}`}>
+                Revoke admin
+              </span>
+            </DropdownItem>
           ) : (
-            <button
-              type="button"
-              className={btn}
-              disabled={busy}
-              data-testid={`user-promote-${user.id}`}
-              onClick={() => run({ intent: 'platform-admin', value: 'true' })}
-            >
-              Promote to admin
-            </button>
+            <DropdownItem onSelect={() => run({ intent: 'platform-admin', value: 'true' })}>
+              <span data-testid={`user-promote-${user.id}`}>Promote to admin</span>
+            </DropdownItem>
           )}
 
-          {suspended ? (
-            <button type="button" className={btn} disabled={busy} onClick={() => run({ intent: 'unsuspend' })}>
-              Reactivate
-            </button>
-          ) : (
-            <button type="button" className={danger} disabled={busy} onClick={() => run({ intent: 'suspend' })}>
-              Suspend
-            </button>
-          )}
-
-          <button type="button" className={btn} disabled={busy} onClick={() => run({ intent: 'force-logout' })}>
-            Force logout
-          </button>
+          <DropdownItem onSelect={() => run({ intent: 'force-logout' })}>Force logout</DropdownItem>
 
           {user.mfaEnabled ? (
-            <button type="button" className={btn} disabled={busy} onClick={() => run({ intent: 'reset-mfa' })}>
-              Reset MFA
-            </button>
+            <DropdownItem onSelect={() => run({ intent: 'reset-mfa' })}>Reset MFA</DropdownItem>
           ) : null}
 
           {!user.platformAdmin ? (
             <>
-              <button
-                type="button"
-                className={danger}
-                disabled={busy}
-                data-testid={`user-strike-${user.id}`}
-                onClick={() => run({ intent: 'strike', severity: 'minor' })}
-              >
-                Strike
-              </button>
-              <button type="button" className={btn} disabled={busy} onClick={() => run({ intent: 'clear-strikes' })}>
-                Clear strikes
-              </button>
+              <DropdownItem onSelect={() => run({ intent: 'strike', severity: 'minor' })}>
+                <span className="text-[var(--status-error-text)]" data-testid={`user-strike-${user.id}`}>
+                  Strike
+                </span>
+              </DropdownItem>
+              <DropdownItem onSelect={() => run({ intent: 'clear-strikes' })}>Clear strikes</DropdownItem>
             </>
           ) : null}
 
-          {!user.platformAdmin && !suspended ? (
-            <button
-              type="button"
-              className={btn}
-              disabled={busy}
-              data-testid={`user-impersonate-${user.id}`}
-              onClick={() => run({ intent: 'impersonate' })}
-            >
-              Impersonate
-            </button>
-          ) : null}
-        </div>
+          <DropdownSeparator />
+
+          {suspended ? (
+            <DropdownItem onSelect={() => setConfirmKind('unsuspend')}>
+              <span data-testid={`user-unsuspend-${user.id}`}>Reactivate…</span>
+            </DropdownItem>
+          ) : (
+            <DropdownItem onSelect={() => setConfirmKind('suspend')}>
+              <span className="text-[var(--status-error-text)]" data-testid={`user-suspend-${user.id}`}>
+                Suspend…
+              </span>
+            </DropdownItem>
+          )}
+        </Dropdown>
+
         {fetcher.data?.message ? (
           <p className="mt-1.5 text-xs text-green-600 dark:text-green-400">{fetcher.data.message}</p>
         ) : null}
         {fetcher.data?.error ? (
-          <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{fetcher.data.error}</p>
+          <p className="mt-1.5 text-xs text-[var(--status-error-text)]">{fetcher.data.error}</p>
         ) : null}
+
+        <UserActionReasonDialog
+          kind={confirmKind}
+          user={user}
+          busy={busy}
+          onCancel={() => setConfirmKind(null)}
+          onConfirm={(reason) => {
+            if (confirmKind) {
+              run({ intent: confirmKind, reason });
+            }
+
+            setConfirmKind(null);
+          }}
+        />
       </td>
     </tr>
+  );
+}
+
+/*
+ * Mandatory-reason confirmation for Suspend / Reactivate. Mirrors the
+ * ConfirmationDialog idiom (ui/Dialog primitives) but adds a required reason
+ * textarea — confirm stays disabled until a reason is typed. The reason is
+ * persisted server-side in the admin audit event.
+ */
+function UserActionReasonDialog({
+  kind,
+  user,
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  kind: 'suspend' | 'unsuspend' | null;
+  user: AdminUser;
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: (reason: string) => void;
+}) {
+  const [reason, setReason] = useState('');
+  const open = kind !== null;
+
+  /* A fresh dialog never inherits the previous action's reason. */
+  useEffect(() => {
+    if (!open) {
+      setReason('');
+    }
+  }, [open]);
+
+  const destructive = kind === 'suspend';
+  const label = destructive ? 'Suspend' : 'Reactivate';
+
+  return (
+    <DialogRoot
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) {
+          onCancel();
+        }
+      }}
+    >
+      <Dialog showCloseButton={false} onBackdrop={onCancel}>
+        <div className="p-6">
+          <DialogTitle>
+            {label} {user.email ?? user.id}?
+          </DialogTitle>
+          <DialogDescription>
+            {destructive
+              ? 'The user is signed out everywhere and blocked from signing in until reactivated.'
+              : 'The user can sign in again immediately.'}{' '}
+            The reason below is written to the admin audit log.
+          </DialogDescription>
+          <label
+            htmlFor={`user-action-reason-${user.id}`}
+            className="mt-4 block text-xs font-medium text-bolt-elements-textSecondary"
+          >
+            Reason{' '}
+            <span aria-hidden className="text-[var(--status-error-text)]">
+              *
+            </span>
+          </label>
+          <textarea
+            id={`user-action-reason-${user.id}`}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            rows={3}
+            required
+            placeholder={
+              destructive ? 'Why is this account being suspended?' : 'Why is this account being reactivated?'
+            }
+            data-testid="user-action-reason"
+            className="mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
+          />
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="inline-flex h-8 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={busy || reason.trim().length === 0}
+              onClick={() => onConfirm(reason.trim())}
+              data-testid="user-action-confirm"
+              className={`inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${
+                destructive ? 'bg-[var(--status-error-text)]' : 'bg-[var(--vc-ide-accent-action)]'
+              }`}
+            >
+              {label}
+            </button>
+          </div>
+        </div>
+      </Dialog>
+    </DialogRoot>
   );
 }
 
