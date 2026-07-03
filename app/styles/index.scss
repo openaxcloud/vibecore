@@ -9561,6 +9561,52 @@ body :where(.lucide, svg[data-lucide]) {
   white-space: nowrap;
 }
 
+.bolt-project-console-level-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bolt-project-console-header .bolt-project-console-level-chips button {
+  min-width: 0;
+  min-height: 26px;
+  gap: 5px;
+  border-color: var(--vc-ide-border-subtle);
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 0 9px;
+}
+
+.bolt-project-console-level-count {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.bolt-project-console-level-chips button[data-level='info'] .bolt-project-console-level-count {
+  color: var(--status-info-text);
+}
+
+.bolt-project-console-level-chips button[data-level='warn'] .bolt-project-console-level-count {
+  color: var(--status-warning-text);
+}
+
+.bolt-project-console-level-chips button[data-level='error'] .bolt-project-console-level-count {
+  color: var(--status-error-text);
+}
+
+.bolt-project-console-header .bolt-project-console-level-chips button[aria-pressed='true'][data-level='info'] {
+  border-color: color-mix(in srgb, var(--status-info-text), transparent 55%);
+}
+
+.bolt-project-console-header .bolt-project-console-level-chips button[aria-pressed='true'][data-level='warn'] {
+  border-color: color-mix(in srgb, var(--status-warning-text), transparent 55%);
+}
+
+.bolt-project-console-header .bolt-project-console-level-chips button[aria-pressed='true'][data-level='error'] {
+  border-color: color-mix(in srgb, var(--status-error-text), transparent 55%);
+}
+
 .bolt-project-editor-toolbar-file {
   min-width: 0;
   flex: 1;
@@ -10128,6 +10174,14 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-primary) !important;
 }
 
+.bolt-project-console-stream {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
 .bolt-project-console-body {
   flex: 1;
   min-height: 0;
@@ -10137,6 +10191,29 @@ body :where(.lucide, svg[data-lucide]) {
   font-family: var(--vc-font-code);
   font-size: 12px;
   padding: 10px;
+}
+
+.bolt-project-console-follow {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 40%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-bg-panel) 84%);
+  color: var(--vc-ide-accent-action);
+  box-shadow: var(--vc-ui-shadow-md);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+}
+
+.bolt-project-console-follow:hover {
+  background: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-bg-panel) 72%);
+  color: var(--vc-ide-text-primary);
 }
 
 .bolt-project-log-line {
@@ -10194,10 +10271,10 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-console-tool-split {
   display: grid;
-  grid-template-rows: 36px minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
 }
 
-.bolt-project-console-tool-split .bolt-project-console-body + .bolt-project-console-body {
+.bolt-project-console-tool-split .bolt-project-console-stream + .bolt-project-console-stream {
   border-top: 1px solid var(--vc-ide-border-subtle);
 }
 

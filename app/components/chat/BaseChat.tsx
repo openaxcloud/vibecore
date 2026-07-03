@@ -17087,7 +17087,26 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
   const activeStreamLogs = logs.filter((entry: any) => entry.source === activeStream);
   const filtersActive = level !== 'all' || query.trim().length > 0;
 
-  const filteredLogs = filterLogEntries(activeStreamLogs, level, query, regexEnabled);
+  /*
+   * Chip counts are derived from the query-filtered stream with the level
+   * filter excluded, so every chip always shows exactly how many lines it
+   * would reveal when selected.
+   */
+  const queryFilteredLogs = filterLogEntries(activeStreamLogs, 'all', query, regexEnabled);
+
+  const levelCounts = queryFilteredLogs.reduce(
+    (counts: Record<'info' | 'warn' | 'error', number>, entry: any) => {
+      counts[normalizeLogEntryLevel(entry)] += 1;
+
+      return counts;
+    },
+    { info: 0, warn: 0, error: 0 },
+  );
+
+  const filteredLogs =
+    level === 'all'
+      ? queryFilteredLogs
+      : queryFilteredLogs.filter((entry: any) => normalizeLogEntryLevel(entry) === level);
 
   const activeStreamEmptyMessage = cleared
     ? 'Visible logs were cleared for this session. Reload to fetch the latest runtime output.'
@@ -17128,7 +17147,7 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
     const anchor = document.createElement('a');
 
     anchor.href = url;
-    anchor.download = `ecode-${activeStream}-logs.txt`;
+    anchor.download = `logs-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
@@ -17156,16 +17175,28 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
         <span className="bolt-project-console-status" title={`Workspace ${workspaceStatus}`}>
           {workspaceStatus}
         </span>
-        <select
-          aria-label="Filter logs by level"
-          value={level}
-          onChange={(event) => setLevel(event.target.value as any)}
-        >
-          <option value="all">All levels</option>
-          <option value="info">Info</option>
-          <option value="warn">Warn</option>
-          <option value="error">Error</option>
-        </select>
+        <div className="bolt-project-console-level-chips" role="group" aria-label="Filter logs by level">
+          {(
+            [
+              ['all', 'All', queryFilteredLogs.length],
+              ['info', 'Info', levelCounts.info],
+              ['warn', 'Warn', levelCounts.warn],
+              ['error', 'Error', levelCounts.error],
+            ] as const
+          ).map(([id, label, count]) => (
+            <button
+              key={id}
+              type="button"
+              data-level={id}
+              aria-pressed={level === id}
+              aria-label={`Show ${label.toLowerCase()} logs. ${count} line${count === 1 ? '' : 's'}.`}
+              onClick={() => setLevel(id)}
+            >
+              {label}
+              <span className="bolt-project-console-level-count">{count}</span>
+            </button>
+          ))}
+        </div>
         <input
           aria-label="Search logs"
           value={query}
@@ -17186,8 +17217,8 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
         <button type="button" aria-label="Toggle split log view" onClick={() => setSplit((value) => !value)}>
           {split ? 'Close split' : 'Split view'}
         </button>
-        <button type="button" aria-label="Download filtered logs" onClick={downloadLogs}>
-          Download
+        <button type="button" aria-label="Export currently filtered logs as a .txt file" onClick={downloadLogs}>
+          Export .txt
         </button>
         <button
           type="button"
@@ -17216,21 +17247,83 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
   );
 }
 
+/*
+ * How close (px) to the bottom edge still counts as "at the bottom" for follow
+ * mode. Scrolling further up than this hands control back to the user.
+ */
+const LOG_FOLLOW_BOTTOM_THRESHOLD_PX = 32;
+
 function LogStreamView({ logs, empty }: { logs: any[]; empty: string }) {
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const [follow, setFollow] = useState(true);
+
+  // While follow mode is on, keep the view pinned to the newest line.
+  useEffect(() => {
+    const node = bodyRef.current;
+
+    if (follow && node) {
+      node.scrollTop = node.scrollHeight;
+    }
+  }, [follow, logs]);
+
+  /*
+   * Scrolling away from the bottom switches follow off automatically;
+   * scrolling back down to the bottom re-arms it. The programmatic pin above
+   * always lands at distance 0, so it never disables its own follow mode.
+   */
+  const handleScroll = () => {
+    const node = bodyRef.current;
+
+    if (!node) {
+      return;
+    }
+
+    const distanceFromBottom = node.scrollHeight - node.scrollTop - node.clientHeight;
+
+    setFollow(distanceFromBottom <= LOG_FOLLOW_BOTTOM_THRESHOLD_PX);
+  };
+
+  const resumeFollow = () => {
+    const node = bodyRef.current;
+
+    if (node) {
+      node.scrollTop = node.scrollHeight;
+    }
+
+    setFollow(true);
+  };
+
   return (
-    <div className="bolt-project-console-body" role="log" aria-live="polite">
-      {logs.length ? (
-        logs.map((entry: any, index: number) => (
-          <div key={`${entry.timestamp ?? 'log'}-${index}`} className="bolt-project-log-line" data-level={entry.level}>
-            <span>{formatLogTime(entry.timestamp)}</span>
-            <strong>{entry.level ?? 'info'}</strong>
-            {entry.context ? <em>{entry.context}</em> : null}
-            <code>{entry.message}</code>
-          </div>
-        ))
-      ) : (
-        <div className="bolt-project-console-empty">{empty}</div>
-      )}
+    <div className="bolt-project-console-stream">
+      <div ref={bodyRef} className="bolt-project-console-body" role="log" aria-live="polite" onScroll={handleScroll}>
+        {logs.length ? (
+          logs.map((entry: any, index: number) => (
+            <div
+              key={`${entry.timestamp ?? 'log'}-${index}`}
+              className="bolt-project-log-line"
+              data-level={entry.level}
+            >
+              <span>{formatLogTime(entry.timestamp)}</span>
+              <strong>{entry.level ?? 'info'}</strong>
+              {entry.context ? <em>{entry.context}</em> : null}
+              <code>{entry.message}</code>
+            </div>
+          ))
+        ) : (
+          <div className="bolt-project-console-empty">{empty}</div>
+        )}
+      </div>
+      {!follow && logs.length > 0 ? (
+        <button
+          type="button"
+          className="bolt-project-console-follow"
+          aria-label="Resume follow mode and jump to the newest log line"
+          onClick={resumeFollow}
+        >
+          <span className="i-ph:arrow-line-down" aria-hidden />
+          Follow
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -17288,11 +17381,35 @@ function buildSystemLogEvents(data: any) {
   ];
 }
 
+/*
+ * Log entries arrive from several producers (runtime snapshot, deployment
+ * logs, synthesized system events); most carry a structured `level`, but the
+ * value space is not guaranteed. Normalize to the panel's three levels,
+ * falling back to message classification when the field is missing.
+ */
+function normalizeLogEntryLevel(entry: any): 'info' | 'warn' | 'error' {
+  const raw = typeof entry?.level === 'string' ? entry.level.toLowerCase() : '';
+
+  if (raw === 'error' || raw === 'fatal') {
+    return 'error';
+  }
+
+  if (raw === 'warn' || raw === 'warning') {
+    return 'warn';
+  }
+
+  if (raw === 'info' || raw === 'debug' || raw === 'log' || raw === 'notice') {
+    return 'info';
+  }
+
+  return classifyLogLevel(String(entry?.message ?? ''));
+}
+
 function filterLogEntries(logs: any[], level: string, query: string, regexEnabled: boolean) {
   const trimmed = query.trim();
 
   return logs.filter((entry: any) => {
-    if (level !== 'all' && entry.level !== level) {
+    if (level !== 'all' && normalizeLogEntryLevel(entry) !== level) {
       return false;
     }
 
