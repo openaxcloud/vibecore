@@ -3,6 +3,7 @@ import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { ActivityList, ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
+import { RelativeTime } from '~/components/ui/RelativeTime';
 import {
   apiErrorMessage,
   apiRequest,
@@ -86,7 +87,12 @@ export default function ProjectSnapshotsPage() {
             data.snapshots.length
               ? data.snapshots.map((snapshot) => ({
                   title: snapshot.label ?? snapshot.kind,
-                  detail: `${snapshot.kind} - ${snapshot.byteLength ?? 0} bytes - ${snapshot.createdAt ? new Date(snapshot.createdAt).toLocaleString() : 'recorded'}`,
+                  detail: (
+                    <>
+                      {snapshot.kind} - {snapshot.byteLength ?? 0} bytes -{' '}
+                      {snapshot.createdAt ? <RelativeTime value={snapshot.createdAt} /> : 'recorded'}
+                    </>
+                  ),
                   icon: Layers,
                 }))
               : [

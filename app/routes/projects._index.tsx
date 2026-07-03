@@ -5,6 +5,7 @@ import { useLoaderData, useSearchParams } from 'react-router';
 import { AppShell, ProjectGrid, LinkButton, StatusPill, type ProjectCard } from '~/components/dashboard/SaaSLayout';
 import { EmptyState } from '~/components/ui/EmptyState';
 import { FilterChip } from '~/components/ui/FilterChip';
+import { RelativeTime } from '~/components/ui/RelativeTime';
 import { SearchInput } from '~/components/ui/SearchInput';
 import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { projectIdePath } from '~/utils/project-url';
@@ -77,6 +78,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
           status: lifecycle === 'archived' ? 'Archived' : 'Ready',
           lifecycle,
           updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
+          updatedAtIso: project.updatedAt,
           stack: project.gitRepositoryUrl ?? project.sourceType ?? 'E-Code project',
           sourceType: project.sourceType,
           previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
@@ -285,7 +287,15 @@ function ProjectList({ projects }: { projects: ProjectCard[] }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-bolt-elements-textTertiary">Updated {project.updated ?? 'recently'}</span>
+            {project.updatedAtIso ? (
+              <RelativeTime
+                value={project.updatedAtIso}
+                prefix="Updated"
+                className="text-xs text-bolt-elements-textTertiary"
+              />
+            ) : (
+              <span className="text-xs text-bolt-elements-textTertiary">Updated {project.updated ?? 'recently'}</span>
+            )}
             <LinkButton to={project.ideUrl ?? `/projects/${project.id}/ide`} variant="outline">
               Open IDE
             </LinkButton>

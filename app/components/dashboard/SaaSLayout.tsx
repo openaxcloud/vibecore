@@ -81,6 +81,7 @@ import { EcodeExactPublicShell } from '~/components/marketing/ecode-exact/EcodeE
 import { Button } from '~/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/Card';
 import { EmptyState } from '~/components/ui/EmptyState';
+import { RelativeTime } from '~/components/ui/RelativeTime';
 import { SkipLink } from '~/components/ui/SkipLink';
 import { profileStore } from '~/lib/stores/profile';
 import { themeStore, toggleTheme } from '~/lib/stores/theme';
@@ -378,6 +379,9 @@ export interface ProjectCard {
 
   /** Real lifecycle derived from API data (deployments count / soft-delete). */
   lifecycle?: 'deployed' | 'draft' | 'archived';
+
+  /** Raw updatedAt ISO string — drives the relative "Updated ..." label. */
+  updatedAtIso?: string;
 }
 
 export function PublicShell({ children }: { children: React.ReactNode }) {
@@ -1205,7 +1209,11 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
               ) : null}
             </div>
             <div className="flex items-center justify-between text-xs text-bolt-elements-textSecondary">
-              <span>Updated {project.updated ?? 'recently'}</span>
+              {project.updatedAtIso ? (
+                <RelativeTime value={project.updatedAtIso} prefix="Updated" />
+              ) : (
+                <span>Updated {project.updated ?? 'recently'}</span>
+              )}
               <Link
                 to={project.ideUrl ?? `/projects/${project.id}/ide`}
                 className="rounded-md px-2 py-1 font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
@@ -1471,7 +1479,7 @@ export function SettingsForm({
   );
 }
 
-export function ActivityList({ items }: { items: Array<{ title: string; detail: string; icon?: Icon }> }) {
+export function ActivityList({ items }: { items: Array<{ title: string; detail: React.ReactNode; icon?: Icon }> }) {
   return (
     <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
       {items.map((item, index) => {
