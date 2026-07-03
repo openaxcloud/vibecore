@@ -69,6 +69,7 @@ import {
   SiVite,
 } from 'react-icons/si';
 import { Form, Link, NavLink, useNavigate } from 'react-router';
+import { ProjectCardMenu, ProjectRenameForm } from './ProjectCardMenu';
 import {
   type CommandPaletteItem,
   clampSelectionIndex,
@@ -388,6 +389,9 @@ export interface ProjectCard {
 
   /** Raw updatedAt ISO string — drives the relative "Updated ..." label. */
   updatedAtIso?: string;
+
+  /** Deployments on this project — gates the type-the-name delete confirmation. */
+  deploymentCount?: number;
 }
 
 export function PublicShell({ children }: { children: React.ReactNode }) {
@@ -1221,55 +1225,68 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       {projects.map((project) => (
-        <Card
-          key={project.id}
-          className="group overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3"
-        >
-          <CardHeader>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <CardTitle className="truncate text-lg" title={project.name}>
-                  {project.name}
-                </CardTitle>
-                <CardDescription className="truncate">
-                  {project.stack ?? project.sourceType ?? 'Persistent project'}
-                </CardDescription>
-              </div>
-              <StatusPill label={project.status ?? 'Ready'} />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="vc-project-preview relative aspect-[16/9] overflow-hidden rounded-md">
-              <ProjectPreviewFallback project={project} />
-              {project.previewImageUrl ? (
-                <img
-                  src={project.previewImageUrl}
-                  alt={`Latest homepage preview for ${project.name}`}
-                  className="relative z-[1] h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.015]"
-                  loading="lazy"
-                  onError={(event) => {
-                    event.currentTarget.style.display = 'none';
-                  }}
-                />
-              ) : null}
-            </div>
-            <div className="flex items-center justify-between text-xs text-bolt-elements-textSecondary">
-              {project.updatedAtIso ? (
-                <RelativeTime value={project.updatedAtIso} prefix="Updated" />
-              ) : (
-                <span>Updated {project.updated ?? 'recently'}</span>
-              )}
-              <Link
-                to={project.ideUrl ?? `/projects/${project.id}/ide`}
-                className="rounded-md px-2 py-1 font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
-              >
-                Open IDE
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+        <ProjectGridCard key={project.id} project={project} />
       ))}
     </div>
+  );
+}
+
+function ProjectGridCard({ project }: { project: ProjectCard }) {
+  // E16: the ⋯ menu's Rename swaps the card title for an inline input.
+  const [renaming, setRenaming] = useState(false);
+
+  return (
+    <Card className="group overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3">
+      <CardHeader>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            {renaming ? (
+              <ProjectRenameForm project={project} onDone={() => setRenaming(false)} />
+            ) : (
+              <CardTitle className="truncate text-lg" title={project.name}>
+                {project.name}
+              </CardTitle>
+            )}
+            <CardDescription className="truncate">
+              {project.stack ?? project.sourceType ?? 'Persistent project'}
+            </CardDescription>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <StatusPill label={project.status ?? 'Ready'} />
+            <ProjectCardMenu project={project} onRename={() => setRenaming(true)} />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="vc-project-preview relative aspect-[16/9] overflow-hidden rounded-md">
+          <ProjectPreviewFallback project={project} />
+          {project.previewImageUrl ? (
+            <img
+              src={project.previewImageUrl}
+              alt={`Latest homepage preview for ${project.name}`}
+              className="relative z-[1] h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.015]"
+              loading="lazy"
+              onError={(event) => {
+                event.currentTarget.style.display = 'none';
+              }}
+            />
+          ) : null}
+        </div>
+        <div className="flex items-center justify-between text-xs text-bolt-elements-textSecondary">
+          {project.updatedAtIso ? (
+            <RelativeTime value={project.updatedAtIso} prefix="Updated" />
+          ) : (
+            <span>Updated {project.updated ?? 'recently'}</span>
+          )}
+          <Link
+            to={project.ideUrl ?? `/projects/${project.id}/ide`}
+            className="rounded-md px-2 py-1 font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
+          >
+            Open IDE
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

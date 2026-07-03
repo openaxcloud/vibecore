@@ -18643,6 +18643,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { project: restored };
   });
+  app.delete('/projects/:projectId/permanent', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+      { allowDeleted: true },
+    );
+
+    // Permanent destruction — same real-org-membership bar as soft delete/restore.
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    const deleted = await store.hardDeleteProject(project.id);
+
+    /*
+     * No recordProjectActivity here: the project's activity rows cascade-deleted
+     * with it, so the org-scoped audit log is the durable trace of this action.
+     */
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'project.hard_delete',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { name: project.name },
+    });
+
+    return { project: deleted };
+  });
   app.post('/projects/:projectId/transfer', async (request) => {
     const project = await requireProject(
       request,

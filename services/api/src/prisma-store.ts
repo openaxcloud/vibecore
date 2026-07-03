@@ -890,6 +890,12 @@ export class PrismaApiStore implements ApiStore {
     return mapProject(await this.prisma.project.update({ where: { id: projectId }, data: { deletedAt: null } }));
   }
 
+  async hardDeleteProject(projectId: string) {
+    // Every child relation declares onDelete: Cascade (AiConversation: SetNull),
+    // so a plain delete removes the whole project graph atomically.
+    return mapProject(await this.prisma.project.delete({ where: { id: projectId } }));
+  }
+
   async transferProject(input: { projectId: string; targetOrganizationId: string }) {
     const current = assertFound(
       await this.prisma.project.findUnique({ where: { id: input.projectId }, select: { slug: true } }),

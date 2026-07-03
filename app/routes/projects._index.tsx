@@ -2,6 +2,7 @@ import { Grid2X2, List, SearchX } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { useLoaderData, useSearchParams } from 'react-router';
+import { ProjectCardMenu, ProjectRenameForm } from '~/components/dashboard/ProjectCardMenu';
 import { AppShell, ProjectGrid, LinkButton, StatusPill, type ProjectCard } from '~/components/dashboard/SaaSLayout';
 import { EmptyState } from '~/components/ui/EmptyState';
 import { FilterChip } from '~/components/ui/FilterChip';
@@ -77,6 +78,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
           name: project.name,
           status: lifecycle === 'archived' ? 'Archived' : 'Ready',
           lifecycle,
+          deploymentCount: project.deploymentCount,
           updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
           updatedAtIso: project.updatedAt,
           stack: project.gitRepositoryUrl ?? project.sourceType ?? 'E-Code project',
@@ -256,52 +258,67 @@ function ProjectList({ projects }: { projects: ProjectCard[] }) {
   return (
     <div className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
       {projects.map((project) => (
-        <div
-          key={project.id}
-          className="flex flex-col gap-3 border-b border-bolt-elements-borderColor p-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
-              {project.previewImageUrl ? (
-                <img
-                  src={project.previewImageUrl}
-                  alt={`Latest homepage preview for ${project.name}`}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                  onError={(event) => {
-                    event.currentTarget.style.display = 'none';
-                  }}
-                />
-              ) : null}
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="min-w-0 truncate text-sm font-semibold" title={project.name}>
-                  {project.name}
-                </h2>
-                <StatusPill label={project.status ?? 'Ready'} />
-              </div>
-              <p className="mt-1 truncate text-sm text-bolt-elements-textSecondary">
-                {project.stack ?? project.sourceType ?? 'Persistent E-Code project'}
-              </p>
-            </div>
-          </div>
+        <ProjectListRow key={project.id} project={project} />
+      ))}
+    </div>
+  );
+}
+
+function ProjectListRow({ project }: { project: ProjectCard }) {
+  // E16: shares the grid card's ⋯ menu; Rename swaps the row title inline.
+  const [renaming, setRenaming] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-3 border-b border-bolt-elements-borderColor p-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
+          {project.previewImageUrl ? (
+            <img
+              src={project.previewImageUrl}
+              alt={`Latest homepage preview for ${project.name}`}
+              className="h-full w-full object-cover"
+              loading="lazy"
+              onError={(event) => {
+                event.currentTarget.style.display = 'none';
+              }}
+            />
+          ) : null}
+        </div>
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            {project.updatedAtIso ? (
-              <RelativeTime
-                value={project.updatedAtIso}
-                prefix="Updated"
-                className="text-xs text-bolt-elements-textTertiary"
+            {renaming ? (
+              <ProjectRenameForm
+                project={project}
+                onDone={() => setRenaming(false)}
+                className="h-7 max-w-xs text-sm font-semibold"
               />
             ) : (
-              <span className="text-xs text-bolt-elements-textTertiary">Updated {project.updated ?? 'recently'}</span>
+              <h2 className="min-w-0 truncate text-sm font-semibold" title={project.name}>
+                {project.name}
+              </h2>
             )}
-            <LinkButton to={project.ideUrl ?? `/projects/${project.id}/ide`} variant="outline">
-              Open IDE
-            </LinkButton>
+            <StatusPill label={project.status ?? 'Ready'} />
           </div>
+          <p className="mt-1 truncate text-sm text-bolt-elements-textSecondary">
+            {project.stack ?? project.sourceType ?? 'Persistent E-Code project'}
+          </p>
         </div>
-      ))}
+      </div>
+      <div className="flex items-center gap-2">
+        {project.updatedAtIso ? (
+          <RelativeTime
+            value={project.updatedAtIso}
+            prefix="Updated"
+            className="text-xs text-bolt-elements-textTertiary"
+          />
+        ) : (
+          <span className="text-xs text-bolt-elements-textTertiary">Updated {project.updated ?? 'recently'}</span>
+        )}
+        <LinkButton to={project.ideUrl ?? `/projects/${project.id}/ide`} variant="outline">
+          Open IDE
+        </LinkButton>
+        <ProjectCardMenu project={project} onRename={() => setRenaming(true)} />
+      </div>
     </div>
   );
 }

@@ -26,6 +26,7 @@ type ApiProject = {
   updatedAt?: string;
   sourceType?: string;
   gitRepositoryUrl?: string;
+  deploymentCount?: number;
 };
 type BillingState = {
   plan: { name: string };
@@ -193,6 +194,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       id: project.id,
       name: project.name,
       status: 'Ready',
+      deploymentCount: project.deploymentCount,
       updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
       updatedAtIso: project.updatedAt,
       stack: projectStackLabel(project),

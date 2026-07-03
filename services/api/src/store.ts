@@ -1020,6 +1020,13 @@ export interface ApiStore {
   countProjects(organizationId: string): Promise<number>;
   softDeleteProject(projectId: string): Promise<ProjectRecord>;
   restoreProject(projectId: string): Promise<ProjectRecord>;
+
+  /**
+   * Permanently removes the project row (child relations cascade at the DB
+   * level). Backs the explicit card "Delete" action — distinct from
+   * softDeleteProject, which is the recoverable "Archive" state.
+   */
+  hardDeleteProject(projectId: string): Promise<ProjectRecord>;
   transferProject(input: { projectId: string; targetOrganizationId: string }): Promise<ProjectRecord>;
   duplicateProject(input: { projectId: string; name: string; slug: string }): Promise<ProjectRecord>;
   createProjectTemplate(input: {

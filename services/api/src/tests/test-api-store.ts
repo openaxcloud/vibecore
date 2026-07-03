@@ -639,6 +639,13 @@ export class TestApiStore implements ApiStore {
     return project;
   }
 
+  async hardDeleteProject(projectId: string) {
+    const project = await this.updateProject({ projectId });
+    this.projects.delete(projectId);
+
+    return project;
+  }
+
   async transferProject(input: { projectId: string; targetOrganizationId: string }) {
     const project = await this.updateProject({ projectId: input.projectId });
     project.organizationId = input.targetOrganizationId;

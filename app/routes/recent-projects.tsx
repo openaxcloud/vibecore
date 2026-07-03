@@ -5,7 +5,14 @@ import { apiRequest, firstOrganizationOrNull, redirect, type EnterpriseLoaderArg
 
 export const meta: MetaFunction = () => [{ title: 'Recent projects - E-Code' }];
 
-type ApiProject = { id: string; name: string; updatedAt?: string; sourceType?: string; gitRepositoryUrl?: string };
+type ApiProject = {
+  id: string;
+  name: string;
+  updatedAt?: string;
+  sourceType?: string;
+  gitRepositoryUrl?: string;
+  deploymentCount?: number;
+};
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
@@ -25,6 +32,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         id: project.id,
         name: project.name,
         status: 'Ready',
+        deploymentCount: project.deploymentCount,
         updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
         stack: project.gitRepositoryUrl ?? project.sourceType ?? 'E-Code project',
         sourceType: project.sourceType,
