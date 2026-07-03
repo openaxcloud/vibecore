@@ -151,9 +151,17 @@ Acceptance: **private ⇒ 401 without a session, open with the owner's cookie; p
 
 ---
 
+## Status (updated 2026-07-03)
+- **B — done except the flip:** ✅ `vc_preview` cookie-mint shipped (`8fa65fa3`, web deploying via CD);
+  ✅ api already carries `/internal/preview/port-access` (live `api:d4286b54`); ✅ `PREVIEW_TENANT_SECRET`
+  set on `vibecore-platform-secrets` (64-char HMAC). **Remaining = Avi:** flip
+  `PREVIEW_ENFORCE_PRIVATE_PORTS:"true"` (Step 4) once the cookie is confirmed in prod.
+- **A — done except the IAM binding:** operator + flag + provisioner + routes all live; the ONE
+  remaining action is the namespace-principalSet Workload-Identity binding (Avi command above).
+
 ## Summary
 - **A**: fully wired + flag on; the ONE blocker is a namespace-wide Workload-Identity binding
   (Avi command above). After it, WAL archiving recovers and PITR is end-to-end usable.
-- **B**: proxy enforcement is deployed; blocked on (1) minting the `vc_preview` cookie in web
-  [code], (2) redeploying api with the port-access lookup, (3) setting `PREVIEW_TENANT_SECRET`,
-  then (4) flipping the flag LAST. Public previews are never affected at any step.
+- **B**: cookie-mint + api lookup + secret are in place; the ONLY remaining step is flipping
+  `PREVIEW_ENFORCE_PRIVATE_PORTS` LAST (Avi), after confirming the cookie in prod. Public
+  previews are never affected at any step.
