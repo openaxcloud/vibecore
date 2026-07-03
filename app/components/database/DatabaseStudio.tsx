@@ -1,6 +1,8 @@
 import { Play, Table2, RefreshCw } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
+import { QueryHistoryControl } from './QueryHistoryControl';
+import { clearQueryHistory, readQueryHistory, recordQueryHistory, removeQueryHistory } from './query-history';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { classNames } from '~/utils/classNames';
 
@@ -165,6 +167,18 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
   const [connectionKey, setConnectionKey] = useState('');
   const [sql, setSql] = useState('SELECT 1;');
 
+  /*
+   * G14: per-project MRU of successfully executed statements. Loaded
+   * post-hydration (SSR renders an empty history, avoiding a mismatch);
+   * the statement is only recorded once its round-trip comes back clean.
+   */
+  const [history, setHistory] = useState<string[]>([]);
+  const pendingHistoryRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    setHistory(readQueryHistory(projectId));
+  }, [projectId]);
+
   // Table currently browsed (set on a table click) — enables row edit/insert against it.
   const [selectedTable, setSelectedTable] = useState('');
   const [editMode, setEditMode] = useState(false);
@@ -215,6 +229,8 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
   );
 
   const executeQuery = (queryText: string) => {
+    // G14: remember the statement so the history effect records it on success.
+    pendingHistoryRef.current = queryText;
     queryFetcher.submit({ intent: 'query', connectionKey, query: queryText }, { method: 'post', action: base });
   };
 
@@ -234,6 +250,21 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
 
     executeQuery(queryText);
   };
+
+  // G14: record the pending statement into the history once it executed successfully.
+  useEffect(() => {
+    const executed = pendingHistoryRef.current;
+
+    if (queryFetcher.state !== 'idle' || !queryFetcher.data || !executed) {
+      return;
+    }
+
+    pendingHistoryRef.current = null;
+
+    if (!(queryFetcher.data.error ?? queryFetcher.data.result?.error)) {
+      setHistory(recordQueryHistory(projectId, executed));
+    }
+  }, [queryFetcher.state, queryFetcher.data, projectId]);
 
   const result = queryFetcher.data?.result ? normalizeRows(queryFetcher.data.result) : null;
   const queryError = queryFetcher.data?.error ?? queryFetcher.data?.result?.error;
@@ -339,6 +370,13 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                   Production
                 </span>
               ) : null}
+              <QueryHistoryControl
+                entries={history}
+                onPick={setSql}
+                onRemove={(statement) => setHistory(removeQueryHistory(projectId, statement))}
+                onClear={() => setHistory(clearQueryHistory(projectId))}
+              />
+
               {result && result.rows.length ? (
                 <button
                   type="button"
