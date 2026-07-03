@@ -29,6 +29,7 @@ import {
   pngHasAlpha,
   renderImageToCanvas,
 } from './image-attachments';
+import { clearComposerDraft, createComposerDraftWriter, readComposerDraft } from './composer-draft';
 import { describeSkipReason, parseDotEnv } from './parse-dot-env';
 import { AppliedFilesToastBuffer } from './applied-files-toast-buffer';
 import {
@@ -2242,6 +2243,56 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [handleInputChange, input, textareaRef],
     );
+
+    /*
+     * Composer draft persistence — the typed-but-unsent prompt survives a
+     * reload/tab restore via sessionStorage (per project, per tab; helpers in
+     * composer-draft.ts). Restore runs once, as soon as a projectId is known,
+     * and ONLY into an empty composer so prefilled prompts (e.g. the homepage
+     * Build-Now handoff) are never clobbered. Writes are debounced 300ms; an
+     * actual send clears the draft (see handleSendMessage).
+     */
+    const composerDraftWriter = useMemo(() => createComposerDraftWriter(), []);
+    const composerDraftRestoreDoneRef = useRef(false);
+
+    useEffect(() => {
+      if (composerDraftRestoreDoneRef.current || !projectId) {
+        return;
+      }
+
+      composerDraftRestoreDoneRef.current = true;
+
+      if (input.length > 0 || !handleInputChange) {
+        return;
+      }
+
+      const draft = readComposerDraft(projectId);
+
+      if (!draft) {
+        return;
+      }
+
+      const syntheticEvent = {
+        target: { value: draft },
+        currentTarget: { value: draft },
+      } as unknown as React.ChangeEvent<HTMLTextAreaElement>;
+      handleInputChange(syntheticEvent);
+    }, [projectId, input, handleInputChange]);
+
+    useEffect(() => {
+      /*
+       * Don't persist before the restore decision ran — an initial empty
+       * `input` would otherwise race to delete the very draft being restored.
+       */
+      if (!projectId || !composerDraftRestoreDoneRef.current) {
+        return;
+      }
+
+      composerDraftWriter.schedule(projectId, input);
+    }, [composerDraftWriter, input, projectId]);
+
+    // Unmount (IDE navigation away) persists the last keystrokes immediately.
+    useEffect(() => () => composerDraftWriter.flush(), [composerDraftWriter]);
 
     /*
      * Agentic Git conflict resolution (Replit parity): the Git panel dispatches a
@@ -5397,6 +5448,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       if (sendMessage) {
         sendMessage(event, messageInput);
         setSelectedElement?.(null);
+
+        // An actual send consumes the composer draft — drop pending debounced writes too.
+        composerDraftWriter.cancel();
+        clearComposerDraft(projectId);
 
         if (recognition) {
           recognition.abort(); // Stop current recognition
