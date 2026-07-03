@@ -5,21 +5,22 @@ import {
   Bookmark,
   Calendar,
   Code2,
-  Globe2,
   Heart,
   Layers,
   MessageSquare,
   Plus,
   Rocket,
   Search,
+  SearchX,
   ShieldCheck,
   Sparkles,
   Target,
   Trophy,
   Users,
+  X,
   Zap,
 } from 'lucide-react';
-import { useMemo, useState, type ComponentType, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import type React from 'react';
 import {
   SiAngular,
@@ -45,7 +46,7 @@ import {
   SiVite,
   SiVuedotjs,
 } from 'react-icons/si';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
 import { resolveTechToken } from '~/components/marketing/template-tech-icon';
 import { classNames } from '~/utils/classNames';
@@ -142,11 +143,126 @@ function templateProjectReturnTo(templateSlug: string) {
   return loginReturnTo(`/projects/new?template=${templateSlug}`);
 }
 
+/** How many tag filter chips to derive from the catalog (most frequent tags first). */
+const TEMPLATE_TAG_CHIP_LIMIT = 12;
+
 export function TemplatesMarketingPage({ categories, templates }: TemplatesPageProps) {
-  const featuredTemplates = templates.filter((template) => template.featured).slice(0, 6);
-  const remainingTemplates = templates.filter((template) => !template.featured).slice(0, 6);
-  const visibleTemplates = featuredTemplates.length > 0 ? featuredTemplates : templates.slice(0, 6);
-  const secondaryTemplates = remainingTemplates.length > 0 ? remainingTemplates : templates.slice(6, 12);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get('q') ?? '');
+  const activeTag = (searchParams.get('tag') ?? '').trim().toLowerCase();
+
+  /*
+   * Keep ?q= in sync with the input, debounced 250ms so typing doesn't spam
+   * history (replace) and shared URLs restore the same filtered gallery.
+   */
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setSearchParams(
+        (params) => {
+          const next = new URLSearchParams(params);
+          const trimmed = query.trim();
+
+          if (trimmed) {
+            next.set('q', trimmed);
+          } else {
+            next.delete('q');
+          }
+
+          return next;
+        },
+        { replace: true, preventScrollReset: true },
+      );
+    }, 250);
+
+    return () => window.clearTimeout(handle);
+  }, [query, setSearchParams]);
+
+  const setActiveTag = (tag: string | null) => {
+    setSearchParams(
+      (params) => {
+        const next = new URLSearchParams(params);
+
+        if (tag) {
+          next.set('tag', tag);
+        } else {
+          next.delete('tag');
+        }
+
+        return next;
+      },
+      { replace: true, preventScrollReset: true },
+    );
+  };
+
+  const clearFilters = () => {
+    setQuery('');
+    setSearchParams(
+      (params) => {
+        const next = new URLSearchParams(params);
+        next.delete('q');
+        next.delete('tag');
+
+        return next;
+      },
+      { replace: true, preventScrollReset: true },
+    );
+  };
+
+  // Chips come from the real tags present in the catalog, most frequent first.
+  const availableTags = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    for (const template of templates) {
+      for (const tag of template.tags) {
+        const normalized = tag.trim().toLowerCase();
+
+        if (normalized) {
+          counts.set(normalized, (counts.get(normalized) ?? 0) + 1);
+        }
+      }
+    }
+
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .slice(0, TEMPLATE_TAG_CHIP_LIMIT)
+      .map(([tag]) => tag);
+  }, [templates]);
+
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const filteredTemplates = useMemo(() => {
+    return templates.filter((template) => {
+      if (activeTag && !template.tags.some((tag) => tag.trim().toLowerCase() === activeTag)) {
+        return false;
+      }
+
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      return [template.name, template.description, template.categoryName, ...template.technologies, ...template.tags]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(normalizedQuery));
+    });
+  }, [templates, activeTag, normalizedQuery]);
+
+  const isFiltering = Boolean(normalizedQuery) || Boolean(activeTag);
+  const noMatches = isFiltering && filteredTemplates.length === 0;
+
+  const featuredTemplates = filteredTemplates.filter((template) => template.featured).slice(0, 6);
+  const remainingTemplates = filteredTemplates.filter((template) => !template.featured).slice(0, 6);
+
+  // While filtering, show every match in one grid instead of the curated featured/secondary split.
+  const visibleTemplates = isFiltering
+    ? filteredTemplates
+    : featuredTemplates.length > 0
+      ? featuredTemplates
+      : filteredTemplates.slice(0, 6);
+  const secondaryTemplates = isFiltering
+    ? []
+    : remainingTemplates.length > 0
+      ? remainingTemplates
+      : filteredTemplates.slice(6, 12);
 
   return (
     <PublicShell>
@@ -172,24 +288,87 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
             description="This is a public marketing gallery. It uses the same E-Code header and footer as the homepage, while the cards are powered by E-Code's real template catalog."
           />
 
-          <div className="mt-8 flex flex-wrap gap-3 pb-2" aria-label="Template categories">
-            {categories.map((category) => (
-              <span
-                key={category.slug}
-                className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-medium text-[var(--ecode-text-secondary)]"
-              >
-                <Globe2 className="h-4 w-4 text-[var(--ecode-accent)]" aria-hidden />
-                {category.name}
-                <span className="text-[var(--ecode-text-muted)]">{category.count}</span>
-              </span>
-            ))}
+          <div className="mt-8 flex flex-col gap-4">
+            <label className="relative block max-w-xl">
+              <span className="sr-only">Search templates</span>
+              <Search
+                className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ecode-text-muted)]"
+                aria-hidden
+              />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search templates, stacks or tags..."
+                className="min-h-[48px] w-full rounded-md border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-11 text-[15px] text-[var(--ecode-text)] outline-none transition placeholder:text-[var(--ecode-text-muted)] focus:border-[var(--ecode-accent)]"
+                data-testid="input-search-templates"
+              />
+              {query ? (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-[var(--ecode-text-muted)] transition hover:text-[var(--ecode-text)]"
+                >
+                  <X className="h-4 w-4" aria-hidden />
+                </button>
+              ) : null}
+            </label>
+
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filter templates by tag">
+              <TemplateTagChip label="All" active={!activeTag} onClick={() => setActiveTag(null)} />
+              {availableTags.map((tag) => (
+                <TemplateTagChip
+                  key={tag}
+                  label={tag}
+                  active={activeTag === tag}
+                  onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                />
+              ))}
+            </div>
           </div>
 
-          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {visibleTemplates.map((template) => (
-              <TemplateMarketingCard key={template.id} template={template} featured />
-            ))}
-          </div>
+          {noMatches ? (
+            <div
+              className="mt-10 rounded-lg border border-dashed border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-8 text-center"
+              data-testid="templates-empty-state"
+            >
+              <SearchX className="mx-auto h-8 w-8 text-[var(--ecode-text-muted)]" aria-hidden />
+              <h3 className="mt-4 text-lg font-bold text-[var(--ecode-text)]">
+                {normalizedQuery ? `No templates match “${query.trim()}”` : 'No templates match this tag'}
+              </h3>
+              <p className="mx-auto mt-2 max-w-lg text-[13px] leading-6 text-[var(--ecode-text-secondary)]">
+                Try a different search or tag, or clear the filters to browse the full catalog.
+              </p>
+              <div className="mt-5">
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-[var(--ecode-border)] bg-transparent px-5 py-3 text-[13px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]"
+                >
+                  Clear filters
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {isFiltering ? (
+                <p className="mt-6 text-[13px] text-[var(--ecode-text-muted)]" aria-live="polite">
+                  {filteredTemplates.length} {filteredTemplates.length === 1 ? 'template matches' : 'templates match'}{' '}
+                  your filters.
+                </p>
+              ) : null}
+              <div className={classNames('grid gap-5 md:grid-cols-2 xl:grid-cols-3', isFiltering ? 'mt-5' : 'mt-10')}>
+                {/* Filtering mixes featured and regular cards; the curated view keeps its featured styling. */}
+                {visibleTemplates.map((template) => (
+                  <TemplateMarketingCard
+                    key={template.id}
+                    template={template}
+                    featured={isFiltering ? template.featured : true}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </section>
 
         <section className="border-y border-[var(--ecode-border)] bg-[var(--ecode-surface)]">
@@ -608,6 +787,29 @@ function resolveTechBrand(technology: string): TechBrand | undefined {
   const tb = resolveTechToken(technology);
 
   return tb ? { icon: tb.Icon, color: tb.brand } : undefined;
+}
+
+/**
+ * Marketing-styled filter chip (single-select toggle). Mirrors the community
+ * page's category pills so the templates gallery keeps the ecode-token visual
+ * language instead of the app-surface FilterChip.
+ */
+function TemplateTagChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={classNames(
+        'inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
+        active
+          ? 'border-[var(--ecode-accent)] bg-[var(--ecode-accent)] text-white'
+          : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]',
+      )}
+    >
+      {label}
+    </button>
+  );
 }
 
 function TemplateMarketingCard({ template, featured = false }: { template: PublicTemplateCard; featured?: boolean }) {
