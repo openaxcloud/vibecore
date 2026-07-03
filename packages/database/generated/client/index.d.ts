@@ -516,6 +516,13 @@ export type CreditLedger = $Result.DefaultSelection<Prisma.$CreditLedgerPayload>
  */
 export type AgentCheckpoint = $Result.DefaultSelection<Prisma.$AgentCheckpointPayload>
 /**
+ * Model UserSpendLimit
+ * Replit-parity per-user spend limit (Enterprise). An admin can cap an
+ * individual member's usage-based spend below the org/workspace default; the
+ * per-member override takes precedence over the org budget cap.
+ */
+export type UserSpendLimit = $Result.DefaultSelection<Prisma.$UserSpendLimitPayload>
+/**
  * Model ProviderConfig
  * Admin-owned AI provider registry. `apiKeySecret` is the *name* of a secret
  * in the platform secret manager — never the key material itself.
@@ -1801,6 +1808,16 @@ export class PrismaClient<
   get agentCheckpoint(): Prisma.AgentCheckpointDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.userSpendLimit`: Exposes CRUD operations for the **UserSpendLimit** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more UserSpendLimits
+    * const userSpendLimits = await prisma.userSpendLimit.findMany()
+    * ```
+    */
+  get userSpendLimit(): Prisma.UserSpendLimitDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.providerConfig`: Exposes CRUD operations for the **ProviderConfig** model.
     * Example usage:
     * ```ts
@@ -2374,6 +2391,7 @@ export namespace Prisma {
     CreditPack: 'CreditPack',
     CreditLedger: 'CreditLedger',
     AgentCheckpoint: 'AgentCheckpoint',
+    UserSpendLimit: 'UserSpendLimit',
     ProviderConfig: 'ProviderConfig',
     ModelConfig: 'ModelConfig',
     DatabaseInstance: 'DatabaseInstance',
@@ -2394,7 +2412,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -9116,6 +9134,80 @@ export namespace Prisma {
           }
         }
       }
+      UserSpendLimit: {
+        payload: Prisma.$UserSpendLimitPayload<ExtArgs>
+        fields: Prisma.UserSpendLimitFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.UserSpendLimitFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserSpendLimitPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.UserSpendLimitFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserSpendLimitPayload>
+          }
+          findFirst: {
+            args: Prisma.UserSpendLimitFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserSpendLimitPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.UserSpendLimitFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserSpendLimitPayload>
+          }
+          findMany: {
+            args: Prisma.UserSpendLimitFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserSpendLimitPayload>[]
+          }
+          create: {
+            args: Prisma.UserSpendLimitCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserSpendLimitPayload>
+          }
+          createMany: {
+            args: Prisma.UserSpendLimitCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.UserSpendLimitCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserSpendLimitPayload>[]
+          }
+          delete: {
+            args: Prisma.UserSpendLimitDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserSpendLimitPayload>
+          }
+          update: {
+            args: Prisma.UserSpendLimitUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserSpendLimitPayload>
+          }
+          deleteMany: {
+            args: Prisma.UserSpendLimitDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.UserSpendLimitUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.UserSpendLimitUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserSpendLimitPayload>[]
+          }
+          upsert: {
+            args: Prisma.UserSpendLimitUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserSpendLimitPayload>
+          }
+          aggregate: {
+            args: Prisma.UserSpendLimitAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateUserSpendLimit>
+          }
+          groupBy: {
+            args: Prisma.UserSpendLimitGroupByArgs<ExtArgs>
+            result: $Utils.Optional<UserSpendLimitGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.UserSpendLimitCountArgs<ExtArgs>
+            result: $Utils.Optional<UserSpendLimitCountAggregateOutputType> | number
+          }
+        }
+      }
       ProviderConfig: {
         payload: Prisma.$ProviderConfigPayload<ExtArgs>
         fields: Prisma.ProviderConfigFieldRefs
@@ -9685,6 +9777,7 @@ export namespace Prisma {
     creditPack?: CreditPackOmit
     creditLedger?: CreditLedgerOmit
     agentCheckpoint?: AgentCheckpointOmit
+    userSpendLimit?: UserSpendLimitOmit
     providerConfig?: ProviderConfigOmit
     modelConfig?: ModelConfigOmit
     databaseInstance?: DatabaseInstanceOmit
@@ -9799,6 +9892,7 @@ export namespace Prisma {
     integrationFeatureRequests: number
     notifications: number
     aiMessageFeedback: number
+    spendLimits: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -9831,6 +9925,7 @@ export namespace Prisma {
     integrationFeatureRequests?: boolean | UserCountOutputTypeCountIntegrationFeatureRequestsArgs
     notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
     aiMessageFeedback?: boolean | UserCountOutputTypeCountAiMessageFeedbackArgs
+    spendLimits?: boolean | UserCountOutputTypeCountSpendLimitsArgs
   }
 
   // Custom InputTypes
@@ -10047,6 +10142,13 @@ export namespace Prisma {
     where?: AiMessageFeedbackWhereInput
   }
 
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountSpendLimitsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UserSpendLimitWhereInput
+  }
+
 
   /**
    * Count Type OrganizationCountOutputType
@@ -10083,6 +10185,7 @@ export namespace Prisma {
     creditLedger: number
     creditPacks: number
     agentCheckpoints: number
+    userSpendLimits: number
   }
 
   export type OrganizationCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -10116,6 +10219,7 @@ export namespace Prisma {
     creditLedger?: boolean | OrganizationCountOutputTypeCountCreditLedgerArgs
     creditPacks?: boolean | OrganizationCountOutputTypeCountCreditPacksArgs
     agentCheckpoints?: boolean | OrganizationCountOutputTypeCountAgentCheckpointsArgs
+    userSpendLimits?: boolean | OrganizationCountOutputTypeCountUserSpendLimitsArgs
   }
 
   // Custom InputTypes
@@ -10337,6 +10441,13 @@ export namespace Prisma {
    */
   export type OrganizationCountOutputTypeCountAgentCheckpointsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: AgentCheckpointWhereInput
+  }
+
+  /**
+   * OrganizationCountOutputType without action
+   */
+  export type OrganizationCountOutputTypeCountUserSpendLimitsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UserSpendLimitWhereInput
   }
 
 
@@ -11314,6 +11425,7 @@ export namespace Prisma {
     integrationFeatureRequests?: boolean | User$integrationFeatureRequestsArgs<ExtArgs>
     notifications?: boolean | User$notificationsArgs<ExtArgs>
     aiMessageFeedback?: boolean | User$aiMessageFeedbackArgs<ExtArgs>
+    spendLimits?: boolean | User$spendLimitsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -11400,6 +11512,7 @@ export namespace Prisma {
     integrationFeatureRequests?: boolean | User$integrationFeatureRequestsArgs<ExtArgs>
     notifications?: boolean | User$notificationsArgs<ExtArgs>
     aiMessageFeedback?: boolean | User$aiMessageFeedbackArgs<ExtArgs>
+    spendLimits?: boolean | User$spendLimitsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -11438,6 +11551,7 @@ export namespace Prisma {
       integrationFeatureRequests: Prisma.$IntegrationFeatureRequestPayload<ExtArgs>[]
       notifications: Prisma.$NotificationPayload<ExtArgs>[]
       aiMessageFeedback: Prisma.$AiMessageFeedbackPayload<ExtArgs>[]
+      spendLimits: Prisma.$UserSpendLimitPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -11878,6 +11992,7 @@ export namespace Prisma {
     integrationFeatureRequests<T extends User$integrationFeatureRequestsArgs<ExtArgs> = {}>(args?: Subset<T, User$integrationFeatureRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IntegrationFeatureRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     notifications<T extends User$notificationsArgs<ExtArgs> = {}>(args?: Subset<T, User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     aiMessageFeedback<T extends User$aiMessageFeedbackArgs<ExtArgs> = {}>(args?: Subset<T, User$aiMessageFeedbackArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    spendLimits<T extends User$spendLimitsArgs<ExtArgs> = {}>(args?: Subset<T, User$spendLimitsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -13026,6 +13141,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: AiMessageFeedbackScalarFieldEnum | AiMessageFeedbackScalarFieldEnum[]
+  }
+
+  /**
+   * User.spendLimits
+   */
+  export type User$spendLimitsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserSpendLimit
+     */
+    select?: UserSpendLimitSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserSpendLimit
+     */
+    omit?: UserSpendLimitOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserSpendLimitInclude<ExtArgs> | null
+    where?: UserSpendLimitWhereInput
+    orderBy?: UserSpendLimitOrderByWithRelationInput | UserSpendLimitOrderByWithRelationInput[]
+    cursor?: UserSpendLimitWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: UserSpendLimitScalarFieldEnum | UserSpendLimitScalarFieldEnum[]
   }
 
   /**
@@ -15469,6 +15608,7 @@ export namespace Prisma {
     creditLedger?: boolean | Organization$creditLedgerArgs<ExtArgs>
     creditPacks?: boolean | Organization$creditPacksArgs<ExtArgs>
     agentCheckpoints?: boolean | Organization$agentCheckpointsArgs<ExtArgs>
+    userSpendLimits?: boolean | Organization$userSpendLimitsArgs<ExtArgs>
     _count?: boolean | OrganizationCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["organization"]>
 
@@ -15534,6 +15674,7 @@ export namespace Prisma {
     creditLedger?: boolean | Organization$creditLedgerArgs<ExtArgs>
     creditPacks?: boolean | Organization$creditPacksArgs<ExtArgs>
     agentCheckpoints?: boolean | Organization$agentCheckpointsArgs<ExtArgs>
+    userSpendLimits?: boolean | Organization$userSpendLimitsArgs<ExtArgs>
     _count?: boolean | OrganizationCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type OrganizationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -15575,6 +15716,7 @@ export namespace Prisma {
       creditLedger: Prisma.$CreditLedgerPayload<ExtArgs>[]
       creditPacks: Prisma.$CreditPackPayload<ExtArgs>[]
       agentCheckpoints: Prisma.$AgentCheckpointPayload<ExtArgs>[]
+      userSpendLimits: Prisma.$UserSpendLimitPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -16013,6 +16155,7 @@ export namespace Prisma {
     creditLedger<T extends Organization$creditLedgerArgs<ExtArgs> = {}>(args?: Subset<T, Organization$creditLedgerArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CreditLedgerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     creditPacks<T extends Organization$creditPacksArgs<ExtArgs> = {}>(args?: Subset<T, Organization$creditPacksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CreditPackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentCheckpoints<T extends Organization$agentCheckpointsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$agentCheckpointsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentCheckpointPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    userSpendLimits<T extends Organization$userSpendLimitsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$userSpendLimitsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -17215,6 +17358,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: AgentCheckpointScalarFieldEnum | AgentCheckpointScalarFieldEnum[]
+  }
+
+  /**
+   * Organization.userSpendLimits
+   */
+  export type Organization$userSpendLimitsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserSpendLimit
+     */
+    select?: UserSpendLimitSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserSpendLimit
+     */
+    omit?: UserSpendLimitOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserSpendLimitInclude<ExtArgs> | null
+    where?: UserSpendLimitWhereInput
+    orderBy?: UserSpendLimitOrderByWithRelationInput | UserSpendLimitOrderByWithRelationInput[]
+    cursor?: UserSpendLimitWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: UserSpendLimitScalarFieldEnum | UserSpendLimitScalarFieldEnum[]
   }
 
   /**
@@ -115680,6 +115847,1124 @@ export namespace Prisma {
 
 
   /**
+   * Model UserSpendLimit
+   */
+
+  export type AggregateUserSpendLimit = {
+    _count: UserSpendLimitCountAggregateOutputType | null
+    _avg: UserSpendLimitAvgAggregateOutputType | null
+    _sum: UserSpendLimitSumAggregateOutputType | null
+    _min: UserSpendLimitMinAggregateOutputType | null
+    _max: UserSpendLimitMaxAggregateOutputType | null
+  }
+
+  export type UserSpendLimitAvgAggregateOutputType = {
+    limitCents: number | null
+  }
+
+  export type UserSpendLimitSumAggregateOutputType = {
+    limitCents: number | null
+  }
+
+  export type UserSpendLimitMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    userId: string | null
+    limitCents: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type UserSpendLimitMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    userId: string | null
+    limitCents: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type UserSpendLimitCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    userId: number
+    limitCents: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type UserSpendLimitAvgAggregateInputType = {
+    limitCents?: true
+  }
+
+  export type UserSpendLimitSumAggregateInputType = {
+    limitCents?: true
+  }
+
+  export type UserSpendLimitMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    userId?: true
+    limitCents?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type UserSpendLimitMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    userId?: true
+    limitCents?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type UserSpendLimitCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    userId?: true
+    limitCents?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type UserSpendLimitAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UserSpendLimit to aggregate.
+     */
+    where?: UserSpendLimitWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserSpendLimits to fetch.
+     */
+    orderBy?: UserSpendLimitOrderByWithRelationInput | UserSpendLimitOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: UserSpendLimitWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserSpendLimits from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserSpendLimits.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned UserSpendLimits
+    **/
+    _count?: true | UserSpendLimitCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: UserSpendLimitAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: UserSpendLimitSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: UserSpendLimitMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: UserSpendLimitMaxAggregateInputType
+  }
+
+  export type GetUserSpendLimitAggregateType<T extends UserSpendLimitAggregateArgs> = {
+        [P in keyof T & keyof AggregateUserSpendLimit]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateUserSpendLimit[P]>
+      : GetScalarType<T[P], AggregateUserSpendLimit[P]>
+  }
+
+
+
+
+  export type UserSpendLimitGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UserSpendLimitWhereInput
+    orderBy?: UserSpendLimitOrderByWithAggregationInput | UserSpendLimitOrderByWithAggregationInput[]
+    by: UserSpendLimitScalarFieldEnum[] | UserSpendLimitScalarFieldEnum
+    having?: UserSpendLimitScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: UserSpendLimitCountAggregateInputType | true
+    _avg?: UserSpendLimitAvgAggregateInputType
+    _sum?: UserSpendLimitSumAggregateInputType
+    _min?: UserSpendLimitMinAggregateInputType
+    _max?: UserSpendLimitMaxAggregateInputType
+  }
+
+  export type UserSpendLimitGroupByOutputType = {
+    id: string
+    organizationId: string
+    userId: string
+    limitCents: number
+    createdAt: Date
+    updatedAt: Date
+    _count: UserSpendLimitCountAggregateOutputType | null
+    _avg: UserSpendLimitAvgAggregateOutputType | null
+    _sum: UserSpendLimitSumAggregateOutputType | null
+    _min: UserSpendLimitMinAggregateOutputType | null
+    _max: UserSpendLimitMaxAggregateOutputType | null
+  }
+
+  type GetUserSpendLimitGroupByPayload<T extends UserSpendLimitGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<UserSpendLimitGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof UserSpendLimitGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], UserSpendLimitGroupByOutputType[P]>
+            : GetScalarType<T[P], UserSpendLimitGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type UserSpendLimitSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    limitCents?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["userSpendLimit"]>
+
+  export type UserSpendLimitSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    limitCents?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["userSpendLimit"]>
+
+  export type UserSpendLimitSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    limitCents?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["userSpendLimit"]>
+
+  export type UserSpendLimitSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    limitCents?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type UserSpendLimitOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "userId" | "limitCents" | "createdAt" | "updatedAt", ExtArgs["result"]["userSpendLimit"]>
+  export type UserSpendLimitInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type UserSpendLimitIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type UserSpendLimitIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $UserSpendLimitPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "UserSpendLimit"
+    objects: {
+      organization: Prisma.$OrganizationPayload<ExtArgs>
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      userId: string
+      limitCents: number
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["userSpendLimit"]>
+    composites: {}
+  }
+
+  type UserSpendLimitGetPayload<S extends boolean | null | undefined | UserSpendLimitDefaultArgs> = $Result.GetResult<Prisma.$UserSpendLimitPayload, S>
+
+  type UserSpendLimitCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<UserSpendLimitFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: UserSpendLimitCountAggregateInputType | true
+    }
+
+  export interface UserSpendLimitDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['UserSpendLimit'], meta: { name: 'UserSpendLimit' } }
+    /**
+     * Find zero or one UserSpendLimit that matches the filter.
+     * @param {UserSpendLimitFindUniqueArgs} args - Arguments to find a UserSpendLimit
+     * @example
+     * // Get one UserSpendLimit
+     * const userSpendLimit = await prisma.userSpendLimit.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends UserSpendLimitFindUniqueArgs>(args: SelectSubset<T, UserSpendLimitFindUniqueArgs<ExtArgs>>): Prisma__UserSpendLimitClient<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one UserSpendLimit that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {UserSpendLimitFindUniqueOrThrowArgs} args - Arguments to find a UserSpendLimit
+     * @example
+     * // Get one UserSpendLimit
+     * const userSpendLimit = await prisma.userSpendLimit.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends UserSpendLimitFindUniqueOrThrowArgs>(args: SelectSubset<T, UserSpendLimitFindUniqueOrThrowArgs<ExtArgs>>): Prisma__UserSpendLimitClient<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first UserSpendLimit that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserSpendLimitFindFirstArgs} args - Arguments to find a UserSpendLimit
+     * @example
+     * // Get one UserSpendLimit
+     * const userSpendLimit = await prisma.userSpendLimit.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends UserSpendLimitFindFirstArgs>(args?: SelectSubset<T, UserSpendLimitFindFirstArgs<ExtArgs>>): Prisma__UserSpendLimitClient<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first UserSpendLimit that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserSpendLimitFindFirstOrThrowArgs} args - Arguments to find a UserSpendLimit
+     * @example
+     * // Get one UserSpendLimit
+     * const userSpendLimit = await prisma.userSpendLimit.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends UserSpendLimitFindFirstOrThrowArgs>(args?: SelectSubset<T, UserSpendLimitFindFirstOrThrowArgs<ExtArgs>>): Prisma__UserSpendLimitClient<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more UserSpendLimits that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserSpendLimitFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all UserSpendLimits
+     * const userSpendLimits = await prisma.userSpendLimit.findMany()
+     * 
+     * // Get first 10 UserSpendLimits
+     * const userSpendLimits = await prisma.userSpendLimit.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const userSpendLimitWithIdOnly = await prisma.userSpendLimit.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends UserSpendLimitFindManyArgs>(args?: SelectSubset<T, UserSpendLimitFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a UserSpendLimit.
+     * @param {UserSpendLimitCreateArgs} args - Arguments to create a UserSpendLimit.
+     * @example
+     * // Create one UserSpendLimit
+     * const UserSpendLimit = await prisma.userSpendLimit.create({
+     *   data: {
+     *     // ... data to create a UserSpendLimit
+     *   }
+     * })
+     * 
+     */
+    create<T extends UserSpendLimitCreateArgs>(args: SelectSubset<T, UserSpendLimitCreateArgs<ExtArgs>>): Prisma__UserSpendLimitClient<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many UserSpendLimits.
+     * @param {UserSpendLimitCreateManyArgs} args - Arguments to create many UserSpendLimits.
+     * @example
+     * // Create many UserSpendLimits
+     * const userSpendLimit = await prisma.userSpendLimit.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends UserSpendLimitCreateManyArgs>(args?: SelectSubset<T, UserSpendLimitCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many UserSpendLimits and returns the data saved in the database.
+     * @param {UserSpendLimitCreateManyAndReturnArgs} args - Arguments to create many UserSpendLimits.
+     * @example
+     * // Create many UserSpendLimits
+     * const userSpendLimit = await prisma.userSpendLimit.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many UserSpendLimits and only return the `id`
+     * const userSpendLimitWithIdOnly = await prisma.userSpendLimit.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends UserSpendLimitCreateManyAndReturnArgs>(args?: SelectSubset<T, UserSpendLimitCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a UserSpendLimit.
+     * @param {UserSpendLimitDeleteArgs} args - Arguments to delete one UserSpendLimit.
+     * @example
+     * // Delete one UserSpendLimit
+     * const UserSpendLimit = await prisma.userSpendLimit.delete({
+     *   where: {
+     *     // ... filter to delete one UserSpendLimit
+     *   }
+     * })
+     * 
+     */
+    delete<T extends UserSpendLimitDeleteArgs>(args: SelectSubset<T, UserSpendLimitDeleteArgs<ExtArgs>>): Prisma__UserSpendLimitClient<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one UserSpendLimit.
+     * @param {UserSpendLimitUpdateArgs} args - Arguments to update one UserSpendLimit.
+     * @example
+     * // Update one UserSpendLimit
+     * const userSpendLimit = await prisma.userSpendLimit.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends UserSpendLimitUpdateArgs>(args: SelectSubset<T, UserSpendLimitUpdateArgs<ExtArgs>>): Prisma__UserSpendLimitClient<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more UserSpendLimits.
+     * @param {UserSpendLimitDeleteManyArgs} args - Arguments to filter UserSpendLimits to delete.
+     * @example
+     * // Delete a few UserSpendLimits
+     * const { count } = await prisma.userSpendLimit.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends UserSpendLimitDeleteManyArgs>(args?: SelectSubset<T, UserSpendLimitDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more UserSpendLimits.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserSpendLimitUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many UserSpendLimits
+     * const userSpendLimit = await prisma.userSpendLimit.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends UserSpendLimitUpdateManyArgs>(args: SelectSubset<T, UserSpendLimitUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more UserSpendLimits and returns the data updated in the database.
+     * @param {UserSpendLimitUpdateManyAndReturnArgs} args - Arguments to update many UserSpendLimits.
+     * @example
+     * // Update many UserSpendLimits
+     * const userSpendLimit = await prisma.userSpendLimit.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more UserSpendLimits and only return the `id`
+     * const userSpendLimitWithIdOnly = await prisma.userSpendLimit.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends UserSpendLimitUpdateManyAndReturnArgs>(args: SelectSubset<T, UserSpendLimitUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one UserSpendLimit.
+     * @param {UserSpendLimitUpsertArgs} args - Arguments to update or create a UserSpendLimit.
+     * @example
+     * // Update or create a UserSpendLimit
+     * const userSpendLimit = await prisma.userSpendLimit.upsert({
+     *   create: {
+     *     // ... data to create a UserSpendLimit
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the UserSpendLimit we want to update
+     *   }
+     * })
+     */
+    upsert<T extends UserSpendLimitUpsertArgs>(args: SelectSubset<T, UserSpendLimitUpsertArgs<ExtArgs>>): Prisma__UserSpendLimitClient<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of UserSpendLimits.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserSpendLimitCountArgs} args - Arguments to filter UserSpendLimits to count.
+     * @example
+     * // Count the number of UserSpendLimits
+     * const count = await prisma.userSpendLimit.count({
+     *   where: {
+     *     // ... the filter for the UserSpendLimits we want to count
+     *   }
+     * })
+    **/
+    count<T extends UserSpendLimitCountArgs>(
+      args?: Subset<T, UserSpendLimitCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], UserSpendLimitCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a UserSpendLimit.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserSpendLimitAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends UserSpendLimitAggregateArgs>(args: Subset<T, UserSpendLimitAggregateArgs>): Prisma.PrismaPromise<GetUserSpendLimitAggregateType<T>>
+
+    /**
+     * Group by UserSpendLimit.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserSpendLimitGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends UserSpendLimitGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: UserSpendLimitGroupByArgs['orderBy'] }
+        : { orderBy?: UserSpendLimitGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, UserSpendLimitGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetUserSpendLimitGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the UserSpendLimit model
+   */
+  readonly fields: UserSpendLimitFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for UserSpendLimit.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__UserSpendLimitClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    organization<T extends OrganizationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, OrganizationDefaultArgs<ExtArgs>>): Prisma__OrganizationClient<$Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the UserSpendLimit model
+   */
+  interface UserSpendLimitFieldRefs {
+    readonly id: FieldRef<"UserSpendLimit", 'String'>
+    readonly organizationId: FieldRef<"UserSpendLimit", 'String'>
+    readonly userId: FieldRef<"UserSpendLimit", 'String'>
+    readonly limitCents: FieldRef<"UserSpendLimit", 'Int'>
+    readonly createdAt: FieldRef<"UserSpendLimit", 'DateTime'>
+    readonly updatedAt: FieldRef<"UserSpendLimit", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * UserSpendLimit findUnique
+   */
+  export type UserSpendLimitFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserSpendLimit
+     */
+    select?: UserSpendLimitSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserSpendLimit
+     */
+    omit?: UserSpendLimitOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserSpendLimitInclude<ExtArgs> | null
+    /**
+     * Filter, which UserSpendLimit to fetch.
+     */
+    where: UserSpendLimitWhereUniqueInput
+  }
+
+  /**
+   * UserSpendLimit findUniqueOrThrow
+   */
+  export type UserSpendLimitFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserSpendLimit
+     */
+    select?: UserSpendLimitSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserSpendLimit
+     */
+    omit?: UserSpendLimitOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserSpendLimitInclude<ExtArgs> | null
+    /**
+     * Filter, which UserSpendLimit to fetch.
+     */
+    where: UserSpendLimitWhereUniqueInput
+  }
+
+  /**
+   * UserSpendLimit findFirst
+   */
+  export type UserSpendLimitFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserSpendLimit
+     */
+    select?: UserSpendLimitSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserSpendLimit
+     */
+    omit?: UserSpendLimitOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserSpendLimitInclude<ExtArgs> | null
+    /**
+     * Filter, which UserSpendLimit to fetch.
+     */
+    where?: UserSpendLimitWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserSpendLimits to fetch.
+     */
+    orderBy?: UserSpendLimitOrderByWithRelationInput | UserSpendLimitOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UserSpendLimits.
+     */
+    cursor?: UserSpendLimitWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserSpendLimits from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserSpendLimits.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserSpendLimits.
+     */
+    distinct?: UserSpendLimitScalarFieldEnum | UserSpendLimitScalarFieldEnum[]
+  }
+
+  /**
+   * UserSpendLimit findFirstOrThrow
+   */
+  export type UserSpendLimitFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserSpendLimit
+     */
+    select?: UserSpendLimitSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserSpendLimit
+     */
+    omit?: UserSpendLimitOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserSpendLimitInclude<ExtArgs> | null
+    /**
+     * Filter, which UserSpendLimit to fetch.
+     */
+    where?: UserSpendLimitWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserSpendLimits to fetch.
+     */
+    orderBy?: UserSpendLimitOrderByWithRelationInput | UserSpendLimitOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UserSpendLimits.
+     */
+    cursor?: UserSpendLimitWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserSpendLimits from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserSpendLimits.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserSpendLimits.
+     */
+    distinct?: UserSpendLimitScalarFieldEnum | UserSpendLimitScalarFieldEnum[]
+  }
+
+  /**
+   * UserSpendLimit findMany
+   */
+  export type UserSpendLimitFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserSpendLimit
+     */
+    select?: UserSpendLimitSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserSpendLimit
+     */
+    omit?: UserSpendLimitOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserSpendLimitInclude<ExtArgs> | null
+    /**
+     * Filter, which UserSpendLimits to fetch.
+     */
+    where?: UserSpendLimitWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserSpendLimits to fetch.
+     */
+    orderBy?: UserSpendLimitOrderByWithRelationInput | UserSpendLimitOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing UserSpendLimits.
+     */
+    cursor?: UserSpendLimitWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserSpendLimits from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserSpendLimits.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserSpendLimits.
+     */
+    distinct?: UserSpendLimitScalarFieldEnum | UserSpendLimitScalarFieldEnum[]
+  }
+
+  /**
+   * UserSpendLimit create
+   */
+  export type UserSpendLimitCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserSpendLimit
+     */
+    select?: UserSpendLimitSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserSpendLimit
+     */
+    omit?: UserSpendLimitOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserSpendLimitInclude<ExtArgs> | null
+    /**
+     * The data needed to create a UserSpendLimit.
+     */
+    data: XOR<UserSpendLimitCreateInput, UserSpendLimitUncheckedCreateInput>
+  }
+
+  /**
+   * UserSpendLimit createMany
+   */
+  export type UserSpendLimitCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many UserSpendLimits.
+     */
+    data: UserSpendLimitCreateManyInput | UserSpendLimitCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * UserSpendLimit createManyAndReturn
+   */
+  export type UserSpendLimitCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserSpendLimit
+     */
+    select?: UserSpendLimitSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserSpendLimit
+     */
+    omit?: UserSpendLimitOmit<ExtArgs> | null
+    /**
+     * The data used to create many UserSpendLimits.
+     */
+    data: UserSpendLimitCreateManyInput | UserSpendLimitCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserSpendLimitIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * UserSpendLimit update
+   */
+  export type UserSpendLimitUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserSpendLimit
+     */
+    select?: UserSpendLimitSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserSpendLimit
+     */
+    omit?: UserSpendLimitOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserSpendLimitInclude<ExtArgs> | null
+    /**
+     * The data needed to update a UserSpendLimit.
+     */
+    data: XOR<UserSpendLimitUpdateInput, UserSpendLimitUncheckedUpdateInput>
+    /**
+     * Choose, which UserSpendLimit to update.
+     */
+    where: UserSpendLimitWhereUniqueInput
+  }
+
+  /**
+   * UserSpendLimit updateMany
+   */
+  export type UserSpendLimitUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update UserSpendLimits.
+     */
+    data: XOR<UserSpendLimitUpdateManyMutationInput, UserSpendLimitUncheckedUpdateManyInput>
+    /**
+     * Filter which UserSpendLimits to update
+     */
+    where?: UserSpendLimitWhereInput
+    /**
+     * Limit how many UserSpendLimits to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * UserSpendLimit updateManyAndReturn
+   */
+  export type UserSpendLimitUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserSpendLimit
+     */
+    select?: UserSpendLimitSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserSpendLimit
+     */
+    omit?: UserSpendLimitOmit<ExtArgs> | null
+    /**
+     * The data used to update UserSpendLimits.
+     */
+    data: XOR<UserSpendLimitUpdateManyMutationInput, UserSpendLimitUncheckedUpdateManyInput>
+    /**
+     * Filter which UserSpendLimits to update
+     */
+    where?: UserSpendLimitWhereInput
+    /**
+     * Limit how many UserSpendLimits to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserSpendLimitIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * UserSpendLimit upsert
+   */
+  export type UserSpendLimitUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserSpendLimit
+     */
+    select?: UserSpendLimitSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserSpendLimit
+     */
+    omit?: UserSpendLimitOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserSpendLimitInclude<ExtArgs> | null
+    /**
+     * The filter to search for the UserSpendLimit to update in case it exists.
+     */
+    where: UserSpendLimitWhereUniqueInput
+    /**
+     * In case the UserSpendLimit found by the `where` argument doesn't exist, create a new UserSpendLimit with this data.
+     */
+    create: XOR<UserSpendLimitCreateInput, UserSpendLimitUncheckedCreateInput>
+    /**
+     * In case the UserSpendLimit was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<UserSpendLimitUpdateInput, UserSpendLimitUncheckedUpdateInput>
+  }
+
+  /**
+   * UserSpendLimit delete
+   */
+  export type UserSpendLimitDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserSpendLimit
+     */
+    select?: UserSpendLimitSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserSpendLimit
+     */
+    omit?: UserSpendLimitOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserSpendLimitInclude<ExtArgs> | null
+    /**
+     * Filter which UserSpendLimit to delete.
+     */
+    where: UserSpendLimitWhereUniqueInput
+  }
+
+  /**
+   * UserSpendLimit deleteMany
+   */
+  export type UserSpendLimitDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UserSpendLimits to delete
+     */
+    where?: UserSpendLimitWhereInput
+    /**
+     * Limit how many UserSpendLimits to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * UserSpendLimit without action
+   */
+  export type UserSpendLimitDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserSpendLimit
+     */
+    select?: UserSpendLimitSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserSpendLimit
+     */
+    omit?: UserSpendLimitOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserSpendLimitInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model ProviderConfig
    */
 
@@ -122905,6 +124190,18 @@ export namespace Prisma {
   export type AgentCheckpointScalarFieldEnum = (typeof AgentCheckpointScalarFieldEnum)[keyof typeof AgentCheckpointScalarFieldEnum]
 
 
+  export const UserSpendLimitScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    userId: 'userId',
+    limitCents: 'limitCents',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type UserSpendLimitScalarFieldEnum = (typeof UserSpendLimitScalarFieldEnum)[keyof typeof UserSpendLimitScalarFieldEnum]
+
+
   export const ProviderConfigScalarFieldEnum: {
     id: 'id',
     provider: 'provider',
@@ -123380,6 +124677,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestListRelationFilter
     notifications?: NotificationListRelationFilter
     aiMessageFeedback?: AiMessageFeedbackListRelationFilter
+    spendLimits?: UserSpendLimitListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -123427,6 +124725,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestOrderByRelationAggregateInput
     notifications?: NotificationOrderByRelationAggregateInput
     aiMessageFeedback?: AiMessageFeedbackOrderByRelationAggregateInput
+    spendLimits?: UserSpendLimitOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -123477,6 +124776,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestListRelationFilter
     notifications?: NotificationListRelationFilter
     aiMessageFeedback?: AiMessageFeedbackListRelationFilter
+    spendLimits?: UserSpendLimitListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -123708,6 +125008,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerListRelationFilter
     creditPacks?: CreditPackListRelationFilter
     agentCheckpoints?: AgentCheckpointListRelationFilter
+    userSpendLimits?: UserSpendLimitListRelationFilter
   }
 
   export type OrganizationOrderByWithRelationInput = {
@@ -123750,6 +125051,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerOrderByRelationAggregateInput
     creditPacks?: CreditPackOrderByRelationAggregateInput
     agentCheckpoints?: AgentCheckpointOrderByRelationAggregateInput
+    userSpendLimits?: UserSpendLimitOrderByRelationAggregateInput
   }
 
   export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
@@ -123795,6 +125097,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerListRelationFilter
     creditPacks?: CreditPackListRelationFilter
     agentCheckpoints?: AgentCheckpointListRelationFilter
+    userSpendLimits?: UserSpendLimitListRelationFilter
   }, "id" | "slug">
 
   export type OrganizationOrderByWithAggregationInput = {
@@ -130471,6 +131774,72 @@ export namespace Prisma {
     completedAt?: DateTimeNullableWithAggregatesFilter<"AgentCheckpoint"> | Date | string | null
   }
 
+  export type UserSpendLimitWhereInput = {
+    AND?: UserSpendLimitWhereInput | UserSpendLimitWhereInput[]
+    OR?: UserSpendLimitWhereInput[]
+    NOT?: UserSpendLimitWhereInput | UserSpendLimitWhereInput[]
+    id?: StringFilter<"UserSpendLimit"> | string
+    organizationId?: StringFilter<"UserSpendLimit"> | string
+    userId?: StringFilter<"UserSpendLimit"> | string
+    limitCents?: IntFilter<"UserSpendLimit"> | number
+    createdAt?: DateTimeFilter<"UserSpendLimit"> | Date | string
+    updatedAt?: DateTimeFilter<"UserSpendLimit"> | Date | string
+    organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type UserSpendLimitOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    limitCents?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    organization?: OrganizationOrderByWithRelationInput
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type UserSpendLimitWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    organizationId_userId?: UserSpendLimitOrganizationIdUserIdCompoundUniqueInput
+    AND?: UserSpendLimitWhereInput | UserSpendLimitWhereInput[]
+    OR?: UserSpendLimitWhereInput[]
+    NOT?: UserSpendLimitWhereInput | UserSpendLimitWhereInput[]
+    organizationId?: StringFilter<"UserSpendLimit"> | string
+    userId?: StringFilter<"UserSpendLimit"> | string
+    limitCents?: IntFilter<"UserSpendLimit"> | number
+    createdAt?: DateTimeFilter<"UserSpendLimit"> | Date | string
+    updatedAt?: DateTimeFilter<"UserSpendLimit"> | Date | string
+    organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id" | "organizationId_userId">
+
+  export type UserSpendLimitOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    limitCents?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: UserSpendLimitCountOrderByAggregateInput
+    _avg?: UserSpendLimitAvgOrderByAggregateInput
+    _max?: UserSpendLimitMaxOrderByAggregateInput
+    _min?: UserSpendLimitMinOrderByAggregateInput
+    _sum?: UserSpendLimitSumOrderByAggregateInput
+  }
+
+  export type UserSpendLimitScalarWhereWithAggregatesInput = {
+    AND?: UserSpendLimitScalarWhereWithAggregatesInput | UserSpendLimitScalarWhereWithAggregatesInput[]
+    OR?: UserSpendLimitScalarWhereWithAggregatesInput[]
+    NOT?: UserSpendLimitScalarWhereWithAggregatesInput | UserSpendLimitScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"UserSpendLimit"> | string
+    organizationId?: StringWithAggregatesFilter<"UserSpendLimit"> | string
+    userId?: StringWithAggregatesFilter<"UserSpendLimit"> | string
+    limitCents?: IntWithAggregatesFilter<"UserSpendLimit"> | number
+    createdAt?: DateTimeWithAggregatesFilter<"UserSpendLimit"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"UserSpendLimit"> | Date | string
+  }
+
   export type ProviderConfigWhereInput = {
     AND?: ProviderConfigWhereInput | ProviderConfigWhereInput[]
     OR?: ProviderConfigWhereInput[]
@@ -130950,6 +132319,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -130997,6 +132367,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserUpdateInput = {
@@ -131044,6 +132415,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -131091,6 +132463,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -131343,6 +132716,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateInput = {
@@ -131385,6 +132759,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUpdateInput = {
@@ -131427,6 +132802,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateInput = {
@@ -131469,6 +132845,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateManyInput = {
@@ -138619,6 +139996,67 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
+  export type UserSpendLimitCreateInput = {
+    id?: string
+    limitCents: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutUserSpendLimitsInput
+    user: UserCreateNestedOneWithoutSpendLimitsInput
+  }
+
+  export type UserSpendLimitUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    userId: string
+    limitCents: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type UserSpendLimitUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    limitCents?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutUserSpendLimitsNestedInput
+    user?: UserUpdateOneRequiredWithoutSpendLimitsNestedInput
+  }
+
+  export type UserSpendLimitUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    limitCents?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserSpendLimitCreateManyInput = {
+    id?: string
+    organizationId: string
+    userId: string
+    limitCents: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type UserSpendLimitUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    limitCents?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserSpendLimitUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    limitCents?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type ProviderConfigCreateInput = {
     id?: string
     provider: string
@@ -139369,6 +140807,12 @@ export namespace Prisma {
     none?: AiMessageFeedbackWhereInput
   }
 
+  export type UserSpendLimitListRelationFilter = {
+    every?: UserSpendLimitWhereInput
+    some?: UserSpendLimitWhereInput
+    none?: UserSpendLimitWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -139487,6 +140931,10 @@ export namespace Prisma {
   }
 
   export type AiMessageFeedbackOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type UserSpendLimitOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -143915,6 +145363,46 @@ export namespace Prisma {
     _max?: NestedEnumCheckpointStatusFilter<$PrismaModel>
   }
 
+  export type UserSpendLimitOrganizationIdUserIdCompoundUniqueInput = {
+    organizationId: string
+    userId: string
+  }
+
+  export type UserSpendLimitCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    limitCents?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UserSpendLimitAvgOrderByAggregateInput = {
+    limitCents?: SortOrder
+  }
+
+  export type UserSpendLimitMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    limitCents?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UserSpendLimitMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    limitCents?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UserSpendLimitSumOrderByAggregateInput = {
+    limitCents?: SortOrder
+  }
+
   export type ModelConfigListRelationFilter = {
     every?: ModelConfigWhereInput
     some?: ModelConfigWhereInput
@@ -144467,6 +145955,13 @@ export namespace Prisma {
     connect?: AiMessageFeedbackWhereUniqueInput | AiMessageFeedbackWhereUniqueInput[]
   }
 
+  export type UserSpendLimitCreateNestedManyWithoutUserInput = {
+    create?: XOR<UserSpendLimitCreateWithoutUserInput, UserSpendLimitUncheckedCreateWithoutUserInput> | UserSpendLimitCreateWithoutUserInput[] | UserSpendLimitUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: UserSpendLimitCreateOrConnectWithoutUserInput | UserSpendLimitCreateOrConnectWithoutUserInput[]
+    createMany?: UserSpendLimitCreateManyUserInputEnvelope
+    connect?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+  }
+
   export type AccountUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -144671,6 +146166,13 @@ export namespace Prisma {
     connectOrCreate?: AiMessageFeedbackCreateOrConnectWithoutUserInput | AiMessageFeedbackCreateOrConnectWithoutUserInput[]
     createMany?: AiMessageFeedbackCreateManyUserInputEnvelope
     connect?: AiMessageFeedbackWhereUniqueInput | AiMessageFeedbackWhereUniqueInput[]
+  }
+
+  export type UserSpendLimitUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<UserSpendLimitCreateWithoutUserInput, UserSpendLimitUncheckedCreateWithoutUserInput> | UserSpendLimitCreateWithoutUserInput[] | UserSpendLimitUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: UserSpendLimitCreateOrConnectWithoutUserInput | UserSpendLimitCreateOrConnectWithoutUserInput[]
+    createMany?: UserSpendLimitCreateManyUserInputEnvelope
+    connect?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -145105,6 +146607,20 @@ export namespace Prisma {
     deleteMany?: AiMessageFeedbackScalarWhereInput | AiMessageFeedbackScalarWhereInput[]
   }
 
+  export type UserSpendLimitUpdateManyWithoutUserNestedInput = {
+    create?: XOR<UserSpendLimitCreateWithoutUserInput, UserSpendLimitUncheckedCreateWithoutUserInput> | UserSpendLimitCreateWithoutUserInput[] | UserSpendLimitUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: UserSpendLimitCreateOrConnectWithoutUserInput | UserSpendLimitCreateOrConnectWithoutUserInput[]
+    upsert?: UserSpendLimitUpsertWithWhereUniqueWithoutUserInput | UserSpendLimitUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: UserSpendLimitCreateManyUserInputEnvelope
+    set?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+    disconnect?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+    delete?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+    connect?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+    update?: UserSpendLimitUpdateWithWhereUniqueWithoutUserInput | UserSpendLimitUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: UserSpendLimitUpdateManyWithWhereWithoutUserInput | UserSpendLimitUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: UserSpendLimitScalarWhereInput | UserSpendLimitScalarWhereInput[]
+  }
+
   export type AccountUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -145517,6 +147033,20 @@ export namespace Prisma {
     deleteMany?: AiMessageFeedbackScalarWhereInput | AiMessageFeedbackScalarWhereInput[]
   }
 
+  export type UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<UserSpendLimitCreateWithoutUserInput, UserSpendLimitUncheckedCreateWithoutUserInput> | UserSpendLimitCreateWithoutUserInput[] | UserSpendLimitUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: UserSpendLimitCreateOrConnectWithoutUserInput | UserSpendLimitCreateOrConnectWithoutUserInput[]
+    upsert?: UserSpendLimitUpsertWithWhereUniqueWithoutUserInput | UserSpendLimitUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: UserSpendLimitCreateManyUserInputEnvelope
+    set?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+    disconnect?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+    delete?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+    connect?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+    update?: UserSpendLimitUpdateWithWhereUniqueWithoutUserInput | UserSpendLimitUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: UserSpendLimitUpdateManyWithWhereWithoutUserInput | UserSpendLimitUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: UserSpendLimitScalarWhereInput | UserSpendLimitScalarWhereInput[]
+  }
+
   export type UserCreateNestedOneWithoutAccountsInput = {
     create?: XOR<UserCreateWithoutAccountsInput, UserUncheckedCreateWithoutAccountsInput>
     connectOrCreate?: UserCreateOrConnectWithoutAccountsInput
@@ -145770,6 +147300,13 @@ export namespace Prisma {
     connect?: AgentCheckpointWhereUniqueInput | AgentCheckpointWhereUniqueInput[]
   }
 
+  export type UserSpendLimitCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<UserSpendLimitCreateWithoutOrganizationInput, UserSpendLimitUncheckedCreateWithoutOrganizationInput> | UserSpendLimitCreateWithoutOrganizationInput[] | UserSpendLimitUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: UserSpendLimitCreateOrConnectWithoutOrganizationInput | UserSpendLimitCreateOrConnectWithoutOrganizationInput[]
+    createMany?: UserSpendLimitCreateManyOrganizationInputEnvelope
+    connect?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+  }
+
   export type OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput = {
     create?: XOR<OrganizationMemberCreateWithoutOrganizationInput, OrganizationMemberUncheckedCreateWithoutOrganizationInput> | OrganizationMemberCreateWithoutOrganizationInput[] | OrganizationMemberUncheckedCreateWithoutOrganizationInput[]
     connectOrCreate?: OrganizationMemberCreateOrConnectWithoutOrganizationInput | OrganizationMemberCreateOrConnectWithoutOrganizationInput[]
@@ -145993,6 +147530,13 @@ export namespace Prisma {
     connectOrCreate?: AgentCheckpointCreateOrConnectWithoutOrganizationInput | AgentCheckpointCreateOrConnectWithoutOrganizationInput[]
     createMany?: AgentCheckpointCreateManyOrganizationInputEnvelope
     connect?: AgentCheckpointWhereUniqueInput | AgentCheckpointWhereUniqueInput[]
+  }
+
+  export type UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<UserSpendLimitCreateWithoutOrganizationInput, UserSpendLimitUncheckedCreateWithoutOrganizationInput> | UserSpendLimitCreateWithoutOrganizationInput[] | UserSpendLimitUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: UserSpendLimitCreateOrConnectWithoutOrganizationInput | UserSpendLimitCreateOrConnectWithoutOrganizationInput[]
+    createMany?: UserSpendLimitCreateManyOrganizationInputEnvelope
+    connect?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
   }
 
   export type OrganizationMemberUpdateManyWithoutOrganizationNestedInput = {
@@ -146441,6 +147985,20 @@ export namespace Prisma {
     deleteMany?: AgentCheckpointScalarWhereInput | AgentCheckpointScalarWhereInput[]
   }
 
+  export type UserSpendLimitUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<UserSpendLimitCreateWithoutOrganizationInput, UserSpendLimitUncheckedCreateWithoutOrganizationInput> | UserSpendLimitCreateWithoutOrganizationInput[] | UserSpendLimitUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: UserSpendLimitCreateOrConnectWithoutOrganizationInput | UserSpendLimitCreateOrConnectWithoutOrganizationInput[]
+    upsert?: UserSpendLimitUpsertWithWhereUniqueWithoutOrganizationInput | UserSpendLimitUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: UserSpendLimitCreateManyOrganizationInputEnvelope
+    set?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+    disconnect?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+    delete?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+    connect?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+    update?: UserSpendLimitUpdateWithWhereUniqueWithoutOrganizationInput | UserSpendLimitUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: UserSpendLimitUpdateManyWithWhereWithoutOrganizationInput | UserSpendLimitUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: UserSpendLimitScalarWhereInput | UserSpendLimitScalarWhereInput[]
+  }
+
   export type OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput = {
     create?: XOR<OrganizationMemberCreateWithoutOrganizationInput, OrganizationMemberUncheckedCreateWithoutOrganizationInput> | OrganizationMemberCreateWithoutOrganizationInput[] | OrganizationMemberUncheckedCreateWithoutOrganizationInput[]
     connectOrCreate?: OrganizationMemberCreateOrConnectWithoutOrganizationInput | OrganizationMemberCreateOrConnectWithoutOrganizationInput[]
@@ -146885,6 +148443,20 @@ export namespace Prisma {
     update?: AgentCheckpointUpdateWithWhereUniqueWithoutOrganizationInput | AgentCheckpointUpdateWithWhereUniqueWithoutOrganizationInput[]
     updateMany?: AgentCheckpointUpdateManyWithWhereWithoutOrganizationInput | AgentCheckpointUpdateManyWithWhereWithoutOrganizationInput[]
     deleteMany?: AgentCheckpointScalarWhereInput | AgentCheckpointScalarWhereInput[]
+  }
+
+  export type UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<UserSpendLimitCreateWithoutOrganizationInput, UserSpendLimitUncheckedCreateWithoutOrganizationInput> | UserSpendLimitCreateWithoutOrganizationInput[] | UserSpendLimitUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: UserSpendLimitCreateOrConnectWithoutOrganizationInput | UserSpendLimitCreateOrConnectWithoutOrganizationInput[]
+    upsert?: UserSpendLimitUpsertWithWhereUniqueWithoutOrganizationInput | UserSpendLimitUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: UserSpendLimitCreateManyOrganizationInputEnvelope
+    set?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+    disconnect?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+    delete?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+    connect?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+    update?: UserSpendLimitUpdateWithWhereUniqueWithoutOrganizationInput | UserSpendLimitUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: UserSpendLimitUpdateManyWithWhereWithoutOrganizationInput | UserSpendLimitUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: UserSpendLimitScalarWhereInput | UserSpendLimitScalarWhereInput[]
   }
 
   export type OrganizationCreateNestedOneWithoutMembersInput = {
@@ -150298,6 +151870,34 @@ export namespace Prisma {
     update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutAgentCheckpointsInput, OrganizationUpdateWithoutAgentCheckpointsInput>, OrganizationUncheckedUpdateWithoutAgentCheckpointsInput>
   }
 
+  export type OrganizationCreateNestedOneWithoutUserSpendLimitsInput = {
+    create?: XOR<OrganizationCreateWithoutUserSpendLimitsInput, OrganizationUncheckedCreateWithoutUserSpendLimitsInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutUserSpendLimitsInput
+    connect?: OrganizationWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutSpendLimitsInput = {
+    create?: XOR<UserCreateWithoutSpendLimitsInput, UserUncheckedCreateWithoutSpendLimitsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutSpendLimitsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type OrganizationUpdateOneRequiredWithoutUserSpendLimitsNestedInput = {
+    create?: XOR<OrganizationCreateWithoutUserSpendLimitsInput, OrganizationUncheckedCreateWithoutUserSpendLimitsInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutUserSpendLimitsInput
+    upsert?: OrganizationUpsertWithoutUserSpendLimitsInput
+    connect?: OrganizationWhereUniqueInput
+    update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutUserSpendLimitsInput, OrganizationUpdateWithoutUserSpendLimitsInput>, OrganizationUncheckedUpdateWithoutUserSpendLimitsInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutSpendLimitsNestedInput = {
+    create?: XOR<UserCreateWithoutSpendLimitsInput, UserUncheckedCreateWithoutSpendLimitsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutSpendLimitsInput
+    upsert?: UserUpsertWithoutSpendLimitsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutSpendLimitsInput, UserUpdateWithoutSpendLimitsInput>, UserUncheckedUpdateWithoutSpendLimitsInput>
+  }
+
   export type ModelConfigCreateNestedManyWithoutProviderConfigInput = {
     create?: XOR<ModelConfigCreateWithoutProviderConfigInput, ModelConfigUncheckedCreateWithoutProviderConfigInput> | ModelConfigCreateWithoutProviderConfigInput[] | ModelConfigUncheckedCreateWithoutProviderConfigInput[]
     connectOrCreate?: ModelConfigCreateOrConnectWithoutProviderConfigInput | ModelConfigCreateOrConnectWithoutProviderConfigInput[]
@@ -151913,6 +153513,32 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type UserSpendLimitCreateWithoutUserInput = {
+    id?: string
+    limitCents: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutUserSpendLimitsInput
+  }
+
+  export type UserSpendLimitUncheckedCreateWithoutUserInput = {
+    id?: string
+    organizationId: string
+    limitCents: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type UserSpendLimitCreateOrConnectWithoutUserInput = {
+    where: UserSpendLimitWhereUniqueInput
+    create: XOR<UserSpendLimitCreateWithoutUserInput, UserSpendLimitUncheckedCreateWithoutUserInput>
+  }
+
+  export type UserSpendLimitCreateManyUserInputEnvelope = {
+    data: UserSpendLimitCreateManyUserInput | UserSpendLimitCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
   export type AccountUpsertWithWhereUniqueWithoutUserInput = {
     where: AccountWhereUniqueInput
     update: XOR<AccountUpdateWithoutUserInput, AccountUncheckedUpdateWithoutUserInput>
@@ -152826,6 +154452,34 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"AiMessageFeedback"> | Date | string
   }
 
+  export type UserSpendLimitUpsertWithWhereUniqueWithoutUserInput = {
+    where: UserSpendLimitWhereUniqueInput
+    update: XOR<UserSpendLimitUpdateWithoutUserInput, UserSpendLimitUncheckedUpdateWithoutUserInput>
+    create: XOR<UserSpendLimitCreateWithoutUserInput, UserSpendLimitUncheckedCreateWithoutUserInput>
+  }
+
+  export type UserSpendLimitUpdateWithWhereUniqueWithoutUserInput = {
+    where: UserSpendLimitWhereUniqueInput
+    data: XOR<UserSpendLimitUpdateWithoutUserInput, UserSpendLimitUncheckedUpdateWithoutUserInput>
+  }
+
+  export type UserSpendLimitUpdateManyWithWhereWithoutUserInput = {
+    where: UserSpendLimitScalarWhereInput
+    data: XOR<UserSpendLimitUpdateManyMutationInput, UserSpendLimitUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type UserSpendLimitScalarWhereInput = {
+    AND?: UserSpendLimitScalarWhereInput | UserSpendLimitScalarWhereInput[]
+    OR?: UserSpendLimitScalarWhereInput[]
+    NOT?: UserSpendLimitScalarWhereInput | UserSpendLimitScalarWhereInput[]
+    id?: StringFilter<"UserSpendLimit"> | string
+    organizationId?: StringFilter<"UserSpendLimit"> | string
+    userId?: StringFilter<"UserSpendLimit"> | string
+    limitCents?: IntFilter<"UserSpendLimit"> | number
+    createdAt?: DateTimeFilter<"UserSpendLimit"> | Date | string
+    updatedAt?: DateTimeFilter<"UserSpendLimit"> | Date | string
+  }
+
   export type UserCreateWithoutAccountsInput = {
     id?: string
     email: string
@@ -152870,6 +154524,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAccountsInput = {
@@ -152916,6 +154571,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAccountsInput = {
@@ -152978,6 +154634,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -153024,6 +154681,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -153070,6 +154728,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -153116,6 +154775,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -153178,6 +154838,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -153224,6 +154885,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationMemberCreateWithoutOrganizationInput = {
@@ -154263,6 +155925,32 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type UserSpendLimitCreateWithoutOrganizationInput = {
+    id?: string
+    limitCents: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutSpendLimitsInput
+  }
+
+  export type UserSpendLimitUncheckedCreateWithoutOrganizationInput = {
+    id?: string
+    userId: string
+    limitCents: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type UserSpendLimitCreateOrConnectWithoutOrganizationInput = {
+    where: UserSpendLimitWhereUniqueInput
+    create: XOR<UserSpendLimitCreateWithoutOrganizationInput, UserSpendLimitUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type UserSpendLimitCreateManyOrganizationInputEnvelope = {
+    data: UserSpendLimitCreateManyOrganizationInput | UserSpendLimitCreateManyOrganizationInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationMemberUpsertWithWhereUniqueWithoutOrganizationInput = {
     where: OrganizationMemberWhereUniqueInput
     update: XOR<OrganizationMemberUpdateWithoutOrganizationInput, OrganizationMemberUncheckedUpdateWithoutOrganizationInput>
@@ -155123,6 +156811,22 @@ export namespace Prisma {
     completedAt?: DateTimeNullableFilter<"AgentCheckpoint"> | Date | string | null
   }
 
+  export type UserSpendLimitUpsertWithWhereUniqueWithoutOrganizationInput = {
+    where: UserSpendLimitWhereUniqueInput
+    update: XOR<UserSpendLimitUpdateWithoutOrganizationInput, UserSpendLimitUncheckedUpdateWithoutOrganizationInput>
+    create: XOR<UserSpendLimitCreateWithoutOrganizationInput, UserSpendLimitUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type UserSpendLimitUpdateWithWhereUniqueWithoutOrganizationInput = {
+    where: UserSpendLimitWhereUniqueInput
+    data: XOR<UserSpendLimitUpdateWithoutOrganizationInput, UserSpendLimitUncheckedUpdateWithoutOrganizationInput>
+  }
+
+  export type UserSpendLimitUpdateManyWithWhereWithoutOrganizationInput = {
+    where: UserSpendLimitScalarWhereInput
+    data: XOR<UserSpendLimitUpdateManyMutationInput, UserSpendLimitUncheckedUpdateManyWithoutOrganizationInput>
+  }
+
   export type OrganizationCreateWithoutMembersInput = {
     id?: string
     slug: string
@@ -155162,6 +156866,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutMembersInput = {
@@ -155203,6 +156908,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutMembersInput = {
@@ -155254,6 +156960,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMembershipsInput = {
@@ -155300,6 +157007,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMembershipsInput = {
@@ -155380,6 +157088,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutMembersInput = {
@@ -155421,6 +157130,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutMembershipsInput = {
@@ -155478,6 +157188,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMembershipsInput = {
@@ -155524,6 +157235,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type RoleUpsertWithoutMembersInput = {
@@ -155594,6 +157306,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutInvitesInput = {
@@ -155635,6 +157348,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutInvitesInput = {
@@ -155715,6 +157429,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutInvitesInput = {
@@ -155756,6 +157471,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type RoleUpsertWithoutInvitesInput = {
@@ -156080,6 +157796,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutProjectsInput = {
@@ -156121,6 +157838,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutProjectsInput = {
@@ -156883,6 +158601,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutProjectsInput = {
@@ -156924,6 +158643,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectEnvironmentUpsertWithWhereUniqueWithoutProjectInput = {
@@ -157521,6 +159241,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoriesInput = {
@@ -157567,6 +159288,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoriesInput = {
@@ -157629,6 +159351,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -157675,6 +159398,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutAgentMemoriesInput = {
@@ -157716,6 +159440,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAgentMemoriesInput = {
@@ -157757,6 +159482,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAgentMemoriesInput = {
@@ -157814,6 +159540,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -157855,6 +159582,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectCreateWithoutAgentMemoriesInput = {
@@ -158069,6 +159797,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -158115,6 +159844,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -158161,6 +159891,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -158202,6 +159933,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -158345,6 +160077,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -158391,6 +160124,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentMemoryPreferencesInput = {
@@ -158443,6 +160177,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -158484,6 +160219,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectUpsertWithoutAgentMemoryPreferencesInput = {
@@ -158698,6 +160434,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectIdeStateUpdatesInput = {
@@ -158744,6 +160481,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectIdeStateUpdatesInput = {
@@ -158893,6 +160631,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectIdeStateUpdatesInput = {
@@ -158939,6 +160678,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutAgentPatchProposalsInput = {
@@ -160074,6 +161814,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectCollaborationsInput = {
@@ -160120,6 +161861,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectCollaborationsInput = {
@@ -160269,6 +162011,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectCollaborationsInput = {
@@ -160315,6 +162058,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutActivityInput = {
@@ -160442,6 +162186,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectActivityInput = {
@@ -160488,6 +162233,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectActivityInput = {
@@ -160637,6 +162383,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectActivityInput = {
@@ -160683,6 +162430,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationPresenceInput = {
@@ -160810,6 +162558,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -160856,6 +162605,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -161005,6 +162755,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -161051,6 +162802,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationCommentsInput = {
@@ -161178,6 +162930,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -161224,6 +162977,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -161373,6 +163127,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -161419,6 +163174,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutShareLinksInput = {
@@ -161546,6 +163302,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationShareLinksInput = {
@@ -161592,6 +163349,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationShareLinksInput = {
@@ -161741,6 +163499,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationShareLinksInput = {
@@ -161787,6 +163546,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutTemplatesInput = {
@@ -161909,6 +163669,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutProjectTemplatesInput = {
@@ -161950,6 +163711,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutProjectTemplatesInput = {
@@ -162094,6 +163856,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutProjectTemplatesInput = {
@@ -162135,6 +163898,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectCreateWithoutWorkspacesInput = {
@@ -163120,6 +164884,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectSnapshotsInput = {
@@ -163166,6 +164931,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectSnapshotsInput = {
@@ -163315,6 +165081,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectSnapshotsInput = {
@@ -163361,6 +165128,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutStorageObjectsInput = {
@@ -163856,6 +165624,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAuditLogsInput = {
@@ -163897,6 +165666,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAuditLogsInput = {
@@ -163948,6 +165718,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -163994,6 +165765,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -164051,6 +165823,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAuditLogsInput = {
@@ -164092,6 +165865,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutAuditLogsInput = {
@@ -164149,6 +165923,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -164195,6 +165970,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutAdminAuditLogsInput = {
@@ -164241,6 +166017,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAdminAuditLogsInput = {
@@ -164287,6 +166064,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAdminAuditLogsInput = {
@@ -164349,6 +166127,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAdminAuditLogsInput = {
@@ -164395,6 +166174,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutBillingCustomerInput = {
@@ -164436,6 +166216,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutBillingCustomerInput = {
@@ -164477,6 +166258,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutBillingCustomerInput = {
@@ -164534,6 +166316,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutBillingCustomerInput = {
@@ -164575,6 +166358,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutSubscriptionsInput = {
@@ -164616,6 +166400,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutSubscriptionsInput = {
@@ -164657,6 +166442,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutSubscriptionsInput = {
@@ -164747,6 +166533,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutSubscriptionsInput = {
@@ -164788,6 +166575,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type PlanUpsertWithoutSubscriptionsInput = {
@@ -164922,6 +166710,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutUsageEventsInput = {
@@ -164963,6 +166752,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutUsageEventsInput = {
@@ -165020,6 +166810,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutUsageEventsInput = {
@@ -165061,6 +166852,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutQuotaLedgerInput = {
@@ -165102,6 +166894,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutQuotaLedgerInput = {
@@ -165143,6 +166936,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutQuotaLedgerInput = {
@@ -165200,6 +166994,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutQuotaLedgerInput = {
@@ -165241,6 +167036,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutQuotaOverridesInput = {
@@ -165282,6 +167078,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutQuotaOverridesInput = {
@@ -165323,6 +167120,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutQuotaOverridesInput = {
@@ -165380,6 +167178,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutQuotaOverridesInput = {
@@ -165421,6 +167220,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutStripeEventsInput = {
@@ -165462,6 +167262,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutStripeEventsInput = {
@@ -165503,6 +167304,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutStripeEventsInput = {
@@ -165560,6 +167362,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutStripeEventsInput = {
@@ -165601,6 +167404,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectCreateWithoutConversationsInput = {
@@ -165728,6 +167532,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutConversationsInput = {
@@ -165774,6 +167579,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutConversationsInput = {
@@ -165951,6 +167757,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConversationsInput = {
@@ -165997,6 +167804,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type AiMessageUpsertWithWhereUniqueWithoutConversationInput = {
@@ -166332,6 +168140,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAiMessageFeedbackInput = {
@@ -166378,6 +168187,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAiMessageFeedbackInput = {
@@ -166440,6 +168250,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAiMessageFeedbackInput = {
@@ -166486,6 +168297,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutAiCostLedgerInput = {
@@ -166527,6 +168339,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAiCostLedgerInput = {
@@ -166568,6 +168381,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAiCostLedgerInput = {
@@ -166625,6 +168439,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAiCostLedgerInput = {
@@ -166666,6 +168481,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutAbuseEventsInput = {
@@ -166707,6 +168523,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAbuseEventsInput = {
@@ -166748,6 +168565,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAbuseEventsInput = {
@@ -166805,6 +168623,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAbuseEventsInput = {
@@ -166846,6 +168665,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutSupportTicketsInput = {
@@ -166887,6 +168707,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutSupportTicketsInput = {
@@ -166928,6 +168749,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutSupportTicketsInput = {
@@ -166979,6 +168801,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSupportTicketsInput = {
@@ -167025,6 +168848,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSupportTicketsInput = {
@@ -167082,6 +168906,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutSupportTicketsInput = {
@@ -167123,6 +168948,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutSupportTicketsInput = {
@@ -167180,6 +169006,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSupportTicketsInput = {
@@ -167226,6 +169053,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutFeatureFlagsInput = {
@@ -167267,6 +169095,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutFeatureFlagsInput = {
@@ -167308,6 +169137,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutFeatureFlagsInput = {
@@ -167365,6 +169195,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutFeatureFlagsInput = {
@@ -167406,6 +169237,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserCreateWithoutEmailVerificationTokensInput = {
@@ -167452,6 +169284,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
@@ -167498,6 +169331,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutEmailVerificationTokensInput = {
@@ -167560,6 +169394,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
@@ -167606,6 +169441,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutPasswordResetTokensInput = {
@@ -167652,6 +169488,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
@@ -167698,6 +169535,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPasswordResetTokensInput = {
@@ -167760,6 +169598,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
@@ -167806,6 +169645,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutRecoveryCodesInput = {
@@ -167852,6 +169692,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutRecoveryCodesInput = {
@@ -167898,6 +169739,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutRecoveryCodesInput = {
@@ -167960,6 +169802,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRecoveryCodesInput = {
@@ -168006,6 +169849,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutEnterpriseSettingsInput = {
@@ -168047,6 +169891,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutEnterpriseSettingsInput = {
@@ -168088,6 +169933,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutEnterpriseSettingsInput = {
@@ -168145,6 +169991,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutEnterpriseSettingsInput = {
@@ -168186,6 +170033,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutDomainsInput = {
@@ -168227,6 +170075,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutDomainsInput = {
@@ -168268,6 +170117,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutDomainsInput = {
@@ -168325,6 +170175,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutDomainsInput = {
@@ -168366,6 +170217,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutSsoConfigurationsInput = {
@@ -168407,6 +170259,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutSsoConfigurationsInput = {
@@ -168448,6 +170301,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutSsoConfigurationsInput = {
@@ -168505,6 +170359,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutSsoConfigurationsInput = {
@@ -168546,6 +170401,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutScimTokensInput = {
@@ -168587,6 +170443,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutScimTokensInput = {
@@ -168628,6 +170485,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutScimTokensInput = {
@@ -168685,6 +170543,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutScimTokensInput = {
@@ -168726,6 +170585,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutCustomRolesInput = {
@@ -168767,6 +170627,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutCustomRolesInput = {
@@ -168808,6 +170669,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutCustomRolesInput = {
@@ -168865,6 +170727,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutCustomRolesInput = {
@@ -168906,6 +170769,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutSiemWebhooksInput = {
@@ -168947,6 +170811,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutSiemWebhooksInput = {
@@ -168988,6 +170853,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutSiemWebhooksInput = {
@@ -169045,6 +170911,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutSiemWebhooksInput = {
@@ -169086,6 +170953,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutApiKeysInput = {
@@ -169127,6 +170995,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutApiKeysInput = {
@@ -169168,6 +171037,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutApiKeysInput = {
@@ -169219,6 +171089,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutApiKeysInput = {
@@ -169265,6 +171136,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutApiKeysInput = {
@@ -169322,6 +171194,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutApiKeysInput = {
@@ -169363,6 +171236,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutApiKeysInput = {
@@ -169420,6 +171294,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutApiKeysInput = {
@@ -169466,6 +171341,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutOauthConnectionsInput = {
@@ -169512,6 +171388,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutOauthConnectionsInput = {
@@ -169558,6 +171435,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutOauthConnectionsInput = {
@@ -169620,6 +171498,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOauthConnectionsInput = {
@@ -169666,6 +171545,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type McpInstallCreateWithoutCatalogEntryInput = {
@@ -169809,6 +171689,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMcpInstallsInput = {
@@ -169855,6 +171736,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMcpInstallsInput = {
@@ -169901,6 +171783,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutMcpInstallsInput = {
@@ -169942,6 +171825,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutMcpInstallsInput = {
@@ -170059,6 +171943,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpInstallsInput = {
@@ -170105,6 +171990,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutMcpInstallsInput = {
@@ -170157,6 +172043,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutMcpInstallsInput = {
@@ -170198,6 +172085,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserCreateWithoutMcpUserConfigInput = {
@@ -170244,6 +172132,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMcpUserConfigInput = {
@@ -170290,6 +172179,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMcpUserConfigInput = {
@@ -170352,6 +172242,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpUserConfigInput = {
@@ -170398,6 +172289,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type AgentRunResultCreateWithoutRunInput = {
@@ -170515,6 +172407,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentRunsInput = {
@@ -170561,6 +172454,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentRunsInput = {
@@ -170607,6 +172501,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAgentRunsInput = {
@@ -170648,6 +172543,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAgentRunsInput = {
@@ -170783,6 +172679,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentRunsInput = {
@@ -170829,6 +172726,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentRunsInput = {
@@ -170881,6 +172779,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAgentRunsInput = {
@@ -170922,6 +172821,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type AgentRunCreateWithoutResultsInput = {
@@ -171128,6 +173028,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutUserConnectionsInput = {
@@ -171174,6 +173075,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutUserConnectionsInput = {
@@ -171323,6 +173225,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutUserConnectionsInput = {
@@ -171369,6 +173272,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationOAuthAppOverrideUpsertWithoutUserConnectionsInput = {
@@ -171634,6 +173538,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutLinkedProjectConnectionsInput = {
@@ -171680,6 +173585,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutLinkedProjectConnectionsInput = {
@@ -171888,6 +173794,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutLinkedProjectConnectionsInput = {
@@ -171934,6 +173841,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutOauthAppOverridesInput = {
@@ -171975,6 +173883,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutOauthAppOverridesInput = {
@@ -172016,6 +173925,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutOauthAppOverridesInput = {
@@ -172067,6 +173977,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutConfiguredOauthAppOverridesInput = {
@@ -172113,6 +174024,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutConfiguredOauthAppOverridesInput = {
@@ -172228,6 +174140,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutOauthAppOverridesInput = {
@@ -172269,6 +174182,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutConfiguredOauthAppOverridesInput = {
@@ -172326,6 +174240,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConfiguredOauthAppOverridesInput = {
@@ -172372,6 +174287,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserConnectionUpsertWithWhereUniqueWithoutOauthAppOverrideInput = {
@@ -172429,6 +174345,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutConnectorPoliciesInput = {
@@ -172470,6 +174387,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutConnectorPoliciesInput = {
@@ -172527,6 +174445,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutConnectorPoliciesInput = {
@@ -172568,6 +174487,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserConnectionCreateWithoutReconnectionAlertsInput = {
@@ -172726,6 +174646,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -172772,6 +174693,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -172834,6 +174756,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -172880,6 +174803,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutIntegrationFeatureRequestsInput = {
@@ -172926,6 +174850,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutIntegrationFeatureRequestsInput = {
@@ -172972,6 +174897,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutIntegrationFeatureRequestsInput = {
@@ -173018,6 +174944,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutIntegrationFeatureRequestsInput = {
@@ -173059,6 +174986,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutIntegrationFeatureRequestsInput = {
@@ -173121,6 +175049,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutIntegrationFeatureRequestsInput = {
@@ -173167,6 +175096,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutIntegrationFeatureRequestsInput = {
@@ -173219,6 +175149,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutIntegrationFeatureRequestsInput = {
@@ -173260,6 +175191,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutCreditWalletInput = {
@@ -173301,6 +175233,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutCreditWalletInput = {
@@ -173342,6 +175275,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutCreditWalletInput = {
@@ -173433,6 +175367,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutCreditWalletInput = {
@@ -173474,6 +175409,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type CreditLedgerUpsertWithWhereUniqueWithoutWalletInput = {
@@ -173531,6 +175467,7 @@ export namespace Prisma {
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutCreditPacksInput = {
@@ -173572,6 +175509,7 @@ export namespace Prisma {
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutCreditPacksInput = {
@@ -173629,6 +175567,7 @@ export namespace Prisma {
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutCreditPacksInput = {
@@ -173670,6 +175609,7 @@ export namespace Prisma {
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type CreditWalletCreateWithoutEntriesInput = {
@@ -173744,6 +175684,7 @@ export namespace Prisma {
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutCreditLedgerInput = {
@@ -173785,6 +175726,7 @@ export namespace Prisma {
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutCreditLedgerInput = {
@@ -173881,6 +175823,7 @@ export namespace Prisma {
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutCreditLedgerInput = {
@@ -173922,6 +175865,7 @@ export namespace Prisma {
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutAgentCheckpointsInput = {
@@ -173963,6 +175907,7 @@ export namespace Prisma {
     creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAgentCheckpointsInput = {
@@ -174004,6 +175949,7 @@ export namespace Prisma {
     creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAgentCheckpointsInput = {
@@ -174061,6 +176007,7 @@ export namespace Prisma {
     creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAgentCheckpointsInput = {
@@ -174102,6 +176049,395 @@ export namespace Prisma {
     creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationCreateWithoutUserSpendLimitsInput = {
+    id?: string
+    slug: string
+    name: string
+    billingEmail?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
+    creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
+    creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
+    agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationUncheckedCreateWithoutUserSpendLimitsInput = {
+    id?: string
+    slug: string
+    name: string
+    billingEmail?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteUncheckedCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectUncheckedCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerUncheckedCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventUncheckedCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventUncheckedCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagUncheckedCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainUncheckedCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
+    creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
+    creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
+    agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationCreateOrConnectWithoutUserSpendLimitsInput = {
+    where: OrganizationWhereUniqueInput
+    create: XOR<OrganizationCreateWithoutUserSpendLimitsInput, OrganizationUncheckedCreateWithoutUserSpendLimitsInput>
+  }
+
+  export type UserCreateWithoutSpendLimitsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutSpendLimitsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutSpendLimitsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutSpendLimitsInput, UserUncheckedCreateWithoutSpendLimitsInput>
+  }
+
+  export type OrganizationUpsertWithoutUserSpendLimitsInput = {
+    update: XOR<OrganizationUpdateWithoutUserSpendLimitsInput, OrganizationUncheckedUpdateWithoutUserSpendLimitsInput>
+    create: XOR<OrganizationCreateWithoutUserSpendLimitsInput, OrganizationUncheckedCreateWithoutUserSpendLimitsInput>
+    where?: OrganizationWhereInput
+  }
+
+  export type OrganizationUpdateToOneWithWhereWithoutUserSpendLimitsInput = {
+    where?: OrganizationWhereInput
+    data: XOR<OrganizationUpdateWithoutUserSpendLimitsInput, OrganizationUncheckedUpdateWithoutUserSpendLimitsInput>
+  }
+
+  export type OrganizationUpdateWithoutUserSpendLimitsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    billingEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
+    creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
+    creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
+    agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationUncheckedUpdateWithoutUserSpendLimitsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    billingEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUncheckedUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUncheckedUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUncheckedUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUncheckedUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
+    creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type UserUpsertWithoutSpendLimitsInput = {
+    update: XOR<UserUpdateWithoutSpendLimitsInput, UserUncheckedUpdateWithoutSpendLimitsInput>
+    create: XOR<UserCreateWithoutSpendLimitsInput, UserUncheckedCreateWithoutSpendLimitsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutSpendLimitsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutSpendLimitsInput, UserUncheckedUpdateWithoutSpendLimitsInput>
+  }
+
+  export type UserUpdateWithoutSpendLimitsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutSpendLimitsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ModelConfigCreateWithoutProviderConfigInput = {
@@ -174987,6 +177323,14 @@ export namespace Prisma {
     messageId: string
     chatId?: string | null
     vote: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type UserSpendLimitCreateManyUserInput = {
+    id?: string
+    organizationId: string
+    limitCents: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -175939,6 +178283,30 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type UserSpendLimitUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    limitCents?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutUserSpendLimitsNestedInput
+  }
+
+  export type UserSpendLimitUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    limitCents?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserSpendLimitUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    limitCents?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type OrganizationMemberCreateManyOrganizationInput = {
     id?: string
     userId: string
@@ -176247,6 +178615,14 @@ export namespace Prisma {
     creditCents?: number
     startedAt?: Date | string
     completedAt?: Date | string | null
+  }
+
+  export type UserSpendLimitCreateManyOrganizationInput = {
+    id?: string
+    userId: string
+    limitCents: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type OrganizationMemberUpdateWithoutOrganizationInput = {
@@ -177301,6 +179677,30 @@ export namespace Prisma {
     creditCents?: IntFieldUpdateOperationsInput | number
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type UserSpendLimitUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    limitCents?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutSpendLimitsNestedInput
+  }
+
+  export type UserSpendLimitUncheckedUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    limitCents?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserSpendLimitUncheckedUpdateManyWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    limitCents?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type RolePermissionCreateManyRoleInput = {

@@ -23,6 +23,7 @@ import type {
   AiTokenUsageRecord,
   AiToolCallRecord,
   AgentCheckpointRecord,
+  UserSpendLimitRecord,
   BillingCustomerRecord,
   BillingPlanRecord,
   CheckpointStatus,
@@ -160,6 +161,7 @@ export class TestApiStore implements ApiStore {
   readonly creditLedger = new Map<string, CreditLedgerRecord>();
   readonly creditPacks = new Map<string, CreditPackRecord>();
   readonly agentCheckpoints = new Map<string, AgentCheckpointRecord>();
+  readonly userSpendLimits = new Map<string, UserSpendLimitRecord>();
   readonly providerConfigs = new Map<string, ProviderConfigRecord>();
   readonly modelConfigs = new Map<string, ModelConfigRecord>();
   readonly billingCustomers = new Map<string, BillingCustomerRecord>();
@@ -2718,6 +2720,47 @@ export class TestApiStore implements ApiStore {
       }
     }
 
+    return total;
+  }
+
+  async getUserSpendLimit(organizationId: string, userId: string) {
+    return this.userSpendLimits.get(`${organizationId}:${userId}`);
+  }
+
+  async setUserSpendLimit(input: { organizationId: string; userId: string; limitCents: number }) {
+    const key = `${input.organizationId}:${input.userId}`;
+    const existing = this.userSpendLimits.get(key);
+    const record: UserSpendLimitRecord = {
+      id: existing?.id ?? id('usl'),
+      organizationId: input.organizationId,
+      userId: input.userId,
+      limitCents: input.limitCents,
+      createdAt: existing?.createdAt ?? now(),
+      updatedAt: now(),
+    };
+    this.userSpendLimits.set(key, record);
+    return record;
+  }
+
+  async clearUserSpendLimit(organizationId: string, userId: string) {
+    this.userSpendLimits.delete(`${organizationId}:${userId}`);
+  }
+
+  async listUserSpendLimits(organizationId: string) {
+    return [...this.userSpendLimits.values()].filter((r) => r.organizationId === organizationId);
+  }
+
+  async sumUserSpendSince(organizationId: string, userId: string, sinceMs: number): Promise<number> {
+    let total = 0;
+    for (const cp of this.agentCheckpoints.values()) {
+      if (
+        cp.organizationId === organizationId &&
+        cp.userId === userId &&
+        new Date(cp.startedAt).getTime() >= sinceMs
+      ) {
+        total += Math.max(0, cp.creditCents ?? 0);
+      }
+    }
     return total;
   }
 

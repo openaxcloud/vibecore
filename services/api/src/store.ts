@@ -594,6 +594,15 @@ export interface AiCostLedgerRecord {
 
 export type CreditEntryKind = 'GRANT' | 'CONSUMPTION' | 'PAYG_CHARGE' | 'REFUND' | 'ADJUSTMENT' | 'EXPIRY';
 
+export interface UserSpendLimitRecord {
+  id: string;
+  organizationId: string;
+  userId: string;
+  limitCents: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CreditWalletRecord {
   id: string;
   organizationId: string;
@@ -1650,6 +1659,22 @@ export interface ApiStore {
    * (dormant until BILLING_CREDITS_ENABLED).
    */
   sumPaygSpendSince(organizationId: string, sinceMs: number): Promise<number>;
+
+  /**
+   * Per-user (Enterprise) spend limits. An admin caps an individual member's
+   * usage-based spend; the per-member override beats the org budget cap.
+   */
+  getUserSpendLimit(organizationId: string, userId: string): Promise<UserSpendLimitRecord | undefined>;
+  setUserSpendLimit(input: {
+    organizationId: string;
+    userId: string;
+    limitCents: number;
+  }): Promise<UserSpendLimitRecord>;
+  clearUserSpendLimit(organizationId: string, userId: string): Promise<void>;
+  listUserSpendLimits(organizationId: string): Promise<UserSpendLimitRecord[]>;
+  /** Sum a member's settled checkpoint credit spend since `sinceMs` (their period spend). */
+  sumUserSpendSince(organizationId: string, userId: string, sinceMs: number): Promise<number>;
+
   /**
    * Record a PAYG overage as a tracking-only PAYG_CHARGE ledger entry (negative
    * deltaCents) WITHOUT touching the wallet balance — the overage is billed to

@@ -151,6 +151,25 @@ describe('evaluateCreditGate', () => {
       evaluateCreditGate({ balanceCents: 100, estimatedCents: 130, budgetCapCents: 1000, paygSpentCents: 980 }),
     ).toEqual({ ok: false, mode: 'blocked', reason: 'budget_cap_reached' });
   });
+
+  it('blocks a member at their per-user cap even when the org has credits', () => {
+    // Org has ample balance, but the member's own cap (100) is reached (spent 80 + est 30 = 110 > 100).
+    expect(
+      evaluateCreditGate({ balanceCents: 100_000, estimatedCents: 30, userLimitCents: 100, userSpentCents: 80 }),
+    ).toEqual({ ok: false, mode: 'blocked', reason: 'user_limit_reached' });
+  });
+
+  it('allows a member under their per-user cap (falls through to the org gate)', () => {
+    expect(
+      evaluateCreditGate({ balanceCents: 100_000, estimatedCents: 30, userLimitCents: 100, userSpentCents: 50 }),
+    ).toEqual({ ok: true, mode: 'credits' });
+  });
+
+  it('ignores the per-user cap when no member override is set (null)', () => {
+    expect(
+      evaluateCreditGate({ balanceCents: 500, estimatedCents: 130, userLimitCents: null, userSpentCents: 9999 }),
+    ).toEqual({ ok: true, mode: 'credits' });
+  });
 });
 
 describe('paygAlertThresholdCrossed', () => {

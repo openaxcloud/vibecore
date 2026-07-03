@@ -1187,6 +1187,15 @@ exports.Prisma.AgentCheckpointScalarFieldEnum = {
   completedAt: 'completedAt'
 };
 
+exports.Prisma.UserSpendLimitScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  limitCents: 'limitCents',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.ProviderConfigScalarFieldEnum = {
   id: 'id',
   provider: 'provider',
@@ -1489,6 +1498,7 @@ exports.Prisma.ModelName = {
   CreditPack: 'CreditPack',
   CreditLedger: 'CreditLedger',
   AgentCheckpoint: 'AgentCheckpoint',
+  UserSpendLimit: 'UserSpendLimit',
   ProviderConfig: 'ProviderConfig',
   ModelConfig: 'ModelConfig',
   DatabaseInstance: 'DatabaseInstance',

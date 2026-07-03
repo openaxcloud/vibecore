@@ -63,16 +63,42 @@ export async function availableCreditsCents(store: ApiStore, organizationId: str
  */
 export async function gateCheckpoint(
   store: ApiStore,
-  input: { organizationId: string; estimatedCents: number; paygSpentCents?: number; nowMs: number },
+  input: {
+    organizationId: string;
+    estimatedCents: number;
+    paygSpentCents?: number;
+    nowMs: number;
+    /** Acting member — resolves their per-user (Enterprise) spend cap, if any. */
+    userId?: string;
+    /** Billing-period start (ms) used to sum the member's spend so far. */
+    periodStartMs?: number;
+  },
 ): Promise<CreditGateDecision> {
   const wallet = await store.ensureCreditWallet(input.organizationId);
   const available = await availableCreditsCents(store, input.organizationId, input.nowMs);
+
+  // Per-user (Enterprise) override: a member's own cap beats the org budget.
+  let userLimitCents: number | null = null;
+  let userSpentCents = 0;
+
+  if (input.userId) {
+    const limit = await store.getUserSpendLimit(input.organizationId, input.userId).catch(() => undefined);
+
+    if (limit) {
+      userLimitCents = limit.limitCents;
+      userSpentCents = await store
+        .sumUserSpendSince(input.organizationId, input.userId, input.periodStartMs ?? 0)
+        .catch(() => 0);
+    }
+  }
 
   return evaluateCreditGate({
     balanceCents: available,
     estimatedCents: input.estimatedCents,
     budgetCapCents: wallet.budgetCapCents ?? null,
     paygSpentCents: input.paygSpentCents ?? 0,
+    userLimitCents,
+    userSpentCents,
   });
 }
 

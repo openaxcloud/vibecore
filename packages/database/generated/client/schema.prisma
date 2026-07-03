@@ -98,6 +98,7 @@ model User {
   integrationFeatureRequests  IntegrationFeatureRequest[]
   notifications               Notification[]
   aiMessageFeedback           AiMessageFeedback[]
+  spendLimits                 UserSpendLimit[]
 }
 
 model Account {
@@ -173,6 +174,7 @@ model Organization {
   creditLedger               CreditLedger[]
   creditPacks                CreditPack[]
   agentCheckpoints           AgentCheckpoint[]
+  userSpendLimits            UserSpendLimit[]
 }
 
 model OrganizationMember {
@@ -1822,6 +1824,23 @@ model AgentCheckpoint {
   @@index([organizationId, startedAt])
   @@index([projectId])
   @@index([runId])
+}
+
+/// Replit-parity per-user spend limit (Enterprise). An admin can cap an
+/// individual member's usage-based spend below the org/workspace default; the
+/// per-member override takes precedence over the org budget cap.
+model UserSpendLimit {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String
+  limitCents     Int
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
 }
 
 /// Admin-owned AI provider registry. `apiKeySecret` is the *name* of a secret

@@ -1,14 +1,24 @@
 import { Activity, Boxes, Database, Sparkles } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
-import { Link, useLoaderData } from 'react-router';
+import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { AppShell, StatGrid } from '~/components/dashboard/SaaSLayout';
+import { Button } from '~/components/ui/Button';
 import {
+  apiErrorMessage,
   apiRequest,
+  firstOrganization,
   firstOrganizationOrNull,
+  isApiResponse,
   isForbiddenApiResponse,
+  json,
   redirect,
+  type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+
+type MemberLimit = { userId: string; limitCents: number };
+type OrgMember = { userId: string; role?: string; email?: string; name?: string };
+type MemberLimitsData = { limits: MemberLimit[]; members: OrgMember[] } | null;
 
 type UsageEvent = { id: string; type: string; quantity: number; createdAt?: string };
 type QuotaOverride = { id: string; key: string; limit: number; reason?: string; expiresAt?: string };
@@ -56,9 +66,14 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     () => null as Breakdown,
   );
 
+  // Per-user (Enterprise) spend limits — best-effort (hidden if unavailable).
+  const memberLimitsPromise = apiRequest<MemberLimitsData>(request, `/orgs/${organization.id}/usage/limits`).catch(
+    () => null as MemberLimitsData,
+  );
+
   try {
     const data = await apiRequest<UsageData>(request, `/orgs/${organization.id}/usage`);
-    return { ...data, breakdown: await breakdownPromise };
+    return { ...data, breakdown: await breakdownPromise, memberLimits: await memberLimitsPromise };
   } catch (error) {
     /*
      * A member without `usage:read` gets 403; render a friendly empty state
@@ -72,10 +87,42 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         overrides: [],
         plan: { name: 'Unavailable' },
         breakdown: null as Breakdown,
-      } satisfies UsageData & { breakdown: Breakdown };
+        memberLimits: null as MemberLimitsData,
+      } satisfies UsageData & { breakdown: Breakdown; memberLimits: MemberLimitsData };
     }
 
     throw error;
+  }
+}
+
+export async function action({ request }: EnterpriseActionArgs) {
+  const organization = await firstOrganization(request);
+  const form = await request.formData();
+  const userId = String(form.get('userId') ?? '').trim();
+
+  if (!userId) {
+    return json({ error: 'Choose a member.' }, { status: 400 });
+  }
+
+  // Empty limit clears the per-user override (falls back to the org default).
+  const raw = String(form.get('limitDollars') ?? '').trim();
+  const limitCents = raw === '' ? null : Math.round(Number(raw) * 100);
+
+  if (limitCents != null && (!Number.isFinite(limitCents) || limitCents < 0)) {
+    return json({ error: 'Enter a valid limit in euros (or leave blank to clear).' }, { status: 400 });
+  }
+
+  try {
+    await apiRequest(request, `/orgs/${organization.id}/usage/limits/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ limitCents }),
+    });
+    return json({ ok: limitCents == null ? 'Member limit cleared.' : 'Member limit saved.' });
+  } catch (error) {
+    const message = isApiResponse(error)
+      ? await apiErrorMessage(error, 'Could not update the member limit.')
+      : 'Could not update the member limit. Please try again.';
+    return json({ error: message }, { status: isApiResponse(error) ? error.status : 503 });
   }
 }
 
@@ -89,7 +136,13 @@ export default function UsagePage() {
   const overrides = data.overrides ?? [];
   const overrideFor = (key: string) => overrides.find((override) => override.key === key);
   const breakdown = data.breakdown;
+  const memberLimits = data.memberLimits;
+  const actionData = useActionData<typeof action>() as { ok?: string; error?: string } | undefined;
+  const navigation = useNavigation();
+  const savingLimit = navigation.state !== 'idle' && navigation.formData?.get('intent') === 'member-limit';
   const dollars = (cents: number) => `€${(cents / 100).toFixed(2)}`;
+  const limitFor = (userId: string) => memberLimits?.limits.find((l) => l.userId === userId)?.limitCents;
+  const memberLabel = (m: OrgMember) => m.email || m.name || m.userId;
 
   const iconFor: Record<string, typeof Sparkles> = {
     agent: Sparkles,
@@ -275,6 +328,63 @@ export default function UsagePage() {
                 </span>
               </li>
             ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {memberLimits && memberLimits.members.length ? (
+        <div className="mt-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+          <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Member spend limits (Enterprise)</h3>
+          <p className="mb-3 text-xs text-bolt-elements-textSecondary">
+            Cap an individual member&apos;s usage-based spend below the organization default. A per-member limit
+            overrides the org budget for that member. Leave the field blank and save to clear a limit.
+          </p>
+          {actionData?.ok ? (
+            <div className="mb-3 rounded-md border border-green-500/30 bg-green-500/10 p-2 text-xs text-green-300">
+              {actionData.ok}
+            </div>
+          ) : null}
+          {actionData?.error ? (
+            <div className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-300">
+              {actionData.error}
+            </div>
+          ) : null}
+          <ul className="flex flex-col gap-2">
+            {memberLimits.members.map((member) => {
+              const current = limitFor(member.userId);
+
+              return (
+                <li key={member.userId} className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="min-w-0 truncate text-sm text-bolt-elements-textPrimary">
+                    {memberLabel(member)}
+                    {member.role ? (
+                      <span className="ml-2 text-[11px] uppercase text-bolt-elements-textTertiary">{member.role}</span>
+                    ) : null}
+                    <span className="ml-2 text-xs text-bolt-elements-textSecondary">
+                      {current != null ? `limit ${dollars(current)}` : 'no member limit'}
+                    </span>
+                  </span>
+                  <Form method="post" className="flex items-center gap-1.5">
+                    <input type="hidden" name="intent" value="member-limit" />
+                    <input type="hidden" name="userId" value={member.userId} />
+                    <span className="text-sm text-bolt-elements-textSecondary">€</span>
+                    <input
+                      type="number"
+                      name="limitDollars"
+                      min="0"
+                      step="any"
+                      defaultValue={current != null ? (current / 100).toString() : ''}
+                      placeholder="No limit"
+                      aria-label={`Spend limit for ${memberLabel(member)} in euros`}
+                      className="w-28 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-1.5 text-sm text-bolt-elements-textPrimary"
+                    />
+                    <Button type="submit" variant="outline" disabled={savingLimit}>
+                      Save
+                    </Button>
+                  </Form>
+                </li>
+              );
+            })}
           </ul>
         </div>
       ) : null}

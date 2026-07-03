@@ -3400,6 +3400,62 @@ export class PrismaApiStore implements ApiStore {
     return Math.abs(result._sum.deltaCents ?? 0);
   }
 
+  async getUserSpendLimit(organizationId: string, userId: string) {
+    const row = await this.prisma.userSpendLimit.findUnique({
+      where: { organizationId_userId: { organizationId, userId } },
+    });
+    return row
+      ? {
+          id: row.id,
+          organizationId: row.organizationId,
+          userId: row.userId,
+          limitCents: row.limitCents,
+          createdAt: row.createdAt.toISOString(),
+          updatedAt: row.updatedAt.toISOString(),
+        }
+      : undefined;
+  }
+
+  async setUserSpendLimit(input: { organizationId: string; userId: string; limitCents: number }) {
+    const row = await this.prisma.userSpendLimit.upsert({
+      where: { organizationId_userId: { organizationId: input.organizationId, userId: input.userId } },
+      update: { limitCents: input.limitCents },
+      create: { organizationId: input.organizationId, userId: input.userId, limitCents: input.limitCents },
+    });
+    return {
+      id: row.id,
+      organizationId: row.organizationId,
+      userId: row.userId,
+      limitCents: row.limitCents,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
+
+  async clearUserSpendLimit(organizationId: string, userId: string) {
+    await this.prisma.userSpendLimit.deleteMany({ where: { organizationId, userId } });
+  }
+
+  async listUserSpendLimits(organizationId: string) {
+    const rows = await this.prisma.userSpendLimit.findMany({ where: { organizationId }, orderBy: { createdAt: 'asc' } });
+    return rows.map((row) => ({
+      id: row.id,
+      organizationId: row.organizationId,
+      userId: row.userId,
+      limitCents: row.limitCents,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    }));
+  }
+
+  async sumUserSpendSince(organizationId: string, userId: string, sinceMs: number): Promise<number> {
+    const result = await this.prisma.agentCheckpoint.aggregate({
+      where: { organizationId, userId, startedAt: { gte: new Date(sinceMs) } },
+      _sum: { creditCents: true },
+    });
+    return Math.max(0, result._sum.creditCents ?? 0);
+  }
+
   async recordPaygCharge(input: { organizationId: string; checkpointId: string; cents: number }): Promise<void> {
     const cents = Math.max(0, Math.ceil(input.cents));
 

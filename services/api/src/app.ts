@@ -19575,6 +19575,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(aiCheckQuotaSchema, request.body ?? {});
 
     /*
+     * Replit-parity per-user (Enterprise) spend cap: block THIS member once their
+     * own usage-based spend for the billing period reaches the limit an admin
+     * assigned them — the per-member override beats the org budget. Gated: dormant
+     * unless BILLING_CREDITS_ENABLED. Fail-open — any lookup error never blocks.
+     */
+    if (process.env.BILLING_CREDITS_ENABLED === 'true' && request.currentUser?.id) {
+      const limit = await store.getUserSpendLimit(project.organizationId, request.currentUser.id).catch(() => undefined);
+
+      if (limit) {
+        const periodStartMs = (await resolveUsagePeriodStart(project.organizationId).catch(() => new Date(0))).getTime();
+        const spent = await store
+          .sumUserSpendSince(project.organizationId, request.currentUser.id, periodStartMs)
+          .catch(() => 0);
+
+        if (spent >= limit.limitCents) {
+          throw Object.assign(new Error('You have reached your personal usage limit for this billing period.'), {
+            statusCode: 429,
+            code: 'USER_SPEND_LIMIT_REACHED',
+          });
+        }
+      }
+    }
+
+    /*
      * Always charge 1 message against the daily ai.messages cap. This is
      * checked even when estimatedInputTokens is 0 so a barely-typed
      * "..." still trips the rate-limit at a sane upper bound.
@@ -20230,6 +20254,62 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { budgetCapCents: wallet.budgetCapCents ?? null, serviceShutdownCents: wallet.serviceShutdownCents ?? null };
+  });
+
+  /*
+   * Replit-parity per-user (Enterprise) spend limits. An admin caps an individual
+   * member's usage-based spend below the org default; the per-member override
+   * beats the org budget (enforced in the AI check-quota gate). List = usage:read;
+   * set/clear = billing:manage.
+   */
+  app.get('/orgs/:orgId/usage/limits', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'usage:read');
+
+    const [limits, members] = await Promise.all([store.listUserSpendLimits(orgId), store.listMembers(orgId)]);
+    return { limits, members };
+  });
+
+  app.put('/orgs/:orgId/usage/limits/:userId', async (request) => {
+    const { orgId, userId } = parse(
+      z.object({ orgId: z.string().min(1), userId: z.string().min(1) }),
+      request.params,
+    );
+    await requireOrg(request, store, orgId, 'billing:manage');
+
+    // The target must be a member of this org (limits are per-membership).
+    const membership = await store.getMembership(userId, orgId);
+
+    if (!membership) {
+      throw Object.assign(new Error('User is not a member of this organization.'), {
+        statusCode: 404,
+        code: 'MEMBER_NOT_FOUND',
+      });
+    }
+
+    const body = parse(z.object({ limitCents: z.number().int().min(0).nullable() }), request.body ?? {});
+
+    if (body.limitCents == null) {
+      await store.clearUserSpendLimit(orgId, userId);
+      await audit(request, store, {
+        organizationId: orgId,
+        action: 'usage.userLimit.clear',
+        resourceType: 'user',
+        resourceId: userId,
+        metadata: {},
+      });
+      return { userId, limitCents: null };
+    }
+
+    const record = await store.setUserSpendLimit({ organizationId: orgId, userId, limitCents: body.limitCents });
+    await audit(request, store, {
+      organizationId: orgId,
+      action: 'usage.userLimit.set',
+      resourceType: 'user',
+      resourceId: userId,
+      metadata: { limitCents: record.limitCents },
+    });
+    return { userId, limitCents: record.limitCents };
   });
 
   /*

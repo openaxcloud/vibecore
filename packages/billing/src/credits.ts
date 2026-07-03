@@ -317,12 +317,21 @@ export interface CreditGateInput {
   budgetCapCents?: number | null;
   /** PAYG spend already incurred this period, in cents. */
   paygSpentCents?: number;
+  /**
+   * Replit-parity per-user (Enterprise) cap on this member's usage-based spend
+   * this period. null/undefined = no per-member override (org default applies).
+   * Takes precedence over the org budget cap — a member is blocked once their own
+   * spend + this request would exceed their limit, even if the org has headroom.
+   */
+  userLimitCents?: number | null;
+  /** This member's usage-based spend already incurred this period, in cents. */
+  userSpentCents?: number;
 }
 
 export type CreditGateDecision =
   | { ok: true; mode: 'credits' }
   | { ok: true; mode: 'payg' }
-  | { ok: false; mode: 'blocked'; reason: 'insufficient_credits' | 'budget_cap_reached' };
+  | { ok: false; mode: 'blocked'; reason: 'insufficient_credits' | 'budget_cap_reached' | 'user_limit_reached' };
 
 /**
  * Decide whether a request may proceed: covered by wallet balance, by
@@ -332,6 +341,19 @@ export type CreditGateDecision =
 export function evaluateCreditGate(input: CreditGateInput): CreditGateDecision {
   const balance = Number.isFinite(input.balanceCents) ? input.balanceCents : 0;
   const estimate = Number.isFinite(input.estimatedCents) ? Math.max(0, input.estimatedCents) : 0;
+
+  /*
+   * Per-user (Enterprise) cap is a hard ceiling on the member, checked FIRST so
+   * it overrides the org budget: a member who has reached their personal limit is
+   * blocked even when the org still has credits / PAYG headroom. No per-member
+   * override (null) → fall through to the org-level gate below.
+   */
+  if (input.userLimitCents != null) {
+    const userSpent = Number.isFinite(input.userSpentCents) ? Math.max(0, input.userSpentCents as number) : 0;
+    if (userSpent + estimate > input.userLimitCents) {
+      return { ok: false, mode: 'blocked', reason: 'user_limit_reached' };
+    }
+  }
 
   if (balance >= estimate) {
     return { ok: true, mode: 'credits' };
