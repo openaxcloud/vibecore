@@ -1,7 +1,13 @@
 import { Search, Rocket, FolderKanban, Cloud, CreditCard, Bot, ArrowRight, LifeBuoy, BookOpen } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ComponentType, type CSSProperties } from 'react';
 import { SiGithub } from 'react-icons/si';
-import { filterHelpArticles, filterHelpTopics, normalizeHelpQuery } from './help-search';
+import {
+  filterHelpArticles,
+  filterHelpTopics,
+  normalizeHelpQuery,
+  HELP_POPULAR_ARTICLES,
+  HELP_TOPICS,
+} from './help-search';
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
@@ -14,51 +20,25 @@ import {
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 
+/*
+ * Presentation-only icon per canonical topic title; the topic corpus itself
+ * lives in help-search.ts so the public /search route can search the exact
+ * same data server-side.
+ */
+const TOPIC_ICONS: Record<string, ComponentType<{ className?: string; style?: CSSProperties }>> = {
+  'Getting started': Rocket,
+  Workspaces: FolderKanban,
+  Deployments: Cloud,
+  Billing: CreditCard,
+  'AI agent': Bot,
+  Integrations: SiGithub,
+};
+
+const topics = HELP_TOPICS.map((topic) => ({ ...topic, icon: TOPIC_ICONS[topic.title] ?? BookOpen }));
+
+const popularArticles = HELP_POPULAR_ARTICLES;
+
 export default function HelpCenter() {
-  const topics = [
-    {
-      icon: Rocket,
-      title: 'Getting started',
-      description: 'Set up your account, create your first project, and ship in minutes.',
-    },
-    {
-      icon: FolderKanban,
-      title: 'Workspaces',
-      description: 'Manage files, terminals, ports, and live previews in the E-Code IDE.',
-    },
-    {
-      icon: Cloud,
-      title: 'Deployments',
-      description: 'Publish static sites and full-stack apps with custom domains.',
-    },
-    {
-      icon: CreditCard,
-      title: 'Billing',
-      description: 'Plans, invoices, usage limits, and how to upgrade or cancel.',
-    },
-    {
-      icon: Bot,
-      title: 'AI agent',
-      description: 'Prompt the agent, review proposed edits, and iterate on your code.',
-    },
-    {
-      icon: SiGithub,
-      title: 'Integrations',
-      description: 'Connect GitHub, MCP servers, and third-party services to your projects.',
-    },
-  ];
-
-  const popularArticles = [
-    'How do I create a new project from a prompt?',
-    'Connecting a GitHub repository to your workspace',
-    'Adding a custom domain to a deployment',
-    'Understanding usage limits on the Free plan',
-    'Why is my preview stuck on "Starting"?',
-    'Accepting and reverting AI agent edits',
-    'Inviting teammates to an organization',
-    'Configuring an MCP integration',
-  ];
-
   // Live query bound to the search input.
   const [query, setQuery] = useState('');
 

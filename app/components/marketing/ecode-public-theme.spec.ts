@@ -96,7 +96,14 @@ describe('E-Code public theme wrappers', () => {
     expect(marketplaceRoute).not.toContain('ecodeMarketingShellLoader');
     expect(exploreRoute).toContain('MarketingStaticPage');
     expect(exploreRoute).not.toContain('ecodeMarketingShellLoader');
-    expect(searchRoute).toContain('MarketingStaticPage');
+
+    /*
+     * /search is a real loader-backed search page (G24), not a static
+     * marketing page anymore — but it must still render inside the SPA
+     * PublicShell chrome rather than the legacy static-shell loader.
+     */
+    expect(searchRoute).toContain('PublicShell');
+    expect(searchRoute).toContain('data-ecode-marketing-page="search"');
     expect(searchRoute).not.toContain('ecodeMarketingShellLoader');
     expect(communityPostRoute).toContain('MarketingStaticPage');
     expect(communityPostRoute).not.toContain('ecodeMarketingShellLoader');
