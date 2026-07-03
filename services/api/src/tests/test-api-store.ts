@@ -452,6 +452,18 @@ export class TestApiStore implements ApiStore {
     return this.organizations.get(id);
   }
 
+  async setOrganizationBillingEmail(organizationId: string, email: string | null) {
+    const organization = this.organizations.get(organizationId);
+
+    if (!organization) {
+      throw new Error(`Organization ${organizationId} not found`);
+    }
+
+    organization.billingEmail = email ?? undefined;
+
+    return organization;
+  }
+
   async addMember(input: { organizationId: string; userId: string; roleKey: string }) {
     const existing = await this.getMembership(input.userId, input.organizationId);
 
@@ -3333,12 +3345,14 @@ export class TestApiStore implements ApiStore {
         !query || user.name?.toLowerCase().includes(query) || user.email?.toLowerCase().includes(query),
     );
 
-    filtered.sort((a, b) => {
-      const left = String((a as Record<string, unknown>)[options.sort] ?? '');
-      const right = String((b as Record<string, unknown>)[options.sort] ?? '');
+    const sortValue = (user: { name?: string | null; email?: string; createdAt?: string }) =>
+      options.sort === 'name' ? (user.name ?? '') : options.sort === 'email' ? (user.email ?? '') : (user.createdAt ?? '');
 
-      return options.direction === 'asc' ? left.localeCompare(right) : right.localeCompare(left);
-    });
+    filtered.sort((a, b) =>
+      options.direction === 'asc'
+        ? sortValue(a).localeCompare(sortValue(b))
+        : sortValue(b).localeCompare(sortValue(a)),
+    );
 
     const start = (options.page - 1) * options.pageSize;
 

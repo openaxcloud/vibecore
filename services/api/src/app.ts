@@ -19388,6 +19388,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                     text: content.text,
                     html: content.html,
                   });
+
+                  /*
+                   * CC the org's billing address (Payment method page setting)
+                   * with its own copy — EmailMessage has no cc field, and a
+                   * separate send keeps the primary alert independent.
+                   */
+                  const billingEmail = (await store.getOrganization(project.organizationId))?.billingEmail;
+
+                  if (billingEmail && billingEmail !== email) {
+                    await emailProvider.send({
+                      to: billingEmail,
+                      subject: content.subject,
+                      text: content.text,
+                      html: content.html,
+                    });
+                  }
                 }
 
                 await store.markSpendAlert({ organizationId: project.organizationId, pct, periodStartMs });
@@ -20005,6 +20021,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { portalUrl: session.url, sessionId: session.id };
   });
+  /*
+   * Billing CC address: stored on the organization, CC'd on spend-alert emails.
+   * Owner/billing scope; null clears it.
+   */
+  app.patch('/orgs/:orgId/billing/email', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'billing:manage');
+
+    const body = parse(z.object({ email: z.string().email().max(320).nullable() }), request.body);
+    const organization = await store.setOrganizationBillingEmail(orgId, body.email);
+
+    return { organization };
+  });
+
   app.get('/orgs/:orgId/billing/invoices', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'billing:read');

@@ -616,6 +616,12 @@ export class PrismaApiStore implements ApiStore {
     return organization ? mapOrganization(organization) : undefined;
   }
 
+  async setOrganizationBillingEmail(organizationId: string, email: string | null) {
+    return mapOrganization(
+      await this.prisma.organization.update({ where: { id: organizationId }, data: { billingEmail: email } }),
+    );
+  }
+
   async addMember(input: { organizationId: string; userId: string; roleKey: string }) {
     const role = await this.ensureRole(input.roleKey);
 
@@ -4474,6 +4480,7 @@ function mapOrganization(organization: any): OrganizationRecord {
     slug: organization.slug,
     name: organization.name,
     createdAt: toIso(organization.createdAt)!,
+    billingEmail: organization.billingEmail ?? undefined,
   };
 }
 

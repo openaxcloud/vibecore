@@ -164,6 +164,7 @@ exports.Prisma.OrganizationScalarFieldEnum = {
   id: 'id',
   slug: 'slug',
   name: 'name',
+  billingEmail: 'billingEmail',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

@@ -58,6 +58,9 @@ export interface OrganizationRecord {
   slug: string;
   name: string;
   createdAt: string;
+
+  /** Optional CC address for billing notifications. */
+  billingEmail?: string;
 }
 
 export interface MembershipRecord {
@@ -955,6 +958,7 @@ export interface ApiStore {
   createOrganization(input: { name: string; slug: string; ownerUserId: string }): Promise<OrganizationRecord>;
   listOrganizations(userId: string): Promise<OrganizationRecord[]>;
   getOrganization(id: string): Promise<OrganizationRecord | undefined>;
+  setOrganizationBillingEmail(organizationId: string, email: string | null): Promise<OrganizationRecord>;
   addMember(input: { organizationId: string; userId: string; roleKey: string }): Promise<MembershipRecord>;
   getMembership(userId: string, organizationId: string): Promise<MembershipRecord | undefined>;
   listMembers(organizationId: string): Promise<MembershipRecord[]>;

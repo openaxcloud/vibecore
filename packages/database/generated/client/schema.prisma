@@ -135,6 +135,8 @@ model Organization {
   id                         String                          @id @default(cuid())
   slug                       String                          @unique
   name                       String
+  /// Optional CC address for billing notifications (spend alerts, invoices).
+  billingEmail               String?
   createdAt                  DateTime                        @default(now())
   updatedAt                  DateTime                        @updatedAt
   members                    OrganizationMember[]

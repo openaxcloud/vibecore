@@ -67,6 +67,16 @@ export default function InvoicesPage() {
       error={accessLimited ? 'Invoices are visible to organization owners and billing administrators.' : undefined}
     >
       {invoices.length ? (
+        <div className="mb-4 flex justify-end">
+          <a
+            href="/invoices/download"
+            className="inline-flex h-8 items-center rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
+          >
+            Download all (.zip)
+          </a>
+        </div>
+      ) : null}
+      {invoices.length ? (
         <ul className="divide-y divide-bolt-elements-borderColor">
           {invoices.map((invoice) => {
             const link = invoice.hostedInvoiceUrl ?? invoice.invoicePdf;
