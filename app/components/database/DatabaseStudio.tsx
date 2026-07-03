@@ -1,9 +1,10 @@
-import { Play, Table2, RefreshCw } from 'lucide-react';
+import { Check, Copy, Play, Table2, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
 import { QueryHistoryControl } from './QueryHistoryControl';
 import { clearQueryHistory, readQueryHistory, recordQueryHistory, removeQueryHistory } from './query-history';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
+import Popover from '~/components/ui/Popover';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -151,6 +152,83 @@ function normalizeRows(result: QueryResult): { columns: string[]; rows: unknown[
   const columns = result.columns ?? Object.keys(first as Record<string, unknown>);
 
   return { columns, rows: (rows as Array<Record<string, unknown>>).map((r) => columns.map((c) => r[c])) };
+}
+
+/*
+ * G15 — full-value popover for truncated result cells.
+ * The results <td> clips at max-w-[280px] via `truncate`; at the table's 12px mono
+ * type (~7.5px/char) minus the px-3 padding that is roughly 35 characters, so only
+ * values longer than this threshold — the ones actually being cut off — get the
+ * click-to-expand affordance. NULL/empty cells keep their plain rendering.
+ */
+const CELL_TRUNCATION_THRESHOLD = 35;
+
+function CopyCellValueButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => setCopied(false), 1500);
+
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        navigator.clipboard
+          ?.writeText(value)
+          .then(() => setCopied(true))
+          .catch(() => {});
+      }}
+      className="inline-flex shrink-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-[11px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+    >
+      {copied ? <Check className="h-3 w-3" aria-hidden /> : <Copy className="h-3 w-3" aria-hidden />}
+      {copied ? 'Copied' : 'Copy'}
+    </button>
+  );
+}
+
+/** Read-mode cell value: plain text, or a popover exposing the full value when truncated. */
+function CellValue({ value }: { value: string }) {
+  if (value.length <= CELL_TRUNCATION_THRESHOLD) {
+    return <>{value}</>;
+  }
+
+  return (
+    <Popover
+      side="bottom"
+      align="start"
+      testId="db-cell-full-value"
+      contentClassName="w-[420px]"
+      trigger={
+        <button
+          type="button"
+          title="Show full value"
+          className="block w-full cursor-pointer truncate text-left underline decoration-dotted underline-offset-2 hover:text-bolt-elements-textPrimary"
+        >
+          {value}
+        </button>
+      }
+    >
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] font-medium text-bolt-elements-textTertiary">Full value</span>
+          <CopyCellValueButton value={value} />
+        </div>
+        <pre
+          className="max-h-64 overflow-auto whitespace-pre-wrap break-all rounded-md bg-bolt-elements-background-depth-1 p-2 text-[12px] leading-relaxed text-bolt-elements-textPrimary"
+          style={{ fontFamily: 'var(--vc-font-code)' }}
+        >
+          {value}
+        </pre>
+      </div>
+    </Popover>
+  );
 }
 
 export function DatabaseStudio({ projectId }: { projectId: string }) {
@@ -460,7 +538,7 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                           ) : cell === null || cell === undefined ? (
                             '∅'
                           ) : (
-                            String(cell)
+                            <CellValue value={String(cell)} />
                           )}
                         </td>
                       ))}
