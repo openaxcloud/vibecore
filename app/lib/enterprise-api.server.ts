@@ -319,6 +319,13 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
      * `error.clone().json()` / `error.status` (see `apiErrorMessage`,
      * `isApiResponse`, and the signup/admin action catch blocks).
      */
+    /*
+     * Forward the upstream Retry-After header (rate-limited 429s) so route
+     * actions can tell the user the REAL wait instead of inventing one.
+     * Nothing else about the upstream response leaks through.
+     */
+    const retryAfter = response.headers.get('retry-after');
+
     throw jsonResponse(
       {
         ok: false,
@@ -328,7 +335,7 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
             : String(payload),
         code: payloadCode,
       },
-      { status: response.status },
+      { status: response.status, headers: retryAfter ? { 'retry-after': retryAfter } : undefined },
     );
   }
 

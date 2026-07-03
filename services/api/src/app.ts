@@ -7587,6 +7587,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
       }
 
+      /*
+       * Surface the existing admin-suspension state at login time instead of
+       * minting a session that every subsequent request rejects with an opaque
+       * 403 (requireAuth's USER_SUSPENDED gate). Checked only AFTER full
+       * credential + MFA verification so the login form cannot be used to
+       * probe suspension state without already holding valid credentials.
+       */
+      if (await isUserSuspended(store, user.id)) {
+        metrics.increment('auth_failures_total', { reason: 'suspended' });
+        return reply.code(403).send({ error: 'User is suspended', code: 'USER_SUSPENDED' });
+      }
+
       const token = createOpaqueToken('session');
       await createLoginSession({ store, userId: user.id, organizationId: orgIdFromRequest(request), token, request });
       reply.setCookie('session', token, authCookieOptions(isProduction));

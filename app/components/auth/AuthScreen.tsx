@@ -1,6 +1,6 @@
 import { ChevronLeft, Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { InputHTMLAttributes, ReactNode } from 'react';
 import { Link } from 'react-router';
 import { EcodeBrandMark } from '~/components/brand/EcodeBrandMark';
 import { RevealButton } from '~/components/ui/RevealButton';
@@ -161,6 +161,13 @@ interface AuthFieldProps {
   minLength?: number;
   maxLength?: number;
   icon?: ReactNode;
+
+  /*
+   * Extra attributes spread onto the <input> itself — used by the login
+   * page's field-error wiring (`fieldErrorProps`: id / aria-invalid /
+   * aria-describedby) without AuthField knowing about that pattern.
+   */
+  inputProps?: InputHTMLAttributes<HTMLInputElement>;
 }
 
 export function AuthField({
@@ -176,6 +183,7 @@ export function AuthField({
   minLength,
   maxLength,
   icon,
+  inputProps,
 }: AuthFieldProps) {
   const isPassword = type === 'password';
   const inputRef = useRef<HTMLInputElement>(null);
@@ -225,6 +233,7 @@ export function AuthField({
           className={`vc-auth-input h-12 w-full rounded-md border ${
             icon ? 'pl-10' : 'pl-3'
           } ${isPassword ? 'pr-11' : icon ? 'pr-10' : 'pr-3'} text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]`}
+          {...inputProps}
         />
         {isPassword ? (
           <RevealButton

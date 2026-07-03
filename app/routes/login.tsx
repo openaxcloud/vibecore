@@ -1,8 +1,9 @@
 import { CheckCircle, Chrome, Code2, Eye, EyeOff, Github, KeyRound, Lock, Mail, Shield, Sparkles } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { AuthField, AuthOauthButton, AuthScreen, AuthSubmit, useAuthOauthPending } from '~/components/auth/AuthScreen';
+import { FieldError, fieldErrorProps } from '~/components/ui/FieldError';
 import {
   apiRequest,
   apiBaseUrl,
@@ -110,36 +111,69 @@ export async function action({ request }: EnterpriseActionArgs) {
   } catch (error) {
     if (error instanceof Response) {
       let message = 'Login failed';
+      let code: string | undefined;
 
       try {
         const payload = (await error.json()) as { error?: string; code?: string };
         message = payload.error ?? message;
-
-        const mfaRequired = payload.code === 'AUTH_MFA_REQUIRED';
-
-        return json(
-          {
-            error: message,
-            mfaRequired,
-            email: typeof body.email === 'string' ? body.email : '',
-
-            /*
-             * The API re-verifies the password on the MFA-completion step, but
-             * the password input is uncontrolled and resets on re-render. Echo
-             * it back ONLY when MFA is required so the second submit can carry
-             * email + password + mfaCode together; otherwise the MFA login can
-             * never complete. Not exposed elsewhere (no logging, hidden input).
-             */
-            password: mfaRequired && typeof body.password === 'string' ? body.password : '',
-            rememberMe,
-          },
-          { status: error.status },
-        );
+        code = payload.code;
       } catch {
         message = error.statusText || message;
       }
 
-      return json({ error: message, mfaRequired: false }, { status: error.status });
+      /*
+       * Map ONLY the failure states the API really distinguishes.
+       *
+       * SECURITY: the API deliberately returns ONE generic 401
+       * (AUTH_INVALID_CREDENTIALS) for both unknown-email and wrong-password
+       * so this form cannot be used to enumerate accounts. Mirror that
+       * honestly with a single combined message — never split the two
+       * client-side.
+       */
+      if (code === 'AUTH_INVALID_CREDENTIALS') {
+        message = 'Email or password is incorrect.';
+      } else if (code === 'USER_SUSPENDED') {
+        message = 'This account is suspended. Contact support if you believe this is a mistake.';
+      } else if (error.status === 429) {
+        /*
+         * Login is rate-limited per IP (AUTH_LOGIN_RATE_LIMIT_MAX/minute).
+         * Use the API's real Retry-After header (forwarded by apiRequest)
+         * rather than inventing a delay.
+         */
+        const retryAfterSeconds = Number(error.headers.get('retry-after'));
+
+        const wait =
+          Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+            ? retryAfterSeconds >= 90
+              ? `${Math.ceil(retryAfterSeconds / 60)} minutes`
+              : `${Math.round(retryAfterSeconds)} seconds`
+            : 'a minute';
+
+        message = `Too many attempts — try again in ${wait}.`;
+        code = 'RATE_LIMITED';
+      }
+
+      const mfaRequired = code === 'AUTH_MFA_REQUIRED';
+
+      return json(
+        {
+          error: message,
+          code,
+          mfaRequired,
+          email: typeof body.email === 'string' ? body.email : '',
+
+          /*
+           * The API re-verifies the password on the MFA-completion step, but
+           * the password input is uncontrolled and resets on re-render. Echo
+           * it back ONLY when MFA is required so the second submit can carry
+           * email + password + mfaCode together; otherwise the MFA login can
+           * never complete. Not exposed elsewhere (no logging, hidden input).
+           */
+          password: mfaRequired && typeof body.password === 'string' ? body.password : '',
+          rememberMe,
+        },
+        { status: error.status },
+      );
     }
 
     /*
@@ -186,7 +220,7 @@ export default function LoginPage() {
     loaderData?.providers?.find((p) => p.provider === provider)?.ready !== false;
 
   const loginActionData = actionData as
-    | { error?: string; mfaRequired?: boolean; email?: string; password?: string; rememberMe?: boolean }
+    | { error?: string; code?: string; mfaRequired?: boolean; email?: string; password?: string; rememberMe?: boolean }
     | undefined;
 
   const oauthErrorMessage = loaderData?.oauth
@@ -202,12 +236,33 @@ export default function LoginPage() {
   const mfaRequired = Boolean(loginActionData?.mfaRequired);
   const error = loginActionData?.error ?? oauthErrorMessage ?? undefined;
 
+  /*
+   * E9 field-level errors: the ONLY per-field states the API distinguishes.
+   * A generic 401 marks both credential fields (anti-enumeration — the API
+   * never says which one is wrong); an invalid MFA code marks the code field.
+   */
+  const credentialsError = loginActionData?.code === 'AUTH_INVALID_CREDENTIALS' ? loginActionData.error : undefined;
+  const mfaCodeError = loginActionData?.code === 'AUTH_INVALID_MFA_CODE' ? loginActionData.error : undefined;
+
+  /*
+   * E9 a11y: on every failed submit, move focus to the role="alert" banner
+   * (tabIndex -1) so keyboard/screen-reader users land on the explanation
+   * instead of a silently re-rendered form. Keyed on the actionData object —
+   * a fresh instance arrives per submit, so repeat failures re-focus.
+   */
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (loginActionData?.error) {
+      errorRef.current?.focus();
+    }
+  }, [loginActionData]);
+
   return (
     <AuthScreen
       eyebrow="Secure workspace access"
       title="Welcome back"
       description="Sign in to continue building, previewing and deploying production applications with the E-Code IDE."
-      error={error}
       backTo="/"
       backLabel="Back to home"
       heroEyebrow="AI-powered development"
@@ -285,17 +340,37 @@ export default function LoginPage() {
         </>
       }
     >
+      {/*
+       * Rendered locally (not via AuthScreen's `error` prop) so the banner can
+       * carry a ref + tabIndex={-1} and receive focus on failed submits. Same
+       * slot position and classes as the shell's own error banner.
+       */}
+      {error ? (
+        <div
+          ref={errorRef}
+          tabIndex={-1}
+          role="alert"
+          className="vc-auth-alert vc-auth-alert-error mb-4 rounded-md px-3 py-2 text-[12px] outline-none"
+        >
+          {error}
+        </div>
+      ) : null}
+
       <Form method="post" className="space-y-4 sm:space-y-5">
-        <AuthField
-          label="Email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          defaultValue={loginActionData?.email ?? ''}
-          placeholder="you@company.com"
-          icon={<Mail className="h-4 w-4" />}
-        />
+        <div>
+          <AuthField
+            label="Email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            defaultValue={loginActionData?.email ?? ''}
+            placeholder="you@company.com"
+            icon={<Mail className="h-4 w-4" />}
+            inputProps={fieldErrorProps('login-email', credentialsError)}
+          />
+          <FieldError fieldId="login-email" error={credentialsError} />
+        </div>
 
         {/*
          * On the MFA step the password was already entered and verified on the
@@ -321,6 +396,7 @@ export default function LoginPage() {
                 required
                 placeholder="Enter your password"
                 className="vc-auth-input h-12 w-full rounded-md border px-10 pr-12 text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]"
+                {...fieldErrorProps('login-password', credentialsError)}
               />
               <button
                 type="button"
@@ -331,22 +407,29 @@ export default function LoginPage() {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </span>
+            <FieldError fieldId="login-password" error={credentialsError} />
           </label>
         )}
 
-        <AuthField
-          label={mfaRequired ? 'MFA code required' : 'MFA or recovery code'}
-          name="mfaCode"
-          type="text"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          minLength={6}
-          maxLength={32}
-          required={mfaRequired}
-          placeholder="123456 or recovery code"
-          icon={<KeyRound className="h-4 w-4" />}
-          hint={mfaRequired ? 'Enter your authenticator app code, or one of your one-time recovery codes.' : undefined}
-        />
+        <div>
+          <AuthField
+            label={mfaRequired ? 'MFA code required' : 'MFA or recovery code'}
+            name="mfaCode"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            minLength={6}
+            maxLength={32}
+            required={mfaRequired}
+            placeholder="123456 or recovery code"
+            icon={<KeyRound className="h-4 w-4" />}
+            hint={
+              mfaRequired ? 'Enter your authenticator app code, or one of your one-time recovery codes.' : undefined
+            }
+            inputProps={fieldErrorProps('login-mfa-code', mfaCodeError)}
+          />
+          <FieldError fieldId="login-mfa-code" error={mfaCodeError} />
+        </div>
 
         {/*
          * The visible password field is hidden on the MFA step (above). The API

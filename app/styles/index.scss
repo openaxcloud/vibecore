@@ -20634,6 +20634,15 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   color: var(--vc-auth-muted);
 }
 
+/*
+ * E30/E9 field-error state: `fieldErrorProps()` sets aria-invalid on the
+ * credential fields after a failed submit. Declared BEFORE the :focus rule
+ * (equal specificity) so the focus border wins while the user is fixing it.
+ */
+.vc-auth-input[aria-invalid='true'] {
+  border-color: var(--status-error-text);
+}
+
 .vc-auth-input:focus {
   border-color: var(--vc-auth-focus);
 }
