@@ -1,6 +1,9 @@
 import { Laptop, LogOut, Monitor, Smartphone, Trash2 } from 'lucide-react';
-import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from 'react-router';
+import { toast } from 'react-toastify';
 import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import {
   apiErrorMessage,
   apiRequest,
@@ -205,7 +208,16 @@ export default function SessionSecurityPage() {
   const { orgId, sessions, sessionsUnavailable } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
   const navigation = useNavigation();
+  const submit = useSubmit();
   const busy = navigation.state !== 'idle';
+  const [confirmRevokeAll, setConfirmRevokeAll] = useState(false);
+
+  /* Surface the sign-out-all result as a toast on top of the inline banner. */
+  useEffect(() => {
+    if (actionData?.status?.includes('signed out')) {
+      toast.success(actionData.status);
+    }
+  }, [actionData]);
 
   const otherSessions = sessions.filter((session) => !session.current);
 
@@ -226,29 +238,19 @@ export default function SessionSecurityPage() {
               </p>
             </div>
             {otherSessions.length > 0 ? (
-              <Form
-                method="post"
-                className="mt-3 shrink-0 sm:mt-0"
-                onSubmit={(event) => {
-                  if (
-                    !window.confirm(
-                      'Sign out all other sessions? Every device except this one will be signed out immediately.',
-                    )
-                  ) {
-                    event.preventDefault();
-                  }
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setConfirmRevokeAll(true)}
+                style={{
+                  color: 'var(--status-error-text)',
+                  borderColor: 'color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
                 }}
+                className="mt-3 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:mt-0"
               >
-                <input type="hidden" name="intent" value="revoke-all" />
-                <button
-                  type="submit"
-                  disabled={busy}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <LogOut className="h-3.5 w-3.5" aria-hidden />
-                  Sign out all other sessions
-                </button>
-              </Form>
+                <LogOut className="h-3.5 w-3.5" aria-hidden />
+                Sign out all other sessions
+              </button>
             ) : null}
           </div>
 
@@ -348,6 +350,18 @@ export default function SessionSecurityPage() {
           </Form>
         </section>
       </div>
+      <ConfirmationDialog
+        isOpen={confirmRevokeAll}
+        onClose={() => setConfirmRevokeAll(false)}
+        onConfirm={() => {
+          setConfirmRevokeAll(false);
+          submit({ intent: 'revoke-all' }, { method: 'post' });
+        }}
+        title="Sign out all other sessions?"
+        description="Every device except this one will be signed out immediately. Your current session stays active."
+        confirmLabel="Sign out all"
+        variant="destructive"
+      />
     </EnterpriseFormPage>
   );
 }
