@@ -1,7 +1,7 @@
 import { Building2, Plus } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
 import { useLoaderData } from 'react-router';
-import { ActivityList, AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
+import { ActivityList, AppShell } from '~/components/dashboard/SaaSLayout';
 import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { buildOrganizationRows, type Organization } from '~/lib/organizations';
 
@@ -19,7 +19,6 @@ export default function OrganizationSwitcherPage() {
     <AppShell
       title="Organizations"
       description="The organizations you belong to, each with isolated projects, billing and RBAC settings."
-      actions={<LinkButton to="/onboarding">New organization</LinkButton>}
     >
       <ActivityList
         items={buildOrganizationRows(organizations).map((row) => ({
