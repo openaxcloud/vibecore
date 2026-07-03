@@ -1,9 +1,11 @@
 import {
   Ban,
   CheckCircle2,
+  ChevronDown,
   Cloud,
   CloudCog,
   GitBranch,
+  GitCommitHorizontal,
   Globe2,
   Copy,
   History,
@@ -13,9 +15,10 @@ import {
   ShieldCheck,
   Sparkles,
   TerminalSquare,
+  Timer,
   type LucideIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation, useRevalidator, useSearchParams } from 'react-router';
@@ -23,6 +26,7 @@ import {
   DEPLOY_POLL_INTERVAL_MS,
   DEPLOY_REQUEST_TIMEOUT_MS,
   deploymentsRedirectQuery,
+  formatDeploymentDuration,
   shouldPollDeployments,
 } from './projects.$projectId.deployments.view';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
@@ -37,6 +41,8 @@ import {
   type DeploymentTypeId,
 } from '~/components/deploy/deployment-types';
 import { Button } from '~/components/ui/Button';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
+import { RelativeTime } from '~/components/ui/RelativeTime';
 import {
   apiErrorMessage,
   apiRequest,
@@ -60,9 +66,14 @@ type Deployment = {
   buildCommand?: string;
   outputDirectory?: string;
   branch?: string;
+  commitSha?: string;
   customDomain?: string;
   logs: DeploymentLog[];
+
+  /** Set when this row was created by rolling back to a previous deployment. */
+  rolledBackFromId?: string;
   createdAt?: string;
+  startedAt?: string;
   finishedAt?: string;
 };
 type DeploymentsData = { deployments: Deployment[] };
@@ -594,6 +605,25 @@ function RequirementList({ title, items }: { title: string; items: string[] }) {
   );
 }
 
+/**
+ * Time-of-day label for a log line. Only rendered after the user expands the
+ * logs (a client-side interaction), so locale formatting can't cause an
+ * SSR/hydration mismatch. Falls back to the raw value for malformed timestamps.
+ */
+function formatLogTimestamp(timestamp: string): string {
+  const date = new Date(timestamp);
+  return Number.isNaN(date.getTime()) ? timestamp : date.toLocaleTimeString();
+}
+
+/**
+ * One timeline entry: status pill + provider/environment chips, then a meta
+ * line built from the fields the Deployment row REALLY stores — commit sha,
+ * branch, build duration (startedAt→finishedAt) and age. The mockup's "author"
+ * column has no backing field (deployments aren't attributed to a git author in
+ * the data model) so it is intentionally not rendered. Logs are a flat
+ * timestamped line array (no per-step structure), rendered as an expandable
+ * section collapsed by default.
+ */
 function DeploymentRow({
   deployment,
   busy,
@@ -604,6 +634,9 @@ function DeploymentRow({
   workspaceId: string;
 }) {
   const ready = deployment.status === 'READY';
+  const logs = deployment.logs ?? [];
+  const [logsOpen, setLogsOpen] = useState(false);
+  const duration = formatDeploymentDuration(deployment.startedAt, deployment.finishedAt);
 
   return (
     <article className="grid gap-4 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_240px]">
@@ -619,18 +652,79 @@ function DeploymentRow({
               {deployment.framework}
             </span>
           ) : null}
+          {deployment.rolledBackFromId ? (
+            <span
+              className="inline-flex items-center gap-1 rounded bg-bolt-elements-background-depth-1 px-2 py-0.5 text-[11px] text-bolt-elements-textSecondary"
+              title={`Created by rolling back to deployment ${deployment.rolledBackFromId}`}
+            >
+              <History className="h-3 w-3" aria-hidden /> rollback
+            </span>
+          ) : null}
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-bolt-elements-textSecondary">
+          {deployment.commitSha ? (
+            <span className="inline-flex items-center gap-1 font-mono" title={deployment.commitSha}>
+              <GitCommitHorizontal className="h-3.5 w-3.5 text-bolt-elements-textTertiary" aria-hidden />
+              {deployment.commitSha.slice(0, 7)}
+            </span>
+          ) : null}
+          {deployment.branch ? (
+            <span className="inline-flex items-center gap-1">
+              <GitBranch className="h-3.5 w-3.5 text-bolt-elements-textTertiary" aria-hidden />
+              {deployment.branch}
+            </span>
+          ) : null}
+          {duration ? (
+            <span className="inline-flex items-center gap-1" title="Build duration">
+              <Timer className="h-3.5 w-3.5 text-bolt-elements-textTertiary" aria-hidden />
+              {duration}
+            </span>
+          ) : null}
+          {deployment.createdAt ? <RelativeTime value={deployment.createdAt} prefix="deployed" /> : null}
         </div>
         <p className="mt-2 truncate text-xs text-bolt-elements-textSecondary">
           {deployment.url ?? 'URL pending'} {deployment.customDomain ? `- ${deployment.customDomain}` : ''}
         </p>
         <div className="mt-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
-          <div className="flex items-center gap-2 border-b border-bolt-elements-borderColor px-3 py-2 text-xs font-medium text-bolt-elements-textSecondary">
+          <button
+            type="button"
+            onClick={() => setLogsOpen((open) => !open)}
+            aria-expanded={logsOpen}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-bolt-elements-textSecondary transition-colors hover:text-bolt-elements-textPrimary"
+          >
+            <ChevronDown
+              className={classNames('h-4 w-4 transition-transform', logsOpen ? '' : '-rotate-90')}
+              aria-hidden
+            />
             <TerminalSquare className="h-4 w-4" aria-hidden />
             Redacted deployment logs
-          </div>
-          <pre className="max-h-40 overflow-auto p-3 font-mono text-[11px] leading-5 text-bolt-elements-textSecondary">
-            {(deployment.logs ?? []).map((log) => `[${log.level}] ${log.message}`).join('\n') || 'No logs yet'}
-          </pre>
+            <span className="ml-auto text-[11px] font-normal text-bolt-elements-textTertiary">
+              {logs.length} {logs.length === 1 ? 'line' : 'lines'}
+            </span>
+          </button>
+          {logsOpen ? (
+            <div className="max-h-40 overflow-auto border-t border-bolt-elements-borderColor p-3 font-mono text-[11px] leading-5 text-bolt-elements-textSecondary">
+              {logs.length ? (
+                logs.map((log, index) => (
+                  <div
+                    key={index}
+                    className="whitespace-pre-wrap"
+                    style={
+                      log.level === 'error'
+                        ? { color: 'var(--status-error-text)' }
+                        : log.level === 'warn'
+                          ? { color: 'var(--status-warning-text)' }
+                          : undefined
+                    }
+                  >
+                    [{formatLogTimestamp(log.timestamp)}] [{log.level}] {log.message}
+                  </div>
+                ))
+              ) : (
+                <span>No logs yet</span>
+              )}
+            </div>
+          ) : null}
         </div>
       </div>
       <div className="flex flex-wrap content-start gap-2 lg:justify-end">
@@ -676,6 +770,32 @@ function DeploymentRow({
   );
 }
 
+/*
+ * Rollback/cancel are production-impacting; require an explicit confirmation
+ * dialog (ui/ConfirmationDialog, not window.confirm) before firing them.
+ * Redeploy is non-destructive (no prompt). The rollback POST is fully real
+ * server-side: it re-publishes the target deployment (triggering a provider
+ * rollback for netlify/vercel) and records a `deployment.rollback` audit event.
+ */
+const confirmDialogs: Record<
+  string,
+  { title: string; description: string; confirmLabel: string; variant: 'default' | 'destructive' }
+> = {
+  rollback: {
+    title: 'Roll back to this deployment?',
+    description:
+      'This changes what is currently served: the selected build is re-published as a new deployment and an audit event is recorded.',
+    confirmLabel: 'Roll back',
+    variant: 'default',
+  },
+  cancel: {
+    title: 'Cancel this deployment?',
+    description: 'The in-progress build stops and the deployment is marked as canceled.',
+    confirmLabel: 'Cancel deployment',
+    variant: 'destructive',
+  },
+};
+
 function InlineAction({
   intent,
   deploymentId,
@@ -692,54 +812,70 @@ function InlineAction({
   children: React.ReactNode;
 }) {
   const ActionIcon = icon;
-
-  /*
-   * Rollback/cancel are production-impacting; require a confirmation before
-   * firing them on a single click. Redeploy is non-destructive (no prompt).
-   */
-  const confirmMessages: Record<string, string> = {
-    rollback: 'Roll back to this deployment? This changes what production currently serves.',
-    cancel: 'Cancel this in-progress deployment?',
-  };
+  const formRef = useRef<HTMLFormElement>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const confirm = confirmDialogs[intent];
 
   return (
-    <Form
-      method="post"
-      onSubmit={(event) => {
-        const message = confirmMessages[intent];
+    <>
+      <Form method="post" ref={formRef}>
+        <input type="hidden" name="intent" value={intent} />
+        <input type="hidden" name="deploymentId" value={deploymentId} />
+        <input type="hidden" name="workspaceId" value={workspaceId} />
+        <Button
+          type={confirm ? 'button' : 'submit'}
+          onClick={confirm ? () => setConfirmOpen(true) : undefined}
+          variant="outline"
+          size="sm"
+          disabled={disabled}
+          className="gap-2"
+        >
+          <ActionIcon className="h-3.5 w-3.5" aria-hidden />
+          {children}
+        </Button>
+      </Form>
+      {confirm ? (
+        <ConfirmationDialog
+          isOpen={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={() => {
+            setConfirmOpen(false);
 
-        if (message && !window.confirm(message)) {
-          event.preventDefault();
-        }
-      }}
-    >
-      <input type="hidden" name="intent" value={intent} />
-      <input type="hidden" name="deploymentId" value={deploymentId} />
-      <input type="hidden" name="workspaceId" value={workspaceId} />
-      <Button type="submit" variant="outline" size="sm" disabled={disabled} className="gap-2">
-        <ActionIcon className="h-3.5 w-3.5" aria-hidden />
-        {children}
-      </Button>
-    </Form>
+            // requestSubmit (not submit()) fires the submit event react-router intercepts.
+            formRef.current?.requestSubmit();
+          }}
+          title={confirm.title}
+          description={confirm.description}
+          confirmLabel={confirm.confirmLabel}
+          variant={confirm.variant}
+        />
+      ) : null}
+    </>
   );
 }
 
+/**
+ * Status pill on live status tokens: READY=success, FAILED=error,
+ * CANCELED=warning (deliberate stop, not a failure), QUEUED/BUILDING=info.
+ */
 function StatusBadge({ status }: { status: string }) {
-  const ready = status === 'READY';
-  const failed = status === 'FAILED' || status === 'CANCELED';
+  const tone =
+    status === 'READY' ? 'success' : status === 'FAILED' ? 'error' : status === 'CANCELED' ? 'warning' : 'info';
 
   return (
     <span
-      className={classNames(
-        'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium',
-        ready
-          ? 'border-green-500/30 bg-green-500/10 text-green-300'
-          : failed
-            ? 'border-red-500/30 bg-red-500/10 text-red-300'
-            : 'border-yellow-500/30 bg-yellow-500/10 text-yellow-200',
-      )}
+      className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium"
+      style={{
+        color: `var(--status-${tone}-text)`,
+        borderColor: `color-mix(in srgb, var(--status-${tone}-text) 30%, transparent)`,
+        background: `color-mix(in srgb, var(--status-${tone}-text) 10%, transparent)`,
+      }}
     >
-      {ready ? <CheckCircle2 className="h-3 w-3" aria-hidden /> : <Rocket className="h-3 w-3" aria-hidden />}
+      {status === 'READY' ? (
+        <CheckCircle2 className="h-3 w-3" aria-hidden />
+      ) : (
+        <Rocket className="h-3 w-3" aria-hidden />
+      )}
       {status}
     </span>
   );

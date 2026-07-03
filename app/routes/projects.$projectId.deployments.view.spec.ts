@@ -3,6 +3,7 @@ import {
   DEPLOY_POLL_INTERVAL_MS,
   DEPLOY_REQUEST_TIMEOUT_MS,
   deploymentsRedirectQuery,
+  formatDeploymentDuration,
   isActiveDeploymentStatus,
   shouldPollDeployments,
 } from './projects.$projectId.deployments.view';
@@ -114,5 +115,33 @@ describe('DEPLOY_POLL_INTERVAL_MS', () => {
   it('is a sane sub-minute cadence', () => {
     expect(DEPLOY_POLL_INTERVAL_MS).toBeGreaterThan(0);
     expect(DEPLOY_POLL_INTERVAL_MS).toBeLessThanOrEqual(10_000);
+  });
+});
+
+describe('formatDeploymentDuration', () => {
+  it('formats sub-minute durations as seconds', () => {
+    expect(formatDeploymentDuration('2026-07-03T10:00:00Z', '2026-07-03T10:00:42Z')).toBe('42s');
+    expect(formatDeploymentDuration('2026-07-03T10:00:00Z', '2026-07-03T10:00:00Z')).toBe('0s');
+  });
+
+  it('formats minute durations, omitting a zero seconds remainder', () => {
+    expect(formatDeploymentDuration('2026-07-03T10:00:00Z', '2026-07-03T10:03:12Z')).toBe('3m 12s');
+    expect(formatDeploymentDuration('2026-07-03T10:00:00Z', '2026-07-03T10:03:00Z')).toBe('3m');
+  });
+
+  it('formats hour durations, omitting a zero minutes remainder', () => {
+    expect(formatDeploymentDuration('2026-07-03T10:00:00Z', '2026-07-03T11:04:00Z')).toBe('1h 4m');
+    expect(formatDeploymentDuration('2026-07-03T10:00:00Z', '2026-07-03T12:00:00Z')).toBe('2h');
+  });
+
+  it('returns null when either bound is missing (in-flight or legacy rows)', () => {
+    expect(formatDeploymentDuration(undefined, '2026-07-03T10:00:42Z')).toBeNull();
+    expect(formatDeploymentDuration('2026-07-03T10:00:00Z', undefined)).toBeNull();
+    expect(formatDeploymentDuration(null, null)).toBeNull();
+  });
+
+  it('returns null for malformed or negative ranges instead of fabricating a duration', () => {
+    expect(formatDeploymentDuration('not a date', '2026-07-03T10:00:42Z')).toBeNull();
+    expect(formatDeploymentDuration('2026-07-03T10:00:42Z', '2026-07-03T10:00:00Z')).toBeNull();
   });
 });
