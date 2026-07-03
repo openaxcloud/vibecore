@@ -7,6 +7,7 @@ import {
   BookOpen,
   Boxes,
   Braces,
+  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -1334,65 +1335,110 @@ export type OnboardingStep = {
   done: boolean;
   actionLabel: string;
   to?: string;
+
+  /** 32px tile glyph for the not-done state (e.g. the deploy ▲). */
+  glyph?: React.ReactNode;
 };
 
 /*
- * "Get set up" onboarding checklist shown on a fresh dashboard (≤1 project).
- * Hides itself once every step is complete. Step CTAs use the app's blue
- * action accent (--vc-ide-accent-action) — orange stays a brand color here.
+ * "Get set up" onboarding checklist (validated mock): header with a 120×6
+ * blue-action progress gauge + "N of 3", then one row per step — a green
+ * check disc + "Done" pill once complete, the CURRENT step gets the solid
+ * blue CTA, later steps an outline CTA. Renders only while completedSteps<3;
+ * step states are derived from real signals by the dashboard loader.
  */
 export function OnboardingChecklistCard({ steps }: { steps: OnboardingStep[] }) {
-  if (steps.every((step) => step.done)) {
+  const completed = steps.filter((step) => step.done).length;
+
+  if (completed >= steps.length) {
     return null;
   }
+
+  const currentKey = steps.find((step) => !step.done)?.key;
 
   return (
     <section
       aria-label="Get set up"
       className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6"
     >
-      <div className="flex items-center gap-2">
-        <Sparkles className="h-5 w-5 text-bolt-elements-textTertiary" aria-hidden />
-        <h2 className="text-lg font-semibold">Get set up</h2>
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="text-[15px] font-semibold">Get set up</h2>
+        <div
+          role="progressbar"
+          aria-label="Setup progress"
+          aria-valuemin={0}
+          aria-valuemax={steps.length}
+          aria-valuenow={completed}
+          className="h-[6px] w-[120px] overflow-hidden rounded-full bg-bolt-elements-background-depth-3"
+        >
+          <div
+            className="h-full rounded-full bg-[var(--vc-ide-accent-action)]"
+            style={{ width: `${Math.round((completed / steps.length) * 100)}%` }}
+          />
+        </div>
+        <span className="text-[13px] text-bolt-elements-textSecondary">
+          {completed} of {steps.length}
+        </span>
       </div>
-      <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-        Three quick steps to get your first app live on E-Code.
-      </p>
-      <ol className="mt-4 grid gap-3 md:grid-cols-3">
-        {steps.map((step, index) => (
-          <li
-            key={step.key}
-            className="flex flex-col rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4"
-          >
-            <div className="flex items-center gap-2">
+      <ul className="mt-4 flex flex-col gap-3">
+        {steps.map((step) => {
+          const isCurrent = step.key === currentKey;
+
+          return (
+            <li key={step.key} className="flex items-center gap-3">
               {step.done ? (
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-bolt-elements-icon-success" aria-hidden />
-              ) : (
                 <span
-                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-bolt-elements-borderColor text-[11px] font-semibold text-bolt-elements-textSecondary"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                  style={{ background: 'var(--vc-ide-accent-success)' }}
                   aria-hidden
                 >
-                  {index + 1}
+                  <Check className="h-4 w-4 text-white" />
+                </span>
+              ) : (
+                <span
+                  className={classNames(
+                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1',
+                    isCurrent ? 'text-[var(--vc-ide-accent-action)]' : 'text-bolt-elements-textTertiary',
+                  )}
+                  aria-hidden
+                >
+                  {step.glyph ?? <span className="text-[13px] leading-none">•</span>}
                 </span>
               )}
-              <h3 className="text-sm font-semibold">{step.title}</h3>
-            </div>
-            <p className="mt-2 flex-1 text-sm text-bolt-elements-textSecondary">{step.description}</p>
-            <div className="mt-3">
-              {step.done ? (
-                <span className="text-xs font-medium text-bolt-elements-icon-success">Done</span>
-              ) : step.to ? (
+              <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
+                  {step.title}
+                  {step.done ? (
+                    <span
+                      className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none"
+                      style={{
+                        color: 'var(--status-success-text)',
+                        background: 'color-mix(in srgb, var(--vc-ide-accent-success) 12%, transparent)',
+                      }}
+                    >
+                      Done
+                    </span>
+                  ) : null}
+                </p>
+                <p className="mt-0.5 truncate text-[13px] text-bolt-elements-textSecondary">{step.description}</p>
+              </div>
+              {!step.done && step.to ? (
                 <Link
                   to={step.to}
-                  className="inline-flex h-8 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] focus-visible:ring-offset-1"
+                  className={classNames(
+                    'inline-flex h-8 shrink-0 items-center justify-center rounded-md px-3 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
+                    isCurrent
+                      ? 'bg-[var(--vc-ide-accent-action)] text-white transition-opacity hover:opacity-90'
+                      : 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
+                  )}
                 >
                   {step.actionLabel}
                 </Link>
               ) : null}
-            </div>
-          </li>
-        ))}
-      </ol>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }

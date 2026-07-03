@@ -1,4 +1,4 @@
-import { Activity, Boxes, CreditCard, Rocket } from 'lucide-react';
+import { Activity, Boxes, CreditCard, MailPlus, Rocket, Sparkles } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
 import { Link, useLoaderData } from 'react-router';
 import { shouldUseSpaNavigation } from './dashboard-nav';
@@ -78,27 +78,25 @@ async function optionalAiCostCents(request: Request, organizationId: string) {
 }
 
 type OnboardingSummary = {
-  show: boolean;
   createdFirstApp: boolean;
   deployedFirstApp: boolean;
   invitedTeammate: boolean;
   deployTo?: string;
+  projectName?: string;
 };
 
 /*
- * "Get set up" card signals for a fresh dashboard (≤1 project). Each probe is
- * best-effort: onboarding hints must never break the dashboard, so a failed
- * lookup simply reports its step as not done.
+ * "Get set up" card signals. Each probe is best-effort: onboarding hints must
+ * never break the dashboard, so a failed lookup simply reports its step as not
+ * done. The card itself hides once all three steps are complete.
  */
 async function onboardingSignals(
   request: Request,
   organizationId: string,
   projectCount: number,
-  mostRecentProjectId?: string,
+  mostRecentProject?: { id: string; name: string },
 ): Promise<OnboardingSummary> {
-  if (projectCount > 1) {
-    return { show: false, createdFirstApp: true, deployedFirstApp: false, invitedTeammate: false };
-  }
+  const mostRecentProjectId = mostRecentProject?.id;
 
   const [deployedFirstApp, invitedTeammate] = await Promise.all([
     (async () => {
@@ -129,11 +127,11 @@ async function onboardingSignals(
   ]);
 
   return {
-    show: true,
     createdFirstApp: projectCount >= 1,
     deployedFirstApp,
     invitedTeammate,
     deployTo: mostRecentProjectId ? `/projects/${mostRecentProjectId}/deployments` : undefined,
+    projectName: mostRecentProject?.name,
   };
 }
 
@@ -147,7 +145,6 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       billingAccessLimited: false,
       projects: [] satisfies ProjectCard[],
       onboarding: {
-        show: true,
         createdFirstApp: false,
         deployedFirstApp: false,
         invitedTeammate: false,
@@ -175,7 +172,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return bt - at;
   });
 
-  const onboarding = await onboardingSignals(request, organization.id, projects.length, sortedProjects[0]?.id);
+  const onboarding = await onboardingSignals(request, organization.id, projects.length, sortedProjects[0]);
 
   return {
     usageSummary: {
@@ -224,36 +221,6 @@ export default function DashboardPage() {
       }
     >
       <div className="grid gap-6">
-        {onboarding.show ? (
-          <OnboardingChecklistCard
-            steps={[
-              {
-                key: 'create',
-                title: 'Create your first app',
-                description: 'Describe what you want to build and the E-Code agent scaffolds a real project.',
-                done: onboarding.createdFirstApp,
-                actionLabel: 'New project',
-                to: '/projects/new',
-              },
-              {
-                key: 'deploy',
-                title: 'Deploy it',
-                description: 'Ship your app to a live URL from the project deployments page.',
-                done: onboarding.deployedFirstApp,
-                actionLabel: 'Open deployments',
-                to: onboarding.deployTo,
-              },
-              {
-                key: 'invite',
-                title: 'Invite a teammate',
-                description: 'Bring a collaborator into your organization to build together.',
-                done: onboarding.invitedTeammate,
-                actionLabel: 'Invite teammates',
-                to: '/invitations',
-              },
-            ]}
-          />
-        ) : null}
         <StatGrid stats={statsFromUsage(usageSummary)} />
         <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
           <div>
@@ -264,6 +231,45 @@ export default function DashboardPage() {
               </LinkButton>
             </div>
             <ProjectGrid projects={projects} />
+            <div className="mt-6">
+              <OnboardingChecklistCard
+                steps={[
+                  {
+                    key: 'create',
+                    title: 'Create your first app',
+                    description: onboarding.createdFirstApp
+                      ? `${onboarding.projectName ?? 'Your project'} is ready in your workspace.`
+                      : 'Describe what you want to build and the E-Code agent scaffolds a real project.',
+                    done: onboarding.createdFirstApp,
+                    actionLabel: 'Create',
+                    to: '/projects/new',
+                    glyph: <Sparkles className="h-4 w-4" aria-hidden />,
+                  },
+                  {
+                    key: 'deploy',
+                    title: 'Deploy it',
+                    description: 'Ship your app to a live URL from the project deployments page.',
+                    done: onboarding.deployedFirstApp,
+                    actionLabel: 'Deploy',
+                    to: onboarding.deployTo,
+                    glyph: (
+                      <span className="text-[13px] leading-none" aria-hidden>
+                        ▲
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'invite',
+                    title: 'Invite a teammate',
+                    description: 'Bring a collaborator into your organization to build together.',
+                    done: onboarding.invitedTeammate,
+                    actionLabel: 'Invite',
+                    to: '/invitations',
+                    glyph: <MailPlus className="h-4 w-4" aria-hidden />,
+                  },
+                ]}
+              />
+            </div>
           </div>
           <div className="space-y-6">
             <CommandPalettePreview projects={projects} />
