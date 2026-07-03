@@ -11,21 +11,31 @@
 
 import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { data as json } from 'react-router';
-import { useLoaderData } from 'react-router';
+import { isRouteErrorResponse, useLoaderData, useRouteError } from 'react-router';
 
+import type { ShareLinkErrorKind } from '~/components/share/ShareLinkErrorView';
+import { ShareLinkErrorView } from '~/components/share/ShareLinkErrorView';
 import type { ShareLinkPayload } from '~/lib/chat/share-link';
 import { apiBaseUrl } from '~/lib/enterprise-api.server';
 
 interface LoaderData {
   payload?: ShareLinkPayload;
-  error?: string;
+
+  /*
+   * Typed error state (G29): the API's `GET /chat-shares/:token` distinguishes
+   * a tampered/malformed token (`CHAT_SHARE_INVALID`) from an unknown, expired,
+   * or revoked one (`CHAT_SHARE_NOT_FOUND` — the store collapses those three
+   * into a single 404, so they cannot be told apart further). The route maps
+   * each to branded copy inside PublicShell instead of bare error text.
+   */
+  errorKind?: ShareLinkErrorKind;
 }
 
 export const loader = async ({ params }: LoaderFunctionArgs) => {
   const token = params.token ?? '';
 
   if (!token) {
-    return json<LoaderData>({ error: 'Missing share token.' }, { status: 400 });
+    return json<LoaderData>({ errorKind: 'invalid' }, { status: 400 });
   }
 
   try {
@@ -34,43 +44,70 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
     });
 
     if (!response.ok) {
-      return json<LoaderData>(
-        { error: 'This share link is invalid, expired, or has been revoked.' },
-        { status: response.status === 404 ? 404 : 400 },
-      );
+      /*
+       * Read the API's typed error code (best effort — the body may not be
+       * JSON if a proxy answered). 404 + CHAT_SHARE_INVALID = failed HMAC
+       * verification; 404 + CHAT_SHARE_NOT_FOUND = unknown/expired/revoked.
+       */
+      let code: string | undefined;
+
+      try {
+        const body = (await response.json()) as { error?: { code?: string } };
+        code = body.error?.code;
+      } catch {
+        code = undefined;
+      }
+
+      const errorKind: ShareLinkErrorKind =
+        code === 'CHAT_SHARE_INVALID' ? 'invalid' : response.status === 404 ? 'not-found' : 'unavailable';
+
+      return json<LoaderData>({ errorKind }, { status: response.status === 404 ? 404 : 400 });
     }
 
     const data = (await response.json()) as { share?: { payload?: ShareLinkPayload } };
     const payload = data.share?.payload;
 
     if (!payload) {
-      return json<LoaderData>({ error: 'The shared conversation is unavailable.' }, { status: 404 });
+      return json<LoaderData>({ errorKind: 'unavailable' }, { status: 404 });
     }
 
     return json<LoaderData>({ payload });
   } catch {
-    return json<LoaderData>({ error: 'Failed to load share link.' }, { status: 502 });
+    return json<LoaderData>({ errorKind: 'unavailable' }, { status: 502 });
   }
 };
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
-  const payload = (data as LoaderData | undefined)?.payload;
-  const title = payload?.title ? `${payload.title} · E-Code share` : 'E-Code share';
+  const loaderData = data as LoaderData | undefined;
+
+  if (!loaderData?.payload) {
+    return [{ title: 'Share link unavailable · E-Code' }, { name: 'robots', content: 'noindex' }];
+  }
+
+  const title = loaderData.payload.title ? `${loaderData.payload.title} · E-Code share` : 'E-Code share';
 
   return [{ title }];
 };
 
+/*
+ * Loader errors are RETURNED (not thrown), so this boundary only catches the
+ * unexpected: a thrown Response from the framework or a render error. Render
+ * it branded (inside PublicShell) instead of the bare root boundary.
+ */
+export function ErrorBoundary() {
+  const error = useRouteError();
+
+  return (
+    <ShareLinkErrorView kind={isRouteErrorResponse(error) && error.status === 404 ? 'not-found' : 'unavailable'} />
+  );
+}
+
 export default function ShareRoute() {
   const data = useLoaderData<typeof loader>();
-  const { payload, error } = data as LoaderData;
+  const { payload, errorKind } = data as LoaderData;
 
-  if (error || !payload) {
-    return (
-      <main className="bolt-share-view bolt-share-view-error" role="alert">
-        <h1>Share link unavailable</h1>
-        <p>{error ?? 'The link payload could not be decoded.'}</p>
-      </main>
-    );
+  if (errorKind || !payload) {
+    return <ShareLinkErrorView kind={errorKind ?? 'unavailable'} />;
   }
 
   return (
