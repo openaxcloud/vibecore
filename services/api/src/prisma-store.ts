@@ -4229,6 +4229,35 @@ export class PrismaApiStore implements ApiStore {
     return [...byId.values()].map(mapUser);
   }
 
+  async listAdminUsersPage(options: {
+    page: number;
+    pageSize: number;
+    sort: 'name' | 'email' | 'createdAt';
+    direction: 'asc' | 'desc';
+    query?: string;
+  }) {
+    const where = options.query
+      ? {
+          OR: [
+            { name: { contains: options.query, mode: 'insensitive' as const } },
+            { email: { contains: options.query, mode: 'insensitive' as const } },
+          ],
+        }
+      : {};
+
+    const [rows, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        orderBy: { [options.sort]: options.direction },
+        skip: (options.page - 1) * options.pageSize,
+        take: options.pageSize,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return { users: rows.map(mapUser), total };
+  }
+
   /*
    * Complete set of platform administrators, never capped. Use this (not the
    * take-bounded listAdminUsers) whenever the zero-admin invariant must hold.

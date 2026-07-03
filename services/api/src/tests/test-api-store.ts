@@ -3319,6 +3319,32 @@ export class TestApiStore implements ApiStore {
     return [...this.users.values()];
   }
 
+  async listAdminUsersPage(options: {
+    page: number;
+    pageSize: number;
+    sort: 'name' | 'email' | 'createdAt';
+    direction: 'asc' | 'desc';
+    query?: string;
+  }) {
+    const query = options.query?.toLowerCase();
+
+    const filtered = [...this.users.values()].filter(
+      (user) =>
+        !query || user.name?.toLowerCase().includes(query) || user.email?.toLowerCase().includes(query),
+    );
+
+    filtered.sort((a, b) => {
+      const left = String((a as Record<string, unknown>)[options.sort] ?? '');
+      const right = String((b as Record<string, unknown>)[options.sort] ?? '');
+
+      return options.direction === 'asc' ? left.localeCompare(right) : right.localeCompare(left);
+    });
+
+    const start = (options.page - 1) * options.pageSize;
+
+    return { users: filtered.slice(start, start + options.pageSize), total: filtered.length };
+  }
+
   async listAdminOrganizations() {
     return [...this.organizations.values()];
   }

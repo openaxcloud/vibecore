@@ -331,6 +331,15 @@ const newsletterSubscribeSchema = z.object({
   source: z.string().max(64).optional(),
 });
 
+const ADMIN_USERS_PAGE_SIZE = 50;
+
+const adminUsersQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(100_000).default(1),
+  sort: z.enum(['name', 'email', 'createdAt']).default('createdAt'),
+  dir: z.enum(['asc', 'desc']).default('desc'),
+  q: z.string().trim().max(200).optional(),
+});
+
 /*
  * Supported BCP-47 primary language tags. Kept narrow to match the bundles
  * shipped by `app/lib/i18n/messages/` — adding a language is a coordinated
@@ -20567,18 +20576,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/admin/users', async (request) => {
     await requirePlatformAdmin(request);
 
+    const query = parse(adminUsersQuerySchema, request.query ?? {});
+    const page = query.page ?? 1;
+
+    const { users: pageUsers, total } = await store.listAdminUsersPage({
+      page,
+      pageSize: ADMIN_USERS_PAGE_SIZE,
+      sort: query.sort ?? 'createdAt',
+      direction: query.dir ?? 'desc',
+      query: query.q,
+    });
+
     /*
-     * Never ship credential material to the admin console. listAdminUsers maps
-     * the raw user rows (incl. passwordHash and the encrypted MFA secret); strip
+     * Never ship credential material to the admin console. The store maps the
+     * raw user rows (incl. passwordHash and the encrypted MFA secret); strip
      * both so a platform-admin page (or anyone who compromises that session)
      * can't harvest every user's password hash / MFA seed.
      */
-    const users = (await store.listAdminUsers()).map(
+    const users = pageUsers.map(
       ({ passwordHash: _passwordHash, mfaSecretEncrypted: _mfaSecretEncrypted, ...safe }) => safe,
     );
 
     return {
       users,
+      total,
+      page,
+      pageSize: ADMIN_USERS_PAGE_SIZE,
       suspendedUserIds: await listSettingIds(store, 'admin.suspendedUserIds'),
     };
   });

@@ -1771,6 +1771,15 @@ export interface ApiStore {
   recordAudit(event: AuditEvent): Promise<void>;
   listAuditLogs(organizationId?: string): Promise<AuditEvent[]>;
   listAdminUsers(): Promise<UserRecord[]>;
+
+  /** Server-side paginated/sorted/searched user listing for the admin console. */
+  listAdminUsersPage(options: {
+    page: number;
+    pageSize: number;
+    sort: 'name' | 'email' | 'createdAt';
+    direction: 'asc' | 'desc';
+    query?: string;
+  }): Promise<{ users: UserRecord[]; total: number }>;
   listAdminOrganizations(): Promise<OrganizationRecord[]>;
   listAdminProjects(): Promise<ProjectRecord[]>;
   listAdminWorkspaces(): Promise<WorkspaceRecord[]>;

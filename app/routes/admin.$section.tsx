@@ -1,8 +1,9 @@
 import { AlertTriangle, BarChart3, CheckCircle2, Database, ShieldCheck } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { MetaFunction } from 'react-router';
-import { Link, useFetcher, useLoaderData, useNavigate, useNavigation } from 'react-router';
+import { Link, useFetcher, useLoaderData, useNavigate, useNavigation, useSearchParams } from 'react-router';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
+import { RelativeTime } from '~/components/ui/RelativeTime';
 import {
   apiRequest,
   type EnterpriseActionArgs,
@@ -336,6 +337,27 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       platformMetricsError: platformMetrics.status === 'rejected',
       liveProbe,
     };
+
+    return { section, config, payload };
+  }
+
+  /*
+   * The users list is server-paginated/sorted/searched: pass the panel's URL
+   * state straight through to the API.
+   */
+  if (section === 'users') {
+    const passthrough = new URLSearchParams();
+
+    for (const key of ['page', 'sort', 'dir', 'q'] as const) {
+      const value = url.searchParams.get(key);
+
+      if (value) {
+        passthrough.set(key, value);
+      }
+    }
+
+    const qs = passthrough.toString();
+    const payload = await apiRequest<Record<string, JsonValue>>(request, `/admin/users${qs ? `?${qs}` : ''}`);
 
     return { section, config, payload };
   }
@@ -1913,6 +1935,7 @@ type AdminUser = {
   name?: string | null;
   platformAdmin?: boolean;
   mfaEnabled?: boolean;
+  createdAt?: string;
 };
 
 /*
@@ -1921,10 +1944,99 @@ type AdminUser = {
  * types their password once (step-up); each row action reuses it. The promote /
  * revoke platform-admin button is the one that unblocks everything else.
  */
+type AdminUsersSort = 'name' | 'email' | 'createdAt';
+
 function UsersPanel({ payload }: { payload: Record<string, JsonValue> }) {
   const users = (Array.isArray(payload.users) ? payload.users : []) as AdminUser[];
   const suspendedIds = new Set((Array.isArray(payload.suspendedUserIds) ? payload.suspendedUserIds : []).map(String));
   const [password, setPassword] = useState('');
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const total = typeof payload.total === 'number' ? payload.total : users.length;
+  const page = typeof payload.page === 'number' ? payload.page : 1;
+  const pageSize = typeof payload.pageSize === 'number' ? payload.pageSize : 50;
+  const sort = (searchParams.get('sort') as AdminUsersSort) || 'createdAt';
+  const dir = searchParams.get('dir') === 'asc' ? 'asc' : 'desc';
+  const [query, setQuery] = useState(searchParams.get('q') ?? '');
+
+  /* Debounced (250ms) server search via ?q= — the loader forwards it to the API. */
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setSearchParams(
+        (params) => {
+          const next = new URLSearchParams(params);
+          const trimmed = query.trim();
+
+          if (trimmed) {
+            next.set('q', trimmed);
+          } else {
+            next.delete('q');
+          }
+
+          next.delete('page');
+
+          return next;
+        },
+        { replace: true },
+      );
+    }, 250);
+
+    return () => window.clearTimeout(handle);
+  }, [query, setSearchParams]);
+
+  const setSort = (column: AdminUsersSort) => {
+    setSearchParams(
+      (params) => {
+        const next = new URLSearchParams(params);
+        const nextDir = sort === column && dir === 'asc' ? 'desc' : 'asc';
+
+        next.set('sort', column);
+        next.set('dir', nextDir);
+        next.delete('page');
+
+        return next;
+      },
+      { replace: true },
+    );
+  };
+
+  const setPage = (nextPage: number) => {
+    setSearchParams(
+      (params) => {
+        const next = new URLSearchParams(params);
+
+        if (nextPage > 1) {
+          next.set('page', String(nextPage));
+        } else {
+          next.delete('page');
+        }
+
+        return next;
+      },
+      { replace: true },
+    );
+  };
+
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, total);
+  const hasPrev = page > 1;
+  const hasNext = page * pageSize < total;
+
+  const sortableHeader = (label: string, column: AdminUsersSort) => (
+    <th
+      className="px-4 py-3 font-medium"
+      aria-sort={sort === column ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <button
+        type="button"
+        onClick={() => setSort(column)}
+        className="inline-flex items-center gap-1 uppercase tracking-wide hover:text-bolt-elements-textPrimary"
+      >
+        {label}
+        {sort === column ? <span aria-hidden>{dir === 'asc' ? '▲' : '▼'}</span> : null}
+      </button>
+    </th>
+  );
 
   return (
     <div className="grid gap-4">
@@ -1945,11 +2057,22 @@ function UsersPanel({ payload }: { payload: Record<string, JsonValue> }) {
         />
       </div>
 
+      <input
+        type="search"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="Search users by name or email"
+        aria-label="Search users"
+        className="w-full max-w-sm rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
+      />
+
       <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
         <table className="w-full min-w-[680px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
-              <th className="px-4 py-3 font-medium">User</th>
+              {sortableHeader('User', 'name')}
+              {sortableHeader('Email', 'email')}
+              {sortableHeader('Created', 'createdAt')}
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
@@ -1960,6 +2083,30 @@ function UsersPanel({ payload }: { payload: Record<string, JsonValue> }) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-bolt-elements-textSecondary">
+        <span>
+          {from}–{to} of {total}
+        </span>
+        <span className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setPage(page - 1)}
+            disabled={!hasPrev}
+            className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Prev
+          </button>
+          <button
+            type="button"
+            onClick={() => setPage(page + 1)}
+            disabled={!hasNext}
+            className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Next
+          </button>
+        </span>
       </div>
     </div>
   );
@@ -1981,8 +2128,15 @@ function UserRow({ user, suspended, password }: { user: AdminUser; suspended: bo
   return (
     <tr className="border-b border-bolt-elements-borderColor align-top last:border-b-0">
       <td className="px-4 py-3">
-        <div className="font-medium text-bolt-elements-textPrimary">{user.email ?? user.id}</div>
-        {user.name ? <div className="text-xs text-bolt-elements-textSecondary">{user.name}</div> : null}
+        <div className="font-medium text-bolt-elements-textPrimary">{user.name ?? '—'}</div>
+      </td>
+      <td className="px-4 py-3">
+        <div className="text-bolt-elements-textSecondary">{user.email ?? user.id}</div>
+      </td>
+      <td className="px-4 py-3">
+        <div className="text-bolt-elements-textSecondary">
+          {user.createdAt ? <RelativeTime value={user.createdAt} /> : '—'}
+        </div>
       </td>
       <td className="px-4 py-3">
         <div className="flex flex-wrap gap-1.5">
