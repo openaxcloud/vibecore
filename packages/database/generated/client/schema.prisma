@@ -892,6 +892,27 @@ model StripeEvent {
   @@index([type])
 }
 
+/**
+ * A Stripe webhook whose side-effect processing threw (E28 admin health).
+ * The full event payload is stored so an admin can replay it later — replays
+ * re-run the SAME processing path with this stored payload (signature
+ * verification is skipped by design: the payload came from our own store, not
+ * the network). `resolvedAt` is set when a replay (or Stripe's own retry)
+ * succeeds; unresolved rows feed the /admin/stripe "Failed webhooks" table.
+ */
+model StripeWebhookFailure {
+  id         String    @id @default(cuid())
+  eventId    String    @unique
+  type       String
+  payload    Json
+  attempts   Int       @default(1)
+  lastError  String
+  failedAt   DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@index([resolvedAt, failedAt])
+}
+
 model AiConversation {
   id        String      @id @default(cuid())
   projectId String?

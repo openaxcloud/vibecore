@@ -440,6 +440,7 @@ const orgParams = z.object({ orgId: z.string().min(1) });
 const membershipParams = orgParams.extend({ userId: z.string().min(1) });
 const domainParams = orgParams.extend({ domain: z.string().min(3) });
 const sessionParams = z.object({ sessionId: z.string().min(1) });
+const stripeWebhookFailureParams = z.object({ eventId: z.string().min(1) });
 const projectParams = z.object({ projectId: z.string().min(1) });
 
 const projectResolveQuerySchema = z.object({
@@ -20439,31 +20440,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       plans: await store.listBillingPlans(),
     };
   });
-  app.post('/billing/stripe/webhook', async (request, reply) => {
-    const payload = request.rawBody ?? JSON.stringify(request.body ?? {});
-    const webhookSecret = await resolveStripeWebhookSecret();
-
-    if (!webhookSecret) {
-      throw Object.assign(new Error('Stripe webhook secret is not configured'), {
-        statusCode: 503,
-        code: 'STRIPE_WEBHOOK_SECRET_NOT_CONFIGURED',
-      });
-    }
-
-    verifyStripeSignature({
-      payload,
-      signatureHeader: request.headers['stripe-signature'] as string | undefined,
-      secret: webhookSecret,
-    });
-
-    let event: any;
-
-    try {
-      event = JSON.parse(payload);
-    } catch {
-      return reply.code(400).send({ error: 'Invalid Stripe webhook payload', code: 'STRIPE_WEBHOOK_INVALID_JSON' });
-    }
-
+  /*
+   * Core Stripe webhook processing, shared by the live webhook route (below)
+   * and the admin replay endpoints (/admin/stripe/webhook-failures/*). The
+   * CALLER owns signature verification: the live route verifies the
+   * Stripe-Signature header before calling this, while admin replays skip it
+   * BY DESIGN — the replayed payload comes from our own StripeWebhookFailure
+   * store (persisted verbatim from a previously signature-verified delivery),
+   * not from the network, and the replay endpoints are platform-admin gated.
+   */
+  const processStripeWebhookEvent = async (
+    request: any,
+    event: any,
+  ): Promise<{ code: number; body: Record<string, unknown> }> => {
     const object = event.data?.object ?? {};
 
     /*
@@ -20498,7 +20487,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const persisted = await store.recordStripeEvent({ id: event.id, organizationId, type: event.type, payload: event });
 
     if (!persisted.created) {
-      return { received: true, duplicate: true };
+      return { code: 200, body: { received: true, duplicate: true } };
     }
 
     /*
@@ -20528,7 +20517,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           { organizationId, eventType: event.type },
           'Stripe webhook for a deleted/unknown organization; acknowledging without side effects',
         );
-        return reply.code(200).send({ received: true, orphaned: true });
+        return { code: 200, body: { received: true, orphaned: true } };
       }
     }
 
@@ -20591,7 +20580,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         // Pack handled — do NOT fall through to the subscription upsert.
-        return reply.code(200).send({ received: true, creditPack: true });
+        return { code: 200, body: { received: true, creditPack: true } };
       }
 
       if (
@@ -20903,9 +20892,70 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }).catch(() => {});
       }
 
-      return reply.code(200).send({ received: true });
+      return { code: 200, body: { received: true } };
     } catch (error) {
       await store.deleteStripeEvent(event.id).catch(() => {});
+      throw error;
+    }
+  };
+
+  app.post('/billing/stripe/webhook', async (request, reply) => {
+    const payload = request.rawBody ?? JSON.stringify(request.body ?? {});
+    const webhookSecret = await resolveStripeWebhookSecret();
+
+    if (!webhookSecret) {
+      throw Object.assign(new Error('Stripe webhook secret is not configured'), {
+        statusCode: 503,
+        code: 'STRIPE_WEBHOOK_SECRET_NOT_CONFIGURED',
+      });
+    }
+
+    verifyStripeSignature({
+      payload,
+      signatureHeader: request.headers['stripe-signature'] as string | undefined,
+      secret: webhookSecret,
+    });
+
+    let event: any;
+
+    try {
+      event = JSON.parse(payload);
+    } catch {
+      return reply.code(400).send({ error: 'Invalid Stripe webhook payload', code: 'STRIPE_WEBHOOK_INVALID_JSON' });
+    }
+
+    try {
+      const result = await processStripeWebhookEvent(request, event);
+
+      /*
+       * Success (including a duplicate ack) settles any earlier recorded
+       * failure of this event — Stripe's own retry beat the admin to it.
+       */
+      if (typeof event.id === 'string' && event.id) {
+        await store.resolveStripeWebhookFailure(event.id).catch(() => {});
+      }
+
+      return reply.code(result.code).send(result.body);
+    } catch (error) {
+      /*
+       * Persist the failure (payload included) so /admin/stripe can list and
+       * replay it, then rethrow — the resulting 500 keeps Stripe retrying
+       * exactly as before. The dedup row was already rolled back inside
+       * processStripeWebhookEvent, so neither the retry nor a manual replay
+       * gets deduped away. Best-effort: a failure to record must not mask the
+       * original error.
+       */
+      if (typeof event.id === 'string' && event.id) {
+        await store
+          .recordStripeWebhookFailure({
+            eventId: event.id,
+            type: typeof event.type === 'string' ? event.type : 'unknown',
+            payload: event,
+            error: error instanceof Error ? error.message : String(error),
+          })
+          .catch(() => {});
+      }
+
       throw error;
     }
   });
@@ -21444,6 +21494,97 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requirePlatformAdmin(request);
 
     return stripeConfigView();
+  });
+
+  /*
+   * E28 — Stripe webhook health. Failed webhook processing attempts are
+   * persisted by the /billing/stripe/webhook catch (payload included) so a
+   * platform admin can inspect and REPLAY them. The payload is deliberately
+   * not returned to the browser: it can contain customer billing details, and
+   * the admin table only needs the metadata.
+   */
+  app.get('/admin/stripe/webhook-failures', async (request) => {
+    await requirePlatformAdmin(request);
+
+    const failures = await store.listStripeWebhookFailures({ limit: 50 });
+
+    return {
+      failures: failures.map(({ payload: _payload, ...safe }) => safe),
+    };
+  });
+
+  /*
+   * Re-runs the stored event through the SAME processing function the live
+   * webhook route uses. Signature verification is skipped BY DESIGN: the
+   * payload comes from our own StripeWebhookFailure store (persisted from a
+   * previously signature-verified delivery), not from the network — which is
+   * why this endpoint is platform-admin gated.
+   */
+  const replayStripeWebhookFailure = async (
+    request: any,
+    failure: { eventId: string; type: string; payload: unknown },
+  ): Promise<{ eventId: string; type: string; ok: boolean; attempts?: number; error?: string }> => {
+    try {
+      await processStripeWebhookEvent(request, failure.payload);
+
+      // A duplicate ack also counts: the event was already fully processed.
+      await store.resolveStripeWebhookFailure(failure.eventId);
+
+      await audit(request, store, {
+        action: 'admin.stripe.webhook.replayed',
+        resourceType: 'stripeWebhookFailure',
+        resourceId: failure.eventId,
+        metadata: { eventType: failure.type },
+      }).catch(() => {});
+
+      return { eventId: failure.eventId, type: failure.type, ok: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const updated = await store
+        .recordStripeWebhookFailure({
+          eventId: failure.eventId,
+          type: failure.type,
+          payload: failure.payload,
+          error: message,
+        })
+        .catch(() => undefined);
+
+      return { eventId: failure.eventId, type: failure.type, ok: false, attempts: updated?.attempts, error: message };
+    }
+  };
+
+  app.post('/admin/stripe/webhook-failures/:eventId/replay', async (request, reply) => {
+    await requirePlatformAdmin(request);
+
+    const { eventId } = parse(stripeWebhookFailureParams, request.params);
+    const failure = await store.getStripeWebhookFailure(eventId);
+
+    if (!failure || failure.resolvedAt) {
+      return reply
+        .code(404)
+        .send({ error: 'No unresolved webhook failure with this event id', code: 'STRIPE_WEBHOOK_FAILURE_NOT_FOUND' });
+    }
+
+    return { result: await replayStripeWebhookFailure(request, failure) };
+  });
+
+  app.post('/admin/stripe/webhook-failures/replay-all', async (request) => {
+    await requirePlatformAdmin(request);
+
+    const failures = await store.listStripeWebhookFailures({ limit: 50 });
+    const results: Array<{ eventId: string; type: string; ok: boolean; attempts?: number; error?: string }> = [];
+
+    // Sequential on purpose: replays share subscription rows; parallel replays
+    // of the same org's events could interleave upserts out of order.
+    for (const failure of failures) {
+      results.push(await replayStripeWebhookFailure(request, failure));
+    }
+
+    return {
+      results,
+      replayed: results.filter((result) => result.ok).length,
+      failed: results.filter((result) => !result.ok).length,
+    };
   });
 
   app.post('/admin/stripe-config', async (request) => {

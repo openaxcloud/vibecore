@@ -1,5 +1,6 @@
-import { Form, useActionData, useLoaderData } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { EnterpriseFormPage, TextField, PrimaryButton } from '~/components/enterprise/EnterpriseFormPage';
+import { RelativeTime } from '~/components/ui/RelativeTime';
 import {
   apiRequest,
   formObject,
@@ -43,12 +44,38 @@ type StripeConfigView = {
   plans: PlanPrices[];
 };
 
+/*
+ * E28 — a Stripe webhook whose processing threw. The api persists the full
+ * event payload server-side (never sent to the browser); this view is the
+ * metadata for the "Failed webhooks" health table.
+ */
+type WebhookFailure = {
+  id: string;
+  eventId: string;
+  type: string;
+  attempts: number;
+  lastError: string;
+  failedAt: string;
+  resolvedAt?: string;
+};
+
+type ReplayResult = {
+  eventId: string;
+  type: string;
+  ok: boolean;
+  attempts?: number;
+  error?: string;
+};
+
 export async function loader({ request }: EnterpriseLoaderArgs) {
   await requirePlatformAdmin(request);
 
-  const data = await apiRequest<StripeConfigView>(request, '/admin/stripe-config');
+  const [data, webhookHealth] = await Promise.all([
+    apiRequest<StripeConfigView>(request, '/admin/stripe-config'),
+    apiRequest<{ failures: WebhookFailure[] }>(request, '/admin/stripe/webhook-failures'),
+  ]);
 
-  return json(data);
+  return json({ ...data, webhookFailures: webhookHealth.failures });
 }
 
 async function reauthenticate(request: Request, password: string) {
@@ -69,7 +96,10 @@ async function reauthenticate(request: Request, password: string) {
   }
 }
 
-async function mutationError(error: unknown): Promise<string> {
+async function mutationError(
+  error: unknown,
+  fallback = 'The Stripe configuration could not be saved.',
+): Promise<string> {
   if (error instanceof Response) {
     const payload = (await error.json().catch(() => ({}))) as { error?: string; code?: string };
 
@@ -81,7 +111,7 @@ async function mutationError(error: unknown): Promise<string> {
       return 'This action requires a platform administrator account.';
     }
 
-    return payload.error ?? 'The Stripe configuration could not be saved.';
+    return payload.error ?? fallback;
   }
 
   return 'The admin service is not reachable. Please try again in a moment.';
@@ -93,6 +123,56 @@ export async function action({ request }: EnterpriseActionArgs) {
   await requirePlatformAdmin(request);
 
   const body = formObject(await request.formData()) as Record<string, string>;
+
+  /*
+   * Webhook replay intents (E28). No password step-up: unlike the secret-key
+   * form below, a replay handles no credential material — it re-runs an event
+   * our own webhook handler already received. Platform-admin (checked above +
+   * again by the api) is the gate.
+   */
+  if (body.intent === 'replay-webhook' || body.intent === 'replay-all-webhooks') {
+    try {
+      if (body.intent === 'replay-webhook') {
+        if (!body.eventId) {
+          return json({ error: 'Missing webhook event id.' }, { status: 400 });
+        }
+
+        const { result } = await apiRequest<{ result: ReplayResult }>(
+          request,
+          `/admin/stripe/webhook-failures/${encodeURIComponent(body.eventId)}/replay`,
+          { method: 'POST', redirectOn401: false },
+        );
+
+        return result.ok
+          ? json({ status: `Webhook ${result.eventId} replayed successfully.` })
+          : json(
+              { error: `Replay of ${result.eventId} failed again: ${result.error ?? 'unknown error'}` },
+              { status: 502 },
+            );
+      }
+
+      const summary = await apiRequest<{ replayed: number; failed: number }>(
+        request,
+        '/admin/stripe/webhook-failures/replay-all',
+        { method: 'POST', redirectOn401: false },
+      );
+
+      if (summary.replayed === 0 && summary.failed === 0) {
+        return json({ status: 'No failed webhooks to replay.' });
+      }
+
+      return summary.failed === 0
+        ? json({ status: `Replayed ${summary.replayed} webhook${summary.replayed === 1 ? '' : 's'} successfully.` })
+        : json(
+            {
+              error: `Replayed ${summary.replayed}, ${summary.failed} failed again — the table shows each last error.`,
+            },
+            { status: 502 },
+          );
+    } catch (error) {
+      return json({ error: await mutationError(error, 'The webhook replay could not be completed.') }, { status: 502 });
+    }
+  }
 
   if (!body.password) {
     return json({ error: 'Enter your password to confirm this change.', field: 'password' }, { status: 400 });
@@ -175,6 +255,8 @@ export default function AdminStripePage() {
   const actionData = useActionData<typeof action>() as { status?: string; error?: string; field?: string } | undefined;
 
   const passwordError = actionData?.field === 'password' ? actionData.error : undefined;
+  const navigation = useNavigation();
+  const replaying = navigation.state !== 'idle' && navigation.formData?.get('intent')?.toString().startsWith('replay');
 
   return (
     <EnterpriseFormPage
@@ -274,6 +356,99 @@ export default function AdminStripePage() {
           <PrimaryButton>Save Stripe configuration</PrimaryButton>
         </section>
       </Form>
+
+      {/*
+       * E28 — webhook health. Failed deliveries are persisted server-side with
+       * their payload; Replay re-runs the exact event through the same
+       * processing path the live webhook uses (payload already verified at
+       * delivery, so no signature check — the api endpoint is admin-gated).
+       */}
+      <section className="mt-8 space-y-4 rounded-lg border border-bolt-elements-borderColor p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <strong className="text-bolt-elements-textPrimary">Failed webhooks</strong>
+            <StatusPill
+              ok={config.webhookFailures.length === 0}
+              set="All deliveries processed"
+              fallback={`${config.webhookFailures.length} unresolved`}
+            />
+          </div>
+          {config.webhookFailures.length > 0 ? (
+            <Form method="post">
+              <input type="hidden" name="intent" value="replay-all-webhooks" />
+              <button
+                type="submit"
+                disabled={replaying}
+                className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ color: 'var(--vc-ide-accent-action)' }}
+              >
+                {replaying ? 'Replaying…' : 'Replay all failed'}
+              </button>
+            </Form>
+          ) : null}
+        </div>
+
+        <p className="text-xs text-bolt-elements-textSecondary">
+          Stripe events whose processing threw after delivery. Replay re-runs the stored event through the same webhook
+          processing path; a successful replay marks the row resolved.
+        </p>
+
+        {config.webhookFailures.length === 0 ? (
+          <p className="text-sm text-bolt-elements-textSecondary">No failed webhooks.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="text-xs uppercase tracking-[0.08em] text-bolt-elements-textSecondary">
+                  <th className="py-2 pr-3 font-medium">Event</th>
+                  <th className="py-2 pr-3 font-medium">Type</th>
+                  <th className="py-2 pr-3 font-medium">Attempts</th>
+                  <th className="py-2 pr-3 font-medium">Last error</th>
+                  <th className="py-2 pr-3 font-medium">Failed</th>
+                  <th className="py-2 font-medium">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {config.webhookFailures.map((failure) => (
+                  <tr key={failure.eventId} className="border-t border-bolt-elements-borderColor align-top">
+                    <td className="py-2 pr-3 font-mono text-xs text-bolt-elements-textPrimary">{failure.eventId}</td>
+                    <td className="py-2 pr-3 text-xs">{failure.type}</td>
+                    <td className="py-2 pr-3 text-xs">{failure.attempts}</td>
+                    <td className="py-2 pr-3">
+                      <div
+                        className="max-w-[16rem] truncate text-xs"
+                        title={failure.lastError}
+                        style={{ color: 'var(--status-error-text)' }}
+                      >
+                        {failure.lastError}
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap py-2 pr-3 text-xs text-bolt-elements-textSecondary">
+                      <RelativeTime value={failure.failedAt} />
+                    </td>
+                    <td className="py-2">
+                      <Form method="post">
+                        <input type="hidden" name="intent" value="replay-webhook" />
+                        <input type="hidden" name="eventId" value={failure.eventId} />
+                        <button
+                          type="submit"
+                          disabled={replaying}
+                          className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                          style={{ color: 'var(--vc-ide-accent-action)' }}
+                        >
+                          Replay
+                        </button>
+                      </Form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </EnterpriseFormPage>
   );
 }

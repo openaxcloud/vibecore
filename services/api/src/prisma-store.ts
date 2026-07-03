@@ -66,6 +66,7 @@ import type {
   SiemWebhookRecord,
   SnapshotRecord,
   StripeEventRecord,
+  StripeWebhookFailureRecord,
   SubscriptionRecord,
   SsoConfigRecord,
   SupportTicketRecord,
@@ -4106,6 +4107,51 @@ export class PrismaApiStore implements ApiStore {
     await this.prisma.stripeEvent.deleteMany({ where: { id } });
   }
 
+  async recordStripeWebhookFailure(input: { eventId: string; type: string; payload: unknown; error: string }) {
+    const row = await this.prisma.stripeWebhookFailure.upsert({
+      where: { eventId: input.eventId },
+      create: {
+        eventId: input.eventId,
+        type: input.type,
+        payload: input.payload as any,
+        lastError: input.error,
+      },
+      update: {
+        attempts: { increment: 1 },
+        lastError: input.error,
+
+        // Refresh the payload too: a Stripe retry may carry a newer serialization.
+        payload: input.payload as any,
+        failedAt: new Date(),
+        resolvedAt: null,
+      },
+    });
+
+    return mapStripeWebhookFailure(row);
+  }
+
+  async listStripeWebhookFailures(options?: { includeResolved?: boolean; limit?: number }) {
+    const rows = await this.prisma.stripeWebhookFailure.findMany({
+      where: options?.includeResolved ? {} : { resolvedAt: null },
+      orderBy: { failedAt: 'desc' },
+      take: options?.limit ?? 50,
+    });
+
+    return rows.map(mapStripeWebhookFailure);
+  }
+
+  async getStripeWebhookFailure(eventId: string) {
+    const row = await this.prisma.stripeWebhookFailure.findUnique({ where: { eventId } });
+    return row ? mapStripeWebhookFailure(row) : undefined;
+  }
+
+  async resolveStripeWebhookFailure(eventId: string): Promise<void> {
+    await this.prisma.stripeWebhookFailure.updateMany({
+      where: { eventId, resolvedAt: null },
+      data: { resolvedAt: new Date() },
+    });
+  }
+
   async recordSamlAssertionConsumption(input: { organizationId: string; assertionId: string; expiresAt: Date }) {
     // Best-effort prune so the dedup table stays bounded (assertions are short-lived).
     await this.prisma.samlAssertion.deleteMany({ where: { expiresAt: { lt: new Date() } } }).catch(() => {});
@@ -5328,6 +5374,19 @@ function mapStripeEvent(event: any): StripeEventRecord {
     type: event.type,
     processedAt: toIso(event.processedAt)!,
     payload: event.payload,
+  };
+}
+
+function mapStripeWebhookFailure(failure: any): StripeWebhookFailureRecord {
+  return {
+    id: failure.id,
+    eventId: failure.eventId,
+    type: failure.type,
+    payload: failure.payload,
+    attempts: failure.attempts,
+    lastError: failure.lastError,
+    failedAt: toIso(failure.failedAt)!,
+    resolvedAt: toIso(failure.resolvedAt),
   };
 }
 

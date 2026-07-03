@@ -624,6 +624,17 @@ exports.Prisma.StripeEventScalarFieldEnum = {
   payload: 'payload'
 };
 
+exports.Prisma.StripeWebhookFailureScalarFieldEnum = {
+  id: 'id',
+  eventId: 'eventId',
+  type: 'type',
+  payload: 'payload',
+  attempts: 'attempts',
+  lastError: 'lastError',
+  failedAt: 'failedAt',
+  resolvedAt: 'resolvedAt'
+};
+
 exports.Prisma.AiConversationScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
@@ -1422,6 +1433,7 @@ exports.Prisma.ModelName = {
   QuotaLedger: 'QuotaLedger',
   QuotaOverride: 'QuotaOverride',
   StripeEvent: 'StripeEvent',
+  StripeWebhookFailure: 'StripeWebhookFailure',
   AiConversation: 'AiConversation',
   AiMessage: 'AiMessage',
   AiToolCall: 'AiToolCall',

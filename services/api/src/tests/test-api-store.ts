@@ -66,6 +66,7 @@ import type {
   SiemWebhookRecord,
   SnapshotRecord,
   StripeEventRecord,
+  StripeWebhookFailureRecord,
   SubscriptionRecord,
   SsoConfigRecord,
   SupportTicketRecord,
@@ -3277,6 +3278,55 @@ export class TestApiStore implements ApiStore {
 
   async deleteStripeEvent(id: string): Promise<void> {
     this.stripeEvents.delete(id);
+  }
+
+  readonly stripeWebhookFailures = new Map<string, StripeWebhookFailureRecord>();
+
+  async recordStripeWebhookFailure(input: { eventId: string; type: string; payload: unknown; error: string }) {
+    const existing = this.stripeWebhookFailures.get(input.eventId);
+
+    const failure: StripeWebhookFailureRecord = existing
+      ? {
+          ...existing,
+          attempts: existing.attempts + 1,
+          lastError: input.error,
+          payload: input.payload,
+          failedAt: now(),
+          resolvedAt: undefined,
+        }
+      : {
+          id: `swf_${this.stripeWebhookFailures.size + 1}`,
+          eventId: input.eventId,
+          type: input.type,
+          payload: input.payload,
+          attempts: 1,
+          lastError: input.error,
+          failedAt: now(),
+          resolvedAt: undefined,
+        };
+
+    this.stripeWebhookFailures.set(input.eventId, failure);
+
+    return failure;
+  }
+
+  async listStripeWebhookFailures(options?: { includeResolved?: boolean; limit?: number }) {
+    return [...this.stripeWebhookFailures.values()]
+      .filter((failure) => options?.includeResolved || !failure.resolvedAt)
+      .sort((a, b) => new Date(b.failedAt).getTime() - new Date(a.failedAt).getTime())
+      .slice(0, options?.limit ?? 50);
+  }
+
+  async getStripeWebhookFailure(eventId: string) {
+    return this.stripeWebhookFailures.get(eventId);
+  }
+
+  async resolveStripeWebhookFailure(eventId: string): Promise<void> {
+    const failure = this.stripeWebhookFailures.get(eventId);
+
+    if (failure && !failure.resolvedAt) {
+      this.stripeWebhookFailures.set(eventId, { ...failure, resolvedAt: now() });
+    }
   }
 
   readonly samlAssertions = new Set<string>();

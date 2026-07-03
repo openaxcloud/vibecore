@@ -879,6 +879,21 @@ export interface StripeEventRecord {
   payload: unknown;
 }
 
+/*
+ * A Stripe webhook whose processing threw. Keeps the full event payload so an
+ * admin replay can re-run the exact same processing path (E28).
+ */
+export interface StripeWebhookFailureRecord {
+  id: string;
+  eventId: string;
+  type: string;
+  payload: unknown;
+  attempts: number;
+  lastError: string;
+  failedAt: string;
+  resolvedAt?: string;
+}
+
 export interface EmailDeliveryEventRecord {
   id: string;
   provider: string;
@@ -1795,6 +1810,28 @@ export interface ApiStore {
     payload: unknown;
   }): Promise<{ event: StripeEventRecord; created: boolean }>;
   deleteStripeEvent(id: string): Promise<void>;
+
+  /**
+   * Record (or re-record) a failed Stripe webhook processing attempt. Upserts
+   * on eventId: a repeat failure increments attempts, refreshes lastError and
+   * failedAt, and clears any earlier resolvedAt.
+   */
+  recordStripeWebhookFailure(input: {
+    eventId: string;
+    type: string;
+    payload: unknown;
+    error: string;
+  }): Promise<StripeWebhookFailureRecord>;
+
+  /** Unresolved failures by default, newest first. */
+  listStripeWebhookFailures(options?: {
+    includeResolved?: boolean;
+    limit?: number;
+  }): Promise<StripeWebhookFailureRecord[]>;
+  getStripeWebhookFailure(eventId: string): Promise<StripeWebhookFailureRecord | undefined>;
+
+  /** Mark a failure resolved (successful replay or Stripe retry). No-op when absent. */
+  resolveStripeWebhookFailure(eventId: string): Promise<void>;
 
   /**
    * Record a consumed SAML assertion id for one-time-use replay protection.
