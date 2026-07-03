@@ -109,10 +109,44 @@
     return displayText;
   }
 
+  // Resolve the JSX source location (file:line) of an element from its React
+  // fiber's _debugSource. Only present in dev builds compiled with the JSX
+  // source plugin (Vite/CRA dev default); returns null otherwise so callers
+  // gracefully fall back to a heuristic file match.
+  function getElementSource(element) {
+    try {
+      const fiberKey = Object.keys(element).find(
+        (key) => key.startsWith('__reactFiber$') || key.startsWith('__reactInternalInstance$')
+      );
+
+      let fiber = fiberKey ? element[fiberKey] : null;
+      let hops = 0;
+
+      while (fiber && hops < 30) {
+        const source = fiber._debugSource;
+
+        if (source && source.fileName) {
+          return {
+            fileName: source.fileName,
+            lineNumber: source.lineNumber,
+            columnNumber: source.columnNumber
+          };
+        }
+
+        fiber = fiber.return;
+        hops++;
+      }
+    } catch (error) {
+      // Cross-realm/frozen fibers can throw on property access — ignore.
+    }
+
+    return null;
+  }
+
   // Function to create element info
   function createElementInfo(element) {
     const rect = element.getBoundingClientRect();
-    
+
     return {
       tagName: element.tagName,
       className: getElementClassName(element),
@@ -130,7 +164,8 @@
       // Add new readable formats
       selector: createReadableSelector(element),
       displayText: createElementDisplayText(element),
-      elementPath: getElementPath(element)
+      elementPath: getElementPath(element),
+      source: getElementSource(element)
     };
   }
 

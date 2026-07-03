@@ -21,6 +21,17 @@ export interface ElementInfo {
     top: number;
     left: number;
   };
+
+  /**
+   * JSX source location (file:line) recovered from the element's React fiber
+   * `_debugSource` by the injected inspector script. Present only for dev
+   * builds compiled with the JSX source plugin; undefined otherwise.
+   */
+  source?: {
+    fileName: string;
+    lineNumber?: number;
+    columnNumber?: number;
+  };
 }
 
 export const Inspector = ({ isActive, iframeRef, onElementSelect }: InspectorProps) => {

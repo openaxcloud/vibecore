@@ -691,7 +691,25 @@ export const Preview = memo(
     );
 
     const openSelectedElementSource = useCallback(() => {
-      const filePath = resolveSourceFileForElement(selectedPreviewElement);
+      const element = selectedPreviewElement;
+
+      /*
+       * F3 — prefer the exact JSX source location (file:line) recovered from the
+       * element's React fiber when the injected inspector script provided it.
+       * This opens the precise line instead of the heuristic best-guess file.
+       */
+      const exactFile = element?.source?.fileName ? resolvePreviewSourcePath(element.source.fileName) : undefined;
+
+      if (exactFile) {
+        const line = element?.source?.lineNumber ?? 1;
+        openPreviewSource(exactFile, line);
+        toast.info(`Opened ${exactFile.replace(/^\/?/, '')}:${line}`);
+
+        return;
+      }
+
+      // Fallback: content-heuristic file match (no line) when no fiber source.
+      const filePath = resolveSourceFileForElement(element);
 
       if (!filePath) {
         toast.info('No matching source file found for this element.');
@@ -2575,8 +2593,19 @@ export const Preview = memo(
                       <strong>Text</strong>
                       <span>{selectedPreviewElement.textContent?.trim() || 'No text content'}</span>
                     </div>
+                    {selectedPreviewElement.source?.fileName ? (
+                      <div data-level="info">
+                        <strong>Source</strong>
+                        <span>
+                          {selectedPreviewElement.source.fileName.split('/').pop()}:
+                          {selectedPreviewElement.source.lineNumber ?? '?'}
+                        </span>
+                      </div>
+                    ) : null}
                     <button type="button" className="bolt-preview-devtools-primary" onClick={openSelectedElementSource}>
-                      Open matching source file
+                      {selectedPreviewElement.source?.fileName
+                        ? `Open source (${selectedPreviewElement.source.fileName.split('/').pop()}:${selectedPreviewElement.source.lineNumber ?? '?'})`
+                        : 'Open matching source file'}
                     </button>
                   </>
                 ) : (
