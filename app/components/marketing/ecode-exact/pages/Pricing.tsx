@@ -44,9 +44,6 @@ import {
 } from '~/components/marketing/ecode-exact/pages/pricing-comparison';
 import { scrollToElement } from '~/lib/scroll-to';
 
-const cloudComputingImg =
-  'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop';
-
 type ApiPlan = {
   tier?: string;
   name?: string;
@@ -410,13 +407,9 @@ export default function Pricing() {
 
       {/* Hero Section with Background */}
       <section className="relative py-20 overflow-hidden animate-fadeIn">
-        {/* Background Image */}
+        {/* Background: subtle brand-token gradient wash (replaces the former stock photo) */}
         <div className="absolute inset-0 z-0">
-          <img
-            src={cloudComputingImg}
-            alt="Cloud Computing"
-            className="w-full h-full object-cover opacity-5 dark:opacity-3"
-          />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--ecode-accent)_7%,transparent),transparent_62%)]" />
           <div className="absolute inset-0 bg-gradient-to-b from-[var(--ecode-background)]/80 via-[var(--ecode-background)]/90 to-[var(--ecode-background)]" />
         </div>
 
