@@ -1,3 +1,4 @@
+import { previewTenantCookie } from '~/lib/.server/preview-tenant';
 import { apiErrorMessage, apiRequest, json } from '~/lib/enterprise-api.server';
 
 export type ProjectWorkspaceSummary = {
@@ -131,26 +132,41 @@ export async function loadProjectIdeData(request: Request, projectId: string) {
     const workspaces = Array.isArray(workspacesResult.workspaces) ? workspacesResult.workspaces : [];
     const { currentWorkspaceId, primaryWorkspaceId } = resolveWorkspaceSelection(workspaces, requestedWorkspaceId);
 
-    return json<ProjectLoaderData>({
-      projectId,
-      project: result.project,
-      workspace: dashboardResult.workspace ?? null,
-      organization,
-      git: dashboardResult.git ?? {},
-      collaborators: collaboratorsResult.collaborators ?? [],
-      notifications: dashboardResult.recentActivity ?? [],
-      initialIdePanels: {
-        git: {
-          panel: 'git',
-          project: result.project,
-          status: 'ok',
-          data: { status: dashboardResult.git ?? {} },
+    /*
+     * Mint/refresh the `vc_preview` tenant cookie (Domain=.e-code.ai) so the
+     * cross-origin preview host can recognise this authenticated owner — the
+     * prerequisite for the private-port gate. No-op (undefined) until
+     * PREVIEW_TENANT_SECRET is provisioned, so this is inert dark-launch code.
+     */
+    const previewCookie = previewTenantCookie(
+      organization?.id ?? result.project.organizationId,
+      url.hostname,
+      Date.now(),
+    );
+
+    return json<ProjectLoaderData>(
+      {
+        projectId,
+        project: result.project,
+        workspace: dashboardResult.workspace ?? null,
+        organization,
+        git: dashboardResult.git ?? {},
+        collaborators: collaboratorsResult.collaborators ?? [],
+        notifications: dashboardResult.recentActivity ?? [],
+        initialIdePanels: {
+          git: {
+            panel: 'git',
+            project: result.project,
+            status: 'ok',
+            data: { status: dashboardResult.git ?? {} },
+          },
         },
+        workspaces,
+        currentWorkspaceId,
+        primaryWorkspaceId,
       },
-      workspaces,
-      currentWorkspaceId,
-      primaryWorkspaceId,
-    });
+      previewCookie ? { headers: { 'Set-Cookie': previewCookie } } : undefined,
+    );
   } catch (error) {
     /*
      * Re-throw definitive client-facing failures so React Router handles them:
