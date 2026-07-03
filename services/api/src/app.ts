@@ -375,6 +375,47 @@ const userPreferencesSchema = z.object({
   timezone: z.string().min(1).max(100).nullable().optional(),
   preferences: z.record(z.string(), z.unknown()).optional(),
 });
+
+/*
+ * Security emails are mandatory. The preferences blob is deliberately opaque,
+ * but the one invariant the notification grid relies on is enforced here so a
+ * direct API caller can't disable the security×email cell either: whenever a
+ * notifications matrix is present, its security row is rewritten with
+ * `email: true`. Returns a new object (never mutates `existing.preferences`,
+ * which the merged blob may still reference).
+ */
+function enforceMandatorySecurityEmail(preferences: Record<string, unknown> | undefined) {
+  if (!preferences) {
+    return preferences;
+  }
+
+  const notifications = preferences.notifications;
+
+  if (!notifications || typeof notifications !== 'object' || Array.isArray(notifications)) {
+    return preferences;
+  }
+
+  const matrix = (notifications as Record<string, unknown>).matrix;
+
+  if (!matrix || typeof matrix !== 'object' || Array.isArray(matrix)) {
+    return preferences;
+  }
+
+  const security = (matrix as Record<string, unknown>).security;
+  const securityRow = security && typeof security === 'object' && !Array.isArray(security) ? security : {};
+
+  return {
+    ...preferences,
+    notifications: {
+      ...(notifications as Record<string, unknown>),
+      matrix: {
+        ...(matrix as Record<string, unknown>),
+        security: { ...securityRow, email: true },
+      },
+    },
+  };
+}
+
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1).max(PASSWORD_MAX_LENGTH),
   newPassword: z.string().min(8).max(PASSWORD_MAX_LENGTH),
@@ -1107,6 +1148,7 @@ const userConnectionIdParams = z.object({ userConnectionId: z.string().min(1) })
 const reconnectionAlertIdParams = z.object({ alertId: z.string().min(1) });
 
 const notificationIdParams = z.object({ notificationId: z.string().min(1) });
+
 const notificationListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).optional(),
 });
@@ -1751,7 +1793,6 @@ function isBlockedGitHost(rawHost: string): boolean {
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host) ||
-
     /*
      * ULA fc00::/7 + link-local fe80::/10, but only as IPv6 LITERALS (hextets +
      * ':'). The old startsWith('fc'/'fd'/'fe80') wrongly blocked public hosts like
@@ -2460,7 +2501,6 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
     mfaPathname.startsWith('/auth/recovery-codes/') ||
     mfaPathname === '/auth/sessions' ||
     mfaPathname.startsWith('/auth/sessions/') ||
-
     /*
      * Re-auth is the gateway to enrolling MFA (mfa/setup now requires it); a
      * platform admin without MFA must be able to reach it or they'd be deadlocked.
@@ -8225,7 +8265,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/auth/login') ||
       request.url.startsWith('/auth/verify-email') ||
       request.url.startsWith('/auth/password-reset') ||
-
       /*
        * The OAuth login flow (start/callback/providers) is public, but the
        * account-LINK endpoint must stay authenticated (it binds a provider to the
@@ -8240,14 +8279,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/') ||
-
       /*
        * Service-to-service internal endpoints (metering ingest, inactivity GC).
        * Exempt from user auth; each route self-authenticates with the shared
        * internal secret via requireInternalSecret(). P8.
        */
       request.url.startsWith('/internal/') ||
-
       /*
        * Public read of a shared conversation snapshot — the signed token is the
        * capability. Only the token-scoped GET path is exempt; POST /chat-shares
@@ -9597,6 +9634,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const query = parse(notificationListQuerySchema, request.query);
+
     const [notifications, unreadCount] = await Promise.all([
       store.listNotificationsByUser({ userId: request.currentUser.id, limit: query.limit }),
       store.countUnreadNotificationsByUser(request.currentUser.id),
@@ -11464,7 +11502,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }),
     }).catch(() => undefined);
 
-    await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STARTING' }).catch(() => undefined);
+    await store
+      .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STARTING' })
+      .catch(() => undefined);
   };
 
   // Ensure the workspace agent is reachable, provisioning + waiting if needed.
@@ -11480,6 +11520,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await provisionWorkspaceOnDemand(request, authorized);
 
     const deadline = Date.now() + budgetMs;
+
     let attempt = 0;
 
     while (Date.now() < deadline) {
@@ -14701,7 +14742,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       userId: request.currentUser!.id,
       language: body.language,
       timezone: body.timezone,
-      preferences: mergedPreferences,
+      preferences: enforceMandatorySecurityEmail(mergedPreferences),
     });
 
     await audit(request, store, {
@@ -15989,8 +16030,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:read');
 
-    // Soft-deleted ("archived") projects are excluded by default; the /projects
-    // Archived filter opts in explicitly.
+    /*
+     * Soft-deleted ("archived") projects are excluded by default; the /projects
+     * Archived filter opts in explicitly.
+     */
     const includeArchived = (request.query as Record<string, unknown>)?.includeArchived === '1';
 
     return { projects: await store.listProjects(orgId, { includeArchived }) };
@@ -20021,6 +20064,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { portalUrl: session.url, sessionId: session.id };
   });
+
   /*
    * Billing CC address: stored on the organization, CC'd on spend-alert emails.
    * Owner/billing scope; null clears it.
@@ -20308,7 +20352,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           : undefined;
         const isStaleByTimestamp = Boolean(
           eventCreatedAt &&
-
             /*
              * Deletion is terminal and must ALWAYS be applied: a `deleted` event
              * can legitimately carry an older event.created than a previously

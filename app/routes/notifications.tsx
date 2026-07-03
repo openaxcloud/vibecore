@@ -6,44 +6,43 @@ import {
   CreditCard,
   Mail,
   Megaphone,
-  MessageSquare,
-  RadioTower,
   Rocket,
   ShieldAlert,
   Siren,
-  Smartphone,
   Users,
-  Webhook,
   type LucideIcon,
 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useFetcher, useLoaderData, useNavigation } from 'react-router';
+import { useFetcher, useLoaderData } from 'react-router';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
+import { Switch } from '~/components/ui/Switch';
 import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { classNames } from '~/utils/classNames';
 
 export const meta: MetaFunction = () => [{ title: 'Notifications - E-Code' }];
 
-type NotificationSurface = {
+type NotificationCategory = {
   key: string;
   title: string;
   description: string;
   icon: LucideIcon;
   tone: 'critical' | 'warning' | 'info' | 'success';
-  delivery: string;
-  owner: string;
 };
 
-const surfaces: NotificationSurface[] = [
+/*
+ * The category rows mirror the backend's Notification.category values
+ * (prisma: "security" | "billing" | "deployments" | "team" | "system") so the
+ * grid only offers buckets producers actually emit into.
+ */
+const categories: NotificationCategory[] = [
   {
     key: 'security',
     title: 'Security events',
     description: 'MFA changes, API key rotation, suspicious session activity and access policy updates.',
     icon: ShieldAlert,
     tone: 'critical',
-    delivery: 'Immediate',
-    owner: 'Security admins',
   },
   {
     key: 'billing',
@@ -51,8 +50,6 @@ const surfaces: NotificationSurface[] = [
     description: 'Quota thresholds, failed payments, invoice availability and subscription changes.',
     icon: CreditCard,
     tone: 'warning',
-    delivery: 'Immediate',
-    owner: 'Billing admins',
   },
   {
     key: 'deployments',
@@ -60,8 +57,6 @@ const surfaces: NotificationSurface[] = [
     description: 'Preview builds, production releases, rollbacks, domain checks and failed jobs.',
     icon: Rocket,
     tone: 'info',
-    delivery: 'Real time',
-    owner: 'Project collaborators',
   },
   {
     key: 'team',
@@ -69,8 +64,13 @@ const surfaces: NotificationSurface[] = [
     description: 'Invitations, role updates, collaborator changes and owner-level membership events.',
     icon: Users,
     tone: 'success',
-    delivery: 'Digest + critical',
-    owner: 'Organization owners',
+  },
+  {
+    key: 'system',
+    title: 'System updates',
+    description: 'Platform releases, maintenance windows and product announcements.',
+    icon: Megaphone,
+    tone: 'info',
   },
 ];
 
@@ -79,15 +79,25 @@ type NotificationChannel = {
   label: string;
   detail: string;
   icon: LucideIcon;
-  status: string;
 };
 
+/*
+ * Only channels with a real delivery path in the backend: the in-app feed
+ * (Notification table + /user/notifications) and the transactional email
+ * provider. Webhook/mobile delivery does not exist server-side yet, so the
+ * grid deliberately does not offer them.
+ */
 const channels: NotificationChannel[] = [
-  { key: 'email', label: 'Email', detail: 'Transactional provider', icon: Mail, status: 'Required for production' },
-  { key: 'inApp', label: 'In-app', detail: 'Workspace inbox', icon: Bell, status: 'Enabled' },
-  { key: 'webhook', label: 'Webhook', detail: 'Audit and incident routing', icon: Webhook, status: 'Enterprise' },
-  { key: 'mobile', label: 'Mobile', detail: 'Desktop/mobile bridge', icon: Smartphone, status: 'Optional' },
+  { key: 'email', label: 'Email', detail: 'Transactional email', icon: Mail },
+  { key: 'inApp', label: 'In-app', detail: 'Workspace inbox', icon: Bell },
 ];
+
+/* Security emails are mandatory; the API enforces the same invariant on PATCH. */
+function isLockedCell(categoryKey: string, channelKey: string) {
+  return categoryKey === 'security' && channelKey === 'email';
+}
+
+const SECURITY_EMAIL_LOCK_REASON = 'Security alerts are always emailed';
 
 const policies = [
   { label: 'Critical', icon: Siren, detail: 'Security, billing failure and production outage events.' },
@@ -95,26 +105,46 @@ const policies = [
   { label: 'Informational', icon: Megaphone, detail: 'Release notes, usage summaries and collaboration updates.' },
 ];
 
-type NotificationPreferences = {
-  surfaces: Record<string, boolean>;
-  channels: Record<string, boolean>;
+type NotificationMatrix = Record<string, Record<string, boolean>>;
+type NotificationPreferences = { matrix: NotificationMatrix };
+
+type SavedNotificationPreferences = {
+  matrix?: Record<string, Record<string, boolean> | undefined>;
+
+  /** Legacy pre-grid shape: independent per-category and per-channel toggles. */
+  surfaces?: Record<string, boolean>;
+  channels?: Record<string, boolean>;
 };
 
 /*
  * Notification preferences live in the opaque per-user `preferences` blob
  * (User.preferences JSON, shallow-merged server-side via PATCH
- * /user/preferences). Surfaces and channels not present in the saved blob
- * default to enabled so a fresh account opts into everything until it
- * explicitly turns something off.
+ * /user/preferences) as a category×channel matrix. Cells absent from the
+ * saved blob default to enabled; legacy saves (separate surfaces/channels
+ * toggles) seed a cell as on unless its category or channel was off. The
+ * security×email cell is always on regardless of what was saved.
  */
-function resolvePreferences(saved: Partial<NotificationPreferences> | undefined): NotificationPreferences {
-  const savedSurfaces = saved?.surfaces ?? {};
-  const savedChannels = saved?.channels ?? {};
+function resolvePreferences(saved: SavedNotificationPreferences | undefined): NotificationPreferences {
+  const matrix: NotificationMatrix = {};
 
-  return {
-    surfaces: Object.fromEntries(surfaces.map((surface) => [surface.key, savedSurfaces[surface.key] !== false])),
-    channels: Object.fromEntries(channels.map((channel) => [channel.key, savedChannels[channel.key] !== false])),
-  };
+  for (const category of categories) {
+    const row: Record<string, boolean> = {};
+
+    for (const channel of channels) {
+      if (isLockedCell(category.key, channel.key)) {
+        row[channel.key] = true;
+        continue;
+      }
+
+      const savedCell = saved?.matrix?.[category.key]?.[channel.key];
+      const legacyCell = saved?.surfaces?.[category.key] !== false && saved?.channels?.[channel.key] !== false;
+      row[channel.key] = typeof savedCell === 'boolean' ? savedCell : legacyCell;
+    }
+
+    matrix[category.key] = row;
+  }
+
+  return { matrix };
 }
 
 type FeedNotification = {
@@ -137,7 +167,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
    * page — the preferences call already redirects on 401 for us.
    */
   const [data, feed] = await Promise.all([
-    apiRequest<{ preferences?: { notifications?: Partial<NotificationPreferences> } }>(request, '/user/preferences'),
+    apiRequest<{ preferences?: { notifications?: SavedNotificationPreferences } }>(request, '/user/preferences'),
     apiRequest<NotificationFeed>(request, '/user/notifications').catch(
       () => ({ notifications: [], unreadCount: 0 }) as NotificationFeed,
     ),
@@ -149,34 +179,38 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 export async function action({ request }: EnterpriseActionArgs) {
   const form = await request.formData();
 
-  // Unchecked checkboxes are omitted from the form body, so absence === off.
-  const notifications: NotificationPreferences = {
-    surfaces: Object.fromEntries(surfaces.map((surface) => [surface.key, form.get(`surface.${surface.key}`) === 'on'])),
-    channels: Object.fromEntries(channels.map((channel) => [channel.key, form.get(`channel.${channel.key}`) === 'on'])),
-  };
+  // Unchecked cells are omitted from the form body, so absence === off.
+  const matrix: NotificationMatrix = Object.fromEntries(
+    categories.map((category) => [
+      category.key,
+      Object.fromEntries(
+        channels.map((channel) => [
+          channel.key,
+          isLockedCell(category.key, channel.key) || form.get(`cell.${category.key}.${channel.key}`) === 'on',
+        ]),
+      ),
+    ]),
+  );
 
-  await apiRequest(request, '/user/preferences', {
-    method: 'PATCH',
-    body: JSON.stringify({ preferences: { notifications } }),
-  });
+  try {
+    await apiRequest(request, '/user/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify({ preferences: { notifications: { matrix } } }),
+    });
+  } catch (error) {
+    // Let auth redirects (login / MFA) propagate; report anything else so the grid can revert.
+    if (error instanceof Response && error.status >= 300 && error.status < 400) {
+      throw error;
+    }
 
-  return { status: 'Notification preferences saved.', preferences: notifications };
+    return { ok: false as const, error: 'Could not save notification preferences.' };
+  }
+
+  return { ok: true as const, preferences: { matrix } };
 }
 
 export default function NotificationsPage() {
   const { preferences, feed } = useLoaderData<typeof loader>();
-  const navigation = useNavigation();
-  const saving = navigation.state === 'submitting';
-
-  const actionData = useActionData<typeof action>() as
-    | { status?: string; preferences?: NotificationPreferences }
-    | undefined;
-
-  // After a save, render the freshly-submitted state so toggles stay in sync.
-  const current = actionData?.preferences ?? preferences;
-
-  const enabledSurfaces = Object.values(current.surfaces).filter(Boolean).length;
-  const enabledChannels = Object.values(current.channels).filter(Boolean).length;
 
   return (
     <AppShell
@@ -185,121 +219,211 @@ export default function NotificationsPage() {
       actions={<LinkButton to="/security-settings">Security rules</LinkButton>}
     >
       <NotificationFeedSection feed={feed} />
+      <div className="space-y-6">
+        <PreferencesMatrixSection initial={preferences} />
 
-      <Form method="post" className="space-y-6">
-        {actionData?.status ? (
-          <p className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm text-bolt-elements-textSecondary">
-            {actionData.status}
-          </p>
-        ) : null}
-
-        <section className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
-          <div className="border-b border-bolt-elements-borderColor p-5 sm:p-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-normal text-bolt-elements-textTertiary">
-                  Delivery command center
-                </p>
-                <h2 className="mt-2 text-xl font-semibold tracking-normal">Enterprise notification coverage</h2>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-bolt-elements-textSecondary">
-                  Priority routing keeps operational events visible without turning the workspace into a noisy feed.
-                </p>
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <Metric value={`${enabledSurfaces}/${surfaces.length}`} label="Surfaces on" />
-                <Metric value={`${enabledChannels}/${channels.length}`} label="Channels on" />
-                <Metric value={String(policies.length)} label="Priorities" />
-              </div>
+        <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold tracking-normal">Priority model</h2>
+              <p className="mt-1 text-sm text-bolt-elements-textSecondary">Clear escalation paths for every event.</p>
             </div>
+            <CircleCheck className="h-5 w-5 text-bolt-elements-textTertiary" aria-hidden />
           </div>
-          <div className="grid gap-px bg-bolt-elements-borderColor md:grid-cols-2 xl:grid-cols-4">
-            {surfaces.map((surface) => (
-              <NotificationSurfaceCard key={surface.key} surface={surface} enabled={current.surfaces[surface.key]} />
-            ))}
+          <div className="grid gap-3 sm:grid-cols-3">
+            {policies.map((policy) => {
+              const Icon = policy.icon;
+
+              return (
+                <div key={policy.label} className="flex gap-3 rounded-md bg-bolt-elements-background-depth-1 p-3">
+                  <Icon className="mt-0.5 h-4 w-4 shrink-0 text-bolt-elements-textSecondary" aria-hidden />
+                  <div>
+                    <h3 className="text-sm font-semibold">{policy.label}</h3>
+                    <p className="mt-1 text-xs leading-5 text-bolt-elements-textSecondary">{policy.detail}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
-
-        <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-          <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold tracking-normal">Delivery channels</h2>
-                <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-                  Each channel is explicit, auditable and ready for production configuration.
-                </p>
-              </div>
-              <RadioTower className="h-5 w-5 text-bolt-elements-textTertiary" aria-hidden />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {channels.map((channel) => {
-                const Icon = channel.icon;
-
-                return (
-                  <label
-                    key={channel.key}
-                    className="flex cursor-pointer items-start gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4"
-                  >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
-                      <Icon className="h-5 w-5" aria-hidden />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-sm font-semibold">{channel.label}</h3>
-                        <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary">
-                          {channel.status}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-sm text-bolt-elements-textSecondary">{channel.detail}</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      name={`channel.${channel.key}`}
-                      defaultChecked={current.channels[channel.key]}
-                      className="vc-auth-checkbox mt-1 h-4 w-4 shrink-0 rounded"
-                    />
-                  </label>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold tracking-normal">Priority model</h2>
-                <p className="mt-1 text-sm text-bolt-elements-textSecondary">Clear escalation paths for every event.</p>
-              </div>
-              <CircleCheck className="h-5 w-5 text-bolt-elements-textTertiary" aria-hidden />
-            </div>
-            <div className="space-y-3">
-              {policies.map((policy) => {
-                const Icon = policy.icon;
-
-                return (
-                  <div key={policy.label} className="flex gap-3 rounded-md bg-bolt-elements-background-depth-1 p-3">
-                    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-bolt-elements-textSecondary" aria-hidden />
-                    <div>
-                      <h3 className="text-sm font-semibold">{policy.label}</h3>
-                      <p className="mt-1 text-xs leading-5 text-bolt-elements-textSecondary">{policy.detail}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        </div>
-
-        <div className="flex justify-end">
-          <Button type="submit" disabled={saving} aria-busy={saving}>
-            {saving ? 'Saving…' : 'Save preferences'}
-          </Button>
-        </div>
-      </Form>
+      </div>
     </AppShell>
   );
 }
 
-const categoryTone: Record<string, NotificationSurface['tone']> = {
+function PreferencesMatrixSection({ initial }: { initial: NotificationPreferences }) {
+  const fetcher = useFetcher<typeof action>();
+  const [matrix, setMatrix] = useState(initial.matrix);
+  const [error, setError] = useState<string | null>(null);
+
+  // Last server-confirmed state, so a failed save can revert optimistic toggles.
+  const committed = useRef(initial.matrix);
+
+  const saving = fetcher.state !== 'idle';
+
+  useEffect(() => {
+    if (!fetcher.data) {
+      return;
+    }
+
+    if (fetcher.data.ok) {
+      committed.current = fetcher.data.preferences.matrix;
+      setError(null);
+    } else {
+      setMatrix(committed.current);
+      setError(fetcher.data.error);
+    }
+  }, [fetcher.data]);
+
+  const setCell = (categoryKey: string, channelKey: string, enabled: boolean) => {
+    if (isLockedCell(categoryKey, channelKey)) {
+      return;
+    }
+
+    const next = { ...matrix, [categoryKey]: { ...matrix[categoryKey], [channelKey]: enabled } };
+    setMatrix(next);
+    setError(null);
+
+    /*
+     * Optimistic save-on-change: submit the full grid (last submission wins on
+     * rapid toggles) and revert to the last confirmed state on error.
+     */
+    const form = new FormData();
+
+    for (const category of categories) {
+      for (const channel of channels) {
+        if (next[category.key]?.[channel.key]) {
+          form.set(`cell.${category.key}.${channel.key}`, 'on');
+        }
+      }
+    }
+
+    fetcher.submit(form, { method: 'post' });
+  };
+
+  const totalCells = categories.length * channels.length;
+
+  const enabledCells = categories.reduce(
+    (count, category) => count + channels.filter((channel) => matrix[category.key]?.[channel.key]).length,
+    0,
+  );
+
+  return (
+    <section className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
+      <div className="border-b border-bolt-elements-borderColor p-5 sm:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-normal text-bolt-elements-textTertiary">
+              Delivery command center
+            </p>
+            <h2 className="mt-2 text-xl font-semibold tracking-normal">Notification preferences</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-bolt-elements-textSecondary">
+              Choose how each event category reaches you. Changes save automatically.
+              <span aria-live="polite" className="ml-2 text-bolt-elements-textTertiary">
+                {saving ? 'Saving…' : ''}
+              </span>
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <Metric value={`${enabledCells}/${totalCells}`} label="Cells on" />
+            <Metric value={String(channels.length)} label="Channels" />
+            <Metric value={String(policies.length)} label="Priorities" />
+          </div>
+        </div>
+      </div>
+
+      {error ? (
+        <p
+          role="alert"
+          className="mx-5 mt-4 rounded-md border border-red-500/35 bg-red-500/10 px-3 py-2 text-sm text-red-400 sm:mx-6"
+        >
+          {error} Your changes were reverted.
+        </p>
+      ) : null}
+
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-bolt-elements-borderColor">
+              <th
+                scope="col"
+                className="p-4 text-left text-xs font-semibold uppercase tracking-normal text-bolt-elements-textTertiary sm:pl-6"
+              >
+                Category
+              </th>
+              {channels.map((channel) => {
+                const Icon = channel.icon;
+
+                return (
+                  <th scope="col" key={channel.key} className="w-32 p-4 text-center align-top">
+                    <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-bolt-elements-textTertiary">
+                      <Icon className="h-4 w-4" aria-hidden />
+                      {channel.label}
+                    </span>
+                    <span className="mt-1 block text-[11px] font-normal normal-case text-bolt-elements-textTertiary">
+                      {channel.detail}
+                    </span>
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-bolt-elements-borderColor">
+            {categories.map((category) => {
+              const Icon = category.icon;
+
+              return (
+                <tr key={category.key}>
+                  <th scope="row" className="p-4 text-left font-normal sm:pl-6">
+                    <span className="flex items-start gap-3">
+                      <span
+                        className={classNames(
+                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-md border',
+                          toneClasses(category.tone),
+                        )}
+                      >
+                        <Icon className="h-4 w-4" aria-hidden />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold">{category.title}</span>
+                        <span className="mt-1 block max-w-xl text-sm leading-6 text-bolt-elements-textSecondary">
+                          {category.description}
+                        </span>
+                      </span>
+                    </span>
+                  </th>
+                  {channels.map((channel) => {
+                    const locked = isLockedCell(category.key, channel.key);
+                    const checked = locked || Boolean(matrix[category.key]?.[channel.key]);
+
+                    return (
+                      <td key={channel.key} className="p-4 text-center align-middle">
+                        <span className="inline-flex" title={locked ? SECURITY_EMAIL_LOCK_REASON : undefined}>
+                          <Switch
+                            checked={checked}
+                            disabled={locked || undefined}
+                            aria-label={`${category.title} via ${channel.label}${locked ? ` (${SECURITY_EMAIL_LOCK_REASON.toLowerCase()})` : ''}`}
+                            onCheckedChange={(value) => setCell(category.key, channel.key, value)}
+                          />
+                        </span>
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="border-t border-bolt-elements-borderColor px-5 py-3 text-xs text-bolt-elements-textTertiary sm:px-6">
+        {SECURITY_EMAIL_LOCK_REASON} and cannot be turned off.
+      </p>
+    </section>
+  );
+}
+
+const categoryTone: Record<string, NotificationCategory['tone']> = {
   security: 'critical',
   billing: 'warning',
   deployments: 'info',
@@ -307,7 +431,7 @@ const categoryTone: Record<string, NotificationSurface['tone']> = {
   system: 'info',
 };
 
-function toneClasses(tone: NotificationSurface['tone']) {
+function toneClasses(tone: NotificationCategory['tone']) {
   return classNames(
     tone === 'critical' && 'border-red-500/35 bg-red-500/10 text-red-400',
     tone === 'warning' && 'border-amber-500/35 bg-amber-500/10 text-amber-400',
@@ -439,40 +563,5 @@ function Metric({ value, label }: { value: string; label: string }) {
       <div className="text-sm font-semibold">{value}</div>
       <div className="mt-0.5 text-[11px] uppercase tracking-normal text-bolt-elements-textTertiary">{label}</div>
     </div>
-  );
-}
-
-function NotificationSurfaceCard({ surface, enabled }: { surface: NotificationSurface; enabled: boolean }) {
-  const Icon = surface.icon;
-
-  return (
-    <label className="flex cursor-pointer flex-col bg-bolt-elements-background-depth-2 p-4">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <span
-          className={classNames(
-            'flex h-11 w-11 items-center justify-center rounded-md border',
-            surface.tone === 'critical' && 'border-red-500/35 bg-red-500/10 text-red-400',
-            surface.tone === 'warning' && 'border-amber-500/35 bg-amber-500/10 text-amber-400',
-            surface.tone === 'info' && 'border-blue-500/35 bg-blue-500/10 text-blue-400',
-            surface.tone === 'success' && 'border-emerald-500/35 bg-emerald-500/10 text-emerald-400',
-          )}
-        >
-          <Icon className="h-5 w-5" aria-hidden />
-        </span>
-        <input
-          type="checkbox"
-          name={`surface.${surface.key}`}
-          defaultChecked={enabled}
-          aria-label={`Enable ${surface.title} notifications`}
-          className="vc-auth-checkbox mt-1 h-4 w-4 shrink-0 rounded"
-        />
-      </div>
-      <h3 className="text-sm font-semibold">{surface.title}</h3>
-      <p className="mt-2 min-h-16 text-sm leading-6 text-bolt-elements-textSecondary">{surface.description}</p>
-      <div className="mt-4 flex items-center gap-2 border-t border-bolt-elements-borderColor pt-3 text-xs text-bolt-elements-textTertiary">
-        <MessageSquare className="h-3.5 w-3.5" aria-hidden />
-        {surface.owner}
-      </div>
-    </label>
   );
 }
