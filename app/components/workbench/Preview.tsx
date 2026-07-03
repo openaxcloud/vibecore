@@ -31,6 +31,54 @@ import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { FileMap } from '~/lib/stores/files';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { WORK_DIR } from '~/utils/constants';
+
+/*
+ * F7 — resolve a preview-error `filename` (usually a full iframe URL such as
+ * http://host/src/App.tsx?t=… or a Vite /@fs/ path) to a real workbench file
+ * key so the console entry can jump straight to the source. Returns undefined
+ * when no matching file is open, in which case the entry stays plain text.
+ */
+function resolvePreviewSourcePath(filename: string): string | undefined {
+  let pathname = filename;
+
+  try {
+    pathname = new URL(filename).pathname;
+  } catch {
+    pathname = filename.split(/[?#]/)[0];
+  }
+
+  // Strip Vite-internal prefixes: /@fs/<abs> and /@id/<id>.
+  pathname = pathname.replace(/^\/@fs/, '').replace(/^\/@id\//, '/');
+
+  const stripped = pathname.replace(/^\/+/, '');
+
+  if (!stripped) {
+    return undefined;
+  }
+
+  const files = workbenchStore.files.get();
+  const absolutePath = pathname.startsWith(WORK_DIR) ? pathname : `${WORK_DIR}/${stripped}`;
+
+  if (files[absolutePath]?.type === 'file') {
+    return absolutePath;
+  }
+
+  if (files[pathname]?.type === 'file') {
+    return pathname;
+  }
+
+  return Object.keys(files).find(
+    (candidate) => candidate.endsWith(`/${stripped}`) && files[candidate]?.type === 'file',
+  );
+}
+
+/* Open a resolved source file in the editor at the reported 1-based line. */
+function openPreviewSource(path: string, line: number) {
+  workbenchStore.setSelectedFile(path);
+  workbenchStore.setCurrentDocumentScrollPosition({ line: Math.max(0, line - 1), column: 0 });
+  workbenchStore.currentView.set('code');
+}
 
 type ResizeSide = 'left' | 'right' | null;
 type PreviewDevice = 'desktop' | 'tablet' | 'mobile' | 'custom';
@@ -482,7 +530,10 @@ export const Preview = memo(
     const [activeLogTab, setActiveLogTab] = useState<PreviewLogTab>('webview');
     const [devToolsOpen, setDevToolsOpen] = useState(false);
     const [activeDevToolsTab, setActiveDevToolsTab] = useState<PreviewDevToolsTab>('console');
-    const [previewConsoleEvents, setPreviewConsoleEvents] = useState<Array<{ level: string; message: string }>>([]);
+
+    const [previewConsoleEvents, setPreviewConsoleEvents] = useState<
+      Array<{ level: string; message: string; source?: { path: string; line: number } }>
+    >([]);
 
     const [previewNetworkEvents, setPreviewNetworkEvents] = useState<
       Array<{ method: string; url: string; status: string; source: string }>
@@ -1648,13 +1699,18 @@ export const Preview = memo(
             );
           }
         } else if (event.data.type === 'PREVIEW_ERROR') {
-          const filename = event.data.filename ? ` (${event.data.filename}:${event.data.lineno ?? '?'})` : '';
+          const rawFilename = typeof event.data.filename === 'string' ? event.data.filename : '';
+          const lineno = typeof event.data.lineno === 'number' ? event.data.lineno : undefined;
+          const filename = rawFilename ? ` (${rawFilename}:${lineno ?? '?'})` : '';
           const message = `Preview error: ${event.data.message ?? 'unknown'}${filename}`;
+          const resolvedPath = rawFilename ? resolvePreviewSourcePath(rawFilename) : undefined;
+          const source = resolvedPath && lineno ? { path: resolvedPath, line: lineno } : undefined;
           setPreviewConsoleEvents((events) =>
             [
               {
                 level: 'error',
                 message,
+                source,
               },
               ...events,
             ].slice(0, 120),
@@ -2459,12 +2515,28 @@ export const Preview = memo(
             {activeDevToolsTab === 'console' && (
               <div className="bolt-preview-devtools-body" role="log" aria-live="polite">
                 {previewConsoleEvents.length ? (
-                  previewConsoleEvents.map((event, index) => (
-                    <div key={`${event.level}-${index}`} data-level={event.level}>
-                      <strong>{event.level}</strong>
-                      <span>{event.message}</span>
-                    </div>
-                  ))
+                  previewConsoleEvents.map((event, index) => {
+                    const source = event.source;
+
+                    return (
+                      <div key={`${event.level}-${index}`} data-level={event.level}>
+                        <strong>{event.level}</strong>
+                        <span>{event.message}</span>
+                        {source ? (
+                          <button
+                            type="button"
+                            className="bolt-preview-console-open"
+                            onClick={() => openPreviewSource(source.path, source.line)}
+                            title={`Open ${source.path}:${source.line}`}
+                            aria-label={`Open ${source.path} at line ${source.line}`}
+                          >
+                            <span className="i-ph:arrow-square-out" aria-hidden />
+                            {source.path.split('/').pop()}:{source.line}
+                          </button>
+                        ) : null}
+                      </div>
+                    );
+                  })
                 ) : (
                   <p>No preview console errors captured. Runtime logs remain available in the Logs panel.</p>
                 )}

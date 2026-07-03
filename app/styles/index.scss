@@ -10159,6 +10159,33 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-accent-warning);
 }
 
+/* F7 — clickable file:line jump on a console error entry (blue = action). */
+.bolt-preview-devtools-body .bolt-preview-console-open {
+  display: inline-flex;
+  height: auto;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 12%, transparent);
+  padding: 2px 8px;
+  color: var(--vc-ide-accent-action);
+  cursor: pointer;
+  font-family: var(--vc-font-code);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.bolt-preview-devtools-body .bolt-preview-console-open:hover {
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 20%, transparent);
+  color: var(--vc-ide-accent-action);
+}
+
+.bolt-preview-devtools-body .bolt-preview-console-open:focus-visible {
+  outline: 2px solid var(--vc-ide-accent-action);
+  outline-offset: 1px;
+}
+
 .bolt-preview-devtools-body p {
   margin: 0;
   color: var(--vc-ide-text-muted);
