@@ -45,7 +45,7 @@ export default function AiAgent() {
   const navigate = useMarketingNavigate();
   const { user } = usePublicAuth();
 
-  // Rediriger les utilisateurs connectés vers le dashboard
+  // Redirect signed-in users to the dashboard
   useEffect(() => {
     if (user) {
       navigate('/dashboard');
