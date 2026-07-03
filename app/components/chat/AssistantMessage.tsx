@@ -10,6 +10,7 @@ import { useStore } from '@nanostores/react';
 import type { JSONValue } from 'ai';
 import type { Message } from 'ai';
 import { memo, Fragment, useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import { toast } from 'react-toastify';
 import { Markdown } from './Markdown';
 import { MessagePatchReview } from './MessagePatchReview';
@@ -203,15 +204,21 @@ export const AssistantMessage = memo(
       promptTokens: number;
       totalTokens: number;
     } = filteredAnnotations.find((annotation) => annotation.type === 'usage')?.value;
-    const usageStats = usage
+
+    /*
+     * Compact per-run chip ("$0.03 · 12.4k tokens · 41s") rendered under the
+     * finished response; every part is optional so the chip only shows what
+     * the stream actually reported, and hides entirely when nothing did.
+     */
+    const usageChipText = usage
       ? [
-          ['In', formatUsageNumber(usage.promptTokens)],
-          ['Out', formatUsageNumber(usage.completionTokens)],
-          ['Total', formatUsageNumber(usage.totalTokens)],
-          ['Time', formatDurationMs(usage.durationMs)],
-          ['Cost', typeof usage.cost === 'number' ? `$${usage.cost.toFixed(4)}` : usage.cost],
-        ].filter(([, value]) => value)
-      : [];
+          typeof usage.cost === 'number' ? `$${usage.cost.toFixed(2)}` : (usage.cost ?? null),
+          usage.totalTokens ? `${formatUsageNumber(usage.totalTokens)} tokens` : null,
+          usage.durationMs ? formatDurationMs(usage.durationMs) : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : '';
 
     const toolInvocations = parts?.filter((part) => part.type === 'tool-invocation');
 
@@ -507,19 +514,6 @@ export const AssistantMessage = memo(
                     Memory used: {agentMemory.memories.length}
                   </span>
                 )}
-                {usage && (
-                  <span
-                    className="bolt-message-usage-stats"
-                    aria-label={`Message usage: ${usageStats.map(([label, value]) => `${label} ${value}`).join(', ')}`}
-                  >
-                    {usageStats.map(([label, value]) => (
-                      <span key={label}>
-                        <strong>{label}</strong>
-                        {value}
-                      </span>
-                    ))}
-                  </span>
-                )}
               </div>
             </div>
           </div>
@@ -777,6 +771,17 @@ export const AssistantMessage = memo(
             addToolResult={addToolResult}
           />
         )}
+        {usageChipText ? (
+          <Link
+            to="/usage"
+            className="mt-2 inline-flex items-center gap-1 text-[11px] text-bolt-elements-textTertiary transition-colors hover:text-bolt-elements-textSecondary"
+            style={{ fontFamily: 'var(--vc-font-code)' }}
+            title={`This run: prompt ${usage?.promptTokens ?? 0} / completion ${usage?.completionTokens ?? 0} tokens — open the usage page`}
+            aria-label={`Run usage ${usageChipText} — open the usage page`}
+          >
+            {usageChipText}
+          </Link>
+        ) : null}
         <AssistantMessageFooter content={content} messageId={messageId} onRewind={onRewind} onFork={onFork} />
       </div>
     );
