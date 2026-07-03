@@ -68,7 +68,7 @@ import {
   SiTypescript,
   SiVite,
 } from 'react-icons/si';
-import { Form, Link, NavLink, useNavigate } from 'react-router';
+import { Form, Link, NavLink, useFetcher, useNavigate } from 'react-router';
 import { ProjectCardMenu, ProjectRenameForm } from './ProjectCardMenu';
 import {
   type CommandPaletteItem,
@@ -88,6 +88,7 @@ import { EcodeExactPublicShell } from '~/components/marketing/ecode-exact/EcodeE
 import { Button } from '~/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/Card';
 import { EmptyState } from '~/components/ui/EmptyState';
+import UiPopover from '~/components/ui/Popover';
 import { RelativeTime } from '~/components/ui/RelativeTime';
 import { SkipLink } from '~/components/ui/SkipLink';
 import { profileStore } from '~/lib/stores/profile';
@@ -1785,7 +1786,169 @@ function TopBar({ onOpenDrawer }: { onOpenDrawer: () => void }) {
           ⌘K
         </kbd>
       </Link>
+      <TopBarNotifications />
     </header>
+  );
+}
+
+/* Mirrors FeedNotification in routes/notifications.tsx (the /api/notifications proxy of GET /user/notifications). */
+type TopBarNotification = {
+  id: string;
+  title: string;
+  read: boolean;
+  createdAt: string;
+};
+
+type TopBarNotificationFeed = { notifications: TopBarNotification[]; unreadCount: number };
+
+const TOP_BAR_FEED_LIMIT = 8;
+const TOP_BAR_FEED_POLL_MS = 60_000;
+
+function TopBarNotifications() {
+  const [feed, setFeed] = useState<TopBarNotificationFeed | null>(null);
+  const markAllFetcher = useFetcher<{ ok: boolean; unreadCount?: number }>();
+  const markingAll = markAllFetcher.state !== 'idle';
+
+  /*
+   * The badge needs the unread count before the popover ever opens, so the
+   * cheapest honest option is a light poll of the real feed: fetch on mount
+   * plus every 60s via the existing /api/notifications proxy (skipped while
+   * the tab is hidden). No socket, no per-open refetch.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (document.hidden) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/notifications', { headers: { accept: 'application/json' } });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as TopBarNotificationFeed;
+
+        if (!cancelled && Array.isArray(payload.notifications)) {
+          setFeed({ notifications: payload.notifications, unreadCount: payload.unreadCount ?? 0 });
+        }
+      } catch {
+        // Transient badge failures stay silent; /notifications is the reliable surface.
+      }
+    };
+
+    load();
+
+    const timer = window.setInterval(load, TOP_BAR_FEED_POLL_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  // Fold a successful "Mark all read" back into the polled snapshot immediately.
+  useEffect(() => {
+    if (markAllFetcher.data?.ok) {
+      const confirmedUnread = markAllFetcher.data.unreadCount ?? 0;
+      setFeed(
+        (prev) =>
+          prev && {
+            notifications: prev.notifications.map((notification) => ({ ...notification, read: true })),
+            unreadCount: confirmedUnread,
+          },
+      );
+    }
+  }, [markAllFetcher.data]);
+
+  const unreadCount = feed?.unreadCount ?? 0;
+  const notifications = (feed?.notifications ?? []).slice(0, TOP_BAR_FEED_LIMIT);
+
+  return (
+    <UiPopover
+      side="bottom"
+      align="end"
+      testId="topbar-notifications-popover"
+      contentClassName="w-[min(22rem,calc(100vw-32px))] p-0 text-bolt-elements-textPrimary"
+      trigger={
+        <button
+          type="button"
+          className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+          aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : 'Notifications'}
+        >
+          <Bell className="h-4 w-4" aria-hidden />
+          {unreadCount > 0 ? (
+            <span
+              className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-bolt-elements-item-contentAccent px-1 text-[10px] font-semibold leading-none text-white"
+              aria-hidden
+            >
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          ) : null}
+        </button>
+      }
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-bolt-elements-borderColor px-3 py-2">
+        <p className="text-sm font-semibold">Notifications</p>
+        {unreadCount > 0 ? (
+          <markAllFetcher.Form method="post" action="/api/notifications/read-all">
+            <button
+              type="submit"
+              disabled={markingAll}
+              className="rounded text-xs font-medium text-[var(--vc-ide-accent-action)] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:opacity-60"
+            >
+              {markingAll ? 'Marking…' : 'Mark all read'}
+            </button>
+          </markAllFetcher.Form>
+        ) : null}
+      </div>
+      {notifications.length === 0 ? (
+        <p className="px-3 py-6 text-center text-sm text-bolt-elements-textSecondary">
+          {feed ? 'You are all caught up.' : 'Loading notifications…'}
+        </p>
+      ) : (
+        <ul className="max-h-80 divide-y divide-bolt-elements-borderColor overflow-y-auto">
+          {notifications.map((notification) => (
+            <li key={notification.id} className="flex items-start gap-2 px-3 py-2.5">
+              <span
+                className={classNames(
+                  'mt-1.5 h-2 w-2 shrink-0 rounded-full',
+                  notification.read ? 'bg-transparent' : 'bg-bolt-elements-item-contentAccent',
+                )}
+                aria-label={notification.read ? undefined : 'Unread'}
+              />
+              <span className="min-w-0 flex-1">
+                <span
+                  className={classNames(
+                    'block truncate text-sm',
+                    notification.read ? 'text-bolt-elements-textSecondary' : 'font-semibold',
+                  )}
+                >
+                  {notification.title}
+                </span>
+                <RelativeTime
+                  value={notification.createdAt}
+                  className="mt-0.5 block text-[11px] text-bolt-elements-textTertiary"
+                />
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="border-t border-bolt-elements-borderColor p-1">
+        <Popover.Close asChild>
+          <Link
+            to="/notifications"
+            className="flex items-center justify-center rounded-md px-3 py-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+          >
+            View all notifications
+          </Link>
+        </Popover.Close>
+      </div>
+    </UiPopover>
   );
 }
 
