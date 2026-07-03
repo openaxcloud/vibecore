@@ -11,9 +11,15 @@ describe('seedProviderRegistry', () => {
     const models = await store.listModelConfigs();
     expect(models).toHaveLength(aiModelCatalog.length);
 
-    const providers = await store.listProviderConfigs();
-    const expectedProviders = new Set(aiModelCatalog.map((m) => m.provider));
-    expect(new Set(providers.map((p) => p.provider))).toEqual(expectedProviders);
+    // seedProviderRegistry seeds the full LLMManager provider registry (so the
+    // user model selector can enable any provider), which is a superset of the
+    // providers that have models in aiModelCatalog. Assert every catalog provider
+    // is present rather than an exact match against the (larger) seeded set.
+    const seededProviders = new Set((await store.listProviderConfigs()).map((p) => p.provider));
+
+    for (const provider of new Set(aiModelCatalog.map((m) => m.provider))) {
+      expect(seededProviders.has(provider)).toBe(true);
+    }
   });
 
   it('maps ai-plan keys to credit-plan keys (free→starter, pro→core, business→pro)', async () => {

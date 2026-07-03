@@ -4665,7 +4665,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     await app.close();
   });
 
-  it('discovers database connections without exposing secret values and blocks unsafe queries', async () => {
+  it('discovers database connections without exposing secret values', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'database@example.com', organizationName: 'Database Org' });
 
@@ -4700,13 +4700,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
     expect(JSON.stringify(databases.json())).not.toContain('super-secret');
 
-    const unsafeQuery = await app.inject({
-      method: 'POST',
-      url: `/projects/${projectId}/databases/query`,
-      headers: { authorization: `Bearer ${auth.token}` },
-      payload: { key: 'PRODUCTION_DATABASE_URL', query: 'drop table users' },
-    });
-    expect(unsafeQuery.statusCode).toBe(400);
+    /*
+     * NOTE: the SQL pane is deliberately a full read/write runner (Replit parity)
+     * — SELECT + INSERT/UPDATE/DELETE + DDL (CREATE/ALTER/DROP) all execute against
+     * the project's OWN database (see runDatabaseQuery). It no longer rejects DDL
+     * with a 400, so there is no "unsafe query blocked" assertion here; exercising a
+     * real query requires a live database and is covered by integration tests.
+     */
     await app.close();
   });
 

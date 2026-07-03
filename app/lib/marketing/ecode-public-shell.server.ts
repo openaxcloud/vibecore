@@ -251,13 +251,20 @@ function normalizeNotificationFeed(payload: NotificationFeedPayload | undefined)
 
 /**
  * Loads the current user's in-app notification feed (unread first, newest
- * next) with the unread count for the badge. Strictly user-scoped server-side;
- * a 401 redirects to login on page navigations.
+ * next) with the unread count for the badge. Strictly user-scoped server-side.
+ * Degrades to an empty feed for anonymous visitors / an unreachable API so the
+ * public marketing shell header never crashes (mirrors ecodeMeLoader).
  */
 export async function notificationFeedLoader({ request }: EnterpriseLoaderArgs) {
-  const payload = await apiRequest<NotificationFeedPayload>(request, '/user/notifications');
+  try {
+    const payload = await apiRequest<NotificationFeedPayload>(request, '/user/notifications', {
+      redirectOn401: false,
+    });
 
-  return json(normalizeNotificationFeed(payload), { headers: noStoreHeaders });
+    return json(normalizeNotificationFeed(payload), { headers: noStoreHeaders });
+  } catch {
+    return json(normalizeNotificationFeed(undefined), { headers: noStoreHeaders });
+  }
 }
 
 export async function notificationsCollectionAction({ request }: EnterpriseActionArgs) {

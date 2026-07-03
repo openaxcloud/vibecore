@@ -79,7 +79,11 @@ describe('buildChatStreamErrorPayload', () => {
   it('handles non-Error throws without crashing', () => {
     const payload = buildChatStreamErrorPayload('weird');
 
-    expect(payload.message).toBe('An unexpected error occurred');
+    /*
+     * A non-Error throw has no usable message, so the payload falls back to the
+     * classified default copy (streamErrorCodeMessages) for the unknown code.
+     */
+    expect(payload.message).toBe('An unknown streaming error occurred.');
     expect(payload.statusCode).toBe(500);
   });
 });
