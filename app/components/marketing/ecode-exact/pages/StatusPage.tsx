@@ -1,5 +1,6 @@
 import { Activity, ShieldCheck, Bell, Boxes, Rocket, Bot, LayoutDashboard, Server, ArrowRight } from 'lucide-react';
 import { SiPostgresql, SiOpenai } from 'react-icons/si';
+import { useFetcher } from 'react-router';
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
@@ -12,6 +13,7 @@ import {
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { Badge } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import Popover from '~/components/ui/Popover';
 
 const PRODUCT = '/ecode-static/assets/product';
 
@@ -62,6 +64,83 @@ function formatIncidentDuration(minutes: number): string {
   const rest = minutes % 60;
 
   return rest > 0 ? `${hours}h ${rest}m` : `${hours}h`;
+}
+
+/*
+ * Incident-update opt-in for the status page. Reuses the /newsletter route
+ * action (honeypot + rate-limited API proxy) with source="status" so the
+ * subscription records where it came from. Email is the only real update
+ * channel today — no RSS feed or webhook endpoint exists, so none is offered.
+ */
+function SubscribeToUpdates() {
+  const fetcher = useFetcher<{ ok?: boolean; error?: string }>();
+  const submitting = fetcher.state !== 'idle';
+  const succeeded = fetcher.data?.ok === true;
+
+  return (
+    <Popover
+      testId="popover-status-subscribe"
+      side="bottom"
+      contentClassName="w-80 p-4 text-left"
+      trigger={
+        <button
+          type="button"
+          className="inline-flex items-center justify-center gap-2 rounded-md px-5 py-2.5 text-[14px] font-medium min-h-[44px] border border-bolt-elements-borderColor text-bolt-elements-textPrimary bg-bolt-elements-background-depth-1 transition-colors hover:bg-bolt-elements-background-depth-3"
+          data-testid="button-status-subscribe"
+        >
+          <Bell className="h-4 w-4" aria-hidden />
+          Subscribe to updates
+        </button>
+      }
+    >
+      <h3 className="text-[14px] font-semibold text-bolt-elements-textPrimary">Get incident updates by email</h3>
+      {succeeded ? (
+        <p className="mt-3 text-[13px]" style={{ color: 'var(--status-success-text)' }}>
+          You&apos;re subscribed — incident updates will land in your inbox.
+        </p>
+      ) : (
+        <fetcher.Form method="post" action="/newsletter" className="mt-3">
+          <input type="hidden" name="source" value="status" />
+          <div className="flex flex-col gap-2">
+            <input
+              type="email"
+              name="email"
+              required
+              autoComplete="email"
+              placeholder="you@company.com"
+              aria-label="Email address"
+              disabled={submitting}
+              className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-[16px] sm:text-sm text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary outline-none focus:border-bolt-elements-focus"
+            />
+            <input
+              type="text"
+              name="company"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              className="pointer-events-none absolute h-0 w-0 opacity-0"
+            />
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex min-h-[40px] items-center justify-center rounded-md px-4 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+              style={{ backgroundColor: '#F26207' }}
+            >
+              {submitting ? 'Subscribing…' : 'Subscribe'}
+            </button>
+          </div>
+          {fetcher.data && fetcher.data.ok === false ? (
+            <p className="mt-2 text-[12px]" style={{ color: 'var(--status-error-text)' }}>
+              {fetcher.data.error ?? 'Subscription failed. Please try again.'}
+            </p>
+          ) : null}
+        </fetcher.Form>
+      )}
+      <p className="mt-3 text-[12px] text-bolt-elements-textSecondary">
+        Email is the only update channel for now — RSS and webhooks aren&apos;t available yet.
+      </p>
+    </Popover>
+  );
 }
 
 export default function StatusPage() {
@@ -152,6 +231,10 @@ export default function StatusPage() {
                 <span className="text-[15px] font-semibold text-bolt-elements-textPrimary">
                   All systems operational
                 </span>
+              </div>
+
+              <div className="mt-5 flex justify-center">
+                <SubscribeToUpdates />
               </div>
             </div>
           </div>

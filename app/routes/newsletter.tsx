@@ -22,11 +22,14 @@ export async function action({ request }: EnterpriseActionArgs) {
     return json({ ok: false, error: 'Enter a valid email address.' }, { status: 400 });
   }
 
+  // Whitelisted so the stored analytics dimension can't be polluted by crafted posts.
+  const source = String(form.get('source') ?? '').trim() === 'status' ? 'status' : 'footer';
+
   try {
     await apiRequest(request, '/newsletter/subscribe', {
       method: 'POST',
       redirectOn401: false,
-      body: JSON.stringify({ email, source: 'footer' }),
+      body: JSON.stringify({ email, source }),
     });
 
     return json({ ok: true });
