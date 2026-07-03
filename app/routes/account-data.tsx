@@ -1,3 +1,4 @@
+import * as RadixDialog from '@radix-ui/react-dialog';
 import { AlertTriangle, Download, ShieldAlert, Trash2, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import type { MetaFunction } from 'react-router';
@@ -5,6 +6,7 @@ import { data as json } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { AppShell, StatusPill } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
+import { Dialog, DialogTitle } from '~/components/ui/Dialog';
 import {
   apiErrorMessage,
   apiRequest,
@@ -32,7 +34,15 @@ type DeletionView = {
   scope: { deleted: string[]; retained: string[] };
 };
 
-const CONFIRM_PHRASE = 'DELETE';
+/*
+ * The delete dialog requires typing the account EMAIL (the User model has no
+ * username — email is the unique human-readable identity). Compared
+ * case-insensitively after trimming, and re-validated server-side in the
+ * action so the client-side gate is never the only check.
+ */
+function emailConfirmMatches(confirm: string, email: string): boolean {
+  return confirm.trim().toLowerCase() === email.trim().toLowerCase() && email.trim().length > 0;
+}
 
 const EXPORT_INCLUDES = [
   'Profile and account preferences',
@@ -72,12 +82,17 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     });
   }
 
-  const view = await apiRequest<DeletionView>(request, '/account/deletion');
+  const [view, me] = await Promise.all([
+    apiRequest<DeletionView>(request, '/account/deletion'),
+    apiRequest<{ user?: { email?: string } }>(request, '/auth/me'),
+  ]);
 
-  return json({ view });
+  return json({ view, email: me.user?.email ?? '' });
 }
 
-type ActionResult = { ok: true; intent: 'request' | 'cancel'; view: DeletionView } | { ok: false; error: string };
+type ActionResult =
+  | { ok: true; intent: 'request' | 'cancel'; view: DeletionView }
+  | { ok: false; intent: string; error: string };
 
 export async function action({ request }: EnterpriseActionArgs) {
   const form = await request.formData();
@@ -94,11 +109,18 @@ export async function action({ request }: EnterpriseActionArgs) {
     }
 
     if (intent === 'request') {
-      const confirm = String(form.get('confirm') ?? '').trim();
+      const confirm = String(form.get('confirm') ?? '');
 
-      if (confirm !== CONFIRM_PHRASE) {
+      /*
+       * Authoritative re-check against the CURRENT session's email (never a
+       * hidden form field, which the client could tamper with).
+       */
+      const me = await apiRequest<{ user?: { email?: string } }>(request, '/auth/me');
+      const email = me.user?.email ?? '';
+
+      if (!emailConfirmMatches(confirm, email)) {
         return json<ActionResult>(
-          { ok: false, error: `Type ${CONFIRM_PHRASE} to confirm account deletion.` },
+          { ok: false, intent, error: 'Type your account email exactly to confirm deletion.' },
           { status: 400 },
         );
       }
@@ -108,7 +130,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json<ActionResult>({ ok: true, intent: 'request', view });
     }
 
-    return json<ActionResult>({ ok: false, error: 'Unknown action.' }, { status: 400 });
+    return json<ActionResult>({ ok: false, intent, error: 'Unknown action.' }, { status: 400 });
   } catch (error) {
     /*
      * apiRequest throws a 3xx redirect Response when the session expired mid-flight
@@ -121,7 +143,7 @@ export async function action({ request }: EnterpriseActionArgs) {
     }
 
     return json<ActionResult>(
-      { ok: false, error: await apiErrorMessage(error, 'Could not update your deletion request.') },
+      { ok: false, intent, error: await apiErrorMessage(error, 'Could not update your deletion request.') },
       { status: 500 },
     );
   }
@@ -148,20 +170,30 @@ const STATUS_LABEL: Record<DeletionStatus, string> = {
 };
 
 export default function AccountDataPage() {
-  const { view: loaderView } = useLoaderData<typeof loader>();
+  const { view: loaderView, email } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as ActionResult | undefined;
   const navigation = useNavigation();
   const busy = navigation.state !== 'idle';
   const [confirmValue, setConfirmValue] = useState('');
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   // Prefer the freshest authoritative state returned by the action over the loader snapshot.
   const view = actionData?.ok ? actionData.view : loaderView;
-  const error = actionData && !actionData.ok ? actionData.error : null;
+  const failure = actionData && !actionData.ok ? actionData : null;
+
+  // Failed deletion requests surface INSIDE the dialog; everything else banners at the top.
+  const requestError = failure?.intent === 'request' ? failure.error : null;
+  const error = failure && failure.intent !== 'request' ? failure.error : null;
 
   const pending = view.status === 'grace_period' || view.status === 'requested';
   const purgeDate = formatDate(view.purgeDueAt);
   const requestedDate = formatDate(view.requestedAt);
-  const confirmOk = confirmValue.trim() === CONFIRM_PHRASE;
+  const confirmOk = emailConfirmMatches(confirmValue, email);
+
+  // Projected end of the grace window if the user confirms right now (approximate by design).
+  const projectedPurgeDate = formatDate(
+    new Date(Date.now() + view.gracePeriodDays * 24 * 60 * 60 * 1000).toISOString(),
+  );
 
   return (
     <AppShell
@@ -170,7 +202,11 @@ export default function AccountDataPage() {
     >
       <div className="space-y-6">
         {error ? (
-          <p role="alert" className="rounded-md border border-red-500/40 bg-red-500/5 px-3 py-2 text-sm text-red-400">
+          <p
+            role="alert"
+            className="rounded-md border border-red-500/40 bg-red-500/5 px-3 py-2 text-sm"
+            style={{ color: 'var(--status-error-text)' }}
+          >
             {error}
           </p>
         ) : null}
@@ -195,7 +231,11 @@ export default function AccountDataPage() {
           {pending ? (
             <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-500/5 p-4">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" aria-hidden />
+                <AlertTriangle
+                  className="mt-0.5 h-5 w-5 shrink-0"
+                  style={{ color: 'var(--status-warning-text)' }}
+                  aria-hidden
+                />
                 <div className="min-w-0 text-sm text-bolt-elements-textSecondary">
                   <p className="font-medium text-bolt-elements-textPrimary">Your account is scheduled for deletion.</p>
                   <p className="mt-1">
@@ -302,47 +342,121 @@ export default function AccountDataPage() {
           </a>
         </section>
 
-        {/* Danger zone: request deletion */}
+        {/* Danger zone: request deletion (typed-confirmation dialog) */}
         {!pending ? (
           <section className="rounded-lg border border-red-500/40 bg-red-500/5 p-5 shadow-sm sm:p-6">
-            <h2 className="text-base font-semibold text-red-400">Delete account</h2>
+            <h2 className="text-base font-semibold" style={{ color: 'var(--status-error-text)' }}>
+              Delete account
+            </h2>
             <p className="mt-1 text-sm text-bolt-elements-textSecondary">
               This schedules your account for permanent deletion. You can cancel within the {view.gracePeriodDays}-day
-              grace period, after which it cannot be undone.
+              grace period — sign back in and cancel from this page — after which it cannot be undone.
             </p>
 
-            <Form method="post" className="mt-4 space-y-4">
-              <input type="hidden" name="intent" value="request" />
-
-              <div>
-                <label htmlFor="confirm" className="block text-sm font-medium text-bolt-elements-textPrimary">
-                  Type <span className="font-mono font-semibold">{CONFIRM_PHRASE}</span> to confirm
-                </label>
-                <input
-                  id="confirm"
-                  name="confirm"
-                  type="text"
-                  autoComplete="off"
-                  value={confirmValue}
-                  onChange={(event) => setConfirmValue(event.target.value)}
-                  placeholder={CONFIRM_PHRASE}
-                  className="mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none sm:max-w-xs"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={busy || !confirmOk}
-                aria-busy={busy}
-                className="inline-flex h-9 items-center gap-1.5 rounded-md bg-red-500 px-4 text-sm font-medium text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Trash2 className="h-4 w-4" aria-hidden />
-                {busy ? 'Requesting…' : 'Request account deletion'}
-              </button>
-            </Form>
+            <button
+              type="button"
+              data-testid="account-delete-open"
+              onClick={() => {
+                setConfirmValue('');
+                setDeleteOpen(true);
+              }}
+              style={{
+                color: 'var(--status-error-text)',
+                borderColor: 'color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
+              }}
+              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-md border px-4 text-sm font-medium transition-colors hover:bg-red-500/10"
+            >
+              <Trash2 className="h-4 w-4" aria-hidden />
+              Delete account…
+            </button>
           </section>
         ) : null}
       </div>
+
+      {/*
+       * Typed-confirmation dialog (same RadixDialog.Root + Dialog idiom as
+       * app/routes/api-keys.tsx). The destructive submit stays disabled until
+       * the user types their account email — the User model has no username.
+       */}
+      <RadixDialog.Root open={deleteOpen && !pending} onOpenChange={setDeleteOpen}>
+        {deleteOpen && !pending ? (
+          <Dialog onClose={() => setDeleteOpen(false)} onBackdrop={() => setDeleteOpen(false)}>
+            <div className="p-6">
+              <DialogTitle asChild>
+                <h2 className="text-base font-semibold" style={{ color: 'var(--status-error-text)' }}>
+                  Delete your account?
+                </h2>
+              </DialogTitle>
+              <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+                Your account will be scheduled for permanent deletion after a {view.gracePeriodDays}-day grace period
+                {projectedPurgeDate ? (
+                  <>
+                    {' '}
+                    (on or after{' '}
+                    <span className="font-medium text-bolt-elements-textPrimary">{projectedPurgeDate}</span>)
+                  </>
+                ) : null}
+                . Until then you can sign back in and cancel from this page.
+              </p>
+
+              {requestError ? (
+                <p
+                  role="alert"
+                  className="mt-3 rounded-md border border-red-500/40 bg-red-500/5 px-3 py-2 text-sm"
+                  style={{ color: 'var(--status-error-text)' }}
+                >
+                  {requestError}
+                </p>
+              ) : null}
+
+              <Form method="post" className="mt-4 space-y-4">
+                <input type="hidden" name="intent" value="request" />
+
+                <div>
+                  <label htmlFor="confirm" className="block text-sm font-medium text-bolt-elements-textPrimary">
+                    Type <span className="font-mono font-semibold">{email}</span> to confirm
+                  </label>
+                  <input
+                    id="confirm"
+                    name="confirm"
+                    type="text"
+                    autoComplete="off"
+                    autoFocus
+                    value={confirmValue}
+                    onChange={(event) => setConfirmValue(event.target.value)}
+                    placeholder={email}
+                    className="mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteOpen(false)}
+                    className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    data-testid="account-delete-confirm"
+                    disabled={busy || !confirmOk}
+                    aria-busy={busy}
+                    style={{
+                      color: 'var(--status-error-text)',
+                      borderColor: 'color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
+                    }}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-md border px-4 text-sm font-medium transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                    {busy ? 'Requesting…' : 'Request account deletion'}
+                  </button>
+                </div>
+              </Form>
+            </div>
+          </Dialog>
+        ) : null}
+      </RadixDialog.Root>
     </AppShell>
   );
 }
