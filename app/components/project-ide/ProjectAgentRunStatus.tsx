@@ -26,13 +26,16 @@ export function ProjectAgentRunStatus({ stopLabel, disabled = false, onStop }: P
         type="button"
         className="bolt-project-agent-stop-button"
         aria-label={stopLabel}
-        title={stopLabel}
+        title={`${stopLabel} — press Esc`}
         disabled={stopDisabled}
         onClick={() => onStop?.()}
       >
         <span className="i-ph:stop-circle-bold" aria-hidden />
         <span>{stopLabel}</span>
       </button>
+      <span className="text-[11px] text-bolt-elements-textTertiary" aria-hidden>
+        Esc to stop
+      </span>
     </div>
   );
 }

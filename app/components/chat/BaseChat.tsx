@@ -5044,6 +5044,38 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       ensureMobileOpenTab('agent');
     }, [activeProjectPanel, ensureMobileOpenTab, persistMobilePanel, projectIdeMode, useMobileIde]);
 
+    /*
+     * Escape stops the active stream (covers long-running shell actions too —
+     * they ride the same abort). Ignored while a dialog/menu/popover is open so
+     * Esc keeps its close-the-overlay meaning there.
+     */
+    useEffect(() => {
+      if (!isStreaming || !handleStop) {
+        return undefined;
+      }
+
+      const onKeyDown = (event: KeyboardEvent) => {
+        if (event.key !== 'Escape' || event.defaultPrevented) {
+          return;
+        }
+
+        const overlayOpen = document.querySelector(
+          '[role="dialog"], [role="alertdialog"], [role="menu"], [data-radix-popper-content-wrapper]',
+        );
+
+        if (overlayOpen) {
+          return;
+        }
+
+        event.preventDefault();
+        handleStop();
+      };
+
+      document.addEventListener('keydown', onKeyDown);
+
+      return () => document.removeEventListener('keydown', onKeyDown);
+    }, [isStreaming, handleStop]);
+
     const networkToastRef = useRef<{ offline?: string | number; first: boolean }>({ first: true });
 
     useEffect(() => {
