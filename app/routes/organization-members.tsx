@@ -2,6 +2,7 @@ import * as RadixDialog from '@radix-ui/react-dialog';
 import { useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from 'react-router';
+import { PendingInvitationsSection, type PendingInvitation } from '~/components/dashboard/PendingInvitationsSection';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import { Dialog, DialogTitle } from '~/components/ui/Dialog';
@@ -27,7 +28,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   }
 
   try {
-    const [membersResult, rolesResult, orgResult] = await Promise.all([
+    const [membersResult, rolesResult, orgResult, invitesResult] = await Promise.all([
       apiRequest<{ memberships: Array<{ id: string; userId: string; roleKey: string }> }>(
         request,
         `/orgs/${organization.id}/memberships`,
@@ -39,6 +40,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
       // Org name feeds the type-to-confirm check in the transfer-ownership dialog.
       apiRequest<{ organization: { id: string; name: string } | null }>(request, `/orgs/${organization.id}`),
+      apiRequest<{ invitations: PendingInvitation[] }>(request, `/orgs/${organization.id}/invitations`),
     ]);
 
     return json({
@@ -46,6 +48,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       orgId: organization.id,
       orgName: orgResult.organization?.name ?? organization.id,
       memberships: membersResult.memberships,
+      invitations: invitesResult.invitations,
       roles: [
         { key: 'viewer', name: 'Viewer' },
         { key: 'member', name: 'Member' },
@@ -65,6 +68,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         orgId: organization.id,
         orgName: '',
         memberships: [] as Array<{ id: string; userId: string; roleKey: string }>,
+        invitations: [] as PendingInvitation[],
         roles: [] as Array<{ key: string; name: string }>,
       });
     }
@@ -79,7 +83,38 @@ export async function action({ request }: EnterpriseActionArgs) {
     orgId?: string;
     userId?: string;
     roleKey?: string;
+    inviteId?: string;
   };
+
+  // Invitation intents carry an inviteId (no userId) — handle them first.
+  if (body.intent === 'invite-resend' || body.intent === 'invite-revoke') {
+    if (!body.orgId || !body.inviteId) {
+      return json({ error: 'Organization ID and invitation are required.' }, { status: 400 });
+    }
+
+    try {
+      if (body.intent === 'invite-resend') {
+        await apiRequest(request, `/orgs/${body.orgId}/invitations/${body.inviteId}/resend`, { method: 'POST' });
+
+        return json({ status: 'Invitation resent.' });
+      }
+
+      // Revoke = the API's expire endpoint: the invitation link stops working.
+      await apiRequest(request, `/orgs/${body.orgId}/invitations/${body.inviteId}/expire`, { method: 'POST' });
+
+      return json({ status: 'Invitation revoked.' });
+    } catch (error) {
+      // Surface API errors (403, the 429 resend throttle, 404…) as a banner.
+      if (error instanceof Response) {
+        return json(
+          { error: await apiErrorMessage(error, 'Could not complete the invitation action.') },
+          { status: error.status },
+        );
+      }
+
+      throw error;
+    }
+  }
 
   if (!body.orgId || !body.userId) {
     return json({ error: 'Organization ID is required.' }, { status: 400 });
@@ -128,7 +163,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 const LAST_OWNER_HINT = 'The last owner cannot be demoted. Transfer ownership to another member first.';
 
 export default function OrganizationMembersPage() {
-  const { forbidden, orgId, orgName, memberships, roles } = useLoaderData<typeof loader>();
+  const { forbidden, orgId, orgName, memberships, invitations, roles } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
   const submit = useSubmit();
   const navigation = useNavigation();
@@ -287,6 +322,8 @@ export default function OrganizationMembersPage() {
           })}
           {memberships.length === 0 && <div className="p-4 text-bolt-elements-textSecondary">No members found.</div>}
         </section>
+
+        <PendingInvitationsSection orgId={orgId} invitations={invitations} />
       </div>
 
       <RadixDialog.Root open={transferTarget !== null} onOpenChange={(open) => !open && closeTransferDialog()}>

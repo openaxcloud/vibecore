@@ -15609,6 +15609,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .send({ invitation: { ...invitation, tokenHash: undefined }, token: isProduction ? undefined : token });
     },
   );
+  /*
+   * Per-invite resend cooldown (1/minute) so a member manager cannot spam the
+   * invitee's inbox by clicking Resend repeatedly. Same in-process bucket idiom
+   * as adminRateBuckets; entries are pruned lazily once the map grows.
+   */
+  const INVITE_RESEND_COOLDOWN_MS = 60_000;
+  const inviteResendSentAt = new Map<string, number>();
   app.post(
     '/orgs/:orgId/invitations/:inviteId/resend',
     { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
@@ -15624,6 +15631,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!ownsResendInvite) {
         return reply.code(404).send({ error: 'Invitation not found', code: 'INVITE_NOT_FOUND' });
+      }
+
+      const resendNow = Date.now();
+      const lastResentAt = inviteResendSentAt.get(inviteId);
+
+      if (lastResentAt !== undefined && resendNow - lastResentAt < INVITE_RESEND_COOLDOWN_MS) {
+        const retryAfterSeconds = Math.max(
+          1,
+          Math.ceil((INVITE_RESEND_COOLDOWN_MS - (resendNow - lastResentAt)) / 1000),
+        );
+
+        return reply.code(429).header('retry-after', retryAfterSeconds).send({
+          error: 'This invitation was resent less than a minute ago. Try again shortly.',
+          code: 'INVITE_RESEND_THROTTLED',
+        });
       }
 
       const token = createOpaqueToken('invite');
@@ -15643,6 +15665,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         subject: 'Your invitation link',
         text: `Use this invitation token to join: ${token}`,
       });
+      inviteResendSentAt.set(inviteId, resendNow);
+
+      // Lazy prune: drop cold entries so the cooldown map cannot grow unbounded.
+      if (inviteResendSentAt.size > 1024) {
+        for (const [cooldownKey, sentAt] of inviteResendSentAt) {
+          if (resendNow - sentAt >= INVITE_RESEND_COOLDOWN_MS) {
+            inviteResendSentAt.delete(cooldownKey);
+          }
+        }
+      }
+
       await audit(request, store, {
         organizationId: orgId,
         action: 'invite.resend',

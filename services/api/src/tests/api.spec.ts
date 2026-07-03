@@ -1028,6 +1028,50 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('throttles invitation resends to once per minute per invite', async () => {
+    const store = new TestApiStore();
+    const emailProvider = new TestEmailProvider();
+    const app = await buildTestApiApp({ store, emailProvider });
+    const owner = await register(app, { email: 'throttle-owner@example.com', organizationName: 'Throttle Org' });
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
+
+    const createInvite = async (email: string) => {
+      const created = await app.inject({
+        method: 'POST',
+        url: `/orgs/${owner.organization.id}/invitations`,
+        headers: { authorization: `Bearer ${owner.token}` },
+        payload: { email, roleKey: 'member' },
+      });
+      expect(created.statusCode).toBe(201);
+
+      return created.json().invitation.id as string;
+    };
+    const resend = (inviteId: string) =>
+      app.inject({
+        method: 'POST',
+        url: `/orgs/${owner.organization.id}/invitations/${inviteId}/resend`,
+        headers: { authorization: `Bearer ${owner.token}` },
+      });
+
+    const firstInviteId = await createInvite('throttled@example.com');
+
+    const firstResend = await resend(firstInviteId);
+    expect(firstResend.statusCode).toBe(200);
+
+    // Second resend of the SAME invite within the cooldown window → 429.
+    const secondResend = await resend(firstInviteId);
+    expect(secondResend.statusCode).toBe(429);
+    expect(secondResend.json().code).toBe('INVITE_RESEND_THROTTLED');
+    expect(Number(secondResend.headers['retry-after'])).toBeGreaterThanOrEqual(1);
+
+    // The cooldown is per invite: a different invite resends fine immediately.
+    const otherInviteId = await createInvite('not-throttled@example.com');
+    const otherResend = await resend(otherInviteId);
+    expect(otherResend.statusCode).toBe(200);
+
+    await app.close();
+  });
+
   it('binds invitation acceptance to the invited email (rejects a different user)', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
