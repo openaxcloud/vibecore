@@ -375,6 +375,8 @@ html[data-ecode-public-chrome='homepage'] body {
   --vc-ide-accent-ai-end: #ff6b9d;
   --vc-ide-accent-success: #3fb950;
   --vc-ide-accent-action: #0099ff;
+  // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
+  --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
   --vc-ide-accent-warning: #d29922;
@@ -655,6 +657,8 @@ html[data-ecode-public-chrome='homepage'] body {
   --vc-ide-accent-ai-end: #d9467e;
   --vc-ide-accent-success: #17803d;
   --vc-ide-accent-action: #006fd6;
+  // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
+  --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 45%, transparent);
   --vc-ide-accent-orange: #c2410c;
   --vc-ide-accent-error: #dc2626;
   --vc-ide-accent-warning: #a16207;
@@ -852,6 +856,8 @@ html[data-ecode-public-chrome='homepage'] body {
   --vc-ide-accent-ai-end: #ff6b9d;
   --vc-ide-accent-success: #3fb950;
   --vc-ide-accent-action: #0099ff;
+  // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
+  --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
   --vc-ide-accent-warning: #d29922;
@@ -24879,6 +24885,22 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
 [data-ecode-public-chrome] ::selection {
   background: var(--ecode-selection);
+}
+
+// App/IDE focus ring (E29) — blue action accent, Replit parity. Shared
+// `.vc-focus-ring` utility for components that strip the native outline, plus
+// the borderless in-chrome inputs that removed it without a :focus /
+// :focus-within replacement. Marketing chrome keeps the branded ring above.
+.vc-focus-ring:focus-visible,
+.bolt-mobile-tab-switcher-search input:focus-visible,
+.bolt-project-tool-search input:focus-visible,
+.bolt-project-conversation-history-search input:focus-visible,
+.bolt-project-integrations-tabs input:focus-visible,
+.bolt-project-integrations-form input:focus-visible,
+.bolt-project-integrations-form select:focus-visible,
+.bolt-project-integration-config input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--vc-ide-focus-ring);
 }
 
 // Marketing announcement bar: the inline boot script flags <html> before first

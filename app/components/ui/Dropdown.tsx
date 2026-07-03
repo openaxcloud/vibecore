@@ -22,7 +22,7 @@ export const DropdownItem = ({ children, onSelect, className }: DropdownItemProp
       'text-bolt-elements-textPrimary hover:text-bolt-elements-textPrimary',
       'hover:bg-bolt-elements-background-depth-3',
       'transition-colors cursor-pointer',
-      'outline-none',
+      'outline-none vc-focus-ring',
       className,
     )}
     onSelect={onSelect}

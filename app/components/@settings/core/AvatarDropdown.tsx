@@ -18,7 +18,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
       <DropdownMenu.Trigger asChild>
         <motion.button
           aria-label={profile?.username ? `Account menu for ${profile.username}` : 'Account menu'}
-          className="w-10 h-10 rounded-full bg-transparent flex items-center justify-center focus:outline-none"
+          className="vc-focus-ring w-10 h-10 rounded-full bg-transparent flex items-center justify-center focus:outline-none"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
@@ -89,7 +89,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
               'hover:bg-purple-50 dark:hover:bg-purple-500/10',
               'hover:text-purple-500 dark:hover:text-purple-400',
               'cursor-pointer transition-all duration-200',
-              'outline-none',
+              'outline-none vc-focus-ring',
               'group',
             )}
             onClick={() => onSelectTab('profile')}
@@ -105,7 +105,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
               'hover:bg-purple-50 dark:hover:bg-purple-500/10',
               'hover:text-purple-500 dark:hover:text-purple-400',
               'cursor-pointer transition-all duration-200',
-              'outline-none',
+              'outline-none vc-focus-ring',
               'group',
             )}
             onClick={() => onSelectTab('settings')}
@@ -123,7 +123,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
               'hover:bg-purple-50 dark:hover:bg-purple-500/10',
               'hover:text-purple-500 dark:hover:text-purple-400',
               'cursor-pointer transition-all duration-200',
-              'outline-none',
+              'outline-none vc-focus-ring',
               'group',
             )}
             onClick={() => window.open(resolveAccountMenuLink(ACCOUNT_MENU_LINKS.reportBug), '_blank')}
@@ -139,7 +139,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
               'hover:bg-purple-50 dark:hover:bg-purple-500/10',
               'hover:text-purple-500 dark:hover:text-purple-400',
               'cursor-pointer transition-all duration-200',
-              'outline-none',
+              'outline-none vc-focus-ring',
               'group',
             )}
             onClick={async () => {
@@ -162,7 +162,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
               'hover:bg-purple-50 dark:hover:bg-purple-500/10',
               'hover:text-purple-500 dark:hover:text-purple-400',
               'cursor-pointer transition-all duration-200',
-              'outline-none',
+              'outline-none vc-focus-ring',
               'group',
             )}
             onClick={() => window.open(resolveAccountMenuLink(ACCOUNT_MENU_LINKS.helpDocs), '_blank')}
