@@ -11,6 +11,7 @@ import { ComposerSlashOverlay } from './ComposerSlashOverlay';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
 import styles from './BaseChat.module.scss';
 import FilePreview from './FilePreview';
+import { MAX_IMAGE_ATTACHMENTS } from './image-attachments';
 import type { ProviderInfo } from '~/types/model';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
@@ -537,6 +538,16 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             >
               <div className="i-ph:paperclip text-xl"></div>
             </IconButton>
+
+            {props.uploadedFiles.length > 0 ? (
+              <span
+                className="text-xs text-bolt-elements-textTertiary"
+                aria-live="polite"
+                title={`${props.uploadedFiles.length} of ${MAX_IMAGE_ATTACHMENTS} images attached`}
+              >
+                {props.uploadedFiles.length}/{MAX_IMAGE_ATTACHMENTS}
+              </span>
+            ) : null}
 
             {props.projectIdeMode ? (
               <SpeechRecognitionButton

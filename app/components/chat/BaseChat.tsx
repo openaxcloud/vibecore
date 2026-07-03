@@ -22,6 +22,13 @@ import { ClientOnly } from 'remix-utils/client-only';
 import { toast } from 'react-toastify';
 
 import { AGENT_APPLIED_TOAST_ID, showCoalescedAppliedToast } from './AppliedFilesToast';
+import {
+  PNG_HEADER_SCAN_BYTES,
+  decideImageAttachment,
+  planImageReencode,
+  pngHasAlpha,
+  renderImageToCanvas,
+} from './image-attachments';
 import { describeSkipReason, parseDotEnv } from './parse-dot-env';
 import { AppliedFilesToastBuffer } from './applied-files-toast-buffer';
 import {
@@ -5407,28 +5414,116 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     };
 
+    /**
+     * Downscales images above the max edge and re-encodes opaque ones to JPEG
+     * (alpha PNGs stay PNG; already-small files pass through untouched). Any
+     * processing failure falls back to the original file — it already passed
+     * the size gate in decideImageAttachment.
+     */
+    const optimizeImageFile = async (file: File): Promise<File> => {
+      let hasAlpha = false;
+
+      if (file.type === 'image/png') {
+        const header = new Uint8Array(await file.slice(0, PNG_HEADER_SCAN_BYTES).arrayBuffer());
+        hasAlpha = pngHasAlpha(header);
+      }
+
+      const objectUrl = URL.createObjectURL(file);
+
+      try {
+        const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const element = new Image();
+          element.onload = () => resolve(element);
+          element.onerror = () => reject(new Error(`Failed to decode image: ${file.name}`));
+          element.src = objectUrl;
+        });
+
+        const plan = planImageReencode({
+          width: image.naturalWidth,
+          height: image.naturalHeight,
+          sizeBytes: file.size,
+          hasAlpha,
+        });
+
+        if (!plan.reencode) {
+          return file;
+        }
+
+        const canvas = renderImageToCanvas(image, plan, (width, height) => {
+          const element = document.createElement('canvas');
+          element.width = width;
+          element.height = height;
+
+          return element;
+        });
+
+        if (!canvas) {
+          return file;
+        }
+
+        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, plan.outputType, plan.quality));
+
+        if (!blob) {
+          return file;
+        }
+
+        const extension = plan.outputType === 'image/png' ? 'png' : 'jpg';
+        const baseName = file.name.replace(/\.[^.]+$/, '') || 'image';
+
+        return new File([blob], `${baseName}.${extension}`, { type: plan.outputType });
+      } catch (error) {
+        console.warn('Image optimization failed; attaching the original file.', error);
+
+        return file;
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+
+    /**
+     * Shared upload/paste entry point: enforces the size limit and the
+     * per-message image cap (with a toast naming the limit), then optimizes
+     * and attaches the file.
+     */
+    const attachImageFile = (file: File, source: 'selected' | 'pasted') => {
+      const decision = decideImageAttachment({
+        fileSizeBytes: file.size,
+        currentAttachmentCount: uploadedFiles.length,
+      });
+
+      if (decision.action === 'reject') {
+        toast.error(decision.message);
+
+        return;
+      }
+
+      void optimizeImageFile(file).then((processedFile) => {
+        const reader = new FileReader();
+
+        reader.onload = (event) => {
+          const base64Image = event.target?.result as string;
+          setUploadedFiles?.([...uploadedFiles, processedFile]);
+          setImageDataList?.([...imageDataList, base64Image]);
+        };
+
+        reader.onerror = () => {
+          console.error(`Failed to read ${source} file:`, processedFile.name, reader.error);
+          toast.error(`Failed to read the ${source} image. Please try again.`);
+        };
+        reader.readAsDataURL(processedFile);
+      });
+    };
+
     const handleFileUpload = () => {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
 
-      input.onchange = async (e) => {
+      input.onchange = (e) => {
         const file = (e.target as HTMLInputElement).files?.[0];
 
         if (file) {
-          const reader = new FileReader();
-
-          reader.onload = (e) => {
-            const base64Image = e.target?.result as string;
-            setUploadedFiles?.([...uploadedFiles, file]);
-            setImageDataList?.([...imageDataList, base64Image]);
-          };
-
-          reader.onerror = () => {
-            console.error('Failed to read uploaded file:', file.name, reader.error);
-            toast.error('Failed to read the selected image. Please try again.');
-          };
-          reader.readAsDataURL(file);
+          attachImageFile(file, 'selected');
         }
       };
 
@@ -5449,19 +5544,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           const file = item.getAsFile();
 
           if (file) {
-            const reader = new FileReader();
-
-            reader.onload = (e) => {
-              const base64Image = e.target?.result as string;
-              setUploadedFiles?.([...uploadedFiles, file]);
-              setImageDataList?.([...imageDataList, base64Image]);
-            };
-
-            reader.onerror = () => {
-              console.error('Failed to read pasted file:', file.name, reader.error);
-              toast.error('Failed to read the pasted image. Please try again.');
-            };
-            reader.readAsDataURL(file);
+            attachImageFile(file, 'pasted');
           }
 
           break;
