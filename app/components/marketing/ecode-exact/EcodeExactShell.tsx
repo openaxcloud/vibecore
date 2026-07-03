@@ -210,11 +210,11 @@ const footerLinks = {
 } as const;
 
 const socialLinks = [
-  { icon: Twitter, href: 'https://twitter.com/ecode', label: 'Twitter' },
-  { icon: Github, href: 'https://github.com/ecode', label: 'GitHub' },
-  { icon: Youtube, href: 'https://youtube.com/ecode', label: 'YouTube' },
-  { icon: Linkedin, href: 'https://linkedin.com/company/ecode', label: 'LinkedIn' },
-  { icon: Instagram, href: 'https://instagram.com/ecode', label: 'Instagram' },
+  { icon: Twitter, href: 'https://twitter.com/ecode', label: 'Twitter', name: 'X (Twitter)' },
+  { icon: Github, href: 'https://github.com/ecode', label: 'GitHub', name: 'GitHub' },
+  { icon: Youtube, href: 'https://youtube.com/ecode', label: 'YouTube', name: 'YouTube' },
+  { icon: Linkedin, href: 'https://linkedin.com/company/ecode', label: 'LinkedIn', name: 'LinkedIn' },
+  { icon: Instagram, href: 'https://instagram.com/ecode', label: 'Instagram', name: 'Instagram' },
 ];
 
 const mobileMenuSections = [
@@ -865,7 +865,7 @@ export function EcodeExactPublicFooter() {
                 href={social.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={`Follow us on ${social.label}`}
+                aria-label={`E-Code on ${social.name}`}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--ecode-border)] dark:border-border bg-[var(--ecode-surface-secondary)] dark:bg-surface-solid text-[var(--ecode-text-secondary)] dark:text-slate-200 transition hover:border-[var(--ecode-accent)] dark:hover:border-surface-hover-solid hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
                 data-testid={`link-social-${social.label.toLowerCase()}`}
               >
