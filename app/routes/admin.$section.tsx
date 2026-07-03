@@ -1,8 +1,9 @@
 import { AlertTriangle, BarChart3, CheckCircle2, Database, ShieldCheck } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Link, useFetcher, useLoaderData, useNavigate, useNavigation, useSearchParams } from 'react-router';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
+import { FilterChip } from '~/components/ui/FilterChip';
 import { RelativeTime } from '~/components/ui/RelativeTime';
 import {
   apiRequest,
@@ -287,10 +288,21 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   if (exportFormat && AUDIT_EXPORT_ENDPOINTS[section]) {
     const format = exportFormat === 'csv' ? 'csv' : 'json';
-    const result = await apiRequest<unknown>(request, `${AUDIT_EXPORT_ENDPOINTS[section]}?format=${format}`);
 
-    const body =
-      format === 'csv' ? (typeof result === 'string' ? result : String(result ?? '')) : JSON.stringify(result, null, 2);
+    /*
+     * Export exactly what the panel shows: fetch the JSON rows and apply the
+     * same family/actor/period filters as the client view before serializing.
+     */
+    const result = (await apiRequest<Record<string, JsonValue>>(request, AUDIT_EXPORT_ENDPOINTS[section])) ?? {};
+    const rows = (Object.values(result).find(Array.isArray) ?? []) as Array<Record<string, JsonValue>>;
+
+    const filtered = filterAuditRows(rows, {
+      family: url.searchParams.get('family') ?? undefined,
+      actor: url.searchParams.get('actor') ?? undefined,
+      sinceDays: Number(url.searchParams.get('period')) || undefined,
+    });
+
+    const body = format === 'csv' ? auditRowsToCsv(filtered) : JSON.stringify(filtered, null, 2);
 
     const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
 
@@ -935,7 +947,9 @@ export default function AdminSectionPage() {
           {section === 'abuse-events' ? <AbuseEventsPanel payload={payload} /> : null}
           {section === 'organizations' ? <OrganizationsPanel payload={payload} /> : null}
           {section === 'support-tickets' ? <SupportTicketsPanel payload={payload} /> : null}
-          {section === 'audit-logs' || section === 'admin-audit-logs' ? <AuditExportPanel section={section} /> : null}
+          {section === 'audit-logs' || section === 'admin-audit-logs' ? (
+            <AuditLogsPanel payload={payload} section={section} />
+          ) : null}
           {section === 'mcp-catalog' ? <McpCatalogPanel payload={payload} /> : null}
           {section === 'developer-tools' ? <DeveloperToolsPanel /> : null}
           {![
@@ -954,6 +968,8 @@ export default function AdminSectionPage() {
             'developer-tools',
             'ops-controls',
             'mcp-catalog',
+            'audit-logs',
+            'admin-audit-logs',
           ].includes(section) ? (
             <DataPanel config={config} payload={payload} />
           ) : null}
@@ -4014,36 +4030,209 @@ function SupportTicketCard({ ticket, password }: { ticket: AdminSupportTicket; p
  * button is an anchor to `?export=csv|json`, which the loader serves as a
  * downloadable attachment over the session cookie — no client token handling.
  */
-function AuditExportPanel({ section }: { section: string }) {
-  const linkClass =
-    'inline-flex items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3';
+type AuditRow = Record<string, JsonValue>;
+
+/**
+ * Shared by the panel (client view) and the loader export branch so a CSV
+ * download always matches the filtered table. Families are the first dotted
+ * segment of the action (api_key.create -> api_key).
+ */
+function filterAuditRows(
+  rows: AuditRow[],
+  filters: { family?: string; actor?: string; sinceDays?: number },
+  now: Date = new Date(),
+): AuditRow[] {
+  const actor = filters.actor?.trim().toLowerCase();
+  const cutoff = filters.sinceDays ? now.getTime() - filters.sinceDays * 24 * 60 * 60 * 1000 : null;
+
+  return rows.filter((row) => {
+    if (filters.family && String(row.action ?? '').split('.')[0] !== filters.family) {
+      return false;
+    }
+
+    if (
+      actor &&
+      !String(row.actorUserId ?? '')
+        .toLowerCase()
+        .includes(actor)
+    ) {
+      return false;
+    }
+
+    if (cutoff !== null) {
+      const timestamp = Date.parse(String(row.createdAt ?? ''));
+
+      if (!Number.isFinite(timestamp) || timestamp < cutoff) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+const AUDIT_CSV_COLUMNS = [
+  'createdAt',
+  'action',
+  'actorUserId',
+  'organizationId',
+  'resourceType',
+  'resourceId',
+  'ipAddress',
+] as const;
+
+function auditRowsToCsv(rows: AuditRow[]): string {
+  const escape = (value: JsonValue | undefined) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+
+  return [
+    AUDIT_CSV_COLUMNS.join(','),
+    ...rows.map((row) => AUDIT_CSV_COLUMNS.map((column) => escape(row[column])).join(',')),
+  ].join('\n');
+}
+
+const AUDIT_PERIODS = [
+  { days: 7, label: '7d' },
+  { days: 30, label: '30d' },
+  { days: 90, label: '90d' },
+] as const;
+
+function AuditLogsPanel({ payload, section }: { payload: Record<string, JsonValue>; section: string }) {
+  const rows = (Object.values(payload).find(Array.isArray) ?? []) as AuditRow[];
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const family = searchParams.get('family') ?? '';
+  const period = Number(searchParams.get('period')) || 0;
+  const [actor, setActor] = useState(searchParams.get('actor') ?? '');
+
+  /* Debounced actor filter into the URL so the export link sees it too. */
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setSearchParams(
+        (params) => {
+          const next = new URLSearchParams(params);
+          const trimmed = actor.trim();
+
+          if (trimmed) {
+            next.set('actor', trimmed);
+          } else {
+            next.delete('actor');
+          }
+
+          return next;
+        },
+        { replace: true },
+      );
+    }, 250);
+
+    return () => window.clearTimeout(handle);
+  }, [actor, setSearchParams]);
+
+  const setParam = (key: 'family' | 'period', value: string) => {
+    setSearchParams(
+      (params) => {
+        const next = new URLSearchParams(params);
+
+        if (value && next.get(key) !== value) {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+
+        return next;
+      },
+      { replace: true },
+    );
+  };
+
+  /*
+   * Families come from the REAL action prefixes present in the loaded window
+   * (api_key, connector, audit, ...) rather than a hardcoded list that could
+   * drift from the backend's action names.
+   */
+  const families = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    for (const row of rows) {
+      const prefix = String(row.action ?? '').split('.')[0];
+
+      if (prefix) {
+        counts.set(prefix, (counts.get(prefix) ?? 0) + 1);
+      }
+    }
+
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([prefix]) => prefix);
+  }, [rows]);
+
+  const filtered = useMemo(
+    () => filterAuditRows(rows, { family: family || undefined, actor, sinceDays: period || undefined }),
+    [rows, family, actor, period],
+  );
+
+  const exportParams = new URLSearchParams();
+  exportParams.set('export', 'csv');
+
+  if (family) {
+    exportParams.set('family', family);
+  }
+
+  if (actor.trim()) {
+    exportParams.set('actor', actor.trim());
+  }
+
+  if (period) {
+    exportParams.set('period', String(period));
+  }
 
   return (
-    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
-      <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Export</h3>
-      <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-        Download the full audit trail. The export is generated server-side over your admin session.
-      </p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <a
-          className={linkClass}
-          href={`/admin/${section}?export=csv`}
-          download
-          data-testid={`audit-export-csv-${section}`}
-        >
-          <span className="i-ph:file-csv" aria-hidden />
-          Export CSV
-        </a>
-        <a
-          className={linkClass}
-          href={`/admin/${section}?export=json`}
-          download
-          data-testid={`audit-export-json-${section}`}
-        >
-          <span className="i-ph:file-text" aria-hidden />
-          Export JSON
-        </a>
+    <div className="grid gap-4">
+      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by action family">
+            {families.map((prefix) => (
+              <FilterChip
+                key={prefix}
+                label={prefix}
+                active={family === prefix}
+                onClick={() => setParam('family', prefix)}
+              />
+            ))}
+          </div>
+          <a
+            className="inline-flex h-8 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+            href={`/admin/${section}?${exportParams.toString()}`}
+            download
+            data-testid={`audit-export-csv-${section}`}
+          >
+            Export CSV
+          </a>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <input
+            type="search"
+            value={actor}
+            onChange={(event) => setActor(event.target.value)}
+            placeholder="Filter by actor id"
+            aria-label="Filter by actor"
+            className="w-full max-w-xs rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-1.5 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
+          />
+          <span className="flex gap-2" role="group" aria-label="Filter by period">
+            {AUDIT_PERIODS.map((option) => (
+              <FilterChip
+                key={option.days}
+                label={option.label}
+                active={period === option.days}
+                onClick={() => setParam('period', String(option.days))}
+              />
+            ))}
+          </span>
+          <span className="text-xs text-bolt-elements-textTertiary">
+            {filtered.length} of {rows.length} events
+          </span>
+        </div>
       </div>
+      <SectionCard title="Audit events" icon="table">
+        <DataTable rows={filtered} />
+      </SectionCard>
     </div>
   );
 }
