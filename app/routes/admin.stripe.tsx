@@ -95,7 +95,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   const body = formObject(await request.formData()) as Record<string, string>;
 
   if (!body.password) {
-    return json({ error: 'Enter your password to confirm this change.' }, { status: 400 });
+    return json({ error: 'Enter your password to confirm this change.', field: 'password' }, { status: 400 });
   }
 
   let reauthError: string | undefined;
@@ -171,14 +171,17 @@ function StatusPill({ ok, set, fallback }: { ok: boolean; set: string; fallback:
 
 export default function AdminStripePage() {
   const config = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
+
+  const actionData = useActionData<typeof action>() as { status?: string; error?: string; field?: string } | undefined;
+
+  const passwordError = actionData?.field === 'password' ? actionData.error : undefined;
 
   return (
     <EnterpriseFormPage
       title="Stripe configuration"
       description="Paste the live Stripe secret key and webhook signing secret (stored encrypted, write-only) and set the per-plan price IDs. Billing reads these first and falls back to the API service's environment variables, so an empty field changes nothing."
       status={actionData?.status}
-      error={actionData?.error}
+      error={actionData?.field ? undefined : actionData?.error}
     >
       <Form method="post" className="space-y-8">
         <section className="space-y-4 rounded-lg border border-bolt-elements-borderColor p-4">
@@ -262,9 +265,11 @@ export default function AdminStripePage() {
           <TextField
             label="Confirm with your password"
             name="password"
+            id="password"
             type="password"
             autoComplete="current-password"
             required
+            error={passwordError}
           />
           <PrimaryButton>Save Stripe configuration</PrimaryButton>
         </section>

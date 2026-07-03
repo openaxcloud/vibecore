@@ -1,4 +1,5 @@
 import type React from 'react';
+import { FieldError, fieldErrorProps } from '~/components/ui/FieldError';
 
 interface EnterpriseFormPageProps {
   title: string;
@@ -41,23 +42,34 @@ export function TextField(props: {
   label: string;
   type?: string;
   name: string;
+
+  /** Stable DOM id — required for `error` so FieldError/summary anchors can target the input. */
+  id?: string;
   placeholder?: string;
   defaultValue?: string;
   required?: boolean;
   autoComplete?: string;
+  error?: string | null;
 }) {
+  const error = props.id ? props.error : undefined;
+
   return (
     <label className="block text-sm font-medium">
       {props.label}
       <input
-        className="mt-2 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm outline-none focus:border-bolt-elements-focus"
+        className={`mt-2 w-full rounded-md border ${
+          error ? 'border-[var(--vc-ide-accent-error)]' : 'border-bolt-elements-borderColor'
+        } bg-bolt-elements-background-depth-1 px-3 py-2 text-sm outline-none focus:border-bolt-elements-focus`}
+        id={props.id}
         name={props.name}
         placeholder={props.placeholder}
         type={props.type ?? 'text'}
         defaultValue={props.defaultValue}
         required={props.required}
         autoComplete={props.autoComplete}
+        {...(props.id ? fieldErrorProps(props.id, error) : {})}
       />
+      {props.id ? <FieldError fieldId={props.id} error={error} /> : null}
     </label>
   );
 }

@@ -1,6 +1,7 @@
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton } from '~/components/enterprise/EnterpriseFormPage';
+import { FieldError, fieldErrorProps } from '~/components/ui/FieldError';
 import {
   apiErrorMessage,
   apiRequest,
@@ -41,7 +42,10 @@ export async function action({ request }: EnterpriseActionArgs) {
       const email = String(form.get('billingEmail') ?? '').trim();
 
       if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        return json({ error: 'Enter a valid billing email address (or leave blank to clear it).' }, { status: 400 });
+        return json(
+          { error: 'Enter a valid billing email address (or leave blank to clear it).', field: 'billingEmail' },
+          { status: 400 },
+        );
       }
 
       await apiRequest(request, `/orgs/${organization.id}/billing/email`, {
@@ -91,14 +95,17 @@ export async function action({ request }: EnterpriseActionArgs) {
 
 export default function PaymentMethodPage() {
   const { billingEmail } = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
+
+  const actionData = useActionData<typeof action>() as { status?: string; error?: string; field?: string } | undefined;
+
+  const billingEmailError = actionData?.field === 'billingEmail' ? actionData.error : undefined;
 
   return (
     <EnterpriseFormPage
       title="Payment method"
       description="Update billing details through the Stripe customer portal."
       status={actionData?.status}
-      error={actionData?.error}
+      error={actionData?.field ? undefined : actionData?.error}
     >
       <div className="space-y-8">
         <Form method="post" reloadDocument>
@@ -111,12 +118,17 @@ export default function PaymentMethodPage() {
           <label className="grid gap-2 text-sm font-medium">
             Billing email (CC)
             <input
+              id="billingEmail"
               name="billingEmail"
               type="email"
               defaultValue={billingEmail}
               placeholder="finance@company.com"
-              className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-[16px] outline-none focus:border-bolt-elements-focus sm:text-sm"
+              className={`h-10 rounded-md border ${
+                billingEmailError ? 'border-[var(--vc-ide-accent-error)]' : 'border-bolt-elements-borderColor'
+              } bg-bolt-elements-background-depth-1 px-3 text-[16px] outline-none focus:border-bolt-elements-focus sm:text-sm`}
+              {...fieldErrorProps('billingEmail', billingEmailError)}
             />
+            <FieldError fieldId="billingEmail" error={billingEmailError} />
           </label>
           <p className="text-xs text-bolt-elements-textSecondary">
             Spend alerts and billing notifications are CC&apos;d to this address. Leave blank to clear it.
