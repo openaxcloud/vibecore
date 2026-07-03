@@ -15,6 +15,7 @@ import {
 import { useState } from 'react';
 import { Form, Link, useActionData, useNavigation } from 'react-router';
 import { AuthField, AuthOauthButton, AuthScreen, AuthSubmit, useAuthOauthPending } from '~/components/auth/AuthScreen';
+import { PASSWORD_MIN_LENGTH, PasswordStrengthMeter } from '~/components/auth/PasswordStrength';
 import {
   apiRequest,
   formObject,
@@ -84,9 +85,12 @@ export async function action({ request }: EnterpriseActionArgs) {
     );
   }
 
-  if (password.length < 8) {
+  if (password.length < PASSWORD_MIN_LENGTH) {
     return json<ActionResult>(
-      { error: 'Password must be at least 8 characters.', fields: { name, email, organizationName } },
+      {
+        error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
+        fields: { name, email, organizationName },
+      },
       { status: 400 },
     );
   }
@@ -168,6 +172,7 @@ export default function SignupPage() {
   const isSubmitting = navigation.state === 'submitting';
   const { pendingProvider, startOAuth } = useAuthOauthPending();
   const [showPassword, setShowPassword] = useState(false);
+  const [password, setPassword] = useState('');
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showOrgField, setShowOrgField] = useState(Boolean(actionData?.fields?.organizationName));
 
@@ -268,8 +273,10 @@ export default function SignupPage() {
               type={showPassword ? 'text' : 'password'}
               autoComplete="new-password"
               required
-              minLength={8}
-              placeholder="At least 8 characters"
+              minLength={PASSWORD_MIN_LENGTH}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
               className="vc-auth-input h-12 w-full rounded-md border px-10 pr-12 text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]"
             />
             <button
@@ -281,9 +288,8 @@ export default function SignupPage() {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </span>
-          <span className="vc-auth-hint mt-2 block text-[11px] leading-5">
-            Use 8+ characters. Mix in letters, numbers and symbols for a stronger password.
-          </span>
+          {/* Live gauge + checklist replaces the old static hint text. */}
+          <PasswordStrengthMeter password={password} className="mt-3" />
         </label>
 
         <label className="block">
@@ -330,11 +336,16 @@ export default function SignupPage() {
           </button>
         )}
 
+        {/*
+         * Hard block mirrors the SERVER rule only (registerSchema: min 8) plus
+         * an in-flight OAuth redirect. The 12+/number/symbol checklist above is
+         * recommended strength guidance and never blocks submission.
+         */}
         <AuthSubmit
           label="Create account"
           loadingLabel="Creating account..."
           isSubmitting={isSubmitting}
-          disabled={pendingProvider !== null}
+          disabled={pendingProvider !== null || password.length < PASSWORD_MIN_LENGTH}
         />
       </Form>
 

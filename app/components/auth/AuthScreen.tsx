@@ -250,8 +250,9 @@ interface AuthSubmitProps {
   isSubmitting?: boolean;
 
   /*
-   * Extra disable condition beyond the form's own submission — e.g. an
-   * OAuth redirect in flight, during which no auth CTA should be clickable.
+   * Extra disable condition beyond the form's own submission — e.g. an OAuth
+   * redirect in flight, or the register password below the server minimum.
+   * Combined with `isSubmitting`, never replacing it.
    */
   disabled?: boolean;
 }
