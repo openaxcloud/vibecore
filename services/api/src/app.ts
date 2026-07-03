@@ -1185,6 +1185,13 @@ const integrationFeatureRequestCreateSchema = z.object({
   organizationId: z.string().min(1).optional(),
 });
 
+const aiMessageFeedbackSchema = z.object({
+  messageId: z.string().trim().min(1).max(256),
+  // 'up' | 'down' records/changes the vote; null retracts it (thumb toggled off).
+  vote: z.enum(['up', 'down']).nullable(),
+  chatId: z.string().trim().min(1).max(256).optional(),
+});
+
 const apiKeyCreateSchema = z.object({
   name: z.string().trim().min(1).max(120),
   scopes: z.array(z.enum(API_KEY_SCOPES as [ApiKeyScope, ...ApiKeyScope[]])).min(1),
@@ -9575,6 +9582,57 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           organizationId: created.organizationId ?? null,
           createdAt: created.createdAt,
           mine: true,
+        },
+      });
+    },
+  );
+
+  /*
+   * 👍/👎 feedback on an assistant chat message. The vote is user-scoped and
+   * keyed by the client-side message id — standalone chats keep their
+   * transcript in browser IndexedDB and never persist an AiMessage row, so
+   * there is deliberately no AiMessage FK to attach to. The chat UI fires this
+   * without awaiting the outcome; `vote: null` retracts a previously recorded
+   * vote (the thumbs toggle turned off).
+   */
+  app.post(
+    '/api/ai/message-feedback',
+    {
+      config: {
+        rateLimit: { max: Number(process.env.MESSAGE_FEEDBACK_RATE_LIMIT_MAX ?? 60), timeWindow: '1 minute' },
+      },
+    },
+    async (request, reply) => {
+      if (!request.currentUser) {
+        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      }
+
+      const body = parse(aiMessageFeedbackSchema, request.body);
+
+      if (body.vote === null) {
+        const removed = await store.deleteAiMessageFeedback({
+          userId: request.currentUser.id,
+          messageId: body.messageId,
+        });
+
+        return { removed };
+      }
+
+      const feedback = await store.upsertAiMessageFeedback({
+        userId: request.currentUser.id,
+        messageId: body.messageId,
+        vote: body.vote,
+        chatId: body.chatId,
+      });
+
+      return reply.code(201).send({
+        feedback: {
+          id: feedback.id,
+          messageId: feedback.messageId,
+          vote: feedback.vote,
+          chatId: feedback.chatId ?? null,
+          createdAt: feedback.createdAt,
+          updatedAt: feedback.updatedAt,
         },
       });
     },

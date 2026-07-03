@@ -97,6 +97,7 @@ model User {
   configuredOauthAppOverrides OrganizationOAuthAppOverride[] @relation("ConfiguredByUser")
   integrationFeatureRequests  IntegrationFeatureRequest[]
   notifications               Notification[]
+  aiMessageFeedback           AiMessageFeedback[]
 }
 
 model Account {
@@ -965,6 +966,25 @@ model AiTokenUsage {
   estimatedCostCents Int       @default(0)
   createdAt          DateTime  @default(now())
   message            AiMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+// 👍/👎 a user left on an assistant chat message (2026-07-03). messageId is
+// the client-side chat message id — standalone chats keep their transcript in
+// browser IndexedDB and never persist an AiMessage row, so this deliberately
+// has no AiMessage FK. One row per (userId, messageId): repeat votes upsert,
+// retracting a vote (toggling the thumb off) deletes the row.
+model AiMessageFeedback {
+  id        String   @id @default(cuid())
+  userId    String
+  messageId String
+  chatId    String?
+  vote      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, messageId])
+  @@index([messageId])
 }
 
 model AiCostLedger {

@@ -329,6 +329,23 @@ export interface IntegrationFeatureRequestRecord {
   createdAt: string;
 }
 
+export type AiMessageFeedbackVote = 'up' | 'down';
+
+export interface AiMessageFeedbackRecord {
+  id: string;
+  userId: string;
+  /**
+   * Client-side chat message id. Standalone chats keep their transcript in
+   * browser IndexedDB and never persist an AiMessage row, so this is a plain
+   * string rather than an AiMessage foreign key.
+   */
+  messageId: string;
+  chatId?: string;
+  vote: AiMessageFeedbackVote;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface NotificationRecord {
   id: string;
   userId: string;
@@ -1399,6 +1416,23 @@ export interface ApiStore {
     organizationId?: string;
     take?: number;
   }): Promise<IntegrationFeatureRequestRecord[]>;
+
+  /**
+   * Record (or change) a user's 👍/👎 vote on an assistant chat message. One
+   * vote per (userId, messageId); repeat calls upsert the existing row.
+   */
+  upsertAiMessageFeedback(input: {
+    userId: string;
+    messageId: string;
+    vote: AiMessageFeedbackVote;
+    chatId?: string;
+  }): Promise<AiMessageFeedbackRecord>;
+
+  /**
+   * Retract a previously recorded vote (the thumbs toggle turned off).
+   * Returns false when no vote existed for that (userId, messageId).
+   */
+  deleteAiMessageFeedback(input: { userId: string; messageId: string }): Promise<boolean>;
   setSystemSetting(input: { key: string; value?: unknown }): Promise<SystemSettingRecord>;
   listSystemSettings(): Promise<SystemSettingRecord[]>;
 

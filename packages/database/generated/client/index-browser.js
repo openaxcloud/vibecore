@@ -671,6 +671,16 @@ exports.Prisma.AiTokenUsageScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.AiMessageFeedbackScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  messageId: 'messageId',
+  chatId: 'chatId',
+  vote: 'vote',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.AiCostLedgerScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -1438,6 +1448,7 @@ exports.Prisma.ModelName = {
   AiMessage: 'AiMessage',
   AiToolCall: 'AiToolCall',
   AiTokenUsage: 'AiTokenUsage',
+  AiMessageFeedback: 'AiMessageFeedback',
   AiCostLedger: 'AiCostLedger',
   AbuseEvent: 'AbuseEvent',
   SupportTicket: 'SupportTicket',

@@ -18,6 +18,8 @@ import type {
   AiCostLedgerRecord,
   AiConversationRecord,
   IntegrationFeatureRequestRecord,
+  AiMessageFeedbackRecord,
+  AiMessageFeedbackVote,
   NotificationRecord,
   AiMessageRecord,
   AiTokenUsageRecord,
@@ -2299,6 +2301,35 @@ export class PrismaApiStore implements ApiStore {
         take: filter.take ?? 200,
       })
     ).map(mapIntegrationFeatureRequest);
+  }
+
+  async upsertAiMessageFeedback(input: {
+    userId: string;
+    messageId: string;
+    vote: AiMessageFeedbackVote;
+    chatId?: string;
+  }) {
+    return mapAiMessageFeedback(
+      await this.prisma.aiMessageFeedback.upsert({
+        where: { userId_messageId: { userId: input.userId, messageId: input.messageId } },
+        create: {
+          userId: input.userId,
+          messageId: input.messageId,
+          vote: input.vote,
+          chatId: input.chatId,
+        },
+        // An undefined chatId is skipped by Prisma, keeping the stored one.
+        update: { vote: input.vote, chatId: input.chatId },
+      }),
+    );
+  }
+
+  async deleteAiMessageFeedback(input: { userId: string; messageId: string }) {
+    const result = await this.prisma.aiMessageFeedback.deleteMany({
+      where: { userId: input.userId, messageId: input.messageId },
+    });
+
+    return result.count > 0;
   }
 
   async setSystemSetting(input: { key: string; value?: unknown }) {
@@ -4954,6 +4985,18 @@ function mapIntegrationFeatureRequest(request: any): IntegrationFeatureRequestRe
     useCaseDescription: request.useCaseDescription,
     status: request.status,
     createdAt: toIso(request.createdAt)!,
+  };
+}
+
+function mapAiMessageFeedback(feedback: any): AiMessageFeedbackRecord {
+  return {
+    id: feedback.id,
+    userId: feedback.userId,
+    messageId: feedback.messageId,
+    chatId: feedback.chatId ?? undefined,
+    vote: feedback.vote as AiMessageFeedbackVote,
+    createdAt: toIso(feedback.createdAt)!,
+    updatedAt: toIso(feedback.updatedAt)!,
   };
 }
 
