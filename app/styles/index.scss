@@ -14118,6 +14118,29 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 2px 6px;
 }
 
+.bolt-project-problem-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 12%, transparent);
+  padding: 2px 8px;
+  color: var(--vc-ide-accent-action);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.bolt-project-problem-open:hover {
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 20%, transparent);
+}
+
+.bolt-project-problem-open:focus-visible {
+  outline: 2px solid var(--vc-ide-accent-action);
+  outline-offset: 1px;
+}
+
 .bolt-project-problem-body p {
   margin: 6px 0 0;
   color: var(--vc-ide-text-primary);

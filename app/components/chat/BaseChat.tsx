@@ -71,7 +71,7 @@ import {
   projectAgentStopLabel,
 } from '~/lib/project-agent-layout';
 import type { FileMap } from '~/lib/stores/files';
-import { buildRuntimeDiagnostics, useDiagnosticsStore } from '~/lib/stores/diagnostics';
+import { buildRuntimeDiagnostics, useDiagnosticsStore, type Diagnostic } from '~/lib/stores/diagnostics';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { DEFAULT_THEME, applyThemeToDocument, kTheme, themeStore, toggleTheme, type Theme } from '~/lib/stores/theme';
 import type { ProviderInfo } from '~/types/model';
@@ -9293,16 +9293,65 @@ function TerminalTabsFallback() {
   );
 }
 
+const PROBLEM_LOCATION_PATTERN = /((?:\/|\.{0,2}\/)?[\w@][\w@./-]*\.[a-z]{2,6}):(\d+)(?::\d+)?/i;
+
+/*
+ * Runtime diagnostics are parsed log lines with no structured file/line field,
+ * so recover a `path.ext:line` mention from the text when one exists. Entries
+ * without a parseable location stay plain rows.
+ */
+function extractProblemLocation(diagnostic: Diagnostic): { path: string; line: number } | null {
+  const match = PROBLEM_LOCATION_PATTERN.exec(`${diagnostic.message}\n${diagnostic.detail ?? ''}`);
+
+  return match ? { path: match[1], line: Number.parseInt(match[2], 10) } : null;
+}
+
+function resolveProblemWorkbenchPath(filePath: string): string | undefined {
+  const files = workbenchStore.files.get();
+
+  if (files[filePath]?.type === 'file') {
+    return filePath;
+  }
+
+  const absolutePath = filePath.startsWith(WORK_DIR) ? filePath : `${WORK_DIR}/${filePath.replace(/^\/+/, '')}`;
+
+  if (files[absolutePath]?.type === 'file') {
+    return absolutePath;
+  }
+
+  return Object.keys(files).find((candidate) => candidate.endsWith(`/${filePath.replace(/^\/+/, '')}`));
+}
+
 function ProjectProblemsPanel() {
   const diagnostics = useDiagnosticsStore((state) => state.diagnostics);
   const errors = useDiagnosticsStore((state) => state.errors);
   const warnings = useDiagnosticsStore((state) => state.warnings);
+  const panelRef = useRef<HTMLElement | null>(null);
+
+  // Move focus into the dock when it opens: first jump-to-file entry, else the heading.
+  useEffect(() => {
+    const panel = panelRef.current;
+
+    if (!panel) {
+      return;
+    }
+
+    const target =
+      panel.querySelector<HTMLElement>('.bolt-project-problem-open') ?? panel.querySelector<HTMLElement>('h3');
+    target?.focus({ preventScroll: true });
+  }, []);
+
+  const openProblemLocation = (resolvedPath: string, line: number) => {
+    workbenchStore.setSelectedFile(resolvedPath);
+    workbenchStore.setCurrentDocumentScrollPosition({ line: Math.max(0, line - 1), column: 0 });
+    workbenchStore.currentView.set('code');
+  };
 
   return (
-    <section className="bolt-project-problems-panel" aria-label="Problems" aria-live="polite">
+    <section ref={panelRef} className="bolt-project-problems-panel" aria-label="Problems" aria-live="polite">
       <header className="bolt-project-problems-header">
         <div>
-          <h3>Problems</h3>
+          <h3 tabIndex={-1}>Problems</h3>
           <p>
             {errors} errors · {warnings} warnings in the current workspace
           </p>
@@ -9337,22 +9386,41 @@ function ProjectProblemsPanel() {
         </div>
       ) : (
         <ul className="bolt-project-problems-list">
-          {diagnostics.map((diagnostic) => (
-            <li key={diagnostic.id} className="bolt-project-problem-item" data-severity={diagnostic.severity}>
-              <span className={diagnostic.severity === 'error' ? 'i-ph:x-circle' : 'i-ph:warning-circle'} aria-hidden />
-              <div className="bolt-project-problem-body">
-                <div className="bolt-project-problem-title">
-                  <strong>{diagnostic.severity === 'error' ? 'Error' : 'Warning'}</strong>
-                  <span>{diagnostic.source}</span>
-                  {diagnostic.occurrences && diagnostic.occurrences > 1 ? (
-                    <span>{diagnostic.occurrences} occurrences</span>
-                  ) : null}
+          {diagnostics.map((diagnostic) => {
+            const location = extractProblemLocation(diagnostic);
+            const resolvedPath = location ? resolveProblemWorkbenchPath(location.path) : undefined;
+
+            return (
+              <li key={diagnostic.id} className="bolt-project-problem-item" data-severity={diagnostic.severity}>
+                <span
+                  className={diagnostic.severity === 'error' ? 'i-ph:x-circle' : 'i-ph:warning-circle'}
+                  aria-hidden
+                />
+                <div className="bolt-project-problem-body">
+                  <div className="bolt-project-problem-title">
+                    <strong>{diagnostic.severity === 'error' ? 'Error' : 'Warning'}</strong>
+                    <span>{diagnostic.source}</span>
+                    {diagnostic.occurrences && diagnostic.occurrences > 1 ? (
+                      <span>{diagnostic.occurrences} occurrences</span>
+                    ) : null}
+                    {location && resolvedPath ? (
+                      <button
+                        type="button"
+                        className="bolt-project-problem-open"
+                        onClick={() => openProblemLocation(resolvedPath, location.line)}
+                        aria-label={`Open ${location.path} at line ${location.line}`}
+                      >
+                        <span className="i-ph:arrow-square-out" aria-hidden />
+                        {location.path}:{location.line}
+                      </button>
+                    ) : null}
+                  </div>
+                  <p>{diagnostic.message}</p>
+                  {diagnostic.detail ? <pre>{diagnostic.detail}</pre> : null}
                 </div>
-                <p>{diagnostic.message}</p>
-                {diagnostic.detail ? <pre>{diagnostic.detail}</pre> : null}
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
