@@ -90,13 +90,25 @@ describe('session-security action error handling', () => {
     expect(body.error).toBe('You lack permission to manage session policy.');
   });
 
-  it('falls back to a generic message when the api response has no error body', async () => {
-    apiRequest.mockRejectedValueOnce(new Response('', { status: 500 }));
+  it('falls back to a generic message when a 4xx api response has no error body', async () => {
+    /*
+     * 4xx client errors are rendered inline; a bodyless one falls back to the
+     * generic apiErrorMessage default. (5xx/3xx are rethrown to the framework —
+     * covered by the re-auth-redirect tests + route-reauth's shouldRethrowActionError.)
+     */
+    apiRequest.mockRejectedValueOnce(new Response('', { status: 409 }));
 
     const { status, body } = await runAction({ orgId: 'org_1' });
 
-    expect(status).toBe(500);
-    expect(body.error).toBe('Failed to save session security policy.');
+    expect(status).toBe(409);
+    expect(body.error).toBe('Action failed. Please try again.');
+  });
+
+  it('rethrows a 5xx api response to the framework error boundary', async () => {
+    const serverError = new Response('', { status: 500 });
+    apiRequest.mockRejectedValueOnce(serverError);
+
+    await expect(action({ request: formRequest({ orgId: 'org_1' }) } as never)).rejects.toBe(serverError);
   });
 
   it('returns an unavailable error for a non-Response throw (network/timeout)', async () => {

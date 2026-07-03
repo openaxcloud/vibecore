@@ -116,13 +116,18 @@ describe('E-Code public template API routes', () => {
 
     const notifications = (await toResponse(
       await notificationsLoader(loaderArgs('http://app.e-code.ai/api/notifications')),
-    ).json()) as unknown[];
+    ).json()) as { notifications: unknown[]; unreadCount: number };
     const preferences = (await toResponse(
       await notificationPreferencesLoader(loaderArgs('http://app.e-code.ai/api/notifications/preferences')),
     ).json()) as { email: Record<string, boolean>; push: Record<string, boolean>; frequency: string };
 
     expect(me).toBeNull();
-    expect(notifications).toEqual([]);
+
+    /*
+     * Anonymous visitors get an empty feed (the loader degrades gracefully rather
+     * than crashing the public header) — the feed shape is { notifications, unreadCount }.
+     */
+    expect(notifications).toEqual({ notifications: [], unreadCount: 0 });
     expect(preferences.email.deployments).toBe(true);
     expect(preferences.push.security).toBe(true);
     expect(preferences.frequency).toBe('instant');
