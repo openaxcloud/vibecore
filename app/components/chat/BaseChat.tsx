@@ -64,6 +64,8 @@ import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
 import { Menu } from '~/components/sidebar/Menu.client';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
+import { InputDialog } from '~/components/ui/InputDialog';
 import { PanelBoundary, PanelErrorBoundary, PanelLoading, ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { FileTree } from '~/components/workbench/FileTree';
@@ -2874,6 +2876,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [projectKeybindingOverrides, setProjectKeybindingOverrides] = useState<KeybindingOverrideMap>({});
     const [conversationHistoryOpen, setConversationHistoryOpen] = useState(false);
     const [conversationHistoryQuery, setConversationHistoryQuery] = useState('');
+    const [confirmClearHistoryOpen, setConfirmClearHistoryOpen] = useState(false);
     const [projectAgentExecutionMode, setProjectAgentExecutionMode] = useState<ProjectAgentExecutionMode>('agent');
     const isAgentRunning = projectIdeMode && isStreaming;
     const stopAgentLabel = projectAgentStopLabel(provider?.name, model);
@@ -5880,15 +5883,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return;
       }
 
-      const confirmed = window.confirm('Clear the history of this conversation?');
+      setConfirmClearHistoryOpen(true);
+    }, [messages]);
 
-      if (!confirmed) {
-        return;
-      }
-
+    const confirmClearProjectConversation = useCallback(() => {
+      setConfirmClearHistoryOpen(false);
       resetChat?.();
       toast.success('History cleared');
-    }, [messages, resetChat]);
+    }, [resetChat]);
 
     const exportProjectConversation = useCallback(() => {
       const currentMessages = messages ?? [];
@@ -5982,6 +5984,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           hidden: useMobileIde && mobilePanel !== 'chat',
         })}
       >
+        <ConfirmationDialog
+          isOpen={confirmClearHistoryOpen}
+          onClose={() => setConfirmClearHistoryOpen(false)}
+          onConfirm={confirmClearProjectConversation}
+          title="Clear conversation history?"
+          description="The history of this conversation is cleared. This cannot be undone."
+          confirmLabel="Clear history"
+          variant="destructive"
+        />
         {useMobileIde && conversationHistoryOpen && (
           <div className="bolt-project-conversation-history" role="dialog" aria-label="Project agent history">
             <div className="bolt-project-conversation-history-head">
@@ -9421,23 +9432,60 @@ function ProjectIdeServicePanel({
 }
 
 /*
- * Wrap a panel form submit with a confirmation prompt for irreversible deletes.
+ * Wrap a panel form submit with a confirmation dialog for irreversible deletes.
  * These forms otherwise delete on a single click with no undo, which is an easy
- * data-loss footgun — the codebase already gates less-destructive actions (e.g.
- * revealing a secret, clearing chat history) behind window.confirm.
+ * data-loss footgun. This is the single confirm-gated-submit entry point for the
+ * project IDE panels (design handoff G5: token-styled dialog, not window.confirm):
+ * the form's own submit is intercepted, and the stored form is replayed into the
+ * panel's submit handler only after the user confirms.
  */
-function confirmThenSubmit(
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void,
-  message: string,
-): (event: React.FormEvent<HTMLFormElement>) => void {
-  return (event: React.FormEvent<HTMLFormElement>) => {
-    if (typeof window !== 'undefined' && !window.confirm(message)) {
-      event.preventDefault();
-      return;
-    }
+function ConfirmSubmitForm({
+  onSubmit,
+  title,
+  description,
+  confirmLabel,
+  children,
+  ...formProps
+}: Omit<React.FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'title'> & {
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  title: string;
+  description: string;
+  confirmLabel: string;
+}) {
+  const [pendingForm, setPendingForm] = useState<HTMLFormElement | null>(null);
 
-    onSubmit(event);
-  };
+  return (
+    <>
+      <form
+        {...formProps}
+        onSubmit={(event) => {
+          event.preventDefault();
+          setPendingForm(event.currentTarget);
+        }}
+      >
+        {children}
+      </form>
+      <ConfirmationDialog
+        isOpen={pendingForm !== null}
+        onClose={() => setPendingForm(null)}
+        onConfirm={() => {
+          const form = pendingForm;
+          setPendingForm(null);
+
+          if (form) {
+            onSubmit({
+              preventDefault: () => undefined,
+              currentTarget: form,
+            } as unknown as React.FormEvent<HTMLFormElement>);
+          }
+        }}
+        title={title}
+        description={description}
+        confirmLabel={confirmLabel}
+        variant="destructive"
+      />
+    </>
+  );
 }
 
 function shouldResetIdePanelFormAfterSubmit(panel: string, intent: string) {
@@ -10439,6 +10487,7 @@ function ProjectFilesTool({
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState('');
   const [showHiddenFiles, setShowHiddenFiles] = useState(false);
+  const [createEntryKind, setCreateEntryKind] = useState<'file' | 'folder' | null>(null);
   const gitStatusByPath = useMemo(() => buildGitStatusMap(changedFiles), [changedFiles]);
 
   const fileOpenEditors = useMemo(
@@ -10491,9 +10540,8 @@ function ProjectFilesTool({
     );
   }, [files, query]);
 
-  async function createEntry(kind: 'file' | 'folder') {
-    const value = window.prompt(kind === 'file' ? 'New file path' : 'New folder path');
-    const normalized = value?.trim();
+  async function createEntry(kind: 'file' | 'folder', value: string) {
+    const normalized = value.trim();
 
     if (!normalized) {
       return;
@@ -10528,17 +10576,34 @@ function ProjectFilesTool({
 
   return (
     <div className="bolt-project-files-tool">
+      <InputDialog
+        isOpen={createEntryKind !== null}
+        onClose={() => setCreateEntryKind(null)}
+        onSubmit={(value) => {
+          const kind = createEntryKind;
+          setCreateEntryKind(null);
+
+          if (kind) {
+            void createEntry(kind, value);
+          }
+        }}
+        title={createEntryKind === 'folder' ? 'New folder' : 'New file'}
+        label={createEntryKind === 'folder' ? 'Folder path' : 'File path'}
+        placeholder={createEntryKind === 'folder' ? 'src/components' : 'src/index.ts'}
+        confirmLabel="Create"
+        validate={(value) => (value.trim() ? undefined : 'Enter a path')}
+      />
       <div className="bolt-project-files-header">
         <span className="bolt-project-files-count" title={hiddenFilesSummary}>
           {fileCount} files
         </span>
         <HeaderTip label="New file" side="top">
-          <button type="button" aria-label="New file" title="New file" onClick={() => void createEntry('file')}>
+          <button type="button" aria-label="New file" title="New file" onClick={() => setCreateEntryKind('file')}>
             <span className="i-ph:file-plus" aria-hidden />
           </button>
         </HeaderTip>
         <HeaderTip label="New folder" side="top">
-          <button type="button" aria-label="New folder" title="New folder" onClick={() => void createEntry('folder')}>
+          <button type="button" aria-label="New folder" title="New folder" onClick={() => setCreateEntryKind('folder')}>
             <span className="i-ph:folder-plus" aria-hidden />
           </button>
         </HeaderTip>
@@ -13552,6 +13617,11 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
   const [view, setView] = useState<'objects' | 'settings'>('objects');
   const [filter, setFilter] = useState('');
 
+  // G5: token-styled dialogs replacing window.prompt/window.confirm.
+  const [renameKey, setRenameKey] = useState<string | null>(null);
+  const [createFolderOpen, setCreateFolderOpen] = useState(false);
+  const [confirmDeleteBucket, setConfirmDeleteBucket] = useState(false);
+
   // F8: highlight the Objects view while files are dragged over it for drop-to-upload.
   const [dragActive, setDragActive] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
@@ -13706,59 +13776,61 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
   );
 
   const handleRename = useCallback(
-    (key: string) => {
-      const next = window.prompt('Move/rename object to key:', key);
+    (next: string) => {
+      const key = renameKey;
+      setRenameKey(null);
 
-      if (next && next.trim() && next !== key) {
+      if (key && next.trim() && next.trim() !== key) {
         void runOperation({ intent: 'move', from: key, to: next.trim() }, 'Object moved.');
       }
     },
-    [runOperation],
+    [renameKey, runOperation],
   );
 
   /*
    * Create a folder by materializing an empty placeholder object at "<prefix><name>/"
    * (GCS folders are virtual prefixes; an empty trailing-slash object surfaces it).
    */
-  const handleCreateFolder = useCallback(async () => {
-    const name = window.prompt('New folder name:');
-
-    if (!name || !name.trim()) {
-      return;
-    }
-
-    const key = `${prefix}${name.trim().replace(/^\/+|\/+$/g, '')}/`;
-
-    setWorking(true);
-    setStatus(null);
-
-    try {
-      const signed = await postIntent({ intent: 'upload-url', key, contentType: 'application/x-directory' });
-
-      if (!signed || signed.enabled === false || !signed.url) {
-        setStatus(signed?.error ?? 'Object storage is not enabled.');
+  const handleCreateFolder = useCallback(
+    async (name: string) => {
+      if (!name.trim()) {
         return;
       }
 
-      const put = await fetch(signed.url, {
-        method: signed.method ?? 'PUT',
-        headers: signed.headers ?? { 'Content-Type': 'application/x-directory' },
-        body: '',
-      });
+      const key = `${prefix}${name.trim().replace(/^\/+|\/+$/g, '')}/`;
 
-      if (!put.ok) {
-        setStatus(`Could not create folder (${put.status}).`);
-        return;
+      setWorking(true);
+      setStatus(null);
+
+      try {
+        const signed = await postIntent({ intent: 'upload-url', key, contentType: 'application/x-directory' });
+
+        if (!signed || signed.enabled === false || !signed.url) {
+          setStatus(signed?.error ?? 'Object storage is not enabled.');
+          return;
+        }
+
+        const put = await fetch(signed.url, {
+          method: signed.method ?? 'PUT',
+          headers: signed.headers ?? { 'Content-Type': 'application/x-directory' },
+          body: '',
+        });
+
+        if (!put.ok) {
+          setStatus(`Could not create folder (${put.status}).`);
+          return;
+        }
+
+        setStatus('Folder created.');
+        await refresh(prefix);
+      } catch {
+        setStatus('Could not create folder.');
+      } finally {
+        setWorking(false);
       }
-
-      setStatus('Folder created.');
-      await refresh(prefix);
-    } catch {
-      setStatus('Could not create folder.');
-    } finally {
-      setWorking(false);
-    }
-  }, [postIntent, prefix, refresh]);
+    },
+    [postIntent, prefix, refresh],
+  );
 
   const parentPrefix = (() => {
     const trimmed = prefix.replace(/\/$/, '');
@@ -13837,6 +13909,43 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
           <span>Drop files to upload to {prefix || 'the bucket root'}</span>
         </div>
       ) : null}
+      <InputDialog
+        isOpen={renameKey !== null}
+        onClose={() => setRenameKey(null)}
+        onSubmit={handleRename}
+        title="Move / rename object"
+        description="Moves the object to the new key inside the project bucket."
+        label="New object key"
+        initialValue={renameKey ?? ''}
+        confirmLabel="Move"
+        validate={(value) => (value.trim() ? undefined : 'Enter an object key')}
+      />
+      <InputDialog
+        isOpen={createFolderOpen}
+        onClose={() => setCreateFolderOpen(false)}
+        onSubmit={(value) => {
+          setCreateFolderOpen(false);
+          void handleCreateFolder(value);
+        }}
+        title="New folder"
+        description={`Created under ${prefix || 'the bucket root'}.`}
+        label="Folder name"
+        placeholder="assets"
+        confirmLabel="Create folder"
+        validate={(value) => (value.trim() ? undefined : 'Enter a folder name')}
+      />
+      <ConfirmationDialog
+        isOpen={confirmDeleteBucket}
+        onClose={() => setConfirmDeleteBucket(false)}
+        onConfirm={() => {
+          setConfirmDeleteBucket(false);
+          void runOperation({ intent: 'delete-bucket' }, 'Bucket deleted.');
+        }}
+        title="Delete this bucket?"
+        description="Permanently deletes the project bucket and ALL its objects. This cannot be undone."
+        confirmLabel="Delete bucket"
+        variant="destructive"
+      />
       <section className="grid gap-3">
         {/* Bucket header + Objects | Settings switch (Replit App Storage parity). */}
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -13899,13 +14008,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                 type="button"
                 className="w-fit rounded-md border border-red-500/40 px-3 py-1.5 text-xs font-medium text-[var(--status-error-text)] hover:bg-red-500/10 disabled:opacity-60"
                 disabled={busy || working}
-                onClick={() => {
-                  if (
-                    window.confirm('Permanently delete this project bucket and ALL its objects? This cannot be undone.')
-                  ) {
-                    void runOperation({ intent: 'delete-bucket' }, 'Bucket deleted.');
-                  }
-                }}
+                onClick={() => setConfirmDeleteBucket(true)}
               >
                 Delete bucket
               </button>
@@ -13938,7 +14041,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
               <button type="button" onClick={() => folderInputRef.current?.click()} disabled={busy || working}>
                 Upload folder
               </button>
-              <button type="button" onClick={() => void handleCreateFolder()} disabled={busy || working}>
+              <button type="button" onClick={() => setCreateFolderOpen(true)} disabled={busy || working}>
                 Create folder
               </button>
               <button
@@ -14034,7 +14137,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                       <button type="button" onClick={() => void handleDownload(object.key)} disabled={working}>
                         Download
                       </button>
-                      <button type="button" onClick={() => handleRename(object.key)} disabled={working}>
+                      <button type="button" onClick={() => setRenameKey(object.key)} disabled={working}>
                         Move
                       </button>
                       <button
@@ -15666,8 +15769,11 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                     <PanelButton disabled={busy}>Save</PanelButton>
                   </form>
                   {/* Trash (Replit parity). */}
-                  <form
-                    onSubmit={confirmThenSubmit(onSubmit, 'Remove this task from the workflow?')}
+                  <ConfirmSubmitForm
+                    onSubmit={onSubmit}
+                    title="Remove this task?"
+                    description="The task is removed from the workflow. This cannot be undone."
+                    confirmLabel="Remove task"
                     className="bolt-project-workflow-task-delete"
                   >
                     <input type="hidden" name="intent" value="delete-task" />
@@ -15676,7 +15782,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                     <button type="submit" disabled={busy} aria-label="Delete task" title="Delete task">
                       <span className="i-ph:trash" aria-hidden />
                     </button>
-                  </form>
+                  </ConfirmSubmitForm>
                   {/* Hidden form the drop handler submits to reorder this task to `index`. */}
                   <form onSubmit={onSubmit} data-reorder hidden>
                     <input type="hidden" name="intent" value="reorder-task" />
@@ -15710,18 +15816,18 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                 </PanelButton>
               </form>
               {!workflow.isSystem && (
-                <form
-                  onSubmit={confirmThenSubmit(
-                    onSubmit,
-                    `Delete workflow "${workflow.name ?? workflow.id}"? This cannot be undone.`,
-                  )}
+                <ConfirmSubmitForm
+                  onSubmit={onSubmit}
+                  title={`Delete workflow "${workflow.name ?? workflow.id}"?`}
+                  description="The workflow and its tasks are deleted. This cannot be undone."
+                  confirmLabel="Delete workflow"
                 >
                   <input type="hidden" name="intent" value="delete-workflow" />
                   <input type="hidden" name="workflowId" value={workflow.id} />
                   <PanelButton disabled={busy} variant="outline">
                     Delete Workflow
                   </PanelButton>
-                </form>
+                </ConfirmSubmitForm>
               )}
             </footer>
           </div>
@@ -16329,13 +16435,18 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
                 <button type="button" onClick={() => void copyEnv(item.key, item.value)}>
                   Copy
                 </button>
-                <form onSubmit={confirmThenSubmit(onSubmit, `Delete environment variable ${item.key}?`)}>
+                <ConfirmSubmitForm
+                  onSubmit={onSubmit}
+                  title={`Delete environment variable ${item.key}?`}
+                  description="The variable is removed from the project. This cannot be undone."
+                  confirmLabel="Delete variable"
+                >
                   <input name="intent" value="delete" type="hidden" />
                   <input name="key" value={item.key} type="hidden" />
                   <PanelButton disabled={busy} variant="outline">
                     Delete
                   </PanelButton>
-                </form>
+                </ConfirmSubmitForm>
               </div>
             ))
           ) : (
@@ -17885,6 +17996,7 @@ function ProjectSecretsPanel({
 }) {
   const [revealed, setRevealed] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
+  const [confirmRevealKey, setConfirmRevealKey] = useState<string | null>(null);
   const [editingKey, setEditingKey] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState('');
@@ -18001,7 +18113,7 @@ function ProjectSecretsPanel({
     }
   }
 
-  async function revealSecret(key: string) {
+  function revealSecret(key: string) {
     if (!projectId) {
       return;
     }
@@ -18016,7 +18128,11 @@ function ProjectSecretsPanel({
       return;
     }
 
-    if (!window.confirm(`Reveal the secret value for ${key}? This value will only be shown in this browser session.`)) {
+    setConfirmRevealKey(key);
+  }
+
+  async function performRevealSecret(key: string) {
+    if (!projectId) {
       return;
     }
 
@@ -18051,6 +18167,21 @@ function ProjectSecretsPanel({
 
   return (
     <div className="bolt-project-secrets-tool">
+      <ConfirmationDialog
+        isOpen={confirmRevealKey !== null}
+        onClose={() => setConfirmRevealKey(null)}
+        onConfirm={() => {
+          const key = confirmRevealKey;
+          setConfirmRevealKey(null);
+
+          if (key) {
+            void performRevealSecret(key);
+          }
+        }}
+        title={`Reveal the secret value for ${confirmRevealKey ?? ''}?`}
+        description="The value is only shown in this browser session."
+        confirmLabel="Reveal"
+      />
       <form onSubmit={onSubmit} className="bolt-project-inline-form">
         <input name="intent" value="upsert" type="hidden" />
         {/*
@@ -18199,7 +18330,7 @@ function ProjectSecretsPanel({
             <div key={secret.key} className="bolt-project-secret-row">
               <strong>{secret.key}</strong>
               <span>{revealed[secret.key] ?? '••••••'}</span>
-              <button type="button" aria-label={`Reveal ${secret.key}`} onClick={() => void revealSecret(secret.key)}>
+              <button type="button" aria-label={`Reveal ${secret.key}`} onClick={() => revealSecret(secret.key)}>
                 {revealed[secret.key] ? 'Hide' : 'Reveal'}
               </button>
               <button type="button" aria-label={`Copy ${secret.key} name`} onClick={() => void copySecret(secret.key)}>

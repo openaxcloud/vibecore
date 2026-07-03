@@ -211,6 +211,7 @@ export default function SessionSecurityPage() {
   const submit = useSubmit();
   const busy = navigation.state !== 'idle';
   const [confirmRevokeAll, setConfirmRevokeAll] = useState(false);
+  const [sessionPendingRevoke, setSessionPendingRevoke] = useState<{ id: string; device: string } | null>(null);
 
   /* Surface the sign-out-all result as a toast on top of the inline banner. */
   useEffect(() => {
@@ -309,13 +310,8 @@ export default function SessionSecurityPage() {
                         method="post"
                         className="sm:shrink-0"
                         onSubmit={(event) => {
-                          if (
-                            !window.confirm(
-                              `Revoke this session (${session.device})? That device will be signed out immediately.`,
-                            )
-                          ) {
-                            event.preventDefault();
-                          }
+                          event.preventDefault();
+                          setSessionPendingRevoke({ id: session.id, device: session.device });
                         }}
                       >
                         <input type="hidden" name="intent" value="revoke" />
@@ -350,6 +346,22 @@ export default function SessionSecurityPage() {
           </Form>
         </section>
       </div>
+      <ConfirmationDialog
+        isOpen={sessionPendingRevoke !== null}
+        onClose={() => setSessionPendingRevoke(null)}
+        onConfirm={() => {
+          const pending = sessionPendingRevoke;
+          setSessionPendingRevoke(null);
+
+          if (pending) {
+            submit({ intent: 'revoke', sessionId: pending.id }, { method: 'post' });
+          }
+        }}
+        title={`Revoke this session (${sessionPendingRevoke?.device ?? 'unknown device'})?`}
+        description="That device will be signed out immediately."
+        confirmLabel="Revoke session"
+        variant="destructive"
+      />
       <ConfirmationDialog
         isOpen={confirmRevokeAll}
         onClose={() => setConfirmRevokeAll(false)}

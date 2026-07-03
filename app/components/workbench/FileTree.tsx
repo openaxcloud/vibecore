@@ -169,6 +169,13 @@ export const FileTree = memo(
     const [activeView, setActiveView] = useState<'files' | 'open' | 'outline' | 'timeline' | 'bookmarks'>('files');
     const [dropActive, setDropActive] = useState(false);
 
+    // G5: dropped-upload overwrite collisions confirm via dialog, not window.confirm.
+    const [pendingOverwriteUpload, setPendingOverwriteUpload] = useState<{
+      files: File[];
+      targetFolder: string;
+      message: string;
+    } | null>(null);
+
     const [bookmarks, setBookmarks] = useState<Set<string>>(() => {
       if (typeof localStorage === 'undefined') {
         return new Set();
@@ -298,6 +305,25 @@ export const FileTree = memo(
       }
     };
 
+    const performDroppedUpload = useCallback(async (droppedFiles: File[], targetFolder: string) => {
+      for (const file of droppedFiles) {
+        try {
+          const filePath = path.join(targetFolder, file.name);
+          const binaryContent = new Uint8Array(await file.arrayBuffer());
+          const success = await workbenchStore.createFile(filePath, binaryContent);
+
+          if (success) {
+            toast.success(`Uploaded ${file.name}`);
+          } else {
+            toast.error(`Failed to upload ${file.name}`);
+          }
+        } catch (error) {
+          toast.error(`Error uploading ${file.name}`);
+          logger.error(error);
+        }
+      }
+    }, []);
+
     const uploadDroppedFiles = useCallback(
       async (event: React.DragEvent, targetFolder = rootFolder ?? '/') => {
         event.preventDefault();
@@ -317,28 +343,18 @@ export const FileTree = memo(
          */
         const collisions = findUploadCollisions(droppedFiles, targetFolder, workbenchStore.files.get());
 
-        if (collisions.length > 0 && !confirm(buildOverwritePrompt(collisions))) {
+        if (collisions.length > 0) {
+          setPendingOverwriteUpload({
+            files: droppedFiles,
+            targetFolder,
+            message: buildOverwritePrompt(collisions),
+          });
           return;
         }
 
-        for (const file of droppedFiles) {
-          try {
-            const filePath = path.join(targetFolder, file.name);
-            const binaryContent = new Uint8Array(await file.arrayBuffer());
-            const success = await workbenchStore.createFile(filePath, binaryContent);
-
-            if (success) {
-              toast.success(`Uploaded ${file.name}`);
-            } else {
-              toast.error(`Failed to upload ${file.name}`);
-            }
-          } catch (error) {
-            toast.error(`Error uploading ${file.name}`);
-            logger.error(error);
-          }
-        }
+        await performDroppedUpload(droppedFiles, targetFolder);
       },
-      [rootFolder],
+      [rootFolder, performDroppedUpload],
     );
 
     const openFileAtLine = useCallback(
@@ -397,6 +413,22 @@ export const FileTree = memo(
         onDragLeave={() => setDropActive(false)}
         onDrop={(event) => void uploadDroppedFiles(event)}
       >
+        <ConfirmationDialog
+          isOpen={pendingOverwriteUpload !== null}
+          onClose={() => setPendingOverwriteUpload(null)}
+          onConfirm={() => {
+            const pending = pendingOverwriteUpload;
+            setPendingOverwriteUpload(null);
+
+            if (pending) {
+              void performDroppedUpload(pending.files, pending.targetFolder);
+            }
+          }}
+          title="Overwrite existing files?"
+          description={<span className="whitespace-pre-line">{pendingOverwriteUpload?.message}</span>}
+          confirmLabel="Overwrite"
+          variant="destructive"
+        />
         {enableWorkspaceViews && (
           <div className="bolt-file-tree-view-switcher-shell sticky top-0 z-10 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2/95 px-1.5 py-2 pr-3 backdrop-blur">
             <div
@@ -701,6 +733,9 @@ function FileContextMenu({
   const [isRenaming, setIsRenaming] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+
+  // G5: dropped-upload overwrite collisions confirm via dialog, not window.confirm.
+  const [pendingOverwriteDrop, setPendingOverwriteDrop] = useState<{ files: File[]; message: string } | null>(null);
   const depth = useMemo(() => fullPath.split('/').length, [fullPath]);
   const fileName = useMemo(() => path.basename(fullPath), [fullPath]);
   const runtimeAdapter = useRuntimeAdapter();
@@ -744,30 +779,8 @@ function FileContextMenu({
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback(
-    async (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const items = Array.from(e.dataTransfer.items);
-
-      const droppedFiles = items
-        .filter((item) => item.kind === 'file')
-        .map((item) => item.getAsFile())
-        .filter((file): file is File => file != null);
-
-      /*
-       * createFile overwrites any existing (unlocked) entry with no confirm, so dropping
-       * a file onto a folder that already contains one of that name would silently clobber
-       * it. Mirror the collision guard used by New File / Rename / Duplicate.
-       */
-      const collisions = findUploadCollisions(droppedFiles, targetPath, workbenchStore.files.get());
-
-      if (collisions.length > 0 && !confirm(buildOverwritePrompt(collisions))) {
-        setIsDragging(false);
-        return;
-      }
-
+  const performDrop = useCallback(
+    async (droppedFiles: File[]) => {
       for (const file of droppedFiles) {
         try {
           const filePath = path.join(targetPath, file.name);
@@ -788,10 +801,41 @@ function FileContextMenu({
           logger.error(error);
         }
       }
+    },
+    [targetPath],
+  );
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const items = Array.from(e.dataTransfer.items);
+
+      const droppedFiles = items
+        .filter((item) => item.kind === 'file')
+        .map((item) => item.getAsFile())
+        .filter((file): file is File => file != null);
+
+      /*
+       * createFile overwrites any existing (unlocked) entry with no confirm, so dropping
+       * a file onto a folder that already contains one of that name would silently clobber
+       * it. Mirror the collision guard used by New File / Rename / Duplicate.
+       */
+      const collisions = findUploadCollisions(droppedFiles, targetPath, workbenchStore.files.get());
+
+      if (collisions.length > 0) {
+        setPendingOverwriteDrop({ files: droppedFiles, message: buildOverwritePrompt(collisions) });
+        setIsDragging(false);
+
+        return;
+      }
+
+      await performDrop(droppedFiles);
 
       setIsDragging(false);
     },
-    [fullPath],
+    [fullPath, performDrop],
   );
 
   const handleCreateFile = async (fileName: string) => {
@@ -1252,6 +1296,22 @@ function FileContextMenu({
         title={`Delete ${isFolder ? 'Folder' : 'File'}`}
         description={`Are you sure you want to delete ${isFolder ? 'folder' : 'file'} "${fileName}"? This cannot be undone.`}
         confirmLabel="Delete"
+        variant="destructive"
+      />
+      <ConfirmationDialog
+        isOpen={pendingOverwriteDrop !== null}
+        onClose={() => setPendingOverwriteDrop(null)}
+        onConfirm={() => {
+          const pending = pendingOverwriteDrop;
+          setPendingOverwriteDrop(null);
+
+          if (pending) {
+            void performDrop(pending.files);
+          }
+        }}
+        title="Overwrite existing files?"
+        description={<span className="whitespace-pre-line">{pendingOverwriteDrop?.message}</span>}
+        confirmLabel="Overwrite"
         variant="destructive"
       />
     </>

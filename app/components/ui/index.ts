@@ -10,6 +10,7 @@ export * from './Collapsible';
 export * from './Dialog';
 export * from './IconButton';
 export * from './Input';
+export * from './InputDialog';
 export * from './Label';
 export * from './RangeSlider';
 export * from './ScrollArea';

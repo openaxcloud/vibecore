@@ -4,7 +4,7 @@ import type { MetaFunction } from 'react-router';
 import { Link, useFetcher, useLoaderData, useNavigate, useNavigation, useSearchParams } from 'react-router';
 import { SupportTicketsPanel } from '~/components/admin/SupportTicketsPanel';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
-import { Dialog, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
+import { ConfirmationDialog, Dialog, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { Dropdown, DropdownItem, DropdownSeparator } from '~/components/ui/Dropdown';
 import { FilterChip } from '~/components/ui/FilterChip';
 import { RelativeTime } from '~/components/ui/RelativeTime';
@@ -2752,6 +2752,7 @@ function McpCatalogRow({ entry, password }: { entry: Record<string, JsonValue>; 
   const busy = fetcher.state !== 'idle';
   const id = String(entry.id ?? '');
   const [editing, setEditing] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const featured = entry.featured === true;
   const verified = entry.verified === true;
@@ -2762,11 +2763,7 @@ function McpCatalogRow({ entry, password }: { entry: Record<string, JsonValue>; 
   };
 
   const remove = () => {
-    if (!window.confirm(`Delete "${String(entry.slug)}"? This also removes all installs of it.`)) {
-      return;
-    }
-
-    fetcher.submit({ intent: 'mcp-catalog-delete', id, password }, { method: 'post' });
+    setConfirmDeleteOpen(true);
   };
 
   const flagBtn = (active: boolean) =>
@@ -2840,6 +2837,18 @@ function McpCatalogRow({ entry, password }: { entry: Record<string, JsonValue>; 
           </td>
         </tr>
       ) : null}
+      <ConfirmationDialog
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={() => {
+          setConfirmDeleteOpen(false);
+          fetcher.submit({ intent: 'mcp-catalog-delete', id, password }, { method: 'post' });
+        }}
+        title={`Delete "${String(entry.slug)}"?`}
+        description="This also removes all installs of it. This cannot be undone."
+        confirmLabel="Delete entry"
+        variant="destructive"
+      />
     </>
   );
 }
@@ -3785,14 +3794,10 @@ function WorkspaceRow({ workspace, password }: { workspace: AdminWorkspace; pass
     fetcher.submit({ intent, workspaceId: workspace.id, password }, { method: 'post' });
   };
 
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
   const confirmDelete = () => {
-    if (
-      window.confirm(
-        `Delete workspace "${workspace.name ?? workspace.id}"? This reclaims its pod and storage and cannot be undone.`,
-      )
-    ) {
-      run('workspace-delete');
-    }
+    setConfirmDeleteOpen(true);
   };
 
   const statusTone = status === 'FAILED' ? 'danger' : running ? 'ok' : 'muted';
@@ -3845,6 +3850,19 @@ function WorkspaceRow({ workspace, password }: { workspace: AdminWorkspace; pass
           <p className="mt-1.5 text-xs text-bolt-elements-textTertiary">Enter your password above to enable actions.</p>
         ) : null}
         <RowFeedback data={fetcher.data} />
+        {/* Renders via portal, so it is valid inside the table cell. */}
+        <ConfirmationDialog
+          isOpen={confirmDeleteOpen}
+          onClose={() => setConfirmDeleteOpen(false)}
+          onConfirm={() => {
+            setConfirmDeleteOpen(false);
+            run('workspace-delete');
+          }}
+          title={`Delete workspace "${workspace.name ?? workspace.id}"?`}
+          description="This reclaims its pod and storage and cannot be undone."
+          confirmLabel="Delete workspace"
+          variant="destructive"
+        />
       </td>
     </tr>
   );

@@ -1,5 +1,7 @@
-import { Form, useActionData, useLoaderData } from 'react-router';
+import { useState } from 'react';
+import { Form, useActionData, useLoaderData, useSubmit } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import {
   apiRequest,
   apiErrorMessage,
@@ -123,6 +125,8 @@ export async function action({ request }: EnterpriseActionArgs) {
 export default function InvitationsPage() {
   const { orgId, invitations, roles, canManageInvitations } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
+  const submit = useSubmit();
+  const [invitePendingExpire, setInvitePendingExpire] = useState<string | null>(null);
 
   return (
     <EnterpriseFormPage
@@ -164,11 +168,9 @@ export default function InvitationsPage() {
                 onSubmit={(event) => {
                   const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
 
-                  if (
-                    submitter?.value === 'expire' &&
-                    !window.confirm('Expire this invitation? The recipient will no longer be able to use the link.')
-                  ) {
+                  if (submitter?.value === 'expire') {
                     event.preventDefault();
+                    setInvitePendingExpire(invite.id);
                   }
                 }}
               >
@@ -185,6 +187,22 @@ export default function InvitationsPage() {
           ))}
         </div>
       ) : null}
+      <ConfirmationDialog
+        isOpen={invitePendingExpire !== null}
+        onClose={() => setInvitePendingExpire(null)}
+        onConfirm={() => {
+          const pending = invitePendingExpire;
+          setInvitePendingExpire(null);
+
+          if (pending) {
+            submit({ intent: 'expire', orgId: orgId ?? '', inviteId: pending }, { method: 'post' });
+          }
+        }}
+        title="Expire this invitation?"
+        description="The recipient will no longer be able to use the link."
+        confirmLabel="Expire invitation"
+        variant="destructive"
+      />
     </EnterpriseFormPage>
   );
 }

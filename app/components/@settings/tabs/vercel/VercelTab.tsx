@@ -10,6 +10,7 @@ import { ConnectorApiKeyConnectButton } from '~/components/@settings/shared/conn
 import { ServiceHeader, ConnectionTestIndicator } from '~/components/@settings/shared/service-integration';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { useConnectionTest } from '~/lib/hooks';
 import { logStore } from '~/lib/stores/logs';
 import {
@@ -45,6 +46,11 @@ export default function VercelTab() {
   const fetchingStats = useStore(isFetchingStats);
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(false);
   const [isProjectActionLoading, setIsProjectActionLoading] = useState(false);
+
+  const [pendingProjectAction, setPendingProjectAction] = useState<{
+    projectId: string;
+    action: ProjectAction;
+  } | null>(null);
 
   // Use shared connection test hook
   const {
@@ -290,17 +296,23 @@ export default function VercelTab() {
     toast.success('Disconnected from Vercel');
   };
 
-  const handleProjectAction = useCallback(async (projectId: string, action: ProjectAction) => {
-    if (action.requiresConfirmation) {
-      if (!confirm(`Are you sure you want to ${action.name.toLowerCase()}?`)) {
-        return;
-      }
-    }
-
+  const performProjectAction = useCallback(async (projectId: string, action: ProjectAction) => {
     setIsProjectActionLoading(true);
     await action.action(projectId);
     setIsProjectActionLoading(false);
   }, []);
+
+  const handleProjectAction = useCallback(
+    (projectId: string, action: ProjectAction) => {
+      if (action.requiresConfirmation) {
+        setPendingProjectAction({ projectId, action });
+        return;
+      }
+
+      void performProjectAction(projectId, action);
+    },
+    [performProjectAction],
+  );
 
   const renderProjects = useCallback(() => {
     if (fetchingStats) {
@@ -737,6 +749,22 @@ export default function VercelTab() {
 
   return (
     <div className="space-y-6">
+      <ConfirmationDialog
+        isOpen={pendingProjectAction !== null}
+        onClose={() => setPendingProjectAction(null)}
+        onConfirm={() => {
+          const pending = pendingProjectAction;
+          setPendingProjectAction(null);
+
+          if (pending) {
+            void performProjectAction(pending.projectId, pending.action);
+          }
+        }}
+        title={`${pendingProjectAction?.action.name ?? 'Run this action'}?`}
+        description={`Are you sure you want to ${pendingProjectAction?.action.name.toLowerCase() ?? 'run this action'}?`}
+        confirmLabel={pendingProjectAction?.action.name ?? 'Confirm'}
+        variant="destructive"
+      />
       <ServiceHeader
         icon={VercelLogo}
         title="Vercel Integration"

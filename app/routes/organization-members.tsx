@@ -5,7 +5,7 @@ import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from 're
 import { PendingInvitationsSection, type PendingInvitation } from '~/components/dashboard/PendingInvitationsSection';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
-import { Dialog, DialogTitle } from '~/components/ui/Dialog';
+import { ConfirmationDialog, Dialog, DialogTitle } from '~/components/ui/Dialog';
 import {
   apiRequest,
   apiErrorMessage,
@@ -173,6 +173,9 @@ export default function OrganizationMembersPage() {
   const [transferTarget, setTransferTarget] = useState<string | null>(null);
   const [confirmText, setConfirmText] = useState('');
 
+  // userId of the member the remove-member confirmation dialog is open for, or null.
+  const [memberPendingRemove, setMemberPendingRemove] = useState<string | null>(null);
+
   const ownerCount = memberships.filter((member) => member.roleKey === 'owner').length;
   const confirmMatches = confirmText.trim() === orgName;
 
@@ -298,9 +301,8 @@ export default function OrganizationMembersPage() {
                     method="post"
                     onSubmit={(event) => {
                       // Destructive: confirm before removing a member from the org.
-                      if (!window.confirm('Remove this member from the organization? They will lose access.')) {
-                        event.preventDefault();
-                      }
+                      event.preventDefault();
+                      setMemberPendingRemove(member.userId);
                     }}
                   >
                     <input type="hidden" name="intent" value="remove" />
@@ -382,6 +384,22 @@ export default function OrganizationMembersPage() {
           </Dialog>
         ) : null}
       </RadixDialog.Root>
+      <ConfirmationDialog
+        isOpen={memberPendingRemove !== null}
+        onClose={() => setMemberPendingRemove(null)}
+        onConfirm={() => {
+          const pending = memberPendingRemove;
+          setMemberPendingRemove(null);
+
+          if (pending) {
+            submit({ intent: 'remove', orgId: orgId ?? '', userId: pending }, { method: 'post' });
+          }
+        }}
+        title="Remove this member from the organization?"
+        description="They will immediately lose access to the organization."
+        confirmLabel="Remove member"
+        variant="destructive"
+      />
     </AppShell>
   );
 }

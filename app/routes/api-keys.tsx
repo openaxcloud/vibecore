@@ -3,9 +3,9 @@ import { Check, Copy, KeyRound, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { data as json } from 'react-router';
-import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from 'react-router';
 import { AppShell, StatusPill } from '~/components/dashboard/SaaSLayout';
-import { Dialog, DialogTitle } from '~/components/ui/Dialog';
+import { ConfirmationDialog, Dialog, DialogTitle } from '~/components/ui/Dialog';
 import { RelativeTime } from '~/components/ui/RelativeTime';
 import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { shouldRethrowActionError } from '~/lib/route-reauth';
@@ -127,8 +127,10 @@ export default function ApiKeysPage() {
   const actionData = useActionData<typeof action>() as ActionResult | undefined;
   const navigation = useNavigation();
   const busy = navigation.state !== 'idle';
+  const submit = useSubmit();
   const [createOpen, setCreateOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [keyPendingRevoke, setKeyPendingRevoke] = useState<{ id: string; name: string } | null>(null);
 
   const createdToken = actionData?.ok && actionData.intent === 'create' ? actionData.token : null;
   const error = actionData && !actionData.ok ? actionData.error : null;
@@ -268,13 +270,8 @@ export default function ApiKeysPage() {
                           method="post"
                           className="inline"
                           onSubmit={(e) => {
-                            if (
-                              !window.confirm(
-                                `Revoke key "${key.name}"? Any client using it will immediately lose access. This cannot be undone.`,
-                              )
-                            ) {
-                              e.preventDefault();
-                            }
+                            e.preventDefault();
+                            setKeyPendingRevoke({ id: key.id, name: key.name });
                           }}
                         >
                           <input type="hidden" name="intent" value="revoke" />
@@ -383,6 +380,22 @@ export default function ApiKeysPage() {
           </Dialog>
         ) : null}
       </RadixDialog.Root>
+      <ConfirmationDialog
+        isOpen={keyPendingRevoke !== null}
+        onClose={() => setKeyPendingRevoke(null)}
+        onConfirm={() => {
+          const pending = keyPendingRevoke;
+          setKeyPendingRevoke(null);
+
+          if (pending) {
+            submit({ intent: 'revoke', keyId: pending.id }, { method: 'post' });
+          }
+        }}
+        title={`Revoke key "${keyPendingRevoke?.name ?? ''}"?`}
+        description="Any client using it will immediately lose access. This cannot be undone."
+        confirmLabel="Revoke key"
+        variant="destructive"
+      />
     </AppShell>
   );
 }

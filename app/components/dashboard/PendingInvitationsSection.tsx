@@ -1,4 +1,6 @@
-import { Form } from 'react-router';
+import { useState } from 'react';
+import { Form, useSubmit } from 'react-router';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { RelativeTime } from '~/components/ui/RelativeTime';
 
 export type PendingInvitation = {
@@ -19,6 +21,11 @@ export type PendingInvitation = {
  * (Revoke / Expired). No hard-coded colors.
  */
 export function PendingInvitationsSection({ orgId, invitations }: { orgId: string; invitations: PendingInvitation[] }) {
+  const submit = useSubmit();
+
+  // Invite the revoke confirmation dialog is open for, or null.
+  const [invitePendingRevoke, setInvitePendingRevoke] = useState<{ id: string; email: string } | null>(null);
+
   // Accepted invites are members already; this section manages open ones only.
   const pending = invitations.filter((invite) => !invite.acceptedAt);
   const now = Date.now();
@@ -83,9 +90,8 @@ export function PendingInvitationsSection({ orgId, invitations }: { orgId: strin
                   method="post"
                   onSubmit={(event) => {
                     // Destructive: confirm before revoking the invite link.
-                    if (!window.confirm(`Revoke the invitation for ${invite.email}? The link stops working.`)) {
-                      event.preventDefault();
-                    }
+                    event.preventDefault();
+                    setInvitePendingRevoke({ id: invite.id, email: invite.email });
                   }}
                 >
                   <input type="hidden" name="intent" value="invite-revoke" />
@@ -105,6 +111,22 @@ export function PendingInvitationsSection({ orgId, invitations }: { orgId: strin
           );
         })
       )}
+      <ConfirmationDialog
+        isOpen={invitePendingRevoke !== null}
+        onClose={() => setInvitePendingRevoke(null)}
+        onConfirm={() => {
+          const pendingRevoke = invitePendingRevoke;
+          setInvitePendingRevoke(null);
+
+          if (pendingRevoke) {
+            submit({ intent: 'invite-revoke', orgId, inviteId: pendingRevoke.id }, { method: 'post' });
+          }
+        }}
+        title={`Revoke the invitation for ${invitePendingRevoke?.email ?? ''}?`}
+        description="The invite link stops working immediately."
+        confirmLabel="Revoke invitation"
+        variant="destructive"
+      />
     </section>
   );
 }

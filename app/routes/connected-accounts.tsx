@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useLoaderData, useNavigation, useRevalidator, useSearchParams } from 'react-router';
 import { AppShell, StatusPill } from '~/components/dashboard/SaaSLayout';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { useConnectorPopup } from '~/lib/chat/use-connector-popup';
 import {
   apiErrorMessage,
@@ -495,12 +496,9 @@ function IntegrationDisconnectButton({ connectionId }: { connectionId: string })
   const revalidator = useRevalidator();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const disconnect = useCallback(async () => {
-    if (!window.confirm('Disconnect this integration? You will need to reconnect via OAuth to restore access.')) {
-      return;
-    }
-
     setError(null);
     setBusy(true);
 
@@ -526,9 +524,21 @@ function IntegrationDisconnectButton({ connectionId }: { connectionId: string })
 
   return (
     <div className="flex flex-col items-end gap-1">
+      <ConfirmationDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          void disconnect();
+        }}
+        title="Disconnect this integration?"
+        description="You will need to reconnect via OAuth to restore access."
+        confirmLabel="Disconnect"
+        variant="destructive"
+      />
       <button
         type="button"
-        onClick={() => void disconnect()}
+        onClick={() => setConfirmOpen(true)}
         disabled={busy}
         className="inline-flex h-8 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
       >

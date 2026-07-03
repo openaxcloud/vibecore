@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { GitLabAuthDialog } from '~/components/@settings/tabs/gitlab/components/GitLabAuthDialog';
-import { SearchInput, EmptyState, StatusIndicator, Badge } from '~/components/ui';
+import { SearchInput, EmptyState, StatusIndicator, Badge, ConfirmationDialog } from '~/components/ui';
 import { getLocalStorage } from '~/lib/persistence/localStorage';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { GitLabApiService } from '~/lib/services/gitlabApiService';
@@ -33,7 +33,25 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
   const [createdRepoUrl, setCreatedRepoUrl] = useState('');
   const [pushedFiles, setPushedFiles] = useState<{ path: string; size: number }[]>([]);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+
+  /*
+   * Promise-based bridge so the async push flow can await the token-styled
+   * overwrite confirmation dialog (design handoff G5, not window.confirm).
+   */
+  const [overwriteConfirmation, setOverwriteConfirmation] = useState<{
+    description: string;
+    resolve: (confirmed: boolean) => void;
+  } | null>(null);
+
   const currentChatId = useStore(chatId);
+
+  const requestOverwriteConfirmation = (description: string) =>
+    new Promise<boolean>((resolve) => setOverwriteConfirmation({ description, resolve }));
+
+  const settleOverwriteConfirmation = (confirmed: boolean) => {
+    overwriteConfirmation?.resolve(confirmed);
+    setOverwriteConfirmation(null);
+  };
 
   // Load GitLab connection on mount
   useEffect(() => {
@@ -147,7 +165,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
             ? `\n\nThis will also change the repository from ${existingProject.visibility} to ${isPrivate ? 'private' : 'public'}.`
             : '';
 
-        const confirmOverwrite = window.confirm(
+        const confirmOverwrite = await requestOverwriteConfirmation(
           `Repository "${sanitizedRepoName}" already exists. Do you want to update it? This will add or modify files in the repository.${visibilityChange}`,
         );
 
@@ -766,6 +784,14 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
 
       {/* GitLab Auth Dialog */}
       <GitLabAuthDialog isOpen={showAuthDialog} onClose={handleAuthDialogClose} />
+      <ConfirmationDialog
+        isOpen={overwriteConfirmation !== null}
+        onClose={() => settleOverwriteConfirmation(false)}
+        onConfirm={() => settleOverwriteConfirmation(true)}
+        title="Update existing repository?"
+        description={<span className="whitespace-pre-line">{overwriteConfirmation?.description}</span>}
+        confirmLabel="Update repository"
+      />
     </Dialog.Root>
   );
 }

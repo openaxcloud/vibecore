@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { ConnectorApiKeyConnectButton } from '~/components/@settings/shared/connectors';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import {
   supabaseConnection,
   isConnecting,
@@ -74,6 +75,11 @@ export default function SupabaseTab() {
   const [connectionTest, setConnectionTest] = useState<ConnectionTestResult | null>(null);
   const [isProjectActionLoading, setIsProjectActionLoading] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+
+  const [pendingProjectAction, setPendingProjectAction] = useState<{
+    projectId: string;
+    action: ProjectAction;
+  } | null>(null);
 
   // Connection testing function - uses server-side API to test environment token
   const testConnection = async () => {
@@ -272,16 +278,19 @@ export default function SupabaseTab() {
     toast.success('Disconnected from Supabase');
   };
 
-  const handleProjectAction = async (projectId: string, action: ProjectAction) => {
-    if (action.requiresConfirmation) {
-      if (!confirm(`Are you sure you want to ${action.name.toLowerCase()}?`)) {
-        return;
-      }
-    }
-
+  const performProjectAction = async (projectId: string, action: ProjectAction) => {
     setIsProjectActionLoading(true);
     await action.action(projectId);
     setIsProjectActionLoading(false);
+  };
+
+  const handleProjectAction = (projectId: string, action: ProjectAction) => {
+    if (action.requiresConfirmation) {
+      setPendingProjectAction({ projectId, action });
+      return;
+    }
+
+    void performProjectAction(projectId, action);
   };
 
   const handleProjectSelect = async (projectId: string) => {
@@ -635,6 +644,22 @@ export default function SupabaseTab() {
 
   return (
     <div className="space-y-6">
+      <ConfirmationDialog
+        isOpen={pendingProjectAction !== null}
+        onClose={() => setPendingProjectAction(null)}
+        onConfirm={() => {
+          const pending = pendingProjectAction;
+          setPendingProjectAction(null);
+
+          if (pending) {
+            void performProjectAction(pending.projectId, pending.action);
+          }
+        }}
+        title={`${pendingProjectAction?.action.name ?? 'Run this action'}?`}
+        description={`Are you sure you want to ${pendingProjectAction?.action.name.toLowerCase() ?? 'run this action'}?`}
+        confirmLabel={pendingProjectAction?.action.name ?? 'Confirm'}
+        variant="destructive"
+      />
       {/* Header */}
       <motion.div
         className="flex items-center justify-between gap-2"

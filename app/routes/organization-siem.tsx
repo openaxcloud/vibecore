@@ -1,6 +1,8 @@
 import { CheckCircle2, Clock, Radio, Trash2 } from 'lucide-react';
-import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
+import { useState } from 'react';
+import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import {
   apiErrorMessage,
   apiRequest,
@@ -173,7 +175,9 @@ export default function OrganizationSiemPage() {
   const { orgId, webhooks, loadError } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
   const navigation = useNavigation();
+  const submit = useSubmit();
   const busy = navigation.state !== 'idle';
+  const [webhookPendingDelete, setWebhookPendingDelete] = useState<string | null>(null);
 
   return (
     <EnterpriseFormPage
@@ -273,9 +277,8 @@ export default function OrganizationSiemPage() {
                         <Form
                           method="post"
                           onSubmit={(event) => {
-                            if (!confirm('Remove this SIEM webhook? Events will stop being delivered to it.')) {
-                              event.preventDefault();
-                            }
+                            event.preventDefault();
+                            setWebhookPendingDelete(webhook.id);
                           }}
                         >
                           <input type="hidden" name="orgId" value={orgId} />
@@ -307,6 +310,22 @@ export default function OrganizationSiemPage() {
           View and export audit logs
         </a>
       </p>
+      <ConfirmationDialog
+        isOpen={webhookPendingDelete !== null}
+        onClose={() => setWebhookPendingDelete(null)}
+        onConfirm={() => {
+          const pending = webhookPendingDelete;
+          setWebhookPendingDelete(null);
+
+          if (pending) {
+            submit({ orgId: orgId ?? '', intent: 'delete', webhookId: pending }, { method: 'post' });
+          }
+        }}
+        title="Remove this SIEM webhook?"
+        description="Events will stop being delivered to it."
+        confirmLabel="Remove webhook"
+        variant="destructive"
+      />
     </EnterpriseFormPage>
   );
 }
