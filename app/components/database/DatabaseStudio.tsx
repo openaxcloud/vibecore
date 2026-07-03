@@ -1,6 +1,7 @@
 import { Play, Table2, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useFetcher } from 'react-router';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -65,6 +66,26 @@ function readTables(data: unknown): Array<{ name: string; columns: string[] }> {
       return name ? { name, columns: columns.filter(Boolean) } : null;
     })
     .filter((t): t is { name: string; columns: string[] } => Boolean(t));
+}
+
+/*
+ * Pragmatic destructive-statement detector: strip string literals ('…' with ''
+ * escapes), quoted identifiers ("…"), and comments (`--`, C-style) BEFORE testing for
+ * destructive keywords, so `SELECT 'DROP TABLE'` or a `-- delete later` comment
+ * does not prompt. Known limits: dollar-quoted strings ($$…$$), backslash
+ * escapes, and dialect-specific quoting are NOT stripped — a destructive word
+ * inside those can still over-prompt, which fails safe (extra confirmation).
+ */
+const DESTRUCTIVE_SQL_KEYWORDS = /\b(DROP|DELETE|TRUNCATE|ALTER|UPDATE)\b/i;
+
+function isDestructiveSql(query: string): boolean {
+  const stripped = query
+    .replace(/'(?:[^']|'')*'/g, "''")
+    .replace(/"(?:[^"]|"")*"/g, '""')
+    .replace(/--[^\n]*/g, ' ')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ');
+
+  return DESTRUCTIVE_SQL_KEYWORDS.test(stripped);
 }
 
 /*
@@ -148,6 +169,9 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
   const [selectedTable, setSelectedTable] = useState('');
   const [editMode, setEditMode] = useState(false);
 
+  // Destructive statement awaiting user confirmation (null = no dialog).
+  const [pendingSql, setPendingSql] = useState<string | null>(null);
+
   useEffect(() => {
     if (connFetcher.state === 'idle' && !connFetcher.data) {
       connFetcher.load(base);
@@ -178,12 +202,37 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
     }
   }, [connectionKey, base, schemaFetcher]);
 
+  /*
+   * The connections payload only carries { key, label } (see readConnections) —
+   * there is no environment field. "Production" is therefore inferred from the
+   * active connection's key/label matching /prod/i (catches "Prod",
+   * "production-db"; may also catch e.g. "products" — accepted limitation).
+   */
+  const activeConnection = connections.find((c) => c.key === connectionKey);
+
+  const isProductionConnection = Boolean(
+    activeConnection && /prod/i.test(`${activeConnection.key} ${activeConnection.label}`),
+  );
+
+  const executeQuery = (queryText: string) => {
+    queryFetcher.submit({ intent: 'query', connectionKey, query: queryText }, { method: 'post', action: base });
+  };
+
+  /*
+   * All run entry points (Run button, ⌘+Enter, table browse, cell edits) funnel
+   * through here; destructive statements are held for confirmation first.
+   */
   const runQuery = (queryText: string) => {
     if (!queryText.trim() || !connectionKey) {
       return;
     }
 
-    queryFetcher.submit({ intent: 'query', connectionKey, query: queryText }, { method: 'post', action: base });
+    if (isDestructiveSql(queryText)) {
+      setPendingSql(queryText);
+      return;
+    }
+
+    executeQuery(queryText);
   };
 
   const result = queryFetcher.data?.result ? normalizeRows(queryFetcher.data.result) : null;
@@ -277,6 +326,19 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                 {running ? 'Running…' : 'Run'}
               </button>
               <span className="text-[11px] text-bolt-elements-textTertiary">⌘/Ctrl + Enter</span>
+              {isProductionConnection ? (
+                <span
+                  className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium"
+                  style={{
+                    color: 'var(--status-error-text)',
+                    background: 'color-mix(in srgb, var(--vc-ide-accent-error) 12%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
+                  }}
+                  title="The active connection looks like a production database — destructive statements ask for confirmation before running."
+                >
+                  Production
+                </span>
+              ) : null}
               {result && result.rows.length ? (
                 <button
                   type="button"
@@ -376,6 +438,48 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
           </div>
         </section>
       </div>
+
+      {/*
+       * Destructive-statement gate. Radix's Description renders a <p>, so the
+       * echo uses block-level <span>s (valid inside <p>) instead of <pre>/<div>.
+       */}
+      <ConfirmationDialog
+        isOpen={pendingSql !== null}
+        onClose={() => setPendingSql(null)}
+        onConfirm={() => {
+          if (pendingSql) {
+            executeQuery(pendingSql);
+          }
+
+          setPendingSql(null);
+        }}
+        title="Run destructive statement?"
+        variant="destructive"
+        confirmLabel="Run statement"
+        description={
+          <span className="flex flex-col gap-2">
+            <span className="block text-[13px]">
+              This statement can modify or delete data
+              {isProductionConnection ? (
+                <>
+                  {' on the '}
+                  <strong style={{ color: 'var(--status-error-text)' }}>production</strong>
+                  {' database'}
+                </>
+              ) : null}
+              . Review it before running:
+            </span>
+            <span className="block max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2 font-mono text-[12px] text-bolt-elements-textPrimary">
+              {pendingSql}
+            </span>
+            {activeConnection ? (
+              <span className="block text-[11px] text-bolt-elements-textTertiary">
+                Connection: {activeConnection.label}
+              </span>
+            ) : null}
+          </span>
+        }
+      />
     </div>
   );
 }
