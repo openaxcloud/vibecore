@@ -3482,6 +3482,36 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   transition: grid-template-columns 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .vc-app-shell-grid {
+    transition: none;
+  }
+}
+
+/*
+ * No-flash collapsed sidebar (E15). The inline boot script in app/root.tsx
+ * mirrors localStorage['ecode:sidebar-collapsed'] onto <html> as
+ * data-ecode-sidebar-collapsed BEFORE first paint, and useSidebarController
+ * keeps the attribute in sync afterwards. The server always renders the
+ * EXPANDED markup, so until React seeds its state these attribute-keyed rules
+ * paint the shell in the persisted collapsed geometry; once the aside carries
+ * .vc-sidebar--collapsed (or the attribute says false) they are inert and the
+ * component classes govern as usual.
+ */
+@media (min-width: 1024px) {
+  html[data-ecode-sidebar-collapsed='true'] .vc-app-shell-grid {
+    grid-template-columns: 56px 1fr;
+  }
+
+  html[data-ecode-sidebar-collapsed='true'] .vc-sidebar--desktop:not(.vc-sidebar--collapsed) {
+    .vc-sidebar-fade-label,
+    .vc-sidebar-group-label,
+    .vc-sidebar-shortcut {
+      display: none;
+    }
+  }
+}
+
 .vc-sidebar {
   position: sticky;
   top: 0;

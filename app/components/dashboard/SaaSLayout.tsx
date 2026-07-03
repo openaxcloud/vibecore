@@ -76,6 +76,12 @@ import {
   resolveCommandPaletteKey,
 } from './command-palette-search';
 import { pushRecentCommand, readRecentCommands, recordRecentCommand } from './recent-commands';
+import {
+  SIDEBAR_AUTO_COLLAPSE_MEDIA_QUERY,
+  persistSidebarCollapsed,
+  readStoredSidebarCollapsed,
+  reflectSidebarCollapsedOnRoot,
+} from './sidebar-collapse';
 import { EcodeBrandMark } from '~/components/brand/EcodeBrandMark';
 import { EcodeExactPublicShell } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import { Button } from '~/components/ui/Button';
@@ -636,18 +642,28 @@ function useSidebarController() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [hasExplicitChoice, setHasExplicitChoice] = useState(false);
 
+  /*
+   * Seed from localStorage AFTER hydration (the server always renders
+   * expanded, so the first client render must match it). There is still no
+   * flash of the wrong state: the inline boot script in app/root.tsx already
+   * reflected the persisted choice on <html> as data-ecode-sidebar-collapsed
+   * before first paint, and the attribute-keyed CSS in app/styles/index.scss
+   * keeps the shell in that geometry until this state catches up.
+   */
   useEffect(() => {
-    const stored = localStorage.getItem('vibecore:app-sidebar-collapsed');
+    const stored = readStoredSidebarCollapsed();
 
-    if (stored === 'true' || stored === 'false') {
-      setSidebarCollapsed(stored === 'true');
+    if (stored !== null) {
+      setSidebarCollapsed(stored);
       setHasExplicitChoice(true);
+      reflectSidebarCollapsedOnRoot(stored);
 
       return;
     }
 
-    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1279.98px)').matches) {
+    if (typeof window !== 'undefined' && window.matchMedia(SIDEBAR_AUTO_COLLAPSE_MEDIA_QUERY).matches) {
       setSidebarCollapsed(true);
+      reflectSidebarCollapsedOnRoot(true);
     }
   }, []);
 
@@ -656,11 +672,12 @@ function useSidebarController() {
       return undefined;
     }
 
-    const mql = window.matchMedia('(max-width: 1279.98px)');
+    const mql = window.matchMedia(SIDEBAR_AUTO_COLLAPSE_MEDIA_QUERY);
 
     const onChange = (event: MediaQueryListEvent) => {
       if (!hasExplicitChoice) {
         setSidebarCollapsed(event.matches);
+        reflectSidebarCollapsedOnRoot(event.matches);
       }
     };
 
@@ -691,7 +708,8 @@ function useSidebarController() {
     setHasExplicitChoice(true);
     setSidebarCollapsed((current) => {
       const next = !current;
-      localStorage.setItem('vibecore:app-sidebar-collapsed', String(next));
+      persistSidebarCollapsed(next);
+      reflectSidebarCollapsedOnRoot(next);
 
       return next;
     });
@@ -834,7 +852,7 @@ function SidebarHeader({ collapsed }: { collapsed: boolean }) {
     <Link
       to="/organization-switcher"
       className={classNames(
-        'vc-sidebar-header group flex h-14 shrink-0 items-center border-b border-bolt-elements-borderColor transition-colors hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
+        'vc-sidebar-header group relative flex h-14 shrink-0 items-center border-b border-bolt-elements-borderColor transition-colors hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
         collapsed ? 'justify-center px-1.5' : 'gap-2 px-3',
       )}
       aria-label="Organization switcher"
@@ -857,6 +875,7 @@ function SidebarHeader({ collapsed }: { collapsed: boolean }) {
           </span>
         </span>
       ) : null}
+      {collapsed ? <span className="vc-collapsed-nav-label">Organization switcher</span> : null}
     </Link>
   );
 }
@@ -1814,7 +1833,7 @@ function CreateProjectCta({ collapsed }: { collapsed: boolean }) {
       title={collapsed ? 'Create project' : undefined}
     >
       <Plus className="h-4 w-4 shrink-0" aria-hidden />
-      {!collapsed ? <span className="truncate">New project</span> : null}
+      {!collapsed ? <span className="vc-sidebar-fade-label truncate">New project</span> : null}
       {collapsed ? <span className="vc-collapsed-nav-label">Create project</span> : null}
     </NavLink>
   );

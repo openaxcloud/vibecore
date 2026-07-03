@@ -51,7 +51,7 @@ export class PreviewsStore {
    */
   #syncedStorageKeys = new Set([
     'vibecore:user-language',
-    'vibecore:app-sidebar-collapsed',
+    'ecode:sidebar-collapsed',
     'vibecore:agent-plan-first-default',
     'ecode-preferred-ai-model',
     'bolt_tab_configuration',

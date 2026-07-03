@@ -20,6 +20,12 @@ import {
   ANNOUNCEMENT_DISMISSED_ATTRIBUTE,
   ANNOUNCEMENT_DISMISSED_STORAGE_KEY,
 } from './components/marketing/ecode-exact/announcement';
+import {
+  LEGACY_SIDEBAR_COLLAPSED_STORAGE_KEY,
+  SIDEBAR_AUTO_COLLAPSE_MEDIA_QUERY,
+  SIDEBAR_COLLAPSED_ATTRIBUTE,
+  SIDEBAR_COLLAPSED_STORAGE_KEY,
+} from './components/dashboard/sidebar-collapse';
 import { ImpersonationBanner } from './components/dashboard/ImpersonationBanner';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { installEditorPwaServiceWorker } from '@vibecore/editor';
@@ -82,6 +88,36 @@ export const links: LinksFunction = () => [
 const inlineThemeCode = stripIndents`
   setTutorialKitTheme();
   markDismissedAnnouncement();
+  markSidebarCollapsed();
+
+  /*
+   * User-area sidebar (dashboard AppShell): reflect the persisted
+   * collapsed/expanded choice on <html> before first paint so the shell
+   * renders in the right geometry with no flash. Mirrors the precedence in
+   * useSidebarController (explicit choice, else auto-collapse on narrow
+   * viewports). Kept in sync with app/components/dashboard/sidebar-collapse.ts.
+   */
+  function markSidebarCollapsed() {
+    try {
+      var stored = localStorage.getItem('${SIDEBAR_COLLAPSED_STORAGE_KEY}');
+
+      if (stored !== 'true' && stored !== 'false') {
+        stored = localStorage.getItem('${LEGACY_SIDEBAR_COLLAPSED_STORAGE_KEY}');
+      }
+
+      var collapsed;
+
+      if (stored === 'true' || stored === 'false') {
+        collapsed = stored === 'true';
+      } else {
+        collapsed = !!(window.matchMedia && window.matchMedia('${SIDEBAR_AUTO_COLLAPSE_MEDIA_QUERY}').matches);
+      }
+
+      document.documentElement.setAttribute('${SIDEBAR_COLLAPSED_ATTRIBUTE}', String(collapsed));
+    } catch (e) {
+      // Storage blocked — the sidebar just renders with the default state.
+    }
+  }
 
   /*
    * Marketing announcement bar: if this campaign was already dismissed, flag
