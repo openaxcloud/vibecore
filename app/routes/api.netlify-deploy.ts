@@ -223,7 +223,22 @@ export async function action({ request }: ActionFunctionArgs) {
         );
 
         if (!statusResponse.ok) {
+          /*
+           * Transient upstream failures (5xx / 429 rate-limit / 408 timeout) must
+           * be retried like the catch block below and the upload block above —
+           * Netlify may still be preparing the deploy. Only genuinely terminal
+           * statuses (auth, not-found, other 4xx) fail fast, since they will not
+           * self-heal by polling again.
+           */
+          if (statusResponse.status >= 500 || statusResponse.status === 429 || statusResponse.status === 408) {
+            console.error(`Deploy status poll returned ${statusResponse.status}, retrying`);
+            retryCount++;
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            continue;
+          }
+
           const errorDetail = await readNetlifyError(statusResponse);
+
           return json(
             { error: `Failed to check deployment status${errorDetail ? `: ${errorDetail}` : ''}` },
             { status: statusResponse.status },
