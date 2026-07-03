@@ -2,6 +2,7 @@ import { AlertTriangle, BarChart3, CheckCircle2, Database, ShieldCheck } from 'l
 import React, { useEffect, useMemo, useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Link, useFetcher, useLoaderData, useNavigate, useNavigation, useSearchParams } from 'react-router';
+import { SupportTicketsPanel } from '~/components/admin/SupportTicketsPanel';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 import { Dialog, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { Dropdown, DropdownItem, DropdownSeparator } from '~/components/ui/Dropdown';
@@ -745,6 +746,26 @@ export async function action({ request }: EnterpriseActionArgs) {
       });
 
       return json({ ok: true, rowId: ticketId, message: `Response sent (${status}).` });
+    }
+
+    // Support ticket assignee (platform admin, empty string unassigns).
+    if (intent === 'support-assign') {
+      const ticketId = String(form.get('ticketId') ?? '');
+      const assigneeUserId = String(form.get('assigneeUserId') ?? '').trim();
+
+      if (!ticketId) {
+        return json({ ok: false, error: 'Missing ticket.' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/admin/support-tickets/${ticketId}/assign`, {
+        method: 'POST',
+        redirectOn401: false,
+
+        // adminSupportAssignSchema: { assigneeUserId: string | null } — null unassigns.
+        body: JSON.stringify({ assigneeUserId: assigneeUserId || null }),
+      });
+
+      return json({ ok: true, rowId: ticketId, message: assigneeUserId ? 'Ticket assigned.' : 'Ticket unassigned.' });
     }
 
     // --- MCP catalog management (no userId) ---
@@ -4039,130 +4060,11 @@ function OrganizationRow({
   );
 }
 
-type AdminSupportTicket = {
-  id: string;
-  organizationId?: string;
-  userId?: string;
-  subject?: string;
-  status?: string;
-  createdAt?: string;
-};
-
-const TICKET_STATUSES = ['OPEN', 'PENDING', 'RESOLVED', 'CLOSED'] as const;
-
 /*
- * Support-ticket panel: per-ticket Respond form (status select + response
- * textarea) wired to POST /admin/support-tickets/:id/respond. Step-up protected.
+ * Support tickets: the panel (SLA column + assignee + sortable table) lives in
+ * ~/components/admin/SupportTicketsPanel (design handoff E27). Its mutations
+ * post the 'support-respond' / 'support-assign' intents to this route's action.
  */
-function SupportTicketsPanel({ payload }: { payload: Record<string, JsonValue> }) {
-  const tickets = (Array.isArray(payload.tickets) ? payload.tickets : []) as AdminSupportTicket[];
-  const [password, setPassword] = useState('');
-
-  return (
-    <div className="grid gap-4">
-      <ReauthHeader
-        password={password}
-        onChange={setPassword}
-        hint="Responding to a ticket is step-up protected. Enter your password once, then respond to tickets below."
-      />
-
-      <div className="grid gap-4">
-        {tickets.length === 0 ? (
-          <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-sm text-bolt-elements-textSecondary shadow-sm">
-            No support tickets found.
-          </div>
-        ) : (
-          tickets.map((ticket) => <SupportTicketCard key={ticket.id} ticket={ticket} password={password} />)
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SupportTicketCard({ ticket, password }: { ticket: AdminSupportTicket; password: string }) {
-  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
-  const busy = fetcher.state !== 'idle';
-  const [status, setStatus] = useState<string>(ticket.status ?? 'PENDING');
-  const [response, setResponse] = useState('');
-
-  const inputClass =
-    'mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive';
-
-  const submit = () => {
-    fetcher.submit({ intent: 'support-respond', ticketId: ticket.id, status, response, password }, { method: 'post' });
-    setResponse('');
-  };
-
-  const currentTone =
-    ticket.status === 'RESOLVED' || ticket.status === 'CLOSED' ? 'ok' : ticket.status === 'OPEN' ? 'danger' : 'muted';
-
-  return (
-    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">{ticket.subject ?? ticket.id}</h3>
-          <p className="mt-0.5 text-xs text-bolt-elements-textSecondary">
-            {[
-              ticket.organizationId ? `org ${ticket.organizationId}` : null,
-              ticket.userId ? `user ${ticket.userId}` : null,
-            ]
-              .filter(Boolean)
-              .join(' · ') || ticket.id}
-            {ticket.createdAt ? ` · ${ticket.createdAt}` : ''}
-          </p>
-        </div>
-        <StatusPill tone={currentTone}>{String(ticket.status ?? 'unknown').toLowerCase()}</StatusPill>
-      </div>
-
-      <div className="mt-3 grid gap-3">
-        <label className="block text-xs text-bolt-elements-textSecondary sm:max-w-xs">
-          New status
-          <select
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-            data-testid={`ticket-status-${ticket.id}`}
-            className={inputClass}
-          >
-            {TICKET_STATUSES.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block text-xs text-bolt-elements-textSecondary">
-          Response
-          <textarea
-            value={response}
-            onChange={(event) => setResponse(event.target.value)}
-            rows={3}
-            placeholder="Write your response to the customer…"
-            data-testid={`ticket-response-${ticket.id}`}
-            className={inputClass}
-          />
-        </label>
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          disabled={busy || !password || !response.trim()}
-          onClick={submit}
-          data-testid={`ticket-respond-${ticket.id}`}
-          className="inline-flex items-center rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {busy ? 'Sending…' : 'Send response'}
-        </button>
-        {!password ? (
-          <span className="text-xs text-bolt-elements-textTertiary">Enter your password above first.</span>
-        ) : null}
-        {fetcher.data?.message ? <span className="text-xs text-emerald-400">{fetcher.data.message}</span> : null}
-        {fetcher.data?.error ? <span className="text-xs text-rose-400">{fetcher.data.error}</span> : null}
-      </div>
-    </div>
-  );
-}
 
 /*
  * Audit-log export header (sits above the read-only DataPanel table). Each

@@ -3441,6 +3441,23 @@ export class TestApiStore implements ApiStore {
 
     ticket.status = input.status;
 
+    // Stamp the FIRST admin response only — later responses keep the SLA mark.
+    if (input.response && !ticket.firstResponseAt) {
+      ticket.firstResponseAt = now();
+    }
+
+    return ticket;
+  }
+
+  async assignSupportTicket(input: { ticketId: string; assigneeUserId?: string }) {
+    const ticket = this.supportTickets.get(input.ticketId);
+
+    if (!ticket) {
+      throw Object.assign(new Error('Support ticket not found'), { statusCode: 404, code: 'SUPPORT_TICKET_NOT_FOUND' });
+    }
+
+    ticket.assigneeUserId = input.assigneeUserId;
+
     return ticket;
   }
 

@@ -4369,16 +4369,50 @@ export class PrismaApiStore implements ApiStore {
      */
     return this.withSerializedMutation(`support-ticket:${input.ticketId}`, async () => {
       const existing = await this.prisma.supportTicket.findUnique({ where: { id: input.ticketId } });
+      const existingMetadata = (existing?.metadata as Record<string, unknown> | null) ?? {};
 
       const metadata = {
-        ...((existing?.metadata as Record<string, unknown> | null) ?? {}),
+        ...existingMetadata,
         ...(input.response ? { latestAdminResponse: input.response } : {}),
+
+        // Stamp the FIRST admin response only — later responses keep the SLA mark.
+        ...(input.response && typeof existingMetadata.firstResponseAt !== 'string'
+          ? { firstResponseAt: new Date().toISOString() }
+          : {}),
       };
 
       return mapSupportTicket(
         await this.prisma.supportTicket.update({
           where: { id: input.ticketId },
           data: { status: input.status, metadata: metadata as any },
+        }),
+      );
+    });
+  }
+
+  async assignSupportTicket(input: { ticketId: string; assigneeUserId?: string }) {
+    // Serialize the metadata read-modify-write (see updateSupportTicket).
+    return this.withSerializedMutation(`support-ticket:${input.ticketId}`, async () => {
+      const existing = await this.prisma.supportTicket.findUnique({ where: { id: input.ticketId } });
+
+      if (!existing) {
+        throw Object.assign(new Error('Support ticket not found'), {
+          statusCode: 404,
+          code: 'SUPPORT_TICKET_NOT_FOUND',
+        });
+      }
+
+      const metadata = {
+        ...((existing.metadata as Record<string, unknown> | null) ?? {}),
+
+        // `null` (not delete) so the unassign survives the JSON merge above.
+        assigneeUserId: input.assigneeUserId ?? null,
+      };
+
+      return mapSupportTicket(
+        await this.prisma.supportTicket.update({
+          where: { id: input.ticketId },
+          data: { metadata: metadata as any },
         }),
       );
     });
@@ -4817,6 +4851,13 @@ function mapDeployment(deployment: any): DeploymentRecord {
 }
 
 function mapSupportTicket(ticket: any): SupportTicketRecord {
+  /*
+   * assigneeUserId / firstResponseAt live in the metadata JSON blob (like
+   * latestAdminResponse) rather than dedicated columns, so the admin triage
+   * fields ship without a schema migration.
+   */
+  const metadata = (ticket.metadata ?? {}) as Record<string, unknown>;
+
   return {
     id: ticket.id,
     organizationId: ticket.organizationId,
@@ -4825,6 +4866,8 @@ function mapSupportTicket(ticket: any): SupportTicketRecord {
     status: ticket.status,
     category: typeof ticket.metadata?.category === 'string' ? ticket.metadata.category : undefined,
     createdAt: toIso(ticket.createdAt)!,
+    assigneeUserId: typeof metadata.assigneeUserId === 'string' ? metadata.assigneeUserId : undefined,
+    firstResponseAt: typeof metadata.firstResponseAt === 'string' ? metadata.firstResponseAt : undefined,
   };
 }
 

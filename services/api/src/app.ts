@@ -1198,6 +1198,31 @@ const adminSupportResponseSchema = z.object({
   response: z.string().min(1),
   status: z.enum(['OPEN', 'PENDING', 'RESOLVED', 'CLOSED']).default('PENDING'),
 });
+
+// `null` unassigns (JSON has no undefined over the wire).
+const adminSupportAssignSchema = z.object({ assigneeUserId: z.string().min(1).nullable() });
+
+/*
+ * First-response SLA policy for support tickets, in hours from ticket creation
+ * to the first admin response, keyed by the org's plan tier. Drives the
+ * "First response due" column in /admin/support-tickets.
+ *
+ * NEEDS-VALIDATION (design handoff E27): these figures are placeholders scaled
+ * to plan positioning (paid tiers faster, enterprise fastest) and have not been
+ * confirmed by support ops.
+ */
+const SUPPORT_FIRST_RESPONSE_TARGET_HOURS: Record<PlanKey, number> = {
+  free: 48,
+  starter: 24,
+  core: 24,
+  pro: 8,
+  team: 4,
+  enterprise: 1,
+};
+
+/** Subscription states whose plan tier still earns that plan's support SLA. */
+const SLA_ENTITLED_SUBSCRIPTION_STATUSES = new Set(['ACTIVE', 'TRIALING', 'PAST_DUE']);
+
 const adminFeatureFlagSchema = featureFlagSchema.extend({
   organizationId: z.string().optional(),
   rolloutPercent: z.number().int().min(0).max(100).optional(),
@@ -21641,7 +21666,47 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/support-tickets', async (request) => {
     await requirePlatformAdmin(request);
-    return { tickets: await store.listAdminSupportTickets() };
+
+    const [tickets, subscriptions, users] = await Promise.all([
+      store.listAdminSupportTickets(),
+      store.listAdminSubscriptions(),
+      store.listAdminUsers(),
+    ]);
+
+    const planByOrg = new Map(
+      subscriptions
+        .filter((subscription) => SLA_ENTITLED_SUBSCRIPTION_STATUSES.has(subscription.status))
+        .map((subscription) => [subscription.organizationId, subscription.planKey]),
+    );
+
+    /*
+     * Enrich each ticket with its org's plan tier and the derived
+     * first-response deadline (createdAt + SLA target for that tier). The
+     * ok / due-soon / overdue state is computed client-side against "now" so
+     * it stays fresh without refetching.
+     */
+    const enriched = tickets.map((ticket) => {
+      const planKey: PlanKey = planByOrg.get(ticket.organizationId) ?? 'free';
+      const targetHours = SUPPORT_FIRST_RESPONSE_TARGET_HOURS[planKey] ?? SUPPORT_FIRST_RESPONSE_TARGET_HOURS.free;
+      const createdMs = new Date(ticket.createdAt).getTime();
+
+      return {
+        ...ticket,
+        planKey,
+        firstResponseDueAt: Number.isNaN(createdMs)
+          ? undefined
+          : new Date(createdMs + targetHours * 60 * 60 * 1000).toISOString(),
+      };
+    });
+
+    return {
+      tickets: enriched,
+
+      // Assignee candidates: platform admins only, minimal safe projection.
+      assignees: users
+        .filter((user) => user.platformAdmin)
+        .map((user) => ({ id: user.id, name: user.name, email: user.email })),
+    };
   });
 
   app.get('/admin/feature-flags', async (request) => {
@@ -22794,6 +22859,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await recordAdminAction(request, store, {
       action: 'admin.support.respond',
       metadata: { ticketId, status: body.status },
+    });
+
+    return { ticket };
+  });
+
+  app.post('/admin/support-tickets/:ticketId/assign', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { ticketId } = parse(adminTicketParams, request.params);
+    const body = parse(adminSupportAssignSchema, request.body);
+
+    // Tickets can only be assigned to platform administrators.
+    if (body.assigneeUserId) {
+      const assignee = (await store.listAdminUsers()).find((user) => user.id === body.assigneeUserId);
+
+      if (!assignee?.platformAdmin) {
+        throw Object.assign(new Error('Assignee must be a platform administrator'), {
+          statusCode: 400,
+          code: 'SUPPORT_ASSIGNEE_NOT_ADMIN',
+        });
+      }
+    }
+
+    const ticket = await store.assignSupportTicket({ ticketId, assigneeUserId: body.assigneeUserId ?? undefined });
+    await recordAdminAction(request, store, {
+      action: 'admin.support.assign',
+      metadata: { ticketId, assigneeUserId: body.assigneeUserId },
     });
 
     return { ticket };

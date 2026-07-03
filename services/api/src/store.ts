@@ -289,6 +289,15 @@ export interface SupportTicketRecord {
   /** Free-form category key (persisted in the metadata JSON column). */
   category?: string;
   createdAt: string;
+
+  /** Platform-admin user this ticket is assigned to (admin console triage). */
+  assigneeUserId?: string;
+
+  /**
+   * When the FIRST admin response was sent (ISO). Unset until an admin
+   * responds; drives the first-response SLA state in the admin console.
+   */
+  firstResponseAt?: string;
 }
 
 export interface FeatureFlagRecord {
@@ -1837,6 +1846,9 @@ export interface ApiStore {
     status: SupportTicketRecord['status'];
     response?: string;
   }): Promise<SupportTicketRecord>;
+
+  /** Assign (or unassign with `undefined`) a support ticket to a platform admin. */
+  assignSupportTicket(input: { ticketId: string; assigneeUserId?: string }): Promise<SupportTicketRecord>;
   updateAbuseEvent(input: { abuseEventId: string; resolved?: boolean }): Promise<AbuseEventRecord>;
   recordAdminAudit(event: AdminAuditLogRecord): Promise<void>;
   listAdminAuditLogs(): Promise<AdminAuditLogRecord[]>;
