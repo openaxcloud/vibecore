@@ -2251,30 +2251,55 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       const handler = (event: Event) => {
         const detail = (event as CustomEvent).detail as
-          | { kind?: string; files?: Array<string | { path?: string }>; branch?: string }
+          | {
+              kind?: string;
+              files?: Array<string | { path?: string }>;
+              branch?: string;
+              title?: string;
+              details?: string;
+              severity?: string;
+              source?: string;
+            }
           | undefined;
 
-        if (detail?.kind !== 'resolve-git-conflicts') {
+        if (detail?.kind === 'resolve-git-conflicts') {
+          const files = Array.isArray(detail.files) ? detail.files : [];
+
+          const list = files
+            .map((file) => `- ${typeof file === 'string' ? file : (file?.path ?? '')}`.trim())
+            .filter((line) => line !== '-')
+            .join('\n');
+
+          const prompt = [
+            `Resolve the current Git merge conflicts in this workspace${detail.branch ? ` (branch ${detail.branch})` : ''}, preserving BOTH sides' intent — never discard either side's work.`,
+            '',
+            'Conflicted files:',
+            list || '- (run `git status` to list them)',
+            '',
+            'For each file: read the <<<<<<< / ======= / >>>>>>> conflict markers, merge both sides correctly, write the resolved file, then `git add` it. Do NOT push, and do NOT finish the merge or commit until I confirm.',
+          ].join('\n');
+
+          insertIntoComposer(prompt, { replace: true });
+
           return;
         }
 
-        const files = Array.isArray(detail.files) ? detail.files : [];
+        if (detail?.kind === 'fix-security-finding') {
+          const prompt = [
+            'Fix this security finding in the project code:',
+            '',
+            `- Severity: ${detail.severity ?? 'unknown'}`,
+            `- Finding: ${detail.title ?? ''}`,
+            detail.details ? `- Details: ${detail.details}` : '',
+            detail.source ? `- Source: ${detail.source}` : '',
+            '',
+            'Locate the affected code, apply the minimal safe fix, and explain the change. Do NOT commit or push until I confirm.',
+          ]
+            .filter(Boolean)
+            .join('\n');
 
-        const list = files
-          .map((file) => `- ${typeof file === 'string' ? file : (file?.path ?? '')}`.trim())
-          .filter((line) => line !== '-')
-          .join('\n');
-
-        const prompt = [
-          `Resolve the current Git merge conflicts in this workspace${detail.branch ? ` (branch ${detail.branch})` : ''}, preserving BOTH sides' intent — never discard either side's work.`,
-          '',
-          'Conflicted files:',
-          list || '- (run `git status` to list them)',
-          '',
-          'For each file: read the <<<<<<< / ======= / >>>>>>> conflict markers, merge both sides correctly, write the resolved file, then `git add` it. Do NOT push, and do NOT finish the merge or commit until I confirm.',
-        ].join('\n');
-
-        insertIntoComposer(prompt, { replace: true });
+          insertIntoComposer(prompt, { replace: true });
+        }
       };
 
       window.addEventListener('vibecore:agent-task', handler);
@@ -16690,17 +16715,39 @@ function ProjectSecurityPanel({
                       <strong>{vulnerability.title}</strong>
                       <p>{vulnerability.details || vulnerability.recommendation || vulnerability.source}</p>
                     </div>
-                    <form onSubmit={onSubmit}>
-                      <input
-                        name="intent"
-                        value={activeTab === 'hidden' ? 'unhide-vulnerability' : 'hide-vulnerability'}
-                        type="hidden"
-                      />
-                      <input name="vulnerabilityId" value={vulnerability.id} type="hidden" />
-                      <PanelButton disabled={busy} variant="outline">
-                        {activeTab === 'hidden' ? 'Restore' : 'Hide'}
-                      </PanelButton>
-                    </form>
+                    <div className="flex items-center gap-2">
+                      {activeTab !== 'hidden' ? (
+                        <PanelButton
+                          type="button"
+                          onClick={() =>
+                            window.dispatchEvent(
+                              new CustomEvent('vibecore:agent-task', {
+                                detail: {
+                                  kind: 'fix-security-finding',
+                                  title: vulnerability.title,
+                                  details: vulnerability.details || vulnerability.recommendation,
+                                  severity: vulnerability.severity,
+                                  source: vulnerability.source,
+                                },
+                              }),
+                            )
+                          }
+                        >
+                          Fix with Agent
+                        </PanelButton>
+                      ) : null}
+                      <form onSubmit={onSubmit}>
+                        <input
+                          name="intent"
+                          value={activeTab === 'hidden' ? 'unhide-vulnerability' : 'hide-vulnerability'}
+                          type="hidden"
+                        />
+                        <input name="vulnerabilityId" value={vulnerability.id} type="hidden" />
+                        <PanelButton disabled={busy} variant="outline">
+                          {activeTab === 'hidden' ? 'Restore' : 'Ignore'}
+                        </PanelButton>
+                      </form>
+                    </div>
                   </article>
                 ))
               ) : (
