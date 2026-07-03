@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
+import { Form, useActionData, useFetcher, useLoaderData, useNavigate, useNavigation } from 'react-router';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
@@ -87,7 +88,63 @@ export default function ProjectSettingsPage() {
           </Button>
         </div>
       </Form>
+
+      <DangerZone projectId={project.id} projectName={project.name} />
     </ProjectShell>
+  );
+}
+
+/*
+ * Danger zone — permanently delete the project. Guarded by typing the exact
+ * project name (Replit/GitHub pattern); posts the real `delete-permanent` intent
+ * to the existing project-action route, then returns to the dashboard.
+ */
+function DangerZone({ projectId, projectName }: { projectId: string; projectName: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; error?: string }>();
+  const navigate = useNavigate();
+  const [confirmName, setConfirmName] = useState('');
+  const busy = fetcher.state !== 'idle';
+  const canDelete = confirmName === projectName && !busy;
+
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data?.ok) {
+      navigate('/projects');
+    }
+  }, [fetcher.state, fetcher.data, navigate]);
+
+  return (
+    <section className="mt-6 grid gap-3 rounded-lg border border-bolt-elements-icon-error/40 bg-bolt-elements-background-depth-2 p-6">
+      <div>
+        <h2 className="text-sm font-semibold text-bolt-elements-icon-error">Danger zone</h2>
+        <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+          Permanently delete this project and all of its data. This cannot be undone. Type{' '}
+          <strong className="font-mono text-bolt-elements-textPrimary">{projectName}</strong> to confirm.
+        </p>
+      </div>
+      <input
+        value={confirmName}
+        onChange={(event) => setConfirmName(event.target.value)}
+        placeholder={projectName}
+        aria-label="Type the project name to confirm deletion"
+        className="h-10 max-w-sm rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-icon-error"
+      />
+      {fetcher.data?.error ? <p className="text-sm text-bolt-elements-icon-error">{fetcher.data.error}</p> : null}
+      <div>
+        <button
+          type="button"
+          disabled={!canDelete}
+          onClick={() =>
+            fetcher.submit(
+              { intent: 'delete-permanent' },
+              { method: 'post', action: `/api/projects/${projectId}/project-action` },
+            )
+          }
+          className="rounded-md border border-bolt-elements-icon-error bg-bolt-elements-icon-error/10 px-3 py-2 text-sm font-medium text-bolt-elements-icon-error hover:bg-bolt-elements-icon-error/20 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {busy ? 'Deleting…' : 'Delete this project'}
+        </button>
+      </div>
+    </section>
   );
 }
 
