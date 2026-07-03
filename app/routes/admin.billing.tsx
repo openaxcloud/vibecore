@@ -72,6 +72,8 @@ async function adminMutationError(error: unknown): Promise<string> {
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
+  await requirePlatformAdmin(request);
+
   const body = formObject(await request.formData()) as {
     intent?: string;
     orgId?: string;
