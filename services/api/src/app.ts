@@ -320,14 +320,27 @@ const loginSchema = z.object({
   mfaCode: z.string().min(6).max(32).optional(),
 });
 
-const contactSalesSchema = z.object({
-  email: z.string().email().max(320),
-  name: z.string().trim().max(200).optional(),
-  company: z.string().trim().min(1).max(200),
-  teamSize: z.string().trim().max(32).optional(),
-  requirements: z.string().trim().min(1).max(5000),
-  pagePath: z.string().trim().max(300).optional(),
-});
+/*
+ * Shared intake schema for the public /contact-sales endpoint, which serves
+ * BOTH marketing forms: sales leads (/contact-sales) send `company`, general
+ * contact messages (/contact) send a routing `topic` instead. At least one of
+ * the two must be present so every stored lead is attributable to a team.
+ */
+const contactSalesSchema = z
+  .object({
+    email: z.string().email().max(320),
+    name: z.string().trim().max(200).optional(),
+    company: z.string().trim().min(1).max(200).optional(),
+    teamSize: z.string().trim().max(32).optional(),
+    requirements: z.string().trim().min(1).max(5000),
+    pagePath: z.string().trim().max(300).optional(),
+    /** General-contact routing topic ("General", "Support", "Press", ...). */
+    topic: z.string().trim().min(1).max(100).optional(),
+  })
+  .refine((body) => Boolean(body.company || body.topic), {
+    message: 'Provide a company (sales) or a topic (general contact).',
+    path: ['company'],
+  });
 
 const newsletterSubscribeSchema = z.object({
   email: z.string().email().max(320),
@@ -7400,6 +7413,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const body = parse(contactSalesSchema, request.body);
 
       /*
+       * General-contact submissions (no company) reuse the same ContactRequest
+       * table: the required `company` column carries the routing topic label
+       * instead, so both intakes share one lead store without a migration and
+       * the team can still filter general messages by the "General contact"
+       * prefix.
+       */
+      const isGeneralContact = !body.company;
+      const company = body.company ?? `General contact — ${body.topic}`;
+
+      /*
        * Persist the lead FIRST: the stored row is the source of truth (the
        * email below is best-effort) and its id doubles as the reference
        * number quoted back to the prospect, so it must exist before we answer.
@@ -7407,7 +7430,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const record = await store.createContactRequest({
         email: body.email,
         name: body.name,
-        company: body.company,
+        company,
         teamSize: body.teamSize,
         message: body.requirements,
         pagePath: body.pagePath,
@@ -7423,14 +7446,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       try {
         await emailProvider.send({
-          to: process.env.SALES_EMAIL_TO ?? process.env.EMAIL_FROM ?? 'sales@vibecore.local',
-          subject: `E-Code sales request - ${body.company} [${reference}]`,
+          // General messages go to the contact inbox when one is configured;
+          // sales leads keep going to the sales inbox.
+          to: isGeneralContact
+            ? (process.env.CONTACT_EMAIL_TO ??
+              process.env.SALES_EMAIL_TO ??
+              process.env.EMAIL_FROM ??
+              'sales@vibecore.local')
+            : (process.env.SALES_EMAIL_TO ?? process.env.EMAIL_FROM ?? 'sales@vibecore.local'),
+          subject: isGeneralContact
+            ? `E-Code contact request - ${body.topic} [${reference}]`
+            : `E-Code sales request - ${body.company} [${reference}]`,
           text: [
             `Reference: ${reference} (record ${record.id})`,
             `Email: ${body.email}`,
             body.name ? `Name: ${body.name}` : undefined,
-            `Company: ${body.company}`,
-            `Team size: ${body.teamSize ?? 'not provided'}`,
+            body.company ? `Company: ${body.company}` : undefined,
+            body.topic ? `Topic: ${body.topic}` : undefined,
+            // "not provided" is only meaningful on a sales lead; the general
+            // form never asks for a team size, so the line is omitted there.
+            isGeneralContact ? undefined : `Team size: ${body.teamSize ?? 'not provided'}`,
             body.pagePath ? `Page: ${body.pagePath}` : undefined,
             '',
             body.requirements,
@@ -7439,7 +7474,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             .join('\n'),
         });
       } catch (error) {
-        request.log.error({ err: error, company: body.company }, 'failed to send contact-sales email');
+        request.log.error(
+          { err: error, company: body.company, topic: body.topic },
+          'failed to send contact-sales email',
+        );
       }
 
       return reply.code(202).send({ ok: true, reference });

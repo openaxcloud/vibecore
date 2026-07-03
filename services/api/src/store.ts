@@ -1029,7 +1029,8 @@ export interface ApiStore {
   subscribeNewsletter(input: { email: string; source?: string }): Promise<{ alreadySubscribed: boolean }>;
 
   /**
-   * Persist a sales-contact lead from the public /contact-sales form. The
+   * Persist a contact lead from the public /contact-sales or /contact forms
+   * (general-contact messages carry their routing topic in `company`). The
    * returned record's id doubles as the reference number quoted back to the
    * prospect (first 8 chars, uppercased).
    */

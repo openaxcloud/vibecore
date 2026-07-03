@@ -753,6 +753,46 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('accepts general contact messages (topic instead of company) through the same intake', async () => {
+    const emailProvider = new TestEmailProvider();
+    const app = await buildTestApiApp({ store: new TestApiStore(), emailProvider });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/contact-sales',
+      payload: {
+        email: 'visitor@example.com',
+        name: 'Ada Lovelace',
+        topic: 'Support',
+        requirements: 'My workspace will not start.',
+        pagePath: '/contact',
+      },
+    });
+
+    expect(response.statusCode).toBe(202);
+    expect(response.json().reference).toBeTruthy();
+    expect(emailProvider.messages).toHaveLength(1);
+    expect(emailProvider.messages[0].subject).toContain('E-Code contact request - Support');
+    expect(emailProvider.messages[0].text).toContain('Topic: Support');
+
+    // The general form never asks for a team size, so the line is omitted.
+    expect(emailProvider.messages[0].text).not.toContain('Team size:');
+    await app.close();
+  });
+
+  it('rejects a contact intake payload carrying neither company nor topic', async () => {
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/contact-sales',
+      payload: { email: 'visitor@example.com', requirements: 'hello' },
+    });
+
+    expect(response.statusCode).toBe(400);
+    await app.close();
+  });
+
   it('enforces organization isolation on project resources', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
