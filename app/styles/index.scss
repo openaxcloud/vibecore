@@ -24842,3 +24842,12 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
     scroll-behavior: auto !important;
   }
 }
+
+// Reusable scrollbar-less horizontal scroller (mobile chip rows etc.).
+.vc-no-scrollbar {
+  scrollbar-width: none;
+}
+
+.vc-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

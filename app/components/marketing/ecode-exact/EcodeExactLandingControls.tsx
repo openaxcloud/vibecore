@@ -186,7 +186,8 @@ function getProviderColor(provider: string) {
 }
 
 interface AiModelSelectorProps {
-  variant?: 'inline' | 'card' | 'hero';
+  /** 'compactLine' is the one-line "✦ Model: Auto ▾" control inside the mobile prompt card. */
+  variant?: 'inline' | 'card' | 'hero' | 'compactLine';
   className?: string;
   onModelChange?: (modelId: string) => void;
 }
@@ -323,6 +324,34 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
 
     return () => controller.abort();
   }, [variant]);
+
+  if (variant === 'compactLine') {
+    /*
+     * One-line "✦ Model: Auto ▾" for the mobile prompt card. Same state and
+     * persistence handlers as the other variants — an empty selection reads as
+     * "Auto" instead of a skeleton so the line never jumps.
+     */
+    return (
+      <label className={cn('flex items-center gap-1.5 text-[13px] text-[var(--ecode-text-secondary)]', className)}>
+        <Sparkles className="h-3.5 w-3.5 shrink-0 text-ecode-accent" aria-hidden />
+        <span className="shrink-0 font-medium">Model:</span>
+        <select
+          value={selectedModel}
+          onChange={(event) => handleModelChange(event.target.value)}
+          aria-label="AI model"
+          className="min-w-0 flex-1 bg-transparent text-[16px] text-[var(--ecode-text)] outline-none"
+          data-testid="select-ai-model-compact"
+        >
+          <option value="">Auto</option>
+          {models.map((model) => (
+            <option key={model.id} value={model.id}>
+              {model.name}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
 
   if (variant !== 'card' && !currentModel) {
     return <Skeleton className="h-10 sm:h-12 w-full" />;

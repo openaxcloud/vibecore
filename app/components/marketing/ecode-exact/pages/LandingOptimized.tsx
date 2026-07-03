@@ -324,17 +324,12 @@ export default function LandingOptimized() {
                       Build Now
                     </Button>
                   </div>
+                  {/* <sm: the standalone model card collapses into this compact line. */}
+                  <div className="sm:hidden mt-1 border-t border-[var(--ecode-border)] px-4 py-2 text-left">
+                    <AIModelSelector variant="compactLine" className="w-full" />
+                  </div>
                 </div>
               </div>
-
-              <details className="sm:hidden mt-3 rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-3 py-2 text-left">
-                <summary className="cursor-pointer list-none text-[13px] font-medium text-[var(--ecode-text-secondary)]">
-                  AI model
-                </summary>
-                <div className="mt-2">
-                  <AIModelSelector variant="inline" className="w-full" />
-                </div>
-              </details>
 
               {/* Mobile-only: surface the secondary CTAs right under the prompt (hidden at sm+, where the original row below renders). */}
               <div className="sm:hidden mt-4 flex flex-col gap-3">
@@ -362,22 +357,29 @@ export default function LandingOptimized() {
 
               <div className="mt-8 space-y-4 animate-fade-in" style={{ animationDelay: '500ms' }}>
                 <p className="text-[13px] text-[var(--ecode-text-muted)] text-center">Try these popular examples:</p>
-                <div className="flex flex-nowrap justify-start gap-3 overflow-x-auto pb-1 sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0">
-                  {examples.map((example, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setAppDescription(example.text)}
-                      className="group flex shrink-0 items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-[var(--ecode-surface)] border border-[var(--ecode-border)] hover:border-ecode-accent/50 transition-all duration-300 hover:scale-105 min-h-[44px]"
-                      data-testid={`button-example-${example.id}`}
-                    >
-                      <div className={`bg-gradient-to-r ${example.color} text-white p-1.5 rounded-md`}>
-                        {example.icon}
-                      </div>
-                      <span className="whitespace-nowrap text-[11px] sm:text-[13px] font-medium text-[var(--ecode-text)]">
-                        {example.label}
-                      </span>
-                    </button>
-                  ))}
+                <div className="relative sm:static">
+                  <div className="vc-no-scrollbar flex flex-nowrap justify-start gap-3 overflow-x-auto pb-1 sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0">
+                    {examples.map((example, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setAppDescription(example.text)}
+                        className="group flex shrink-0 items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-[var(--ecode-surface)] border border-[var(--ecode-border)] hover:border-ecode-accent/50 transition-all duration-300 hover:scale-105 min-h-[44px]"
+                        data-testid={`button-example-${example.id}`}
+                      >
+                        <div className={`bg-gradient-to-r ${example.color} text-white p-1.5 rounded-md`}>
+                          {example.icon}
+                        </div>
+                        <span className="whitespace-nowrap text-[11px] sm:text-[13px] font-medium text-[var(--ecode-text)]">
+                          {example.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  {/* Right-edge fade hinting at more chips off-screen (mobile only). */}
+                  <span
+                    className="pointer-events-none absolute inset-y-0 right-0 w-4 bg-gradient-to-l from-[var(--ecode-background)] to-transparent sm:hidden"
+                    aria-hidden
+                  />
                 </div>
               </div>
 
