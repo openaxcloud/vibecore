@@ -67,7 +67,7 @@ export const IconButton = memo(
             className,
           )}
           title={title}
-          aria-label={title}
+          aria-label={title ?? tooltip}
           aria-expanded={ariaExpanded}
           aria-haspopup={ariaHasPopup}
           data-vc-tooltip={tooltip ?? title}

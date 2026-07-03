@@ -1913,6 +1913,10 @@ export const Preview = memo(
             ? 'min(520px, 100%)'
             : '100%';
 
+    const inspectToCodeHint = selectedPreviewElement
+      ? 'Open the source file that most likely renders the selected element'
+      : 'Enable inspect to code, then click an element in the preview';
+
     return (
       <div ref={containerRef} className="bolt-project-webview-tool w-full h-full flex flex-col relative">
         {isPortDropdownOpen && (
@@ -1947,6 +1951,7 @@ export const Preview = memo(
             <input
               title="Preview URL"
               aria-label="Preview URL"
+              data-vc-tooltip="Preview URL"
               ref={inputRef}
               className="w-full bg-transparent outline-none"
               type="text"
@@ -1968,6 +1973,7 @@ export const Preview = memo(
               onClick={() => void copyPreviewUrl()}
               title="Copy preview URL"
               aria-label="Copy preview URL"
+              data-vc-tooltip="Copy preview URL"
             >
               <span className="i-ph:copy" aria-hidden />
               <span>Copy</span>
@@ -2026,6 +2032,8 @@ export const Preview = memo(
                 setActiveDevToolsTab('console');
               }}
               title="Open integrated preview DevTools"
+              aria-label="Open integrated preview DevTools"
+              data-vc-tooltip="Open integrated preview DevTools"
             >
               <span className="i-ph:wrench" aria-hidden />
               <span>DevTools</span>
@@ -2035,11 +2043,9 @@ export const Preview = memo(
               className="bolt-preview-toolbar-button"
               disabled={!selectedPreviewElement}
               onClick={openSelectedElementSource}
-              title={
-                selectedPreviewElement
-                  ? 'Open the source file that most likely renders the selected element'
-                  : 'Enable inspect to code, then click an element in the preview'
-              }
+              title={inspectToCodeHint}
+              aria-label={inspectToCodeHint}
+              data-vc-tooltip={inspectToCodeHint}
             >
               <span className="i-ph:code" aria-hidden />
               <span>Inspect to code</span>
@@ -2055,6 +2061,8 @@ export const Preview = memo(
               onClick={openInNewTab}
               disabled={!activePreview}
               title="Open in browser"
+              aria-label="Open in browser"
+              data-vc-tooltip="Open in browser"
             >
               <span className="i-ph:arrow-square-out" aria-hidden />
               <span>Open</span>
