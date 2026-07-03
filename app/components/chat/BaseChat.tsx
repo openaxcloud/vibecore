@@ -13372,6 +13372,9 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
   // Replit App Storage parity: a per-bucket Objects | Settings view switch.
   const [view, setView] = useState<'objects' | 'settings'>('objects');
   const [filter, setFilter] = useState('');
+
+  // F8: highlight the Objects view while files are dragged over it for drop-to-upload.
+  const [dragActive, setDragActive] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -13611,7 +13614,50 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
   }
 
   return (
-    <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
+    <div
+      className="bolt-project-managed-panel bolt-project-object-storage-panel relative"
+      onDragOver={(event) => {
+        if (view !== 'objects' || working) {
+          return;
+        }
+
+        // Only intercept file drags (ignore text/element drags from within the IDE).
+        if (!Array.from(event.dataTransfer.types || []).includes('Files')) {
+          return;
+        }
+
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+        setDragActive(true);
+      }}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setDragActive(false);
+        }
+      }}
+      onDrop={(event) => {
+        if (view !== 'objects' || working) {
+          return;
+        }
+
+        if (!event.dataTransfer.files?.length) {
+          return;
+        }
+
+        event.preventDefault();
+        setDragActive(false);
+        void handleUpload(event.dataTransfer.files);
+      }}
+    >
+      {dragActive && view === 'objects' ? (
+        <div
+          className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[var(--vc-ide-accent-action)] bg-bolt-elements-background-depth-1/85 text-sm text-bolt-elements-textPrimary"
+          aria-hidden
+        >
+          <span className="i-ph:upload-simple text-2xl text-[var(--vc-ide-accent-action)]" />
+          <span>Drop files to upload to {prefix || 'the bucket root'}</span>
+        </div>
+      ) : null}
       <section className="grid gap-3">
         {/* Bucket header + Objects | Settings switch (Replit App Storage parity). */}
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -13739,6 +13785,11 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                 onChange={(event) => void handleUpload(event.currentTarget.files)}
               />
             </div>
+
+            <p className="flex items-center gap-1 text-xs text-bolt-elements-textTertiary">
+              <span className="i-ph:upload-simple" aria-hidden />
+              Tip: drag &amp; drop files anywhere in this panel to upload them to the current folder.
+            </p>
 
             {prefix ? (
               <div className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
