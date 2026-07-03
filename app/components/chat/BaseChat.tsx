@@ -4875,6 +4875,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         if (action === 'file.save') {
           onProjectEditorSave();
+        } else if (action === 'file.saveAll') {
+          void workbenchStore.saveAllFiles();
         } else if (action === 'file.quickOpen') {
           openCommandPalette('files');
         } else if (action === 'command.palette') {

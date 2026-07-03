@@ -159,6 +159,19 @@ export const EditorPanel = memo(
                 Locks
               </Tabs.Trigger>
             </Tabs.List>
+            {unsavedFiles instanceof Set && unsavedFiles.size > 0 && (
+              <button
+                type="button"
+                onClick={() => void workbenchStore.saveAllFiles()}
+                title="Save all files (⌘⇧S)"
+                aria-label={`${unsavedFiles.size} unsaved ${unsavedFiles.size === 1 ? 'file' : 'files'}. Save all.`}
+                className="flex items-center shrink-0 gap-1 px-1.5 py-0.5 mr-1 rounded-md text-xs font-medium cursor-pointer text-[var(--vc-ide-accent-action)] hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+                style={{ background: 'color-mix(in srgb, var(--vc-ide-accent-action) 12%, transparent)' }}
+              >
+                <div className="i-ph:floppy-disk" aria-hidden="true" />
+                {unsavedFiles.size} unsaved
+              </button>
+            )}
           </div>
         </PanelHeader>
 

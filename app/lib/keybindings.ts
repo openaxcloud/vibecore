@@ -34,6 +34,14 @@ export const defaultProjectKeybindings: Keybinding[] = [
     preventDefault: true,
   },
   {
+    combo: 'cmd+shift+s',
+    action: 'file.saveAll',
+    label: 'Save all files',
+    description: 'Save every file with unsaved changes.',
+    category: 'File',
+    preventDefault: true,
+  },
+  {
     combo: 'cmd+p',
     action: 'file.quickOpen',
     label: 'Quick open file',

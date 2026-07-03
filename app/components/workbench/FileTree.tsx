@@ -10,6 +10,7 @@ import { resolveEmptyExplorerState } from './file-tree-empty-state';
 import { buildOverwritePrompt, findUploadCollisions } from './file-tree-upload-collision';
 import { toRuntimeRelativePath } from './search-replace';
 import { GitStatusBadge } from '~/components/git/GitStatusBadge';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import {
   isFileLocked as readFileLockedFromStorage,
   isFolderLocked as readFolderLockedFromStorage,
@@ -698,6 +699,7 @@ function FileContextMenu({
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const depth = useMemo(() => fullPath.split('/').length, [fullPath]);
   const fileName = useMemo(() => path.basename(fullPath), [fullPath]);
@@ -840,24 +842,30 @@ function FileContextMenu({
     setIsCreatingFolder(false);
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
+    /*
+     * Respect file/folder locks, same as the editor / AI writes / Search.
+     * Without this a right-click → Delete permanently wipes a file the user
+     * explicitly locked to protect — defeating the lock feature.
+     */
+    const deleteLock = isFolder ? workbenchStore.isFolderLocked(fullPath) : workbenchStore.isFileLocked(fullPath);
+
+    if ('locked' in deleteLock ? deleteLock.locked : deleteLock.isLocked) {
+      toast.error(`This ${isFolder ? 'folder' : 'file'} is locked and cannot be deleted. Unlock it first.`);
+      return;
+    }
+
+    /*
+     * Defer past the Radix context-menu close: the menu restores focus to its
+     * trigger on unmount, which would otherwise race the dialog's focus trap.
+     */
+    setTimeout(() => setIsConfirmingDelete(true), 0);
+  };
+
+  const handleConfirmedDelete = async () => {
+    setIsConfirmingDelete(false);
+
     try {
-      /*
-       * Respect file/folder locks, same as the editor / AI writes / Search.
-       * Without this a right-click → Delete permanently wipes a file the user
-       * explicitly locked to protect — defeating the lock feature.
-       */
-      const deleteLock = isFolder ? workbenchStore.isFolderLocked(fullPath) : workbenchStore.isFileLocked(fullPath);
-
-      if ('locked' in deleteLock ? deleteLock.locked : deleteLock.isLocked) {
-        toast.error(`This ${isFolder ? 'folder' : 'file'} is locked and cannot be deleted. Unlock it first.`);
-        return;
-      }
-
-      if (!confirm(`Are you sure you want to delete ${isFolder ? 'folder' : 'file'}: ${fileName}?`)) {
-        return;
-      }
-
       let success;
 
       if (isFolder) {
@@ -1237,6 +1245,15 @@ function FileContextMenu({
           onCancel={() => setIsRenaming(false)}
         />
       )}
+      <ConfirmationDialog
+        isOpen={isConfirmingDelete}
+        onClose={() => setIsConfirmingDelete(false)}
+        onConfirm={handleConfirmedDelete}
+        title={`Delete ${isFolder ? 'Folder' : 'File'}`}
+        description={`Are you sure you want to delete ${isFolder ? 'folder' : 'file'} "${fileName}"? This cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+      />
     </>
   );
 }
