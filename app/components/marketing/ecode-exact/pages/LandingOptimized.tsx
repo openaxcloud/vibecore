@@ -38,6 +38,7 @@ import {
   useWouterLocation,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { DeferredSections } from '~/components/marketing/ecode-exact/landing/DeferredSections';
+import { scrollToElement, scrollWindowBy } from '~/lib/scroll-to';
 
 /*
  * Number of reveal-and-retry attempts the "Watch Demo" CTA makes while the lazy
@@ -175,7 +176,9 @@ export default function LandingOptimized() {
       const action = resolveDemoScrollTarget(Boolean(anchor), attemptsRemaining);
 
       if (action.kind === 'scroll-to-anchor') {
-        anchor?.scrollIntoView({ behavior: 'smooth' });
+        if (anchor) {
+          scrollToElement(anchor);
+        }
 
         return;
       }
@@ -184,7 +187,7 @@ export default function LandingOptimized() {
         return;
       }
 
-      window.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
+      scrollWindowBy(window.innerHeight);
       window.setTimeout(() => attempt(attemptsRemaining - 1), DEMO_SCROLL_RETRY_MS);
     };
 

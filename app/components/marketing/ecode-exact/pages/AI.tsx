@@ -39,6 +39,7 @@ import {
   Link,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { playVideoAndSyncState, resolveSeekTime } from '~/components/marketing/ecode-exact/pages/ai-demo-seek';
+import { scrollToElement } from '~/lib/scroll-to';
 
 type FeatureKey = 'autonomous' | 'multilingual' | 'intelligent' | 'realtime';
 
@@ -79,9 +80,7 @@ export default function AI() {
       return;
     }
 
-    if (video.scrollIntoView) {
-      video.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    scrollToElement(video, { block: 'center' });
 
     const seekAndPlay = () => {
       // Clamp against the real, loaded duration so cues never overshoot the clip.

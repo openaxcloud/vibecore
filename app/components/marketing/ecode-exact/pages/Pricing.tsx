@@ -42,6 +42,7 @@ import {
   COMPARISON_COLUMNS,
   type ComparisonCategory,
 } from '~/components/marketing/ecode-exact/pages/pricing-comparison';
+import { scrollToElement } from '~/lib/scroll-to';
 
 const cloudComputingImg =
   'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop';
@@ -638,10 +639,9 @@ export default function Pricing() {
                                * Respect reduced motion, then move real focus to the
                                * section heading so keyboard/AT users land where they scrolled.
                                */
-                              const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-                              comparisonSection.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
-                              comparisonSection.querySelector('h2')?.focus({ preventScroll: true });
+                              scrollToElement(comparisonSection, {
+                                focus: comparisonSection.querySelector('h2'),
+                              });
                             }
                           }}
                           data-testid={`button-more-features-${tier.name.toLowerCase()}`}
