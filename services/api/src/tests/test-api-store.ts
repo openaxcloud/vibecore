@@ -1564,7 +1564,7 @@ export class TestApiStore implements ApiStore {
     return [...this.deployments.values()].filter((deployment) => deployment.projectId === projectId);
   }
 
-  async createSupportTicket(input: { organizationId: string; userId: string; subject: string }) {
+  async createSupportTicket(input: { organizationId: string; userId: string; subject: string; category?: string }) {
     const ticket: SupportTicketRecord = { id: id('ticket'), ...input, status: 'OPEN', createdAt: now() };
     this.supportTickets.set(ticket.id, ticket);
 

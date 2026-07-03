@@ -933,7 +933,16 @@ const pullRequestSchema = z.object({
 });
 
 const deploymentActionParams = projectParams.extend({ deploymentId: z.string().min(1) });
-const createTicketSchema = z.object({ subject: z.string().min(1) });
+/*
+ * Support ticket categories surfaced in the /support form. Kept as a plain
+ * string on the record (persisted in SupportTicket.metadata — no migration)
+ * so adding a category is a one-line change here + in the form options.
+ */
+const SUPPORT_TICKET_CATEGORIES = ['runtime', 'billing', 'security', 'account', 'other'] as const;
+const createTicketSchema = z.object({
+  subject: z.string().min(1),
+  category: z.enum(SUPPORT_TICKET_CATEGORIES).default('other'),
+});
 const featureFlagSchema = z.object({ key: z.string().min(1), enabled: z.boolean() });
 
 const addMemberSchema = z.object({
@@ -24808,6 +24817,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       organizationId: orgId,
       userId: request.currentUser!.id,
       subject: body.subject,
+      category: body.category,
     });
     await audit(request, store, {
       organizationId: orgId,

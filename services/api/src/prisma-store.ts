@@ -2080,15 +2080,24 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapDeployment);
   }
 
-  async createSupportTicket(input: { organizationId: string; userId: string; subject: string }) {
+  async createSupportTicket(input: { organizationId: string; userId: string; subject: string; category?: string }) {
     const ticket = await this.prisma.supportTicket.create({
-      data: { organizationId: input.organizationId, userId: input.userId, subject: input.subject },
+      data: {
+        organizationId: input.organizationId,
+        userId: input.userId,
+        subject: input.subject,
+
+        // Category rides in the existing metadata JSON column (no migration).
+        metadata: input.category ? { category: input.category } : undefined,
+      },
     });
     return mapSupportTicket(ticket);
   }
 
   async listSupportTickets(organizationId: string) {
-    return (await this.prisma.supportTicket.findMany({ where: { organizationId } })).map(mapSupportTicket);
+    return (
+      await this.prisma.supportTicket.findMany({ where: { organizationId }, orderBy: { createdAt: 'desc' } })
+    ).map(mapSupportTicket);
   }
 
   async setFeatureFlag(input: { organizationId?: string; key: string; enabled: boolean; rolloutPercent?: number }) {
@@ -4777,6 +4786,7 @@ function mapSupportTicket(ticket: any): SupportTicketRecord {
     userId: ticket.userId,
     subject: ticket.subject,
     status: ticket.status,
+    category: typeof ticket.metadata?.category === 'string' ? ticket.metadata.category : undefined,
     createdAt: toIso(ticket.createdAt)!,
   };
 }

@@ -285,6 +285,9 @@ export interface SupportTicketRecord {
   userId: string;
   subject: string;
   status: 'OPEN' | 'PENDING' | 'RESOLVED' | 'CLOSED';
+
+  /** Free-form category key (persisted in the metadata JSON column). */
+  category?: string;
   createdAt: string;
 }
 
@@ -1298,7 +1301,12 @@ export interface ApiStore {
     input: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>,
   ): Promise<DeploymentRecord>;
   listDeployments(projectId: string, options?: { take?: number }): Promise<DeploymentRecord[]>;
-  createSupportTicket(input: { organizationId: string; userId: string; subject: string }): Promise<SupportTicketRecord>;
+  createSupportTicket(input: {
+    organizationId: string;
+    userId: string;
+    subject: string;
+    category?: string;
+  }): Promise<SupportTicketRecord>;
   listSupportTickets(organizationId: string): Promise<SupportTicketRecord[]>;
   setFeatureFlag(input: {
     organizationId?: string;

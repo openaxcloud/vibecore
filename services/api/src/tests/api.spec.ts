@@ -808,6 +808,18 @@ describe('SaaS API', () => {
     });
     expect(canCreateSupportTicket.statusCode).toBe(201);
 
+    // Missing category defaults to 'other'; an explicit one round-trips.
+    expect(canCreateSupportTicket.json().ticket.category).toBe('other');
+
+    const categorizedTicket = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/support/tickets`,
+      headers: { authorization: `Bearer ${member.token}` },
+      payload: { subject: 'Billing question', category: 'billing' },
+    });
+    expect(categorizedTicket.statusCode).toBe(201);
+    expect(categorizedTicket.json().ticket.category).toBe('billing');
+
     const canListSupportTickets = await app.inject({
       method: 'GET',
       url: `/support/${owner.organization.id}/tickets`,
