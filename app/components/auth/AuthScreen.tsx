@@ -1,5 +1,5 @@
 import { ChevronLeft, Sparkles } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { EcodeBrandMark } from '~/components/brand/EcodeBrandMark';
@@ -248,16 +248,105 @@ interface AuthSubmitProps {
   label: string;
   loadingLabel?: string;
   isSubmitting?: boolean;
+
+  /*
+   * Extra disable condition beyond the form's own submission — e.g. an
+   * OAuth redirect in flight, during which no auth CTA should be clickable.
+   */
+  disabled?: boolean;
 }
 
-export function AuthSubmit({ label, loadingLabel, isSubmitting }: AuthSubmitProps) {
+export function AuthSubmit({ label, loadingLabel, isSubmitting, disabled }: AuthSubmitProps) {
   return (
     <button
       type="submit"
-      disabled={isSubmitting}
+      disabled={isSubmitting || disabled}
       className="vc-auth-submit inline-flex h-12 w-full items-center justify-center gap-2 rounded-md px-4 text-[14px] font-bold transition disabled:cursor-not-allowed disabled:opacity-60 sm:h-11 sm:text-[13px]"
     >
       {isSubmitting ? (loadingLabel ?? `${label}...`) : label}
     </button>
+  );
+}
+
+/*
+ * Shared pending-state for the social sign-in buttons on the login and
+ * register pages. Clicking an OAuth button marks its provider as pending
+ * (spinner + every auth CTA disabled) while the browser navigates to
+ * `/auth/oauth/<provider>`. If the redirect never completes — popup/redirect
+ * blocked, or the user navigated back via bfcache — a ~10s safety timeout
+ * re-enables the buttons so the page is never stuck disabled.
+ */
+export function useAuthOauthPending() {
+  const [pendingProvider, setPendingProvider] = useState<string | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const startOAuth = useCallback((provider: string) => {
+    setPendingProvider(provider);
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
+      timeoutRef.current = null;
+      setPendingProvider(null);
+    }, 10_000);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  return { pendingProvider, startOAuth };
+}
+
+interface AuthOauthButtonProps {
+  /* Provider slug — must match the `/auth/oauth/<provider>` route param. */
+  provider: string;
+  label: string;
+  icon: ReactNode;
+  pendingProvider: string | null;
+  onStart: (provider: string) => void;
+
+  /* Extra disable condition, e.g. the email/password form is submitting. */
+  disabled?: boolean;
+}
+
+/*
+ * Social sign-in button used by both the login and register pages. It is a
+ * real link (the OAuth flow is a full-page navigation to the provider), so
+ * "disabled" is expressed with aria-disabled + preventDefault rather than a
+ * `disabled` attribute.
+ */
+export function AuthOauthButton({ provider, label, icon, pendingProvider, onStart, disabled }: AuthOauthButtonProps) {
+  const isPending = pendingProvider === provider;
+  const isDisabled = disabled || (pendingProvider !== null && !isPending);
+
+  return (
+    <Link
+      to={`/auth/oauth/${provider}`}
+      aria-disabled={isDisabled || isPending || undefined}
+      aria-busy={isPending || undefined}
+      onClick={(event) => {
+        if (isDisabled || isPending) {
+          event.preventDefault();
+          return;
+        }
+
+        // Set pending state, then let the default navigation proceed.
+        onStart(provider);
+      }}
+      className={`vc-auth-secondary-action inline-flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-[13px] font-semibold transition-colors ${
+        isDisabled || isPending ? 'cursor-not-allowed opacity-60' : ''
+      }`}
+    >
+      {isPending ? <span className="i-svg-spinners:90-ring-with-bg h-4 w-4" aria-hidden="true" /> : icon}
+      {label}
+    </Link>
   );
 }

@@ -2,7 +2,7 @@ import { CheckCircle, Chrome, Code2, Eye, EyeOff, Github, KeyRound, Lock, Mail, 
 import { useEffect, useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router';
-import { AuthField, AuthScreen, AuthSubmit } from '~/components/auth/AuthScreen';
+import { AuthField, AuthOauthButton, AuthScreen, AuthSubmit, useAuthOauthPending } from '~/components/auth/AuthScreen';
 import {
   apiRequest,
   apiBaseUrl,
@@ -197,6 +197,7 @@ export default function LoginPage() {
 
   const navigation = useNavigation();
   const isSubmitting = navigation.state === 'submitting';
+  const { pendingProvider, startOAuth } = useAuthOauthPending();
   const [showPassword, setShowPassword] = useState(false);
   const mfaRequired = Boolean(loginActionData?.mfaRequired);
   const error = loginActionData?.error ?? oauthErrorMessage ?? undefined;
@@ -368,28 +369,35 @@ export default function LoginPage() {
           </label>
         </div>
 
-        <AuthSubmit label="Sign in" loadingLabel="Signing in..." isSubmitting={isSubmitting} />
+        <AuthSubmit
+          label="Sign in"
+          loadingLabel="Signing in..."
+          isSubmitting={isSubmitting}
+          disabled={pendingProvider !== null}
+        />
       </Form>
 
       {providerReady('github') || providerReady('google') ? (
         <div className="vc-auth-secondary-actions mt-5 grid gap-3 border-t pt-5 sm:grid-cols-2">
           {providerReady('github') ? (
-            <Link
-              to="/auth/oauth/github"
-              className="vc-auth-secondary-action inline-flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-[13px] font-semibold transition-colors"
-            >
-              <Github className="h-4 w-4" />
-              GitHub
-            </Link>
+            <AuthOauthButton
+              provider="github"
+              label="GitHub"
+              icon={<Github className="h-4 w-4" />}
+              pendingProvider={pendingProvider}
+              onStart={startOAuth}
+              disabled={isSubmitting}
+            />
           ) : null}
           {providerReady('google') ? (
-            <Link
-              to="/auth/oauth/google"
-              className="vc-auth-secondary-action inline-flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-[13px] font-semibold transition-colors"
-            >
-              <Chrome className="h-4 w-4" />
-              Google
-            </Link>
+            <AuthOauthButton
+              provider="google"
+              label="Google"
+              icon={<Chrome className="h-4 w-4" />}
+              pendingProvider={pendingProvider}
+              onStart={startOAuth}
+              disabled={isSubmitting}
+            />
           ) : null}
         </div>
       ) : null}

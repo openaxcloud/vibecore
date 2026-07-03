@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { Form, Link, useActionData, useNavigation } from 'react-router';
-import { AuthField, AuthScreen, AuthSubmit } from '~/components/auth/AuthScreen';
+import { AuthField, AuthOauthButton, AuthScreen, AuthSubmit, useAuthOauthPending } from '~/components/auth/AuthScreen';
 import {
   apiRequest,
   formObject,
@@ -166,6 +166,7 @@ export default function SignupPage() {
 
   const navigation = useNavigation();
   const isSubmitting = navigation.state === 'submitting';
+  const { pendingProvider, startOAuth } = useAuthOauthPending();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showOrgField, setShowOrgField] = useState(Boolean(actionData?.fields?.organizationName));
@@ -329,24 +330,31 @@ export default function SignupPage() {
           </button>
         )}
 
-        <AuthSubmit label="Create account" loadingLabel="Creating account..." isSubmitting={isSubmitting} />
+        <AuthSubmit
+          label="Create account"
+          loadingLabel="Creating account..."
+          isSubmitting={isSubmitting}
+          disabled={pendingProvider !== null}
+        />
       </Form>
 
       <div className="vc-auth-secondary-actions mt-5 grid gap-3 border-t pt-5 sm:grid-cols-2">
-        <Link
-          to="/auth/oauth/github"
-          className="vc-auth-secondary-action inline-flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-[13px] font-semibold transition-colors"
-        >
-          <Github className="h-4 w-4" />
-          Sign up with GitHub
-        </Link>
-        <Link
-          to="/auth/oauth/google"
-          className="vc-auth-secondary-action inline-flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-[13px] font-semibold transition-colors"
-        >
-          <Chrome className="h-4 w-4" />
-          Sign up with Google
-        </Link>
+        <AuthOauthButton
+          provider="github"
+          label="Sign up with GitHub"
+          icon={<Github className="h-4 w-4" />}
+          pendingProvider={pendingProvider}
+          onStart={startOAuth}
+          disabled={isSubmitting}
+        />
+        <AuthOauthButton
+          provider="google"
+          label="Sign up with Google"
+          icon={<Chrome className="h-4 w-4" />}
+          pendingProvider={pendingProvider}
+          onStart={startOAuth}
+          disabled={isSubmitting}
+        />
       </div>
     </AuthScreen>
   );
