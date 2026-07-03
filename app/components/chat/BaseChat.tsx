@@ -681,7 +681,14 @@ type ProjectIdeBackendState = {
     ports?: Array<{ port?: number; ready?: boolean; type?: string; url?: string }>;
   } | null;
   ports?: Array<{ port?: number; ready?: boolean; type?: string; url?: string }>;
-  git?: { branch?: string; ahead?: number; behind?: number; changedFiles?: unknown[]; fileStatuses?: unknown[] };
+  git?: {
+    branch?: string;
+    detached?: boolean;
+    ahead?: number;
+    behind?: number;
+    changedFiles?: unknown[];
+    fileStatuses?: unknown[];
+  };
   files?: Array<{ path: string; sizeBytes?: number }>;
   recentActivity?: Array<{ action: string; createdAt?: string }>;
   collaborators?: Array<{ id?: string; userId?: string; roleKey?: string }>;
@@ -2990,6 +2997,68 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [rollbackDatabase, setRollbackDatabase] = useState(false);
     const [rollbackBusy, setRollbackBusy] = useState(false);
     const [projectBackendState, setProjectBackendState] = useState<ProjectIdeBackendState>({});
+
+    /*
+     * Statusbar git sync (E24): the `↑N ↓M` ahead/behind badge is a real
+     * Push/Pull control. `statusbarGitRemoteUrl` tracks whether a remote is
+     * configured (undefined = not known yet, null = none) so the actions can
+     * be disabled with a reason instead of failing.
+     */
+    const [statusbarGitBusy, setStatusbarGitBusy] = useState(false);
+    const [statusbarGitRemoteUrl, setStatusbarGitRemoteUrl] = useState<string | null | undefined>(undefined);
+    const statusbarGitBranch = projectBackendState.git?.branch;
+
+    const runStatusbarGitSync = useCallback(
+      async (intent: 'push' | 'pull') => {
+        if (!projectId || statusbarGitBusy) {
+          return;
+        }
+
+        setStatusbarGitBusy(true);
+
+        try {
+          // Same real endpoint as the Git pane (handles SSH-in-workspace-pod vs API-pod path).
+          const formData = new FormData();
+          formData.set('intent', intent);
+          formData.set('branch', statusbarGitBranch ?? 'main');
+
+          const response = await fetch(`/api/projects/${projectId}/ide-panel/git`, {
+            method: 'POST',
+            body: formData,
+          });
+
+          const result = (await response.json().catch(() => ({}))) as { error?: string };
+
+          if (!response.ok) {
+            throw new Error(result.error ?? `Git ${intent} failed`);
+          }
+
+          toast.success(`Git ${intent} completed`);
+
+          // Refresh the ahead/behind counts right away instead of waiting for the overview stream.
+          const refreshed = await fetch(`/api/projects/${projectId}/ide-panel/overview`, {
+            headers: { accept: 'application/json' },
+          });
+
+          if (refreshed.ok) {
+            const envelope = (await refreshed.json()) as { data?: ProjectIdeBackendState };
+
+            if (envelope.data) {
+              setProjectBackendState((current) => ({
+                ...envelope.data,
+                collaborators: envelope.data?.collaborators ?? current.collaborators ?? [],
+              }));
+            }
+          }
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : `Git ${intent} failed`);
+        } finally {
+          setStatusbarGitBusy(false);
+        }
+      },
+      [projectId, statusbarGitBranch, statusbarGitBusy],
+    );
+
     const setDiagnosticsForSource = useDiagnosticsStore((state) => state.setDiagnosticsForSource);
     const diagnosticErrorCount = useDiagnosticsStore((state) => state.errors);
     const diagnosticWarningCount = useDiagnosticsStore((state) => state.warnings);
@@ -3625,6 +3694,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           const overview = (overviewResponse.ok ? await overviewResponse.json() : {}) as {
             data?: ProjectIdeBackendState;
+            project?: { gitRepositoryUrl?: string | null };
           };
           const collaborators = (collaboratorsResponse.ok ? await collaboratorsResponse.json() : {}) as {
             data?: { collaborators?: ProjectIdeBackendState['collaborators'] };
@@ -3635,6 +3705,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               ...(overview.data ?? {}),
               collaborators: collaborators.data?.collaborators ?? [],
             });
+
+            if (overviewResponse.ok) {
+              setStatusbarGitRemoteUrl(overview.project?.gitRepositoryUrl ?? null);
+            }
           }
         } catch (error) {
           if (!cancelled) {
@@ -3676,10 +3750,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             const envelope = JSON.parse((event as MessageEvent<string>).data) as {
               data?: ProjectIdeBackendState;
               status?: string;
+              project?: { gitRepositoryUrl?: string | null };
             };
 
             if (envelope.status !== 'error') {
               applyOverviewData(envelope.data);
+              setStatusbarGitRemoteUrl(envelope.project?.gitRepositoryUrl ?? null);
             }
           } catch (error) {
             console.error('Failed to parse project IDE overview stream', error);
@@ -8198,15 +8274,79 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <span className="i-ph:git-branch" aria-hidden />
                 <span className="bolt-project-statusbar-label">Git</span>
                 <strong>{projectBackendState.git?.branch ?? 'main'}</strong>
-                <span className="bolt-project-statusbar-muted bolt-project-statusbar-optional">
-                  {projectBackendState.git?.ahead ?? 0}↑ {projectBackendState.git?.behind ?? 0}↓
-                </span>
                 {statusbarChangedFiles > 0 ? (
                   <span className="bolt-project-statusbar-count" aria-label={`${statusbarChangedFiles} changed files`}>
                     {statusbarChangedFiles}
                   </span>
                 ) : null}
               </button>
+              {/*
+               * E24: the ahead/behind badge is its own control (a button cannot nest
+               * inside the Git pill button) opening REAL Push / Pull actions.
+               */}
+              <Popover.Root>
+                <Popover.Trigger asChild>
+                  <button
+                    type="button"
+                    className="bolt-project-statusbar-pill bolt-project-statusbar-optional"
+                    data-testid="statusbar-git-sync-badge"
+                    aria-label={`${projectBackendState.git?.ahead ?? 0} commits to push, ${
+                      projectBackendState.git?.behind ?? 0
+                    } commits to pull. Open push and pull actions.`}
+                    title={`${projectBackendState.git?.ahead ?? 0} to push, ${
+                      projectBackendState.git?.behind ?? 0
+                    } to pull — click for Push / Pull`}
+                  >
+                    <span className="bolt-project-statusbar-muted">
+                      {projectBackendState.git?.ahead ?? 0}↑ {projectBackendState.git?.behind ?? 0}↓
+                    </span>
+                  </button>
+                </Popover.Trigger>
+                <Popover.Portal>
+                  <Popover.Content
+                    side="top"
+                    align="start"
+                    sideOffset={6}
+                    data-testid="statusbar-git-sync-popover"
+                    className="z-[10010] w-[min(240px,calc(100vw-24px))] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 shadow-xl"
+                  >
+                    <div className="grid gap-2">
+                      {(['push', 'pull'] as const).map((intent) => (
+                        <Popover.Close asChild key={intent}>
+                          <button
+                            type="button"
+                            data-testid={`statusbar-git-${intent}`}
+                            disabled={
+                              statusbarGitBusy ||
+                              statusbarGitRemoteUrl === null ||
+                              Boolean(projectBackendState.git?.detached)
+                            }
+                            className="inline-flex h-[32px] w-full items-center justify-center gap-1.5 rounded-[6px] border border-bolt-elements-borderColor text-[13px] font-medium text-bolt-elements-item-contentAccent hover:bg-bolt-elements-background-depth-3 disabled:opacity-60 disabled:text-bolt-elements-textSecondary"
+                            onClick={() => void runStatusbarGitSync(intent)}
+                          >
+                            <span
+                              className={intent === 'push' ? 'i-ph:arrow-up text-sm' : 'i-ph:arrow-down text-sm'}
+                              aria-hidden
+                            />
+                            {intent === 'push'
+                              ? `Push${(projectBackendState.git?.ahead ?? 0) > 0 ? ` ${projectBackendState.git?.ahead}` : ''}`
+                              : `Pull${(projectBackendState.git?.behind ?? 0) > 0 ? ` ${projectBackendState.git?.behind}` : ''}`}
+                          </button>
+                        </Popover.Close>
+                      ))}
+                      {statusbarGitRemoteUrl === null ? (
+                        <p className="px-1 text-xs leading-4 text-bolt-elements-textSecondary">
+                          No remote configured — connect one in the Git panel settings first.
+                        </p>
+                      ) : projectBackendState.git?.detached ? (
+                        <p className="px-1 text-xs leading-4 text-bolt-elements-textSecondary">
+                          Detached HEAD — create a branch in the Git panel before syncing.
+                        </p>
+                      ) : null}
+                    </div>
+                  </Popover.Content>
+                </Popover.Portal>
+              </Popover.Root>
               <button
                 type="button"
                 className="bolt-project-statusbar-pill"

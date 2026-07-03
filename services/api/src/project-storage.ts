@@ -109,6 +109,9 @@ export interface GitProvider {
     workspaceId?: string,
   ): Promise<{
     branch: string;
+
+    /** True when HEAD is detached; `branch` then carries the short commit SHA. */
+    detached?: boolean;
     changedFiles: string[];
     fileStatuses?: Array<{ path: string; status: string }>;
     conflicts?: Array<{ path: string; status: string }>;
@@ -885,7 +888,25 @@ export class GitCliProvider implements GitProvider {
   }
 
   async status(projectId: string, workspaceId?: string) {
-    const branch = await this.git(projectId, ['symbolic-ref', '--short', 'HEAD'], workspaceId).catch(() => 'main');
+    /*
+     * `symbolic-ref` fails both when HEAD is detached and when the repo is
+     * broken. Distinguish the two so the IDE can render a real detached-HEAD
+     * warning instead of silently claiming "main": when detached, report the
+     * short commit SHA as `branch` plus `detached: true`.
+     */
+    let branch = 'main';
+    let detached = false;
+
+    try {
+      branch = await this.git(projectId, ['symbolic-ref', '--short', 'HEAD'], workspaceId);
+    } catch {
+      const headSha = await this.git(projectId, ['rev-parse', '--short', 'HEAD'], workspaceId).catch(() => '');
+
+      if (headSha) {
+        branch = headSha;
+        detached = true;
+      }
+    }
     const porcelain = await this.git(projectId, ['status', '--porcelain=v1', '-uall'], workspaceId);
     const statusLines = porcelain.split('\n').filter(Boolean);
 
@@ -919,7 +940,7 @@ export class GitCliProvider implements GitProvider {
 
     const [behind, ahead] = aheadBehind.split(/\s+/).map((value) => Number(value) || 0);
 
-    return { branch, changedFiles, fileStatuses, conflicts, ahead, behind };
+    return { branch, detached, changedFiles, fileStatuses, conflicts, ahead, behind };
   }
 
   async commit(input: {

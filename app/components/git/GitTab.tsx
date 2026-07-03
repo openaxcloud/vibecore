@@ -1,3 +1,4 @@
+import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
@@ -48,6 +49,9 @@ type GitBlameLine = { sha: string; line: number; author?: string; content?: stri
 type GitData = {
   status?: {
     branch?: string;
+
+    /** True when HEAD is detached; `branch` then carries the short commit SHA. */
+    detached?: boolean;
     changedFiles?: string[];
     fileStatuses?: GitFileStatus[];
     conflicts?: GitFileStatus[];
@@ -161,6 +165,281 @@ function PanelButton({
   );
 }
 
+/*
+ * Searchable branch selector (Replit-style): current branch as the trigger,
+ * a filter input + branch list in the popover, and an inline "New branch"
+ * creator (create + checkout in one step). Every action hits the real
+ * checkout endpoint via the callbacks — no local-only state. When HEAD is
+ * detached the trigger renders in the warning tokens and creating a branch
+ * starts from the current commit (git checkout -b default).
+ */
+function GitBranchDropdown({
+  branch,
+  branches,
+  detached,
+  busy,
+  onCheckout,
+  onCreate,
+}: {
+  branch: string;
+  branches: string[];
+  detached: boolean;
+  busy: boolean;
+  onCheckout: (branch: string) => void;
+  onCreate: (branch: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [newBranch, setNewBranch] = useState('');
+
+  // A detached SHA is not a branch — never list it as one.
+  const allBranches = detached || branches.includes(branch) ? branches : [branch, ...branches];
+  const filtered = allBranches.filter((item) => item.toLowerCase().includes(query.trim().toLowerCase()));
+
+  const submitCreate = () => {
+    const name = newBranch.trim();
+
+    if (!name) {
+      return;
+    }
+
+    setOpen(false);
+    onCreate(name);
+  };
+
+  return (
+    <PopoverPrimitive.Root
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+
+        if (!next) {
+          setQuery('');
+          setNewBranch('');
+        }
+      }}
+    >
+      <PopoverPrimitive.Trigger asChild>
+        <button
+          type="button"
+          data-testid="git-branch-dropdown-trigger"
+          disabled={busy}
+          aria-label={
+            detached
+              ? `Detached HEAD at commit ${branch}. Open branch actions`
+              : `Current branch ${branch}. Switch or create a branch`
+          }
+          className="inline-flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 focus:border-bolt-elements-focus focus:outline-none disabled:opacity-60"
+          style={detached ? { color: 'var(--status-warning-text)' } : undefined}
+        >
+          <span
+            className={classNames(
+              'shrink-0 text-base',
+              detached ? 'i-ph:warning' : 'i-ph:git-branch text-bolt-elements-item-contentAccent',
+            )}
+            aria-hidden
+          />
+          <span className="min-w-0 flex-1 truncate text-left font-medium">
+            {detached ? `HEAD @ ${branch}` : branch}
+          </span>
+          <span className="i-ph:caret-down shrink-0 text-xs text-bolt-elements-textSecondary" aria-hidden />
+        </button>
+      </PopoverPrimitive.Trigger>
+      <PopoverPrimitive.Portal>
+        <PopoverPrimitive.Content
+          side="bottom"
+          align="end"
+          sideOffset={6}
+          data-testid="git-branch-dropdown"
+          className="z-[10010] w-[min(300px,calc(100vw-24px))] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 shadow-xl"
+        >
+          <label className="sr-only" htmlFor="git-branch-dropdown-filter">
+            Filter branches
+          </label>
+          <PanelInput
+            id="git-branch-dropdown-filter"
+            autoFocus
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Find a branch…"
+            className="w-full"
+          />
+          <div className="mt-2 max-h-56 overflow-auto" role="listbox" aria-label="Branches">
+            {filtered.length ? (
+              filtered.map((item) => {
+                const isCurrent = !detached && item === branch;
+
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    role="option"
+                    aria-selected={isCurrent}
+                    data-testid="git-branch-dropdown-item"
+                    disabled={busy}
+                    className={classNames(
+                      'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-bolt-elements-background-depth-3 disabled:opacity-60',
+                      isCurrent
+                        ? 'font-semibold text-bolt-elements-textPrimary'
+                        : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+                    )}
+                    onClick={() => {
+                      setOpen(false);
+
+                      // Re-checking-out the current branch is a no-op; skip the request.
+                      if (!isCurrent) {
+                        onCheckout(item);
+                      }
+                    }}
+                  >
+                    <span
+                      className={classNames(
+                        'shrink-0 text-sm',
+                        isCurrent ? 'i-ph:check text-bolt-elements-item-contentAccent' : 'i-ph:git-branch opacity-60',
+                      )}
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1 truncate">{item}</span>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="px-2 py-1.5 text-sm text-bolt-elements-textSecondary">No branches match.</div>
+            )}
+          </div>
+          <div className="mt-2 border-t border-bolt-elements-borderColor pt-2">
+            <label
+              className="mb-1 block text-xs font-medium text-bolt-elements-textSecondary"
+              htmlFor="git-branch-dropdown-new"
+            >
+              New branch from {detached ? 'this commit' : branch}
+            </label>
+            <div className="flex gap-2">
+              <PanelInput
+                id="git-branch-dropdown-new"
+                value={newBranch}
+                onChange={(event) => setNewBranch(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    submitCreate();
+                  }
+                }}
+                placeholder="feature/my-branch"
+                className="min-w-0 flex-1"
+              />
+              <button
+                type="button"
+                data-testid="git-branch-dropdown-create"
+                disabled={busy || !newBranch.trim()}
+                onClick={submitCreate}
+                className="inline-flex h-[34px] shrink-0 items-center gap-1 rounded-[6px] border border-bolt-elements-item-contentAccent/50 px-2.5 text-[13px] font-medium text-bolt-elements-item-contentAccent hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
+              >
+                <span className="i-ph:plus text-sm" aria-hidden />
+                Create
+              </button>
+            </div>
+          </div>
+        </PopoverPrimitive.Content>
+      </PopoverPrimitive.Portal>
+    </PopoverPrimitive.Root>
+  );
+}
+
+/*
+ * `↑N ↓M` ahead/behind badge — a clickable control (not just a label) that
+ * opens the real Push / Pull actions. Push/pull are disabled with a reason
+ * when no remote is configured or when HEAD is detached.
+ */
+function GitAheadBehindBadge({
+  ahead,
+  behind,
+  busy,
+  detached,
+  hasRemote,
+  onPush,
+  onPull,
+}: {
+  ahead: number;
+  behind: number;
+  busy: boolean;
+  detached: boolean;
+  hasRemote: boolean;
+  onPush: () => void;
+  onPull: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const disabledReason = !hasRemote
+    ? 'No remote configured — connect one in ⚙ Git settings first.'
+    : detached
+      ? 'Detached HEAD — create a branch before pushing or pulling.'
+      : undefined;
+
+  const actionButton =
+    'inline-flex h-[32px] w-full items-center justify-center gap-1.5 rounded-[6px] border border-bolt-elements-borderColor text-[13px] font-medium text-bolt-elements-item-contentAccent hover:bg-bolt-elements-background-depth-3 disabled:opacity-60 disabled:text-bolt-elements-textSecondary';
+
+  return (
+    <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
+      <PopoverPrimitive.Trigger asChild>
+        <button
+          type="button"
+          data-testid="git-ahead-behind-badge"
+          title={`${ahead} commit${ahead === 1 ? '' : 's'} to push, ${behind} to pull`}
+          aria-label={`${ahead} commits to push, ${behind} commits to pull. Open push and pull actions`}
+          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
+        >
+          <span className="i-ph:arrow-up text-[11px]" aria-hidden />
+          {ahead}
+          <span className="i-ph:arrow-down text-[11px]" aria-hidden />
+          {behind}
+        </button>
+      </PopoverPrimitive.Trigger>
+      <PopoverPrimitive.Portal>
+        <PopoverPrimitive.Content
+          side="bottom"
+          align="end"
+          sideOffset={6}
+          data-testid="git-ahead-behind-popover"
+          className="z-[10010] w-[min(240px,calc(100vw-24px))] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 shadow-xl"
+        >
+          <div className="grid gap-2">
+            <button
+              type="button"
+              data-testid="git-badge-push"
+              disabled={busy || Boolean(disabledReason)}
+              className={actionButton}
+              onClick={() => {
+                setOpen(false);
+                onPush();
+              }}
+            >
+              <span className="i-ph:arrow-up text-sm" aria-hidden />
+              Push {ahead > 0 ? `${ahead} commit${ahead === 1 ? '' : 's'}` : ''}
+            </button>
+            <button
+              type="button"
+              data-testid="git-badge-pull"
+              disabled={busy || Boolean(disabledReason)}
+              className={actionButton}
+              onClick={() => {
+                setOpen(false);
+                onPull();
+              }}
+            >
+              <span className="i-ph:arrow-down text-sm" aria-hidden />
+              Pull {behind > 0 ? `${behind} commit${behind === 1 ? '' : 's'}` : ''}
+            </button>
+            {disabledReason ? (
+              <p className="px-1 text-xs leading-4 text-bolt-elements-textSecondary">{disabledReason}</p>
+            ) : null}
+          </div>
+        </PopoverPrimitive.Content>
+      </PopoverPrimitive.Portal>
+    </PopoverPrimitive.Root>
+  );
+}
+
 export function GitTab({ projectId }: GitTabProps) {
   const { currentWorkspaceId } = useCurrentWorkspace();
   const [envelope, setEnvelope] = useState<Envelope | undefined>();
@@ -178,6 +457,9 @@ export function GitTab({ projectId }: GitTabProps) {
 
   // Discard confirmation target: a single file path, or 'all' for every change.
   const [discardConfirm, setDiscardConfirm] = useState<{ all: boolean; path?: string } | null>(null);
+
+  // Name typed into the detached-HEAD banner's "New branch from here" input.
+  const [detachedNewBranch, setDetachedNewBranch] = useState('');
 
   // Selected commit detail (Replit-style: click a commit → files + diff + Restore).
   const [commitDetail, setCommitDetail] = useState<{
@@ -215,6 +497,9 @@ export function GitTab({ projectId }: GitTabProps) {
   const data: GitPanelData = envelope?.data ?? {};
   const status = data.status ?? (data as any);
   const branch = status?.branch ?? project?.gitDefaultBranch ?? 'main';
+
+  // Detached HEAD: the API reports the short commit SHA as `branch` + detached:true.
+  const detached = Boolean(status?.detached);
 
   const changedFiles: GitFileStatus[] =
     status?.fileStatuses ?? status?.changedFiles?.map((path: string) => ({ path, status: 'M' })) ?? [];
@@ -713,6 +998,60 @@ export function GitTab({ projectId }: GitTabProps) {
           </div>
         )}
 
+        {detached ? (
+          <div
+            className="rounded-lg border p-3 text-sm"
+            role="status"
+            data-testid="git-detached-warning"
+            style={{
+              borderColor: 'color-mix(in srgb, var(--status-warning-text) 45%, transparent)',
+              background: 'color-mix(in srgb, var(--status-warning-text) 8%, transparent)',
+            }}
+          >
+            <div className="flex items-center gap-2 font-semibold" style={{ color: 'var(--status-warning-text)' }}>
+              <span className="i-ph:warning-circle text-base" aria-hidden />
+              Detached HEAD — you are on commit {branch}, not a branch.
+            </div>
+            <p className="mt-1 text-bolt-elements-textSecondary">
+              New commits made here are not on any branch and can be lost when you switch away. Create a branch from
+              this commit to keep working safely.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <label className="sr-only" htmlFor="git-detached-new-branch">
+                New branch name
+              </label>
+              <PanelInput
+                id="git-detached-new-branch"
+                value={detachedNewBranch}
+                onChange={(event) => setDetachedNewBranch(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && detachedNewBranch.trim()) {
+                    event.preventDefault();
+                    setDetachedNewBranch('');
+                    void runIntent('create-branch', { branch: detachedNewBranch.trim() });
+                  }
+                }}
+                placeholder="rescue/my-work"
+                className="min-w-0 flex-1 sm:max-w-[260px]"
+              />
+              <button
+                type="button"
+                data-testid="git-detached-new-branch-button"
+                disabled={busy || !detachedNewBranch.trim()}
+                className="inline-flex h-[34px] shrink-0 items-center gap-1.5 rounded-[6px] border border-bolt-elements-item-contentAccent/50 px-3 text-[13px] font-medium text-bolt-elements-item-contentAccent hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
+                onClick={() => {
+                  const name = detachedNewBranch.trim();
+                  setDetachedNewBranch('');
+                  void runIntent('create-branch', { branch: name });
+                }}
+              >
+                <span className="i-ph:git-branch text-sm" aria-hidden />
+                New branch from here
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         {conflicts.length > 0 ? (
           <div
             className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm"
@@ -755,35 +1094,42 @@ export function GitTab({ projectId }: GitTabProps) {
               Branch
             </div>
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-sm text-bolt-elements-textSecondary">
-              <span className="i-ph:git-branch text-base text-bolt-elements-item-contentAccent" aria-hidden />
-              <strong className="truncate text-bolt-elements-textPrimary">{branch}</strong>
+              <span
+                className={classNames(
+                  'text-base',
+                  detached ? 'i-ph:warning' : 'i-ph:git-branch text-bolt-elements-item-contentAccent',
+                )}
+                style={detached ? { color: 'var(--status-warning-text)' } : undefined}
+                aria-hidden
+              />
+              <strong
+                className={classNames('truncate', detached ? undefined : 'text-bolt-elements-textPrimary')}
+                style={detached ? { color: 'var(--status-warning-text)' } : undefined}
+              >
+                {detached ? `HEAD detached @ ${branch}` : branch}
+              </strong>
               <span>{changedFiles.length} changed</span>
               {conflicts.length ? <span className="text-red-500">{conflicts.length} conflicts</span> : null}
+              <GitAheadBehindBadge
+                ahead={status?.ahead ?? 0}
+                behind={status?.behind ?? 0}
+                busy={busy}
+                detached={detached}
+                hasRemote={hasRemote}
+                onPush={() => void runIntent('push', { branch })}
+                onPull={() => void runIntent('pull', { branch })}
+              />
             </div>
           </div>
           <div className="flex min-w-[min(240px,100%)] items-center gap-2">
-            <form onSubmit={submitAction} className="flex min-w-0 flex-1 gap-2">
-              <input name="intent" value="checkout-branch" type="hidden" />
-              <label className="sr-only" htmlFor="ide-git-tab-branch-switch">
-                Switch branch
-              </label>
-              <select
-                id="ide-git-tab-branch-switch"
-                name="branch"
-                key={branch}
-                defaultValue={branch}
-                className="h-9 min-w-0 flex-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
-              >
-                {[branch, ...branches.filter((item: string) => item !== branch)].map((item: string) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-              <PanelButton disabled={busy} variant="outline">
-                Switch
-              </PanelButton>
-            </form>
+            <GitBranchDropdown
+              branch={branch}
+              branches={branches}
+              detached={detached}
+              busy={busy}
+              onCheckout={(nextBranch) => void runIntent('checkout-branch', { branch: nextBranch })}
+              onCreate={(newBranch) => void runIntent('create-branch', { branch: newBranch })}
+            />
             <button
               type="button"
               data-testid="git-branch-refresh"
