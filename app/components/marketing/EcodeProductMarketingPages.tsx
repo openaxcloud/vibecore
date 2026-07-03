@@ -1412,6 +1412,45 @@ export function EcodePricingPage() {
               </tbody>
             </table>
           </div>
+
+          {/* D14 — pricing mini-FAQ (accordion under the comparison table). */}
+          <div className="mx-auto mt-8 flex max-w-3xl flex-col gap-3" data-testid="pricing-faq">
+            {[
+              {
+                q: 'How do credits work?',
+                a: 'Your plan includes monthly credits that reset at the start of each billing cycle. Credits are spent on Agent effort, publishing, network transfer and database storage. Once you exceed them you continue on pay-as-you-go, billed monthly or as soon as your accrued usage passes your included credits — whichever comes first. You can also buy credit packs, and set a usage limit or a service-shutdown limit to cap spend. On the free plan you get a daily Agent-credit allowance that recharges each day, and any apps you have published stay online.',
+              },
+              {
+                q: 'What happens when I upgrade or downgrade?',
+                a: 'Plan changes are prorated. When you upgrade you are charged only for the remaining days of the current period; when you downgrade the unused balance is credited toward your next invoice, so you never pay twice for the same time.',
+              },
+              {
+                q: 'Can I cancel anytime?',
+                a: 'Yes. You can cancel anytime from Billing. Your paid plan stays active until the end of the period you have already paid for, then your account returns to the free plan. Your projects and code are kept — cancelling never deletes your work.',
+              },
+              {
+                q: 'Do you offer annual billing?',
+                a: 'Yes, and it saves you about 20%. Core is €20/mo billed annually (versus €25 month-to-month) and Pro is €95/mo billed annually (versus €100 month-to-month). You are billed once for the year.',
+              },
+              {
+                q: 'Do prices include VAT, and can I get an invoice?',
+                a: 'Prices are shown excluding VAT; any applicable VAT is calculated and added at checkout based on your billing country. Every payment generates a downloadable invoice from your Billing page. Enterprise plans are billed by invoice, managed through Stripe.',
+              },
+            ].map((item) => (
+              <details
+                key={item.q}
+                className="group rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-5 py-4"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-bolt-elements-textPrimary">
+                  {item.q}
+                  <span className="text-bolt-elements-textSecondary transition-transform duration-200 group-open:rotate-45">
+                    +
+                  </span>
+                </summary>
+                <p className="mt-3 text-sm leading-6 text-bolt-elements-textSecondary">{item.a}</p>
+              </details>
+            ))}
+          </div>
         </Section>
 
         <Section tone="dark">
