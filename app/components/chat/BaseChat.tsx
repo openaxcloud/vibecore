@@ -153,6 +153,7 @@ import {
   type Keybinding,
   type KeybindingOverrideMap,
 } from '~/lib/keybindings';
+import { useFocusTrap } from '~/lib/use-focus-trap';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, ChartTooltip, Legend);
 
@@ -2778,6 +2779,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
     const [commandPaletteIndex, setCommandPaletteIndex] = useState(0);
     const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false);
+    const keyboardShortcutsRef = useFocusTrap<HTMLDivElement>(keyboardShortcutsOpen);
     const [projectKeybindingOverrides, setProjectKeybindingOverrides] = useState<KeybindingOverrideMap>({});
     const [conversationHistoryOpen, setConversationHistoryOpen] = useState(false);
     const [conversationHistoryQuery, setConversationHistoryQuery] = useState('');
@@ -7591,6 +7593,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         )}
         {keyboardShortcutsOpen && (
           <div
+            ref={keyboardShortcutsRef}
             className="bolt-project-command-palette bolt-project-keybindings-palette"
             role="dialog"
             aria-modal="true"
