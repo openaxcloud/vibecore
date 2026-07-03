@@ -4,6 +4,7 @@ import { data as json, type LoaderFunctionArgs, type MetaFunction, useLoaderData
 import { MarketingStaticPage } from '~/components/marketing/EcodeMarketingPages';
 import { toBlogDetailPageDefinition } from '~/lib/marketing/ecode-blog-detail-page';
 import { findEcodeBlogPost } from '~/lib/marketing/ecode-public-api-data.server';
+import { socialMetaTags } from '~/utils/social-meta';
 
 /**
  * In-repo SSR blog detail page. Reads the `:slug` param, resolves the matching
@@ -17,6 +18,10 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => [
     name: 'description',
     content: data?.excerpt ?? 'The E-Code blog — product updates, engineering and AI development.',
   },
+  ...socialMetaTags({
+    title: data ? `${data.title} - E-Code Blog` : 'Blog - E-Code',
+    description: data?.excerpt ?? 'The E-Code blog — product updates, engineering and AI development.',
+  }),
 ];
 
 export function loader({ params }: LoaderFunctionArgs) {

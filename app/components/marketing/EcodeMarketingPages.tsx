@@ -29,6 +29,7 @@ import type { ReactNode } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Link, useParams } from 'react-router';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
+import { socialMetaTags } from '~/utils/social-meta';
 
 type MarketingPageKind = 'standard' | 'legal' | 'solution' | 'compare' | 'resource';
 
@@ -1196,7 +1197,11 @@ export const newsletterPages = {
 } as const satisfies Record<string, MarketingPageDefinition>;
 
 export function makeMarketingMeta(page: MarketingPageDefinition): MetaFunction {
-  return () => [{ title: `${page.title} - E-Code` }, { name: 'description', content: page.description }];
+  return () => [
+    { title: `${page.title} - E-Code` },
+    { name: 'description', content: page.description },
+    ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description }),
+  ];
 }
 
 export function MarketingStaticPage({ page }: { page: MarketingPageDefinition }) {

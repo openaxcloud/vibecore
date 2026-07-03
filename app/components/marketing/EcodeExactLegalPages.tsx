@@ -7,6 +7,7 @@ import Security from './ecode-exact/pages/Security';
 import StudentDPA from './ecode-exact/pages/StudentDPA';
 import Subprocessors from './ecode-exact/pages/Subprocessors';
 import Terms from './ecode-exact/pages/Terms';
+import { socialMetaTags } from '~/utils/social-meta';
 
 type LegalPageKey =
   | 'legal'
@@ -80,7 +81,11 @@ export const ecodeLegalPages = {
 export function makeEcodeLegalMeta(key: LegalPageKey): MetaFunction {
   const page = ecodeLegalPages[key];
 
-  return () => [{ title: `${page.title} - E-Code` }, { name: 'description', content: page.description }];
+  return () => [
+    { title: `${page.title} - E-Code` },
+    { name: 'description', content: page.description },
+    ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description }),
+  ];
 }
 
 export function EcodeLegalPage() {

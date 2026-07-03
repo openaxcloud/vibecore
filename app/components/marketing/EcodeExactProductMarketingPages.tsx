@@ -7,6 +7,7 @@ import Mobile from './ecode-exact/pages/Mobile';
 import Pricing from './ecode-exact/pages/Pricing';
 import Deployments from './ecode-exact/pages/PublicDeploymentsPage';
 import Teams from './ecode-exact/pages/PublicTeamPage';
+import { socialMetaTags } from '~/utils/social-meta';
 
 type ProductPageKey =
   | 'ai-agent'
@@ -94,13 +95,21 @@ export const ecodeCampaignMarketingPages = {
 export function makeEcodeProductMeta(key: ProductPageKey): MetaFunction {
   const page = ecodeProductMarketingPages[key];
 
-  return () => [{ title: `${page.title} - E-Code` }, { name: 'description', content: page.description }];
+  return () => [
+    { title: `${page.title} - E-Code` },
+    { name: 'description', content: page.description },
+    ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description }),
+  ];
 }
 
 export function makeEcodeCampaignMeta(key: CampaignPageKey): MetaFunction {
   const page = ecodeCampaignMarketingPages[key];
 
-  return () => [{ title: `${page.title} - E-Code` }, { name: 'description', content: page.description }];
+  return () => [
+    { title: `${page.title} - E-Code` },
+    { name: 'description', content: page.description },
+    ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description }),
+  ];
 }
 
 export function EcodeAiAgentPage() {

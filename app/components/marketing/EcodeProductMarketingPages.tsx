@@ -43,6 +43,7 @@ import { PublicShell } from '~/components/dashboard/SaaSLayout';
 import { getReelDemoHref } from '~/components/marketing/ecode-marketing-reels';
 import { Button } from '~/components/ui/Button';
 import { classNames } from '~/utils/classNames';
+import { socialMetaTags } from '~/utils/social-meta';
 
 type ProductPageKey =
   | 'ai-agent'
@@ -667,13 +668,21 @@ const teamFeatures = [
 export function makeEcodeProductMeta(key: ProductPageKey): MetaFunction {
   const page = ecodeProductMarketingPages[key];
 
-  return () => [{ title: `${page.title} - E-Code` }, { name: 'description', content: page.description }];
+  return () => [
+    { title: `${page.title} - E-Code` },
+    { name: 'description', content: page.description },
+    ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description }),
+  ];
 }
 
 export function makeEcodeCampaignMeta(key: CampaignPageKey): MetaFunction {
   const page = ecodeCampaignMarketingPages[key];
 
-  return () => [{ title: `${page.title} - E-Code` }, { name: 'description', content: page.description }];
+  return () => [
+    { title: `${page.title} - E-Code` },
+    { name: 'description', content: page.description },
+    ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description }),
+  ];
 }
 
 export function EcodeAiAgentPage() {

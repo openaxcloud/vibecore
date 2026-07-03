@@ -4,6 +4,7 @@ import { Link, useLoaderData } from 'react-router';
 import { getLanguageDisplayName, getLanguageIcon } from './templates_.languages.icons';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
 import { getEcodeTemplateCatalog } from '~/lib/marketing/ecode-template-catalog.server';
+import { socialMetaTags } from '~/utils/social-meta';
 
 /**
  * In-repo SSR "browse templates by language" page. Derives the language facets
@@ -20,6 +21,10 @@ export const meta: MetaFunction = () => [
     name: 'description',
     content: 'Browse E-Code starter templates by programming language — TypeScript, Python, Go and more.',
   },
+  ...socialMetaTags({
+    title: 'Templates by language — E-Code',
+    description: 'Browse E-Code starter templates by programming language — TypeScript, Python, Go and more.',
+  }),
 ];
 
 export function loader(_args: LoaderFunctionArgs) {

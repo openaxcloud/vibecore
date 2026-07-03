@@ -11,6 +11,7 @@ import {
   type EcodeTemplate,
   type EcodeTemplateCategory,
 } from '~/lib/marketing/ecode-template-catalog.server';
+import { socialMetaTags } from '~/utils/social-meta';
 
 export const meta: MetaFunction = () => [
   { title: 'Templates - E-Code' },
@@ -18,6 +19,10 @@ export const meta: MetaFunction = () => [
     name: 'description',
     content: 'Public E-Code template gallery powered by real E-Code starter templates.',
   },
+  ...socialMetaTags({
+    title: 'Templates - E-Code',
+    description: 'Public E-Code template gallery powered by real E-Code starter templates.',
+  }),
 ];
 
 export function loader(_args: LoaderFunctionArgs) {
