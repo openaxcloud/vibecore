@@ -190,6 +190,7 @@ import {
 } from './object-storage.js';
 import { PrismaApiStore } from './prisma-store.js';
 import {
+  decodeFileContent,
   filesFromZip,
   filesFromZipBase64,
   GitCliProvider,
@@ -18969,6 +18970,76 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ snapshot });
   });
+  /*
+   * Dry-run diffstat for a snapshot restore (E25). Compares the snapshot's
+   * archived files against the project's CURRENT files so the UI can show what
+   * a restore would add / change / remove before the user confirms. Read-only:
+   * requires projects:read and mutates nothing. Contents are compared as
+   * decoded bytes (utf8/base64 aware) so a re-encoded but identical file is
+   * not reported as changed; only capped path lists leave the server.
+   */
+  app.get('/projects/:projectId/snapshots/:snapshotId/restore-preview', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    const { snapshotId } = parse(snapshotParams, request.params);
+    const snapshot = await store.getSnapshot(snapshotId);
+
+    if (!snapshot || snapshot.projectId !== project.id) {
+      throw Object.assign(new Error('Snapshot not found'), { statusCode: 404, code: 'SNAPSHOT_NOT_FOUND' });
+    }
+
+    const snapshotFiles = await getSnapshotFiles(snapshot);
+    const currentFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
+
+    const currentByPath = new Map(currentFiles.map((file) => [file.path, file]));
+    const added: Array<{ path: string; sizeBytes: number }> = [];
+    const changed: Array<{ path: string; sizeBytes: number }> = [];
+    const removed: Array<{ path: string; sizeBytes: number }> = [];
+    let unchanged = 0;
+
+    for (const file of snapshotFiles) {
+      const decoded = decodeFileContent(file.content, file.encoding);
+      const current = currentByPath.get(file.path);
+
+      if (!current) {
+        added.push({ path: file.path, sizeBytes: decoded.byteLength });
+        continue;
+      }
+
+      currentByPath.delete(file.path);
+
+      if (decodeFileContent(current.content, current.encoding).equals(decoded)) {
+        unchanged += 1;
+      } else {
+        changed.push({ path: file.path, sizeBytes: decoded.byteLength });
+      }
+    }
+
+    for (const file of currentByPath.values()) {
+      removed.push({ path: file.path, sizeBytes: decodeFileContent(file.content, file.encoding).byteLength });
+    }
+
+    const byPath = (a: { path: string }, b: { path: string }) => a.path.localeCompare(b.path);
+    const cap = 50;
+    const capped = (list: Array<{ path: string; sizeBytes: number }>) => list.sort(byPath).slice(0, cap);
+
+    return {
+      preview: {
+        snapshotId: snapshot.id,
+        label: snapshot.label,
+        createdAt: snapshot.createdAt,
+        byteLength: snapshot.byteLength,
+        counts: { added: added.length, changed: changed.length, removed: removed.length, unchanged },
+        files: { added: capped(added), changed: capped(changed), removed: capped(removed) },
+        truncated: added.length > cap || changed.length > cap || removed.length > cap,
+      },
+    };
+  });
   app.post('/projects/:projectId/snapshots/:snapshotId/restore', async (request) => {
     const project = await requireProject(
       request,
@@ -18985,6 +19056,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const snapshotFiles = await getSnapshotFiles(snapshot);
+
+    /*
+     * Safety snapshot (E25): archive the CURRENT state before it is
+     * overwritten so a restore is always reversible. Taken AFTER
+     * getSnapshotFiles so a missing/corrupt target archive fails first and
+     * doesn't leave an orphaned safety snapshot. Mirrors the
+     * createBeforeAiSnapshot system path (no quota gate — blocking the escape
+     * hatch on snapshots.count would leave the user unable to undo a restore).
+     */
+    const currentFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
+    const safetyLabel = `Before restore of ${snapshot.label ?? snapshot.id}`;
+    const safetyArchive = await projectStorage.createSnapshot({
+      projectId: project.id,
+      label: safetyLabel,
+      files: currentFiles,
+    });
+    await persistProjectArchiveObject(safetyArchive, { projectId: project.id, kind: 'snapshot' });
+    const safetySnapshot = await store.createSnapshot({
+      projectId: project.id,
+      label: safetyLabel,
+      kind: 'automatic',
+      manifest: { files: publicFiles(currentFiles), excludesRuntimeSecrets: true, safetyForSnapshotId: snapshot.id },
+      storageKey: safetyArchive.storageKey,
+      byteLength: safetyArchive.byteLength,
+      createdByUserId: request.currentUser!.id,
+    });
+
     const restored = await projectStorage.restoreSnapshot({ projectId: project.id, files: snapshotFiles });
     await persistProjectFileManifest(store, project.id, restored, request.currentUser!.id, {
       clearRecoveredChatFiles: true,
@@ -19001,7 +19099,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       projectId: project.id,
       actorUserId: request.currentUser!.id,
       action: 'snapshot.restore',
-      metadata: { snapshotId },
+      metadata: { snapshotId, safetySnapshotId: safetySnapshot.id },
     });
     await audit(request, store, {
       organizationId: project.organizationId,
@@ -19010,7 +19108,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: snapshotId,
     });
 
-    return { snapshot, files: publicFiles(restored) };
+    return {
+      snapshot,
+      safetySnapshot: { id: safetySnapshot.id, label: safetySnapshot.label, createdAt: safetySnapshot.createdAt },
+      files: publicFiles(restored),
+    };
   });
   app.get('/snapshots/:projectId', async (request) => {
     const project = await requireProject(

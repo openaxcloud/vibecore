@@ -169,9 +169,10 @@ export interface ConfirmationDialogProps {
   title: string;
 
   /**
-   * The description of the dialog
+   * The description of the dialog. Accepts rich content (e.g. a restore
+   * diffstat) as well as plain strings.
    */
-  description: string;
+  description: ReactNode;
 
   /**
    * The text for the confirm button
