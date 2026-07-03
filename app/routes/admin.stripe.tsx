@@ -240,7 +240,7 @@ function StatusPill({ ok, set, fallback }: { ok: boolean; set: string; fallback:
     <span
       className={`rounded-full px-2 py-0.5 text-xs ${
         ok
-          ? 'bg-[var(--ecode-accent)]/15 text-[var(--ecode-accent)]'
+          ? 'bg-[var(--vc-ide-accent-success)]/15 text-[var(--status-success-text)]'
           : 'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary'
       }`}
     >

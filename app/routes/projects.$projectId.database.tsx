@@ -270,7 +270,7 @@ function NotAvailablePanel({ enabled, retentionDays }: { enabled: boolean; reten
           {enabled && retentionDays === 0 ? (
             <a
               href="/usage"
-              className="mt-3 inline-flex text-xs font-medium text-[var(--ecode-accent,#F26207)] hover:underline"
+              className="mt-3 inline-flex text-xs font-medium text-[var(--vc-ide-accent-action)] hover:underline"
             >
               View plans
             </a>

@@ -119,7 +119,7 @@ export default function UpgradePage() {
             </label>
             <label className="flex items-center gap-1.5">
               <input type="radio" name="interval" value="annual" defaultChecked={interval === 'annual'} />
-              Annual <span className="text-[var(--ecode-accent,#F26207)]">(save ~20%)</span>
+              Annual <span className="text-[var(--status-success-text)]">(save ~20%)</span>
             </label>
           </div>
         </fieldset>
