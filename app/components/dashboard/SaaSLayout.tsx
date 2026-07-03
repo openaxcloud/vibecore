@@ -1131,16 +1131,18 @@ export function ProjectShell({
   );
 }
 
-export function StatGrid({ stats }: { stats: Array<{ label: string; value: string; detail: string; icon: Icon }> }) {
+export function StatGrid({
+  stats,
+}: {
+  stats: Array<{ label: string; value: string; detail: string; icon: Icon; to?: string; ariaLabel?: string }>;
+}) {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {stats.map((stat) => {
         const Icon = stat.icon;
-        return (
-          <Card
-            key={stat.label}
-            className="overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm"
-          >
+
+        const cardBody = (
+          <>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardDescription>{stat.label}</CardDescription>
@@ -1153,6 +1155,30 @@ export function StatGrid({ stats }: { stats: Array<{ label: string; value: strin
             <CardContent>
               <p className="text-xs text-bolt-elements-textSecondary">{stat.detail}</p>
             </CardContent>
+          </>
+        );
+
+        if (stat.to) {
+          return (
+            <Link
+              key={stat.label}
+              to={stat.to}
+              aria-label={stat.ariaLabel ?? `View ${stat.label.toLowerCase()}`}
+              className="group block rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+            >
+              <Card className="h-full overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors group-hover:border-bolt-elements-borderColorActive">
+                {cardBody}
+              </Card>
+            </Link>
+          );
+        }
+
+        return (
+          <Card
+            key={stat.label}
+            className="overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm"
+          >
+            {cardBody}
           </Card>
         );
       })}
@@ -1870,19 +1896,32 @@ export function statsFromUsage(input?: {
       value: String(input?.projects ?? 0),
       detail: 'Persistent projects loaded from API',
       icon: Boxes,
+      to: '/projects',
+      ariaLabel: 'View projects',
     },
     {
       label: 'Active workspaces',
       value: String(input?.activeWorkspaces ?? 0),
       detail: 'Runtime sessions recorded in Postgres',
       icon: MonitorPlay,
+      to: '/usage',
+      ariaLabel: 'View workspace usage',
     },
-    { label: 'Plan', value: input?.planName ?? 'Free', detail: 'Billing state loaded from backend', icon: CreditCard },
+    {
+      label: 'Plan',
+      value: input?.planName ?? 'Free',
+      detail: 'Billing state loaded from backend',
+      icon: CreditCard,
+      to: '/billing',
+      ariaLabel: 'View plan and billing',
+    },
     {
       label: 'AI cost',
       value: `$${((input?.aiCostCents ?? 0) / 100).toFixed(2)}`,
       detail: `${input?.usageEvents ?? 0} usage events recorded`,
       icon: Sparkles,
+      to: '/usage',
+      ariaLabel: 'View AI usage and cost',
     },
   ];
 }
