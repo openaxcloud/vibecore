@@ -3250,6 +3250,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const statusbarChangedFiles = projectBackendState.git?.changedFiles?.length ?? 0;
 
+    /*
+     * Statusbar connection indicator: reuses the browser online state that
+     * already drives .bolt-connection-status (no new polling) plus the live
+     * workspace status for the 'Reconnecting' nuance.
+     */
+    const statusbarConnection = !isOnline
+      ? ({ label: 'Offline', color: 'var(--vc-ide-accent-error)', text: 'var(--status-error-text)' } as const)
+      : workspaceLoading || runtimeWorkspaceStatus === 'STARTING' || runtimeWorkspaceStatus === 'PENDING'
+        ? ({
+            label: 'Reconnecting',
+            color: 'var(--vc-ide-accent-warning)',
+            text: 'var(--status-warning-text)',
+          } as const)
+        : ({ label: 'Connected', color: 'var(--vc-ide-accent-success)', text: 'var(--status-success-text)' } as const);
+
     const projectConversationCheckpoints = useMemo<ProjectConversationCheckpoint[]>(() => {
       if (!projectIdeMode || !projectId) {
         return [];
@@ -8107,6 +8122,30 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             aria-label="IDE status"
           >
             <div className="bolt-project-statusbar-primary">
+              <span
+                className="bolt-project-statusbar-pill"
+                role="status"
+                aria-live="polite"
+                title={
+                  statusbarConnection.label === 'Offline'
+                    ? 'Offline — edits stay local until the connection returns'
+                    : statusbarConnection.label === 'Reconnecting'
+                      ? 'Workspace runtime is starting or reconnecting'
+                      : 'Workspace connection healthy'
+                }
+              >
+                <span
+                  aria-hidden
+                  className={classNames(
+                    'inline-block h-[7px] w-[7px] shrink-0 rounded-full',
+                    statusbarConnection.label === 'Reconnecting' && 'animate-pulse',
+                  )}
+                  style={{ background: statusbarConnection.color }}
+                />
+                <span className="bolt-project-statusbar-label" style={{ color: statusbarConnection.text }}>
+                  {statusbarConnection.label}
+                </span>
+              </span>
               <button
                 type="button"
                 className="bolt-project-statusbar-pill"
