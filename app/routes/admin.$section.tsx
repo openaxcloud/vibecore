@@ -1448,7 +1448,7 @@ function MonitoringPanel({ payload }: { payload: Record<string, JsonValue> }) {
   return (
     <>
       {payload.costsError ? (
-        <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-700 dark:text-amber-300">
+        <div className="flex items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--status-warning-text)_30%,transparent)] bg-[color-mix(in_srgb,var(--status-warning-text)_10%,transparent)] px-4 py-3 text-sm font-medium text-[var(--status-warning-text)]">
           <span className="i-ph:warning-circle text-base" aria-hidden />
           Cost metrics are temporarily unavailable. Provider health below is unaffected.
         </div>
@@ -1868,9 +1868,9 @@ function PlatformChartCard({
 const PROVIDER_HEALTH_META: Record<string, { label: string; tone: 'ok' | 'danger' | 'muted'; dot: string }> = {
   ready: { label: 'Ready', tone: 'ok', dot: 'bg-green-500' },
   healthy: { label: 'Ready', tone: 'ok', dot: 'bg-green-500' },
-  degraded: { label: 'Degraded', tone: 'danger', dot: 'bg-amber-500' },
+  degraded: { label: 'Degraded', tone: 'danger', dot: 'bg-[var(--status-warning-text)]' },
   unreachable: { label: 'Unreachable', tone: 'danger', dot: 'bg-red-500' },
-  no_key: { label: 'No key', tone: 'muted', dot: 'bg-amber-500' },
+  no_key: { label: 'No key', tone: 'muted', dot: 'bg-[var(--status-warning-text)]' },
   disabled: { label: 'Disabled', tone: 'muted', dot: 'bg-bolt-elements-textTertiary' },
   unknown: { label: 'Unknown', tone: 'muted', dot: 'bg-bolt-elements-textTertiary' },
 };
@@ -1909,7 +1909,7 @@ function ProviderProbeButton({ liveProbe }: { liveProbe: boolean }) {
         <span
           className={[
             'inline-block h-1.5 w-1.5 rounded-full',
-            isProbing ? 'animate-pulse bg-amber-500' : 'bg-green-500',
+            isProbing ? 'animate-pulse bg-[var(--status-warning-text)]' : 'bg-green-500',
           ].join(' ')}
           aria-hidden
         />
@@ -3441,7 +3441,7 @@ function MaintenanceModeCard({ current, password }: { current: Record<string, Js
         <span
           className={
             enabled
-              ? 'rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400'
+              ? 'rounded-full bg-[color-mix(in_srgb,var(--status-warning-text)_10%,transparent)] px-2 py-0.5 text-xs font-medium text-[var(--status-warning-text)]'
               : 'rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs font-medium text-bolt-elements-textSecondary'
           }
         >
@@ -4483,7 +4483,7 @@ function DataTable({ rows }: { rows: JsonValue[] }) {
       {objects.length > 100 ? (
         <div
           role="status"
-          className="mt-3 flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-300"
+          className="mt-3 flex items-center gap-2 rounded-md border border-[color-mix(in_srgb,var(--status-warning-text)_30%,transparent)] bg-[color-mix(in_srgb,var(--status-warning-text)_10%,transparent)] px-3 py-2 text-xs font-medium text-[var(--status-warning-text)]"
         >
           <span className="i-ph:warning-circle text-sm" aria-hidden="true" />
           <span>
