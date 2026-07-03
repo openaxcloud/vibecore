@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/react';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, type ImperativePanelHandle } from 'react-resizable-panels';
-import { Terminal, type TerminalRef } from './Terminal';
+import { Terminal, type TerminalRef, type TerminalSearchResults } from './Terminal';
 import { TerminalManager } from './TerminalManager';
 import {
   TERMINAL_PROFILES,
@@ -14,8 +14,44 @@ import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger } from '~/utils/logger';
+import { isMac } from '~/utils/os';
 
 const logger = createScopedLogger('Terminal');
+
+const FIND_SHORTCUT_HINT = isMac ? '⌘F' : 'Ctrl+F';
+const CLEAR_SHORTCUT_HINT = isMac ? '⌘K' : 'Ctrl+K';
+
+/** Clipboard write with a legacy execCommand fallback for non-secure contexts. */
+async function writeToClipboard(text: string): Promise<boolean> {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+
+      return true;
+    }
+  } catch (error) {
+    logger.warn('navigator.clipboard rejected, falling back to execCommand copy', error);
+  }
+
+  try {
+    const helper = document.createElement('textarea');
+    helper.value = text;
+    helper.setAttribute('readonly', '');
+    helper.style.position = 'fixed';
+    helper.style.opacity = '0';
+    document.body.appendChild(helper);
+    helper.select();
+
+    const copied = document.execCommand('copy');
+    helper.remove();
+
+    return copied;
+  } catch (error) {
+    logger.error('Copy to clipboard failed', error);
+
+    return false;
+  }
+}
 
 const MAX_TERMINALS = 4;
 const TERMINAL_UI_STORAGE_KEY = 'vibecore-terminal-ui-v1';
@@ -90,8 +126,11 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
   const [splitView, setSplitView] = useState(initialUiState.splitView);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState<TerminalSearchResults | null>(null);
+  const [copied, setCopied] = useState(false);
   const [sessionMenuOpen, setSessionMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const sessionMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
@@ -281,10 +320,74 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
     workbenchStore.toggleTerminal(false);
   }, [activeTerminal, closeTerminal]);
 
+  const copyActiveTerminal = useCallback(() => {
+    setMoreMenuOpen(false);
+
+    const terminal = terminalRefs.current.get(activeTerminal)?.getTerminal();
+
+    if (!terminal) {
+      return;
+    }
+
+    // Copy the user's selection when there is one, otherwise the visible viewport of the scrollback.
+    let text = terminal.getSelection();
+
+    if (!text) {
+      const buffer = terminal.buffer.active;
+      const lines: string[] = [];
+
+      for (let row = 0; row < terminal.rows; row++) {
+        const line = buffer.getLine(buffer.viewportY + row);
+        lines.push(line ? line.translateToString(true) : '');
+      }
+
+      text = lines.join('\n').replace(/\s+$/, '');
+    }
+
+    if (!text) {
+      return;
+    }
+
+    void writeToClipboard(text).then((didCopy) => {
+      if (!didCopy) {
+        return;
+      }
+
+      setCopied(true);
+
+      if (copiedTimerRef.current) {
+        clearTimeout(copiedTimerRef.current);
+      }
+
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 1600);
+    });
+  }, [activeTerminal]);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) {
+        clearTimeout(copiedTimerRef.current);
+      }
+    };
+  }, []);
+
   const openSearch = useCallback(() => {
     setMoreMenuOpen(false);
     setSearchOpen(true);
   }, []);
+
+  const closeSearch = useCallback(() => {
+    // Decorations may linger on panes the user searched before switching, so sweep them all.
+    terminalRefs.current.forEach((ref) => ref.clearSearch());
+    setSearchOpen(false);
+    setSearchResults(null);
+    terminalRefs.current.get(activeTerminal)?.getTerminal()?.focus();
+  }, [activeTerminal]);
+
+  // A match count from one pane means nothing on another.
+  useEffect(() => {
+    setSearchResults(null);
+  }, [activeTerminal]);
 
   const findInActiveTerminal = useCallback(
     (direction: 'next' | 'previous' = 'next') => {
@@ -479,8 +582,20 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
               <button
                 type="button"
                 className="bolt-terminal-icon-button"
+                aria-label="Copy"
+                title="Copy selection or visible output"
+                onClick={copyActiveTerminal}
+              >
+                <span className={copied ? 'i-ph:check' : 'i-ph:copy'} aria-hidden />
+              </button>
+              <span className="sr-only" role="status" aria-live="polite">
+                {copied ? 'Copied to clipboard' : ''}
+              </span>
+              <button
+                type="button"
+                className="bolt-terminal-icon-button"
                 aria-label="Find in Shell"
-                title="Find in Shell"
+                title={`Find in Shell (${FIND_SHORTCUT_HINT})`}
                 onClick={openSearch}
               >
                 <span className="i-ph:magnifying-glass" aria-hidden />
@@ -489,7 +604,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                 type="button"
                 className="bolt-terminal-icon-button"
                 aria-label="Clear conversation"
-                title="Clear conversation"
+                title={`Clear conversation (${CLEAR_SHORTCUT_HINT})`}
                 onClick={clearActiveTerminal}
               >
                 <span className="i-ph:trash" aria-hidden />
@@ -529,6 +644,15 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                     >
                       <span className="i-ph:stop" aria-hidden />
                       <span>Kill Shell</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="bolt-terminal-menu-item"
+                      role="menuitem"
+                      onClick={copyActiveTerminal}
+                    >
+                      <span className="i-ph:copy" aria-hidden />
+                      <span>Copy output</span>
                     </button>
                     <button
                       type="button"
@@ -627,23 +751,61 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                   ref={searchInputRef}
                   aria-label="Find in Shell"
                   value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setSearchQuery(value);
+
+                    // Live highlight-as-you-type; incremental keeps the current match while it still fits.
+                    const ref = terminalRefs.current.get(activeTerminal);
+
+                    if (value.trim()) {
+                      ref?.findNext(value.trim(), { incremental: true });
+                    } else {
+                      ref?.clearSearch();
+                      setSearchResults(null);
+                    }
+                  }}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') {
                       findInActiveTerminal(event.shiftKey ? 'previous' : 'next');
                     } else if (event.key === 'Escape') {
-                      setSearchOpen(false);
+                      closeSearch();
+                    } else if ((isMac ? event.metaKey : event.ctrlKey) && event.key.toLowerCase() === 'f') {
+                      // The find bar is already open; keep ⌘F from reaching the browser's page find.
+                      event.preventDefault();
+                      event.currentTarget.select();
                     }
                   }}
                   placeholder="Find"
                 />
-                <button type="button" onClick={() => findInActiveTerminal('next')} disabled={!searchQuery.trim()}>
+                {searchResults && searchQuery.trim() ? (
+                  <span className="bolt-terminal-find-count" aria-live="polite">
+                    {searchResults.resultCount === 0
+                      ? 'No results'
+                      : searchResults.resultIndex >= 0
+                        ? `${searchResults.resultIndex + 1} of ${searchResults.resultCount}`
+                        : `${searchResults.resultCount} matches`}
+                  </span>
+                ) : null}
+                <button
+                  type="button"
+                  aria-label="Next match"
+                  title="Next match (Enter)"
+                  onClick={() => findInActiveTerminal('next')}
+                  disabled={!searchQuery.trim()}
+                >
                   Next
                 </button>
-                <button type="button" onClick={() => findInActiveTerminal('previous')} disabled={!searchQuery.trim()}>
+                <button
+                  type="button"
+                  aria-label="Previous match"
+                  title="Previous match (Shift+Enter)"
+                  onClick={() => findInActiveTerminal('previous')}
+                  disabled={!searchQuery.trim()}
+                >
                   Previous
                 </button>
-                <button type="button" onClick={() => setSearchOpen(false)}>
+                <button type="button" title="Close find (Esc)" onClick={closeSearch}>
                   Exit
                 </button>
               </div>
@@ -681,6 +843,8 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                         setTerminalSize({ cols, rows });
                         workbenchStore.onTerminalResize(cols, rows);
                       }}
+                      onOpenSearch={openSearch}
+                      onSearchResults={setSearchResults}
                       theme={theme}
                     />
                   );
@@ -716,6 +880,8 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                         setTerminalSize({ cols, rows });
                         workbenchStore.onTerminalResize(cols, rows);
                       }}
+                      onOpenSearch={openSearch}
+                      onSearchResults={setSearchResults}
                       theme={theme}
                     />
                   );

@@ -19,15 +19,24 @@ const workbenchMocks = vi.hoisted(() => ({
 
 const terminalHarness = vi.hoisted(() => {
   const xterm = {
+    buffer: {
+      active: {
+        viewportY: 3,
+        getLine: (row: number) => ({ translateToString: () => `line-${row}` }),
+      },
+    },
     clear: vi.fn(),
     focus: vi.fn(),
+    getSelection: vi.fn(() => ''),
     input: vi.fn(),
     reset: vi.fn(),
+    rows: 2,
     write: vi.fn(),
   };
 
   return {
     clearRef: vi.fn(),
+    clearSearch: vi.fn(),
     findNext: vi.fn(),
     findPrevious: vi.fn(),
     xterm,
@@ -93,6 +102,7 @@ vi.mock('./Terminal', async () => {
   const Terminal = React.forwardRef((props: any, ref: any) => {
     React.useImperativeHandle(ref, () => ({
       clear: terminalHarness.clearRef,
+      clearSearch: terminalHarness.clearSearch,
       findNext: terminalHarness.findNext,
       findPrevious: terminalHarness.findPrevious,
       fit: () => undefined,
@@ -139,12 +149,49 @@ describe('<TerminalTabs />', () => {
 
     const findInput = screen.getByPlaceholderText('Find');
     fireEvent.change(findInput, { target: { value: 'vite' } });
+
+    // Typing runs an incremental highlight-as-you-type search…
+    expect(terminalHarness.findNext).toHaveBeenCalledWith('vite', { incremental: true });
+
     fireEvent.keyDown(findInput, { key: 'Enter' });
 
+    // …while Enter advances to the next match.
     expect(terminalHarness.findNext).toHaveBeenCalledWith('vite');
+
+    fireEvent.keyDown(findInput, { key: 'Enter', shiftKey: true });
+    expect(terminalHarness.findPrevious).toHaveBeenCalledWith('vite');
 
     fireEvent.click(screen.getByRole('button', { name: 'Exit' }));
     expect(screen.queryByPlaceholderText('Find')).toBeNull();
+
+    // Closing the find bar sweeps match decorations and hands focus back to the shell.
+    expect(terminalHarness.clearSearch).toHaveBeenCalled();
+    expect(terminalHarness.xterm.focus).toHaveBeenCalled();
+  });
+
+  it('copies the selection when one exists', () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(window.navigator, 'clipboard', { configurable: true, value: { writeText } });
+    terminalHarness.xterm.getSelection.mockReturnValue('pnpm run dev');
+
+    render(<TerminalTabs panelDefaultSize={100} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+
+    expect(writeText).toHaveBeenCalledWith('pnpm run dev');
+  });
+
+  it('copies the visible scrollback when nothing is selected', () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(window.navigator, 'clipboard', { configurable: true, value: { writeText } });
+    terminalHarness.xterm.getSelection.mockReturnValue('');
+
+    render(<TerminalTabs panelDefaultSize={100} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+
+    // rows=2, viewportY=3 → the two viewport lines of the scrollback.
+    expect(writeText).toHaveBeenCalledWith('line-3\nline-4');
   });
 
   it('opens new shell sessions from the session dropdown', () => {

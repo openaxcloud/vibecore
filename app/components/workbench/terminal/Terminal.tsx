@@ -1,20 +1,28 @@
 import { FitAddon } from '@xterm/addon-fit';
-import { SearchAddon } from '@xterm/addon-search';
+import { SearchAddon, type ISearchOptions } from '@xterm/addon-search';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { forwardRef, memo, useEffect, useImperativeHandle, useRef } from 'react';
 import { getTerminalTheme } from './theme';
 import type { Theme } from '~/lib/stores/theme';
 import { createScopedLogger } from '~/utils/logger';
+import { isMac } from '~/utils/os';
 
 const logger = createScopedLogger('Terminal');
+
+export interface TerminalSearchResults {
+  /** Index of the active match, or -1 when the highlight limit was exceeded. */
+  resultIndex: number;
+  resultCount: number;
+}
 
 export interface TerminalRef {
   reloadStyles: () => void;
   getTerminal: () => XTerm | undefined;
   clear: () => void;
-  findNext: (term: string) => boolean;
+  findNext: (term: string, options?: { incremental?: boolean }) => boolean;
   findPrevious: (term: string) => boolean;
+  clearSearch: () => void;
   fit: () => void;
 }
 
@@ -25,11 +33,46 @@ export interface TerminalProps {
   id: string;
   onTerminalReady?: (terminal: XTerm) => void;
   onTerminalResize?: (cols: number, rows: number) => void;
+
+  /** Invoked when the user presses the platform find shortcut (⌘F / Ctrl+F) inside the terminal. */
+  onOpenSearch?: () => void;
+
+  /** Fires when search-match decorations change (match count / active index). */
+  onSearchResults?: (results: TerminalSearchResults) => void;
+}
+
+/**
+ * Search-match decoration colors, read from the live theme palette on every
+ * search so a light/dark switch is picked up. The addon requires the two
+ * overview-ruler colors whenever decorations are enabled; without the tokens
+ * we fall back to plain (selection-only) search rather than guessing colors.
+ */
+function getSearchDecorations(): ISearchOptions['decorations'] {
+  if (typeof document === 'undefined') {
+    return undefined;
+  }
+
+  const style = getComputedStyle(document.documentElement);
+  const token = (name: string) => style.getPropertyValue(name).trim() || undefined;
+
+  const matchOverviewRuler = token('--bolt-elements-terminal-findMatch-overviewRuler');
+  const activeMatchColorOverviewRuler = token('--bolt-elements-terminal-findMatch-activeOverviewRuler');
+
+  if (!matchOverviewRuler || !activeMatchColorOverviewRuler) {
+    return undefined;
+  }
+
+  return {
+    matchOverviewRuler,
+    activeMatchColorOverviewRuler,
+    matchBackground: token('--bolt-elements-terminal-findMatch-background'),
+    activeMatchBackground: token('--bolt-elements-terminal-findMatch-activeBackground'),
+  };
 }
 
 export const Terminal = memo(
   forwardRef<TerminalRef, TerminalProps>(
-    ({ className, theme, readonly, id, onTerminalReady, onTerminalResize }, ref) => {
+    ({ className, theme, readonly, id, onTerminalReady, onTerminalResize, onOpenSearch, onSearchResults }, ref) => {
       const terminalElementRef = useRef<HTMLDivElement>(null);
       const terminalRef = useRef<XTerm>();
       const fitAddonRef = useRef<FitAddon>();
@@ -37,6 +80,10 @@ export const Terminal = memo(
       const resizeObserverRef = useRef<ResizeObserver>();
       const resizeFrameRef = useRef<number>();
       const recoveryTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+      // Mirror volatile props into a ref so the once-only init effect never sees stale values.
+      const callbacksRef = useRef({ readonly, onOpenSearch, onSearchResults });
+      callbacksRef.current = { readonly, onOpenSearch, onSearchResults };
 
       useEffect(() => {
         const element = terminalElementRef.current!;
@@ -57,11 +104,57 @@ export const Terminal = memo(
           allowProposedApi: true,
           scrollback: 1000,
 
+          // Thin ruler on the right that maps search-match decorations across the whole scrollback.
+          overviewRulerWidth: 8,
+
           // Enable better clipboard handling
           rightClickSelectsWord: true,
         });
 
         terminalRef.current = terminal;
+
+        /*
+         * Terminal-local shortcuts, VS Code style: ⌘K clears the shell and ⌘F opens the
+         * find bar (Ctrl on non-mac). These only ever see events while the terminal owns
+         * focus; the global ⌘K command-palette binding skips terminal-focused events
+         * (see `command.palette` in app/lib/keybindings.ts), so both behaviors coexist.
+         */
+        terminal.attachCustomKeyEventHandler((event) => {
+          if (event.type !== 'keydown') {
+            return true;
+          }
+
+          const modifier = isMac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
+
+          if (!modifier || event.altKey || event.shiftKey) {
+            return true;
+          }
+
+          const key = event.key.toLowerCase();
+
+          if (key === 'k') {
+            if (!callbacksRef.current.readonly) {
+              event.preventDefault();
+              terminal.clear();
+            }
+
+            return false;
+          }
+
+          if (key === 'f') {
+            event.preventDefault();
+            callbacksRef.current.onOpenSearch?.();
+
+            return false;
+          }
+
+          return true;
+        });
+
+        // Surface match count / active index whenever search decorations change.
+        const searchResultsDisposable = searchAddon.onDidChangeResults((results) => {
+          callbacksRef.current.onSearchResults?.(results);
+        });
 
         // Error handling for addon loading
         try {
@@ -131,6 +224,7 @@ export const Terminal = memo(
             }
 
             resizeObserver.disconnect();
+            searchResultsDisposable.dispose();
             terminal.dispose();
           } catch (error) {
             logger.error(`Cleanup error [${id}]:`, error);
@@ -166,11 +260,19 @@ export const Terminal = memo(
           clear: () => {
             terminalRef.current?.clear();
           },
-          findNext: (term: string) => {
-            return searchAddonRef.current?.findNext(term) ?? false;
+          findNext: (term: string, options?: { incremental?: boolean }) => {
+            return (
+              searchAddonRef.current?.findNext(term, {
+                incremental: options?.incremental,
+                decorations: getSearchDecorations(),
+              }) ?? false
+            );
           },
           findPrevious: (term: string) => {
-            return searchAddonRef.current?.findPrevious(term) ?? false;
+            return searchAddonRef.current?.findPrevious(term, { decorations: getSearchDecorations() }) ?? false;
+          },
+          clearSearch: () => {
+            searchAddonRef.current?.clearDecorations();
           },
           fit: () => {
             fitAddonRef.current?.fit();

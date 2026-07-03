@@ -305,6 +305,15 @@
   padding: 0 10px;
 }
 
+.bolt-terminal-find-count {
+  flex: 0 0 auto;
+  color: var(--vc-ide-text-muted, var(--bolt-elements-textTertiary));
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .bolt-terminal-find-row button {
   height: 32px;
   border: 1px solid var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));

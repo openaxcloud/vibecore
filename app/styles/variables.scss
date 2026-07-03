@@ -102,6 +102,12 @@
   --bolt-terminal-brightMagenta: #bc05bc;
   --bolt-terminal-brightCyan: #0598bc;
   --bolt-terminal-brightWhite: #a5a5a5;
+
+  /* Find-in-terminal match highlighting (blue action accent family; backgrounds must stay #RRGGBB for @xterm/addon-search) */
+  --bolt-terminal-findMatch-background: #a8d7f5;
+  --bolt-terminal-findMatch-activeBackground: #58b8f0;
+  --bolt-terminal-findMatch-overviewRuler: #0099ff;
+  --bolt-terminal-findMatch-activeOverviewRuler: #006bb3;
   --modern-scrollbar-thumb-background: rgba(100, 100, 100, 0.3); // Example light theme color
   --modern-scrollbar-thumb-backgroundHover: rgba(74, 74, 74, 0.8);
 }
@@ -211,6 +217,12 @@
   --bolt-terminal-brightMagenta: #ff6ac1;
   --bolt-terminal-brightCyan: #9aedfe;
   --bolt-terminal-brightWhite: #f1f1f0;
+
+  /* Find-in-terminal match highlighting (blue action accent family; backgrounds must stay #RRGGBB for @xterm/addon-search) */
+  --bolt-terminal-findMatch-background: #14446b;
+  --bolt-terminal-findMatch-activeBackground: #1f6fb2;
+  --bolt-terminal-findMatch-overviewRuler: #0099ff;
+  --bolt-terminal-findMatch-activeOverviewRuler: #66c2ff;
   --modern-scrollbar-thumb-background: rgba(100, 100, 100, 0.3); // Example dark theme color (adjust as needed)
   --modern-scrollbar-thumb-backgroundHover: rgba(10, 10, 10, 0.8);
 }
@@ -253,4 +265,8 @@
   --bolt-elements-terminal-color-brightMagenta: var(--bolt-terminal-brightMagenta);
   --bolt-elements-terminal-color-brightCyan: var(--bolt-terminal-brightCyan);
   --bolt-elements-terminal-color-brightWhite: var(--bolt-terminal-brightWhite);
+  --bolt-elements-terminal-findMatch-background: var(--bolt-terminal-findMatch-background);
+  --bolt-elements-terminal-findMatch-activeBackground: var(--bolt-terminal-findMatch-activeBackground);
+  --bolt-elements-terminal-findMatch-overviewRuler: var(--bolt-terminal-findMatch-overviewRuler);
+  --bolt-elements-terminal-findMatch-activeOverviewRuler: var(--bolt-terminal-findMatch-activeOverviewRuler);
 }

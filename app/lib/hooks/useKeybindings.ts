@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import {
   findKeybinding,
   isEditableKeybindingTarget,
+  isTerminalKeyEventTarget,
   serializeKeyEvent,
   type Keybinding,
   type KeybindingContext,
@@ -96,9 +97,19 @@ export function useKeybindings({
     const onKeyDown = (event: KeyboardEvent) => {
       const editableTarget = isEditableKeybindingTarget(event.target);
 
-      const context = {
-        ...getContext(),
+      const baseContext = getContext();
+
+      const context: KeybindingContext = {
+        ...baseContext,
         isEditableTarget: editableTarget,
+
+        /*
+         * Derive terminal focus from the event target itself: consumers compute
+         * focusTarget from the active workspace panel, which can say 'editor'
+         * while the user is actually typing in the bottom terminal. Bindings
+         * with terminal-sensitive `when` clauses (e.g. ⌘K) need the real focus.
+         */
+        focusTarget: isTerminalKeyEventTarget(event.target) ? 'terminal' : baseContext.focusTarget,
       };
 
       const binding = findKeybinding(bindings, serializeKeyEvent(event), context);

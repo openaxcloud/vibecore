@@ -61,8 +61,16 @@ export const defaultProjectKeybindings: Keybinding[] = [
     combo: 'cmd+k',
     action: 'command.palette',
     label: 'Command palette',
-    description: 'Search every project command.',
+    description: 'Search every project command. Inside the terminal, ⌘K clears the shell instead.',
     category: 'Navigation',
+
+    /*
+     * VS Code semantics: while the terminal owns focus, ⌘K belongs to the shell
+     * (clear, handled by the terminal's own key handler) — the palette stays
+     * reachable via ⌘⇧P. Without this guard the window-level capture listener
+     * would swallow the event before xterm ever sees it.
+     */
+    when: (ctx) => ctx.focusTarget !== 'terminal',
     preventDefault: true,
   },
   {
@@ -337,6 +345,16 @@ export function findKeybinding(bindings: Keybinding[], combo: string, ctx: Keybi
   return [...bindings]
     .sort((a, b) => Number(Boolean(b.when)) - Number(Boolean(a.when)))
     .find((binding) => normalizeCombo(binding.combo) === normalized && (!binding.when || binding.when(ctx)));
+}
+
+/**
+ * True when a keyboard event originated inside an xterm.js terminal (xterm
+ * focuses a hidden helper textarea inside its `.xterm` root). Used to make
+ * `KeybindingContext.focusTarget === 'terminal'` truthful for real DOM focus,
+ * not just for "the terminal panel is the active workspace panel".
+ */
+export function isTerminalKeyEventTarget(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && Boolean(target.closest('.xterm'));
 }
 
 export function isEditableKeybindingTarget(target: EventTarget | null) {
