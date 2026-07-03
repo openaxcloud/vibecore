@@ -18,7 +18,21 @@ describe('<LandingVideo />', () => {
     // Default state: not playing, muted.
     expect(screen.getByRole('button', { name: 'Play demo video' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Unmute demo video' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Show captions' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Enter fullscreen' })).toBeTruthy();
+  });
+
+  it('updates the captions label and aria-pressed when toggled', () => {
+    render(<LandingVideo />);
+
+    const captionsButton = screen.getByTestId('button-video-captions-toggle');
+    expect(captionsButton.getAttribute('aria-label')).toBe('Show captions');
+    expect(captionsButton.getAttribute('aria-pressed')).toBe('false');
+
+    fireEvent.click(captionsButton);
+
+    expect(captionsButton.getAttribute('aria-label')).toBe('Hide captions');
+    expect(captionsButton.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('updates the mute label and aria-pressed when toggled', () => {

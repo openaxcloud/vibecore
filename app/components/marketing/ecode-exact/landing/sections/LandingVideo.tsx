@@ -1,12 +1,17 @@
-import { Play, Pause, Volume2, VolumeX, Maximize } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Captions } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { Badge } from '~/components/marketing/ecode-exact/EcodeExactUi';
 
-const modernSoftwareImg = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=2070&auto=format&fit=crop';
+/*
+ * Real product screenshot (also used on the Press page as "AI agent and live cloud IDE"),
+ * so no black rectangle shows before the demo is played.
+ */
+const posterImg = '/ecode-static/assets/product/ide.png';
 
 export default function LandingVideo() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [captionsOn, setCaptionsOn] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   return (
@@ -27,13 +32,15 @@ export default function LandingVideo() {
               <video
                 ref={videoRef}
                 className="w-full h-full object-cover"
-                poster={modernSoftwareImg}
+                poster={posterImg}
+                preload="none"
                 controls={false}
                 muted={isMuted}
                 loop
                 playsInline
               >
                 <source src="/assets/platform-demo.mp4" type="video/mp4" />
+                <track kind="captions" srcLang="en" label="English" src="/captions/landing-demo.en.vtt" />
               </video>
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
@@ -77,6 +84,30 @@ export default function LandingVideo() {
                   data-testid="button-video-mute-toggle"
                 >
                   {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                </button>
+                <button
+                  className={`flex min-h-[44px] min-w-[44px] items-center justify-center transition ${
+                    captionsOn
+                      ? 'text-[var(--ecode-text)]'
+                      : 'text-[var(--ecode-text-muted)] hover:text-[var(--ecode-text)]'
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+
+                    const next = !captionsOn;
+                    const track = videoRef.current?.textTracks?.[0];
+
+                    if (track) {
+                      track.mode = next ? 'showing' : 'hidden';
+                    }
+
+                    setCaptionsOn(next);
+                  }}
+                  aria-label={captionsOn ? 'Hide captions' : 'Show captions'}
+                  aria-pressed={captionsOn}
+                  data-testid="button-video-captions-toggle"
+                >
+                  <Captions className="h-5 w-5" />
                 </button>
                 <div className="flex-1" />
                 <button
