@@ -22,6 +22,7 @@ import { ClientOnly } from 'remix-utils/client-only';
 import { toast } from 'react-toastify';
 
 import { AGENT_APPLIED_TOAST_ID, showCoalescedAppliedToast } from './AppliedFilesToast';
+import { describeSkipReason, parseDotEnv } from './parse-dot-env';
 import { AppliedFilesToastBuffer } from './applied-files-toast-buffer';
 import {
   describeAutoApplyFailure,
@@ -17335,48 +17336,6 @@ function formatLogTime(value?: string) {
   return date.toLocaleTimeString();
 }
 
-/*
- * Parse a pasted .env blob into KEY=value pairs (skips comments/blanks, strips
- * `export ` and surrounding quotes, validates env-var key syntax).
- */
-function parseDotEnv(text: string): Array<{ key: string; value: string }> {
-  const out: Array<{ key: string; value: string }> = [];
-
-  for (const raw of text.split('\n')) {
-    const line = raw.trim();
-
-    if (!line || line.startsWith('#')) {
-      continue;
-    }
-
-    const eq = line.indexOf('=');
-
-    if (eq <= 0) {
-      continue;
-    }
-
-    const key = line
-      .slice(0, eq)
-      .trim()
-      .replace(/^export\s+/, '');
-
-    let value = line.slice(eq + 1).trim();
-
-    if (
-      value.length >= 2 &&
-      ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'")))
-    ) {
-      value = value.slice(1, -1);
-    }
-
-    if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
-      out.push({ key, value });
-    }
-  }
-
-  return out;
-}
-
 function ProjectSecretsPanel({
   projectId,
   data,
@@ -17396,7 +17355,14 @@ function ProjectSecretsPanel({
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState('');
   const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
+  const [importFailures, setImportFailures] = useState<Array<{ key: string; error: string }>>([]);
   const secrets = data.secrets ?? [];
+
+  // Live preview of the pasted .env block: parsed entries + honestly-reported skipped lines.
+  const importPreview = useMemo(() => parseDotEnv(importText), [importText]);
+  const existingSecretKeys = useMemo(() => new Set<string>(secrets.map((secret: any) => secret.key)), [secrets]);
+  const overwriteCount = importPreview.entries.filter((entry) => existingSecretKeys.has(entry.key)).length;
 
   // Fetch a secret's real value (reveal endpoint); shared by copy-value + reveal.
   async function fetchSecretValue(key: string): Promise<string | undefined> {
@@ -17417,15 +17383,17 @@ function ProjectSecretsPanel({
   }
 
   /*
-   * Replit-style bulk .env import: parse the paste, upsert each via the existing
-   * secrets intent, then refresh the list.
+   * Replit-style bulk .env import: the pasted block is parsed live into the
+   * preview table; confirming upserts each entry sequentially via the existing
+   * secrets intent (real per-project secrets API), surfacing per-key failures
+   * and progress, then refreshes the list.
    */
   async function handleImport() {
     if (!projectId) {
       return;
     }
 
-    const entries = parseDotEnv(importText);
+    const { entries } = importPreview;
 
     if (!entries.length) {
       setMessage('No KEY=value lines found to import.');
@@ -17433,32 +17401,53 @@ function ProjectSecretsPanel({
     }
 
     setImporting(true);
+    setImportProgress({ done: 0, total: entries.length });
+    setImportFailures([]);
 
-    let ok = 0;
+    const failures: Array<{ key: string; error: string }> = [];
 
     try {
-      for (const { key, value } of entries) {
+      for (const [index, { key, value }] of entries.entries()) {
         const form = new FormData();
         form.append('intent', 'upsert');
         form.append('key', key);
         form.append('value', value);
 
-        const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets`, {
-          method: 'POST',
-          body: form,
-        });
+        try {
+          const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets`, {
+            method: 'POST',
+            body: form,
+          });
 
-        if (response.ok) {
-          ok += 1;
+          if (!response.ok) {
+            const result = (await response.json().catch(() => null)) as any;
+            failures.push({ key, error: String(result?.error ?? `HTTP ${response.status}`) });
+          }
+        } catch (error) {
+          failures.push({ key, error: error instanceof Error ? error.message : 'Network error' });
         }
+
+        setImportProgress({ done: index + 1, total: entries.length });
       }
 
-      setMessage(`Imported ${ok}/${entries.length} secret${entries.length === 1 ? '' : 's'} from .env.`);
-      setImportText('');
-      setImportOpen(false);
+      const ok = entries.length - failures.length;
+
+      if (failures.length) {
+        // Keep the section open so the user can see and retry what failed.
+        setImportFailures(failures);
+        setMessage(
+          `Imported ${ok}/${entries.length} secret${entries.length === 1 ? '' : 's'} — ${failures.length} failed.`,
+        );
+      } else {
+        setMessage(`Imported ${ok}/${entries.length} secret${entries.length === 1 ? '' : 's'} from .env.`);
+        setImportText('');
+        setImportOpen(false);
+      }
+
       await reload?.();
     } finally {
       setImporting(false);
+      setImportProgress(null);
     }
   }
 
@@ -17552,7 +17541,14 @@ function ProjectSecretsPanel({
           required
         />
         <PanelButton disabled={busy}>{editingKey ? 'Update secret' : '+ New secret'}</PanelButton>
-        <PanelButton type="button" variant="outline" onClick={() => setImportOpen((open) => !open)}>
+        <PanelButton
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setImportOpen((open) => !open);
+            setImportFailures([]);
+          }}
+        >
           Import .env
         </PanelButton>
       </form>
@@ -17564,15 +17560,96 @@ function ProjectSecretsPanel({
             ignored)
             <textarea
               value={importText}
-              onChange={(event) => setImportText(event.target.value)}
+              onChange={(event) => {
+                setImportText(event.target.value);
+                setImportFailures([]);
+              }}
               placeholder={'DATABASE_URL=postgres://…\nSTRIPE_SECRET_KEY=sk_live_…'}
               spellCheck={false}
-              className="min-h-28 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2 font-mono text-xs text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+              style={{ fontFamily: 'var(--vc-font-code)' }}
+              className="min-h-28 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2 text-xs text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
             />
           </label>
+
+          {importPreview.entries.length ? (
+            <div className="grid gap-1">
+              <span className="text-xs text-bolt-elements-textSecondary">
+                {importPreview.entries.length} secret{importPreview.entries.length === 1 ? '' : 's'} to import
+                {overwriteCount
+                  ? ` — ${overwriteCount} overwrite${overwriteCount === 1 ? 's' : ''} existing value${overwriteCount === 1 ? '' : 's'}`
+                  : ''}
+              </span>
+              <div className="grid gap-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2">
+                {importPreview.entries.map((entry) => (
+                  <div key={entry.key} className="flex items-center gap-2 text-xs">
+                    <span
+                      className="font-medium text-bolt-elements-textPrimary"
+                      style={{ fontFamily: 'var(--vc-font-code)' }}
+                    >
+                      {entry.key}
+                    </span>
+                    <span className="text-bolt-elements-textTertiary" aria-label="Value hidden">
+                      •••
+                    </span>
+                    {existingSecretKeys.has(entry.key) ? (
+                      <span
+                        className="rounded-sm px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+                        style={{
+                          background: 'color-mix(in srgb, var(--vc-ide-accent-warning) 12%, transparent)',
+                          borderLeft: '3px solid var(--vc-ide-accent-warning)',
+                          color: 'var(--vc-ide-accent-warning)',
+                        }}
+                      >
+                        overwrites existing
+                      </span>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {importPreview.skipped.length ? (
+            <div
+              className="grid gap-1 rounded-md p-2 text-xs"
+              style={{
+                background: 'color-mix(in srgb, var(--vc-ide-accent-warning) 12%, transparent)',
+                borderLeft: '3px solid var(--vc-ide-accent-warning)',
+              }}
+            >
+              <span className="font-medium" style={{ color: 'var(--vc-ide-accent-warning)' }}>
+                {importPreview.skipped.length} line{importPreview.skipped.length === 1 ? '' : 's'} will be skipped
+              </span>
+              {importPreview.skipped.map((skippedLine) => (
+                <span key={skippedLine.line} className="text-bolt-elements-textSecondary">
+                  Line {skippedLine.line} ({describeSkipReason(skippedLine.reason)}):{' '}
+                  <span style={{ fontFamily: 'var(--vc-font-code)' }}>{skippedLine.text}</span>
+                </span>
+              ))}
+            </div>
+          ) : null}
+
+          {importFailures.length ? (
+            <div className="grid gap-1 text-xs text-bolt-elements-icon-error">
+              {importFailures.map((failure) => (
+                <span key={failure.key}>
+                  <span style={{ fontFamily: 'var(--vc-font-code)' }}>{failure.key}</span>: {failure.error}
+                </span>
+              ))}
+            </div>
+          ) : null}
+
           <div className="flex items-center gap-2">
-            <PanelButton type="button" onClick={() => void handleImport()} disabled={importing || !importText.trim()}>
-              {importing ? 'Importing…' : 'Import secrets'}
+            <PanelButton
+              type="button"
+              onClick={() => void handleImport()}
+              disabled={importing || !importPreview.entries.length}
+            >
+              {importing && importProgress
+                ? `Importing ${importProgress.done}/${importProgress.total}…`
+                : importPreview.entries.length
+                  ? `Import ${importPreview.entries.length} secret${importPreview.entries.length === 1 ? '' : 's'}`
+                  : 'Import secrets'}
             </PanelButton>
             <PanelButton type="button" variant="outline" onClick={() => setImportOpen(false)} disabled={importing}>
               Cancel
