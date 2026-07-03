@@ -15436,6 +15436,59 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { membership };
   });
+  app.post('/orgs/:orgId/memberships/:userId/transfer-ownership', async (request, reply) => {
+    const { orgId, userId } = parse(membershipParams, request.params);
+    const member = await requireOrg(request, store, orgId, 'members:manage');
+
+    /*
+     * Only a current OWNER may transfer ownership. members:manage alone (admin,
+     * or a custom member-manager role) must not be able to mint a new owner —
+     * requireRoleAssignableByCaller would reject them anyway, but the explicit
+     * check yields a clearer error for the UI.
+     */
+    if (member.roleKey !== 'owner') {
+      return reply
+        .code(403)
+        .send({ error: 'Only an organization owner can transfer ownership', code: 'RBAC_FORBIDDEN' });
+    }
+
+    if (userId === member.userId) {
+      return reply
+        .code(400)
+        .send({ error: 'You already own this organization', code: 'TRANSFER_TO_SELF' });
+    }
+
+    const target = await store.getMembership(userId, orgId);
+
+    if (!target) {
+      return reply.code(404).send({ error: 'Membership not found', code: 'MEMBERSHIP_NOT_FOUND' });
+    }
+
+    /*
+     * Atomic hand-off, serialized with the other member mutations (same
+     * `org-members:` key as the last-owner guards). Promote the new owner FIRST,
+     * then demote the caller — a failure between the two steps can only leave
+     * the org with TWO owners (recoverable), never zero (lockout). Because the
+     * caller is demoted in the same serialized block, the org always keeps at
+     * least one owner, so no last-owner check is needed here.
+     */
+    const result = await store.withSerializedMutation(`org-members:${orgId}`, async () => {
+      const promoted = await store.addMember({ organizationId: orgId, userId, roleKey: 'owner' });
+      const demoted = await store.addMember({ organizationId: orgId, userId: member.userId, roleKey: 'admin' });
+
+      return { promoted, demoted };
+    });
+
+    await audit(request, store, {
+      organizationId: orgId,
+      action: 'member.transferOwnership',
+      resourceType: 'organizationMember',
+      resourceId: result.promoted.id,
+      metadata: { fromUserId: member.userId, toUserId: userId },
+    });
+
+    return { membership: result.promoted, previousOwner: result.demoted };
+  });
   app.delete('/orgs/:orgId/memberships/:userId', async (request, reply) => {
     const { orgId, userId } = parse(membershipParams, request.params);
     const member = await requireOrg(request, store, orgId, 'members:manage');

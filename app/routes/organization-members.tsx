@@ -1,7 +1,10 @@
+import * as RadixDialog from '@radix-ui/react-dialog';
+import { useState } from 'react';
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useLoaderData } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from 'react-router';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
+import { Dialog, DialogTitle } from '~/components/ui/Dialog';
 import {
   apiRequest,
   apiErrorMessage,
@@ -24,7 +27,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   }
 
   try {
-    const [membersResult, rolesResult] = await Promise.all([
+    const [membersResult, rolesResult, orgResult] = await Promise.all([
       apiRequest<{ memberships: Array<{ id: string; userId: string; roleKey: string }> }>(
         request,
         `/orgs/${organization.id}/memberships`,
@@ -33,11 +36,15 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         request,
         `/orgs/${organization.id}/roles`,
       ),
+
+      // Org name feeds the type-to-confirm check in the transfer-ownership dialog.
+      apiRequest<{ organization: { id: string; name: string } | null }>(request, `/orgs/${organization.id}`),
     ]);
 
     return json({
       forbidden: false as const,
       orgId: organization.id,
+      orgName: orgResult.organization?.name ?? organization.id,
       memberships: membersResult.memberships,
       roles: [
         { key: 'viewer', name: 'Viewer' },
@@ -56,6 +63,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       return json({
         forbidden: true as const,
         orgId: organization.id,
+        orgName: '',
         memberships: [] as Array<{ id: string; userId: string; roleKey: string }>,
         roles: [] as Array<{ key: string; name: string }>,
       });
@@ -91,6 +99,14 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json({ status: 'Member role updated.' });
     }
 
+    if (body.intent === 'transfer') {
+      // Atomic server-side hand-off: promotes the target, demotes the caller.
+      await apiRequest(request, `/orgs/${body.orgId}/memberships/${body.userId}/transfer-ownership`, {
+        method: 'POST',
+      });
+      return json({ status: 'Ownership transferred. You are now an admin of this organization.' });
+    }
+
     await apiRequest(request, `/orgs/${body.orgId}/memberships`, {
       method: 'POST',
       body: JSON.stringify({ userId: body.userId, roleKey: body.roleKey }),
@@ -109,9 +125,35 @@ export async function action({ request }: EnterpriseActionArgs) {
   }
 }
 
+const LAST_OWNER_HINT = 'The last owner cannot be demoted. Transfer ownership to another member first.';
+
 export default function OrganizationMembersPage() {
-  const { forbidden, orgId, memberships, roles } = useLoaderData<typeof loader>();
+  const { forbidden, orgId, orgName, memberships, roles } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
+  const submit = useSubmit();
+  const navigation = useNavigation();
+  const busy = navigation.state !== 'idle';
+
+  // userId of the member the transfer-ownership dialog is open for, or null.
+  const [transferTarget, setTransferTarget] = useState<string | null>(null);
+  const [confirmText, setConfirmText] = useState('');
+
+  const ownerCount = memberships.filter((member) => member.roleKey === 'owner').length;
+  const confirmMatches = confirmText.trim() === orgName;
+
+  const closeTransferDialog = () => {
+    setTransferTarget(null);
+    setConfirmText('');
+  };
+
+  const confirmTransfer = () => {
+    if (!transferTarget || !confirmMatches) {
+      return;
+    }
+
+    submit({ intent: 'transfer', orgId, userId: transferTarget }, { method: 'post' });
+    closeTransferDialog();
+  };
 
   if (forbidden) {
     return (
@@ -160,64 +202,149 @@ export default function OrganizationMembersPage() {
               Role changes are persisted through the organization membership API.
             </p>
           </div>
-          {memberships.map((member) => (
-            <div
-              key={member.id}
-              className="grid gap-3 border-b border-bolt-elements-borderColor p-4 last:border-b-0 md:grid-cols-[minmax(0,1fr)_minmax(180px,220px)_auto]"
-            >
-              <div className="min-w-0">
-                <div className="truncate font-medium text-bolt-elements-textPrimary">{member.userId}</div>
-                <div className="text-xs text-bolt-elements-textSecondary">{member.roleKey}</div>
-              </div>
-              <Form method="post" className="flex gap-2">
-                <input type="hidden" name="intent" value="update" />
-                <input type="hidden" name="orgId" value={orgId} />
-                <input type="hidden" name="userId" value={member.userId} />
-                <select
-                  name="roleKey"
-                  aria-label={`Role for ${member.userId}`}
-                  defaultValue={member.roleKey}
-                  className="h-9 min-w-0 flex-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2"
-                >
-                  {roles.map((role) => (
-                    <option key={role.key} value={role.key}>
-                      {role.name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  className="rounded-md border border-bolt-elements-borderColor px-3 text-xs"
-                  type="submit"
-                  aria-label={`Update role for ${member.userId}`}
-                >
-                  Update
-                </button>
-              </Form>
-              <Form
-                method="post"
-                onSubmit={(event) => {
-                  // Destructive: confirm before removing a member from the org.
-                  if (!window.confirm('Remove this member from the organization? They will lose access.')) {
-                    event.preventDefault();
-                  }
-                }}
+          {memberships.map((member) => {
+            /*
+             * Client-side mirror of the server's LAST_OWNER guard: the only
+             * remaining owner cannot be demoted or removed — ownership must be
+             * transferred first.
+             */
+            const isLastOwner = member.roleKey === 'owner' && ownerCount <= 1;
+
+            return (
+              <div
+                key={member.id}
+                className="grid gap-3 border-b border-bolt-elements-borderColor p-4 last:border-b-0 md:grid-cols-[minmax(0,1fr)_minmax(180px,220px)_auto]"
               >
-                <input type="hidden" name="intent" value="remove" />
-                <input type="hidden" name="orgId" value={orgId} />
-                <input type="hidden" name="userId" value={member.userId} />
-                <button
-                  className="h-9 rounded-md border border-bolt-elements-borderColor px-3 text-xs"
-                  type="submit"
-                  aria-label={`Remove ${member.userId}`}
-                >
-                  Remove
-                </button>
-              </Form>
-            </div>
-          ))}
+                <div className="min-w-0">
+                  <div className="truncate font-medium text-bolt-elements-textPrimary">{member.userId}</div>
+                  <div className="text-xs text-bolt-elements-textSecondary">{member.roleKey}</div>
+                </div>
+                <Form method="post" className="flex gap-2" title={isLastOwner ? LAST_OWNER_HINT : undefined}>
+                  <input type="hidden" name="intent" value="update" />
+                  <input type="hidden" name="orgId" value={orgId} />
+                  <input type="hidden" name="userId" value={member.userId} />
+                  <select
+                    name="roleKey"
+                    aria-label={`Role for ${member.userId}`}
+                    defaultValue={member.roleKey}
+                    disabled={isLastOwner}
+                    title={isLastOwner ? LAST_OWNER_HINT : undefined}
+                    className="h-9 min-w-0 flex-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {roles.map((role) => (
+                      <option key={role.key} value={role.key}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="rounded-md border border-bolt-elements-borderColor px-3 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                    type="submit"
+                    disabled={isLastOwner}
+                    title={isLastOwner ? LAST_OWNER_HINT : undefined}
+                    aria-label={`Update role for ${member.userId}`}
+                  >
+                    Update
+                  </button>
+                </Form>
+                <div className="flex gap-2">
+                  {member.roleKey !== 'owner' && (
+                    <button
+                      type="button"
+                      onClick={() => setTransferTarget(member.userId)}
+                      className="h-9 rounded-md border border-bolt-elements-borderColor px-3 text-xs hover:bg-bolt-elements-background-depth-3"
+                      title="Make this member the organization owner. You will be demoted to admin."
+                      aria-label={`Transfer ownership to ${member.userId}`}
+                    >
+                      Transfer ownership
+                    </button>
+                  )}
+                  <Form
+                    method="post"
+                    onSubmit={(event) => {
+                      // Destructive: confirm before removing a member from the org.
+                      if (!window.confirm('Remove this member from the organization? They will lose access.')) {
+                        event.preventDefault();
+                      }
+                    }}
+                  >
+                    <input type="hidden" name="intent" value="remove" />
+                    <input type="hidden" name="orgId" value={orgId} />
+                    <input type="hidden" name="userId" value={member.userId} />
+                    <button
+                      className="h-9 rounded-md border border-bolt-elements-borderColor px-3 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                      type="submit"
+                      disabled={isLastOwner}
+                      title={isLastOwner ? 'The last owner cannot be removed. Transfer ownership first.' : undefined}
+                      aria-label={`Remove ${member.userId}`}
+                    >
+                      Remove
+                    </button>
+                  </Form>
+                </div>
+              </div>
+            );
+          })}
           {memberships.length === 0 && <div className="p-4 text-bolt-elements-textSecondary">No members found.</div>}
         </section>
       </div>
+
+      <RadixDialog.Root open={transferTarget !== null} onOpenChange={(open) => !open && closeTransferDialog()}>
+        {transferTarget !== null ? (
+          <Dialog onClose={closeTransferDialog} onBackdrop={closeTransferDialog}>
+            <div className="p-6">
+              <DialogTitle asChild>
+                <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Transfer ownership</h2>
+              </DialogTitle>
+              <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+                <span className="font-medium text-bolt-elements-textPrimary">{transferTarget}</span> will become the
+                owner of <span className="font-medium text-bolt-elements-textPrimary">{orgName}</span> and you will be
+                demoted to admin. This cannot be undone by you.
+              </p>
+
+              <div className="mt-4">
+                <label
+                  htmlFor="transfer-confirm-name"
+                  className="block text-sm font-medium text-bolt-elements-textPrimary"
+                >
+                  Type <span className="font-semibold">{orgName}</span> to confirm
+                </label>
+                <input
+                  id="transfer-confirm-name"
+                  type="text"
+                  value={confirmText}
+                  onChange={(event) => setConfirmText(event.target.value)}
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder={orgName}
+                  className="mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none"
+                />
+              </div>
+
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={closeTransferDialog}
+                  className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmTransfer}
+                  disabled={!confirmMatches || busy}
+                  aria-busy={busy}
+                  style={{ color: 'var(--status-error-text)' }}
+                  title={confirmMatches ? undefined : 'Type the organization name exactly to enable the transfer.'}
+                  className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 text-sm font-medium transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {busy ? 'Transferring…' : 'Transfer ownership'}
+                </button>
+              </div>
+            </div>
+          </Dialog>
+        ) : null}
+      </RadixDialog.Root>
     </AppShell>
   );
 }

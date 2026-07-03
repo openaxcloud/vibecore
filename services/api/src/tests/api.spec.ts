@@ -1187,6 +1187,68 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('transfers organization ownership atomically and guards the transfer endpoint', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const owner = await register(app, { email: 'transfer-owner@example.com', organizationName: 'Transfer Org' });
+    const adminUser = await register(app, {
+      email: 'transfer-admin@example.com',
+      organizationName: 'Transfer Admin Org',
+    });
+    const outsider = await register(app, {
+      email: 'transfer-outsider@example.com',
+      organizationName: 'Transfer Outsider Org',
+    });
+    await store.addMember({ organizationId: owner.organization.id, userId: adminUser.user.id, roleKey: 'admin' });
+
+    // An admin (members:manage, but not owner) must not be able to grab ownership.
+    const adminAttempt = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/memberships/${adminUser.user.id}/transfer-ownership`,
+      headers: { authorization: `Bearer ${adminUser.token}` },
+    });
+    expect(adminAttempt.statusCode).toBe(403);
+
+    // Transferring to yourself is a no-op error.
+    const selfAttempt = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/memberships/${owner.user.id}/transfer-ownership`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(selfAttempt.statusCode).toBe(400);
+
+    // Target must already be a member of the org.
+    const nonMemberAttempt = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/memberships/${outsider.user.id}/transfer-ownership`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(nonMemberAttempt.statusCode).toBe(404);
+
+    // Real transfer: target promoted to owner, caller demoted to admin, atomically.
+    const transfer = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/memberships/${adminUser.user.id}/transfer-ownership`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(transfer.statusCode).toBe(200);
+    expect(transfer.json().membership.roleKey).toBe('owner');
+    expect(transfer.json().previousOwner.roleKey).toBe('admin');
+    expect((await store.getMembership(adminUser.user.id, owner.organization.id))?.roleKey).toBe('owner');
+    expect((await store.getMembership(owner.user.id, owner.organization.id))?.roleKey).toBe('admin');
+
+    // The demoted previous owner can no longer demote the new owner.
+    const demoteNewOwner = await app.inject({
+      method: 'PATCH',
+      url: `/orgs/${owner.organization.id}/memberships/${adminUser.user.id}`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { roleKey: 'member' },
+    });
+    expect(demoteNewOwner.statusCode).toBe(403);
+
+    await app.close();
+  });
+
   it('blocks an org admin from minting a custom role with permissions they do not hold', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
