@@ -67,7 +67,8 @@ const EMPTY_CREDITS: CreditsData = {
   packCatalog: [],
 };
 
-const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+// Prices are shown in euros with the same figures as Replit (symbol €, no conversion).
+const dollars = (cents: number) => `€${(cents / 100).toFixed(2)}`;
 
 type SpendTone = 'none' | 'ok' | 'warn' | 'critical' | 'reached';
 
@@ -218,7 +219,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json(
         {
           error:
-            'A $0 cap blocks all usage-based spend. Leave blank for no cap, or enter $0.01 to restrict to credits.',
+            'A €0 cap blocks all usage-based spend. Leave blank for no cap, or enter €0.01 to restrict to credits.',
         },
         { status: 400 },
       );
@@ -442,7 +443,7 @@ export default function BillingPage() {
             {
               label: 'Current plan',
               value: billing.plan.name,
-              detail: `$${(billing.plan.monthlyCents / 100).toFixed(0)} per month`,
+              detail: `€${(billing.plan.monthlyCents / 100).toFixed(0)} per month`,
               icon: CreditCard,
             },
             {
@@ -518,8 +519,8 @@ export default function BillingPage() {
               ) : null}
             </div>
             <p className="mb-3 text-xs text-bolt-elements-textSecondary">
-              Cap usage-based spend beyond your included credits. Leave blank for no cap; set $0.01 to restrict to
-              credits only. Org limits are set in $500 increments.
+              Cap usage-based spend beyond your included credits. Leave blank for no cap; set €0.01 to restrict to
+              credits only. Org limits are set in €500 increments.
             </p>
             {!credits.creditsEnabled ? (
               <p className="mb-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-300">
@@ -538,7 +539,7 @@ export default function BillingPage() {
             ) : null}
             <Form method="post" className="flex flex-wrap items-center gap-2">
               <input type="hidden" name="intent" value="set-limits" />
-              <span className="text-sm text-bolt-elements-textSecondary">$</span>
+              <span className="text-sm text-bolt-elements-textSecondary">€</span>
               <input
                 type="number"
                 name="budgetCapDollars"
@@ -547,13 +548,13 @@ export default function BillingPage() {
                 defaultValue={credits.budgetCapCents != null ? (credits.budgetCapCents / 100).toString() : ''}
                 placeholder="No cap"
                 aria-label="Spend limit in dollars"
-                title="Set in $500 increments, or $0.01 to cap spend at your current credits."
+                title="Set in €500 increments, or €0.01 to cap spend at your current credits."
                 className="w-32 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-1.5 text-sm text-bolt-elements-textPrimary"
               />
               <span className="w-full text-[11px] text-bolt-elements-textSecondary sm:w-auto">
-                $500 increments (or $0.01 to cap at credits)
+                €500 increments (or €0.01 to cap at credits)
               </span>
-              <span className="w-full text-sm text-bolt-elements-textSecondary sm:ml-2 sm:w-auto">Hard stop $</span>
+              <span className="w-full text-sm text-bolt-elements-textSecondary sm:ml-2 sm:w-auto">Hard stop €</span>
               <input
                 type="number"
                 name="serviceShutdownDollars"

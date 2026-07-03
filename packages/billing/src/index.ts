@@ -631,7 +631,7 @@ export class StripeBillingClient {
   async createRecurringPrice(input: { productId: string; planKey: PlanKey; unitAmountCents: number; currency?: string; interval?: 'month' | 'year' }) {
     return this.postForm('/v1/prices', {
       product: input.productId,
-      currency: input.currency ?? 'usd',
+      currency: input.currency ?? 'eur',
       unit_amount: String(input.unitAmountCents),
       'recurring[interval]': input.interval ?? 'month',
       'metadata[planKey]': input.planKey,
@@ -653,7 +653,7 @@ export class StripeBillingClient {
   }) {
     return this.postForm('/v1/prices', {
       product: input.productId,
-      currency: input.currency ?? 'usd',
+      currency: input.currency ?? 'eur',
       unit_amount: String(input.unitAmountCents),
       ...(input.nickname ? { nickname: input.nickname } : {}),
       'metadata[creditPackSku]': input.creditPackSku,
@@ -674,7 +674,7 @@ export class StripeBillingClient {
   }) {
     return this.postForm('/v1/prices', {
       product: input.productId,
-      currency: input.currency ?? 'usd',
+      currency: input.currency ?? 'eur',
       unit_amount: String(input.unitAmountCents),
       nickname: input.nickname,
       'recurring[interval]': input.interval ?? 'month',

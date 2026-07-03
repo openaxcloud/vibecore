@@ -16,7 +16,7 @@ export const meta: MetaFunction = () => {
     {
       name: 'description',
       content:
-        'E-Code pricing: Starter (free daily Agent credits), Core $25/mo ($20 annual), Pro $100/mo ($95 annual), and Enterprise. Monthly or annual billing with included credits, parallel agents, collaborators and more.',
+        'E-Code pricing: Starter (free daily Agent credits), Core €25/mo (€20 annual), Pro €100/mo (€95 annual), and Enterprise. Monthly or annual billing with included credits, parallel agents, collaborators and more.',
     },
     ...socialMetaTags({
       title: 'E-Code Pricing',

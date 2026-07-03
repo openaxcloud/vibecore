@@ -106,7 +106,7 @@ export default function Pricing() {
     core: {
       icon: <Star className="h-6 w-6" />,
       gradient: 'from-[var(--ecode-accent)] to-[var(--ecode-accent)]/80',
-      description: '$25/mo of credits, collaborators and any-region publishing',
+      description: '€25/mo of credits, collaborators and any-region publishing',
       popular: true,
       ctaVariant: 'default',
     },
@@ -141,7 +141,7 @@ export default function Pricing() {
       { text: 'Parallel agents', included: false },
     ],
     core: [
-      { text: '$25/mo of credits', included: true, highlight: true },
+      { text: '€25/mo of credits', included: true, highlight: true },
       { text: 'Invite up to 5 collaborators', included: true },
       { text: 'Work in parallel with up to 2 agents', included: true, highlight: true },
       { text: 'Unlimited workspaces', included: true },
@@ -151,7 +151,7 @@ export default function Pricing() {
       { text: 'Pay-as-you-go beyond credits', included: true },
     ],
     teams: [
-      { text: '$100/mo of credits', included: true, highlight: true },
+      { text: '€100/mo of credits', included: true, highlight: true },
       { text: 'Invite up to 15 collaborators', included: true },
       { text: 'Invite up to 50 viewers', included: true },
       { text: 'Work in parallel with up to 10 agents', included: true, highlight: true },
@@ -553,7 +553,7 @@ export default function Pricing() {
                               className="text-4xl font-bold text-[var(--ecode-text)]"
                               data-testid={`text-price-${tier.name.toLowerCase()}`}
                             >
-                              ${billingPeriod === 'monthly' ? tier.monthlyPrice : tier.yearlyPrice}
+                              €{billingPeriod === 'monthly' ? tier.monthlyPrice : tier.yearlyPrice}
                             </span>
                             <span className="text-[var(--ecode-text-muted)]" data-testid="text-billing-interval">
                               /month
@@ -564,7 +564,7 @@ export default function Pricing() {
                               className="mkt-small text-[var(--ecode-accent)] mt-1 font-medium"
                               data-testid={`text-yearly-savings-${tier.name.toLowerCase()}`}
                             >
-                              Save ${(tier.monthlyPrice - tier.yearlyPrice) * 12}/yr
+                              Save €{(tier.monthlyPrice - tier.yearlyPrice) * 12}/yr
                             </p>
                           )}
                         </div>

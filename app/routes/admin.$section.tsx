@@ -1241,7 +1241,7 @@ type ProviderHealthRow = {
   error?: string;
 };
 
-const usd = (cents: number) => `$${(cents / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+const usd = (cents: number) => `€${(cents / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 
 /*
  * Structured shape returned by GET /admin/platform-metrics, which reads the SAME

@@ -89,7 +89,7 @@ export default function UsagePage() {
   const overrides = data.overrides ?? [];
   const overrideFor = (key: string) => overrides.find((override) => override.key === key);
   const breakdown = data.breakdown;
-  const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+  const dollars = (cents: number) => `€${(cents / 100).toFixed(2)}`;
 
   const iconFor: Record<string, typeof Sparkles> = {
     agent: Sparkles,

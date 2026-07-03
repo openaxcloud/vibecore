@@ -159,7 +159,7 @@ export const ecodePricingPlans = [
   {
     key: 'core',
     name: 'Core',
-    description: '$25/mo of credits, collaborators and any-region publishing',
+    description: '€25/mo of credits, collaborators and any-region publishing',
     monthlyCents: 2500,
     annualMonthlyCents: 2000,
     cta: 'Get Core',
@@ -168,7 +168,7 @@ export const ecodePricingPlans = [
     icon: <Zap className="h-7 w-7" aria-hidden />,
     gradient: 'from-[var(--ecode-accent)] to-amber-500',
     features: [
-      '$25/mo of credits',
+      '€25/mo of credits',
       'Up to 5 collaborators',
       'Up to 2 parallel agents',
       'Unlimited workspaces',
@@ -189,7 +189,7 @@ export const ecodePricingPlans = [
     icon: <Rocket className="h-7 w-7" aria-hidden />,
     gradient: 'from-[var(--ecode-accent)] to-[#F99D25]',
     features: [
-      '$100/mo of credits',
+      '€100/mo of credits',
       'Up to 15 collaborators',
       'Up to 50 viewers',
       'Up to 10 parallel agents',
@@ -1345,7 +1345,7 @@ export function EcodePricingPage() {
                       </div>
                       {billingPeriod === 'yearly' && plan.monthlyCents > 0 ? (
                         <p className="mt-1 text-sm font-medium text-[var(--ecode-accent)]">
-                          billed annually (${(plan.annualMonthlyCents * 12) / 100}/yr)
+                          billed annually (€{(plan.annualMonthlyCents * 12) / 100}/yr)
                         </p>
                       ) : null}
                     </>
@@ -1382,8 +1382,8 @@ export function EcodePricingPage() {
               </thead>
               <tbody>
                 {[
-                  ['Monthly price', 'Free', '$25', '$100', 'Custom'],
-                  ['Monthly credits', 'Daily', '$25', '$100', 'Custom'],
+                  ['Monthly price', 'Free', '€25', '€100', 'Custom'],
+                  ['Monthly credits', 'Daily', '€25', '€100', 'Custom'],
                   ['Collaborators', '1', '5', '15', 'Custom'],
                   ['Viewers', '-', '-', '50', 'Custom'],
                   ['Parallel agents', '1', '2', '10', 'Custom'],
@@ -2240,5 +2240,5 @@ function DeploymentStatusCard() {
 }
 
 function formatMonthlyPrice(cents: number) {
-  return cents === 0 ? '$0' : `$${Math.round(cents / 100)}`;
+  return cents === 0 ? '€0' : `€${Math.round(cents / 100)}`;
 }

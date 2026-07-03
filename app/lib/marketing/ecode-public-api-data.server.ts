@@ -77,7 +77,7 @@ const planDefinitions = {
     },
     features: [
       'Full AI Agent access',
-      '$25 of monthly credits',
+      '€25 of monthly credits',
       'Private and public apps',
       'Access to latest models',
       'Publish and host live apps',
@@ -103,7 +103,7 @@ const planDefinitions = {
     },
     features: [
       'Everything included with E-Code Core',
-      '$40/mo in usage credits included',
+      '€40/mo in usage credits included',
       'Credits granted upfront on annual plan',
       '50 Viewer seats',
       'Centralized billing',

@@ -1936,7 +1936,7 @@ export function statsFromUsage(input?: {
     },
     {
       label: 'AI cost',
-      value: `$${((input?.aiCostCents ?? 0) / 100).toFixed(2)}`,
+      value: `€${((input?.aiCostCents ?? 0) / 100).toFixed(2)}`,
       detail: `${input?.usageEvents ?? 0} usage events recorded`,
       icon: Sparkles,
       to: '/usage',
