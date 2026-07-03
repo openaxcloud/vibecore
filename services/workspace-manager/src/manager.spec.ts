@@ -1,7 +1,11 @@
+import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { K8sObject, WorkspaceK8sClient } from '@vibecore/k8s-client';
 import type { WorkspaceEvent } from '@vibecore/workspace-sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  JsonWorkspaceStore,
   WorkspaceManager,
   detectPodTerminalFailure,
   resolveAgentBaseUrl,
@@ -734,5 +738,71 @@ describe('resolveAgentBaseUrl — start-gate URL parity with app.ts agentBaseUrl
     process.env.WORKSPACE_AGENT_BASE_URL = 'http://base-{workspaceId}.svc:8080';
 
     expect(resolveAgentBaseUrl('ws-4', 'ns-c')).toBe('http://template-ws-4.svc:8080');
+  });
+});
+
+describe('JsonWorkspaceStore corrupted registry handling', () => {
+  let dir: string;
+  let filePath: string;
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'ws-store-'));
+    filePath = join(dir, 'workspaces.json');
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  const makeRecord = (id: string): WorkspaceRecord => ({
+    id,
+    orgId: 'org-a',
+    projectId: 'proj-a',
+    plan: 'free',
+    status: 'RUNNING',
+    pvcName: `${id}-pvc`,
+    podName: `${id}-pod`,
+    serviceName: `${id}-svc`,
+    agentTokenSecretName: `${id}-secret`,
+    createdAt: '2026-07-03T00:00:00.000Z',
+    lastActiveAt: '2026-07-03T00:00:00.000Z',
+  });
+
+  it('reads a well-formed registry', async () => {
+    await writeFile(filePath, JSON.stringify([makeRecord('ws-keep')]));
+    const store = new JsonWorkspaceStore(filePath);
+
+    expect(await store.get('ws-keep')).toMatchObject({ id: 'ws-keep' });
+  });
+
+  it('throws an actionable error on invalid JSON instead of a bare SyntaxError', async () => {
+    await writeFile(filePath, '[{"id":"ws-keep"'); // truncated mid-write
+
+    const store = new JsonWorkspaceStore(filePath);
+
+    await expect(store.list()).rejects.toThrow(/corrupted \(invalid JSON\)/);
+  });
+
+  it('throws on valid-but-non-array JSON (would otherwise crash .map)', async () => {
+    await writeFile(filePath, '{}');
+
+    const store = new JsonWorkspaceStore(filePath);
+
+    await expect(store.list()).rejects.toThrow(/expected a JSON array/);
+  });
+
+  it('does NOT overwrite a corrupted registry on a failed read-modify-write', async () => {
+    const corrupt = '[{"id":"ws-keep"'; // truncated
+    await writeFile(filePath, corrupt);
+
+    const store = new JsonWorkspaceStore(filePath);
+
+    const { createdAt: _c, lastActiveAt: _l, ...newInput } = makeRecord('ws-new');
+
+    await expect(store.create(newInput)).rejects.toThrow(/corrupted/);
+
+    // The corrupted file must be left untouched — create() must not clobber it
+    // with just the new record and silently drop every other workspace.
+    expect(await readFile(filePath, 'utf8')).toBe(corrupt);
   });
 });

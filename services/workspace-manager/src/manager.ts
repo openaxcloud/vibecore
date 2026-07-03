@@ -138,8 +138,35 @@ export class JsonWorkspaceStore implements WorkspaceStore {
       throw error;
     });
 
+    /*
+     * A corrupted registry (truncated by a crash mid-write, or hand-edited into
+     * invalid/non-array JSON) must fail loudly with an actionable error rather
+     * than throwing a bare SyntaxError/TypeError up the stack. Throwing here also
+     * guards the read-modify-write callers: they never reach write() on a bad
+     * parse, so the corrupted file is not overwritten with partial state.
+     */
+    let parsed: unknown;
+
+    try {
+      parsed = JSON.parse(content);
+    } catch (error) {
+      throw new Error(
+        `workspace registry at ${this.filePath} is corrupted (invalid JSON): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+
+    if (!Array.isArray(parsed)) {
+      throw new Error(
+        `workspace registry at ${this.filePath} is corrupted (expected a JSON array, got ${
+          parsed === null ? 'null' : typeof parsed
+        })`,
+      );
+    }
+
     return new Map<string, WorkspaceRecord>(
-      (JSON.parse(content) as WorkspaceRecord[]).map((workspace) => [workspace.id, workspace]),
+      (parsed as WorkspaceRecord[]).map((workspace) => [workspace.id, workspace]),
     );
   }
 
