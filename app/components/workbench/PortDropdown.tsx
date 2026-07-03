@@ -73,26 +73,47 @@ export const PortDropdown = memo(
               Ports
             </div>
             {sortedPreviews.map((preview) => (
-              <button
-                type="button"
+              <div
                 key={preview.index}
-                className="flex w-full items-center px-4 py-2 cursor-pointer text-left hover:bg-bolt-elements-item-backgroundActive"
-                onClick={() => {
-                  setActivePreviewIndex(preview.index);
-                  setIsDropdownOpen(false);
-                  setHasSelectedPreview(true);
-                }}
+                className="flex w-full items-center gap-2 px-4 py-2 hover:bg-bolt-elements-item-backgroundActive"
               >
-                <span
-                  className={
-                    activePreviewIndex === preview.index
-                      ? 'text-bolt-elements-item-contentAccent'
-                      : 'text-bolt-elements-item-contentDefault group-hover:text-bolt-elements-item-contentActive'
-                  }
+                <button
+                  type="button"
+                  className="flex flex-1 items-center gap-2 cursor-pointer text-left"
+                  onClick={() => {
+                    setActivePreviewIndex(preview.index);
+                    setIsDropdownOpen(false);
+                    setHasSelectedPreview(true);
+                  }}
                 >
-                  {preview.port}
-                </span>
-              </button>
+                  <span
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${preview.ready ? 'bg-green-500' : 'bg-amber-500'}`}
+                    title={preview.ready ? 'Ready' : 'Starting'}
+                    aria-hidden
+                  />
+                  <span
+                    className={
+                      activePreviewIndex === preview.index
+                        ? 'text-bolt-elements-item-contentAccent'
+                        : 'text-bolt-elements-item-contentDefault group-hover:text-bolt-elements-item-contentActive'
+                    }
+                  >
+                    {preview.port}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="shrink-0 rounded p-1 text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary"
+                  title="Copy preview URL"
+                  aria-label={`Copy URL for port ${preview.port}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void navigator.clipboard?.writeText(preview.baseUrl).catch(() => {});
+                  }}
+                >
+                  <span className="i-ph:copy text-sm" aria-hidden />
+                </button>
+              </div>
             ))}
           </div>
         )}
