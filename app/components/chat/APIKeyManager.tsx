@@ -180,7 +180,7 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
               <IconButton
                 onClick={() => window.open(provider?.getApiKeyLink)}
                 title="Get API Key"
-                className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 flex items-center gap-2"
+                className="bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent opacity-90 hover:opacity-100 flex items-center gap-2"
               >
                 <span className="text-xs whitespace-nowrap">{provider?.labelForGetApiKey || 'Get API Key'}</span>
                 <div className={`${provider?.icon || 'i-ph:key'} w-4 h-4`} />

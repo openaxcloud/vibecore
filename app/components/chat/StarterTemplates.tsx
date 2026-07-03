@@ -13,10 +13,10 @@ const FrameworkLink: React.FC<FrameworkLinkProps> = ({ template }) => (
     data-discover="true"
     aria-label={`Start a ${template.label} app`}
     title={template.label}
-    className="inline-flex items-center justify-center rounded-md p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+    className="inline-flex items-center justify-center rounded-md p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
   >
     <div
-      className={`inline-block ${template.icon} w-8 h-8 text-4xl transition-theme hover:text-purple-500 dark:text-white dark:opacity-50 dark:hover:opacity-100 dark:hover:text-purple-400 transition-all grayscale hover:grayscale-0 transition`}
+      className={`inline-block ${template.icon} w-8 h-8 text-4xl transition-theme text-bolt-elements-textPrimary hover:text-bolt-elements-item-contentAccent dark:opacity-50 dark:hover:opacity-100 transition-all grayscale hover:grayscale-0 transition`}
       aria-hidden
     />
   </a>
@@ -25,7 +25,7 @@ const FrameworkLink: React.FC<FrameworkLinkProps> = ({ template }) => (
 const StarterTemplates: React.FC = () => {
   return (
     <div className="flex flex-col items-center gap-4">
-      <span className="text-sm text-gray-500">or start a blank app with your favorite stack</span>
+      <span className="text-sm text-bolt-elements-textSecondary">or start a blank app with your favorite stack</span>
       <div className="flex justify-center">
         <div className="flex flex-wrap justify-center items-center gap-4 max-w-sm">
           {STARTER_TEMPLATES.map((template) => (
