@@ -409,7 +409,7 @@ export default function SupabaseTab() {
                                   ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
                                   : project.status === 'INACTIVE'
                                     ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
+                                    : 'bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary',
                             )}
                           >
                             <div
@@ -421,7 +421,7 @@ export default function SupabaseTab() {
                                     ? 'bg-red-500'
                                     : project.status === 'INACTIVE'
                                       ? 'bg-yellow-500'
-                                      : 'bg-gray-500',
+                                      : 'bg-[var(--vc-status-muted)]',
                               )}
                             />
                             {formatProjectStatusLabel(project.status)}
@@ -712,7 +712,9 @@ export default function SupabaseTab() {
             </span>
           </div>
           {connectionTest.timestamp && (
-            <p className="text-xs text-gray-500 mt-1">{new Date(connectionTest.timestamp).toLocaleString()}</p>
+            <p className="text-xs text-bolt-elements-textTertiary mt-1">
+              {new Date(connectionTest.timestamp).toLocaleString()}
+            </p>
           )}
         </motion.div>
       )}
@@ -765,8 +767,8 @@ export default function SupabaseTab() {
                   placeholder="Enter your Supabase access token"
                   className={classNames(
                     'w-full px-3 py-2 rounded-lg text-sm',
-                    'bg-[#F8F8F8] dark:bg-[#1A1A1A]',
-                    'border border-[#E5E5E5] dark:border-[#333333]',
+                    'bg-bolt-elements-background-depth-3',
+                    'border border-bolt-elements-borderColor',
                     'text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary',
                     'focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive',
                     'disabled:opacity-50',
@@ -790,8 +792,8 @@ export default function SupabaseTab() {
                 disabled={connecting || !tokenInput}
                 className={classNames(
                   'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-                  'bg-[#303030] text-white',
-                  'hover:bg-[#5E41D0] hover:text-white',
+                  'bg-[var(--vc-ide-accent-action)] text-white',
+                  'hover:opacity-90 hover:text-white',
                   'disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200',
                   'transform active:scale-95',
                 )}
@@ -1013,9 +1015,9 @@ export default function SupabaseTab() {
                             label: 'Functions',
                             value: totalFunctions,
                             icon: 'i-ph:code',
-                            color: 'text-purple-500',
-                            bgColor: 'bg-purple-100 dark:bg-purple-900/20',
-                            textColor: 'text-purple-800 dark:text-purple-400',
+                            color: 'text-[var(--vc-ide-accent-action)]',
+                            bgColor: 'bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_12%,transparent)]',
+                            textColor: 'text-[var(--vc-ide-accent-action)]',
                           },
                           {
                             label: 'Tables',

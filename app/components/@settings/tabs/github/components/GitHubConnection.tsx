@@ -140,8 +140,8 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
                 }`}
                 className={classNames(
                   'w-full px-3 py-2 rounded-lg text-sm',
-                  'bg-[#F8F8F8] dark:bg-[#1A1A1A]',
-                  'border border-[#E5E5E5] dark:border-[#333333]',
+                  'bg-bolt-elements-background-depth-3',
+                  'border border-bolt-elements-borderColor',
                   'text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary',
                   'focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive',
                   'disabled:opacity-50',
@@ -179,8 +179,8 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
                 disabled={isConnecting || !token.trim()}
                 className={classNames(
                   'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-                  'bg-[#303030] text-white',
-                  'hover:bg-[#5E41D0] hover:text-white',
+                  'bg-[var(--vc-ide-accent-action)] text-white',
+                  'hover:opacity-90 hover:text-white',
                   'disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200',
                   'transform active:scale-95',
                 )}

@@ -31,7 +31,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
               decoding="sync"
             />
           ) : (
-            <div className="w-full h-full rounded-full flex items-center justify-center bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500">
+            <div className="w-full h-full rounded-full flex items-center justify-center bg-bolt-elements-background-depth-3 text-bolt-elements-textTertiary">
               <div className="i-ph:user w-6 h-6" />
             </div>
           )}
@@ -42,9 +42,9 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
         <DropdownMenu.Content
           className={classNames(
             'min-w-[min(240px,calc(100vw-24px))] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-24px))] overflow-auto z-[250]',
-            'bg-white dark:bg-[#141414]',
+            'bg-bolt-elements-background-depth-2',
             'rounded-lg shadow-lg',
-            'border border-gray-200/50 dark:border-gray-800/50',
+            'border border-bolt-elements-borderColor',
             'animate-in fade-in-0 zoom-in-95',
             'py-1',
           )}
@@ -53,13 +53,8 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
           collisionPadding={12}
           hideWhenDetached
         >
-          <div
-            className={classNames(
-              'px-4 py-3 flex items-center gap-3',
-              'border-b border-gray-200/50 dark:border-gray-800/50',
-            )}
-          >
-            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-white dark:bg-gray-800 shadow-sm">
+          <div className={classNames('px-4 py-3 flex items-center gap-3', 'border-b border-bolt-elements-borderColor')}>
+            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-bolt-elements-background-depth-3 shadow-sm">
               {profile?.avatar ? (
                 <img
                   src={profile.avatar}
@@ -69,75 +64,75 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
                   decoding="sync"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500 font-medium text-lg">
+                <div className="w-full h-full flex items-center justify-center text-bolt-elements-textTertiary font-medium text-lg">
                   <div className="i-ph:user w-6 h-6" />
                 </div>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-sm text-gray-900 dark:text-white truncate">
+              <div className="font-medium text-sm text-bolt-elements-textPrimary truncate">
                 {profile?.username || 'Guest User'}
               </div>
-              {profile?.bio && <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{profile.bio}</div>}
+              {profile?.bio && <div className="text-xs text-bolt-elements-textTertiary truncate">{profile.bio}</div>}
             </div>
           </div>
 
           <DropdownMenu.Item
             className={classNames(
               'flex items-center gap-2 px-4 py-2.5',
-              'text-sm text-gray-700 dark:text-gray-200',
-              'hover:bg-purple-50 dark:hover:bg-purple-500/10',
-              'hover:text-purple-500 dark:hover:text-purple-400',
+              'text-sm text-bolt-elements-textSecondary',
+              'hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)]',
+              'hover:text-[var(--vc-ide-accent-action)]',
               'cursor-pointer transition-all duration-200',
               'outline-none vc-focus-ring',
               'group',
             )}
             onClick={() => onSelectTab('profile')}
           >
-            <div className="i-ph:user-circle w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+            <div className="i-ph:user-circle w-4 h-4 text-bolt-elements-textTertiary group-hover:text-[var(--vc-ide-accent-action)] transition-colors" />
             Edit Profile
           </DropdownMenu.Item>
 
           <DropdownMenu.Item
             className={classNames(
               'flex items-center gap-2 px-4 py-2.5',
-              'text-sm text-gray-700 dark:text-gray-200',
-              'hover:bg-purple-50 dark:hover:bg-purple-500/10',
-              'hover:text-purple-500 dark:hover:text-purple-400',
+              'text-sm text-bolt-elements-textSecondary',
+              'hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)]',
+              'hover:text-[var(--vc-ide-accent-action)]',
               'cursor-pointer transition-all duration-200',
               'outline-none vc-focus-ring',
               'group',
             )}
             onClick={() => onSelectTab('settings')}
           >
-            <div className="i-ph:gear-six w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+            <div className="i-ph:gear-six w-4 h-4 text-bolt-elements-textTertiary group-hover:text-[var(--vc-ide-accent-action)] transition-colors" />
             Settings
           </DropdownMenu.Item>
 
-          <div className="my-1 border-t border-gray-200/50 dark:border-gray-800/50" />
+          <div className="my-1 border-t border-bolt-elements-borderColor" />
 
           <DropdownMenu.Item
             className={classNames(
               'flex items-center gap-2 px-4 py-2.5',
-              'text-sm text-gray-700 dark:text-gray-200',
-              'hover:bg-purple-50 dark:hover:bg-purple-500/10',
-              'hover:text-purple-500 dark:hover:text-purple-400',
+              'text-sm text-bolt-elements-textSecondary',
+              'hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)]',
+              'hover:text-[var(--vc-ide-accent-action)]',
               'cursor-pointer transition-all duration-200',
               'outline-none vc-focus-ring',
               'group',
             )}
             onClick={() => window.open(resolveAccountMenuLink(ACCOUNT_MENU_LINKS.reportBug), '_blank')}
           >
-            <div className="i-ph:bug w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+            <div className="i-ph:bug w-4 h-4 text-bolt-elements-textTertiary group-hover:text-[var(--vc-ide-accent-action)] transition-colors" />
             Report Bug
           </DropdownMenu.Item>
 
           <DropdownMenu.Item
             className={classNames(
               'flex items-center gap-2 px-4 py-2.5',
-              'text-sm text-gray-700 dark:text-gray-200',
-              'hover:bg-purple-50 dark:hover:bg-purple-500/10',
-              'hover:text-purple-500 dark:hover:text-purple-400',
+              'text-sm text-bolt-elements-textSecondary',
+              'hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)]',
+              'hover:text-[var(--vc-ide-accent-action)]',
               'cursor-pointer transition-all duration-200',
               'outline-none vc-focus-ring',
               'group',
@@ -151,23 +146,23 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
               }
             }}
           >
-            <div className="i-ph:download w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+            <div className="i-ph:download w-4 h-4 text-bolt-elements-textTertiary group-hover:text-[var(--vc-ide-accent-action)] transition-colors" />
             Download Debug Log
           </DropdownMenu.Item>
 
           <DropdownMenu.Item
             className={classNames(
               'flex items-center gap-2 px-4 py-2.5',
-              'text-sm text-gray-700 dark:text-gray-200',
-              'hover:bg-purple-50 dark:hover:bg-purple-500/10',
-              'hover:text-purple-500 dark:hover:text-purple-400',
+              'text-sm text-bolt-elements-textSecondary',
+              'hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)]',
+              'hover:text-[var(--vc-ide-accent-action)]',
               'cursor-pointer transition-all duration-200',
               'outline-none vc-focus-ring',
               'group',
             )}
             onClick={() => window.open(resolveAccountMenuLink(ACCOUNT_MENU_LINKS.helpDocs), '_blank')}
           >
-            <div className="i-ph:question w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+            <div className="i-ph:question w-4 h-4 text-bolt-elements-textTertiary group-hover:text-[var(--vc-ide-accent-action)] transition-colors" />
             Help & Documentation
           </DropdownMenu.Item>
         </DropdownMenu.Content>

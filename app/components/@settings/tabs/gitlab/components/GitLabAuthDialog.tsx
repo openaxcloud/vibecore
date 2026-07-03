@@ -53,7 +53,7 @@ export function GitLabAuthDialog({ isOpen, onClose }: GitLabAuthDialogProps) {
             className="w-[90vw] md:w-[500px]"
           >
             <Dialog.Content
-              className="bg-white dark:bg-bolt-elements-background-depth-1 rounded-lg p-6 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-xl"
+              className="bg-bolt-elements-background-depth-1 rounded-lg p-6 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-xl"
               aria-describedby="gitlab-auth-description"
             >
               <Dialog.Title className="text-lg font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-4">

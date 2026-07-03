@@ -222,7 +222,7 @@ export function ConnectionTestIndicator({ status, message, timestamp, className 
       case 'testing':
         return 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-700';
       default:
-        return 'bg-gray-50 border-gray-200 dark:bg-gray-900/20 dark:border-gray-700';
+        return 'bg-bolt-elements-background-depth-2 border-bolt-elements-borderColor';
     }
   };
 
@@ -235,7 +235,7 @@ export function ConnectionTestIndicator({ status, message, timestamp, className 
       case 'testing':
         return <Loader2 className="w-5 h-5 animate-spin text-blue-600 dark:text-blue-400" />;
       default:
-        return <Info className="w-5 h-5 text-gray-600 dark:text-gray-400" />;
+        return <Info className="w-5 h-5 text-bolt-elements-textSecondary" />;
     }
   };
 
@@ -248,7 +248,7 @@ export function ConnectionTestIndicator({ status, message, timestamp, className 
       case 'testing':
         return 'text-blue-800 dark:text-blue-200';
       default:
-        return 'text-gray-800 dark:text-gray-200';
+        return 'text-bolt-elements-textPrimary';
     }
   };
 
@@ -258,7 +258,9 @@ export function ConnectionTestIndicator({ status, message, timestamp, className 
         {getStatusIcon()}
         <span className={classNames('text-sm font-medium', getStatusTextColor())}>{message || status}</span>
       </div>
-      {timestamp && <p className="text-xs text-gray-500 mt-1">{new Date(timestamp).toLocaleString()}</p>}
+      {timestamp && (
+        <p className="text-xs text-bolt-elements-textTertiary mt-1">{new Date(timestamp).toLocaleString()}</p>
+      )}
     </div>
   );
 }

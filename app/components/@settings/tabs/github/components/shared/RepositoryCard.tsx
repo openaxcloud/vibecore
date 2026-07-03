@@ -101,7 +101,7 @@ export function RepositoryCard({
     const isHealthy = daysSinceUpdate < 30 && !repository.archived && repository.stargazers_count > 0;
 
     if (repository.archived) {
-      return 'bg-gray-500';
+      return 'bg-[var(--vc-status-muted)]';
     }
 
     if (isActive) {
@@ -283,12 +283,12 @@ export function RepositoryCard({
                 </span>
               ))}
             {repository.archived && (
-              <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400">
+              <span className="px-2 py-0.5 rounded-full bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary">
                 Archived
               </span>
             )}
             {repository.fork && (
-              <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400">
+              <span className="px-2 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_12%,transparent)] text-[var(--vc-ide-accent-action)]">
                 Fork
               </span>
             )}

@@ -40,7 +40,7 @@ export default function TaskManagerTab() {
         <button
           type="button"
           onClick={clearVolatileData}
-          className="rounded-lg bg-purple-500 px-3 py-2 text-sm text-white"
+          className="rounded-lg bg-[var(--vc-ide-accent-action)] px-3 py-2 text-sm text-white"
         >
           Clear temporary
         </button>

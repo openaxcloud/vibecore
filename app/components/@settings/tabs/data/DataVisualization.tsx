@@ -214,9 +214,7 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
       tooltip: {
         titleColor: chartColors.text,
         bodyColor: chartColors.text,
-        backgroundColor: isDarkMode
-          ? 'rgba(23, 23, 23, 0.8)' // Dark bg using Tailwind gray-900
-          : 'rgba(255, 255, 255, 0.8)', // Light bg
+        backgroundColor: chartColors.background,
         borderColor: chartColors.border,
         borderWidth: 1,
       },
