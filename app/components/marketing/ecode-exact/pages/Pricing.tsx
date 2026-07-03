@@ -559,9 +559,12 @@ export default function Pricing() {
                               /month
                             </span>
                           </div>
-                          {billingPeriod === 'yearly' && tier.monthlyPrice > 0 && (
-                            <p className="mkt-small text-[var(--ecode-accent)] mt-1 font-medium">
-                              Save ${(tier.monthlyPrice - tier.yearlyPrice) * 12}/year
+                          {billingPeriod === 'yearly' && (tier.monthlyPrice - tier.yearlyPrice) * 12 > 0 && (
+                            <p
+                              className="mkt-small text-[var(--ecode-accent)] mt-1 font-medium"
+                              data-testid={`text-yearly-savings-${tier.name.toLowerCase()}`}
+                            >
+                              Save ${(tier.monthlyPrice - tier.yearlyPrice) * 12}/yr
                             </p>
                           )}
                         </div>
@@ -655,6 +658,14 @@ export default function Pricing() {
               </div>
             ))}
           </div>
+
+          {/* Currency / tax note */}
+          <p
+            className="text-[12px] text-[var(--ecode-text-muted)] text-center mt-6"
+            data-testid="text-pricing-currency-note"
+          >
+            Prices in USD. VAT/sales tax not included.
+          </p>
         </div>
       </section>
 
