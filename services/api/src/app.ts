@@ -19403,7 +19403,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const byokAllowedPlans: PlanKey[] = ['team', 'enterprise'];
     const forceManaged = process.env.ENTERPRISE_FORCE_MANAGED_KEYS === 'true';
-    const byokAllowed = !forceManaged && byokAllowedPlans.includes(plan.key);
+
+    /*
+     * Replit-parity org control: an org admin can block members from using
+     * external AI-model integrations (bring-your-own OpenAI/Anthropic keys).
+     * When set, force managed keys for the whole org regardless of plan.
+     * Fail-open: a lookup error never blocks the request.
+     */
+    const orgBlocksExternalAi =
+      (await store.findFeatureFlag('block_external_ai', project.organizationId).catch(() => undefined))?.enabled ===
+      true;
+    const byokAllowed = !forceManaged && !orgBlocksExternalAi && byokAllowedPlans.includes(plan.key);
 
     return {
       ok: true,
@@ -19421,7 +19431,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
       byok: {
         allowed: byokAllowed,
-        reason: byokAllowed ? 'plan-allows-byok' : 'managed-mode-plan',
+        reason: byokAllowed
+          ? 'plan-allows-byok'
+          : orgBlocksExternalAi
+            ? 'org-blocks-external-ai'
+            : 'managed-mode-plan',
         plan: plan.key,
       },
     };
@@ -19910,6 +19924,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const subscription = await store.getSubscription(orgId).catch(() => undefined);
     const creditPlan = planCreditConfig[toCreditPlanKey(subscription?.planKey ?? 'free')];
     const monthlyGrantCents = creditPlan?.monthlyCreditCents ?? 0;
+
+    // Org AI policy: block external AI-model integrations (BYOK) org-wide.
+    const blockExternalAi =
+      (await store.findFeatureFlag('block_external_ai', orgId).catch(() => undefined))?.enabled === true;
     const entitled = subscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(subscription.status);
 
     let periodEndIso: string | undefined;
@@ -19933,6 +19951,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       monthlyGrantCents,
       periodStart: periodStart ? periodStart.toISOString() : null,
       periodEnd: periodEndIso ?? null,
+      blockExternalAi,
       spendAlertThresholds: [50, 80, 100],
       activePacks: packs,
       ledger: await store.listCreditLedger(orgId, { take: 50 }),
@@ -19976,7 +19995,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       cents == null || cents === 1 || cents % FIVE_HUNDRED === 0;
 
     if (!validIncrement(body.budgetCapCents) || !validIncrement(body.serviceShutdownCents)) {
-      throw Object.assign(new Error('Spend limits must be set in $500 increments (or $0.01 to cap at credits).'), {
+      throw Object.assign(new Error('Spend limits must be set in €500 increments (or €0.01 to cap at credits).'), {
         statusCode: 400,
         code: 'SPEND_LIMIT_INCREMENT',
       });
@@ -19996,6 +20015,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { budgetCapCents: wallet.budgetCapCents ?? null, serviceShutdownCents: wallet.serviceShutdownCents ?? null };
+  });
+
+  /*
+   * Replit-parity org AI policy: an org admin can block members from using
+   * external AI-model integrations (bring-your-own OpenAI/Anthropic keys),
+   * forcing managed keys org-wide. Stored as the `block_external_ai` feature
+   * flag; enforced in the chat quota's BYOK decision. Requires billing:manage.
+   */
+  app.post('/orgs/:orgId/credits/ai-policy', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'billing:manage');
+
+    const body = parse(z.object({ blockExternalAi: z.boolean() }), request.body ?? {});
+    const flag = await store.setFeatureFlag({
+      organizationId: orgId,
+      key: 'block_external_ai',
+      enabled: body.blockExternalAi,
+    });
+    await audit(request, store, {
+      organizationId: orgId,
+      action: 'credits.ai-policy.update',
+      resourceType: 'organization',
+      resourceId: orgId,
+      metadata: { blockExternalAi: flag.enabled },
+    });
+
+    return { blockExternalAi: flag.enabled };
   });
 
   app.post('/orgs/:orgId/billing/checkout', async (request) => {

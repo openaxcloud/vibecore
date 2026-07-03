@@ -33,6 +33,7 @@ type CreditsData = {
   serviceShutdownCents: number | null;
   paygSpentCents?: number;
   monthlyGrantCents?: number;
+  blockExternalAi?: boolean;
   periodStart?: string | null;
   periodEnd?: string | null;
   spendAlertThresholds?: number[];
@@ -197,6 +198,26 @@ export async function action({ request }: EnterpriseActionArgs) {
   const organization = await firstOrganization(request);
   const form = await request.formData();
   const intent = String(form.get('intent') ?? 'checkout');
+
+  if (intent === 'ai-policy') {
+    // Org admin toggle: block external AI-model integrations (BYOK) org-wide.
+    const blockExternalAi = String(form.get('blockExternalAi') ?? '') === 'true';
+
+    try {
+      await apiRequest(request, `/orgs/${organization.id}/credits/ai-policy`, {
+        method: 'POST',
+        body: JSON.stringify({ blockExternalAi }),
+      });
+      return json({
+        ok: blockExternalAi ? 'External AI integrations are now blocked.' : 'External AI integrations are allowed.',
+      });
+    } catch (error) {
+      const message = isApiResponse(error)
+        ? await apiErrorMessage(error, 'Could not update the AI policy.')
+        : 'Could not update the AI policy. Please try again.';
+      return json({ error: message }, { status: isApiResponse(error) ? error.status : 503 });
+    }
+  }
 
   if (intent === 'set-limits') {
     // Pay-as-you-go spend cap (Usage Limit). Empty = no cap; "0.01" restricts to credits.
@@ -572,6 +593,29 @@ export default function BillingPage() {
                 {submitting && navigation.formData?.get('intent') === 'set-limits' ? 'Saving…' : 'Save limit'}
               </Button>
             </Form>
+          </div>
+          <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-medium text-bolt-elements-textPrimary">External AI integrations</h3>
+                <p className="text-xs text-bolt-elements-textSecondary">
+                  {credits.blockExternalAi
+                    ? 'Blocked — members use managed keys only; bring-your-own OpenAI/Anthropic keys are disabled org-wide.'
+                    : 'Allowed — eligible members may use their own external AI-model keys.'}
+                </p>
+              </div>
+              <Form method="post">
+                <input type="hidden" name="intent" value="ai-policy" />
+                <input type="hidden" name="blockExternalAi" value={credits.blockExternalAi ? 'false' : 'true'} />
+                <Button type="submit" variant="outline" disabled={submitting}>
+                  {submitting && navigation.formData?.get('intent') === 'ai-policy'
+                    ? 'Saving…'
+                    : credits.blockExternalAi
+                      ? 'Allow external AI'
+                      : 'Block external AI'}
+                </Button>
+              </Form>
+            </div>
           </div>
           <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
             <div className="mb-1 flex items-center justify-between gap-2">
