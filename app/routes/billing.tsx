@@ -1,6 +1,6 @@
 import { CreditCard, FileText, TrendingUp } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
+import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { ActivityList, AppShell, LinkButton, StatGrid } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
@@ -18,7 +18,7 @@ import {
 
 type BillingData = {
   plan: { key: string; name: string; monthlyCents: number };
-  subscription?: { status?: string } | null;
+  subscription?: { status?: string; currentPeriodEnd?: string | null } | null;
   usage: Array<{ id: string; type: string; quantity: number; createdAt?: string }>;
   upgradePrompts: Array<{ planKey: string; name: string }>;
 };
@@ -405,6 +405,33 @@ export default function BillingPage() {
       }
     >
       <div className="grid gap-6">
+        {['PAST_DUE', 'UNPAID', 'past_due', 'unpaid'].includes(billing.subscription?.status ?? '') ? (
+          <div
+            role="alert"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-lg p-4 text-sm"
+            style={{
+              background: 'color-mix(in srgb, var(--vc-ide-accent-error) 10%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
+            }}
+          >
+            <div style={{ color: 'var(--status-error-text)' }}>
+              <p className="font-semibold">
+                Your last payment failed. Update your payment method to keep services running.
+              </p>
+              {billing.subscription?.currentPeriodEnd ? (
+                <p className="mt-0.5 text-xs">
+                  Services pause on {new Date(billing.subscription.currentPeriodEnd).toLocaleDateString()}.
+                </p>
+              ) : null}
+            </div>
+            <Link
+              to="/payment-method"
+              className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+            >
+              Update payment method
+            </Link>
+          </div>
+        ) : null}
         {billingAccessLimited || actionData?.error ? (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
             {actionData?.error ?? 'Billing is available only to organization owners or billing administrators.'}

@@ -71,15 +71,35 @@ export default function InvoicesPage() {
           {invoices.map((invoice) => {
             const link = invoice.hostedInvoiceUrl ?? invoice.invoicePdf;
 
+            /*
+             * 'uncollectible' = a payment definitively failed; 'open' with an
+             * outstanding amount = awaiting/retryable payment. Stripe's hosted
+             * invoice page IS the retry surface for the customer.
+             */
+            const unpaid =
+              invoice.status === 'uncollectible' || (invoice.status === 'open' && invoice.amountDueCents > 0);
+
             return (
               <li key={invoice.id} className="flex items-center justify-between gap-4 py-3 text-sm">
                 <div>
                   <p className="font-medium text-bolt-elements-textPrimary">
                     {invoice.number ?? invoice.id}
                     {invoice.status ? (
-                      <span className="ml-2 text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
-                        {invoice.status}
-                      </span>
+                      unpaid ? (
+                        <span
+                          className="ml-2 rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide"
+                          style={{
+                            color: 'var(--status-error-text)',
+                            background: 'color-mix(in srgb, var(--vc-ide-accent-error) 12%, transparent)',
+                          }}
+                        >
+                          {invoice.status === 'uncollectible' ? 'Failed' : 'Unpaid'}
+                        </span>
+                      ) : (
+                        <span className="ml-2 text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
+                          {invoice.status}
+                        </span>
+                      )
                     ) : null}
                   </p>
                   <p className="text-bolt-elements-textSecondary">
@@ -87,16 +107,28 @@ export default function InvoicesPage() {
                     {formatAmount(invoice.amountPaidCents || invoice.amountDueCents, invoice.currency)}
                   </p>
                 </div>
-                {link ? (
-                  <a
-                    href={link}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="shrink-0 rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-sm font-medium hover:border-bolt-elements-focus"
-                  >
-                    View
-                  </a>
-                ) : null}
+                <span className="flex shrink-0 items-center gap-2">
+                  {unpaid && invoice.hostedInvoiceUrl ? (
+                    <a
+                      href={invoice.hostedInvoiceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                    >
+                      Retry payment
+                    </a>
+                  ) : null}
+                  {link ? (
+                    <a
+                      href={link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-sm font-medium hover:border-bolt-elements-focus"
+                    >
+                      View
+                    </a>
+                  ) : null}
+                </span>
               </li>
             );
           })}
