@@ -664,7 +664,7 @@ export default function Pricing() {
             className="text-[12px] text-[var(--ecode-text-muted)] text-center mt-6"
             data-testid="text-pricing-currency-note"
           >
-            Prices in USD. VAT/sales tax not included.
+            Prices in EUR. VAT/sales tax not included.
           </p>
         </div>
       </section>
