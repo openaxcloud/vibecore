@@ -5337,6 +5337,31 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         recognition.onerror = (event) => {
           console.error('Speech recognition error:', event.error);
           setIsListening(false);
+
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            /*
+             * Mic permission is blocked at the browser level — explain it once
+             * per session (sessionStorage guard), not on every click.
+             */
+            let alreadyExplained = false;
+
+            try {
+              alreadyExplained = sessionStorage.getItem('vc:mic-permission-toast') === '1';
+
+              if (!alreadyExplained) {
+                sessionStorage.setItem('vc:mic-permission-toast', '1');
+              }
+            } catch {
+              // sessionStorage unavailable (privacy mode): fall back to toastId dedupe.
+            }
+
+            if (!alreadyExplained) {
+              toast.error(
+                'Microphone access is blocked. Allow the microphone permission for this site in your browser settings to use speech-to-text.',
+                { toastId: 'mic-permission-blocked' },
+              );
+            }
+          }
         };
 
         setRecognition(recognition);
@@ -5431,17 +5456,33 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     };
 
     const startListening = () => {
-      if (recognition) {
-        recognition.start();
-        setIsListening(true);
+      if (!recognition) {
+        // The mic button hides itself when the API is absent, but never let a click be inert.
+        toast.error('Speech recognition is not available in this browser.', { toastId: 'speech-unavailable' });
+        return;
       }
+
+      try {
+        recognition.start();
+      } catch (error) {
+        /*
+         * start() throws InvalidStateError when recognition is already
+         * running — swallow it and let the state below resync the UI so the
+         * click still has a visible effect.
+         */
+        console.error('Speech recognition start failed:', error);
+      }
+
+      setIsListening(true);
     };
 
     const stopListening = () => {
       if (recognition) {
         recognition.stop();
-        setIsListening(false);
       }
+
+      // Always resync the UI, even if the recognizer is gone.
+      setIsListening(false);
     };
 
     const handleSendMessage = (event: React.UIEvent, messageInput?: string) => {
