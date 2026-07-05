@@ -244,6 +244,8 @@ model Project {
   gitRepositoryUrl       String?
   gitDefaultBranch       String?
   persistentVolumeClaim  String?
+  thumbnailUrl           String?
+  thumbnailUpdatedAt     DateTime?
   deletedAt              DateTime?
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt

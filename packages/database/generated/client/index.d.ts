@@ -22812,6 +22812,8 @@ export namespace Prisma {
     gitRepositoryUrl: string | null
     gitDefaultBranch: string | null
     persistentVolumeClaim: string | null
+    thumbnailUrl: string | null
+    thumbnailUpdatedAt: Date | null
     deletedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -22828,6 +22830,8 @@ export namespace Prisma {
     gitRepositoryUrl: string | null
     gitDefaultBranch: string | null
     persistentVolumeClaim: string | null
+    thumbnailUrl: string | null
+    thumbnailUpdatedAt: Date | null
     deletedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -22844,6 +22848,8 @@ export namespace Prisma {
     gitRepositoryUrl: number
     gitDefaultBranch: number
     persistentVolumeClaim: number
+    thumbnailUrl: number
+    thumbnailUpdatedAt: number
     deletedAt: number
     createdAt: number
     updatedAt: number
@@ -22862,6 +22868,8 @@ export namespace Prisma {
     gitRepositoryUrl?: true
     gitDefaultBranch?: true
     persistentVolumeClaim?: true
+    thumbnailUrl?: true
+    thumbnailUpdatedAt?: true
     deletedAt?: true
     createdAt?: true
     updatedAt?: true
@@ -22878,6 +22886,8 @@ export namespace Prisma {
     gitRepositoryUrl?: true
     gitDefaultBranch?: true
     persistentVolumeClaim?: true
+    thumbnailUrl?: true
+    thumbnailUpdatedAt?: true
     deletedAt?: true
     createdAt?: true
     updatedAt?: true
@@ -22894,6 +22904,8 @@ export namespace Prisma {
     gitRepositoryUrl?: true
     gitDefaultBranch?: true
     persistentVolumeClaim?: true
+    thumbnailUrl?: true
+    thumbnailUpdatedAt?: true
     deletedAt?: true
     createdAt?: true
     updatedAt?: true
@@ -22983,6 +22995,8 @@ export namespace Prisma {
     gitRepositoryUrl: string | null
     gitDefaultBranch: string | null
     persistentVolumeClaim: string | null
+    thumbnailUrl: string | null
+    thumbnailUpdatedAt: Date | null
     deletedAt: Date | null
     createdAt: Date
     updatedAt: Date
@@ -23016,6 +23030,8 @@ export namespace Prisma {
     gitRepositoryUrl?: boolean
     gitDefaultBranch?: boolean
     persistentVolumeClaim?: boolean
+    thumbnailUrl?: boolean
+    thumbnailUpdatedAt?: boolean
     deletedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -23057,6 +23073,8 @@ export namespace Prisma {
     gitRepositoryUrl?: boolean
     gitDefaultBranch?: boolean
     persistentVolumeClaim?: boolean
+    thumbnailUrl?: boolean
+    thumbnailUpdatedAt?: boolean
     deletedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -23074,6 +23092,8 @@ export namespace Prisma {
     gitRepositoryUrl?: boolean
     gitDefaultBranch?: boolean
     persistentVolumeClaim?: boolean
+    thumbnailUrl?: boolean
+    thumbnailUpdatedAt?: boolean
     deletedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -23091,12 +23111,14 @@ export namespace Prisma {
     gitRepositoryUrl?: boolean
     gitDefaultBranch?: boolean
     persistentVolumeClaim?: boolean
+    thumbnailUrl?: boolean
+    thumbnailUpdatedAt?: boolean
     deletedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type ProjectOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "name" | "slug" | "description" | "sourceType" | "templateName" | "gitRepositoryUrl" | "gitDefaultBranch" | "persistentVolumeClaim" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
+  export type ProjectOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "name" | "slug" | "description" | "sourceType" | "templateName" | "gitRepositoryUrl" | "gitDefaultBranch" | "persistentVolumeClaim" | "thumbnailUrl" | "thumbnailUpdatedAt" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
   export type ProjectInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     environments?: boolean | Project$environmentsArgs<ExtArgs>
@@ -23170,6 +23192,8 @@ export namespace Prisma {
       gitRepositoryUrl: string | null
       gitDefaultBranch: string | null
       persistentVolumeClaim: string | null
+      thumbnailUrl: string | null
+      thumbnailUpdatedAt: Date | null
       deletedAt: Date | null
       createdAt: Date
       updatedAt: Date
@@ -23630,6 +23654,8 @@ export namespace Prisma {
     readonly gitRepositoryUrl: FieldRef<"Project", 'String'>
     readonly gitDefaultBranch: FieldRef<"Project", 'String'>
     readonly persistentVolumeClaim: FieldRef<"Project", 'String'>
+    readonly thumbnailUrl: FieldRef<"Project", 'String'>
+    readonly thumbnailUpdatedAt: FieldRef<"Project", 'DateTime'>
     readonly deletedAt: FieldRef<"Project", 'DateTime'>
     readonly createdAt: FieldRef<"Project", 'DateTime'>
     readonly updatedAt: FieldRef<"Project", 'DateTime'>
@@ -122974,6 +123000,8 @@ export namespace Prisma {
     gitRepositoryUrl: 'gitRepositoryUrl',
     gitDefaultBranch: 'gitDefaultBranch',
     persistentVolumeClaim: 'persistentVolumeClaim',
+    thumbnailUrl: 'thumbnailUrl',
+    thumbnailUpdatedAt: 'thumbnailUpdatedAt',
     deletedAt: 'deletedAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -125418,6 +125446,8 @@ export namespace Prisma {
     gitRepositoryUrl?: StringNullableFilter<"Project"> | string | null
     gitDefaultBranch?: StringNullableFilter<"Project"> | string | null
     persistentVolumeClaim?: StringNullableFilter<"Project"> | string | null
+    thumbnailUrl?: StringNullableFilter<"Project"> | string | null
+    thumbnailUpdatedAt?: DateTimeNullableFilter<"Project"> | Date | string | null
     deletedAt?: DateTimeNullableFilter<"Project"> | Date | string | null
     createdAt?: DateTimeFilter<"Project"> | Date | string
     updatedAt?: DateTimeFilter<"Project"> | Date | string
@@ -125458,6 +125488,8 @@ export namespace Prisma {
     gitRepositoryUrl?: SortOrderInput | SortOrder
     gitDefaultBranch?: SortOrderInput | SortOrder
     persistentVolumeClaim?: SortOrderInput | SortOrder
+    thumbnailUrl?: SortOrderInput | SortOrder
+    thumbnailUpdatedAt?: SortOrderInput | SortOrder
     deletedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -125502,6 +125534,8 @@ export namespace Prisma {
     gitRepositoryUrl?: StringNullableFilter<"Project"> | string | null
     gitDefaultBranch?: StringNullableFilter<"Project"> | string | null
     persistentVolumeClaim?: StringNullableFilter<"Project"> | string | null
+    thumbnailUrl?: StringNullableFilter<"Project"> | string | null
+    thumbnailUpdatedAt?: DateTimeNullableFilter<"Project"> | Date | string | null
     deletedAt?: DateTimeNullableFilter<"Project"> | Date | string | null
     createdAt?: DateTimeFilter<"Project"> | Date | string
     updatedAt?: DateTimeFilter<"Project"> | Date | string
@@ -125542,6 +125576,8 @@ export namespace Prisma {
     gitRepositoryUrl?: SortOrderInput | SortOrder
     gitDefaultBranch?: SortOrderInput | SortOrder
     persistentVolumeClaim?: SortOrderInput | SortOrder
+    thumbnailUrl?: SortOrderInput | SortOrder
+    thumbnailUpdatedAt?: SortOrderInput | SortOrder
     deletedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -125564,6 +125600,8 @@ export namespace Prisma {
     gitRepositoryUrl?: StringNullableWithAggregatesFilter<"Project"> | string | null
     gitDefaultBranch?: StringNullableWithAggregatesFilter<"Project"> | string | null
     persistentVolumeClaim?: StringNullableWithAggregatesFilter<"Project"> | string | null
+    thumbnailUrl?: StringNullableWithAggregatesFilter<"Project"> | string | null
+    thumbnailUpdatedAt?: DateTimeNullableWithAggregatesFilter<"Project"> | Date | string | null
     deletedAt?: DateTimeNullableWithAggregatesFilter<"Project"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Project"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Project"> | Date | string
@@ -133154,6 +133192,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -133194,6 +133234,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -133232,6 +133274,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -133272,6 +133316,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -133311,6 +133357,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -133326,6 +133374,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -133342,6 +133392,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -141683,6 +141735,8 @@ export namespace Prisma {
     gitRepositoryUrl?: SortOrder
     gitDefaultBranch?: SortOrder
     persistentVolumeClaim?: SortOrder
+    thumbnailUrl?: SortOrder
+    thumbnailUpdatedAt?: SortOrder
     deletedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -141699,6 +141753,8 @@ export namespace Prisma {
     gitRepositoryUrl?: SortOrder
     gitDefaultBranch?: SortOrder
     persistentVolumeClaim?: SortOrder
+    thumbnailUrl?: SortOrder
+    thumbnailUpdatedAt?: SortOrder
     deletedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -141715,6 +141771,8 @@ export namespace Prisma {
     gitRepositoryUrl?: SortOrder
     gitDefaultBranch?: SortOrder
     persistentVolumeClaim?: SortOrder
+    thumbnailUrl?: SortOrder
+    thumbnailUpdatedAt?: SortOrder
     deletedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -154952,6 +155010,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -154990,6 +155050,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -156027,6 +156089,8 @@ export namespace Prisma {
     gitRepositoryUrl?: StringNullableFilter<"Project"> | string | null
     gitDefaultBranch?: StringNullableFilter<"Project"> | string | null
     persistentVolumeClaim?: StringNullableFilter<"Project"> | string | null
+    thumbnailUrl?: StringNullableFilter<"Project"> | string | null
+    thumbnailUpdatedAt?: DateTimeNullableFilter<"Project"> | Date | string | null
     deletedAt?: DateTimeNullableFilter<"Project"> | Date | string | null
     createdAt?: DateTimeFilter<"Project"> | Date | string
     updatedAt?: DateTimeFilter<"Project"> | Date | string
@@ -159595,6 +159659,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -159634,6 +159700,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -159687,6 +159755,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -159726,6 +159796,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -159951,6 +160023,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -159990,6 +160064,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -160243,6 +160319,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -160282,6 +160360,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -160319,6 +160399,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -160358,6 +160440,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -160510,6 +160594,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -160549,6 +160635,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -160691,6 +160779,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -160730,6 +160820,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -160783,6 +160875,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -160822,6 +160916,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -160859,6 +160955,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -160898,6 +160996,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -160951,6 +161051,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -160990,6 +161092,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161027,6 +161131,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -161066,6 +161172,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -161119,6 +161227,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161158,6 +161268,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161195,6 +161307,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -161234,6 +161348,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -161287,6 +161403,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161326,6 +161444,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161363,6 +161483,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -161402,6 +161524,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -161455,6 +161579,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161494,6 +161620,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161531,6 +161659,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -161570,6 +161700,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -161623,6 +161755,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161662,6 +161796,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161699,6 +161835,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -161738,6 +161876,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -161890,6 +162030,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161929,6 +162071,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -162071,6 +162215,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -162110,6 +162256,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -162262,6 +162410,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -162301,6 +162451,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -162443,6 +162595,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -162482,6 +162636,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -162634,6 +162790,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -162673,6 +162831,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -162815,6 +162975,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -162854,6 +163016,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -163006,6 +163170,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -163045,6 +163211,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -163187,6 +163355,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -163226,6 +163396,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -163378,6 +163550,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -163417,6 +163591,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -163559,6 +163735,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -163598,6 +163776,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -163740,6 +163920,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -163779,6 +163961,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -163911,6 +164095,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -163950,6 +164136,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -164106,6 +164294,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -164145,6 +164335,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -164521,6 +164713,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -164560,6 +164754,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -164650,6 +164846,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -164689,6 +164887,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -164769,6 +164969,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -164808,6 +165010,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -164960,6 +165164,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -164999,6 +165205,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -165141,6 +165349,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -165180,6 +165390,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -165233,6 +165445,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -165272,6 +165486,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -165309,6 +165525,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -165348,6 +165566,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -165416,6 +165636,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -165455,6 +165677,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -167417,6 +167641,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -167456,6 +167682,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -167636,6 +167864,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -167675,6 +167905,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -173370,6 +173602,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -173409,6 +173643,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -173614,6 +173850,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -173653,6 +173891,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -176589,6 +176829,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -176628,6 +176870,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -176749,6 +176993,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -176788,6 +177034,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -178334,6 +178582,8 @@ export namespace Prisma {
     gitRepositoryUrl?: string | null
     gitDefaultBranch?: string | null
     persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -178686,6 +178936,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -178724,6 +178976,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -178762,6 +179016,8 @@ export namespace Prisma {
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
     gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
     persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string

@@ -217,6 +217,8 @@ exports.Prisma.ProjectScalarFieldEnum = {
   gitRepositoryUrl: 'gitRepositoryUrl',
   gitDefaultBranch: 'gitDefaultBranch',
   persistentVolumeClaim: 'persistentVolumeClaim',
+  thumbnailUrl: 'thumbnailUrl',
+  thumbnailUpdatedAt: 'thumbnailUpdatedAt',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
