@@ -3257,6 +3257,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const runtimePorts = projectRuntimeState.ports ?? [];
     const isRuntimeReallyRunning = isWorkspaceReallyRunning(projectRuntimeState.workspace, runtimePorts);
 
+    /*
+     * A forwarded port that is actually serving means the runtime is healthy — even
+     * if the workspace status still lags behind (a cold-start where the pod became
+     * ready after the initial provisioning request timed out / returned a transient
+     * 500). Clear any stale workspaceError so it stops surfacing a persistent
+     * "Error runtime … 500" in Problems and a stuck PENDING/Error status after the
+     * preview has already come up. If the runtime errors again the store re-sets it.
+     */
+    const previewPortLive = runtimePorts.some((port) => port.ready === true || Boolean(port.url));
+    useEffect(() => {
+      if (previewPortLive && workbenchStore.workspaceError.get()) {
+        workbenchStore.workspaceError.set(undefined);
+      }
+    }, [previewPortLive]);
+
     const runtimeUiState = workspaceUiState(projectRuntimeState.workspace, {
       ports: runtimePorts,
       loading: workspaceLoading,
@@ -3342,16 +3357,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [previewServerState, runtimePreviews, workspaceError, workspaceLoading, workspaceLogs],
     );
     const workspaceStatusLabel = useMemo(() => {
+      // A live serving port means Running — beats a stale error or a lagging status.
+      if (isRuntimeReallyRunning || previewPortLive) {
+        return 'Running';
+      }
+
       if (workspaceError) {
         return 'Error';
       }
 
       if (workspaceLoading) {
         return 'Starting';
-      }
-
-      if (isRuntimeReallyRunning) {
-        return 'Running';
       }
 
       const status = projectRuntimeState.workspace?.status?.toLowerCase();
@@ -3365,7 +3381,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       return projectRuntimeState.workspace?.status ?? 'Stopped';
-    }, [isRuntimeReallyRunning, projectRuntimeState.workspace, workspaceError, workspaceLoading]);
+    }, [isRuntimeReallyRunning, previewPortLive, projectRuntimeState.workspace, workspaceError, workspaceLoading]);
     const handleMobilePreviewRunToggle = useCallback(() => {
       setMobileIdePanel('preview');
       setProjectPanelSearchParam('preview');
