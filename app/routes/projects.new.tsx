@@ -341,6 +341,32 @@ function formatContextWindow(tokens: number): string {
   return String(tokens);
 }
 
+/*
+ * A short "when to use" hint for a model, derived from its real context-window
+ * metadata (maxTokenAllowed) — no per-model claims are invented. The tiers map the
+ * context size to the practical trade-off (fast/economical vs deep reasoning vs
+ * very large context for whole codebases / long documents).
+ */
+function modelUsageHint(maxTokenAllowed?: number): string {
+  if (!maxTokenAllowed || maxTokenAllowed <= 0) {
+    return 'General-purpose model';
+  }
+
+  if (maxTokenAllowed >= 400_000) {
+    return 'Very large context — whole codebases & long documents';
+  }
+
+  if (maxTokenAllowed >= 128_000) {
+    return 'Large context — big files, long chats & deep reasoning';
+  }
+
+  if (maxTokenAllowed >= 32_000) {
+    return 'Balanced — everyday coding & reasoning';
+  }
+
+  return 'Fast & economical — quick edits and short tasks';
+}
+
 type ModelsPayload = {
   modelList: ModelInfo[];
   providers: ProviderInfo[];
@@ -411,7 +437,9 @@ function CreateDropdown({
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[12px] font-semibold">{option.label}</span>
                       {option.description ? (
-                        <span className="block truncate text-[10px] leading-4">{option.description}</span>
+                        <span className="block text-[10px] leading-4 text-bolt-elements-textTertiary">
+                          {option.description}
+                        </span>
                       ) : null}
                     </span>
                     {option.meta ? <span className="vc-create-dropdown-meta">{option.meta}</span> : null}
@@ -1098,7 +1126,8 @@ export default function NewProjectPage() {
     return activeModels.map((model) => ({
       value: model.name,
       label: model.label || model.name,
-      description: model.name,
+      // "When to use" hint + readable context size, both from real model metadata.
+      description: modelUsageHint(model.maxTokenAllowed),
       meta: model.maxTokenAllowed ? `${formatContextWindow(model.maxTokenAllowed)} ctx` : undefined,
     }));
   }, [activeModels]);
