@@ -11792,6 +11792,35 @@ function ProjectActivityPanel({
     return { actions, actors };
   }, [events]);
 
+  /*
+   * Quick-filter chips: the most frequent event types and the most active
+   * members, so a single tap deep-links the stream to that type/actor (reusing
+   * the same actionFilter/actorFilter state the selects drive).
+   */
+  const quickChips = useMemo(() => {
+    const actionCounts = new Map<string, number>();
+    const actorCounts = new Map<string, number>();
+
+    for (const event of events) {
+      if (event.action) {
+        actionCounts.set(event.action, (actionCounts.get(event.action) ?? 0) + 1);
+      }
+
+      if (event.actorUserId) {
+        actorCounts.set(event.actorUserId, (actorCounts.get(event.actorUserId) ?? 0) + 1);
+      }
+    }
+
+    const topActions = Array.from(actionCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6);
+    const topActors = Array.from(actorCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    return { topActions, topActors };
+  }, [events]);
+
   const filteredEvents = useMemo(() => {
     const search = query.trim().toLowerCase();
     const now = Date.now();
@@ -11919,11 +11948,47 @@ function ProjectActivityPanel({
         </label>
       </div>
 
+      {quickChips.topActions.length || quickChips.topActors.length ? (
+        <div className="bolt-project-activity-chips" aria-label="Quick filters">
+          {quickChips.topActions.map(([action, count]) => (
+            <FilterChip
+              key={`type-${action}`}
+              icon="i-ph:tag"
+              label={formatProjectActivityAction(action)}
+              value={count}
+              active={actionFilter === action}
+              onClick={() => setActionFilter((current) => (current === action ? 'all' : action))}
+            />
+          ))}
+          {quickChips.topActors.map(([actor, count]) => (
+            <FilterChip
+              key={`actor-${actor}`}
+              icon="i-ph:user"
+              label={actor}
+              value={count}
+              active={actorFilter === actor}
+              onClick={() => setActorFilter((current) => (current === actor ? 'all' : actor))}
+            />
+          ))}
+          {actionFilter !== 'all' || actorFilter !== 'all' ? (
+            <FilterChip
+              icon="i-ph:x-circle"
+              label="Clear filters"
+              onClick={() => {
+                setActionFilter('all');
+                setActorFilter('all');
+              }}
+            />
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="bolt-project-activity-list" role="list" aria-live="polite">
         {filteredEvents.length ? (
           filteredEvents.map((event: any) => {
             const expanded = expandedEventId === event.id;
             const severity = classifyProjectActivity(event.action);
+            const deepLink = activityDeepLink(event);
 
             return (
               <article key={event.id} className="bolt-project-activity-event" data-severity={severity} role="listitem">
@@ -11944,6 +12009,17 @@ function ProjectActivityPanel({
                   <em>{severity}</em>
                   <span className={expanded ? 'i-ph:caret-up' : 'i-ph:caret-down'} aria-hidden />
                 </button>
+                {deepLink ? (
+                  <a
+                    className="bolt-project-activity-deeplink"
+                    href={deepLink.href}
+                    target={deepLink.href.startsWith('/') ? undefined : '_blank'}
+                    rel={deepLink.href.startsWith('/') ? undefined : 'noreferrer noopener'}
+                  >
+                    <span className="i-ph:arrow-square-out" aria-hidden />
+                    {deepLink.label}
+                  </a>
+                ) : null}
                 {expanded ? (
                   <pre className="bolt-project-activity-payload">
                     {JSON.stringify(
@@ -11975,6 +12051,26 @@ function formatProjectActivityAction(action: string) {
     .replace(/^project\./, '')
     .replace(/\./g, ' / ')
     .replace(/_/g, ' ');
+}
+
+/*
+ * A real, resolvable deep link for an activity event, or null. We only surface a
+ * link when the backend actually recorded a target (a URL in metadata, or a
+ * deploy/preview URL) — never a fabricated one.
+ */
+function activityDeepLink(event: any): { href: string; label: string } | null {
+  const metadata = (event?.metadata ?? {}) as Record<string, unknown>;
+  const candidate = metadata.url ?? metadata.href ?? metadata.link ?? metadata.deploymentUrl ?? metadata.previewUrl;
+
+  if (typeof candidate === 'string' && /^https?:\/\//i.test(candidate)) {
+    return { href: candidate, label: 'Open' };
+  }
+
+  if (typeof metadata.path === 'string' && metadata.path.startsWith('/')) {
+    return { href: metadata.path, label: 'View' };
+  }
+
+  return null;
 }
 
 function classifyProjectActivity(action: string) {
