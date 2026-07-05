@@ -810,7 +810,7 @@ export function AppShell({
         <DesktopSidebar collapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
         <MobileSidebarDrawer open={drawerOpen} onClose={closeDrawer} />
         <section id="main-content" tabIndex={-1} className="min-w-0 outline-none">
-          {!hideTopBar ? <TopBar onOpenDrawer={openDrawer} /> : null}
+          {!hideTopBar ? <TopBar onOpenDrawer={openDrawer} title={title} /> : null}
           <div className={classNames('mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8', contentClassName)}>
             {!hideHeader ? (
               <div className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
@@ -1754,17 +1754,19 @@ export function LinkButton({
   );
 }
 
-function TopBar({ onOpenDrawer }: { onOpenDrawer: () => void }) {
+function TopBar({ onOpenDrawer, title }: { onOpenDrawer: () => void; title?: string }) {
   return (
     <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-3 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 px-4 backdrop-blur-xl sm:px-6">
       <button
         type="button"
         onClick={onOpenDrawer}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] lg:hidden"
+        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] lg:hidden"
         aria-label="Open navigation menu"
       >
         <Menu className="h-4 w-4" aria-hidden />
       </button>
+      {/* Current-page title so the mobile header shows where you are (desktop shows the H1 in the content). */}
+      {title ? <span className="min-w-0 flex-1 truncate text-base font-semibold lg:hidden">{title}</span> : null}
       <div className="hidden flex-1 lg:block" />
       <Link
         to="/command-palette"
