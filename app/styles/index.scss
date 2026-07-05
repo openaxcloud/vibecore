@@ -17414,6 +17414,19 @@ button.bolt-project-statusbar-pill:focus-visible,
   gap: 10px;
 }
 
+.bolt-project-workflow-run-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  color: var(--vc-ide-text-tertiary);
+  white-space: nowrap;
+}
+
+.bolt-project-workflow-run-meta + .bolt-project-workflow-run-meta {
+  margin-left: 8px;
+}
+
 .bolt-project-workflow-runs pre {
   max-height: 260px;
   overflow: auto;

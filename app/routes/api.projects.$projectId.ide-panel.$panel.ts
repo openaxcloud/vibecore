@@ -2272,7 +2272,13 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         workflow,
         now,
       );
-      state.runs.unshift(run);
+
+      /*
+       * The Run button is a manual trigger; record it on the run so the panel
+       * can show how each run was started (vs. a future scheduler tick, which
+       * would stamp 'schedule').
+       */
+      state.runs.unshift({ ...run, trigger: 'manual' });
       state.runs = state.runs.slice(0, 25);
       state.workflows = state.workflows.map((item: any) =>
         item.id === workflow.id
