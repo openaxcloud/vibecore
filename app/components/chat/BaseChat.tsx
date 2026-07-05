@@ -56,6 +56,7 @@ import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
 import { Menu } from '~/components/sidebar/Menu.client';
+import { EmptyState } from '~/components/ui/EmptyState';
 import { PanelBoundary, PanelErrorBoundary, PanelLoading, ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { FileTree } from '~/components/workbench/FileTree';
@@ -15909,7 +15910,16 @@ function ProjectIntegrationsPanel({
                   </button>
                 </article>
               ))}
-              {!connected.length && <div className="bolt-project-empty-panel">No connected integrations.</div>}
+              {!connected.length && (
+                <EmptyState
+                  variant="compact"
+                  icon="i-ph:plugs-connected"
+                  title="No connected integrations"
+                  description="Connect a service to sync data and automate your project."
+                  actionLabel="Browse integrations"
+                  onAction={() => setActiveTab('browse')}
+                />
+              )}
             </section>
           )}
 
@@ -15961,7 +15971,16 @@ function ProjectIntegrationsPanel({
                   </form>
                 </article>
               ))}
-              {!webhooks.length && <div className="bolt-project-empty-panel">No webhooks configured.</div>}
+              {!webhooks.length && (
+                <EmptyState
+                  variant="compact"
+                  icon="i-ph:webhooks-logo"
+                  title="No webhooks configured"
+                  description="Send project events to an outgoing endpoint."
+                  actionLabel="Create webhook"
+                  onAction={() => setShowWebhookForm(true)}
+                />
+              )}
             </section>
           )}
 
@@ -16020,7 +16039,16 @@ function ProjectIntegrationsPanel({
                   </form>
                 </article>
               ))}
-              {!apiKeys.length && <div className="bolt-project-empty-panel">No API keys created.</div>}
+              {!apiKeys.length && (
+                <EmptyState
+                  variant="compact"
+                  icon="i-ph:key"
+                  title="No API keys created"
+                  description="Generate a key to access this project programmatically."
+                  actionLabel="Create API key"
+                  onAction={() => setShowApiKeyForm(true)}
+                />
+              )}
             </section>
           )}
 
@@ -16069,7 +16097,16 @@ function ProjectIntegrationsPanel({
                   </form>
                 </article>
               ))}
-              {!eventStreams.length && <div className="bolt-project-empty-panel">No event streams configured.</div>}
+              {!eventStreams.length && (
+                <EmptyState
+                  variant="compact"
+                  icon="i-ph:broadcast"
+                  title="No event streams configured"
+                  description="Stream project events to an external destination."
+                  actionLabel="Add stream"
+                  onAction={() => setShowStreamForm(true)}
+                />
+              )}
             </div>
           </section>
         </main>
@@ -16159,10 +16196,17 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
                 </form>
               </div>
             ))
+          ) : query ? (
+            <div className="bolt-project-empty-panel">No environment variable matches this search.</div>
           ) : (
-            <div className="bolt-project-empty-panel">
-              {query ? 'No environment variable matches this search.' : 'No environment variables.'}
-            </div>
+            <EmptyState
+              variant="compact"
+              icon="i-ph:brackets-curly"
+              title="No environment variables"
+              description="Add a variable to configure this project's runtime."
+              actionLabel="New variable"
+              onAction={() => setEditing({ key: 'VITE_API_URL', value: '' })}
+            />
           )}
         </div>
       </section>
@@ -18182,7 +18226,14 @@ function ProjectDeploymentsPanel({
               </article>
             ))
           ) : (
-            <div className="bolt-project-empty-panel">No deployments yet. Create one from the Manage tab.</div>
+            <EmptyState
+              variant="compact"
+              icon="i-ph:rocket-launch"
+              title="No deployments yet"
+              description="Ship this project to a live URL from the Manage tab."
+              actionLabel="Go to Manage"
+              onAction={() => setTab('manage')}
+            />
           )}
 
           {/* Real commit history (hash + author + date) from the git graph. */}
