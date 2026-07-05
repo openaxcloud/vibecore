@@ -1,4 +1,5 @@
 import type React from 'react';
+import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { FieldError, fieldErrorProps } from '~/components/ui/FieldError';
 
 interface EnterpriseFormPageProps {
@@ -9,15 +10,21 @@ interface EnterpriseFormPageProps {
   error?: string;
 }
 
+/*
+ * Every enterprise/account form page (session-security, recovery-codes, invoices,
+ * payment-method, audit-logs, org security/siem/domains, scim-token, …) renders
+ * through this component. It used to render its own bare <main> with NO app nav,
+ * so those routes trapped the user with no header/hamburger/back. It now renders
+ * inside the shared AppShell (mobile header + hamburger + drawer + active-item
+ * highlight). AppShell owns the title header, so this only supplies the form card,
+ * anchored to the top (the previous `justify-center` produced a large empty gap
+ * above short forms — e.g. recovery-codes).
+ */
 export function EnterpriseFormPage({ title, description, children, status, error }: EnterpriseFormPageProps) {
   return (
-    <main className="min-h-screen bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
-      <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold tracking-normal">{title}</h1>
-          <p className="mt-3 max-w-2xl text-sm text-bolt-elements-textSecondary">{description}</p>
-        </div>
-        <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6 shadow-sm">
+    <AppShell title={title} description={description}>
+      <div className="w-full max-w-3xl">
+        <div className="w-full max-w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm sm:p-6">
           {status ? (
             <p
               role="status"
@@ -33,8 +40,8 @@ export function EnterpriseFormPage({ title, description, children, status, error
           ) : null}
           {children}
         </div>
-      </section>
-    </main>
+      </div>
+    </AppShell>
   );
 }
 
