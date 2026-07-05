@@ -568,6 +568,149 @@ function AiModelsPanel({ reauthPassword, pushToast }: PanelProps) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// F25 — Previews: TTL remaining + kill per row + default TTL (System settings)
+// ---------------------------------------------------------------------------
+
+interface PreviewRow {
+  workspaceId: string;
+  url: string;
+  status: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+interface PreviewsResponse {
+  defaultTtlMinutes: number;
+  previews: PreviewRow[];
+}
+
+function PreviewsPanel({ reauthPassword, pushToast }: PanelProps) {
+  const { data, loading, error, reload } = usePanelData<PreviewsResponse>('/admin/previews');
+  const [ttl, setTtl] = useState('');
+  const [savingTtl, setSavingTtl] = useState(false);
+  const [busy, setBusy] = useState<string>();
+
+  useEffect(() => {
+    if (data?.defaultTtlMinutes) {
+      setTtl(String(data.defaultTtlMinutes));
+    }
+  }, [data?.defaultTtlMinutes]);
+
+  if (loading || error) {
+    return <PanelStates loading={loading} error={error} />;
+  }
+
+  const previews = data?.previews ?? [];
+
+  async function saveTtl() {
+    const minutes = Math.trunc(Number(ttl));
+    if (!Number.isFinite(minutes) || minutes <= 0) {
+      pushToast('Enter a positive number of minutes for the default preview TTL.');
+      return;
+    }
+    setSavingTtl(true);
+    const result = await withReauth(reauthPassword, pushToast, () =>
+      apiJson('/admin/system-settings', {
+        method: 'POST',
+        body: JSON.stringify({ key: 'preview.defaultTtlMinutes', value: minutes }),
+      }),
+    );
+    setSavingTtl(false);
+    if (result) {
+      pushToast(`Default preview TTL set to ${minutes} minutes.`);
+      reload();
+    }
+  }
+
+  async function kill(workspaceId: string) {
+    setBusy(workspaceId);
+    const result = await withReauth(reauthPassword, pushToast, () =>
+      apiJson(`/admin/workspaces/${workspaceId}/stop`, { method: 'POST' }),
+    );
+    setBusy(undefined);
+    if (result) {
+      pushToast(`Preview killed (workspace ${workspaceId} stopped). Audited.`);
+      reload();
+    }
+  }
+
+  return (
+    <section className="panel" aria-label="Previews">
+      <div className="page-title">
+        <h2>Previews</h2>
+        <button className="secondary" type="button" onClick={reload}>
+          Refresh
+        </button>
+      </div>
+      <form
+        className="ttl-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void saveTtl();
+        }}
+      >
+        <label>
+          Default preview TTL (minutes)
+          <input type="number" step="1" min="1" value={ttl} onChange={(event) => setTtl(event.target.value)} />
+        </label>
+        <button className="action" type="submit" disabled={savingTtl}>
+          {savingTtl ? 'Saving…' : 'Save default TTL'}
+        </button>
+      </form>
+      {previews.length === 0 ? (
+        <p className="muted">No workspace previews.</p>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Workspace</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Expires</th>
+                <th>TTL</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {previews.map((preview) => {
+                const secondsLeft = Math.round((new Date(preview.expiresAt).getTime() - Date.now()) / 1000);
+                const expired = secondsLeft <= 0;
+                const ttlLabel = expired
+                  ? 'expired'
+                  : secondsLeft >= 3600
+                    ? `${Math.floor(secondsLeft / 3600)}h ${Math.floor((secondsLeft % 3600) / 60)}m`
+                    : `${Math.max(1, Math.floor(secondsLeft / 60))}m`;
+                const running = /running|starting/i.test(preview.status);
+                return (
+                  <tr key={preview.workspaceId}>
+                    <td>{preview.workspaceId}</td>
+                    <td>{preview.status}</td>
+                    <td>{formatDateTime(preview.createdAt)}</td>
+                    <td>{formatDateTime(preview.expiresAt)}</td>
+                    <td className={expired ? 'ledger-debit' : 'ledger-amount'}>{ttlLabel}</td>
+                    <td>
+                      <button
+                        className="danger"
+                        type="button"
+                        disabled={busy === preview.workspaceId || !running}
+                        onClick={() => void kill(preview.workspaceId)}
+                      >
+                        {busy === preview.workspaceId ? 'Killing…' : 'Kill'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 /**
  * Registry of section-id → custom panel. main.tsx renders the panel in place of
  * the generic table when an entry exists. Populated one Batch-F point at a time.
@@ -576,4 +719,5 @@ export const CUSTOM_PANELS: Record<string, React.ComponentType<PanelProps>> = {
   'credit-wallets': CreditWalletsPanel,
   'account-deletions': AccountDeletionsPanel,
   'ai-models': AiModelsPanel,
+  previews: PreviewsPanel,
 };

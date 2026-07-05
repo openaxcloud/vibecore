@@ -21407,11 +21407,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const workspaces = await store.listAdminWorkspaces();
 
+    /*
+     * F25: preview TTL. A preview is capped at `preview.defaultTtlMinutes` after
+     * its workspace was created; the panel shows the remaining time and can kill
+     * (stop) an over-TTL preview. The default lives in System settings so ops can
+     * tune it without a deploy.
+     */
+    const settings = await store.listSystemSettings();
+    const ttlSetting = settings.find((setting) => setting.key === 'preview.defaultTtlMinutes');
+    const defaultTtlMinutes = Number(ttlSetting?.value);
+    const ttlMinutes = Number.isFinite(defaultTtlMinutes) && defaultTtlMinutes > 0 ? defaultTtlMinutes : 120;
+
     return {
+      defaultTtlMinutes: ttlMinutes,
       previews: workspaces.map((workspace) => ({
         workspaceId: workspace.id,
         url: `/api/runtime/workspaces/${workspace.id}/preview/3000`,
         status: workspace.status,
+        createdAt: workspace.createdAt,
+        expiresAt: new Date(new Date(workspace.createdAt).getTime() + ttlMinutes * 60_000).toISOString(),
       })),
     };
   });
