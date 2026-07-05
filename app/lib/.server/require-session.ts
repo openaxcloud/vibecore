@@ -99,3 +99,39 @@ export async function requireWebSession(request: Request): Promise<string> {
 
   throw unauthorized();
 }
+
+/**
+ * Non-throwing companion to {@link requireWebSession} for PUBLIC pages that stay
+ * reachable while logged out but should bounce an authenticated visitor to their
+ * in-app twin (e.g. the marketing `/account` and `/templates` pages redirecting a
+ * signed-in user to `/account-settings` and `/dashboard/templates`).
+ *
+ * Returns `true` only when the request carries a session cookie that `GET /auth/me`
+ * validates. Fails OPEN (returns `false`) on a missing cookie, a non-200, or any
+ * network/timeout error — a marketing page must never break or wrongly redirect
+ * because auth verification was momentarily unavailable. A stale/invalid cookie is
+ * harmless: it yields `false` here (marketing renders), and if it somehow slips
+ * through, the authed twin's own loader re-checks and sends them to re-auth.
+ */
+export async function hasValidWebSession(request: Request): Promise<boolean> {
+  const sessionToken = sessionTokenFromCookie(request.headers.get('Cookie'));
+
+  if (!sessionToken) {
+    return false;
+  }
+
+  const url = `${apiBaseUrl().replace(/\/+$/, '')}/auth/me`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { authorization: `Bearer ${sessionToken}`, accept: 'application/json' },
+      signal: AbortSignal.timeout(5_000),
+    });
+
+    return response.status === 200;
+  } catch (error) {
+    logger.warn(`optional session check failed: ${error instanceof Error ? error.message : String(error)}`);
+    return false;
+  }
+}

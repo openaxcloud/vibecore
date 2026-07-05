@@ -1,9 +1,19 @@
-import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
+import { redirect, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 import {
   EcodeSurfacePageBySlug,
   getEcodeSurfacePage,
   makeEcodeSurfaceMetaTags,
 } from '~/components/marketing/EcodeSurfacePages';
+import { hasValidWebSession } from '~/lib/.server/require-session';
+
+/**
+ * Marketing surface slugs that duplicate a real in-app destination. A signed-in
+ * visitor typing the bare marketing route should land on their actual page rather
+ * than the "OPERATIONS SURFACE" marketing twin. Extend as more twins surface.
+ */
+const SURFACE_AUTHED_TWINS: Record<string, string> = {
+  account: '/account-settings',
+};
 
 /*
  * The 404 for an unknown surface slug must be thrown from the loader, not the
@@ -13,9 +23,18 @@ import {
  * (HTTP 200 body that says "not found"), which search engines index as a real
  * page. Throwing here, before the status is committed, yields a true 404.
  */
-export const loader = ({ params }: LoaderFunctionArgs) => {
-  if (!getEcodeSurfacePage(params.slug ?? '')) {
+export const loader = async ({ params, request }: LoaderFunctionArgs) => {
+  const slug = params.slug ?? '';
+
+  if (!getEcodeSurfacePage(slug)) {
     throw new Response('Not Found', { status: 404, statusText: 'Not Found' });
+  }
+
+  // Send a signed-in visitor to the real in-app page instead of the marketing twin.
+  const twin = SURFACE_AUTHED_TWINS[slug];
+
+  if (twin && (await hasValidWebSession(request))) {
+    throw redirect(twin);
   }
 
   return null;

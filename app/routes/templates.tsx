@@ -1,10 +1,11 @@
-import { data as json, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
+import { data as json, redirect, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 import { useLoaderData } from 'react-router';
 import {
   TemplatesMarketingPage,
   type PublicTemplateCard,
   type PublicTemplateCategory,
 } from '~/components/marketing/EcodePublicResourcePages';
+import { hasValidWebSession } from '~/lib/.server/require-session';
 import {
   getEcodeTemplateCategories,
   listEcodeTemplates,
@@ -25,7 +26,13 @@ export const meta: MetaFunction = () => [
   }),
 ];
 
-export function loader(_args: LoaderFunctionArgs) {
+export async function loader({ request }: LoaderFunctionArgs) {
+  // A signed-in visitor who lands on the public gallery belongs in the in-app
+  // templates page (real "Use template" actions), not the marketing twin.
+  if (await hasValidWebSession(request)) {
+    throw redirect('/dashboard/templates');
+  }
+
   const categories = getEcodeTemplateCategories().map(toPublicCategory);
   const categoryNames = new Map(categories.map((category) => [category.slug, category.name]));
 
