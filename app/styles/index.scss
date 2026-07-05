@@ -77,6 +77,18 @@ html:has(.vc-app-shell-grid) body {
 }
 
 /*
+ * iOS Safari auto-zooms the viewport when a focused form control has font-size
+ * < 16px. Force >=16px for controls inside any dialog/modal on touch devices so
+ * opening a modal (e.g. Create API key) never zooms in and hides its content.
+ * Radix Dialog content carries role="dialog", so this covers every shared modal.
+ */
+@media (pointer: coarse) {
+  [role='dialog'] :where(input, select, textarea) {
+    font-size: 16px;
+  }
+}
+
+/*
  * Homogeneous marketing typography scale (Avi: titles + paragraphs must be the
  * SAME size across every public page, not ad-hoc per page). One central set of
  * tokens + utility classes, sized with clamp() to match the homepage hero scale

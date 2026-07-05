@@ -1,6 +1,6 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { motion, type Variants } from 'framer-motion';
-import React, { memo, type ReactNode, useState, useEffect } from 'react';
+import React, { memo, type ReactNode, useRef, useState, useEffect } from 'react';
 import { FixedSizeList } from 'react-window';
 import { Button } from './Button';
 import { Checkbox } from './Checkbox';
@@ -102,6 +102,12 @@ interface DialogProps {
 }
 
 export const Dialog = memo(({ children, className, showCloseButton = true, onClose, onBackdrop }: DialogProps) => {
+  // Only dismiss on a genuine backdrop TAP, not a swipe/pan. On mobile, panning to
+  // scroll the modal (or a stray horizontal drag) used to end on the overlay and
+  // close the dialog, bouncing the user out. Track the pointer-down point and skip
+  // dismissal if it moved more than a few px.
+  const backdropDownRef = useRef<{ x: number; y: number } | null>(null);
+
   return (
     <RadixDialog.Portal>
       <RadixDialog.Overlay asChild>
@@ -111,7 +117,19 @@ export const Dialog = memo(({ children, className, showCloseButton = true, onClo
           animate="open"
           exit="closed"
           variants={dialogBackdropVariants}
-          onClick={onBackdrop}
+          onPointerDown={(event) => {
+            backdropDownRef.current = { x: event.clientX, y: event.clientY };
+          }}
+          onClick={(event) => {
+            const start = backdropDownRef.current;
+            backdropDownRef.current = null;
+
+            if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10) {
+              return;
+            }
+
+            onBackdrop?.();
+          }}
         />
       </RadixDialog.Overlay>
       <RadixDialog.Content asChild>
