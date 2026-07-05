@@ -318,10 +318,132 @@ function CreditWalletsPanel({ reauthPassword, pushToast }: PanelProps) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// F24 — Account deletions: J+14 purge queue (TTL remaining) + Cancel deletion
+// ---------------------------------------------------------------------------
+
+interface DeletionRow {
+  userId: string;
+  email: string | null;
+  status: string;
+  requestedAt: string | null;
+  purgeDueAt: string | null;
+}
+
+interface DeletionsResponse {
+  gracePeriodDays: number;
+  requests: DeletionRow[];
+  readyToPurge: number;
+}
+
+function daysUntil(iso: string | null): number | null {
+  if (!iso) {
+    return null;
+  }
+  const due = new Date(iso).getTime();
+  if (Number.isNaN(due)) {
+    return null;
+  }
+  return Math.ceil((due - Date.now()) / 86_400_000);
+}
+
+function deletionStatusClass(status: string): string {
+  if (status === 'ready_to_purge') {
+    return 'ledger-debit';
+  }
+  if (status === 'pending') {
+    return 'status-warn-text';
+  }
+  return '';
+}
+
+function AccountDeletionsPanel({ reauthPassword, pushToast }: PanelProps) {
+  const { data, loading, error, reload } = usePanelData<DeletionsResponse>('/admin/account-deletions');
+  const [busyUser, setBusyUser] = useState<string>();
+
+  if (loading || error) {
+    return <PanelStates loading={loading} error={error} />;
+  }
+
+  const requests = data?.requests ?? [];
+
+  async function cancel(userId: string) {
+    setBusyUser(userId);
+    const result = await withReauth(reauthPassword, pushToast, () =>
+      apiJson<{ cancelled: boolean }>(`/admin/account-deletions/${userId}/cancel`, { method: 'POST' }),
+    );
+    setBusyUser(undefined);
+    if (result) {
+      pushToast('Account deletion cancelled — the grace-period purge will not run. Audited.');
+      reload();
+    }
+  }
+
+  return (
+    <section className="panel" aria-label="Account deletions">
+      <div className="page-title">
+        <h2>Account deletions</h2>
+        <button className="secondary" type="button" onClick={reload}>
+          Refresh
+        </button>
+      </div>
+      <p className="muted">
+        Self-serve deletions purge after a {data?.gracePeriodDays ?? 14}-day grace window.{' '}
+        {data ? `${data.readyToPurge} ready to purge now.` : ''} Cancelling stops the scheduled purge (audited).
+      </p>
+      {requests.length === 0 ? (
+        <p className="muted">No pending account deletions.</p>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Status</th>
+                <th>Requested</th>
+                <th>Purge due</th>
+                <th>TTL</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((row) => {
+                const ttl = daysUntil(row.purgeDueAt);
+                return (
+                  <tr key={row.userId}>
+                    <td>{row.email ?? row.userId}</td>
+                    <td className={deletionStatusClass(row.status)}>{row.status.replace(/_/g, ' ')}</td>
+                    <td>{formatDateTime(row.requestedAt)}</td>
+                    <td>{formatDateTime(row.purgeDueAt)}</td>
+                    <td className="ledger-amount">
+                      {ttl == null ? '—' : ttl <= 0 ? 'due now' : `${ttl} day${ttl === 1 ? '' : 's'}`}
+                    </td>
+                    <td>
+                      <button
+                        className="secondary"
+                        type="button"
+                        disabled={busyUser === row.userId}
+                        onClick={() => void cancel(row.userId)}
+                      >
+                        {busyUser === row.userId ? 'Cancelling…' : 'Cancel deletion'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 /**
  * Registry of section-id → custom panel. main.tsx renders the panel in place of
  * the generic table when an entry exists. Populated one Batch-F point at a time.
  */
 export const CUSTOM_PANELS: Record<string, React.ComponentType<PanelProps>> = {
   'credit-wallets': CreditWalletsPanel,
+  'account-deletions': AccountDeletionsPanel,
 };

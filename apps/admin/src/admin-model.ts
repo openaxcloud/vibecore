@@ -24,6 +24,7 @@ export const adminSections: AdminSection[] = [
   { id: 'quotas', label: 'Quotas', endpoint: '/admin/quotas', collectionKey: 'quotas', description: 'Plan limits, usage and quota overrides.' },
   { id: 'abuse-events', label: 'Abuse events', endpoint: '/admin/abuse-events', collectionKey: 'abuseEvents', description: 'Abuse queue and resolution flow.' },
   { id: 'security-events', label: 'Security events', endpoint: '/admin/security-events', collectionKey: 'events', description: 'Authentication, MFA and security-relevant events.' },
+  { id: 'account-deletions', label: 'Account deletions', endpoint: '/admin/account-deletions', collectionKey: 'requests', description: 'Pending self-serve deletions: 14-day purge queue, TTL and cancel.' },
   { id: 'audit-logs', label: 'Audit logs', endpoint: '/admin/audit-logs', collectionKey: 'auditLogs', description: 'Tenant audit trail.', exportable: true },
   { id: 'admin-audit-logs', label: 'Admin audit logs', endpoint: '/admin/admin-audit-logs', collectionKey: 'adminAuditLogs', description: 'Operator action timeline.', exportable: true },
   { id: 'support-tickets', label: 'Support tickets', endpoint: '/admin/support-tickets', collectionKey: 'tickets', description: 'Support queue and admin responses.' },

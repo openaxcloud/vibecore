@@ -1021,6 +1021,10 @@ pre {
   color: var(--status-error-text);
 }
 
+.status-warn-text {
+  color: var(--status-warning-text);
+}
+
 @media (max-width: 720px) {
   .wallet-adjust {
     grid-template-columns: 1fr;

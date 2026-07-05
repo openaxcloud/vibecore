@@ -22391,6 +22391,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /*
+   * F24: admin cancels a pending self-serve account deletion during the 14-day
+   * grace window (mirrors the self-serve /account/deletion/cancel: clear the
+   * user's accountDeletion preference + drop them from the pending set). Idempotent,
+   * platform-admin + recent re-auth gated, written to AdminAuditLog.
+   */
+  app.post('/admin/account-deletions/:userId/cancel', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { userId } = parse(z.object({ userId: z.string().min(1) }), request.params);
+    const user = await store.findUserById(userId);
+
+    if (user) {
+      const preferences = { ...(user.preferences ?? {}) };
+      delete preferences.accountDeletion;
+      await store.updateUser({ userId, preferences });
+    }
+
+    await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+    await recordAdminAction(request, store, { action: 'admin.account_deletion.cancel', metadata: { userId } });
+
+    return { cancelled: true, userId };
+  });
+
+  /*
    * ===== Replit-parity account-inactivity GC (P8 — internal, worker-triggered) =====
    * Free accounts inactive >= 1 year are eligible for deletion; paid accounts are
    * exempt (account-lifecycle.ts). The worker cron POSTs here with the shared

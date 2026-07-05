@@ -138,4 +138,42 @@ describe('self-serve account deletion routes', () => {
     const list = await app.inject({ method: 'GET', url: '/admin/account-deletions', headers: auth('user-token') });
     expect(list.statusCode).toBe(403);
   });
+
+  it('F24: admin cancels a pending deletion (clears state + drops from purge queue)', async () => {
+    const { app, user } = await setup();
+    await app.inject({ method: 'POST', url: '/account/deletion', headers: auth('user-token') });
+    await app.inject({
+      method: 'POST',
+      url: '/auth/reauth',
+      headers: auth('admin-token'),
+      payload: { password: 'password123' },
+    });
+
+    const cancel = await app.inject({
+      method: 'POST',
+      url: `/admin/account-deletions/${user.id}/cancel`,
+      headers: auth('admin-token'),
+    });
+    expect(cancel.statusCode).toBe(200);
+    expect(cancel.json()).toMatchObject({ cancelled: true, userId: user.id });
+
+    // no longer queued for purge
+    const list = await app.inject({ method: 'GET', url: '/admin/account-deletions', headers: auth('admin-token') });
+    expect(list.json().requests.find((r: { userId: string }) => r.userId === user.id)).toBeUndefined();
+
+    // the user's own deletion state is cleared
+    const self = await app.inject({ method: 'GET', url: '/account/deletion', headers: auth('user-token') });
+    expect(self.json().status).toBe('none');
+  });
+
+  it('F24: forbids non-admins from cancelling a deletion', async () => {
+    const { app, user } = await setup();
+    await app.inject({ method: 'POST', url: '/account/deletion', headers: auth('user-token') });
+    const denied = await app.inject({
+      method: 'POST',
+      url: `/admin/account-deletions/${user.id}/cancel`,
+      headers: auth('user-token'),
+    });
+    expect(denied.statusCode).toBe(403);
+  });
 });
