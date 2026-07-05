@@ -29,6 +29,7 @@ import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { FileMap } from '~/lib/stores/files';
+import { shouldKickReopenPreview } from '~/lib/stores/preview-recovery';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
@@ -1029,6 +1030,40 @@ export const Preview = memo(
       workspaceError,
       workspaceReady,
     ]);
+
+    /*
+     * Reopen auto-run (Replit parity). Landing on a desktop project whose workspace
+     * pod was stopped or crashed (workspaceNeedsReprovision) must restart the pod AND
+     * relaunch the preview automatically — not strand the user behind a manual Run.
+     * The boot loop above deliberately bails on workspaceError (so a genuinely dead
+     * agent surfaces the recovery UI instead of being hammered), which also means it
+     * never fires for a reopened stopped/crashed workspace; startPreviewServer()
+     * reprovisions via #ensureWorkspaceProvisioned, so kicking it here revives the
+     * pod. Guarded to fire at most once per stopped/crashed session id: if the fresh
+     * pod keeps failing it falls back to the manual recovery UI instead of looping.
+     * Restart of an already-running preview stays manual by design.
+     */
+    const reopenKickedSessionRef = useRef<string | null>(null);
+    useEffect(() => {
+      if (!shouldKickReopenPreview({ autoStart, hasProject: Boolean(projectId), isStartingPreview, workspaceStatus })) {
+        return;
+      }
+
+      const sessionKey = workspaceStatus?.id ?? 'unknown';
+
+      if (reopenKickedSessionRef.current === sessionKey) {
+        return;
+      }
+
+      reopenKickedSessionRef.current = sessionKey;
+      setPreviewRunFailed(false);
+      setIsStartingPreview(true);
+      setPreviewStatus('Reopening workspace — restarting the dev server…');
+      void workbenchStore
+        .startPreviewServer()
+        .catch(() => undefined)
+        .finally(() => window.setTimeout(() => setIsStartingPreview(false), 2500));
+    }, [autoStart, projectId, isStartingPreview, workspaceStatus]);
 
     useEffect(() => {
       if (

@@ -50,6 +50,29 @@ export function workspaceNeedsReprovision(status: WorkspaceSession | undefined):
 }
 
 /**
+ * Whether reopening a project should proactively kick the preview server (which
+ * reprovisions the pod via #ensureWorkspaceProvisioned) instead of leaving the
+ * user behind a manual Run.
+ *
+ * The auto-start boot loop bails the moment a workspace error is known, so it
+ * never fires for a reopened project whose pod was stopped or crashed. This gate
+ * covers exactly that case: a desktop project (autoStart), not already starting,
+ * whose workspace status is reprovisionable. The caller fires it at most once per
+ * stopped/crashed session id so a persistently-failing pod falls back to the
+ * manual recovery UI rather than looping.
+ */
+export function shouldKickReopenPreview(input: {
+  autoStart: boolean;
+  hasProject: boolean;
+  isStartingPreview: boolean;
+  workspaceStatus: WorkspaceSession | undefined;
+}): boolean {
+  return (
+    input.autoStart && input.hasProject && !input.isStartingPreview && workspaceNeedsReprovision(input.workspaceStatus)
+  );
+}
+
+/**
  * Whether a failed setup-command run looks like a TRANSIENT runtime failure
  * (worth retrying) rather than a genuine install error (e.g. a missing package).
  *

@@ -4,6 +4,7 @@ import {
   appendWorkspaceLogLines,
   decodeArchiveEntry,
   isTransientCommandFailure,
+  shouldKickReopenPreview,
   shouldUseExistingPreviewServer,
   workspaceNeedsReprovision,
 } from './preview-recovery';
@@ -54,6 +55,27 @@ describe('workspaceNeedsReprovision', () => {
 
   it('does not reprovision when status is unknown (webcontainer mode)', () => {
     expect(workspaceNeedsReprovision(undefined)).toBe(false);
+  });
+});
+
+describe('shouldKickReopenPreview', () => {
+  const base = { autoStart: true, hasProject: true, isStartingPreview: false, workspaceStatus: session('stopped') };
+
+  it('kicks a reopened desktop project whose workspace is stopped or crashed', () => {
+    expect(shouldKickReopenPreview(base)).toBe(true);
+    expect(shouldKickReopenPreview({ ...base, workspaceStatus: session('error') })).toBe(true);
+  });
+
+  it('does not kick a healthy, still-starting, or unknown workspace', () => {
+    expect(shouldKickReopenPreview({ ...base, workspaceStatus: session('running') })).toBe(false);
+    expect(shouldKickReopenPreview({ ...base, workspaceStatus: session('starting') })).toBe(false);
+    expect(shouldKickReopenPreview({ ...base, workspaceStatus: undefined })).toBe(false);
+  });
+
+  it('does not kick without autoStart, without a project, or while already starting', () => {
+    expect(shouldKickReopenPreview({ ...base, autoStart: false })).toBe(false);
+    expect(shouldKickReopenPreview({ ...base, hasProject: false })).toBe(false);
+    expect(shouldKickReopenPreview({ ...base, isStartingPreview: true })).toBe(false);
   });
 });
 
