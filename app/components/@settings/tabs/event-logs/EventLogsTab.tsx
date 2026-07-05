@@ -535,7 +535,7 @@ export function EventLogsTab() {
       };
 
       // Add title and header
-      doc.setFillColor('#6366F1');
+      doc.setFillColor('#0099FF');
       doc.rect(0, 0, pageWidth, 50, 'F');
       doc.setTextColor('#FFFFFF');
       doc.setFontSize(24);

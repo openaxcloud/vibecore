@@ -47,18 +47,21 @@ const BASE_COLORS = {
     900: '#171717',
     950: '#0A0A0A',
   },
+  // Action accent = blue (brand rule: orange = brand, blue = action, ZERO purple in the connected app/IDE/admin).
+  // Centered on the IDE action blue (#0099FF dark / #006FD6 light) so every `accent-*` utility and the
+  // bolt-elements primary-button tint resolve to blue instead of the legacy bolt purple.
   accent: {
-    50: '#F8F5FF',
-    100: '#F0EBFF',
-    200: '#E1D6FF',
-    300: '#CEBEFF',
-    400: '#B69EFF',
-    500: '#9C7DFF',
-    600: '#8A5FFF',
-    700: '#7645E8',
-    800: '#6234BB',
-    900: '#502D93',
-    950: '#2D1959',
+    50: '#EFF8FF',
+    100: '#DCEEFF',
+    200: '#B8DEFF',
+    300: '#85C7FF',
+    400: '#47AAFF',
+    500: '#0099FF',
+    600: '#007FE0',
+    700: '#006FD6',
+    800: '#0059AB',
+    900: '#0A4C89',
+    950: '#07304F',
   },
   green: {
     50: '#F0FDF4',

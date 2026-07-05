@@ -41,11 +41,11 @@ const SERIES_PALETTE = [
   '#f97316', // orange (brand)
   '#3b82f6', // blue
   '#10b981', // emerald
-  '#a855f7', // violet
+  '#14b8a6', // teal
   '#f43f5e', // rose
   '#eab308', // amber
   '#06b6d4', // cyan
-  '#8b5cf6', // purple
+  '#84cc16', // lime
   '#ec4899', // pink
   '#22c55e', // green
 ];

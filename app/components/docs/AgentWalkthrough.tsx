@@ -307,7 +307,7 @@ function PresencePreview() {
           [
             { letters: 'AV', color: 'var(--vc-ide-accent-action, #3b82f6)', typing: true, overflow: false },
             { letters: 'MC', color: '#16a34a', typing: false, overflow: false },
-            { letters: 'JD', color: '#a855f7', typing: false, overflow: false },
+            { letters: 'JD', color: '#14b8a6', typing: false, overflow: false },
             { letters: '+2', color: 'var(--vc-ide-bg-overlay)', typing: false, overflow: true },
           ] as Array<{ letters: string; color: string; typing: boolean; overflow: boolean }>
         ).map((entry, idx) => (

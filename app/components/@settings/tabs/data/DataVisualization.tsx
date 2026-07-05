@@ -311,7 +311,7 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
         <div className={cardClasses}>
           <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-4">Total Chats</h3>
           <div className={statClasses}>
-            <div className="i-ph-chats-duotone w-8 h-8 text-indigo-500 dark:text-indigo-400" />
+            <div className="i-ph-chats-duotone w-8 h-8 text-blue-500 dark:text-blue-400" />
             <span>{chats.length}</span>
           </div>
         </div>

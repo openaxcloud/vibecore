@@ -66,7 +66,7 @@ const STATUS_DEFINITIONS: Record<
     label: 'Copied',
     description: 'File detected as a copy of an existing tracked file.',
     toneClassName:
-      'border-violet-500/60 bg-violet-100 text-violet-800 dark:border-violet-500/40 dark:bg-violet-500/15 dark:text-violet-200',
+      'border-teal-500/60 bg-teal-100 text-teal-800 dark:border-teal-500/40 dark:bg-teal-500/15 dark:text-teal-200',
     aliases: ['c', 'copied', 'copy'],
   },
   conflict: {

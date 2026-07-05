@@ -314,7 +314,7 @@ export const templates: TemplateCard[] = [
     tag: 'Web app',
     providers: [
       { name: 'React', Logo: SiReact, color: '#61DAFB' },
-      { name: 'Vite', Logo: SiVite, color: '#646CFF' },
+      { name: 'Vite', Logo: SiVite, color: '#41D1FF' },
       { name: 'TypeScript', Logo: SiTypescript, color: '#3178C6' },
     ],
   },
