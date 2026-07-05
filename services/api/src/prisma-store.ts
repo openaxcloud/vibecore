@@ -647,9 +647,12 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listMembers(organizationId: string) {
-    return (await this.prisma.organizationMember.findMany({ where: { organizationId }, include: { role: true } })).map(
-      mapMembership,
-    );
+    return (
+      await this.prisma.organizationMember.findMany({
+        where: { organizationId },
+        include: { role: true, user: { select: { name: true, email: true } } },
+      })
+    ).map(mapMembership);
   }
 
   async removeMember(organizationId: string, userId: string) {
@@ -4703,6 +4706,8 @@ function mapMembership(member: any): MembershipRecord {
     organizationId: member.organizationId,
     userId: member.userId,
     roleKey: member.role?.key ?? member.roleKey ?? 'member',
+    userName: member.user?.name ?? undefined,
+    userEmail: member.user?.email ?? undefined,
   };
 }
 

@@ -68,6 +68,13 @@ export interface MembershipRecord {
   organizationId: string;
   userId: string;
   roleKey: string;
+  /**
+   * Human-readable identity of the member, populated by listMembers (which joins
+   * the user row). Undefined on the single-record add/get paths that don't join.
+   * The members UI displays these instead of the opaque userId.
+   */
+  userName?: string;
+  userEmail?: string;
 }
 
 export interface ProjectRecord {

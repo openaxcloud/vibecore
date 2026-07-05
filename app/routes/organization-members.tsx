@@ -29,10 +29,9 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
   try {
     const [membersResult, rolesResult, orgResult, invitesResult] = await Promise.all([
-      apiRequest<{ memberships: Array<{ id: string; userId: string; roleKey: string }> }>(
-        request,
-        `/orgs/${organization.id}/memberships`,
-      ),
+      apiRequest<{
+        memberships: Array<{ id: string; userId: string; roleKey: string; userName?: string; userEmail?: string }>;
+      }>(request, `/orgs/${organization.id}/memberships`),
       apiRequest<{ roles: Array<{ key: string; name: string; permissions: string[] }> }>(
         request,
         `/orgs/${organization.id}/roles`,
@@ -67,7 +66,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         forbidden: true as const,
         orgId: organization.id,
         orgName: '',
-        memberships: [] as Array<{ id: string; userId: string; roleKey: string }>,
+        memberships: [] as Array<{ id: string; userId: string; roleKey: string; userName?: string; userEmail?: string }>,
         invitations: [] as PendingInvitation[],
         roles: [] as Array<{ key: string; name: string }>,
       });
@@ -82,9 +81,35 @@ export async function action({ request }: EnterpriseActionArgs) {
     intent?: string;
     orgId?: string;
     userId?: string;
+    email?: string;
     roleKey?: string;
     inviteId?: string;
   };
+
+  // Invite a new member by email — creates a pending invitation + sends the email.
+  if (body.intent === 'invite') {
+    if (!body.orgId || !body.email) {
+      return json({ error: 'An email address is required to send an invitation.' }, { status: 400 });
+    }
+
+    try {
+      await apiRequest(request, `/orgs/${body.orgId}/invitations`, {
+        method: 'POST',
+        body: JSON.stringify({ email: body.email, roleKey: body.roleKey ?? 'member' }),
+      });
+
+      return json({ status: `Invitation sent to ${body.email}.` });
+    } catch (error) {
+      if (error instanceof Response) {
+        return json(
+          { error: await apiErrorMessage(error, 'Could not send the invitation.') },
+          { status: error.status },
+        );
+      }
+
+      throw error;
+    }
+  }
 
   // Invitation intents carry an inviteId (no userId) — handle them first.
   if (body.intent === 'invite-resend' || body.intent === 'invite-revoke') {
@@ -179,6 +204,12 @@ export default function OrganizationMembersPage() {
   const ownerCount = memberships.filter((member) => member.roleKey === 'owner').length;
   const confirmMatches = confirmText.trim() === orgName;
 
+  // Friendly label for a member userId (name → email → id) for dialog copy.
+  const memberLabel = (userId: string | null) => {
+    const match = memberships.find((member) => member.userId === userId);
+    return match ? (match.userName ?? match.userEmail ?? match.userId) : (userId ?? '');
+  };
+
   const closeTransferDialog = () => {
     setTransferTarget(null);
     setConfirmText('');
@@ -220,17 +251,27 @@ export default function OrganizationMembersPage() {
               {actionData.error}
             </p>
           ) : null}
-          <Form method="post" className="grid gap-4 lg:grid-cols-[1fr_1fr_220px_auto] lg:items-end">
-            <TextField label="Organization ID" name="orgId" defaultValue={orgId} required />
-            <TextField label="User ID" name="userId" required />
+          <Form method="post" className="grid gap-4 lg:grid-cols-[1fr_220px_auto] lg:items-end">
+            <input type="hidden" name="intent" value="invite" />
+            <input type="hidden" name="orgId" value={orgId} />
+            <TextField
+              label="Invite by email"
+              name="email"
+              type="email"
+              placeholder="teammate@company.com"
+              required
+            />
             <SelectField
               label="Role"
               name="roleKey"
               defaultValue="member"
               options={roles.map((role) => ({ value: role.key, label: role.name }))}
             />
-            <PrimaryButton>Add member</PrimaryButton>
+            <PrimaryButton>Send invite</PrimaryButton>
           </Form>
+          <p className="mt-2 text-xs text-bolt-elements-textSecondary">
+            We&rsquo;ll email an invitation link. They join with the selected role once they accept.
+          </p>
         </section>
 
         <section className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-sm shadow-sm">
@@ -248,14 +289,21 @@ export default function OrganizationMembersPage() {
              */
             const isLastOwner = member.roleKey === 'owner' && ownerCount <= 1;
 
+            // Prefer a human identity; fall back to email, then the opaque id.
+            const displayName = member.userName ?? member.userEmail ?? member.userId;
+            const hasName = Boolean(member.userName);
+
             return (
               <div
                 key={member.id}
                 className="grid gap-3 border-b border-bolt-elements-borderColor p-4 last:border-b-0 md:grid-cols-[minmax(0,1fr)_minmax(180px,220px)_auto]"
               >
                 <div className="min-w-0">
-                  <div className="truncate font-medium text-bolt-elements-textPrimary">{member.userId}</div>
-                  <div className="text-xs text-bolt-elements-textSecondary">{member.roleKey}</div>
+                  <div className="truncate font-medium text-bolt-elements-textPrimary">{displayName}</div>
+                  <div className="truncate text-xs text-bolt-elements-textSecondary">
+                    {hasName && member.userEmail ? `${member.userEmail} · ` : ''}
+                    {member.roleKey}
+                  </div>
                 </div>
                 <Form method="post" className="flex flex-wrap gap-2" title={isLastOwner ? LAST_OWNER_HINT : undefined}>
                   <input type="hidden" name="intent" value="update" />
@@ -263,7 +311,7 @@ export default function OrganizationMembersPage() {
                   <input type="hidden" name="userId" value={member.userId} />
                   <select
                     name="roleKey"
-                    aria-label={`Role for ${member.userId}`}
+                    aria-label={`Role for ${displayName}`}
                     defaultValue={member.roleKey}
                     disabled={isLastOwner}
                     title={isLastOwner ? LAST_OWNER_HINT : undefined}
@@ -280,7 +328,7 @@ export default function OrganizationMembersPage() {
                     type="submit"
                     disabled={isLastOwner}
                     title={isLastOwner ? LAST_OWNER_HINT : undefined}
-                    aria-label={`Update role for ${member.userId}`}
+                    aria-label={`Update role for ${displayName}`}
                   >
                     Update
                   </button>
@@ -292,7 +340,7 @@ export default function OrganizationMembersPage() {
                       onClick={() => setTransferTarget(member.userId)}
                       className="h-9 rounded-md border border-bolt-elements-borderColor px-3 text-xs hover:bg-bolt-elements-background-depth-3"
                       title="Make this member the organization owner. You will be demoted to admin."
-                      aria-label={`Transfer ownership to ${member.userId}`}
+                      aria-label={`Transfer ownership to ${displayName}`}
                     >
                       Transfer ownership
                     </button>
@@ -313,7 +361,7 @@ export default function OrganizationMembersPage() {
                       type="submit"
                       disabled={isLastOwner}
                       title={isLastOwner ? 'The last owner cannot be removed. Transfer ownership first.' : undefined}
-                      aria-label={`Remove ${member.userId}`}
+                      aria-label={`Remove ${displayName}`}
                     >
                       Remove
                     </button>
@@ -336,7 +384,8 @@ export default function OrganizationMembersPage() {
                 <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Transfer ownership</h2>
               </DialogTitle>
               <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-                <span className="font-medium text-bolt-elements-textPrimary">{transferTarget}</span> will become the
+                <span className="font-medium text-bolt-elements-textPrimary">{memberLabel(transferTarget)}</span> will
+                become the
                 owner of <span className="font-medium text-bolt-elements-textPrimary">{orgName}</span> and you will be
                 demoted to admin. This cannot be undone by you.
               </p>
