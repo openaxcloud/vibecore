@@ -101,7 +101,7 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
   const getChartColors = (index: number) => {
     // Define color palettes based on Bolt design tokens
     const baseColors = [
-      // Indigo
+      // Brand (primary button token — resolves to the E-Code accent)
       {
         base: getThemeColor('--bolt-elements-button-primary-text'),
       },
