@@ -1,4 +1,5 @@
 import { FileArchive } from 'lucide-react';
+import { useRef, useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData } from 'react-router';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
@@ -74,11 +75,13 @@ export async function action({ request }: EnterpriseActionArgs) {
 
 export default function ImportZipPage() {
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = useState('');
 
   return (
     <AppShell title="Import zip" description="Upload an archive and convert it into a persistent E-Code project.">
       <Form
-        className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6"
+        className="w-full max-w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 sm:p-6"
         method="post"
         encType="multipart/form-data"
       >
@@ -88,25 +91,44 @@ export default function ImportZipPage() {
             {actionData.error}
           </p>
         ) : null}
-        <label className="grid gap-2 text-sm font-medium">
-          Project archive
+        <div className="grid gap-2 text-sm font-medium">
+          <span>Project archive</span>
+          {/* Custom themed file picker (English) so the native browser button/label
+              (localised, e.g. "Choisir un fichier / aucun fichier") never renders and
+              the control can't push its intrinsic width past the card at 390. */}
           <input
-            className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm"
+            ref={fileInputRef}
+            className="hidden"
             name="archive"
             type="file"
             accept=".zip"
+            onChange={(event) => setFileName(event.currentTarget.files?.[0]?.name ?? '')}
           />
-        </label>
+          <div className="flex w-full min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-1.5">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="shrink-0 rounded bg-bolt-elements-background-depth-3 px-3 py-1.5 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-borderColor focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+            >
+              Choose file
+            </button>
+            <span className="min-w-0 flex-1 truncate text-sm text-bolt-elements-textSecondary">
+              {fileName || 'No file selected'}
+            </span>
+          </div>
+        </div>
         <label className="mt-4 grid gap-2 text-sm font-medium">
           Project name
           <input
-            className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none"
+            className="h-10 w-full max-w-full min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-base outline-none sm:text-sm"
             name="name"
             placeholder="Zip import"
           />
         </label>
         <div className="mt-5">
-          <Button type="submit">Import zip</Button>
+          <Button type="submit" className="w-full sm:w-auto">
+            Import zip
+          </Button>
         </div>
       </Form>
     </AppShell>
