@@ -21960,6 +21960,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /*
+   * F20: an org's credit movement history (ADJUSTMENT/GRANT/USAGE ledger). Backs
+   * the admin wallet panel's "movements" table so an operator can see exactly
+   * what every signed adjustment did and why. Platform-admin gated (read-only).
+   */
+  app.get('/admin/wallets/:organizationId/ledger', async (request) => {
+    await requirePlatformAdmin(request);
+    const { organizationId } = parse(z.object({ organizationId: z.string().min(1) }), request.params);
+    return { ledger: await store.listCreditLedger(organizationId, { take: 100 }) };
+  });
+
+  /*
    * Admin credit adjustment: credit (positive) or debit (negative) an org's
    * wallet by an arbitrary amount. Appends an ADJUSTMENT ledger entry (the
    * audit trail) and updates the materialized balance atomically via the same

@@ -97,4 +97,40 @@ describe('admin wallet adjust', () => {
     });
     expect(res.statusCode).toBe(403);
   });
+
+  it('F20: exposes the movement history (ledger) for the admin wallet panel', async () => {
+    const { app, org } = await setup();
+
+    await app.inject({
+      method: 'POST',
+      url: `/admin/wallets/${org.id}/adjust`,
+      headers: auth('admin-token'),
+      payload: { deltaCents: 5000, reason: 'goodwill credit' },
+    });
+    await app.inject({
+      method: 'POST',
+      url: `/admin/wallets/${org.id}/adjust`,
+      headers: auth('admin-token'),
+      payload: { deltaCents: -2000, reason: 'correction' },
+    });
+
+    const ledger = await app.inject({
+      method: 'GET',
+      url: `/admin/wallets/${org.id}/ledger`,
+      headers: auth('admin-token'),
+    });
+    expect(ledger.statusCode).toBe(200);
+    const entries = ledger.json().ledger as Array<{ deltaCents: number; kind: string; reason: string }>;
+    expect(entries.length).toBeGreaterThanOrEqual(2);
+    expect(entries.every((entry) => entry.kind === 'ADJUSTMENT')).toBe(true);
+    expect(entries.map((entry) => entry.reason)).toEqual(expect.arrayContaining(['goodwill credit', 'correction']));
+
+    // guard: a non-admin caller cannot read the ledger
+    const denied = await app.inject({
+      method: 'GET',
+      url: `/admin/wallets/${org.id}/ledger`,
+      headers: auth('owner-token'),
+    });
+    expect(denied.statusCode).toBe(403);
+  });
 });

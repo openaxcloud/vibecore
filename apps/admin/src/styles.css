@@ -14,6 +14,11 @@
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
   --vc-ide-accent-warning: #d29922;
+  /* Status TEXT tokens (AA on the dark admin surface) — used by Batch-F panels. */
+  --status-success-text: #4ade80;
+  --status-warning-text: #fbbf24;
+  --status-error-text: #f87171;
+  --status-info-text: #60a5fa;
   --bolt-elements-bg-depth-1: var(--vc-ide-bg-app);
   --bolt-elements-bg-depth-2: var(--vc-ide-bg-panel);
   --bolt-elements-bg-depth-3: var(--vc-ide-bg-card);
@@ -981,5 +986,43 @@ pre {
 
   td {
     color: var(--text);
+  }
+}
+
+/* ── Batch-F admin panels ─────────────────────────────────────────────── */
+.wallet-detail {
+  display: grid;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.wallet-adjust {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.wallet-adjust label {
+  display: grid;
+  gap: 6px;
+}
+
+.ledger-amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.ledger-credit {
+  color: var(--status-success-text);
+}
+
+.ledger-debit {
+  color: var(--status-error-text);
+}
+
+@media (max-width: 720px) {
+  .wallet-adjust {
+    grid-template-columns: 1fr;
   }
 }

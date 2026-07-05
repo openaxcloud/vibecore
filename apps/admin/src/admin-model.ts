@@ -19,6 +19,7 @@ export const adminSections: AdminSection[] = [
   { id: 'billing', label: 'Billing', endpoint: '/admin/billing', collectionKey: 'plans', description: 'Billing plans, subscriptions and manual markers.' },
   { id: 'usage', label: 'Usage', endpoint: '/admin/usage', collectionKey: 'usage', description: 'Usage events across organizations.' },
   { id: 'ai-usage', label: 'AI usage', endpoint: '/admin/ai-usage', collectionKey: 'usage', description: 'AI token and cost ledger.' },
+  { id: 'credit-wallets', label: 'Credit wallets', endpoint: '/admin/wallets', collectionKey: 'wallets', description: 'Org credit balances, signed adjustments (reason required) and movement history.' },
   { id: 'provider-health', label: 'Provider health', endpoint: '/admin/provider-health', collectionKey: 'providers', description: 'AI gateway and provider status.' },
   { id: 'quotas', label: 'Quotas', endpoint: '/admin/quotas', collectionKey: 'quotas', description: 'Plan limits, usage and quota overrides.' },
   { id: 'abuse-events', label: 'Abuse events', endpoint: '/admin/abuse-events', collectionKey: 'abuseEvents', description: 'Abuse queue and resolution flow.' },

@@ -19,6 +19,7 @@ import {
   type AdminOverview,
   type AdminRecord,
 } from './api';
+import { CUSTOM_PANELS } from './panels';
 import { redactRecord } from './redact';
 import './styles.css';
 
@@ -240,6 +241,7 @@ function SectionView({
   }, [query, rows, sort]);
 
   const columns = useMemo(() => inferColumns(rows), [rows]);
+  const CustomPanel = CUSTOM_PANELS[section.id];
 
   async function runAction(action: string, payload?: AdminRecord, body?: Record<string, unknown>) {
     if (dangerousActions.has(action)) {
@@ -296,6 +298,9 @@ function SectionView({
   return (
     <div className="grid">
       {section.id === 'overview' ? <Overview data={data as AdminOverview} /> : null}
+      {CustomPanel ? <CustomPanel reauthPassword={reauthPassword} pushToast={setToast} /> : null}
+      {CustomPanel ? null : (
+      <>
       <div className="toolbar">
         <input
           aria-label="Filter table"
@@ -396,6 +401,8 @@ function SectionView({
             </tbody>
           </table>
         </div>
+      )}
+      </>
       )}
       {selected ? <DetailsPanel record={selected} onClose={() => setSelected(undefined)} /> : null}
       {dialog ? <ActionDialog dialog={dialog} onCancel={() => setDialog(null)} onSubmit={runAction} /> : null}
