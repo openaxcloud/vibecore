@@ -18,6 +18,7 @@ import {
 import { PanelBoundary } from '~/components/ui/PanelBoundary';
 import { PanelHeader } from '~/components/ui/PanelHeader';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
+import { toast } from '~/components/ui/use-toast';
 import type { FileMap } from '~/lib/stores/files';
 import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -262,6 +263,41 @@ export const EditorPanel = memo(
               Large file mode: rich editor features are reduced to keep typing and scrolling responsive.
             </div>
           )}
+          {isCurrentFileLocked && editorDocument ? (
+            <div className="flex items-center justify-between gap-3 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-xs">
+              <span className="flex min-w-0 items-center gap-1.5 text-bolt-elements-textSecondary">
+                <span className="i-ph:lock-simple shrink-0 text-[var(--status-warning-text)]" aria-hidden />
+                <span className="truncate">
+                  {(() => {
+                    const dirent = files?.[editorDocument.filePath];
+                    const inheritedFrom = dirent?.type === 'file' ? dirent.lockedByFolder : undefined;
+
+                    return inheritedFrom
+                      ? `Locked by folder ${inheritedFrom} — protected from AI edits.`
+                      : 'This file is locked — protected from AI edits.';
+                  })()}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const dirent = files?.[editorDocument.filePath];
+                  const inheritedFrom = dirent?.type === 'file' ? dirent.lockedByFolder : undefined;
+
+                  if (inheritedFrom) {
+                    workbenchStore.unlockFolder(inheritedFrom);
+                    toast.success('Folder unlocked — its files can be edited again.');
+                  } else {
+                    workbenchStore.unlockFile(editorDocument.filePath);
+                    toast.success('File unlocked — it can be edited again.');
+                  }
+                }}
+                className="shrink-0 rounded-md border border-bolt-elements-borderColor px-2 py-1 font-medium text-[var(--vc-ide-accent-action)] hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+              >
+                Request unlock
+              </button>
+            </div>
+          ) : null}
           {editorDocument && !editorDocument.isBinary ? (
             <EditorAdapter
               className="h-full w-full"
