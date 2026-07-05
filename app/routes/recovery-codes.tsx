@@ -82,35 +82,52 @@ export default function RecoveryCodesPage() {
       status={actionData?.status}
       error={actionData?.error}
     >
+      {/* Compact status pill (was an oversized block). */}
       {typeof remaining === 'number' ? (
         <div
-          className={`mb-6 rounded-md border p-4 ${
+          className={`mb-4 inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border px-3 py-1.5 ${
             isZero
               ? 'border-bolt-elements-icon-error/40 bg-bolt-elements-icon-error/10'
-              : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-2'
+              : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-1'
           }`}
         >
-          <p className="text-2xl font-semibold text-bolt-elements-textPrimary">
+          <span className="text-base font-semibold text-bolt-elements-textPrimary">
             {remaining}
             {typeof total === 'number' ? (
-              <span className="text-base font-normal text-bolt-elements-textSecondary"> / {total}</span>
+              <span className="text-sm font-normal text-bolt-elements-textSecondary"> / {total}</span>
             ) : null}
-          </p>
-          <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+          </span>
+          <span className="text-sm text-bolt-elements-textSecondary">
             {remaining === 1 ? 'recovery code remaining' : 'recovery codes remaining'}
-          </p>
+          </span>
           {isZero ? (
-            <p className="mt-3 text-sm text-bolt-elements-icon-error">
-              You have no usable recovery codes left. Generate a new set now so you don&apos;t get locked out if you
-              lose your authenticator.
-            </p>
+            <span className="text-xs font-medium text-bolt-elements-icon-error">· none left — generate a set</span>
           ) : isLow ? (
-            <p className="mt-3 text-sm font-medium text-bolt-elements-textPrimary">
-              You&apos;re running low on recovery codes. Consider generating a fresh set.
-            </p>
+            <span className="text-xs font-medium text-bolt-elements-textPrimary">· running low</span>
           ) : null}
         </div>
       ) : null}
+
+      {/* Explain what recovery codes are, the current state, and how to use them. */}
+      <div className="mb-6 space-y-2 text-sm leading-6 text-bolt-elements-textSecondary">
+        <p>
+          <span className="font-medium text-bolt-elements-textPrimary">Recovery codes</span> are one-time backup codes
+          that let you sign in if you ever lose access to your authenticator app — your MFA fallback.
+        </p>
+        <p>
+          You currently have{' '}
+          <span className="font-medium text-bolt-elements-textPrimary">
+            {remaining ?? 0} of {total ?? 10}
+          </span>{' '}
+          unused codes{isZero ? ' — none have been generated yet' : ''}.{' '}
+          <span className="font-medium text-bolt-elements-textPrimary">Generate recovery codes</span> creates a fresh
+          set of 10 and permanently invalidates any previous set.
+        </p>
+        <p>
+          Each code works <span className="font-medium text-bolt-elements-textPrimary">once</span>. They are shown only
+          at generation, so copy them and store them somewhere safe — a password manager, or printed and locked away.
+        </p>
+      </div>
 
       <Form
         method="post"
