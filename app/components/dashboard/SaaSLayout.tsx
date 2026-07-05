@@ -1357,23 +1357,28 @@ export function TemplateGallery({
           </CardHeader>
           <CardContent className="flex items-center justify-between">
             <span className="text-sm text-bolt-elements-textSecondary">Production starter</span>
-            {!compact ? (
-              mode === 'authenticated' ? (
-                <Form method="post">
-                  <input type="hidden" name="templateName" value={template.id} />
-                  <input type="hidden" name="name" value={template.name} />
-                  <Button type="submit" variant="outline">
-                    Use template
-                  </Button>
-                </Form>
-              ) : (
-                <LinkButton to="/login" variant="outline">
-                  Sign in to use
-                </LinkButton>
-              )
-            ) : (
-              <LinkButton to={mode === 'authenticated' ? '/dashboard/templates' : '/templates'} variant="outline">
+            {mode === 'authenticated' ? (
+              /*
+               * Create the project from this template and go straight to the IDE,
+               * from wherever the card is rendered (Dashboard included). POST to the
+               * /dashboard/templates action explicitly — it creates the project via
+               * /projects/from-template and redirects to the project IDE — instead of
+               * the old compact-card detour that just linked to the templates page.
+               */
+              <Form method="post" action="/dashboard/templates">
+                <input type="hidden" name="templateName" value={template.id} />
+                <input type="hidden" name="name" value={template.name} />
+                <Button type="submit" variant="outline">
+                  Use template
+                </Button>
+              </Form>
+            ) : compact ? (
+              <LinkButton to="/templates" variant="outline">
                 Use template
+              </LinkButton>
+            ) : (
+              <LinkButton to="/login" variant="outline">
+                Sign in to use
               </LinkButton>
             )}
           </CardContent>
