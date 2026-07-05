@@ -11552,6 +11552,32 @@ body :where(.lucide, svg[data-lucide]) {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-accent-action) 25%, transparent);
 }
 
+.bolt-project-activity-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.bolt-project-activity-deeplink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  margin: 0 12px 10px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--vc-ide-accent-action);
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 10%, transparent);
+  transition: background 150ms ease;
+}
+
+.bolt-project-activity-deeplink:hover {
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 18%, transparent);
+}
+
 .bolt-project-activity-list {
   display: grid;
   gap: 8px;
