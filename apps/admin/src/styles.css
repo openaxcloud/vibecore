@@ -9,8 +9,6 @@
   --vc-ide-text-primary: #f5f9fc;
   --vc-ide-text-secondary: #c2c8cc;
   --vc-ide-text-muted: #6e7681;
-  --vc-ide-accent-ai-start: #7b61ff;
-  --vc-ide-accent-ai-end: #ff6b9d;
   --vc-ide-accent-success: #3fb950;
   --vc-ide-accent-action: #0099ff;
   --vc-ide-accent-orange: #f26207;
@@ -417,7 +415,7 @@ body :where(.vc-typing-indicator, .typing-indicator) > span {
   height: 5px;
   border-radius: 9999px;
   animation: vc-typing-dot var(--vc-animation-typing) ease-in-out infinite;
-  background: var(--vc-ide-accent-ai-start);
+  background: var(--vc-ide-accent-action);
 }
 
 body :where(.vc-typing-indicator, .typing-indicator) > span:nth-child(2) {
