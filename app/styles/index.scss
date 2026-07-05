@@ -224,7 +224,7 @@ html:has(.vc-app-shell-grid) body {
   border-radius: 999px;
   background: linear-gradient(
     90deg,
-    var(--vc-ide-accent-ai-start),
+    var(--vc-ide-accent-action),
     var(--vc-ide-accent-action),
     var(--vc-ide-accent-success)
   );
@@ -396,8 +396,6 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-text-muted: #a3adba;
   --vc-ide-text-tertiary: var(--vc-ide-text-muted);
   --vc-ide-text-on-accent: #ffffff;
-  --vc-ide-accent-ai-start: #7b61ff;
-  --vc-ide-accent-ai-end: #ff6b9d;
   --vc-ide-accent-success: #3fb950;
   --vc-ide-accent-action: #0099ff;
   // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
@@ -678,8 +676,6 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-text-on-accent: #ffffff;
   --vc-file-tree-foreground: #36373b;
   --vc-file-tree-foreground-hover: #1f2024;
-  --vc-ide-accent-ai-start: #6d5dfc;
-  --vc-ide-accent-ai-end: #d9467e;
   --vc-ide-accent-success: #17803d;
   --vc-ide-accent-action: #006fd6;
   // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
@@ -877,8 +873,6 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-text-on-accent: #ffffff;
   --vc-file-tree-foreground: var(--vc-ide-text-secondary);
   --vc-file-tree-foreground-hover: var(--vc-ide-text-primary);
-  --vc-ide-accent-ai-start: #7b61ff;
-  --vc-ide-accent-ai-end: #ff6b9d;
   --vc-ide-accent-success: #3fb950;
   --vc-ide-accent-action: #0099ff;
   // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
@@ -3308,7 +3302,7 @@ body :where(.vc-typing-indicator, .bolt-project-agent-typing, .typing-indicator)
   height: 5px;
   border-radius: 9999px;
   animation: vc-typing-dot var(--vc-animation-typing) ease-in-out infinite;
-  background: var(--vc-ide-accent-ai-start);
+  background: var(--vc-ide-accent-action);
 }
 
 body :where(.vc-typing-indicator, .bolt-project-agent-typing, .typing-indicator) > span:nth-child(2) {
@@ -6252,16 +6246,16 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-publish-button {
   min-height: 30px;
-  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-ai-start), white 18%);
-  background: color-mix(in srgb, var(--vc-ide-accent-ai-start), transparent 91%);
-  color: color-mix(in srgb, var(--vc-ide-accent-ai-start), white 22%) !important;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), white 18%);
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 91%);
+  color: color-mix(in srgb, var(--vc-ide-accent-action), white 22%) !important;
   padding: 0 12px;
 }
 
 .bolt-project-publish-button:hover {
-  border-color: color-mix(in srgb, var(--vc-ide-accent-ai-start), white 34%);
-  background: color-mix(in srgb, var(--vc-ide-accent-ai-start), transparent 84%) !important;
-  color: color-mix(in srgb, var(--vc-ide-accent-ai-start), white 34%) !important;
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action), white 34%);
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%) !important;
+  color: color-mix(in srgb, var(--vc-ide-accent-action), white 34%) !important;
   transform: translateY(-1px);
 }
 
@@ -8305,7 +8299,7 @@ body :where(.lucide, svg[data-lucide]) {
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  background: linear-gradient(135deg, var(--vc-ide-accent-ai-start), var(--vc-ide-accent-ai-end));
+  background: linear-gradient(135deg, var(--vc-ide-accent-action), color-mix(in srgb, var(--vc-ide-accent-action) 45%, #ffffff));
   color: white;
 }
 
@@ -9046,7 +9040,7 @@ body :where(.lucide, svg[data-lucide]) {
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--vc-ide-accent-ai-start), var(--vc-ide-accent-ai-end));
+  background: linear-gradient(135deg, var(--vc-ide-accent-action), color-mix(in srgb, var(--vc-ide-accent-action) 45%, #ffffff));
   color: white;
   font-size: 32px;
   opacity: 0.75;
@@ -10351,7 +10345,7 @@ body :where(.lucide, svg[data-lucide]) {
     ),
     radial-gradient(
       circle at 86% 20%,
-      color-mix(in srgb, var(--vc-ide-accent-ai-start), transparent 86%),
+      color-mix(in srgb, var(--vc-ide-accent-action), transparent 86%),
       transparent 30%
     ),
     var(--vc-ide-bg-panel);
@@ -10505,7 +10499,7 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 8px;
   border: 1px solid transparent;
   border-radius: 6px;
-  background: linear-gradient(135deg, var(--vc-ide-accent-ai-start), var(--vc-ide-accent-action));
+  background: linear-gradient(135deg, var(--vc-ide-accent-action), var(--vc-ide-accent-action));
   color: #ffffff;
   font-size: 12px;
   font-weight: 700;
@@ -13360,7 +13354,7 @@ body :where(.lucide, svg[data-lucide]) {
   justify-content: center;
   border: 1.5px solid var(--vc-ide-bg-panel);
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--vc-ide-accent-ai-start), var(--vc-ide-accent-ai-end));
+  background: linear-gradient(135deg, var(--vc-ide-accent-action), color-mix(in srgb, var(--vc-ide-accent-action) 45%, #ffffff));
   color: #ffffff;
   font-size: 10px;
   font-weight: 700;
@@ -16132,7 +16126,7 @@ button.bolt-project-statusbar-pill:focus-visible,
       align-items: center;
       justify-content: center;
       border-radius: 999px;
-      background: linear-gradient(135deg, var(--vc-ide-accent-action), var(--vc-ide-accent-ai-start));
+      background: linear-gradient(135deg, var(--vc-ide-accent-action), var(--vc-ide-accent-action));
       color: #ffffff;
       font-weight: 800;
     }
@@ -20557,7 +20551,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   --vc-auth-muted: var(--vc-ide-text-muted);
   --vc-auth-accent: var(--vc-ide-accent-orange);
   --vc-auth-accent-2: #f99d25;
-  --vc-auth-link: var(--vc-ide-accent-ai-start);
+  --vc-auth-link: var(--vc-ide-accent-action);
   --vc-auth-focus: var(--vc-ide-accent-action);
   --vc-auth-success: var(--vc-ide-accent-success);
   --vc-auth-error: var(--vc-ide-accent-error);
@@ -22712,11 +22706,11 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     ),
     radial-gradient(
       circle at 86% 10%,
-      color-mix(in srgb, var(--vc-ide-accent-ai-start) 16%, transparent) 0 16%,
+      color-mix(in srgb, var(--vc-ide-accent-action) 16%, transparent) 0 16%,
       transparent 35%
     ),
     linear-gradient(135deg, color-mix(in srgb, var(--vc-ide-accent-action) 8%, transparent), transparent 42%);
-  --vc-create-primary-gradient: linear-gradient(135deg, var(--vc-ide-accent-ai-start), var(--vc-ide-accent-action));
+  --vc-create-primary-gradient: linear-gradient(135deg, var(--vc-ide-accent-action), var(--vc-ide-accent-action));
 }
 
 :root[data-theme='light'] {
