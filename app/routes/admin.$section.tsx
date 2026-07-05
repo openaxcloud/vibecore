@@ -1821,7 +1821,7 @@ function PlatformStatCard({
   const valueClass = !available
     ? 'text-bolt-elements-textTertiary'
     : tone === 'danger'
-      ? 'text-red-600 dark:text-red-400'
+      ? 'text-[var(--status-error-text)]'
       : 'text-bolt-elements-textPrimary';
 
   return (
@@ -1866,10 +1866,10 @@ function PlatformChartCard({
  * config gap (amber, actionable); `disabled` is intentionally off (muted).
  */
 const PROVIDER_HEALTH_META: Record<string, { label: string; tone: 'ok' | 'danger' | 'muted'; dot: string }> = {
-  ready: { label: 'Ready', tone: 'ok', dot: 'bg-green-500' },
-  healthy: { label: 'Ready', tone: 'ok', dot: 'bg-green-500' },
+  ready: { label: 'Ready', tone: 'ok', dot: 'bg-[var(--status-success-text)]' },
+  healthy: { label: 'Ready', tone: 'ok', dot: 'bg-[var(--status-success-text)]' },
   degraded: { label: 'Degraded', tone: 'danger', dot: 'bg-[var(--status-warning-text)]' },
-  unreachable: { label: 'Unreachable', tone: 'danger', dot: 'bg-red-500' },
+  unreachable: { label: 'Unreachable', tone: 'danger', dot: 'bg-[var(--status-error-text)]' },
   no_key: { label: 'No key', tone: 'muted', dot: 'bg-[var(--status-warning-text)]' },
   disabled: { label: 'Disabled', tone: 'muted', dot: 'bg-bolt-elements-textTertiary' },
   unknown: { label: 'Unknown', tone: 'muted', dot: 'bg-bolt-elements-textTertiary' },
@@ -1909,7 +1909,7 @@ function ProviderProbeButton({ liveProbe }: { liveProbe: boolean }) {
         <span
           className={[
             'inline-block h-1.5 w-1.5 rounded-full',
-            isProbing ? 'animate-pulse bg-[var(--status-warning-text)]' : 'bg-green-500',
+            isProbing ? 'animate-pulse bg-[var(--status-warning-text)]' : 'bg-[var(--status-success-text)]',
           ].join(' ')}
           aria-hidden
         />
@@ -1941,7 +1941,7 @@ function ProviderHealthCard({ provider }: { provider: ProviderHealthRow }) {
         {typeof provider.statusCode === 'number' ? ` · HTTP ${provider.statusCode}` : ''}
       </p>
       {provider.error ? (
-        <p className="mt-1.5 break-words text-xs text-red-600 dark:text-red-400">{provider.error}</p>
+        <p className="mt-1.5 break-words text-xs text-[var(--status-error-text)]">{provider.error}</p>
       ) : null}
     </div>
   );
@@ -2282,7 +2282,7 @@ function UserRow({ user, suspended, password }: { user: AdminUser; suspended: bo
         </Dropdown>
 
         {fetcher.data?.message ? (
-          <p className="mt-1.5 text-xs text-green-600 dark:text-green-400">{fetcher.data.message}</p>
+          <p className="mt-1.5 text-xs text-[var(--status-success-text)]">{fetcher.data.message}</p>
         ) : null}
         {fetcher.data?.error ? (
           <p className="mt-1.5 text-xs text-[var(--status-error-text)]">{fetcher.data.error}</p>
@@ -2407,8 +2407,8 @@ function UserActionReasonDialog({
 
 function StatusPill({ tone, children }: { tone: 'ok' | 'danger' | 'accent' | 'muted'; children: React.ReactNode }) {
   const tones: Record<string, string> = {
-    ok: 'border-green-500/30 text-green-600 dark:text-green-400',
-    danger: 'border-red-500/30 text-red-600 dark:text-red-400',
+    ok: 'border-[color-mix(in_srgb,var(--status-success-text)_30%,transparent)] text-[var(--status-success-text)]',
+    danger: 'border-[color-mix(in_srgb,var(--status-error-text)_30%,transparent)] text-[var(--status-error-text)]',
     accent: 'border-bolt-elements-borderColorActive text-bolt-elements-textPrimary',
     muted: 'border-bolt-elements-borderColor text-bolt-elements-textSecondary',
   };
@@ -2739,9 +2739,13 @@ function McpCatalogCreateForm({ password }: { password: string }) {
         >
           {busy ? 'Creating…' : 'Create entry'}
         </button>
-        {localError ? <span className="text-xs text-rose-400">{localError}</span> : null}
-        {fetcher.data?.message ? <span className="text-xs text-emerald-400">{fetcher.data.message}</span> : null}
-        {fetcher.data?.error ? <span className="text-xs text-rose-400">{fetcher.data.error}</span> : null}
+        {localError ? <span className="text-xs text-[var(--status-error-text)]">{localError}</span> : null}
+        {fetcher.data?.message ? (
+          <span className="text-xs text-[var(--status-success-text)]">{fetcher.data.message}</span>
+        ) : null}
+        {fetcher.data?.error ? (
+          <span className="text-xs text-[var(--status-error-text)]">{fetcher.data.error}</span>
+        ) : null}
       </div>
     </div>
   );
@@ -2819,15 +2823,17 @@ function McpCatalogRow({ entry, password }: { entry: Record<string, JsonValue>; 
               type="button"
               disabled={busy || !password}
               onClick={remove}
-              className="rounded-md border border-rose-500/40 px-2 py-1 text-[11px] text-rose-400 hover:bg-rose-500/10 disabled:opacity-50"
+              className="rounded-md border border-[color-mix(in_srgb,var(--status-error-text)_40%,transparent)] px-2 py-1 text-[11px] text-[var(--status-error-text)] hover:bg-[color-mix(in_srgb,var(--status-error-text)_10%,transparent)] disabled:opacity-50"
             >
               Delete
             </button>
           </div>
           {fetcher.data?.message ? (
-            <div className="mt-1 text-[11px] text-emerald-400">{fetcher.data.message}</div>
+            <div className="mt-1 text-[11px] text-[var(--status-success-text)]">{fetcher.data.message}</div>
           ) : null}
-          {fetcher.data?.error ? <div className="mt-1 text-[11px] text-rose-400">{fetcher.data.error}</div> : null}
+          {fetcher.data?.error ? (
+            <div className="mt-1 text-[11px] text-[var(--status-error-text)]">{fetcher.data.error}</div>
+          ) : null}
         </td>
       </tr>
       {editing ? (
@@ -2972,8 +2978,10 @@ function McpCatalogEditForm({
         >
           {busy ? 'Saving…' : 'Save changes'}
         </button>
-        {localError ? <span className="text-xs text-rose-400">{localError}</span> : null}
-        {fetcher.data?.error ? <span className="text-xs text-rose-400">{fetcher.data.error}</span> : null}
+        {localError ? <span className="text-xs text-[var(--status-error-text)]">{localError}</span> : null}
+        {fetcher.data?.error ? (
+          <span className="text-xs text-[var(--status-error-text)]">{fetcher.data.error}</span>
+        ) : null}
       </div>
     </div>
   );
@@ -3056,8 +3064,10 @@ function McpOrgPolicyForm({ entries, password }: { entries: Array<Record<string,
       </div>
 
       <div className="mt-2 min-h-[1rem] text-xs">
-        {fetcher.data?.message ? <span className="text-emerald-400">{fetcher.data.message}</span> : null}
-        {fetcher.data?.error ? <span className="text-rose-400">{fetcher.data.error}</span> : null}
+        {fetcher.data?.message ? (
+          <span className="text-[var(--status-success-text)]">{fetcher.data.message}</span>
+        ) : null}
+        {fetcher.data?.error ? <span className="text-[var(--status-error-text)]">{fetcher.data.error}</span> : null}
       </div>
     </div>
   );
@@ -3149,7 +3159,7 @@ function OauthProviderCard({ connector, password }: { connector: Record<string, 
         </label>
 
         <label className="block text-xs text-bolt-elements-textSecondary">
-          Client Secret {hasSecret ? <span className="text-emerald-400">• configured</span> : null}
+          Client Secret {hasSecret ? <span className="text-[var(--status-success-text)]">• configured</span> : null}
           <input
             type="password"
             value={clientSecret}
@@ -3181,8 +3191,12 @@ function OauthProviderCard({ connector, password }: { connector: Record<string, 
         >
           {busy ? 'Saving…' : 'Save'}
         </button>
-        {fetcher.data?.message ? <span className="text-xs text-emerald-400">{fetcher.data.message}</span> : null}
-        {fetcher.data?.error ? <span className="text-xs text-rose-400">{fetcher.data.error}</span> : null}
+        {fetcher.data?.message ? (
+          <span className="text-xs text-[var(--status-success-text)]">{fetcher.data.message}</span>
+        ) : null}
+        {fetcher.data?.error ? (
+          <span className="text-xs text-[var(--status-error-text)]">{fetcher.data.error}</span>
+        ) : null}
       </div>
     </div>
   );
@@ -3291,8 +3305,12 @@ function QuotaOverridePanel() {
         >
           {busy ? 'Granting…' : 'Grant override'}
         </button>
-        {fetcher.data?.message ? <span className="text-xs text-emerald-400">{fetcher.data.message}</span> : null}
-        {fetcher.data?.error ? <span className="text-xs text-rose-400">{fetcher.data.error}</span> : null}
+        {fetcher.data?.message ? (
+          <span className="text-xs text-[var(--status-success-text)]">{fetcher.data.message}</span>
+        ) : null}
+        {fetcher.data?.error ? (
+          <span className="text-xs text-[var(--status-error-text)]">{fetcher.data.error}</span>
+        ) : null}
       </div>
     </div>
   );
@@ -3373,8 +3391,12 @@ function SystemSettingUpsertPanel() {
         >
           {busy ? 'Saving…' : 'Save setting'}
         </button>
-        {fetcher.data?.message ? <span className="text-xs text-emerald-400">{fetcher.data.message}</span> : null}
-        {fetcher.data?.error ? <span className="text-xs text-rose-400">{fetcher.data.error}</span> : null}
+        {fetcher.data?.message ? (
+          <span className="text-xs text-[var(--status-success-text)]">{fetcher.data.message}</span>
+        ) : null}
+        {fetcher.data?.error ? (
+          <span className="text-xs text-[var(--status-error-text)]">{fetcher.data.error}</span>
+        ) : null}
       </div>
     </div>
   );
@@ -3521,7 +3543,7 @@ function AnnouncementCard({ current, password }: { current: Record<string, JsonV
         <span
           className={
             active
-              ? 'rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400'
+              ? 'rounded-full bg-[color-mix(in_srgb,var(--status-success-text)_15%,transparent)] px-2 py-0.5 text-xs font-medium text-[var(--status-success-text)]'
               : 'rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs font-medium text-bolt-elements-textSecondary'
           }
         >
@@ -3609,7 +3631,7 @@ function IncidentBannerCard({ current, password }: { current: Record<string, Jso
         <span
           className={
             active
-              ? 'rounded-full bg-rose-500/15 px-2 py-0.5 text-xs font-medium text-rose-600 dark:text-rose-400'
+              ? 'rounded-full bg-[color-mix(in_srgb,var(--status-error-text)_15%,transparent)] px-2 py-0.5 text-xs font-medium text-[var(--status-error-text)]'
               : 'rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs font-medium text-bolt-elements-textSecondary'
           }
         >
@@ -3709,19 +3731,19 @@ function ReauthHeader({
 const ROW_BTN =
   'inline-flex items-center rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50';
 
-const ROW_DANGER = `${ROW_BTN} border-red-500/40 text-red-600 hover:bg-red-500/10 dark:text-red-400`;
+const ROW_DANGER = `${ROW_BTN} border-[color-mix(in_srgb,var(--status-error-text)_40%,transparent)] text-[var(--status-error-text)] hover:bg-[color-mix(in_srgb,var(--status-error-text)_10%,transparent)]`;
 
 function RowFeedback({ data }: { data?: { message?: string; error?: string } }) {
   return (
     <>
       {data?.message ? (
-        <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
+        <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-[var(--status-success-text)]">
           <span className="i-ph:check-circle-fill" aria-hidden />
           {data.message}
         </p>
       ) : null}
       {data?.error ? (
-        <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
+        <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-[var(--status-error-text)]">
           <span className="i-ph:warning-circle-fill" aria-hidden />
           {data.error}
         </p>
@@ -4380,13 +4402,13 @@ function ToggleRow({ row, kind, password }: { row: Record<string, JsonValue>; ki
           </p>
         ) : null}
         {fetcher.data?.message ? (
-          <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
+          <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-[var(--status-success-text)]">
             <span className="i-ph:check-circle-fill" aria-hidden />
             {fetcher.data.message}
           </p>
         ) : null}
         {fetcher.data?.error ? (
-          <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
+          <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-[var(--status-error-text)]">
             <span className="i-ph:warning-circle-fill" aria-hidden />
             {fetcher.data.error}
           </p>
@@ -4433,7 +4455,12 @@ function StatusGrid({ value }: { value: Record<string, JsonValue> }) {
             className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
           >
             <div className="flex items-center gap-2">
-              <Icon className={healthy ? 'h-4 w-4 text-green-500' : 'h-4 w-4 text-yellow-500'} aria-hidden />
+              <Icon
+                className={
+                  healthy ? 'h-4 w-4 text-[var(--status-success-text)]' : 'h-4 w-4 text-[var(--status-warning-text)]'
+                }
+                aria-hidden
+              />
               <strong className="text-sm text-bolt-elements-textPrimary">{labelize(key)}</strong>
               <span className="ml-auto rounded-md border border-bolt-elements-borderColor px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
                 {status}
