@@ -330,6 +330,19 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
              * reads these to talk to its own project bucket.
              */
             { name: 'PROJECT_ID', value: input.projectId },
+
+            /*
+             * Vite HMR behind the preview proxy: the dev server binds in-pod
+             * localhost:5173 but the browser reaches the preview over the TLS
+             * proxy, so Vite's HMR client must open its websocket against the
+             * public host on 443/wss (else it builds `wss://localhost:undefined`
+             * and HMR is dead for every proxied Vite project). The scaffolded
+             * vite.config reads these; VITE_HMR_HOST is deliberately unset so the
+             * client uses the page's own hostname (the per-project preview
+             * domain). Harmless for non-Vite projects (unused env).
+             */
+            { name: 'VITE_HMR_CLIENT_PORT', value: '443' },
+            { name: 'VITE_HMR_PROTOCOL', value: 'wss' },
             ...(input.objectStorage
               ? [
                   { name: 'OBJECT_STORAGE_API_URL', value: input.objectStorage.apiUrl },

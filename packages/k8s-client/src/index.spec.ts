@@ -238,4 +238,15 @@ describe('workspace Kubernetes manifests', () => {
     // PROJECT_ID is always injected
     expect(env.some((e) => e.name === 'PROJECT_ID')).toBe(true);
   });
+
+  it('injects the Vite HMR proxy env so the dev server HMR websocket targets 443/wss', () => {
+    const pod = workspacePod(input);
+    const env: Array<{ name: string; value?: string }> = (pod.spec?.containers as any[])[0].env;
+    const byName = (name: string) => env.filter((e) => e.name === name).map((e) => e.value);
+
+    expect(byName('VITE_HMR_CLIENT_PORT')).toContain('443');
+    expect(byName('VITE_HMR_PROTOCOL')).toContain('wss');
+    // Host is intentionally NOT injected: the client uses the page's own hostname.
+    expect(env.some((e) => e.name === 'VITE_HMR_HOST')).toBe(false);
+  });
 });

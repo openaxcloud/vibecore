@@ -73,8 +73,29 @@ const RUNTIME_DEPENDENCY_VERSIONS: Record<string, string> = {
 const VITE_REACT_CONFIG = `import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// Behind the E-Code preview proxy the dev server is reached over TLS, so Vite's
+// HMR websocket must target the public host on 443/wss instead of the in-pod
+// localhost:5173 (otherwise it builds "wss://localhost:undefined" and HMR dies).
+// The workspace injects VITE_HMR_CLIENT_PORT / VITE_HMR_PROTOCOL in that env;
+// running locally they are unset and HMR keeps its default localhost behaviour.
+// Leaving VITE_HMR_HOST unset makes the client use the page's own hostname (the
+// per-project preview domain).
+const hmrClientPort = process.env.VITE_HMR_CLIENT_PORT;
+
 export default defineConfig({
   plugins: [react()],
+  server: {
+    host: true,
+    ...(hmrClientPort
+      ? {
+          hmr: {
+            clientPort: Number(hmrClientPort),
+            protocol: process.env.VITE_HMR_PROTOCOL || 'wss',
+            ...(process.env.VITE_HMR_HOST ? { host: process.env.VITE_HMR_HOST } : {}),
+          },
+        }
+      : {}),
+  },
 });
 `;
 
