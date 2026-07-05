@@ -423,6 +423,7 @@ const IDE_FILE_TREE_HIDDEN_PATTERNS = [
   /\/\.astro(?:\/|$)/,
   /\/\.vite(?:\/|$)/,
   /\/deps_temp_[^/]+(?:\/|$)/,
+
   // ext4 filesystem artifact at the volume root of a fresh workspace — not a user file.
   /\/lost\+found(?:\/|$)/,
 ];
@@ -1270,7 +1271,17 @@ function buildProjectAgentSuggestions(input: {
 
   const lastUserText = [...messages].reverse().find((message) => message.role === 'user')?.content;
   const recentLogs = workspaceLogs.slice(-40).join('\n').toLowerCase();
-  const previewRunning = isWorkspaceReallyRunning(runtimeState.workspace, runtimeState.ports);
+
+  /*
+   * The preview counts as "running" if the workspace reports RUNNING with ports OR
+   * if any forwarded port is actually serving (ready / has a URL). The latter guard
+   * stops the stale "Get preview running" chip from showing while the app is already
+   * rendered in the Webview but the workspace status still lags behind (e.g. mid
+   * cold-start / a PENDING status that hasn't reconciled yet).
+   */
+  const previewRunning =
+    isWorkspaceReallyRunning(runtimeState.workspace, runtimeState.ports) ||
+    (runtimeState.ports ?? []).some((port) => port.ready === true || Boolean(port.url));
 
   const hasPackageJson = hasProjectFile(
     files,
@@ -12275,9 +12286,12 @@ function ProjectSettingsPanel({
   const sessions = data.sessions?.sessions ?? [];
   const state = data.settingsState ?? {};
   const persistedThemePreference = state.preferences?.theme;
-  // Default to 'system' (follow the user's persisted global light/dark choice), NOT a
-  // hardcoded 'dark' — a project with no explicit per-IDE theme override must inherit
-  // the theme chosen in the user area, so opening a template in light mode stays light.
+
+  /*
+   * Default to 'system' (follow the user's persisted global light/dark choice), NOT a
+   * hardcoded 'dark' — a project with no explicit per-IDE theme override must inherit
+   * the theme chosen in the user area, so opening a template in light mode stays light.
+   */
   const preferences = state.preferences ?? { theme: 'system', keyboardMode: false, creditAlertThreshold: 80 };
   const notifications = state.notifications ?? {};
 
