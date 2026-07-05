@@ -1085,7 +1085,6 @@ export default function NewProjectPage() {
       title="Create project"
       description="Describe your idea. E-Code creates a real workspace and opens the IDE."
       hideHeader
-      hideTopBar
       mainClassName="vc-new-project-page"
       contentClassName="vc-new-project-content"
     >
