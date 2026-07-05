@@ -44,6 +44,7 @@ import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBrea
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { InputDialog } from '~/components/ui/InputDialog';
 import { ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
+import { configuredToast } from '~/components/ui/use-toast';
 import { friendlyLabel, pickFriendlyLabel } from '~/lib/labels/friendly-id';
 import { loadProjectIdeData, type ProjectLoaderData } from '~/lib/project-ide-loader.server';
 import { CurrentWorkspaceProvider } from '~/lib/runtime/CurrentWorkspaceContext';
@@ -866,7 +867,7 @@ function ProjectMenuAction({
          * Don't silently swallow quota/permission/server errors — the action
          * would otherwise appear to do nothing. Surface the reason.
          */
-        window.alert(result.error ?? `Could not ${intent} this project. Please try again.`);
+        configuredToast.error(result.error ?? `Could not ${intent} this project. Please try again.`);
       } else if (intent === 'delete') {
         window.location.href = '/projects';
       } else if (intent === 'duplicate' || intent === 'fork') {

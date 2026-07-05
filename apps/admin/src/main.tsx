@@ -243,14 +243,12 @@ function SectionView({
 
   async function runAction(action: string, payload?: AdminRecord, body?: Record<string, unknown>) {
     if (dangerousActions.has(action)) {
-      if (
-        !window.confirm(
-          'Confirm this admin action. It requires recent re-authentication and will be written to AdminAuditLog.',
-        )
-      ) {
-        return;
-      }
-
+      /*
+       * The themed ActionDialog gates dangerous actions with an explicit
+       * acknowledgement checkbox (no native window.confirm), so by the time we
+       * get here the operator has confirmed. We only still need the re-auth
+       * password before hitting the audited endpoint.
+       */
       if (!reauthPassword) {
         setToast('Enter your re-auth password in the top bar before dangerous admin actions.');
         return;
@@ -524,7 +522,9 @@ function ActionDialog({
   onSubmit: (action: string, payload?: AdminRecord, body?: Record<string, unknown>) => Promise<void>;
 }) {
   const [form, setForm] = useState<Record<string, string>>({});
+  const [acknowledged, setAcknowledged] = useState(false);
   const fields = fieldsForAction(dialog.action);
+  const isDangerous = dangerousActions.has(dialog.action);
 
   return (
     <div className="modal-backdrop" role="presentation">
@@ -535,6 +535,11 @@ function ActionDialog({
         aria-label={dialog.title}
         onSubmit={(event) => {
           event.preventDefault();
+
+          if (isDangerous && !acknowledged) {
+            return;
+          }
+
           void onSubmit(dialog.action, dialog.payload, form);
         }}
       >
@@ -558,11 +563,19 @@ function ActionDialog({
             )}
           </label>
         ))}
+        {isDangerous ? (
+          <label className="danger-ack">
+            <input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} />
+            <span>
+              I confirm this admin action. It requires recent re-authentication and will be written to AdminAuditLog.
+            </span>
+          </label>
+        ) : null}
         <div className="actions">
           <button className="secondary" type="button" onClick={onCancel}>
             Cancel
           </button>
-          <button className="danger" type="submit">
+          <button className="danger" type="submit" disabled={isDangerous && !acknowledged}>
             Confirm
           </button>
         </div>
