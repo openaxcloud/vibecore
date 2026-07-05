@@ -83,7 +83,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
           updatedAtIso: project.updatedAt,
           stack: project.gitRepositoryUrl ?? project.sourceType ?? 'E-Code project',
           sourceType: project.sourceType,
-          previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
+          previewImageUrl: `/api/projects/${project.id}/thumbnail`,
           ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
         };
       });

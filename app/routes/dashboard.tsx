@@ -199,7 +199,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       updatedAtIso: project.updatedAt,
       stack: projectStackLabel(project),
       sourceType: project.sourceType,
-      previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
+      previewImageUrl: `/api/projects/${project.id}/thumbnail`,
       ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
     })),
   };

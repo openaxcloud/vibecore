@@ -22,7 +22,7 @@ describe('toProjectCards', () => {
 
     // The palette navigates via ideUrl, so it must be populated.
     expect(card.ideUrl).toBeTruthy();
-    expect(card.previewImageUrl).toBe('/api/projects/p1/homepage-preview');
+    expect(card.previewImageUrl).toBe('/api/projects/p1/thumbnail');
   });
 
   it('sorts most-recently-updated first', () => {

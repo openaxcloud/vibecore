@@ -1282,24 +1282,18 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
   );
 }
 
+/*
+ * Neutral, theme-correct placeholder shown until a REAL preview screenshot has
+ * been captured (or if the capture fails to load). Deliberately NOT the old
+ * synthetic "browser window" mock, which misrepresented the project as a generic
+ * template. A real thumbnail (project.previewImageUrl) renders on top of this.
+ */
 function ProjectPreviewFallback({ project }: { project: ProjectCard }) {
   return (
-    <div className="absolute inset-0 p-3">
-      <div className="vc-project-preview-shell flex h-full flex-col rounded-[6px]">
-        <div className="vc-project-preview-bar flex h-7 items-center gap-1.5 px-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-[var(--vc-ide-accent-error)]" />
-          <span className="h-1.5 w-1.5 rounded-full bg-[var(--vc-ide-accent-warning)]" />
-          <span className="h-1.5 w-1.5 rounded-full bg-[var(--vc-ide-accent-success)]" />
-          <span className="vc-project-preview-line ml-2 h-2 flex-1 rounded" />
-        </div>
-        <div className="flex flex-1 flex-col justify-center gap-2 px-4">
-          <span className="h-2 w-16 rounded-full bg-gradient-to-r from-[var(--vc-ide-accent-ai-start)] to-[var(--vc-ide-accent-action)]" />
-          <span className="vc-project-preview-line h-3 w-2/3 rounded" />
-          <span className="vc-project-preview-line h-2 w-4/5 rounded" />
-          <span className="vc-project-preview-line h-2 w-1/2 rounded" />
-          <span className="sr-only">Fallback homepage preview for {project.name}</span>
-        </div>
-      </div>
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-bolt-elements-background-depth-3 text-bolt-elements-textTertiary">
+      <span className="i-ph:image-square text-2xl" aria-hidden />
+      <span className="text-[11px]">No preview yet</span>
+      <span className="sr-only">No preview captured yet for {project.name}</span>
     </div>
   );
 }
@@ -1357,14 +1351,13 @@ export function TemplateGallery({
           </CardHeader>
           <CardContent className="flex items-center justify-between">
             <span className="text-sm text-bolt-elements-textSecondary">Production starter</span>
+            {/*
+              Authenticated "Use template" creates the project from this template and goes
+              straight to the IDE from wherever the card renders (Dashboard included): POST to
+              the /dashboard/templates action, which creates via /projects/from-template and
+              redirects to the project IDE — no /templates detour.
+            */}
             {mode === 'authenticated' ? (
-              /*
-               * Create the project from this template and go straight to the IDE,
-               * from wherever the card is rendered (Dashboard included). POST to the
-               * /dashboard/templates action explicitly — it creates the project via
-               * /projects/from-template and redirects to the project IDE — instead of
-               * the old compact-card detour that just linked to the templates page.
-               */
               <Form method="post" action="/dashboard/templates">
                 <input type="hidden" name="templateName" value={template.id} />
                 <input type="hidden" name="name" value={template.name} />

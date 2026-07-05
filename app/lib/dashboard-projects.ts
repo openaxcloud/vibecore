@@ -35,7 +35,12 @@ export function toProjectCards(
       updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
       stack: project.gitRepositoryUrl ?? project.sourceType ?? 'E-Code project',
       sourceType: project.sourceType,
-      previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
+
+      /*
+       * Real captured preview screenshot; the card falls back to a neutral
+       * placeholder (not the old synthetic mock) until the first capture exists.
+       */
+      previewImageUrl: `/api/projects/${project.id}/thumbnail`,
       ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization?.slug }),
     }));
 }
