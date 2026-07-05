@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_PREVIEW_LOAD_RETRIES, decidePreviewLoadOutcome, shouldRunPreviewBootLoop } from './preview-frame-recovery';
+import {
+  MAX_PREVIEW_LOAD_RETRIES,
+  decidePreviewLoadOutcome,
+  shouldAutoRunPreview,
+  shouldRunPreviewBootLoop,
+} from './preview-frame-recovery';
 
 describe('decidePreviewLoadOutcome', () => {
   it('does NOT treat a load as rendered while the port is reported not-ready (the 502 holding-page race)', () => {
@@ -90,5 +95,29 @@ describe('shouldRunPreviewBootLoop', () => {
   it('does not run for a static preview or when autoStart is off', () => {
     expect(shouldRunPreviewBootLoop({ ...base, hasStaticPreview: true })).toBe(false);
     expect(shouldRunPreviewBootLoop({ ...base, autoStart: false })).toBe(false);
+  });
+});
+
+describe('shouldAutoRunPreview', () => {
+  it('auto-runs on desktop for a real project regardless of the active tab', () => {
+    /*
+     * The bug: on the default Code tab the boot loop never ran, so no port was
+     * detected and the Webview was never revealed without a manual click.
+     */
+    expect(shouldAutoRunPreview({ isMobileWorkbench: false, hasProject: true, isPreviewTabActive: false })).toBe(true);
+  });
+
+  it('still auto-runs when the Preview tab is focused (any platform / no project)', () => {
+    expect(shouldAutoRunPreview({ isMobileWorkbench: true, hasProject: false, isPreviewTabActive: true })).toBe(true);
+  });
+
+  it('does NOT background-run on mobile (frozen mobile bars keep their explicit control)', () => {
+    expect(shouldAutoRunPreview({ isMobileWorkbench: true, hasProject: true, isPreviewTabActive: false })).toBe(false);
+  });
+
+  it('does not run without a project and off the preview tab', () => {
+    expect(shouldAutoRunPreview({ isMobileWorkbench: false, hasProject: false, isPreviewTabActive: false })).toBe(
+      false,
+    );
   });
 });

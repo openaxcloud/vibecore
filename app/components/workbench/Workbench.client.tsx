@@ -41,6 +41,7 @@ import type { FileHistory } from '~/types/actions';
 import { classNames } from '~/utils/classNames';
 import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 import { type MobileWorkbenchPanel, resolveActiveWorkbenchView } from './active-workbench-view';
+import { shouldAutoRunPreview } from './preview-frame-recovery';
 
 const SHELL_TERMINAL_LABEL = 'Shell (Terminal)';
 
@@ -782,7 +783,11 @@ export const Workbench = memo(
                       <Preview
                         setSelectedElement={setSelectedElement}
                         projectId={projectId}
-                        autoStart={activeWorkbenchView === 'preview'}
+                        autoStart={shouldAutoRunPreview({
+                          isMobileWorkbench: useMobileWorkbench,
+                          hasProject: Boolean(projectId),
+                          isPreviewTabActive: activeWorkbenchView === 'preview',
+                        })}
                       />
                     </PanelBoundary>
                   </View>

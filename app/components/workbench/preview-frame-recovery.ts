@@ -105,3 +105,23 @@ export function shouldRunPreviewBootLoop(input: {
     !input.previewRunFailed
   );
 }
+
+/**
+ * Replit-parity auto-run gate for the preview boot loop.
+ *
+ * On desktop, a real project's dev server should boot + detect its port in the
+ * BACKGROUND — regardless of which workbench tab is focused — so the app comes
+ * up and the existing "auto-switch to preview once a port appears" effect reveals
+ * the Webview with zero clicks. Wiring the boot loop only to the active Preview
+ * tab meant the default Code tab never ran it, so nothing ever started.
+ *
+ * Mobile keeps its explicit run control (frozen mobile bars), and the Preview
+ * tab always auto-runs when focused.
+ */
+export function shouldAutoRunPreview(input: {
+  isMobileWorkbench: boolean;
+  hasProject: boolean;
+  isPreviewTabActive: boolean;
+}): boolean {
+  return (!input.isMobileWorkbench && input.hasProject) || input.isPreviewTabActive;
+}
