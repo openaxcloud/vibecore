@@ -12273,7 +12273,10 @@ function ProjectSettingsPanel({
   const sessions = data.sessions?.sessions ?? [];
   const state = data.settingsState ?? {};
   const persistedThemePreference = state.preferences?.theme;
-  const preferences = state.preferences ?? { theme: 'dark', keyboardMode: false, creditAlertThreshold: 80 };
+  // Default to 'system' (follow the user's persisted global light/dark choice), NOT a
+  // hardcoded 'dark' — a project with no explicit per-IDE theme override must inherit
+  // the theme chosen in the user area, so opening a template in light mode stays light.
+  const preferences = state.preferences ?? { theme: 'system', keyboardMode: false, creditAlertThreshold: 80 };
   const notifications = state.notifications ?? {};
 
   const keybindingOverrides: KeybindingOverrideMap =
