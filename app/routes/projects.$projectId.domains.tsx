@@ -20,8 +20,24 @@ type Domain = {
   verificationToken: string;
   verifiedAt?: string;
   createdAt?: string;
+
+  /** Real TLS lifecycle from the api (VerifiedDomain.sslStatus). */
+  sslStatus?: 'pending_dns' | 'dns_verified' | 'failed' | string;
 };
 type Project = { id: string; name: string; description?: string };
+
+/** TLS/SSL status derived from the domain's real verification + sslStatus. */
+function domainSsl(item: Domain): { label: string; tone: 'ok' | 'pending' | 'error' } {
+  if (item.sslStatus === 'failed') {
+    return { label: 'TLS: verification failed', tone: 'error' };
+  }
+
+  if (item.verifiedAt || item.sslStatus === 'dns_verified') {
+    return { label: 'TLS certificate active', tone: 'ok' };
+  }
+
+  return { label: 'TLS pending domain verification', tone: 'pending' };
+}
 
 export const meta: MetaFunction = () => [{ title: 'Custom domains - E-Code' }];
 
@@ -167,73 +183,127 @@ export default function ProjectDomainsPage() {
         <ActivityList
           items={
             domains.length
-              ? domains.map((item) => ({
-                  title: item.domain,
-                  detail: item.verifiedAt
-                    ? `Verified ${new Date(item.verifiedAt).toLocaleString()}`
-                    : 'Pending DNS verification',
-                  icon: item.verifiedAt ? ShieldCheck : Globe2,
-                }))
+              ? domains.map((item) => {
+                  const ssl = domainSsl(item);
+                  return {
+                    title: item.domain,
+                    detail: `${
+                      item.verifiedAt
+                        ? `Verified ${new Date(item.verifiedAt).toLocaleString()}`
+                        : 'Pending DNS verification'
+                    } · ${ssl.label}`,
+                    icon: item.verifiedAt ? ShieldCheck : Globe2,
+                  };
+                })
               : [{ title: 'No verified domains', detail: 'Add a domain to create a verification token.', icon: Globe2 }]
           }
         />
         <div className="grid gap-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6">
-          <Form method="post" className="grid gap-3">
-            <input
-              className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none"
-              name="domain"
-              aria-label="Custom domain"
-              placeholder="app.example.com"
-              required
-            />
-            <Button type="submit" disabled={busy} aria-busy={busy}>
-              {busy ? 'Adding…' : 'Add domain'}
-            </Button>
-          </Form>
-          {actionData?.error ? (
-            <p
-              className="rounded-md border border-bolt-elements-icon-error bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-icon-error"
-              role="alert"
-            >
-              {actionData.error}
-            </p>
-          ) : null}
+          {/* Step 1 — add the domain. */}
+          <section className="grid gap-3">
+            <StepHeader index={1} title="Add your domain" done={domains.length > 0} />
+            <Form method="post" className="grid gap-3">
+              <input
+                className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none"
+                name="domain"
+                aria-label="Custom domain"
+                placeholder="app.example.com"
+                required
+              />
+              <Button type="submit" disabled={busy} aria-busy={busy}>
+                {busy ? 'Adding…' : 'Add domain'}
+              </Button>
+            </Form>
+            {actionData?.error ? (
+              <p
+                className="rounded-md border border-bolt-elements-icon-error bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-icon-error"
+                role="alert"
+              >
+                {actionData.error}
+              </p>
+            ) : null}
+          </section>
+
           {domains
             .filter((item) => !item.verifiedAt)
-            .map((item) => (
-              <div
-                key={item.id}
-                className="grid gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
-              >
-                <p className="text-sm font-medium">Verify {item.domain}</p>
-                <p className="text-xs text-bolt-elements-textSecondary">
-                  Add this DNS TXT record at your domain registrar, then click Verify once it propagates:
-                </p>
-                <dl className="grid gap-1 text-xs">
-                  <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-                    <dt className="text-bolt-elements-textTertiary">Type</dt>
-                    <dd className="font-mono">TXT</dd>
-                  </div>
-                  <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-                    <dt className="text-bolt-elements-textTertiary">Name / Host</dt>
-                    <dd className="select-all break-all font-mono">{`_vibecore.${item.domain}`}</dd>
-                  </div>
-                  <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-                    <dt className="text-bolt-elements-textTertiary">Value</dt>
-                    <dd className="select-all break-all font-mono">{`vibecore-domain-verification=${item.verificationToken}`}</dd>
-                  </div>
-                </dl>
-                <Form method="post">
-                  <input type="hidden" name="intent" value="verify" />
-                  <input type="hidden" name="domain" value={item.domain} />
-                  <Button type="submit" variant="outline" disabled={busy} aria-busy={busy}>
-                    {busy ? 'Verifying…' : `Verify ${item.domain}`}
-                  </Button>
-                </Form>
-              </div>
-            ))}
+            .map((item) => {
+              const ssl = domainSsl(item);
+              return (
+                <div
+                  key={item.id}
+                  className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4"
+                >
+                  {/* Step 2 — publish the DNS TXT record. */}
+                  <section className="grid gap-2">
+                    <StepHeader index={2} title={`Add the DNS record for ${item.domain}`} />
+                    <p className="text-xs text-bolt-elements-textSecondary">
+                      Add this TXT record at your domain registrar, then re-check once it propagates (usually a few
+                      minutes, up to 48h):
+                    </p>
+                    <dl className="grid gap-1 text-xs">
+                      <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+                        <dt className="text-bolt-elements-textTertiary">Type</dt>
+                        <dd className="font-mono">TXT</dd>
+                      </div>
+                      <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+                        <dt className="text-bolt-elements-textTertiary">Name / Host</dt>
+                        <dd className="select-all break-all font-mono">{`_vibecore.${item.domain}`}</dd>
+                      </div>
+                      <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+                        <dt className="text-bolt-elements-textTertiary">Value</dt>
+                        <dd className="select-all break-all font-mono">{`vibecore-domain-verification=${item.verificationToken}`}</dd>
+                      </div>
+                    </dl>
+                  </section>
+
+                  {/* Step 3 — verify (re-check) and provision TLS. */}
+                  <section className="grid gap-2">
+                    <StepHeader index={3} title="Verify & secure" />
+                    <p className="text-xs" data-ssl-tone={ssl.tone}>
+                      <span
+                        className={
+                          ssl.tone === 'error'
+                            ? 'text-bolt-elements-icon-error'
+                            : ssl.tone === 'ok'
+                              ? 'text-bolt-elements-icon-success'
+                              : 'text-bolt-elements-textTertiary'
+                        }
+                      >
+                        {ssl.label}
+                      </span>
+                    </p>
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="verify" />
+                      <input type="hidden" name="domain" value={item.domain} />
+                      <Button type="submit" variant="outline" disabled={busy} aria-busy={busy}>
+                        {busy ? 'Re-checking…' : 'Re-check DNS'}
+                      </Button>
+                    </Form>
+                  </section>
+                </div>
+              );
+            })}
         </div>
       </div>
     </ProjectShell>
+  );
+}
+
+/** Numbered step marker for the DNS setup wizard. */
+function StepHeader({ index, title, done }: { index: number; title: string; done?: boolean }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className={
+          done
+            ? 'flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-bolt-elements-icon-success text-xs font-semibold text-white'
+            : 'flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--vc-ide-accent-action)] text-xs font-semibold text-white'
+        }
+        aria-hidden
+      >
+        {done ? '✓' : index}
+      </span>
+      <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">{title}</h3>
+    </div>
   );
 }
