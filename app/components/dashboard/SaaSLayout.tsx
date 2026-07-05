@@ -956,20 +956,11 @@ function MobileSidebarDrawer({ open, onClose }: { open: boolean; onClose: () => 
         <div className="flex h-14 items-center justify-between border-b border-bolt-elements-borderColor px-3">
           <Link
             to="/organization-switcher"
-            className="flex items-center gap-2"
+            className="flex min-w-0 items-center gap-2"
             aria-label="Organization switcher"
             onClick={onClose}
           >
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3"
-              aria-hidden
-            >
-              <Sparkles className="h-4 w-4" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold leading-tight">{ECODE_MARKETING_BRAND.name}</span>
-              <span className="block text-[11px] leading-tight text-bolt-elements-textTertiary">SaaS workspace</span>
-            </span>
+            <EcodeBrandMark size="sm" showText gradientId="ecode-drawer-logo" />
           </Link>
           <button
             type="button"
