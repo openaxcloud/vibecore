@@ -88,8 +88,13 @@ const SelectContent = React.forwardRef<
       <SelectScrollUpButton />
       <SelectPrimitive.Viewport
         className={classNames(
-          position === 'popper' &&
-            'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]',
+          // Own the scroll here (native, touch/momentum-friendly) with a real
+          // max-height instead of Radix's hover-only scroll buttons + a viewport
+          // pinned to the trigger height — that pin made the list ~1 row tall on
+          // touch (stuck / only a few options visible) and opened scrolled to the
+          // selected item mid-view. Now every option is reachable by dragging.
+          'max-h-[min(20rem,var(--radix-select-content-available-height,20rem))] w-full overflow-y-auto overscroll-contain',
+          position === 'popper' && 'min-w-[var(--radix-select-trigger-width)]',
         )}
       >
         {children}
