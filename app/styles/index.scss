@@ -433,6 +433,18 @@ html:has(.vc-app-shell-grid) body {
   --border: 221.1 16.2% 22.9%;
   --input: 221.1 16.2% 22.9%;
   --ring: 24 96% 49%;
+  /*
+   * A1: categorical chart ramp, ported from @vibecore/ecode-theme tokens.css
+   * (which the app never imports) into the LIVE palette. HSL channels for
+   * `hsl(var(--chart-N))` consumers; dark = +10 lightness. chart-5 is the
+   * on-brand info blue, NOT the ref repo's off-brand 280deg hue — keeps the
+   * brand-color invariant.
+   */
+  --chart-1: 24 96% 59%;
+  --chart-2: 39 96% 66%;
+  --chart-3: 142 71% 55%;
+  --chart-4: 38 92% 60%;
+  --chart-5: 199 89% 58%;
   --ecode-accent: #f26207;
   --ecode-accent-hover: #ff7a2b;
   // AA orange for TEXT/links on this theme's backgrounds; fills stay --ecode-accent.
@@ -450,6 +462,8 @@ html:has(.vc-app-shell-grid) body {
   --ecode-orange-light: #ff6b35;
   --ecode-orange-hover: #d84315;
   --ecode-yellow: #f77f00;
+  // A1 dark-brand delta from tokens.css: deep tint for dark surfaces (fills stay --ecode-orange).
+  --ecode-orange-tint: #7c2d12;
   --ecode-background: #0e1525;
   --ecode-border: #313744;
   --ecode-border-strong: #3a4358;
@@ -713,6 +727,13 @@ html:has(.vc-app-shell-grid) body {
   --border: 214 32% 88%;
   --input: 214 32% 90%;
   --ring: 24 96% 49%;
+  // A1: categorical chart ramp ported from tokens.css. chart-5 = on-brand info
+  // blue (not the ref repo's off-brand 280deg hue) to keep the brand-color rule.
+  --chart-1: 24 96% 49%;
+  --chart-2: 39 96% 56%;
+  --chart-3: 142 71% 45%;
+  --chart-4: 38 92% 50%;
+  --chart-5: 199 89% 48%;
   --ecode-accent: #f26207;
   --ecode-accent-hover: #d04e00;
   // AA orange for TEXT/links on light backgrounds; fills stay --ecode-accent.
@@ -729,6 +750,8 @@ html:has(.vc-app-shell-grid) body {
   --ecode-orange-light: #ff6b35;
   --ecode-orange-hover: #d84315;
   --ecode-yellow: #f77f00;
+  // A1 brand tint from tokens.css (light) — completes the token set (fills stay --ecode-orange).
+  --ecode-orange-tint: #ffe4d3;
   --ecode-background: #ffffff;
   --ecode-border: #e0e0e0;
   --ecode-border-strong: #c1c8cd;
