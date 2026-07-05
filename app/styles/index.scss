@@ -64,6 +64,19 @@ html[data-ecode-public-chrome='homepage'] body {
 }
 
 /*
+ * Same treatment for the user area (dashboard / settings / billing / …). The
+ * AppShell (`.vc-app-shell-grid`) had no horizontal-overflow containment, so at
+ * 390px a grid item's min-content width (long project name, wide card, etc.)
+ * could push the page wider than the viewport → horizontal scroll (Avi's
+ * capture). `overflow-x: clip` contains it WITHOUT creating a scroll container,
+ * so the sticky top bar and vertical document scroll keep working.
+ */
+html:has(.vc-app-shell-grid),
+html:has(.vc-app-shell-grid) body {
+  overflow-x: clip;
+}
+
+/*
  * Homogeneous marketing typography scale (Avi: titles + paragraphs must be the
  * SAME size across every public page, not ad-hoc per page). One central set of
  * tokens + utility classes, sized with clamp() to match the homepage hero scale
