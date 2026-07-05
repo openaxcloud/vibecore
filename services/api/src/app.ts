@@ -16354,6 +16354,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ project });
   });
+  /*
+   * Contextualised "next steps" welcome the agent shows when a template project is
+   * opened (so the agent panel isn't empty). Derived from the template id — no made-up
+   * claims; a generic-but-useful message covers any template not in the map.
+   */
+  const templateWelcomeMessage = (templateName: string | undefined, projectName: string): string => {
+    const perTemplate: Record<string, { is: string; steps: string[] }> = {
+      'react-saas': {
+        is: 'a React + Vite + TypeScript SaaS starter with a landing page and a routing-ready structure',
+        steps: ['Update the hero copy and app name in `src/App.tsx`', 'Add your first page/route', 'Wire up auth and your data/API'],
+      },
+      'next-dashboard': {
+        is: 'a Next.js dashboard starter with layout, navigation and example pages',
+        steps: ['Edit the dashboard layout and cards', 'Add a new dashboard page', 'Connect a data source'],
+      },
+      'fastify-api': {
+        is: 'a Fastify + TypeScript API starter with example routes and validation',
+        steps: ['Add a new route/handler', 'Define request/response schemas', 'Connect a database'],
+      },
+      'ai-agent': {
+        is: 'an AI agent starter wired for tool calls and streaming',
+        steps: ['Define your agent’s tools', 'Adjust the system prompt', 'Try a prompt in the preview'],
+      },
+      'landing-page': {
+        is: 'a polished landing-page starter with sections and responsive styles',
+        steps: ['Edit the hero and feature sections', 'Swap in your brand colors and copy', 'Add a contact/CTA form'],
+      },
+      'mobile-starter': {
+        is: 'a mobile-first (Expo/React Native compatible) starter with touch-friendly navigation',
+        steps: ['Edit the home screen', 'Add a new screen/tab', 'Hook up your data'],
+      },
+    };
+    const info = (templateName && perTemplate[templateName]) || {
+      is: 'a ready-to-run starter project',
+      steps: ['Describe the first change you want and I’ll edit the files', 'Edit files directly in the editor', 'Deploy from the Deployments tab'],
+    };
+
+    return [
+      `👋 Welcome to **${projectName}** — ${info.is}.`,
+      '',
+      'The dev server starts automatically and the app appears in the **Webview** (Preview) — no clicking needed. Your files save automatically.',
+      '',
+      'To make changes, just describe what you want here and I’ll edit the files for you, or edit them directly in the editor on the left.',
+      '',
+      '**Next steps:**',
+      ...info.steps.map((step, index) => `${index + 1}. ${step}`),
+    ].join('\n');
+  };
+
   app.post('/orgs/:orgId/projects/from-template', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     const body = parse(createProjectFromTemplateSchema, request.body);
@@ -16380,6 +16429,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
+
+    // Seed a contextualised agent welcome so the IDE opens with "next steps", not an
+    // empty agent panel. Non-fatal — never fail project creation on a seeding hiccup.
+    try {
+      const conversation = await store.createAiConversation({
+        projectId: project.id,
+        userId: request.currentUser!.id,
+        title: `${project.name} — getting started`,
+      });
+      await store.createAiMessage({
+        conversationId: conversation.id,
+        role: 'assistant',
+        content: templateWelcomeMessage(body.templateName, project.name),
+      });
+    } catch (error) {
+      request.log.warn({ err: error, projectId: project.id }, 'failed to seed template welcome message');
+    }
+
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
