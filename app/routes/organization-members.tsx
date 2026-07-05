@@ -257,7 +257,7 @@ export default function OrganizationMembersPage() {
                   <div className="truncate font-medium text-bolt-elements-textPrimary">{member.userId}</div>
                   <div className="text-xs text-bolt-elements-textSecondary">{member.roleKey}</div>
                 </div>
-                <Form method="post" className="flex gap-2" title={isLastOwner ? LAST_OWNER_HINT : undefined}>
+                <Form method="post" className="flex flex-wrap gap-2" title={isLastOwner ? LAST_OWNER_HINT : undefined}>
                   <input type="hidden" name="intent" value="update" />
                   <input type="hidden" name="orgId" value={orgId} />
                   <input type="hidden" name="userId" value={member.userId} />
@@ -276,7 +276,7 @@ export default function OrganizationMembersPage() {
                     ))}
                   </select>
                   <button
-                    className="rounded-md border border-bolt-elements-borderColor px-3 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                    className="h-9 shrink-0 rounded-md border border-bolt-elements-borderColor px-3 text-xs disabled:cursor-not-allowed disabled:opacity-60"
                     type="submit"
                     disabled={isLastOwner}
                     title={isLastOwner ? LAST_OWNER_HINT : undefined}
@@ -285,7 +285,7 @@ export default function OrganizationMembersPage() {
                     Update
                   </button>
                 </Form>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {member.roleKey !== 'owner' && (
                     <button
                       type="button"
