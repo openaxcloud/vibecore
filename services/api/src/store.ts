@@ -324,6 +324,11 @@ export interface AbuseEventRecord {
   type: string;
   severity: string;
   createdAt: string;
+  /** Resolution state (F22): stored in metadata. */
+  resolved?: boolean;
+  /** Disposition applied by an operator: 'dismissed' | 'warned' | 'suspended'. */
+  disposition?: string;
+  resolvedAt?: string;
 }
 
 export interface IntegrationFeatureRequestRecord {
@@ -1953,7 +1958,11 @@ export interface ApiStore {
 
   /** Assign (or unassign with `undefined`) a support ticket to a platform admin. */
   assignSupportTicket(input: { ticketId: string; assigneeUserId?: string }): Promise<SupportTicketRecord>;
-  updateAbuseEvent(input: { abuseEventId: string; resolved?: boolean }): Promise<AbuseEventRecord>;
+  updateAbuseEvent(input: {
+    abuseEventId: string;
+    resolved?: boolean;
+    disposition?: string;
+  }): Promise<AbuseEventRecord>;
   recordAdminAudit(event: AdminAuditLogRecord): Promise<void>;
   listAdminAuditLogs(): Promise<AdminAuditLogRecord[]>;
 

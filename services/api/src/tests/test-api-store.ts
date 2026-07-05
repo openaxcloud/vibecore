@@ -3586,14 +3586,22 @@ export class TestApiStore implements ApiStore {
     return ticket;
   }
 
-  async updateAbuseEvent(input: { abuseEventId: string; resolved?: boolean }) {
+  async updateAbuseEvent(input: { abuseEventId: string; resolved?: boolean; disposition?: string }) {
     const event = this.abuseEvents.get(input.abuseEventId);
 
     if (!event) {
       throw Object.assign(new Error('Abuse event not found'), { statusCode: 404, code: 'ABUSE_EVENT_NOT_FOUND' });
     }
 
-    return event;
+    const updated: AbuseEventRecord = {
+      ...event,
+      resolved: input.resolved ?? true,
+      resolvedAt: now(),
+      ...(input.disposition ? { disposition: input.disposition } : {}),
+    };
+    this.abuseEvents.set(input.abuseEventId, updated);
+
+    return updated;
   }
 
   async recordAdminAudit(event: AdminAuditLogRecord) {

@@ -23354,6 +23354,61 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { abuseEvent };
   });
 
+  /*
+   * F22: dismiss an abuse event — resolves it with a 'dismissed' disposition (no
+   * action against the user). Audited.
+   */
+  app.post('/admin/abuse-events/:abuseEventId/dismiss', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { abuseEventId } = parse(adminAbuseParams, request.params);
+    const abuseEvent = await store.updateAbuseEvent({ abuseEventId, resolved: true, disposition: 'dismissed' });
+    await recordAdminAction(request, store, { action: 'admin.abuse_event.dismiss', metadata: { abuseEventId } });
+
+    return { abuseEvent };
+  });
+
+  /*
+   * F22: warn the offending user — emails a policy-warning template and marks the
+   * event 'warned' (kept OPEN so a repeat can escalate to suspend). Audited.
+   */
+  app.post('/admin/abuse-events/:abuseEventId/warn', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { abuseEventId } = parse(adminAbuseParams, request.params);
+    const event = (await store.listAbuseEvents()).find((candidate) => candidate.id === abuseEventId);
+
+    if (!event) {
+      return reply.code(404).send({ error: 'abuse_event_not_found' });
+    }
+
+    const user = event.userId ? await store.findUserById(event.userId) : undefined;
+
+    if (!user?.email) {
+      return reply.code(400).send({ error: 'no_user_to_warn' });
+    }
+
+    await emailProvider.send({
+      to: user.email,
+      subject: 'E-Code — a note about recent account activity',
+      text:
+        `Hi${user.name ? ` ${user.name}` : ''},\n\n` +
+        `Our systems flagged activity on your E-Code account that may conflict with our acceptable-use policy ` +
+        `(${event.type}). This is a friendly warning — please review our policy. Repeated issues may lead to ` +
+        `suspension.\n\nIf you believe this is a mistake, reply to this email.\n\n— The E-Code team`,
+    });
+
+    const abuseEvent = await store.updateAbuseEvent({ abuseEventId, resolved: false, disposition: 'warned' });
+    await recordAdminAction(request, store, {
+      action: 'admin.abuse_event.warn',
+      metadata: { abuseEventId, userId: event.userId },
+    });
+
+    return { abuseEvent, warned: true };
+  });
+
   app.post('/admin/support-tickets/:ticketId/respond', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);

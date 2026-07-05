@@ -4554,7 +4554,7 @@ export class PrismaApiStore implements ApiStore {
     });
   }
 
-  async updateAbuseEvent(input: { abuseEventId: string; resolved?: boolean }) {
+  async updateAbuseEvent(input: { abuseEventId: string; resolved?: boolean; disposition?: string }) {
     // Serialize the metadata read-modify-write (see updateSupportTicket).
     return this.withSerializedMutation(`abuse-event:${input.abuseEventId}`, async () => {
       const existing = await this.prisma.abuseEvent.findUnique({ where: { id: input.abuseEventId } });
@@ -4563,6 +4563,7 @@ export class PrismaApiStore implements ApiStore {
         ...((existing?.metadata as Record<string, unknown> | null) ?? {}),
         resolved: input.resolved ?? true,
         resolvedAt: new Date().toISOString(),
+        ...(input.disposition ? { disposition: input.disposition } : {}),
       };
 
       return mapAbuseEvent(
@@ -5027,6 +5028,7 @@ function mapFeatureFlag(flag: any): FeatureFlagRecord {
 }
 
 function mapAbuseEvent(event: any): AbuseEventRecord {
+  const metadata = (event.metadata as Record<string, unknown> | null) ?? {};
   return {
     id: event.id,
     organizationId: event.organizationId ?? undefined,
@@ -5034,6 +5036,9 @@ function mapAbuseEvent(event: any): AbuseEventRecord {
     type: event.type,
     severity: event.severity,
     createdAt: toIso(event.createdAt)!,
+    resolved: typeof metadata.resolved === 'boolean' ? (metadata.resolved as boolean) : undefined,
+    disposition: typeof metadata.disposition === 'string' ? (metadata.disposition as string) : undefined,
+    resolvedAt: typeof metadata.resolvedAt === 'string' ? (metadata.resolvedAt as string) : undefined,
   };
 }
 

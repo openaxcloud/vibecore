@@ -711,6 +711,142 @@ function PreviewsPanel({ reauthPassword, pushToast }: PanelProps) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// F22 — Abuse events: Dismiss / Warn (email) / Suspend (reuse E26) + status
+// ---------------------------------------------------------------------------
+
+interface AbuseRow {
+  id: string;
+  organizationId?: string;
+  userId?: string;
+  type: string;
+  severity: string;
+  createdAt: string;
+  resolved?: boolean;
+  disposition?: string;
+}
+
+function abuseStatusLabel(row: AbuseRow): { label: string; className: string } {
+  if (row.resolved) {
+    return { label: row.disposition ? `resolved · ${row.disposition}` : 'resolved', className: 'ledger-credit' };
+  }
+  if (row.disposition === 'warned') {
+    return { label: 'warned (open)', className: 'status-warn-text' };
+  }
+  return { label: 'open', className: 'status-warn-text' };
+}
+
+function AbuseEventsPanel({ reauthPassword, pushToast }: PanelProps) {
+  const { data, loading, error, reload } = usePanelData<{ abuseEvents: AbuseRow[] }>('/admin/abuse-events');
+  const [busy, setBusy] = useState<string>();
+
+  if (loading || error) {
+    return <PanelStates loading={loading} error={error} />;
+  }
+
+  const events = data?.abuseEvents ?? [];
+
+  async function act(row: AbuseRow, kind: 'dismiss' | 'warn' | 'suspend') {
+    setBusy(`${row.id}:${kind}`);
+    const result = await withReauth(reauthPassword, pushToast, async () => {
+      if (kind === 'suspend') {
+        if (!row.userId) {
+          throw new Error('This event has no associated user to suspend.');
+        }
+        return apiJson(`/admin/users/${row.userId}/suspend`, {
+          method: 'POST',
+          body: JSON.stringify({ reason: `Abuse: ${row.type} (${row.severity})` }),
+        });
+      }
+      return apiJson(`/admin/abuse-events/${row.id}/${kind}`, { method: 'POST' });
+    });
+    setBusy(undefined);
+    if (result) {
+      const done =
+        kind === 'suspend' ? 'User suspended (reason audited).' : kind === 'warn' ? 'Warning emailed.' : 'Dismissed.';
+      pushToast(done);
+      reload();
+    }
+  }
+
+  return (
+    <section className="panel" aria-label="Abuse events">
+      <div className="page-title">
+        <h2>Abuse events</h2>
+        <button className="secondary" type="button" onClick={reload}>
+          Refresh
+        </button>
+      </div>
+      <p className="muted">
+        Dismiss (no action), Warn (emails the user, keeps the event open to escalate), or Suspend the user (reason →
+        AdminAuditLog, E26). {events.filter((event) => !event.resolved).length} open.
+      </p>
+      {events.length === 0 ? (
+        <p className="muted">No abuse events.</p>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Severity</th>
+                <th>Org</th>
+                <th>User</th>
+                <th>Created</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {events.map((row) => {
+                const status = abuseStatusLabel(row);
+                return (
+                  <tr key={row.id}>
+                    <td>{row.type}</td>
+                    <td>{row.severity}</td>
+                    <td>{row.organizationId ?? '—'}</td>
+                    <td>{row.userId ?? '—'}</td>
+                    <td>{formatDateTime(row.createdAt)}</td>
+                    <td className={status.className}>{status.label}</td>
+                    <td>
+                      <div className="actions">
+                        <button
+                          className="secondary"
+                          type="button"
+                          disabled={busy === `${row.id}:dismiss` || row.resolved}
+                          onClick={() => void act(row, 'dismiss')}
+                        >
+                          Dismiss
+                        </button>
+                        <button
+                          className="secondary"
+                          type="button"
+                          disabled={busy === `${row.id}:warn` || !row.userId}
+                          onClick={() => void act(row, 'warn')}
+                        >
+                          Warn
+                        </button>
+                        <button
+                          className="danger"
+                          type="button"
+                          disabled={busy === `${row.id}:suspend` || !row.userId}
+                          onClick={() => void act(row, 'suspend')}
+                        >
+                          Suspend
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 /**
  * Registry of section-id → custom panel. main.tsx renders the panel in place of
  * the generic table when an entry exists. Populated one Batch-F point at a time.
@@ -720,4 +856,5 @@ export const CUSTOM_PANELS: Record<string, React.ComponentType<PanelProps>> = {
   'account-deletions': AccountDeletionsPanel,
   'ai-models': AiModelsPanel,
   previews: PreviewsPanel,
+  'abuse-events': AbuseEventsPanel,
 };
