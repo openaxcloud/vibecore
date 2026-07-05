@@ -451,7 +451,7 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                 type="button"
                 onClick={() => runQuery(sql)}
                 disabled={running || !connectionKey}
-                className="inline-flex items-center gap-1.5 rounded-md bg-[var(--ecode-accent,#F26207)] px-3 py-1.5 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-1.5 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-60"
               >
                 <Play className="h-3.5 w-3.5" aria-hidden />
                 {running ? 'Running…' : 'Run'}
@@ -509,7 +509,7 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                     className={classNames(
                       'rounded-md border px-2.5 py-1 text-[12px]',
                       editMode
-                        ? 'border-[var(--ecode-accent,#F26207)] text-[var(--ecode-accent,#F26207)]'
+                        ? 'border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action)]'
                         : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
                     )}
                   >
@@ -560,7 +560,7 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                                   `UPDATE ${selectedTable} SET ${result.columns[j]} = ${sqlLit(next)} WHERE ${where};`,
                                 );
                               }}
-                              className="w-full bg-bolt-elements-background-depth-1 px-1 text-bolt-elements-textPrimary outline-none focus:ring-1 focus:ring-[var(--ecode-accent,#F26207)]"
+                              className="w-full bg-bolt-elements-background-depth-1 px-1 text-bolt-elements-textPrimary outline-none focus:ring-1 focus:ring-[var(--vc-ide-accent-action)]"
                             />
                           ) : cell === null || cell === undefined ? (
                             '∅'
