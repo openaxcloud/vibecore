@@ -796,14 +796,14 @@ export function AppShell({
   return (
     <main
       className={classNames(
-        'min-h-screen bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary',
+        'min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary',
         mainClassName,
       )}
     >
       <SkipLink />
       <div
         className={classNames(
-          'vc-app-shell-grid grid min-h-screen',
+          'vc-app-shell-grid grid min-h-[100dvh]',
           sidebarCollapsed ? 'lg:grid-cols-[56px_1fr]' : 'lg:grid-cols-[240px_1fr]',
         )}
       >
