@@ -3602,7 +3602,13 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
 
 .vc-sidebar-nav-item--active {
   font-weight: 600;
-  background-color: var(--bolt-elements-background-depth-3);
+  color: var(--bolt-elements-textPrimary);
+  /*
+   * Accent-tinted active background so the current page is clearly highlighted —
+   * the previous depth-3 fill was nearly invisible against the drawer's depth-2
+   * panel, and the accent `::before` bar is clipped by the drawer's overflow.
+   */
+  background-color: color-mix(in srgb, var(--vc-ide-accent-action) 15%, transparent);
 }
 
 .vc-sidebar-nav-item--active .vc-sidebar-nav-icon {
