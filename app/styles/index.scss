@@ -17865,6 +17865,49 @@ button.bolt-project-statusbar-pill:focus-visible,
   gap: 10px;
 }
 
+.bolt-project-integration-permissions {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+}
+
+.bolt-project-integration-permissions > strong {
+  font-size: 12px;
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-integration-permissions ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bolt-project-integration-permissions li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-project-integration-permissions li > span {
+  color: var(--vc-ide-accent-action);
+}
+
+.bolt-project-integration-permissions[data-connected='true'] li > span {
+  color: var(--vc-ide-accent-success);
+}
+
+.bolt-project-integration-permissions > small {
+  font-size: 11px;
+  color: var(--vc-ide-text-tertiary);
+}
+
 .bolt-project-integrations-form {
   border: 1px solid var(--vc-ide-border-subtle);
   border-radius: 8px;
