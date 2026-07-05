@@ -664,6 +664,32 @@ const INTEGRATION_CATEGORIES = [
   ['payments', 'Payments', 'i-ph:shield-check'],
   ['automation', 'Automation', 'i-ph:hard-drives'],
 ] as const;
+
+/*
+ * The access an integration in each category is granted, surfaced BEFORE the
+ * user connects (and again while connected, next to the revoke control) so the
+ * consent is informed. Scoped by category because the connect flow authorizes a
+ * pasted API token rather than a per-scope OAuth grant.
+ */
+const INTEGRATION_PERMISSIONS: Record<string, string[]> = {
+  cicd: [
+    'Read repository and pipeline metadata',
+    'Trigger builds/deploys and read their status',
+    'Read build and deploy logs',
+  ],
+  observability: ['Read metrics, dashboards and alert status', 'Read incident and on-call state'],
+  communication: ['Post the notifications you authorize to your channels'],
+  project: ['Read and sync the issues, tasks and documents you authorize'],
+  support: ['Read and create the support tickets and customer records you authorize'],
+  data: ['Read and write data in the resources you authorize'],
+  payments: ['Read payment, subscription and webhook events'],
+  automation: ['Trigger and receive the automation workflows you authorize'],
+};
+
+function integrationPermissions(category: string): string[] {
+  return INTEGRATION_PERMISSIONS[category] ?? ['Access the data and actions you authorize for this integration'];
+}
+
 const TERMINAL_SCRIPT_TEMPLATES = [
   ['start-dev', 'Start Development Server', 'Start the development server with hot reload.', 'npm run dev'],
   ['build', 'Build Project', 'Build the project for production.', 'npm run build'],
@@ -15925,17 +15951,44 @@ function ProjectIntegrationsPanel({
                 <strong>{selected.name}</strong>
                 <small>{selected.description}</small>
               </div>
+              <div
+                className="bolt-project-integration-permissions"
+                data-connected={selected.connected ? 'true' : 'false'}
+              >
+                <strong>
+                  {selected.connected
+                    ? `${selected.name} currently has access to:`
+                    : `Before you connect, ${selected.name} will be able to:`}
+                </strong>
+                <ul>
+                  {integrationPermissions(selected.category).map((permission: string) => (
+                    <li key={permission}>
+                      <span className="i-ph:check-circle" aria-hidden />
+                      {permission}
+                    </li>
+                  ))}
+                </ul>
+                <small>
+                  {selected.connected
+                    ? 'Revoking removes the stored token and stops all syncs immediately.'
+                    : 'You can revoke this access at any time.'}
+                </small>
+              </div>
               <form onSubmit={onSubmit}>
                 <input type="hidden" name="intent" value={selected.connected ? 'disconnect' : 'connect'} />
                 <input type="hidden" name="integrationId" value={selected.id} />
-                <PanelInput name="apiToken" type="password" placeholder="API token, OAuth token or app password" />
-                <PanelInput
-                  name="organization"
-                  placeholder="Organization or workspace"
-                  defaultValue={selected.config?.organization ?? ''}
-                />
-                <PanelButton disabled={busy}>
-                  {selected.connected ? `Disconnect ${selected.name}` : `Connect ${selected.name}`}
+                {selected.connected ? null : (
+                  <>
+                    <PanelInput name="apiToken" type="password" placeholder="API token, OAuth token or app password" />
+                    <PanelInput
+                      name="organization"
+                      placeholder="Organization or workspace"
+                      defaultValue={selected.config?.organization ?? ''}
+                    />
+                  </>
+                )}
+                <PanelButton disabled={busy} variant={selected.connected ? 'outline' : undefined}>
+                  {selected.connected ? `Revoke access` : `Connect ${selected.name}`}
                 </PanelButton>
               </form>
               <PanelRows
