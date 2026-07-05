@@ -15307,6 +15307,33 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
   );
 }
 
+/** Human duration between a run's start and finish, or null if not finished. */
+function formatRunDuration(startedAt?: string, finishedAt?: string): string | null {
+  if (!startedAt || !finishedAt) {
+    return null;
+  }
+
+  const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
+
+  if (!Number.isFinite(ms) || ms < 0) {
+    return null;
+  }
+
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+
+  const seconds = ms / 1000;
+
+  if (seconds < 60) {
+    return `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
+  }
+
+  const minutes = Math.floor(seconds / 60);
+
+  return `${minutes}m ${Math.round(seconds % 60)}s`;
+}
+
 function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
   const state = data.workflowsState ?? {};
 
@@ -15393,6 +15420,15 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                 <summary>
                   <span data-status={run.status}>{run.status}</span>
                   <small>{new Date(run.startedAt).toLocaleString()}</small>
+                  {formatRunDuration(run.startedAt, run.finishedAt) ? (
+                    <small className="bolt-project-workflow-run-meta">
+                      <span className="i-ph:timer" aria-hidden /> {formatRunDuration(run.startedAt, run.finishedAt)}
+                    </small>
+                  ) : null}
+                  <small className="bolt-project-workflow-run-meta">
+                    <span className="i-ph:lightning" aria-hidden />{' '}
+                    {run.trigger === 'schedule' ? 'Scheduled' : 'Manual'}
+                  </small>
                 </summary>
                 {Array.isArray(run.steps) && run.steps.length ? (
                   <ol className="bolt-project-workflow-run-steps" data-testid={`run-steps-${run.id}`}>
