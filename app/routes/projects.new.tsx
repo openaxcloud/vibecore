@@ -104,6 +104,9 @@ const artifactCategories: ArtifactCategory[] = [
       'Build a SaaS dashboard with billing, admin pages, and project analytics',
       'Create a polished portfolio with case studies, blog posts, and contact forms',
       'Build an ecommerce storefront with filters, cart, checkout, and order tracking',
+      'Create a booking site with a calendar, availability, and confirmation emails',
+      'Build a help center with searchable articles, categories, and a ticket form',
+      'Create a job board with listings, filters, applications, and an employer portal',
     ],
   },
   {
@@ -117,6 +120,9 @@ const artifactCategories: ArtifactCategory[] = [
       'Build a responsive habit tracker with streaks, reminders, and mobile navigation',
       'Create a fitness PWA with workout logs, charts, and offline support',
       'Build a recipe app with saved meals, shopping lists, and mobile-first cards',
+      'Create a budgeting app with accounts, categories, and monthly summaries',
+      'Build a travel planner with itineraries, maps, and packing checklists',
+      'Create a meditation app with timers, streaks, and a daily session picker',
     ],
   },
   {
@@ -130,6 +136,9 @@ const artifactCategories: ArtifactCategory[] = [
       'Create a startup pitch deck with market, product, traction, and financial slides',
       'Build a technical presentation with code examples and speaker notes',
       'Create an investor update deck with charts, timeline, and next milestones',
+      'Build a product launch deck with positioning, demo shots, and pricing tiers',
+      'Create a quarterly business review deck with KPIs, wins, and risks',
+      'Build a conference talk deck with an agenda, live-demo slides, and a summary',
     ],
   },
   {
@@ -143,6 +152,9 @@ const artifactCategories: ArtifactCategory[] = [
       'Build an interactive particle animation playground with exportable presets',
       'Create a scroll animation showcase with reveal effects and timeline controls',
       'Build a motion landing page with subtle transitions and responsive sections',
+      'Create an animated data-story page with charts that build in on scroll',
+      'Build a loading/skeleton animation gallery with copyable snippets',
+      'Create an SVG path-drawing animation demo with playback controls',
     ],
   },
   {
@@ -156,6 +168,9 @@ const artifactCategories: ArtifactCategory[] = [
       'Create a design system page with tokens, components, and usage examples',
       'Build a color palette generator with contrast checks and export tools',
       'Create a brand kit generator with logos, typography, and social previews',
+      'Build a typography scale explorer with pairings and live preview text',
+      'Create a gradient and shadow studio with copyable CSS output',
+      'Build an icon set browser with search, sizing, and SVG export',
     ],
   },
   {
@@ -169,6 +184,9 @@ const artifactCategories: ArtifactCategory[] = [
       'Build a real-time analytics dashboard with charts, filters, and alerts',
       'Create a finance dashboard with category breakdowns and forecast charts',
       'Build a product metrics dashboard with funnels, cohorts, and retention graphs',
+      'Create a sales pipeline dashboard with stages, forecasts, and win rates',
+      'Build a server monitoring dashboard with time-series charts and thresholds',
+      'Create a survey results explorer with breakdowns, filters, and CSV export',
     ],
   },
   {
@@ -182,6 +200,9 @@ const artifactCategories: ArtifactCategory[] = [
       'Build an automation console for scheduled jobs, logs, retries, and alerts',
       'Create a file processing workflow with uploads, validation, and status tracking',
       'Build an email digest generator with settings, previews, and history',
+      'Create a webhook inspector with request logs, replay, and filtering',
+      'Build a data-sync monitor with connectors, run history, and error triage',
+      'Create an approval workflow with steps, assignees, and an audit trail',
     ],
   },
   {
@@ -195,6 +216,9 @@ const artifactCategories: ArtifactCategory[] = [
       'Build a Three.js racing prototype with controls, checkpoints, and lap timing',
       'Create a tower defense game with waves, upgrades, and a scoreboard',
       'Build a 3D product configurator with lighting, camera controls, and presets',
+      'Create an endless runner with obstacles, power-ups, and a high-score board',
+      'Build a physics puzzle game with draggable objects and level progression',
+      'Create a 3D solar-system explorer with orbit controls and planet facts',
     ],
   },
   {
@@ -208,6 +232,9 @@ const artifactCategories: ArtifactCategory[] = [
       'Build a markdown editor with live preview, file tree, and export controls',
       'Create a resume builder with templates, sections, and PDF export',
       'Build a collaborative notes app with tags, comments, and version history',
+      'Create an invoice generator with line items, totals, and PDF export',
+      'Build a knowledge base editor with nested pages, search, and backlinks',
+      'Create a contract editor with clause templates, variables, and preview',
     ],
   },
   {
@@ -221,6 +248,9 @@ const artifactCategories: ArtifactCategory[] = [
       'Build a budget spreadsheet with formulas, charts, and CSV import',
       'Create an inventory table with filters, bulk edit, and stock alerts',
       'Build a project timeline grid with milestones, owners, and progress views',
+      'Create an expense tracker grid with categories, receipts, and monthly totals',
+      'Build a CRM contacts grid with tags, filters, and inline editing',
+      'Create a grading sheet with weighted columns, averages, and CSV export',
     ],
   },
 ];
@@ -1075,9 +1105,21 @@ export default function NewProjectPage() {
 
   const examplePrompts = useMemo(() => {
     const prompts = activeCategory.prompts;
-    const offset = promptSeed % prompts.length;
+    const windowSize = Math.min(3, prompts.length);
 
-    return [...prompts.slice(offset), ...prompts.slice(0, offset)];
+    if (prompts.length <= windowSize) {
+      return prompts;
+    }
+
+    /*
+     * Show a rotating WINDOW of prompts. Each refresh (promptSeed++) advances the
+     * window by its size so the visible set genuinely changes and cycles through
+     * the whole pool before repeating — the old code rotated a 3-item array by an
+     * offset, which just reordered the same three prompts.
+     */
+    const start = (promptSeed * windowSize) % prompts.length;
+
+    return Array.from({ length: windowSize }, (_, index) => prompts[(start + index) % prompts.length]);
   }, [activeCategory, promptSeed]);
 
   return (
