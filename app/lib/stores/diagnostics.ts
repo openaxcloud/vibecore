@@ -78,6 +78,18 @@ export const useDiagnosticsStore = create<DiagnosticsState>((set, get) => ({
 
 const RUNTIME_ERROR_PATTERN = /\b(error|failed|exception|crash|fatal|cannot\s+read\s+properties)\b/i;
 const RUNTIME_WARNING_PATTERN = /\b(warn|warning|deprecated)\b/i;
+
+/*
+ * Cold-start / provisioning failures that are RESOLVED the moment a forwarded port
+ * is actually serving: the runtime request 5xx'd (or 425/429), the workspace was
+ * momentarily unreachable, or the preview proxy hadn't caught up — then the pod came
+ * up and the app rendered. These are NOT app-level errors, so once the preview is
+ * live they are stale and must stop lingering in Problems. Deliberately specific
+ * ("Remote runtime request failed: 5xx", proxy-unreachable, workspace-unavailable)
+ * so a genuine HTTP 500 from the user's own app is never suppressed.
+ */
+const TRANSIENT_RUNTIME_ERROR_PATTERN =
+  /remote runtime request failed:\s*(?:4(?:25|29)|5\d\d)|workspace[_\s-]?(?:not[_\s-]?started|unavailable|manager[_\s-]?unavailable)|preview[\s._-]?proxy[\s._-]?unreachable|\bstream closed before completion\b|\b(?:502|503|504)\b/i;
 const ANSI_ESCAPE_SEQUENCE = /\x1B\[[0-?]*[ -/]*[@-~]/g;
 
 function normalizeRuntimeLine(line: string) {
@@ -91,9 +103,17 @@ function stableDiagnosticId(source: string, severity: DiagnosticSeverity, messag
 export function buildRuntimeDiagnostics({
   workspaceError,
   workspaceLogs,
+  previewLive = false,
 }: {
   workspaceError?: string | Error | null;
   workspaceLogs: string[];
+  /*
+   * When a forwarded port is genuinely serving the app, transient cold-start
+   * runtime errors (the 500/502 provisioning blips, proxy-unreachable, workspace
+   * unavailable) are stale and are dropped from Problems — both the ones carried on
+   * workspaceError and the ones logged to workspaceLogs.
+   */
+  previewLive?: boolean;
 }) {
   const now = Date.now();
   const diagnosticsById = new Map<string, Diagnostic>();
@@ -102,6 +122,11 @@ export function buildRuntimeDiagnostics({
     const normalizedMessage = normalizeRuntimeLine(message);
 
     if (!normalizedMessage) {
+      return;
+    }
+
+    // Drop stale cold-start runtime errors once the preview is actually serving.
+    if (previewLive && severity === 'error' && TRANSIENT_RUNTIME_ERROR_PATTERN.test(normalizedMessage)) {
       return;
     }
 

@@ -3294,10 +3294,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      */
     const previewPortLive = runtimePorts.some((port) => port.ready === true || Boolean(port.url));
     useEffect(() => {
+      // Re-run on workspaceError too: a transient 500 can be re-set AFTER the port
+      // went live (the store re-sets it on a later failed poll), and keying only on
+      // previewPortLive would miss that second error and leave it stuck in Problems.
       if (previewPortLive && workbenchStore.workspaceError.get()) {
         workbenchStore.workspaceError.set(undefined);
       }
-    }, [previewPortLive]);
+    }, [previewPortLive, workspaceError]);
 
     const runtimeUiState = workspaceUiState(projectRuntimeState.workspace, {
       ports: runtimePorts,
@@ -3449,10 +3452,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           ? buildRuntimeDiagnostics({
               workspaceError,
               workspaceLogs,
+              // Once a forwarded port is serving, drop the stale cold-start 500/502
+              // provisioning errors (workspaceError AND log-derived) from Problems.
+              previewLive: previewPortLive,
             })
           : [],
       );
-    }, [projectIdeMode, setDiagnosticsForSource, workspaceError, workspaceLogs]);
+    }, [projectIdeMode, setDiagnosticsForSource, workspaceError, workspaceLogs, previewPortLive]);
 
     const statusbarDiagnostics = useMemo(
       () => ({
