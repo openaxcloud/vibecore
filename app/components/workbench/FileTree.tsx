@@ -52,6 +52,8 @@ const DEFAULT_HIDDEN_FILES = [
   /\/\.astro(?:\/|$)/,
   /\/\.vite(?:\/|$)/,
   /\/deps_temp_[^/]+(?:\/|$)/,
+  // ext4 filesystem artifact at the volume root of a fresh workspace — not a user file.
+  /\/lost\+found(?:\/|$)/,
 ];
 
 interface Props {
