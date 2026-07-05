@@ -33,6 +33,8 @@ export default function LandingVideo() {
                 ref={videoRef}
                 className="w-full h-full object-cover"
                 poster={posterImg}
+                width={1280}
+                height={720}
                 preload="none"
                 controls={false}
                 muted={isMuted}
