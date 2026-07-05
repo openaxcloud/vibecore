@@ -439,6 +439,135 @@ function AccountDeletionsPanel({ reauthPassword, pushToast }: PanelProps) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// F19 — AI models: plan × model matrix + cost/1M + guarantee ≥1 active per plan
+// ---------------------------------------------------------------------------
+
+interface ModelRow {
+  provider?: string;
+  modelId: string;
+  displayName: string;
+  enabled: boolean;
+  enabledPlans: string[];
+  isHighPower: boolean;
+  supportsThinking: boolean;
+  inputCentsPerM: number;
+  outputCentsPerM: number;
+}
+
+function AiModelsPanel({ reauthPassword, pushToast }: PanelProps) {
+  const { data, loading, error, reload } = usePanelData<{ models: ModelRow[] }>('/admin/models');
+  const [busy, setBusy] = useState<string>();
+
+  if (loading || error) {
+    return <PanelStates loading={loading} error={error} />;
+  }
+
+  const models = data?.models ?? [];
+  const plans = Array.from(new Set(models.flatMap((model) => model.enabledPlans))).sort();
+  const activeByPlan = new Map<string, number>();
+  for (const plan of plans) {
+    activeByPlan.set(plan, models.filter((model) => model.enabled && model.enabledPlans.includes(plan)).length);
+  }
+
+  async function toggle(model: ModelRow) {
+    const key = `${model.provider}:${model.modelId}`;
+    setBusy(key);
+    const result = await withReauth(reauthPassword, pushToast, () =>
+      apiJson(`/admin/models/toggle`, {
+        method: 'POST',
+        body: JSON.stringify({ provider: model.provider, modelId: model.modelId, enabled: !model.enabled }),
+      }),
+    );
+    setBusy(undefined);
+    if (result) {
+      pushToast(`${model.displayName} ${model.enabled ? 'disabled' : 'enabled'}.`);
+      reload();
+    }
+  }
+
+  return (
+    <section className="panel" aria-label="AI models">
+      <div className="page-title">
+        <h2>AI models</h2>
+        <button className="secondary" type="button" onClick={reload}>
+          Refresh
+        </button>
+      </div>
+      <p className="muted">
+        Plan × model access and cost per 1M tokens. Every plan must keep at least one active model — the API refuses a
+        disable that would strand a plan.
+      </p>
+      <div className="plan-coverage">
+        {plans.map((plan) => {
+          const count = activeByPlan.get(plan) ?? 0;
+          const tone = count === 0 ? 'ledger-debit' : count === 1 ? 'status-warn-text' : 'ledger-credit';
+          return (
+            <span key={plan} className={`plan-chip ${tone}`}>
+              {plan}: {count} active
+            </span>
+          );
+        })}
+      </div>
+      {models.length === 0 ? (
+        <p className="muted">No models in the registry.</p>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>In $/1M</th>
+                <th>Out $/1M</th>
+                {plans.map((plan) => (
+                  <th key={plan}>{plan}</th>
+                ))}
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {models.map((model) => {
+                const key = `${model.provider}:${model.modelId}`;
+                return (
+                  <tr key={key}>
+                    <td>
+                      {model.displayName}
+                      <span className="muted"> ({model.provider ?? '—'})</span>
+                      {model.isHighPower ? <span className="model-tag">power</span> : null}
+                      {model.supportsThinking ? <span className="model-tag">thinking</span> : null}
+                    </td>
+                    <td className="ledger-amount">{formatCents(model.inputCentsPerM)}</td>
+                    <td className="ledger-amount">{formatCents(model.outputCentsPerM)}</td>
+                    {plans.map((plan) => (
+                      <td key={plan} style={{ textAlign: 'center' }}>
+                        {model.enabledPlans.includes(plan) ? (model.enabled ? '●' : '○') : ''}
+                      </td>
+                    ))}
+                    <td className={model.enabled ? 'ledger-credit' : 'muted'}>
+                      {model.enabled ? 'active' : 'disabled'}
+                    </td>
+                    <td>
+                      <button
+                        className="secondary"
+                        type="button"
+                        disabled={busy === key}
+                        onClick={() => void toggle(model)}
+                      >
+                        {busy === key ? '…' : model.enabled ? 'Disable' : 'Enable'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 /**
  * Registry of section-id → custom panel. main.tsx renders the panel in place of
  * the generic table when an entry exists. Populated one Batch-F point at a time.
@@ -446,4 +575,5 @@ function AccountDeletionsPanel({ reauthPassword, pushToast }: PanelProps) {
 export const CUSTOM_PANELS: Record<string, React.ComponentType<PanelProps>> = {
   'credit-wallets': CreditWalletsPanel,
   'account-deletions': AccountDeletionsPanel,
+  'ai-models': AiModelsPanel,
 };

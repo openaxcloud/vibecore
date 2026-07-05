@@ -21491,12 +21491,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       z.object({ provider: z.string().min(1), modelId: z.string().min(1), enabled: z.boolean() }),
       request.body ?? {},
     );
-    const existing = (await store.listModelConfigs()).find(
-      (m) => m.provider === body.provider && m.modelId === body.modelId,
-    );
+    const allModels = await store.listModelConfigs();
+    const existing = allModels.find((m) => m.provider === body.provider && m.modelId === body.modelId);
 
     if (!existing) {
       throw Object.assign(new Error('Model not found in registry'), { statusCode: 404, code: 'MODEL_NOT_FOUND' });
+    }
+
+    /*
+     * F19 guarantee: never leave a plan with zero active models. When disabling a
+     * model, refuse if any plan it currently serves would be left with no other
+     * enabled model — otherwise that plan's users would have nothing to run.
+     */
+    if (!body.enabled && existing.enabled) {
+      const strandedPlan = existing.enabledPlans.find(
+        (plan) =>
+          !allModels.some(
+            (m) =>
+              m.enabled &&
+              m.enabledPlans.includes(plan) &&
+              !(m.provider === body.provider && m.modelId === body.modelId),
+          ),
+      );
+
+      if (strandedPlan) {
+        throw Object.assign(new Error(`Disabling this model would leave the "${strandedPlan}" plan with no active model`), {
+          statusCode: 409,
+          code: 'PLAN_WOULD_HAVE_NO_MODEL',
+        });
+      }
     }
 
     const updated = await store.upsertModelConfig({
