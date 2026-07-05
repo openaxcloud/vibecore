@@ -56,3 +56,6 @@
 - Ne jamais pousser un etat avec conflits Git non resolus, tests critiques en echec, build casse ou fichiers non intentionnels.
 - En cas de conflit, le resoudre completement, relancer les validations concernees, puis pousser.
 - Apres chaque push, verifier que `main` local et `origin/main` sont alignes, que `git status` est propre et que le depot fonctionne toujours.
+
+## Suivi des points « Claude design » (règle permanente)
+Dès qu'Avi donne des points « Claude design » (batchs A/B/C/D/E/F/G ou nouveaux), les ajouter IMMÉDIATEMENT dans `DESIGN_PROGRAM_MASTER.md` (source de vérité unique du programme design). Ne passer un point en ✅ QU'APRÈS l'avoir testé en réel (vérif live à l'écran + greps de contrôle) — jamais sur « dispatché » ni « codé ». Specs détaillées dans `DESIGN_BATCH_*_SPEC.md`, état par point dans `DESIGN_AUDIT_LIVE.md`.
