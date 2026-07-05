@@ -281,7 +281,7 @@ const previewSplashSlides: SplashSlide[] = [
     icon: Sparkles,
     headline: 'Preparing your live preview',
     subtitle: 'E-code is starting the dev server, scanning runtime ports, and wiring the webview automatically.',
-    color: 'var(--vc-ide-accent-ai-start)',
+    color: 'var(--vc-ide-accent-action)',
   },
   {
     layout: 'two-column',

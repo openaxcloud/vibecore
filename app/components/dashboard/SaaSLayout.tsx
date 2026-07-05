@@ -1313,7 +1313,7 @@ export function TemplateGallery({
           className="group overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3"
         >
           <div className="vc-template-preview relative m-3 mb-0 overflow-hidden p-3">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,color-mix(in_srgb,var(--vc-ide-accent-action)_18%,transparent),transparent_34%),radial-gradient(circle_at_85%_10%,color-mix(in_srgb,var(--vc-ide-accent-ai-start)_16%,transparent),transparent_32%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,color-mix(in_srgb,var(--vc-ide-accent-action)_18%,transparent),transparent_34%),radial-gradient(circle_at_85%_10%,color-mix(in_srgb,var(--vc-ide-accent-success)_16%,transparent),transparent_32%)]" />
             <div className="relative flex h-20 items-center justify-center gap-3">
               {template.providers.map((provider, index) => {
                 const Logo = provider.Logo;
