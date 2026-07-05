@@ -135,6 +135,14 @@ export default function UsagePage() {
 
   const overrides = data.overrides ?? [];
   const overrideFor = (key: string) => overrides.find((override) => override.key === key);
+
+  /*
+   * The enforced limit for a quota = its override when one exists, else the base
+   * plan quota. Both the summary cards and the quota table must read this same
+   * value; the "Projects" card previously showed the raw base (e.g. 10000) while
+   * the table showed the override (e.g. 100), so they disagreed on the same key.
+   */
+  const effectiveLimitFor = (key: string) => overrideFor(key)?.limit ?? data.quotas[key] ?? 0;
   const breakdown = data.breakdown;
   const memberLimits = data.memberLimits;
   const actionData = useActionData<typeof action>() as { ok?: string; error?: string } | undefined;
@@ -210,7 +218,7 @@ export default function UsagePage() {
         stats={[
           {
             label: 'Projects',
-            value: `${used('projects.count')} / ${data.quotas['projects.count'] ?? 0}`,
+            value: `${used('projects.count')} / ${effectiveLimitFor('projects.count')}`,
             detail: 'Project creation is checked before action',
             icon: Boxes,
           },
@@ -241,9 +249,9 @@ export default function UsagePage() {
             <span className="text-right">Used</span>
             <span className="text-right">Limit</span>
           </div>
-          {Object.entries(data.quotas).map(([quota, limit]) => {
+          {Object.entries(data.quotas).map(([quota]) => {
             const override = overrideFor(quota);
-            const effectiveLimit = override ? override.limit : limit;
+            const effectiveLimit = effectiveLimitFor(quota);
             const usedValue = used(quota);
             const pct = effectiveLimit > 0 ? Math.round((usedValue / effectiveLimit) * 100) : 0;
             const tone = pct >= 100 ? 'error' : pct >= 80 ? 'warning' : 'ok';
