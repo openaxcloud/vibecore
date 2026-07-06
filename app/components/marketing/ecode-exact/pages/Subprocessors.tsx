@@ -37,6 +37,7 @@ import {
   TableRow,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { Link } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import { LEGAL_DATES } from '~/lib/legal-dates';
 
 interface Subprocessor {
   name: string;
@@ -151,8 +152,6 @@ export default function Subprocessors() {
     Security: Lock,
   };
 
-  const lastUpdated = new Date('2025-07-01');
-
   return (
     <div className="min-h-screen bg-background" data-testid="page-subprocessors">
       <PublicNavbar />
@@ -170,12 +169,7 @@ export default function Subprocessors() {
             </p>
             <Badge variant="outline" className="text-[13px]">
               <CheckCircle className="h-4 w-4 mr-1" />
-              Last Updated:{' '}
-              {lastUpdated.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
+              Last Updated: {LEGAL_DATES.subprocessors}
             </Badge>
           </div>
         </div>

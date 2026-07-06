@@ -1,11 +1,12 @@
 import { LegalArticle, LegalSection } from '~/components/marketing/ecode-exact/pages/LegalArticle';
+import { LEGAL_DATES } from '~/lib/legal-dates';
 
 export default function Enforcement() {
   return (
     <LegalArticle
       testId="page-enforcement"
       title="Enforcement Policy"
-      lastUpdated="June 29, 2026"
+      lastUpdated={LEGAL_DATES.enforcement}
       intro={
         <p>
           This policy explains how E-Code responds when an account violates our <a href="/terms">Terms of Service</a>,{' '}

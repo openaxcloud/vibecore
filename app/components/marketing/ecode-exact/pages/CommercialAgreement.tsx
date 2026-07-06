@@ -4,6 +4,7 @@ import {
   EcodeExactPublicNavbar as PublicNavbar,
 } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import { Card, CardContent } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import { LEGAL_DATES } from '~/lib/legal-dates';
 
 export default function CommercialAgreement() {
   return (
@@ -19,7 +20,7 @@ export default function CommercialAgreement() {
                 Commercial Agreement
               </h1>
             </div>
-            <p className="text-[15px] text-muted-foreground mb-8">Last updated: June 16, 2026</p>
+            <p className="text-[15px] text-muted-foreground mb-8">Last updated: {LEGAL_DATES.commercialAgreement}</p>
 
             <Card className="mb-8">
               <CardContent className="pt-6">

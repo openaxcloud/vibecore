@@ -2,6 +2,7 @@ import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
 } from '~/components/marketing/ecode-exact/EcodeExactShell';
+import { LEGAL_DATES } from '~/lib/legal-dates';
 
 export default function Terms() {
   return (
@@ -17,7 +18,7 @@ export default function Terms() {
 
             <div className="prose prose-gray dark:prose-invert max-w-none space-y-8">
               <section>
-                <p className="text-[15px] text-muted-foreground">Last updated: January 24, 2024</p>
+                <p className="text-[15px] text-muted-foreground">Last updated: {LEGAL_DATES.terms}</p>
               </section>
 
               <section>
