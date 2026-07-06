@@ -18,7 +18,7 @@ import {
   X,
   Youtube,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
 import { Badge, Button, cn, Link, useMarketingNavigate, useWouterLocation } from './EcodeExactUi';
 import { publicChromeUserChoseDark, resolvePublicChromeTheme } from './ecode-public-theme';
@@ -653,12 +653,38 @@ function MegaMenu({
   const Icon = icon === 'sparkles' ? Sparkles : icon === 'search' ? Search : ChevronRight;
   const iconClass = icon === 'arrow' || icon === 'chevron' ? 'text-[#F99D25]' : 'text-[#F99D25]';
 
+  /*
+   * Hover intent: don't slam the panel shut the instant the cursor leaves. Close
+   * after a 150ms grace window, cancelled if the cursor re-enters the trigger or
+   * the panel (both inside this wrapper) — so diagonal moves toward the menu items
+   * don't dismiss it.
+   */
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelClose = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => cancelClose, []);
+
   return (
     <div
       className="ecode-nav-menu relative"
-      onMouseEnter={() => setIsOpen(true)}
-      onMouseLeave={() => setIsOpen(false)}
-      onFocus={() => setIsOpen(true)}
+      onMouseEnter={() => {
+        cancelClose();
+        setIsOpen(true);
+      }}
+      onMouseLeave={() => {
+        cancelClose();
+        closeTimerRef.current = setTimeout(() => setIsOpen(false), 150);
+      }}
+      onFocus={() => {
+        cancelClose();
+        setIsOpen(true);
+      }}
       onBlur={(event) => {
         const nextFocusedElement = event.relatedTarget instanceof Node ? event.relatedTarget : null;
 
