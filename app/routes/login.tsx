@@ -405,25 +405,31 @@ export default function LoginPage() {
           </label>
         )}
 
-        <div>
-          <AuthField
-            label={mfaRequired ? 'MFA code required' : 'MFA or recovery code'}
-            name="mfaCode"
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            minLength={6}
-            maxLength={32}
-            required={mfaRequired}
-            placeholder="123456 or recovery code"
-            icon={<KeyRound className="h-4 w-4" />}
-            hint={
-              mfaRequired ? 'Enter your authenticator app code, or one of your one-time recovery codes.' : undefined
-            }
-            inputProps={fieldErrorProps('login-mfa-code', mfaCodeError)}
-          />
-          <FieldError fieldId="login-mfa-code" error={mfaCodeError} />
-        </div>
+        {/*
+         * Progressive disclosure: the MFA/recovery-code field only appears once
+         * the API has answered AUTH_MFA_REQUIRED on the first credential submit —
+         * a bare login form no longer shows a second-factor box to everyone. It
+         * auto-focuses when it mounts so the user can type the code immediately.
+         */}
+        {mfaRequired ? (
+          <div>
+            <AuthField
+              label="MFA code required"
+              name="mfaCode"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              minLength={6}
+              maxLength={32}
+              required
+              placeholder="123456 or recovery code"
+              icon={<KeyRound className="h-4 w-4" />}
+              hint="Enter your authenticator app code, or one of your one-time recovery codes."
+              inputProps={{ ...fieldErrorProps('login-mfa-code', mfaCodeError), autoFocus: true }}
+            />
+            <FieldError fieldId="login-mfa-code" error={mfaCodeError} />
+          </div>
+        ) : null}
 
         {/*
          * The visible password field is hidden on the MFA step (above). The API
