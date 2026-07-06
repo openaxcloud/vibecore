@@ -55,10 +55,15 @@ import { projectIdePath, withProjectSearch } from '~/utils/project-url';
 
 const ProjectIdeChat = lazy(() => import('~/components/chat/Chat.client').then((module) => ({ default: module.Chat })));
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => [
-  { title: data ? `E-Code IDE - ${data.projectId}` : 'E-Code IDE' },
-  { name: 'description', content: 'E-Code IDE connected to a persistent project workspace.' },
-];
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  // Prefer the human project name over the raw id for the browser tab title.
+  const projectName = data?.project?.name?.trim() || data?.projectId;
+
+  return [
+    { title: projectName ? `${projectName} — E-Code IDE` : 'E-Code IDE' },
+    { name: 'description', content: 'E-Code IDE connected to a persistent project workspace.' },
+  ];
+};
 
 const IDE_CLIENT_SEARCH_PARAMS = new Set(['panel', 'commit']);
 
