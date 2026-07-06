@@ -109,6 +109,9 @@ export default function OrganizationSwitcherPage() {
                   <label htmlFor="org-name" className="block text-sm font-medium text-bolt-elements-textPrimary">
                     Name
                   </label>
+                  {/* text-base (16px) on mobile prevents iOS Safari's focus auto-zoom, which
+                      shifts the viewport-fixed modal off-screen to the right; sm:text-sm keeps
+                      the 14px desktop scale. */}
                   <input
                     id="org-name"
                     name="name"
@@ -116,7 +119,7 @@ export default function OrganizationSwitcherPage() {
                     required
                     maxLength={120}
                     placeholder="Acme Inc"
-                    className="mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none"
+                    className="mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-base text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none sm:text-sm"
                   />
                 </div>
 
