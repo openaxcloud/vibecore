@@ -1,3 +1,5 @@
+import { synthesizeMissingBarrels } from './barrel-synthesis';
+
 export interface GeneratedPreviewFile {
   path: string;
   content: string;
@@ -455,6 +457,20 @@ export function buildPreviewManifestRepair(filesInput: Record<string, string>): 
 
   const content = `${JSON.stringify(nextPackageJson, null, 2)}\n`;
   const supplementalFiles = supplementalPreviewFiles(scopedFiles, packageJsonPath, { hasReact, shouldUseVite });
+
+  /*
+   * Synthesize barrel index files for directory imports that lack one (e.g. the
+   * model wrote `import { X } from './components'` but never created
+   * src/components/index.ts). Without this Vite can't resolve the directory and
+   * the app renders blank. Runs over the full scoped file set, so it is order-
+   * independent — every module is known here regardless of which patch landed
+   * first.
+   */
+  const cwd = packageDirectory(packageJsonPath);
+
+  for (const barrel of synthesizeMissingBarrels(scopedFiles)) {
+    supplementalFiles.push({ path: joinRuntimePath(cwd, barrel.path), content: barrel.content });
+  }
 
   return {
     packageJson: {

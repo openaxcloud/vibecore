@@ -44,6 +44,43 @@ describe('agent post-generation import validation', () => {
     ).rejects.toBeInstanceOf(MissingImportError);
   });
 
+  it('does NOT fail a barrel import of a directory that has sibling modules but no index yet', async () => {
+    /*
+     * App.tsx imports the ./components DIRECTORY; there is no index.ts yet, but the
+     * folder has modules — the preview repair synthesizes the barrel, so this must
+     * not hard-fail (which would cascade to main.tsx → './App').
+     */
+    await expect(
+      validateGeneratedFiles([
+        {
+          path: 'src/main.tsx',
+          content: "import App from './App';\nconsole.log(App);\n",
+        },
+        {
+          path: 'src/App.tsx',
+          content:
+            "import { CityInput } from './components';\nexport default function App() { return <CityInput />; }\n",
+        },
+        {
+          path: 'src/components/CityInput.tsx',
+          content: 'export function CityInput() { return <input />; }\n',
+        },
+      ]),
+    ).resolves.toBeUndefined();
+  });
+
+  it('still fails a directory import when the directory is empty (genuinely missing)', async () => {
+    await expect(
+      validateImports(
+        {
+          path: 'src/App.tsx',
+          content: "import { X } from './missing';\nconsole.log(X);\n",
+        },
+        new Map([['src/App.tsx', '']]),
+      ),
+    ).rejects.toBeInstanceOf(MissingImportError);
+  });
+
   it('ignores package imports and validates css side-effect imports', async () => {
     await expect(
       validateGeneratedFiles([

@@ -335,6 +335,49 @@ export function resolveImport(specifier: string, importerPath: string, allFiles:
   return undefined;
 }
 
+/*
+ * True when `specifier` points at a DIRECTORY that has direct sibling source
+ * modules but no index yet — a barrel import (`import { X } from './components'`)
+ * the preview repair will resolve by synthesizing src/components/index.ts. Such
+ * an import must NOT hard-fail validation: doing so marks the importer (e.g.
+ * App.tsx) 'failed', which then drops it from the validation set so its OWN
+ * importers (main.tsx → './App') cascade-fail even though the file exists.
+ */
+export function importResolvesToPopulatedDirectory(
+  specifier: string,
+  importerPath: string,
+  allFiles: Map<string, string>,
+): boolean {
+  if (specifier.startsWith('/')) {
+    return false;
+  }
+
+  const basePath = normalizeSegments([dirname(importerPath), specifier].filter(Boolean).join('/'));
+
+  if (!basePath) {
+    return false;
+  }
+
+  const prefix = `${basePath}/`;
+
+  for (const filePath of allFiles.keys()) {
+    if (!filePath.startsWith(prefix)) {
+      continue;
+    }
+
+    // Direct children only (a barrel re-exports its own directory's modules).
+    if (filePath.slice(prefix.length).includes('/')) {
+      continue;
+    }
+
+    if (isSourceFile(filePath) && !/(?:^|\/)index\.[^/]+$/.test(filePath)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export async function validateImports(file: GeneratedFile, allFiles: Map<string, string>) {
   const normalizedPath = normalizeGeneratedPath(file.path);
 
@@ -404,6 +447,17 @@ export async function validateImports(file: GeneratedFile, allFiles: Map<string,
     }
 
     if (!resolveImport(specifier, normalizedPath, allFiles)) {
+      /*
+       * A barrel import of a directory with sibling modules but no index yet is
+       * satisfiable — the preview repair synthesizes the barrel. Don't hard-fail
+       * (which would cascade: the importer is dropped from the set and ITS
+       * importers then fail too). Only a specifier resolving to neither a file
+       * nor a populated directory is a genuine missing import.
+       */
+      if (importResolvesToPopulatedDirectory(specifier, normalizedPath, allFiles)) {
+        continue;
+      }
+
       throw new MissingImportError(normalizedPath, specifier);
     }
   }
