@@ -33,11 +33,9 @@ import {
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { Link } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import { LEGAL_DATES } from '~/lib/legal-dates';
 
 export default function StudentDpa() {
-  const effectiveDate = new Date('2025-01-01');
-  const lastUpdated = new Date('2025-07-01');
-
   const protections = [
     {
       icon: Lock,
@@ -149,18 +147,7 @@ export default function StudentDpa() {
             </div>
 
             <p className="text-[13px] text-muted-foreground mt-6">
-              Effective Date:{' '}
-              {effectiveDate.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}{' '}
-              • Last Updated:{' '}
-              {lastUpdated.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
+              Effective Date: {LEGAL_DATES.studentDpa} • Last Updated: {LEGAL_DATES.studentDpa}
             </p>
           </div>
         </div>

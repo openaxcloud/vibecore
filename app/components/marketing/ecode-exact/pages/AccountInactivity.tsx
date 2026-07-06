@@ -1,11 +1,12 @@
 import { LegalArticle, LegalSection } from '~/components/marketing/ecode-exact/pages/LegalArticle';
+import { LEGAL_DATES } from '~/lib/legal-dates';
 
 export default function AccountInactivity() {
   return (
     <LegalArticle
       testId="page-account-inactivity"
       title="Account Inactivity Policy"
-      lastUpdated="June 29, 2026"
+      lastUpdated={LEGAL_DATES.accountInactivity}
       intro={
         <p>
           To keep the platform secure and to free unused resources, E-Code may remove free accounts that have been

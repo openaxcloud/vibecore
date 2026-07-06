@@ -5,6 +5,7 @@ import {
 } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import { Button } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { Card } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import { LEGAL_DATES } from '~/lib/legal-dates';
 
 export default function DPA() {
   return (
@@ -270,7 +271,7 @@ export default function DPA() {
 
             <div className="mt-8 p-4 bg-muted rounded-lg">
               <p className="text-[13px] text-muted-foreground">
-                <strong>Last Updated:</strong> January 1, 2025
+                <strong>Last Updated:</strong> {LEGAL_DATES.dpa}
                 <br />
                 <strong>Effective Date:</strong> Upon execution of the Principal Agreement
                 <br />

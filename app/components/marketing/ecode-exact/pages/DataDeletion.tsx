@@ -1,11 +1,12 @@
 import { LegalArticle, LegalSection } from '~/components/marketing/ecode-exact/pages/LegalArticle';
+import { LEGAL_DATES } from '~/lib/legal-dates';
 
 export default function DataDeletion() {
   return (
     <LegalArticle
       testId="page-data-deletion"
       title="Deleting Your Data"
-      lastUpdated="June 29, 2026"
+      lastUpdated={LEGAL_DATES.dataDeletion}
       intro={
         <p>
           You own your content and can delete it at any time. This page explains how to delete individual projects, how
