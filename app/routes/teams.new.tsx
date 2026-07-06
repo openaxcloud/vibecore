@@ -1,9 +1,10 @@
 import { redirect } from 'react-router';
 
 /*
- * H24: this route was a standalone brochure surface. Redirect (301) to the real
- * feature so the URL keeps working and search engines follow the canonical page.
+ * H24: 'teams/new' was a standalone brochure surface. Open the real
+ * create-organization flow — the modal on /organization-switcher — via
+ * ?create=1 so a team/org can actually be created.
  */
 export function loader() {
-  return redirect('/organization-switcher', 301);
+  return redirect('/organization-switcher?create=1', 301);
 }

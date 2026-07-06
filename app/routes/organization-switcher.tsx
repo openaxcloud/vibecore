@@ -2,7 +2,7 @@ import * as RadixDialog from '@radix-ui/react-dialog';
 import { Building2, Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation, useSearchParams } from 'react-router';
 import { ActivityList, AppShell } from '~/components/dashboard/SaaSLayout';
 import { Dialog, DialogTitle } from '~/components/ui/Dialog';
 import {
@@ -72,7 +72,10 @@ export default function OrganizationSwitcherPage() {
   const actionData = useActionData<typeof action>() as ActionResult | undefined;
   const navigation = useNavigation();
   const busy = navigation.state !== 'idle';
-  const [createOpen, setCreateOpen] = useState(false);
+
+  // `?create=1` (e.g. the /teams/new redirect) opens the create-org modal on load.
+  const [searchParams] = useSearchParams();
+  const [createOpen, setCreateOpen] = useState(() => searchParams.get('create') === '1');
 
   const error = actionData && !actionData.ok ? actionData.error : null;
 
