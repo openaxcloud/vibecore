@@ -65,6 +65,7 @@ function closeAndParsePrefix(prefix: string): JsonValue | undefined {
 
   let inString = false;
   let escaped = false;
+
   const closers: string[] = [];
 
   for (const char of trimmed) {
@@ -127,6 +128,7 @@ export function repairTruncatedJson(text: string): string | undefined {
   }
 
   const cutPoints: number[] = [];
+
   let inString = false;
   let escaped = false;
 
