@@ -561,13 +561,28 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             ) : null}
 
             {props.projectIdeMode && props.agentMode && props.setAgentMode && props.onPlanFirstChange ? (
-              <ChatBoxModeDropdown
-                agentMode={props.agentMode}
-                setAgentMode={props.setAgentMode}
-                planFirstEnabled={props.planFirstEnabled ?? false}
-                onPlanFirstChange={props.onPlanFirstChange}
-                disabled={props.isStreaming}
-              />
+              <>
+                <ChatBoxModeDropdown
+                  agentMode={props.agentMode}
+                  setAgentMode={props.setAgentMode}
+                  disabled={props.isStreaming}
+                />
+                {/* Replit parity: Plan is a standalone toggle beside the mode
+                    selector, sharing the same projectPlanFirst state (no dup). */}
+                <button
+                  type="button"
+                  className={classNames('bolt-chatbox-plan-toggle', {
+                    'is-active': props.planFirstEnabled ?? false,
+                  })}
+                  aria-pressed={props.planFirstEnabled ?? false}
+                  disabled={props.isStreaming}
+                  title="Plan first: propose a reviewable plan and wait for approval before editing"
+                  onClick={() => props.onPlanFirstChange?.(!(props.planFirstEnabled ?? false))}
+                >
+                  <span className="i-ph:list-checks bolt-chatbox-plan-toggle-icon" aria-hidden />
+                  <span className="bolt-chatbox-plan-toggle-label">Plan</span>
+                </button>
+              </>
             ) : null}
 
             <div ref={toolsMenuRef} className="bolt-chatbox-tools-menu-anchor">
