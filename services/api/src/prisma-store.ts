@@ -794,7 +794,12 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async getProject(id: string) {
-    const project = await this.prisma.project.findUnique({ where: { id } });
+    // Count deployments so callers (e.g. the IDE top bar) can show Publish vs
+    // Republish without a second query; mapProject surfaces it as deploymentCount.
+    const project = await this.prisma.project.findUnique({
+      where: { id },
+      include: { _count: { select: { deployments: true } } },
+    });
     return project ? mapProject(project) : undefined;
   }
 

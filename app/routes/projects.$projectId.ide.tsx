@@ -675,38 +675,18 @@ function IdeProjectTopBar({
           )}
         </div>
         <div className="bolt-project-action-group bolt-project-action-group--collaborate" data-priority="high">
-          <details className="bolt-project-collaborate-menu">
-            <summary
-              className="bolt-project-topbar-icon-button"
-              aria-label="Collaborate"
-              title="Collaborate: share or invite"
-              data-vc-tooltip="Collaborate"
-            >
-              <Share2 className="h-3.5 w-3.5" aria-hidden />
-            </summary>
-            <div
-              role="menu"
-              aria-label="Collaborate"
-              className="bolt-project-collaborate-popover absolute right-0 top-full z-50 mt-1 w-[min(220px,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] rounded-xl border p-2"
-            >
-              <Link
-                to={withProjectSearch(projectUrl, { panel: 'collaborators' })}
-                className="bolt-project-overflow-item"
-                aria-label="Share project"
-              >
-                <Share2 className="h-3.5 w-3.5" aria-hidden />
-                <span>Share project</span>
-              </Link>
-              <Link
-                to={withProjectSearch(projectUrl, { panel: 'collaborators' })}
-                className="bolt-project-overflow-item"
-                aria-label="Invite collaborators"
-              >
-                <UserPlus className="h-3.5 w-3.5" aria-hidden />
-                <span>Invite collaborators</span>
-              </Link>
-            </div>
-          </details>
+          {/* Replit parity: a visible Invite button (not an icon-only menu). The
+              collaborators panel it opens already hosts both invite-by-email and
+              the expirable share link (F14), so one button covers share + invite. */}
+          <Link
+            to={withProjectSearch(projectUrl, { panel: 'collaborators' })}
+            className="bolt-project-topbar-outline-button"
+            aria-label="Invite collaborators"
+            title="Invite collaborators or create a share link"
+          >
+            <UserPlus className="h-3.5 w-3.5" aria-hidden />
+            <span>Invite</span>
+          </Link>
         </div>
         <div
           className="bolt-project-action-group bolt-project-action-group--primary"
@@ -755,9 +735,17 @@ function IdeProjectTopBar({
               )}
             </button>
           )}
-          <Link to={withProjectSearch(projectUrl, { panel: 'deployments' })} className="bolt-project-publish-button">
+          <Link
+            to={withProjectSearch(projectUrl, { panel: 'deployments' })}
+            className="bolt-project-publish-button"
+            title={
+              (project.deploymentCount ?? 0) > 0
+                ? 'Republish: ship a new deployment of this project'
+                : 'Publish: create the first live deployment'
+            }
+          >
             <Rocket className="h-3 w-3" aria-hidden />
-            Publish
+            {(project.deploymentCount ?? 0) > 0 ? 'Republish' : 'Publish'}
           </Link>
         </div>
       </div>
