@@ -14850,8 +14850,15 @@ body :where(.lucide, svg[data-lucide]) {
   text-align: left;
 }
 
+/* The listbox/group wrappers carry ARIA roles only; keep them out of the grid
+   flow so the section headers + option buttons lay out exactly as before. */
+.bolt-project-command-palette [role='listbox'],
+.bolt-project-command-palette [role='group'] {
+  display: contents;
+}
+
 .bolt-project-command-palette button:hover,
-.bolt-project-command-palette button[aria-current='page'] {
+.bolt-project-command-palette button[aria-selected='true'] {
   background: var(--vc-ide-bg-hover);
 }
 
@@ -15802,7 +15809,7 @@ button.bolt-project-statusbar-pill:focus-visible,
     .bolt-project-tool-tabs button[aria-current='page'],
     .bolt-project-tab-actions-menu button:hover,
     .bolt-project-command-palette button:hover,
-    .bolt-project-command-palette button[aria-current='page'],
+    .bolt-project-command-palette button[aria-selected='true'],
     .bolt-project-bottom-terminal-tabs button:hover,
     .bolt-project-bottom-terminal-tabs button[aria-current='page'],
     .bolt-project-welcome-card:hover,

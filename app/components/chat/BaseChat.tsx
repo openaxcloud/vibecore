@@ -2911,6 +2911,26 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [commandPaletteMode, setCommandPaletteMode] = useState<'all' | 'tools' | 'files'>('all');
     const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
     const [commandPaletteIndex, setCommandPaletteIndex] = useState(0);
+
+    /*
+     * Restore focus to whatever was focused when the palette opened, once it
+     * closes — so keyboard users aren't dumped at the top of the document.
+     */
+    const commandPaletteReturnFocusRef = useRef<HTMLElement | null>(null);
+    useEffect(() => {
+      if (commandPaletteOpen) {
+        commandPaletteReturnFocusRef.current = document.activeElement as HTMLElement | null;
+        return;
+      }
+
+      const previous = commandPaletteReturnFocusRef.current;
+      commandPaletteReturnFocusRef.current = null;
+
+      if (previous && typeof previous.focus === 'function') {
+        requestAnimationFrame(() => previous.focus());
+      }
+    }, [commandPaletteOpen]);
+
     const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false);
     const keyboardShortcutsRef = useFocusTrap<HTMLDivElement>(keyboardShortcutsOpen);
     const [projectKeybindingOverrides, setProjectKeybindingOverrides] = useState<KeybindingOverrideMap>({});
@@ -7906,6 +7926,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 inputMode="search"
                 placeholder="Search tools, files, and commands..."
                 aria-label="Search commands"
+                role="combobox"
+                aria-expanded
+                aria-controls="project-command-listbox"
+                aria-activedescendant={
+                  commandPaletteEntries.length ? `project-command-option-${commandPaletteIndex}` : undefined
+                }
                 data-testid="project-command-palette-search"
                 value={commandPaletteQuery}
                 onChange={(event) => {
@@ -7929,37 +7955,44 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   }
                 }}
               />
-              {commandPaletteSections.map((section) => (
-                <React.Fragment key={section.name}>
-                  <div className="bolt-project-command-section">{section.name}</div>
-                  {section.entries.map((entry) => {
-                    const index = commandPaletteEntries.findIndex((item) => item.id === entry.id);
+              <div id="project-command-listbox" role="listbox" aria-label="Commands, tools and files">
+                {commandPaletteSections.map((section) => (
+                  <div key={section.name} role="group" aria-label={section.name}>
+                    <div className="bolt-project-command-section" role="presentation">
+                      {section.name}
+                    </div>
+                    {section.entries.map((entry) => {
+                      const index = commandPaletteEntries.findIndex((item) => item.id === entry.id);
+                      const active = commandPaletteIndex === index;
 
-                    return (
-                      <button
-                        key={entry.id}
-                        type="button"
-                        aria-current={commandPaletteIndex === index ? 'page' : undefined}
-                        onClick={() => {
-                          runCommandPaletteEntry(entry);
-                        }}
-                      >
-                        <span className={entry.icon} aria-hidden />
-                        <span>
-                          <strong>{entry.title}</strong>
-                          <small>{entry.description}</small>
-                        </span>
-                        <kbd>{entry.shortcut || '↵'}</kbd>
-                      </button>
-                    );
-                  })}
-                </React.Fragment>
-              ))}
-              {!commandPaletteEntries.length && (
-                <div className="px-4 py-6 text-sm text-bolt-elements-textTertiary">
-                  No matching command, tool, or file.
-                </div>
-              )}
+                      return (
+                        <button
+                          key={entry.id}
+                          id={`project-command-option-${index}`}
+                          type="button"
+                          role="option"
+                          aria-selected={active}
+                          onClick={() => {
+                            runCommandPaletteEntry(entry);
+                          }}
+                        >
+                          <span className={entry.icon} aria-hidden />
+                          <span>
+                            <strong>{entry.title}</strong>
+                            <small>{entry.description}</small>
+                          </span>
+                          <kbd>{entry.shortcut || '↵'}</kbd>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+                {!commandPaletteEntries.length && (
+                  <div className="px-4 py-6 text-sm text-bolt-elements-textTertiary">
+                    No matching command, tool, or file.
+                  </div>
+                )}
+              </div>
               <footer>↑↓ navigate · ↵ select · esc close</footer>
             </div>
           </>
