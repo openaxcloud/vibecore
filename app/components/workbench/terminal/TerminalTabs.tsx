@@ -569,12 +569,24 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       </div>
                     );
                   })}
-                  {terminalCount < MAX_TERMINALS - 1 ? (
-                    <button type="button" className="bolt-terminal-session-new" role="menuitem" onClick={addTerminal}>
-                      <span className="i-ph:plus" aria-hidden />
-                      <span>New Shell</span>
-                    </button>
-                  ) : null}
+                  {(() => {
+                    const atShellLimit = terminalCount >= MAX_TERMINALS - 1;
+
+                    return (
+                      <button
+                        type="button"
+                        className="bolt-terminal-session-new disabled:cursor-not-allowed disabled:opacity-50"
+                        role="menuitem"
+                        onClick={addTerminal}
+                        disabled={atShellLimit}
+                        title={atShellLimit ? `Maximum ${MAX_TERMINALS} shells` : undefined}
+                        data-vc-tooltip={atShellLimit ? `Maximum ${MAX_TERMINALS} shells` : undefined}
+                      >
+                        <span className="i-ph:plus" aria-hidden />
+                        <span>New Shell</span>
+                      </button>
+                    );
+                  })()}
                 </div>
               ) : null}
             </div>
