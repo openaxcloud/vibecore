@@ -6448,7 +6448,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
                 handleSendMessage?.(event, messageInput);
               })}
-            {!chatStarted && <StarterTemplates />}
+            {!chatStarted && <StarterTemplates hasUnsentDraft={input.trim().length > 0} />}
           </div>
         </div>
       </div>
