@@ -20,7 +20,7 @@ describe('settings tab title', () => {
     expect(getSettingsTabName('providers')).toBe('Cloud Providers');
     expect(getSettingsTabName('local')).toBe('Local Providers');
     expect(getSettingsTabName('logs')).toBe('Event Logs');
-    expect(getSettingsTabName('tasks')).toBe('Task Manager');
+    expect(getSettingsTabName('tasks')).toBe('Local data');
   });
 
   it('capitalizes unknown slugs instead of showing the raw slug', () => {

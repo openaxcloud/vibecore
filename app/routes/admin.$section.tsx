@@ -223,7 +223,7 @@ const adminSections: Record<string, AdminSectionConfig> = {
   'developer-tools': {
     title: 'Developer tools',
     description:
-      'Operational diagnostics (Debug, Task Manager, Service Status, Updates, Event Logs) — hidden from the user settings panel; reachable here by platform admins only.',
+      'Operational diagnostics (Debug, Local data, Service Status, Updates, Event Logs) — hidden from the user settings panel; reachable here by platform admins only.',
   },
 };
 
@@ -1074,7 +1074,7 @@ const DEV_TOOLS = [
   { id: 'cloud-providers', label: 'Cloud Providers', Component: DevCloudProvidersTab },
   { id: 'local-providers', label: 'Local Providers', Component: DevLocalProvidersTab },
   { id: 'debug', label: 'Debug', Component: DevDebugTab },
-  { id: 'task-manager', label: 'Task Manager', Component: DevTaskManagerTab },
+  { id: 'task-manager', label: 'Local data', Component: DevTaskManagerTab },
   { id: 'service-status', label: 'Service Status', Component: DevServiceStatusTab },
   { id: 'update', label: 'Updates', Component: DevUpdateTab },
   { id: 'event-logs', label: 'Event Logs', Component: DevEventLogsTab },

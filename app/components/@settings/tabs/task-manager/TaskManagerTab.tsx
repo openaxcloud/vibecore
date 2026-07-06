@@ -27,14 +27,14 @@ export default function TaskManagerTab() {
   const clearVolatileData = () => {
     ['error_logs', 'bolt_acknowledged_connection_issue'].forEach((key) => localStorage.removeItem(key));
     setRefreshKey((value) => value + 1);
-    toast.success('Temporary task data cleared');
+    toast.success('Temporary data cleared');
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
         <div>
-          <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Browser Storage Tasks</h3>
+          <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Browser storage</h3>
           <p className="text-sm text-bolt-elements-textSecondary">{items.length} local storage entries</p>
         </div>
         <button
