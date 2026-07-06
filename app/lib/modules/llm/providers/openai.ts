@@ -99,8 +99,24 @@ export function inferOpenAIMaxCompletionTokens(id: string | undefined): number {
     return 32768; // GPT-4.1 family: 32K output limit
   } else if (id?.includes('gpt-4o')) {
     return 16384; // GPT-4o current snapshots support 16K output
+  } else if (
+    id?.includes('gpt-4-turbo') ||
+    id?.includes('gpt-4-1106') ||
+    id?.includes('gpt-4-0125') ||
+    id?.includes('gpt-4-vision') ||
+    id?.includes('gpt-4-preview')
+  ) {
+    /*
+     * GPT-4 Turbo + its preview snapshots cap COMPLETION at 4096 — NOT the 8192
+     * the standard gpt-4 branch below assumes. This branch MUST precede the
+     * generic `gpt-4` check: `'gpt-4-turbo'.includes('gpt-4')` is true, so
+     * without it turbo fell through to 8192 and the OpenAI API hard-rejected the
+     * request ("max_tokens is too large: 8192. This model supports at most 4096
+     * completion tokens"), producing zero generated files.
+     */
+    return 4096; // GPT-4 Turbo / preview snapshots: 4K output limit
   } else if (id?.includes('gpt-4')) {
-    return 8192; // Standard GPT-4: 8K output limit
+    return 8192; // Standard GPT-4 (gpt-4, gpt-4-32k, gpt-4-0613): 8K output limit
   } else if (id?.includes('gpt-3.5-turbo')) {
     return 4096; // GPT-3.5-turbo: 4K output limit
   }

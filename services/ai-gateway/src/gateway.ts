@@ -23,6 +23,14 @@ export interface AiModel {
   inputCentsPerMillion: number;
   outputCentsPerMillion: number;
   contextWindow: number;
+  /*
+   * Max COMPLETION (output) tokens the model accepts in a single response — the
+   * ceiling `max_tokens` must never exceed or the provider hard-rejects the
+   * request (e.g. gpt-4-turbo caps at 4096). Distinct from `contextWindow`
+   * (total input+output budget). Optional: when unset the model keeps the
+   * global hard cap.
+   */
+  maxCompletionTokens?: number;
 }
 
 export interface AiChatRequest {
@@ -138,6 +146,7 @@ export const modelCatalog: AiModel[] = [
     inputCentsPerMillion: 200,
     outputCentsPerMillion: 800,
     contextWindow: 1_000_000,
+    maxCompletionTokens: 32768,
   },
   {
     id: 'gpt-4.1-mini',
@@ -147,6 +156,7 @@ export const modelCatalog: AiModel[] = [
     inputCentsPerMillion: 40,
     outputCentsPerMillion: 160,
     contextWindow: 1_000_000,
+    maxCompletionTokens: 32768,
   },
   {
     id: 'claude-3-5-sonnet-latest',
@@ -156,6 +166,7 @@ export const modelCatalog: AiModel[] = [
     inputCentsPerMillion: 300,
     outputCentsPerMillion: 1500,
     contextWindow: 200_000,
+    maxCompletionTokens: 8192,
   },
   {
     id: 'gemini-1.5-pro',
@@ -165,6 +176,7 @@ export const modelCatalog: AiModel[] = [
     inputCentsPerMillion: 125,
     outputCentsPerMillion: 500,
     contextWindow: 1_000_000,
+    maxCompletionTokens: 8192,
   },
   {
     id: 'openai/gpt-4.1',
@@ -174,6 +186,7 @@ export const modelCatalog: AiModel[] = [
     inputCentsPerMillion: 200,
     outputCentsPerMillion: 800,
     contextWindow: 1_000_000,
+    maxCompletionTokens: 32768,
   },
   {
     id: 'mistral-large-latest',
@@ -474,11 +487,66 @@ function extractContent(payload: any) {
 const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
 const HARD_MAX_OUTPUT_TOKENS = 32768;
 
-function resolveMaxOutputTokens(request: AiChatRequest): number {
+/*
+ * The real per-response COMPLETION ceiling for the model we're about to call.
+ * Sending a `max_tokens` above it makes the provider hard-reject the whole
+ * request (e.g. gpt-4-turbo: "max_tokens is too large: 8192. This model
+ * supports at most 4096 completion tokens") — zero output, not a truncation.
+ * Prefer the catalog's declared value; else infer from the id for the families
+ * whose real ceiling is BELOW the global hard cap (mainly OpenAI GPT-4 turbo /
+ * 3.5, capped at 4096). An unrecognised id keeps the global hard cap so a
+ * large-output model is never silently over-clamped.
+ */
+export function maxCompletionTokensForModel(modelId: string | undefined): number {
+  if (!modelId) {
+    return HARD_MAX_OUTPUT_TOKENS;
+  }
+
+  const catalogModel = modelCatalog.find((entry) => entry.id === modelId);
+
+  if (catalogModel?.maxCompletionTokens && catalogModel.maxCompletionTokens > 0) {
+    return catalogModel.maxCompletionTokens;
+  }
+
+  const id = modelId.toLowerCase();
+
+  if (id.includes('gpt-4.1') || id.includes('gpt-4.5')) {
+    return 32768;
+  }
+
+  if (id.includes('gpt-4o')) {
+    return 16384;
+  }
+
+  // GPT-4 Turbo / preview snapshots cap at 4096 — must precede the generic gpt-4.
+  if (
+    id.includes('gpt-4-turbo') ||
+    id.includes('gpt-4-1106') ||
+    id.includes('gpt-4-0125') ||
+    id.includes('gpt-4-vision') ||
+    id.includes('gpt-4-preview')
+  ) {
+    return 4096;
+  }
+
+  if (id.includes('gpt-4')) {
+    return 8192; // standard gpt-4 / gpt-4-32k / gpt-4-0613
+  }
+
+  if (id.includes('gpt-3.5')) {
+    return 4096;
+  }
+
+  return HARD_MAX_OUTPUT_TOKENS;
+}
+
+function resolveMaxOutputTokens(request: AiChatRequest, model: string): number {
   const requested =
     typeof request.maxTokens === 'number' && request.maxTokens > 0 ? request.maxTokens : DEFAULT_MAX_OUTPUT_TOKENS;
 
-  return Math.min(requested, HARD_MAX_OUTPUT_TOKENS);
+  const modelCeiling = Math.min(maxCompletionTokensForModel(model), HARD_MAX_OUTPUT_TOKENS);
+
+  return Math.min(requested, modelCeiling);
 }
 
 function openAiPayload(request: AiChatRequest, model: string, stream: boolean) {
@@ -486,7 +554,7 @@ function openAiPayload(request: AiChatRequest, model: string, stream: boolean) {
     model,
     messages: request.messages,
     stream,
-    max_tokens: resolveMaxOutputTokens(request),
+    max_tokens: resolveMaxOutputTokens(request, model),
     ...optionalTemperature(request, model),
   };
 }
@@ -505,7 +573,7 @@ function anthropicPayload(request: AiChatRequest, model: string, stream: boolean
     system: system || undefined,
     messages,
     stream,
-    max_tokens: resolveMaxOutputTokens(request),
+    max_tokens: resolveMaxOutputTokens(request, model),
     ...optionalTemperature(request, model),
   };
 }
@@ -522,7 +590,10 @@ function geminiPayload(request: AiChatRequest, model: string) {
   return {
     systemInstruction: system ? { parts: [{ text: system }] } : undefined,
     contents,
-    generationConfig: { maxOutputTokens: resolveMaxOutputTokens(request), ...optionalTemperature(request, model) },
+    generationConfig: {
+      maxOutputTokens: resolveMaxOutputTokens(request, model),
+      ...optionalTemperature(request, model),
+    },
   };
 }
 

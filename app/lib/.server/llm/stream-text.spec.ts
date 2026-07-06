@@ -65,4 +65,20 @@ describe('getCompletionTokenLimit', () => {
       expect(getCompletionTokenLimit({ provider, maxTokenAllowed: 128_000 })).toBeGreaterThanOrEqual(8192);
     }
   });
+
+  it('honours a low model ceiling so a 4096-cap model never asks for more (gpt-4-turbo bug)', () => {
+    /*
+     * gpt-4-turbo really supports only 4096 completion tokens. Its model entry
+     * now carries maxCompletionTokens: 4096, and the sent max_tokens must equal
+     * that ceiling — not the old inferred 8192, which the OpenAI API rejects.
+     */
+    expect(
+      getCompletionTokenLimit({
+        provider: 'OpenAI',
+        name: 'gpt-4-turbo',
+        maxTokenAllowed: 128_000,
+        maxCompletionTokens: 4096,
+      }),
+    ).toBe(4096);
+  });
 });

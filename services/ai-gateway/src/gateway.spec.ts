@@ -6,6 +6,7 @@ import {
   ensureGptTokenizer,
   extractProviderErrorMessage,
   isProviderAccountLimit,
+  maxCompletionTokensForModel,
   modelDisallowsTemperature,
 } from './gateway.js';
 
@@ -298,5 +299,56 @@ describe('AiGateway', () => {
         .join(''),
     ).toBe('hello');
     expect(chunks.at(-1)?.type).toBe('done');
+  });
+
+  /*
+   * Regression guard: `max_tokens` must be clamped to the SELECTED model's real
+   * completion ceiling. gpt-4-turbo caps at 4096; sending the requested 8192
+   * makes the provider hard-reject the whole request ("max_tokens is too large:
+   * 8192. This model supports at most 4096 completion tokens") → zero files.
+   */
+  it('resolves each model to its real completion ceiling', () => {
+    // OpenAI GPT-4 Turbo + preview snapshots really cap at 4096.
+    expect(maxCompletionTokensForModel('gpt-4-turbo')).toBe(4096);
+    expect(maxCompletionTokensForModel('gpt-4-turbo-2024-04-09')).toBe(4096);
+    expect(maxCompletionTokensForModel('gpt-4-1106-preview')).toBe(4096);
+    expect(maxCompletionTokensForModel('gpt-3.5-turbo')).toBe(4096);
+    // Standard gpt-4 / gpt-4o keep their higher ceilings.
+    expect(maxCompletionTokensForModel('gpt-4-0613')).toBe(8192);
+    expect(maxCompletionTokensForModel('gpt-4o')).toBe(16384);
+    // Catalog-declared values win (Claude 3.5 Sonnet = 8192).
+    expect(maxCompletionTokensForModel('claude-3-5-sonnet-latest')).toBe(8192);
+    // Unknown ids keep the global hard cap — never over-clamp a large-output model.
+    expect(maxCompletionTokensForModel('some-unknown-model')).toBe(32768);
+    expect(maxCompletionTokensForModel(undefined)).toBe(32768);
+  });
+
+  it('clamps the outgoing max_tokens to the model ceiling even when a larger value is requested', async () => {
+    let sentMaxTokens = -1;
+    const provider = await startProvider((body, response) => {
+      sentMaxTokens = JSON.parse(body).max_tokens;
+      response.writeHead(200, { 'content-type': 'application/json' }).end(
+        JSON.stringify({
+          content: [{ type: 'text', text: 'ok' }],
+        }),
+      );
+    });
+    servers.push(provider.server);
+    process.env.ANTHROPIC_API_KEY = 'anthropic-key';
+    process.env.ANTHROPIC_BASE_URL = provider.url.replace(/\/v1$/, '');
+
+    const gateway = new AiGateway();
+    await gateway.complete({
+      plan: 'enterprise',
+      provider: 'anthropic',
+      model: 'claude-3-5-sonnet-latest',
+      // Ask for far more than Claude 3.5 Sonnet's 8192 completion ceiling.
+      maxTokens: 32000,
+      messages: [{ role: 'user', content: 'build me an app' }],
+    });
+
+    // The provider must receive at most the model's real ceiling, not 32000.
+    expect(sentMaxTokens).toBe(8192);
+    expect(sentMaxTokens).toBeLessThanOrEqual(8192);
   });
 });

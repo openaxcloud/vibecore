@@ -117,6 +117,18 @@ describe('inferOpenAIMaxCompletionTokens', () => {
     expect(inferOpenAIMaxCompletionTokens('gpt-3.5-turbo')).toBe(4096);
   });
 
+  it('caps GPT-4 Turbo / preview snapshots at 4096, not the generic gpt-4 8192 (bug: max_tokens too large)', () => {
+    // gpt-4-turbo really supports only 4096 completion tokens; sending 8192 is
+    // hard-rejected by the OpenAI API and produces zero generated files.
+    expect(inferOpenAIMaxCompletionTokens('gpt-4-turbo')).toBe(4096);
+    expect(inferOpenAIMaxCompletionTokens('gpt-4-turbo-2024-04-09')).toBe(4096);
+    expect(inferOpenAIMaxCompletionTokens('gpt-4-turbo-preview')).toBe(4096);
+    expect(inferOpenAIMaxCompletionTokens('gpt-4-1106-preview')).toBe(4096);
+    expect(inferOpenAIMaxCompletionTokens('gpt-4-0125-preview')).toBe(4096);
+    // The generic (non-turbo) gpt-4 keeps its real 8192 ceiling.
+    expect(inferOpenAIMaxCompletionTokens('gpt-4-0613')).toBe(8192);
+  });
+
   it('assigns gpt-5 a 128k budget instead of the 4096 default (bug 1)', () => {
     expect(inferOpenAIMaxCompletionTokens('gpt-5')).toBe(128000);
     expect(inferOpenAIMaxCompletionTokens('gpt-5-mini')).toBe(128000);
