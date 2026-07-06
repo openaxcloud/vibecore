@@ -273,7 +273,7 @@ export const ScreenshotSelector = memo(
           }
         }}
         style={{
-          backgroundColor: isCapturing ? 'transparent' : 'rgba(0, 0, 0, 0.1)',
+          backgroundColor: isCapturing ? 'transparent' : 'var(--vc-ide-overlay)',
           userSelect: 'none',
           WebkitUserSelect: 'none',
           pointerEvents: 'all',

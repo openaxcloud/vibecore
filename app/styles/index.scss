@@ -461,6 +461,9 @@ html:has(.vc-app-shell-grid) body {
   --vc-chart-8: #ec4899;
   --vc-chart-9: #22c55e;
   --vc-chart-10: #94a3b8;
+
+  /* Scrim for capture/selection veils over the IDE (dark). */
+  --vc-ide-overlay: rgba(0, 0, 0, 0.35);
   --ecode-accent: #f26207;
   --ecode-accent-hover: #ff7a2b;
   // AA orange for TEXT/links on this theme's backgrounds; fills stay --ecode-accent.
@@ -763,6 +766,9 @@ html:has(.vc-app-shell-grid) body {
   --vc-chart-8: #db2777;
   --vc-chart-9: #16a34a;
   --vc-chart-10: #64748b;
+
+  /* Scrim for capture/selection veils over the IDE (light). */
+  --vc-ide-overlay: rgba(0, 0, 0, 0.1);
   --ecode-accent: #f26207;
   --ecode-accent-hover: #d04e00;
   // AA orange for TEXT/links on light backgrounds; fills stay --ecode-accent.
