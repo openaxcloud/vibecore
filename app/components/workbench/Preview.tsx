@@ -2691,6 +2691,35 @@ export const Preview = memo(
   },
 );
 
+/*
+ * Live `prefers-reduced-motion: reduce` state. Users who ask for reduced motion
+ * should not get auto-advancing carousels; returns false during SSR / when
+ * matchMedia is unavailable so the default (animated) behaviour is unchanged.
+ */
+function useReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return undefined;
+    }
+
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const onChange = (event: MediaQueryListEvent) => setReduced(event.matches);
+    setReduced(mql.matches);
+    mql.addEventListener('change', onChange);
+
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  return reduced;
+}
+
 function PreviewSplashSequence({
   appName,
   activeStep,
@@ -2711,19 +2740,34 @@ function PreviewSplashSequence({
   steps: Array<{ id: PreviewBootStepId; label: string; description: string }>;
 }) {
   const [activeSlide, setActiveSlide] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
+    // Freeze the carousel for reduced-motion users and while hovered/focused.
+    if (reducedMotion || paused) {
+      return undefined;
+    }
+
     const interval = window.setInterval(() => {
       setActiveSlide((slide) => (slide + 1) % previewSplashSlides.length);
     }, 3600);
 
     return () => window.clearInterval(interval);
-  }, []);
+  }, [reducedMotion, paused]);
 
   const slide = previewSplashSlides[activeSlide];
 
   return (
-    <div className="bolt-preview-splash" data-testid="preview-splash-sequence" role="status" aria-live="polite">
+    <div
+      className="bolt-preview-splash"
+      data-testid="preview-splash-sequence"
+      role="status"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={() => setPaused(false)}
+    >
       <div className="bolt-preview-splash-shell">
         <div className="bolt-preview-splash-chrome">
           <span />
@@ -2731,7 +2775,10 @@ function PreviewSplashSequence({
           <span />
           <div />
         </div>
-        <div key={slide.headline} className="bolt-preview-splash-slide">
+        {/* Decorative marketing carousel — hidden from assistive tech so its
+            auto-rotation doesn't spam a screen reader every few seconds. The
+            meaningful boot step/task below stays announced via role="status". */}
+        <div key={slide.headline} className="bolt-preview-splash-slide" aria-hidden>
           <PreviewSplashSlide slide={slide} />
         </div>
         <div className="bolt-preview-splash-task">
@@ -2972,17 +3019,29 @@ function PreviewSplashSlide({ slide }: { slide: SplashSlide }) {
 
 function RotatingPreviewTips({ color }: { color: string }) {
   const [tipIndex, setTipIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
+    // Freeze the tip rotation for reduced-motion users and while hovered.
+    if (reducedMotion || paused) {
+      return undefined;
+    }
+
     const interval = window.setInterval(() => {
       setTipIndex((index) => (index + 1) % previewTips.length);
     }, 2400);
 
     return () => window.clearInterval(interval);
-  }, []);
+  }, [reducedMotion, paused]);
 
   return (
-    <div className="bolt-preview-splash-tips">
+    <div
+      className="bolt-preview-splash-tips"
+      aria-hidden
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
       {[0, 1, 2].map((offset) => {
         const tip = previewTips[(tipIndex + offset) % previewTips.length];
         const TipIcon = tip.icon;
