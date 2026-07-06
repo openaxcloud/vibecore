@@ -228,8 +228,11 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
   }, [isToolsMenuOpen]);
 
   const enhancePrompt = () => {
+    /*
+     * The toast now fires from usePromptEnhancer on the real result (success or
+     * error), not here on click — so it stops lying about a not-yet-done op.
+     */
     props.enhancePrompt?.();
-    toast.success('Prompt enhanced!');
     setIsToolsMenuOpen(false);
   };
 

@@ -1,8 +1,11 @@
 import { useRef, useState } from 'react';
+import { toast } from '~/components/ui/use-toast';
 import type { ProviderInfo } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('usePromptEnhancement');
+
+const ENHANCE_ERROR_MESSAGE = 'Could not enhance the prompt. Please try again.';
 
 export function usePromptEnhancer() {
   const [enhancingPrompt, setEnhancingPrompt] = useState(false);
@@ -62,6 +65,7 @@ export function usePromptEnhancer() {
       logger.error(error);
       setEnhancingPrompt(false);
       setPromptEnhanced(false);
+      toast.error(ENHANCE_ERROR_MESSAGE);
 
       return;
     }
@@ -74,6 +78,7 @@ export function usePromptEnhancer() {
       logger.error(`Prompt enhancer failed: ${response.status} ${response.statusText}`);
       setEnhancingPrompt(false);
       setPromptEnhanced(false);
+      toast.error(ENHANCE_ERROR_MESSAGE);
 
       return;
     }
@@ -117,9 +122,11 @@ export function usePromptEnhancer() {
           logger.error(_error);
           setEnhancingPrompt(false);
           setPromptEnhanced(false);
+          toast.error(ENHANCE_ERROR_MESSAGE);
         } else {
           setEnhancingPrompt(false);
           setPromptEnhanced(true);
+          toast.success('Prompt enhanced');
 
           flushTimerRef.current = setTimeout(() => {
             flushTimerRef.current = undefined;
