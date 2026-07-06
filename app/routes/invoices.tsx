@@ -1,6 +1,7 @@
 import type { MetaFunction } from 'react-router';
 import { Link, useLoaderData } from 'react-router';
 import { EnterpriseFormPage } from '~/components/enterprise/EnterpriseFormPage';
+import { EmptyState } from '~/components/ui/EmptyState';
 import {
   apiRequest,
   firstOrganizationOrNull,
@@ -144,11 +145,16 @@ export default function InvoicesPage() {
           })}
         </ul>
       ) : (
-        <div className="rounded-md border border-bolt-elements-borderColor p-4 text-sm text-bolt-elements-textSecondary">
-          {stripeConfigured
-            ? 'No invoices yet. Invoices appear here after your first paid billing cycle.'
-            : 'Invoice events are ingested from verified Stripe webhooks once billing is active.'}
-        </div>
+        <EmptyState
+          variant="compact"
+          icon="i-ph:receipt"
+          title="No invoices yet"
+          description={
+            stripeConfigured
+              ? 'Invoices appear here after your first paid billing cycle.'
+              : 'Invoice events are ingested from verified Stripe webhooks once billing is active.'
+          }
+        />
       )}
       <p className="mt-4 text-sm text-bolt-elements-textSecondary">
         Manage payment details and download receipts in the{' '}
