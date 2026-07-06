@@ -493,9 +493,10 @@ const HARD_MAX_OUTPUT_TOKENS = 32768;
  * request (e.g. gpt-4-turbo: "max_tokens is too large: 8192. This model
  * supports at most 4096 completion tokens") — zero output, not a truncation.
  * Prefer the catalog's declared value; else infer from the id for the families
- * whose real ceiling is BELOW the global hard cap (mainly OpenAI GPT-4 turbo /
- * 3.5, capped at 4096). An unrecognised id keeps the global hard cap so a
- * large-output model is never silently over-clamped.
+ * (OpenAI, Anthropic, Google) whose real ceiling is BELOW the global hard cap
+ * (e.g. gpt-4-turbo 4096, Claude 3.x 4096-8192, Gemini 1.x/2.0 8192). An
+ * unrecognised id keeps the global hard cap so a large-output model is never
+ * silently over-clamped.
  */
 export function maxCompletionTokensForModel(modelId: string | undefined): number {
   if (!modelId) {
@@ -535,6 +536,26 @@ export function maxCompletionTokensForModel(modelId: string | undefined): number
 
   if (id.includes('gpt-3.5')) {
     return 4096;
+  }
+
+  // Anthropic — 3.5 / 3.7 cap completion at 8192; 3.x / 2.x at 4096. Newer
+  // families (Claude 4/5 …) support far more, so they keep the global hard cap.
+  if (
+    id.includes('claude-3-5') ||
+    id.includes('claude-3.5') ||
+    id.includes('claude-3-7') ||
+    id.includes('claude-3.7')
+  ) {
+    return 8192;
+  }
+
+  if (id.includes('claude-3') || id.includes('claude-2') || id.includes('claude-instant')) {
+    return 4096;
+  }
+
+  // Google Gemini — 1.x / 2.0 cap output at 8192; 2.5+ support far more (hard cap).
+  if (id.includes('gemini-1.5') || id.includes('gemini-1.0') || id.includes('gemini-2.0')) {
+    return 8192;
   }
 
   return HARD_MAX_OUTPUT_TOKENS;

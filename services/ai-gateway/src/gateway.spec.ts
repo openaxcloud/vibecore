@@ -318,6 +318,16 @@ describe('AiGateway', () => {
     expect(maxCompletionTokensForModel('gpt-4o')).toBe(16384);
     // Catalog-declared values win (Claude 3.5 Sonnet = 8192).
     expect(maxCompletionTokensForModel('claude-3-5-sonnet-latest')).toBe(8192);
+    // Anthropic (not just OpenAI): 3.5/3.7 → 8192, 3.x/2.x → 4096.
+    expect(maxCompletionTokensForModel('claude-3-7-sonnet-20250219')).toBe(8192);
+    expect(maxCompletionTokensForModel('claude-3-opus-20240229')).toBe(4096);
+    expect(maxCompletionTokensForModel('claude-3-haiku-20240307')).toBe(4096);
+    // Google Gemini: 1.x / 2.0 → 8192.
+    expect(maxCompletionTokensForModel('gemini-1.5-flash')).toBe(8192);
+    expect(maxCompletionTokensForModel('gemini-2.0-flash')).toBe(8192);
+    // Newer premium families keep the hard cap (not over-clamped).
+    expect(maxCompletionTokensForModel('claude-sonnet-4-5')).toBe(32768);
+    expect(maxCompletionTokensForModel('gemini-2.5-pro')).toBe(32768);
     // Unknown ids keep the global hard cap — never over-clamp a large-output model.
     expect(maxCompletionTokensForModel('some-unknown-model')).toBe(32768);
     expect(maxCompletionTokensForModel(undefined)).toBe(32768);
