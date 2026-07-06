@@ -603,8 +603,8 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
               <button
                 type="button"
                 className="bolt-terminal-icon-button"
-                aria-label="Clear conversation"
-                title={`Clear conversation (${CLEAR_SHORTCUT_HINT})`}
+                aria-label="Clear terminal"
+                title={`Clear terminal (${CLEAR_SHORTCUT_HINT})`}
                 onClick={clearActiveTerminal}
               >
                 <span className="i-ph:trash" aria-hidden />
@@ -664,7 +664,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       }}
                     >
                       <span className="i-ph:trash" aria-hidden />
-                      <span>Clear conversation</span>
+                      <span>Clear terminal</span>
                     </button>
                     <button type="button" className="bolt-terminal-menu-item" role="menuitem" onClick={openSearch}>
                       <span className="i-ph:magnifying-glass" aria-hidden />

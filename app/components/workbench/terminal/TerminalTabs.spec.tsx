@@ -211,7 +211,7 @@ describe('<TerminalTabs />', () => {
 
     const menu = screen.getByRole('menu', { name: 'More Shell actions' });
     expect(within(menu).getByText('Kill Shell')).toBeTruthy();
-    expect(within(menu).getByText('Clear conversation')).toBeTruthy();
+    expect(within(menu).getByText('Clear terminal')).toBeTruthy();
     expect(within(menu).getByText('Restart Shell')).toBeTruthy();
 
     fireEvent.click(within(menu).getByText('Kill Shell'));
