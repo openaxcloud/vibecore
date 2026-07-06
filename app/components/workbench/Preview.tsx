@@ -24,6 +24,7 @@ import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
 import { evaluatePreviewReadyEdge, resolvePreviewAddress, type PreviewReadyEdgeState } from './preview-address';
 import { decidePreviewLoadOutcome, shouldRunPreviewBootLoop } from './preview-frame-recovery';
+import { EmptyState } from '~/components/ui/EmptyState';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
@@ -2627,7 +2628,12 @@ export const Preview = memo(
                     );
                   })
                 ) : (
-                  <p>No preview console errors captured. Runtime logs remain available in the Logs panel.</p>
+                  <EmptyState
+                    variant="compact"
+                    icon="i-ph:check-circle"
+                    title="No console errors"
+                    description="Runtime logs remain available in the Logs panel."
+                  />
                 )}
               </div>
             )}
@@ -2643,7 +2649,12 @@ export const Preview = memo(
                     </div>
                   ))
                 ) : (
-                  <p>No preview navigations captured yet.</p>
+                  <EmptyState
+                    variant="compact"
+                    icon="i-ph:globe-simple"
+                    title="No navigations yet"
+                    description="Preview page loads and route changes will appear here."
+                  />
                 )}
               </div>
             )}
@@ -2680,7 +2691,12 @@ export const Preview = memo(
                     </button>
                   </>
                 ) : (
-                  <p>Enable Inspect to code, then click an element in the preview.</p>
+                  <EmptyState
+                    variant="compact"
+                    icon="i-ph:cursor-click"
+                    title="No element selected"
+                    description="Enable Inspect to code, then click an element in the preview."
+                  />
                 )}
               </div>
             )}
