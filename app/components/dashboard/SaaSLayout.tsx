@@ -46,6 +46,7 @@ import {
   Youtube,
   Linkedin,
   Instagram,
+  SlidersHorizontal,
   type LucideIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -288,6 +289,7 @@ export const accountNav = [
   { label: 'Connected accounts', to: '/account-settings/connected', icon: Github },
   { label: 'Notifications', to: '/notifications', icon: Bell },
   { label: 'Desktop app', to: '/desktop-settings', icon: Monitor },
+  { label: 'Workspace settings', to: '/workspace-settings', icon: SlidersHorizontal },
   { label: 'Data & privacy', to: '/account-settings/data', icon: ShieldAlert },
 ];
 
@@ -1576,6 +1578,7 @@ const COMMAND_PALETTE_ACTIONS: CommandPaletteItem[] = [
   { label: 'View usage', to: '/usage', hint: 'Action' },
   { label: 'Invite teammate', to: '/invitations', hint: 'Action' },
   { label: 'Rotate API key', to: '/api-keys', hint: 'Action' },
+  { label: 'Workspace settings', to: '/workspace-settings', hint: 'Settings' },
 ];
 
 /**
