@@ -84,7 +84,15 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
    * before that (proxy + ingress idle caps), so startWorkspace can't rely on a
    * single POST returning RUNNING — it polls status until the manager finishes.
    */
-  #startReadinessTimeoutMs = 210_000;
+  /*
+   * 300s: must outlast the manager's worst-case provision so the client does not
+   * time out (and terminal-throw) while a workspace is still legitimately coming up.
+   * The manager can spend up to its readiness budget (240s) waiting for the gvisor
+   * autoscaler to place the pod, plus the agent-reachable gate (~45s) — ~285s total.
+   * A shorter client deadline would surface a false WORKSPACE_START_TIMEOUT during a
+   * genuine node scale-up.
+   */
+  #startReadinessTimeoutMs = 300_000;
   #startPollIntervalMs = 2_500;
 
   constructor(options: RemoteKubernetesRuntimeAdapterOptions) {

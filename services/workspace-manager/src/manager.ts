@@ -812,7 +812,14 @@ export class WorkspaceManager {
      * loop below (`< NaN` is always false) skip readiness polling entirely.
      */
     const parsedTimeout = Number(process.env.WORKSPACE_READINESS_TIMEOUT_MS);
-    const timeoutMs = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 180_000;
+
+    /*
+     * 240s default (was 180s). Must comfortably exceed the unschedulable grace
+     * (150s) so that a pod which schedules late — right after the autoscaler adds a
+     * gvisor node — still has room to pull its image and reach Ready before the wait
+     * times out, instead of failing the provision the moment the node arrives.
+     */
+    const timeoutMs = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 240_000;
 
     while (Date.now() - startedAt < timeoutMs) {
       /*
@@ -1013,7 +1020,17 @@ export function resolveAgentBaseUrl(workspaceId: string, namespace: string): str
 export function unschedulableGraceMs(): number {
   const parsed = Number(process.env.WORKSPACE_UNSCHEDULABLE_GRACE_MS);
 
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 30_000;
+  /*
+   * 150s default (was 30s). When the gvisor sandbox pool is at capacity a new
+   * workspace pod sits PodScheduled=False/Unschedulable ("Insufficient cpu") until
+   * the cluster autoscaler provisions a fresh gvisor node — which, measured in prod,
+   * takes ~75-120s (VM boot + gvisor runtime init + node registration). A 30s grace
+   * declared the provision FAILED while the node was still coming up; the client then
+   * threw a terminal "Workspace failed to start (status: stopped)" even though the pod
+   * scheduled and ran ~a minute later. The grace must outlast a cold node scale-up so
+   * a transient "allocating capacity" stall is not mistaken for a terminal failure.
+   */
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 150_000;
 }
 
 function isPodReady(pod: PodStatusView) {

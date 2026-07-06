@@ -9,6 +9,7 @@ import {
   WorkspaceManager,
   detectPodTerminalFailure,
   resolveAgentBaseUrl,
+  unschedulableGraceMs,
   type EventBus,
   type WorkspaceRecord,
   type WorkspaceStore,
@@ -688,6 +689,26 @@ describe('detectPodTerminalFailure — Unschedulable handling', () => {
     const failure = detectPodTerminalFailure({ status: { phase: 'Failed' } }, now, graceMs);
 
     expect(failure?.code).toBe('WORKSPACE_POD_FAILED');
+  });
+
+  it('defaults the grace window long enough for a gvisor node autoscale (~75-120s in prod)', () => {
+    const original = process.env.WORKSPACE_UNSCHEDULABLE_GRACE_MS;
+    delete process.env.WORKSPACE_UNSCHEDULABLE_GRACE_MS;
+
+    try {
+      // Must exceed the observed cold gvisor-node scale-up so a pod that schedules
+      // ~a minute after creation is not fast-failed as "no capacity".
+      expect(unschedulableGraceMs()).toBe(150_000);
+
+      process.env.WORKSPACE_UNSCHEDULABLE_GRACE_MS = '90000';
+      expect(unschedulableGraceMs()).toBe(90_000);
+    } finally {
+      if (original === undefined) {
+        delete process.env.WORKSPACE_UNSCHEDULABLE_GRACE_MS;
+      } else {
+        process.env.WORKSPACE_UNSCHEDULABLE_GRACE_MS = original;
+      }
+    }
   });
 });
 
