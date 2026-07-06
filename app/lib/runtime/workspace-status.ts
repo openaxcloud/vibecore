@@ -2,8 +2,11 @@ export type WorkspacePortLike = {
   port?: number | string | null;
   ready?: boolean | null;
   url?: string | null;
-  // The previews store exposes the forwarded URL as `baseUrl` (not `url`), so both
-  // shapes must be recognised as a real serving port.
+
+  /*
+   * The previews store exposes the forwarded URL as `baseUrl` (not `url`), so both
+   * shapes must be recognised as a real serving port.
+   */
   baseUrl?: string | null;
 };
 
@@ -28,8 +31,10 @@ export function isWorkspaceReallyRunning(
   workspace: WorkspaceStatusLike | undefined,
   ports?: readonly WorkspacePortLike[] | null,
 ) {
-  // Consider ports carried on the session AND ports passed by the caller (the
-  // previews store), so a live port is caught whichever source holds it.
+  /*
+   * Consider ports carried on the session AND ports passed by the caller (the
+   * previews store), so a live port is caught whichever source holds it.
+   */
   const effectivePorts = [...(workspace?.ports ?? []), ...(ports ?? [])];
 
   /*

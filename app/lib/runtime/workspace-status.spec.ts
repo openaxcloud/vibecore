@@ -11,18 +11,22 @@ describe('workspace status helpers', () => {
     expect(hasLivePreviewPort([{ port: 5173 }])).toBe(false);
     expect(hasLivePreviewPort([{ port: 5173, ready: true }])).toBe(true);
     expect(hasLivePreviewPort([{ port: 5173, url: 'https://x.preview' }])).toBe(true);
+
     // The previews store exposes the forwarded URL as baseUrl, not url.
     expect(hasLivePreviewPort([{ port: 5173, baseUrl: 'https://x.preview' }])).toBe(true);
   });
 
   it('treats a genuinely-serving port as running even while the status field lags at PENDING', () => {
-    // Cold-start: pod already serving the app, but the backend status has not
-    // reconciled PENDING→RUNNING yet. The live port is the ground truth.
+    /*
+     * Cold-start: pod already serving the app, but the backend status has not
+     * reconciled PENDING→RUNNING yet. The live port is the ground truth.
+     */
     expect(isWorkspaceReallyRunning({ status: 'PENDING' }, [{ port: 5173, ready: true }])).toBe(true);
     expect(isWorkspaceReallyRunning({ status: 'PENDING' }, [{ port: 5173, baseUrl: 'https://x.preview' }])).toBe(true);
     expect(workspaceUiState({ status: 'PENDING' }, { ports: [{ port: 5173, baseUrl: 'https://x.preview' }] })).toBe(
       'running',
     );
+
     // Without a serving port a PENDING workspace is not running.
     expect(isWorkspaceReallyRunning({ status: 'PENDING' }, [{ port: 5173 }])).toBe(false);
   });

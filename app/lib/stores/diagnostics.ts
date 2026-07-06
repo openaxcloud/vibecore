@@ -90,6 +90,7 @@ const RUNTIME_WARNING_PATTERN = /\b(warn|warning|deprecated)\b/i;
  */
 const TRANSIENT_RUNTIME_ERROR_PATTERN =
   /remote runtime request failed:\s*(?:4(?:25|29)|5\d\d)|workspace[_\s-]?(?:not[_\s-]?started|unavailable|manager[_\s-]?unavailable)|preview[\s._-]?proxy[\s._-]?unreachable|\bstream closed before completion\b|\b(?:502|503|504)\b/i;
+
 const ANSI_ESCAPE_SEQUENCE = /\x1B\[[0-?]*[ -/]*[@-~]/g;
 
 function normalizeRuntimeLine(line: string) {
@@ -107,6 +108,7 @@ export function buildRuntimeDiagnostics({
 }: {
   workspaceError?: string | Error | null;
   workspaceLogs: string[];
+
   /*
    * When a forwarded port is genuinely serving the app, transient cold-start
    * runtime errors (the 500/502 provisioning blips, proxy-unreachable, workspace
