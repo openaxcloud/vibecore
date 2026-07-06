@@ -2,8 +2,10 @@ import { useStore } from '@nanostores/react';
 import { useState } from 'react';
 import { ACCOUNT_MENU_LINKS, resolveAccountMenuLink } from '~/components/@settings/core/account-menu-links';
 import { DeployButton } from '~/components/deploy/DeployButton';
+import { buttonVariants } from '~/components/ui/Button';
 import { useHydrateConnectors } from '~/lib/hooks/useHydrateConnectors';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { classNames } from '~/utils/classNames';
 
 interface HeaderActionButtonsProps {
   chatStarted: boolean;
@@ -34,7 +36,7 @@ export function HeaderActionButtons({ chatStarted: _chatStarted }: HeaderActionB
         <div className="flex border border-bolt-elements-borderColor rounded-md overflow-hidden text-sm">
           <button
             onClick={() => window.open(resolveAccountMenuLink(ACCOUNT_MENU_LINKS.reportBug), '_blank')}
-            className="rounded-l-md items-center justify-center [&:is(:disabled,.disabled)]:cursor-not-allowed [&:is(:disabled,.disabled)]:opacity-60 px-3 py-1.5 text-xs bg-accent-700 text-white hover:text-bolt-elements-item-contentAccent [&:not(:disabled,.disabled)]:hover:bg-bolt-elements-button-primary-backgroundHover outline-accent-500 flex gap-1.5"
+            className={classNames(buttonVariants({ variant: 'primary', size: 'sm' }), 'gap-1.5 rounded-none')}
             title="Report Bug"
           >
             <div className="i-ph:bug" />
@@ -50,7 +52,7 @@ export function HeaderActionButtons({ chatStarted: _chatStarted }: HeaderActionB
                 console.error('Failed to download debug log:', error);
               }
             }}
-            className="rounded-r-md items-center justify-center [&:is(:disabled,.disabled)]:cursor-not-allowed [&:is(:disabled,.disabled)]:opacity-60 px-3 py-1.5 text-xs bg-accent-700 text-white hover:text-bolt-elements-item-contentAccent [&:not(:disabled,.disabled)]:hover:bg-bolt-elements-button-primary-backgroundHover outline-accent-500 flex gap-1.5"
+            className={classNames(buttonVariants({ variant: 'primary', size: 'sm' }), 'gap-1.5 rounded-none')}
             title="Download Debug Log"
           >
             <div className="i-ph:download" />

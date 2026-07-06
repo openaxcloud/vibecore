@@ -9,6 +9,7 @@ import { useGitLabDeploy } from '~/components/deploy/GitLabDeploy.client';
 import { GitLabDeploymentDialog } from '~/components/deploy/GitLabDeploymentDialog';
 import { useNetlifyDeploy } from '~/components/deploy/NetlifyDeploy.client';
 import { useVercelDeploy } from '~/components/deploy/VercelDeploy.client';
+import { buttonVariants } from '~/components/ui/Button';
 import { isGitLabConnected } from '~/lib/stores/gitlabConnection';
 import { netlifyConnection } from '~/lib/stores/netlify';
 import { streamingState } from '~/lib/stores/streaming';
@@ -131,7 +132,7 @@ export const DeployButton = ({
         <DropdownMenu.Root>
           <DropdownMenu.Trigger
             disabled={isDeploying || !activePreview || isStreaming}
-            className="rounded-md items-center justify-center [&:is(:disabled,.disabled)]:cursor-not-allowed [&:is(:disabled,.disabled)]:opacity-60 px-3 py-1.5 text-xs bg-accent-500 text-white hover:text-bolt-elements-item-contentAccent [&:not(:disabled,.disabled)]:hover:bg-bolt-elements-button-primary-backgroundHover outline-accent-500 flex gap-1.7"
+            className={classNames(buttonVariants({ variant: 'primary', size: 'sm' }), 'gap-1.5')}
           >
             {isDeploying
               ? `Deploying to ${

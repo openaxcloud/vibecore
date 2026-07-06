@@ -9,6 +9,13 @@ const buttonVariants = cva(
       variant: {
         default:
           'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover',
+
+        /*
+         * The blue action-accent CTA (H1): one factored primary so the six hand-rolled
+         * copies stop drifting — and hover darkens the fill instead of turning the label
+         * accent-coloured (invisible on the accent bg).
+         */
+        primary: 'bg-accent-500 text-white hover:bg-accent-600',
         destructive: 'bg-red-500 text-white hover:bg-red-600',
         outline:
           'border border-bolt-elements-borderColor bg-transparent hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary text-bolt-elements-textPrimary dark:border-bolt-elements-borderColorActive',

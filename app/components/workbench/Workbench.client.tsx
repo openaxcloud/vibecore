@@ -38,6 +38,7 @@ import {
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { streamingState } from '~/lib/stores/streaming';
 import type { FileHistory } from '~/types/actions';
+import { buttonVariants } from '~/components/ui/Button';
 import { classNames } from '~/utils/classNames';
 import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 import { type MobileWorkbenchPanel, resolveActiveWorkbenchView } from './active-workbench-view';
@@ -646,7 +647,7 @@ export const Workbench = memo(
                           <DropdownMenu.Root>
                             <DropdownMenu.Trigger
                               disabled={isSyncing || streaming}
-                              className="rounded-md items-center justify-center [&:is(:disabled,.disabled)]:cursor-not-allowed [&:is(:disabled,.disabled)]:opacity-60 px-3 py-1.5 text-xs bg-accent-500 text-white hover:text-bolt-elements-item-contentAccent [&:not(:disabled,.disabled)]:hover:bg-bolt-elements-button-primary-backgroundHover outline-accent-500 flex gap-1.7"
+                              className={classNames(buttonVariants({ variant: 'primary', size: 'sm' }), 'gap-1.5')}
                             >
                               {isSyncing ? 'Syncing...' : 'Sync'}
                               <span className={classNames('i-ph:caret-down transition-transform')} />
@@ -691,7 +692,7 @@ export const Workbench = memo(
                             onClick={() => {
                               workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
                             }}
-                            className="rounded-md items-center justify-center [&:is(:disabled,.disabled)]:cursor-not-allowed [&:is(:disabled,.disabled)]:opacity-60 px-3 py-1.5 text-xs bg-accent-500 text-white hover:text-bolt-elements-item-contentAccent [&:not(:disabled,.disabled)]:hover:bg-bolt-elements-button-primary-backgroundHover outline-accent-500 flex gap-1.7"
+                            className={classNames(buttonVariants({ variant: 'primary', size: 'sm' }), 'gap-1.5')}
                           >
                             <div className="i-ph:terminal" />
                             Toggle Terminal
