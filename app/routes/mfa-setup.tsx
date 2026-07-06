@@ -145,7 +145,11 @@ function CopyButton({ value, label = 'Copy' }: { value: string; label?: string }
       }}
       className="inline-flex items-center gap-1.5 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2.5 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-2"
     >
-      {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+      {copied ? (
+        <Check className="h-3.5 w-3.5" style={{ color: 'var(--status-success-text)' }} />
+      ) : (
+        <Copy className="h-3.5 w-3.5" />
+      )}
       {copied ? 'Copied' : label}
     </button>
   );
@@ -202,7 +206,14 @@ export default function MfaSetupPage() {
         description="Save your recovery codes — each works once if you ever lose your authenticator."
       >
         <div className="space-y-6" data-testid="mfa-setup-complete">
-          <div className="flex items-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm font-medium text-green-600 dark:text-green-400">
+          <div
+            className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium"
+            style={{
+              borderColor: 'color-mix(in srgb, var(--status-success-text) 30%, transparent)',
+              background: 'color-mix(in srgb, var(--status-success-text) 10%, transparent)',
+              color: 'var(--status-success-text)',
+            }}
+          >
             <ShieldCheck className="h-4 w-4" /> Two-factor authentication enabled
           </div>
           {actionData.codes ? (
@@ -246,7 +257,14 @@ export default function MfaSetupPage() {
         description="Your account is protected with an authenticator app."
       >
         <div className="space-y-5">
-          <div className="flex items-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm font-medium text-green-600 dark:text-green-400">
+          <div
+            className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium"
+            style={{
+              borderColor: 'color-mix(in srgb, var(--status-success-text) 30%, transparent)',
+              background: 'color-mix(in srgb, var(--status-success-text) 10%, transparent)',
+              color: 'var(--status-success-text)',
+            }}
+          >
             <ShieldCheck className="h-4 w-4" /> Two-factor authentication is enabled
           </div>
           <div className="flex flex-wrap gap-3">
