@@ -29,7 +29,7 @@ describe('E-Code public theme wrappers', () => {
     const styles = readFileSync(new URL('../../styles/index.scss', import.meta.url), 'utf8');
     const root = readFileSync(new URL('../../root.tsx', import.meta.url), 'utf8');
     const themeStore = readFileSync(new URL('../../lib/stores/theme.ts', import.meta.url), 'utf8');
-    const marketplaceRoute = readFileSync(new URL('../../routes/marketplace.tsx', import.meta.url), 'utf8');
+    const marketplaceRoute = readFileSync(new URL('../../routes/marketplace._index.tsx', import.meta.url), 'utf8');
     const exploreRoute = readFileSync(new URL('../../routes/explore.tsx', import.meta.url), 'utf8');
     const searchRoute = readFileSync(new URL('../../routes/search.tsx', import.meta.url), 'utf8');
     const communityPostRoute = readFileSync(new URL('../../routes/community.post.$id.tsx', import.meta.url), 'utf8');
@@ -94,7 +94,9 @@ describe('E-Code public theme wrappers', () => {
     expect(themeStore).toContain('readThemeCookie()');
     expect(marketplaceRoute).toContain('MarketingStaticPage');
     expect(marketplaceRoute).not.toContain('ecodeMarketingShellLoader');
-    expect(exploreRoute).toContain('MarketingStaticPage');
+
+    // /explore is a real gallery (ExploreMarketingPage → PublicShell), not a static page.
+    expect(exploreRoute).toContain('ExploreMarketingPage');
     expect(exploreRoute).not.toContain('ecodeMarketingShellLoader');
 
     /*
