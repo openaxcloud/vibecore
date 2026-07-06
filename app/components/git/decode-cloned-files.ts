@@ -20,6 +20,8 @@
  * including the empty string. Callers filter on `typeof content === 'string'`
  * so empty-but-real text files survive the import.
  */
+import { isBinaryContent } from '~/utils/fileUtils';
+
 export interface ClonedFileBlob {
   data: unknown;
   encoding?: string;
@@ -48,7 +50,11 @@ export function decodeClonedFiles(filePaths: string[], data: Record<string, Clon
       if (encoding === 'utf8') {
         decoded = typeof content === 'string' ? content : null;
       } else if (content instanceof Uint8Array) {
-        decoded = textDecoder.decode(content);
+        /*
+         * Skip genuinely-binary blobs by content sniff (never by extension, so
+         * .py/.go/.rs/.sql source is kept); decode the rest as UTF-8 text.
+         */
+        decoded = isBinaryContent(content) ? null : textDecoder.decode(content);
       } else if (typeof content === 'string') {
         // No declared encoding but the blob is already a string — keep it.
         decoded = content;

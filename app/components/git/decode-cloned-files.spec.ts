@@ -53,6 +53,24 @@ describe('decodeClonedFiles', () => {
     expect(result).toEqual([{ path: 'app.ts', content: 'ok' }]);
   });
 
+  it('keeps source files with uncommon extensions and drops content-detected binary', () => {
+    const data: Record<string, ClonedFileBlob> = {
+      // Uncommon-but-text extensions the old extension allowlist wrongly dropped.
+      'main.py': { data: new TextEncoder().encode('print("hi")'), encoding: undefined },
+      'db/schema.sql': { data: new TextEncoder().encode('select 1;'), encoding: undefined },
+
+      // Real binary: contains a NUL byte, so it is skipped by content sniff.
+      'logo.png': { data: new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0x1a]), encoding: undefined },
+    };
+
+    const result = decodeClonedFiles(['main.py', 'db/schema.sql', 'logo.png'], data);
+
+    expect(result).toEqual([
+      { path: 'main.py', content: 'print("hi")' },
+      { path: 'db/schema.sql', content: 'select 1;' },
+    ]);
+  });
+
   it('does not drop a file whose decoded content is falsy but is a real string', () => {
     const data: Record<string, ClonedFileBlob> = {
       'empty.txt': { data: '', encoding: 'utf8' },
