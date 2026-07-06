@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { getHighlighter } from 'shiki';
 import { formatModifiedTime } from './diff-modified-time';
 import type { EditorDocument } from '~/components/editor/codemirror/CodeMirrorEditor';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import type { FileMap } from '~/lib/stores/files';
 import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -765,6 +766,8 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
   const selectedFile = useStore(workbenchStore.selectedFile);
   const currentDocument = useStore(workbenchStore.currentDocument) as EditorDocument;
   const unsavedFiles = useStore(workbenchStore.unsavedFiles);
+  const [revertOpen, setRevertOpen] = useState(false);
+  const [reverting, setReverting] = useState(false);
 
   useEffect(() => {
     if (selectedFile && currentDocument) {
@@ -869,17 +872,63 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
     getLanguageFromExtension(diffBasename.includes('.') ? (diffBasename.split('.').pop() ?? '') : ''),
   );
 
+  const hasDiff =
+    effectiveOriginalContent.replace(/\r\n/g, '\n').trim() !== currentContent.replace(/\r\n/g, '\n').trim();
+
+  const revertFile = async () => {
+    setReverting(true);
+
+    try {
+      workbenchStore.setCurrentDocumentContent(effectiveOriginalContent);
+      await workbenchStore.saveCurrentDocument();
+      setFileHistory((prev) => {
+        const next = { ...prev };
+        delete next[selectedFile];
+
+        return next;
+      });
+    } finally {
+      setReverting(false);
+      setRevertOpen(false);
+    }
+  };
+
   try {
     return (
-      <div className="h-full overflow-hidden">
-        <InlineDiffComparison
-          beforeCode={effectiveOriginalContent}
-          afterCode={currentContent}
-          language={language}
-          filename={selectedFile}
-          lightTheme="github-light"
-          darkTheme="github-dark"
-          lastModified={history?.lastModified}
+      <div className="flex h-full flex-col overflow-hidden">
+        {hasDiff ? (
+          <div className="flex shrink-0 items-center justify-end border-b border-bolt-elements-borderColor px-3 py-1.5">
+            <button
+              type="button"
+              onClick={() => setRevertOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+            >
+              <span className="i-ph:arrow-counter-clockwise" aria-hidden />
+              Revert file
+            </button>
+          </div>
+        ) : null}
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <InlineDiffComparison
+            beforeCode={effectiveOriginalContent}
+            afterCode={currentContent}
+            language={language}
+            filename={selectedFile}
+            lightTheme="github-light"
+            darkTheme="github-dark"
+            lastModified={history?.lastModified}
+          />
+        </div>
+        <ConfirmationDialog
+          isOpen={revertOpen}
+          title="Revert file?"
+          description={`This restores ${diffBasename} to its content before these edits and saves it. This can't be undone from here.`}
+          confirmLabel={reverting ? 'Reverting…' : 'Revert file'}
+          cancelLabel="Keep changes"
+          variant="destructive"
+          isLoading={reverting}
+          onConfirm={() => void revertFile()}
+          onClose={() => setRevertOpen(false)}
         />
       </div>
     );
