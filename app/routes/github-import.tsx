@@ -1,13 +1,9 @@
-import {
-  EcodeSurfacePage,
-  getEcodeStandaloneSurfacePage,
-  makeEcodeSurfaceMeta,
-} from '~/components/marketing/EcodeSurfacePages';
+import { redirect } from 'react-router';
 
-const page = getEcodeStandaloneSurfacePage('github-import')!;
-
-export const meta = makeEcodeSurfaceMeta(page);
-
-export default function GithubImportRoute() {
-  return <EcodeSurfacePage page={page} />;
+/*
+ * H24: this route was a standalone brochure surface. Redirect (301) to the real
+ * feature so the URL keeps working and search engines follow the canonical page.
+ */
+export function loader() {
+  return redirect('/import-github', 301);
 }
