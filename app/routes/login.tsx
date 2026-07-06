@@ -4,6 +4,7 @@ import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { AuthField, AuthOauthButton, AuthScreen, AuthSubmit, useAuthOauthPending } from '~/components/auth/AuthScreen';
 import { FieldError, fieldErrorProps } from '~/components/ui/FieldError';
+import { AUTH_HERO_STATS } from '~/lib/auth-hero-stats';
 import {
   apiRequest,
   apiBaseUrl,
@@ -291,14 +292,12 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-10 grid grid-cols-2 gap-5 border-t border-white/20 pt-8">
-            <div>
-              <div className="text-3xl font-bold">21</div>
-              <div className="mt-1 text-[12px] text-white/72">AI providers</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold">29+</div>
-              <div className="mt-1 text-[12px] text-white/72">Languages</div>
-            </div>
+            {AUTH_HERO_STATS.slice(0, 2).map((item) => (
+              <div key={item.label}>
+                <div className="text-3xl font-bold">{item.value}</div>
+                <div className="mt-1 text-[12px] text-white/72">{item.label}</div>
+              </div>
+            ))}
           </div>
         </>
       }
@@ -313,12 +312,7 @@ export default function LoginPage() {
       belowCard={
         <>
           <div className="vc-auth-mobile-stats mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:hidden">
-            {[
-              { value: '21', label: 'AI models' },
-              { value: '29+', label: 'Languages' },
-              { value: '99.9%', label: 'Uptime path' },
-              { value: 'SOC2', label: 'Ready controls' },
-            ].map((item) => (
+            {AUTH_HERO_STATS.map((item) => (
               <div key={item.label} className="vc-auth-mobile-stat rounded-lg px-3 py-3 text-center">
                 <div className="text-[16px] font-bold">{item.value}</div>
                 <div className="mt-1 text-[10px]">{item.label}</div>
