@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { formatAbsoluteTime } from '~/lib/format-relative';
 
 /*
@@ -92,6 +93,7 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
   const loadFetcher = useFetcher<PanelData>();
   const restoreFetcher = useFetcher<{ ok: boolean; error?: string }>();
   const [target, setTarget] = useState('');
+  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
 
   const loadUrl = `/api/projects/${encodeURIComponent(projectId)}/database`;
 
@@ -135,7 +137,9 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
     restoreFetcher.submit(payload, { method: 'post', action: loadUrl, encType: 'application/json' });
   };
 
-  const submitRestore = () => {
+  const confirmRestore = () => {
+    setRestoreConfirmOpen(false);
+
     if (!target) {
       return;
     }
@@ -196,7 +200,7 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
             />
             <button
               type="button"
-              onClick={submitRestore}
+              onClick={() => setRestoreConfirmOpen(true)}
               disabled={!target || restoreFetcher.state !== 'idle'}
               className="rounded-md bg-bolt-elements-button-primary-background px-3 py-1 text-sm text-bolt-elements-button-primary-text disabled:opacity-50"
             >
@@ -240,6 +244,21 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
           </ul>
         </div>
       ) : null}
+
+      <ConfirmationDialog
+        isOpen={restoreConfirmOpen}
+        title="Restore the database?"
+        description={
+          target
+            ? `This rewinds the database to ${formatAbsoluteTime(new Date(target))}. Any changes written after that point in time will be lost, and this can't be undone.`
+            : 'Pick a point in time to restore to.'
+        }
+        confirmLabel="Restore database"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={confirmRestore}
+        onClose={() => setRestoreConfirmOpen(false)}
+      />
     </div>
   );
 }
