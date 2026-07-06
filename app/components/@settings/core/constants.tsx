@@ -142,8 +142,13 @@ export const DEFAULT_TAB_CONFIG = [
   { id: 'notifications', visible: true, window: 'user' as const, order: 9 },
   { id: 'connections', visible: true, window: 'user' as const, order: 10 },
 
-  // Upstream/status/diagnostics → admin-only.
-  { id: 'update', visible: true, window: 'developer' as const, order: 11 },
+  /*
+   * Upstream/status/diagnostics → admin-only.
+   * The self-hosted 'update' tab (git self-updater via /api/update) is NOT
+   * registered here: it is meaningless on managed SaaS. A desktop/Electron build
+   * re-registers it gated on the desktop bridge (window.vibecoreDesktop) — see
+   * app/lib/desktop-settings-actions.ts for the bridge pattern.
+   */
   { id: 'debug', visible: true, window: 'developer' as const, order: 12 },
   { id: 'task-manager', visible: true, window: 'developer' as const, order: 13 },
   { id: 'service-status', visible: true, window: 'developer' as const, order: 14 },
