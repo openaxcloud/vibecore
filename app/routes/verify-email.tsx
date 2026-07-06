@@ -1,4 +1,5 @@
 import { KeyRound } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Form, Link, useActionData, useNavigation, useSearchParams } from 'react-router';
 import { AuthField, AuthScreen, AuthSubmit } from '~/components/auth/AuthScreen';
 import { apiRequest, formObject, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
@@ -78,6 +79,26 @@ export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
   const tokenFromUrl = searchParams.get('token') ?? '';
 
+  /*
+   * Client-side 60s cooldown on resend so users can't hammer the button (the API
+   * also throttles 5/min). Starts on each resend submit; a 1s tick drives the
+   * countdown label.
+   */
+  const [cooldownEndsAt, setCooldownEndsAt] = useState(0);
+  const [nowTs, setNowTs] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (cooldownEndsAt <= Date.now()) {
+      return undefined;
+    }
+
+    const timer = setInterval(() => setNowTs(Date.now()), 1000);
+
+    return () => clearInterval(timer);
+  }, [cooldownEndsAt]);
+
+  const resendSecondsLeft = cooldownEndsAt > nowTs ? Math.ceil((cooldownEndsAt - nowTs) / 1000) : 0;
+
   return (
     <AuthScreen
       eyebrow="Verify your email"
@@ -112,14 +133,14 @@ export default function VerifyEmailPage() {
         />
         <AuthSubmit label="Verify email" loadingLabel="Verifying..." isSubmitting={isSubmitting} />
       </Form>
-      <Form method="post" className="mt-3">
+      <Form method="post" className="mt-3" onSubmit={() => setCooldownEndsAt(Date.now() + 60_000)}>
         <input type="hidden" name="intent" value="resend" />
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || resendSecondsLeft > 0}
           className="vc-auth-link text-sm font-semibold hover:underline disabled:opacity-60"
         >
-          Resend verification email
+          {resendSecondsLeft > 0 ? `Resend available in ${resendSecondsLeft}s` : 'Resend verification email'}
         </button>
       </Form>
     </AuthScreen>
