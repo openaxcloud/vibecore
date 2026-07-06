@@ -453,25 +453,33 @@ export default function Pricing() {
               className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 pt-6 sm:pt-8 animate-slide-in-up opacity-0"
               style={{ animationDelay: '300ms', animationFillMode: 'forwards' }}
             >
-              <span
-                className={`text-[13px] sm:text-[15px] font-medium transition-colors duration-200 ${billingPeriod === 'monthly' ? 'text-[var(--ecode-text)]' : 'text-[var(--ecode-text-muted)]'}`}
+              <button
+                type="button"
+                onClick={() => setBillingPeriod('monthly')}
+                aria-pressed={billingPeriod === 'monthly'}
+                aria-label="Show monthly pricing"
+                className={`cursor-pointer appearance-none border-0 bg-transparent p-0 text-[13px] sm:text-[15px] font-medium transition-colors duration-200 ${billingPeriod === 'monthly' ? 'text-[var(--ecode-text)]' : 'text-[var(--ecode-text-muted)]'}`}
               >
                 Monthly
-              </span>
+              </button>
               <Switch
                 checked={billingPeriod === 'yearly'}
                 onCheckedChange={(checked) => setBillingPeriod(checked ? 'yearly' : 'monthly')}
                 className="scale-110 sm:scale-125 data-[state=checked]:bg-[var(--ecode-accent)]"
                 data-testid="switch-billing-period"
               />
-              <span
-                className={`text-[13px] sm:text-[15px] font-medium transition-colors duration-200 ${billingPeriod === 'yearly' ? 'text-[var(--ecode-text)]' : 'text-[var(--ecode-text-muted)]'}`}
+              <button
+                type="button"
+                onClick={() => setBillingPeriod('yearly')}
+                aria-pressed={billingPeriod === 'yearly'}
+                aria-label="Show yearly pricing"
+                className={`inline-flex cursor-pointer appearance-none items-center border-0 bg-transparent p-0 text-[13px] sm:text-[15px] font-medium transition-colors duration-200 ${billingPeriod === 'yearly' ? 'text-[var(--ecode-text)]' : 'text-[var(--ecode-text-muted)]'}`}
               >
                 Yearly
                 <Badge className="ml-1 sm:ml-2 text-[10px] sm:text-[11px] bg-[var(--ecode-accent)] text-white border-0">
                   Save 20%
                 </Badge>
-              </span>
+              </button>
             </div>
           </div>
 
