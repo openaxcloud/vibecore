@@ -3,9 +3,19 @@ import { useState } from 'react';
 import { ACCOUNT_MENU_LINKS, resolveAccountMenuLink } from '~/components/@settings/core/account-menu-links';
 import { DeployButton } from '~/components/deploy/DeployButton';
 import { buttonVariants } from '~/components/ui/Button';
+import { Dropdown, DropdownItem } from '~/components/ui/Dropdown';
 import { useHydrateConnectors } from '~/lib/hooks/useHydrateConnectors';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
+
+async function downloadDebugLog() {
+  try {
+    const { downloadDebugLog: run } = await import('~/utils/debugLogger');
+    await run();
+  } catch (error) {
+    console.error('Failed to download debug log:', error);
+  }
+}
 
 interface HeaderActionButtonsProps {
   chatStarted: boolean;
@@ -31,34 +41,32 @@ export function HeaderActionButtons({ chatStarted: _chatStarted }: HeaderActionB
       {/* Deploy Button */}
       {shouldShowButtons && <DeployButton />}
 
-      {/* Debug Tools */}
+      {/* Help & debug tools — collapsed into a single menu so the header isn't
+          cluttered by two permanent debug buttons. */}
       {shouldShowButtons && (
-        <div className="flex border border-bolt-elements-borderColor rounded-md overflow-hidden text-sm">
-          <button
-            onClick={() => window.open(resolveAccountMenuLink(ACCOUNT_MENU_LINKS.reportBug), '_blank')}
-            className={classNames(buttonVariants({ variant: 'primary', size: 'sm' }), 'gap-1.5 rounded-none')}
-            title="Report Bug"
-          >
+        <Dropdown
+          align="end"
+          trigger={
+            <button
+              type="button"
+              title="Help & debug tools"
+              aria-label="Help and debug tools"
+              className={classNames(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-1.5')}
+            >
+              <div className="i-ph:question" />
+              <span>Help</span>
+            </button>
+          }
+        >
+          <DropdownItem onSelect={() => window.open(resolveAccountMenuLink(ACCOUNT_MENU_LINKS.reportBug), '_blank')}>
             <div className="i-ph:bug" />
-            <span>Report Bug</span>
-          </button>
-          <div className="w-px bg-bolt-elements-borderColor" />
-          <button
-            onClick={async () => {
-              try {
-                const { downloadDebugLog } = await import('~/utils/debugLogger');
-                await downloadDebugLog();
-              } catch (error) {
-                console.error('Failed to download debug log:', error);
-              }
-            }}
-            className={classNames(buttonVariants({ variant: 'primary', size: 'sm' }), 'gap-1.5 rounded-none')}
-            title="Download Debug Log"
-          >
+            Report a bug
+          </DropdownItem>
+          <DropdownItem onSelect={() => void downloadDebugLog()}>
             <div className="i-ph:download" />
-            <span>Debug Log</span>
-          </button>
-        </div>
+            Download debug log
+          </DropdownItem>
+        </Dropdown>
       )}
     </div>
   );
