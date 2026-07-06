@@ -11,13 +11,13 @@ const badgeVariants = cva(
           'border-transparent bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
         secondary:
           'border-transparent bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3',
-        destructive: 'border-transparent bg-red-500/10 text-red-500 hover:bg-red-500/20',
+        destructive: 'border-transparent bg-[var(--status-error-bg)] text-[var(--status-error-text)] hover:opacity-80',
         outline: 'text-bolt-elements-textPrimary',
         primary: 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent',
-        success: 'bg-green-500/10 text-green-600 dark:text-green-400',
-        warning: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
-        danger: 'bg-red-500/10 text-red-600 dark:text-red-400',
-        info: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+        success: 'bg-[var(--status-success-bg)] text-[var(--status-success-text)]',
+        warning: 'bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]',
+        danger: 'bg-[var(--status-error-bg)] text-[var(--status-error-text)]',
+        info: 'bg-[var(--status-info-bg)] text-[var(--status-info-text)]',
         subtle:
           'border border-bolt-elements-borderColor/30 bg-bolt-elements-background-depth-2/50 backdrop-blur-sm text-bolt-elements-textSecondary',
       },
