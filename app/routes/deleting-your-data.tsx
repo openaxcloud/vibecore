@@ -24,7 +24,7 @@ const page = {
     'You own your data on E-Code. You can export it or delete your account yourself, on your own schedule. This page explains how it works, the grace period, and what happens to your data.',
   kind: 'legal',
   icon: Trash2,
-  primaryAction: ['Manage your data', '/account-data'],
+  primaryAction: ['Manage your data', '/account-settings/data'],
   secondaryAction: ['Read the Privacy Policy', '/privacy'],
   highlights: ['Self-serve', '14-day grace', 'Export first', 'Permanent after grace'],
   sections: [

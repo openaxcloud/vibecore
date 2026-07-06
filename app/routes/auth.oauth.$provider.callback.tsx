@@ -21,7 +21,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
   const failRedirect = (detail: string) =>
     isLink
-      ? redirect(`/connected-accounts?linkError=${provider}&detail=${encodeURIComponent(detail)}`, {
+      ? redirect(`/account-settings/connected?linkError=${provider}&detail=${encodeURIComponent(detail)}`, {
           headers: clearAuthCookies(),
         })
       : redirect(`/login?oauth=${provider}&error=callback_failed&detail=${encodeURIComponent(detail)}`, {
@@ -121,7 +121,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
    * page with the newly-linked provider.
    */
   if (isLink) {
-    return redirect(`/connected-accounts?linked=${provider}`, { headers: clearAuthCookies() });
+    return redirect(`/account-settings/connected?linked=${provider}`, { headers: clearAuthCookies() });
   }
 
   let result: { token?: string };

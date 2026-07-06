@@ -285,10 +285,10 @@ export const accountNav = [
   { label: 'Account', to: '/account-settings', icon: Settings },
   { label: 'Security', to: '/security-settings', icon: ShieldCheck },
   { label: 'API keys', to: '/api-keys', icon: KeyRound },
-  { label: 'Connected accounts', to: '/connected-accounts', icon: Github },
+  { label: 'Connected accounts', to: '/account-settings/connected', icon: Github },
   { label: 'Notifications', to: '/notifications', icon: Bell },
   { label: 'Desktop app', to: '/desktop-settings', icon: Monitor },
-  { label: 'Data & privacy', to: '/account-data', icon: ShieldAlert },
+  { label: 'Data & privacy', to: '/account-settings/data', icon: ShieldAlert },
 ];
 
 export const projectNav = [
