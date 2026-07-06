@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Button } from '~/components/ui/Button';
+import { RevealButton } from '~/components/ui/RevealButton';
 import type { SecretRequestField, SecretRequestMessage } from '~/lib/chat/connector-messages';
 
 /*
@@ -56,6 +57,7 @@ export function buildSecretValue(fields: SecretRequestField[], values: Record<st
 
 export function SecretRequestCard({ payload, projectId, onProvided }: SecretRequestCardProps) {
   const [values, setValues] = useState<Record<string, string>>({});
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -119,22 +121,41 @@ export function SecretRequestCard({ payload, projectId, onProvided }: SecretRequ
       <p className="text-xs text-bolt-elements-textSecondary mt-1">{payload.description}</p>
 
       <div className="mt-3 space-y-3">
-        {getSecretFields(payload).map((field) => (
-          <label key={field.name} className="block">
-            <span className="text-xs text-bolt-elements-textSecondary">
-              {field.label}
-              {field.required ? ' *' : ''}
-            </span>
-            <input
-              type={field.type}
-              value={values[field.name] ?? ''}
-              placeholder={field.placeholder}
-              disabled={submitting}
-              onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))}
-              className="mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1 text-sm text-bolt-elements-textPrimary"
-            />
-          </label>
-        ))}
+        {getSecretFields(payload).map((field) => {
+          const isSecret = field.type === 'password';
+
+          return (
+            <label key={field.name} className="block">
+              <span className="text-xs text-bolt-elements-textSecondary">
+                {field.label}
+                {field.required ? ' *' : ''}
+              </span>
+              <div className="relative mt-1">
+                <input
+                  type={isSecret && !revealed[field.name] ? 'password' : 'text'}
+                  value={values[field.name] ?? ''}
+                  placeholder={field.placeholder}
+                  disabled={submitting}
+                  autoComplete="off"
+                  spellCheck={false}
+                  style={isSecret ? { fontFamily: 'var(--vc-font-code)' } : undefined}
+                  onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))}
+                  className={`h-9 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 py-1 text-sm text-bolt-elements-textPrimary ${
+                    isSecret ? 'pl-2 pr-10' : 'px-2'
+                  }`}
+                />
+                {isSecret ? (
+                  <RevealButton
+                    revealed={Boolean(revealed[field.name])}
+                    onToggle={() => setRevealed((current) => ({ ...current, [field.name]: !current[field.name] }))}
+                    subject={field.label}
+                    className="absolute right-0.5 top-1/2 -translate-y-1/2"
+                  />
+                ) : null}
+              </div>
+            </label>
+          );
+        })}
       </div>
 
       <div className="mt-3 flex items-center gap-2">
