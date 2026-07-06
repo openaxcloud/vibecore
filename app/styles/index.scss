@@ -445,6 +445,22 @@ html:has(.vc-app-shell-grid) body {
   --chart-3: 142 71% 55%;
   --chart-4: 38 92% 60%;
   --chart-5: 199 89% 58%;
+
+  /*
+   * Categorical monitoring-chart palette (dark). Series 1 is the blue action
+   * accent; brand orange is intentionally absent so charts read as data, not
+   * brand. Values are full colours (canvas charts can't resolve HSL triples).
+   */
+  --vc-chart-1: #0099ff;
+  --vc-chart-2: #10b981;
+  --vc-chart-3: #f43f5e;
+  --vc-chart-4: #14b8a6;
+  --vc-chart-5: #eab308;
+  --vc-chart-6: #06b6d4;
+  --vc-chart-7: #84cc16;
+  --vc-chart-8: #ec4899;
+  --vc-chart-9: #22c55e;
+  --vc-chart-10: #94a3b8;
   --ecode-accent: #f26207;
   --ecode-accent-hover: #ff7a2b;
   // AA orange for TEXT/links on this theme's backgrounds; fills stay --ecode-accent.
@@ -734,6 +750,19 @@ html:has(.vc-app-shell-grid) body {
   --chart-3: 142 71% 45%;
   --chart-4: 38 92% 50%;
   --chart-5: 199 89% 48%;
+
+  /* Categorical monitoring-chart palette (light) — darker for contrast on light
+     surfaces; series 1 = blue action, no brand orange. */
+  --vc-chart-1: #006fd6;
+  --vc-chart-2: #059669;
+  --vc-chart-3: #e11d48;
+  --vc-chart-4: #0d9488;
+  --vc-chart-5: #ca8a04;
+  --vc-chart-6: #0891b2;
+  --vc-chart-7: #65a30d;
+  --vc-chart-8: #db2777;
+  --vc-chart-9: #16a34a;
+  --vc-chart-10: #64748b;
   --ecode-accent: #f26207;
   --ecode-accent-hover: #d04e00;
   // AA orange for TEXT/links on light backgrounds; fills stay --ecode-accent.

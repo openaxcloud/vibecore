@@ -37,18 +37,45 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
  * the series themselves. No raw hex is scattered through the panel — everything
  * funnels through here.
  */
-const SERIES_PALETTE = [
-  '#f97316', // orange (brand)
-  '#3b82f6', // blue
+/*
+ * H6: series colours come from the themeable --vc-chart-1..10 tokens (light+dark).
+ * Series 1 is the blue action accent; brand orange is intentionally absent so the
+ * charts read as data, not brand. The hex fallback (dark values) matches the
+ * tokens and is used for SSR / before styles resolve. Chart.js paints to canvas,
+ * so we resolve the CSS vars to real colours at call time, cached per theme.
+ */
+const FALLBACK_PALETTE = [
+  '#0099ff', // series 1 — action blue
   '#10b981', // emerald
-  '#14b8a6', // teal
   '#f43f5e', // rose
+  '#14b8a6', // teal
   '#eab308', // amber
   '#06b6d4', // cyan
   '#84cc16', // lime
   '#ec4899', // pink
   '#22c55e', // green
+  '#94a3b8', // slate
 ];
+
+let _paletteCache: { key: string; palette: string[] } | null = null;
+
+function resolveSeriesPalette(): string[] {
+  if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') {
+    return FALLBACK_PALETTE;
+  }
+
+  const key = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+
+  if (_paletteCache && _paletteCache.key === key) {
+    return _paletteCache.palette;
+  }
+
+  const cs = getComputedStyle(document.documentElement);
+  const palette = FALLBACK_PALETTE.map((fallback, i) => cs.getPropertyValue(`--vc-chart-${i + 1}`).trim() || fallback);
+  _paletteCache = { key, palette };
+
+  return palette;
+}
 
 function useChartTheme() {
   const [theme, setTheme] = useState({
@@ -77,7 +104,8 @@ function useChartTheme() {
 }
 
 export function seriesColor(index: number): string {
-  return SERIES_PALETTE[index % SERIES_PALETTE.length];
+  const palette = resolveSeriesPalette();
+  return palette[index % palette.length];
 }
 
 type Labeled = { labels: string[]; values: number[] };
@@ -106,7 +134,7 @@ export function CostOverTimeChart({ labels, values }: Labeled) {
         label: 'AI cost (USD)',
         data: values,
         borderColor: seriesColor(0),
-        backgroundColor: 'rgba(249, 115, 22, 0.18)',
+        backgroundColor: 'rgba(0, 153, 255, 0.18)',
         fill: true,
         tension: 0.3,
         pointRadius: 2,
