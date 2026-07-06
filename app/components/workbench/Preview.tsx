@@ -2020,6 +2020,7 @@ export const Preview = memo(
               aria-label="Preview device"
               value={previewDevice}
               onChange={(event) => onPreviewDeviceChange?.(event.currentTarget.value as PreviewDevice)}
+              className="h-8 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-xs text-bolt-elements-textPrimary outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
             >
               <option value="desktop">Desktop</option>
               <option value="tablet">Tablet</option>
