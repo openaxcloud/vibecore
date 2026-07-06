@@ -3,6 +3,7 @@ import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useSubmit } from 'react-router';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
+import { Badge } from '~/components/ui/Badge';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import {
   apiErrorMessage,
@@ -212,67 +213,73 @@ export default function OrganizationInvitationsPage() {
           {invitations.length === 0 ? (
             <div className="px-4 py-4 text-bolt-elements-textSecondary sm:px-6">No pending invitations.</div>
           ) : (
-            invitations.map((invite) => {
-              const expired = new Date(invite.expiresAt).getTime() < now;
-              const accepted = Boolean(invite.acceptedAt);
+            [...invitations]
 
-              return (
-                <div
-                  key={invite.id}
-                  className="grid gap-3 border-b border-bolt-elements-borderColor px-4 py-4 last:border-b-0 sm:px-6 md:grid-cols-[1fr_auto] md:items-center"
-                >
-                  <div className="min-w-0">
-                    <div className="truncate font-medium text-bolt-elements-textPrimary">{invite.email}</div>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textSecondary">
-                      <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5">
-                        {invite.roleKey}
-                      </span>
-                      <span>Expires {formatDate(invite.expiresAt)}</span>
-                      {accepted ? (
-                        <span className="text-bolt-elements-icon-success">Accepted</span>
-                      ) : expired ? (
-                        <span className="text-bolt-elements-textTertiary">Expired</span>
-                      ) : (
-                        <span className="text-bolt-elements-textSecondary">Pending</span>
-                      )}
+              // Expired invitations sink to the bottom; active ones keep their order.
+              .sort(
+                (a, b) => Number(new Date(a.expiresAt).getTime() < now) - Number(new Date(b.expiresAt).getTime() < now),
+              )
+              .map((invite) => {
+                const expired = new Date(invite.expiresAt).getTime() < now;
+                const accepted = Boolean(invite.acceptedAt);
+
+                return (
+                  <div
+                    key={invite.id}
+                    className="grid gap-3 border-b border-bolt-elements-borderColor px-4 py-4 last:border-b-0 sm:px-6 md:grid-cols-[1fr_auto] md:items-center"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-bolt-elements-textPrimary">{invite.email}</div>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textSecondary">
+                        <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5">
+                          {invite.roleKey}
+                        </span>
+                        <span>Expires {formatDate(invite.expiresAt)}</span>
+                        {accepted ? (
+                          <Badge variant="success">Accepted</Badge>
+                        ) : expired ? (
+                          <Badge variant="warning">Expired</Badge>
+                        ) : (
+                          <Badge variant="secondary">Pending</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Form method="post">
+                        <input type="hidden" name="intent" value="resend" />
+                        <input type="hidden" name="orgId" value={orgId} />
+                        <input type="hidden" name="inviteId" value={invite.id} />
+                        <button
+                          type="submit"
+                          className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
+                          aria-label={`Resend invitation to ${invite.email}`}
+                        >
+                          Resend
+                        </button>
+                      </Form>
+                      <Form
+                        method="post"
+                        onSubmit={(event) => {
+                          // Destructive: confirm before revoking the invite link.
+                          event.preventDefault();
+                          setInvitePendingExpire({ id: invite.id, email: invite.email });
+                        }}
+                      >
+                        <input type="hidden" name="intent" value="expire" />
+                        <input type="hidden" name="orgId" value={orgId} />
+                        <input type="hidden" name="inviteId" value={invite.id} />
+                        <button
+                          type="submit"
+                          className="rounded-md border border-[var(--status-error-border)] px-3 py-1.5 text-xs text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)]"
+                          aria-label={`Expire invitation to ${invite.email}`}
+                        >
+                          Expire
+                        </button>
+                      </Form>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Form method="post">
-                      <input type="hidden" name="intent" value="resend" />
-                      <input type="hidden" name="orgId" value={orgId} />
-                      <input type="hidden" name="inviteId" value={invite.id} />
-                      <button
-                        type="submit"
-                        className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
-                        aria-label={`Resend invitation to ${invite.email}`}
-                      >
-                        Resend
-                      </button>
-                    </Form>
-                    <Form
-                      method="post"
-                      onSubmit={(event) => {
-                        // Destructive: confirm before revoking the invite link.
-                        event.preventDefault();
-                        setInvitePendingExpire({ id: invite.id, email: invite.email });
-                      }}
-                    >
-                      <input type="hidden" name="intent" value="expire" />
-                      <input type="hidden" name="orgId" value={orgId} />
-                      <input type="hidden" name="inviteId" value={invite.id} />
-                      <button
-                        type="submit"
-                        className="rounded-md border border-[var(--status-error-border)] px-3 py-1.5 text-xs text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)]"
-                        aria-label={`Expire invitation to ${invite.email}`}
-                      >
-                        Expire
-                      </button>
-                    </Form>
-                  </div>
-                </div>
-              );
-            })
+                );
+              })
           )}
         </section>
       </div>
