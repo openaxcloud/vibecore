@@ -134,7 +134,7 @@ import {
   subscribeProjectIdeMemory,
   type ProjectIdeMemory,
 } from '~/lib/persistence/projectIdeMemory';
-import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
+import { hasLivePreviewPort, isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
 import { useNavigate, useSearchParams } from 'react-router';
 import { readPanelSearchParam, withPanelSearchParam } from '~/utils/project-ide-panel-url';
@@ -3269,11 +3269,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       const effectiveWorkspace = runtimeWorkspaceStatus ?? projectBackendState.workspace ?? null;
 
+      /*
+       * Ground-truth reconciliation: a forwarded port that is genuinely serving means
+       * the runtime IS running, even while the API/session status still lags at
+       * PENDING/STARTING (cold-start). Surface 'running' on the SHARED status here so
+       * EVERY consumer of the raw status field — the bottom-terminal "… workspace"
+       * badge, the status label, the runtime diagnostics — reflects reality without
+       * each render site re-deriving it. The status flips the instant a port responds,
+       * not when the API finally reconciles.
+       */
+      const servingLive = hasLivePreviewPort(runtimePorts);
+
       return {
         ...projectBackendState,
         workspace: effectiveWorkspace
           ? {
               ...effectiveWorkspace,
+              status: servingLive ? 'running' : effectiveWorkspace.status,
               ports: 'ports' in effectiveWorkspace ? (effectiveWorkspace.ports ?? runtimePorts) : runtimePorts,
             }
           : null,
