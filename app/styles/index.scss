@@ -7531,6 +7531,61 @@ body :where(.lucide, svg[data-lucide]) {
   flex: 0 0 auto;
 }
 
+/* Standalone Plan-first toggle (Replit parity), sits beside the mode selector.
+   Off = neutral like the mode trigger; on = blue action accent (in-IDE action). */
+.bolt-chatbox-plan-toggle {
+  display: inline-flex;
+  height: 32px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 10px;
+  transition:
+    background-color 120ms ease-out,
+    border-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.bolt-chatbox-plan-toggle:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 52%, var(--vc-ide-border-subtle));
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 12%, var(--vc-ide-bg-card));
+}
+
+.bolt-chatbox-plan-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.bolt-chatbox-plan-toggle.is-active {
+  border-color: var(--vc-ide-accent-action);
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 16%, transparent);
+  color: color-mix(in srgb, var(--vc-ide-accent-action), white 20%);
+}
+
+.bolt-chatbox-plan-toggle-icon {
+  flex: 0 0 auto;
+  font-size: 15px;
+}
+
+.bolt-chatbox-plan-toggle:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@container (max-width: 300px) {
+  /* Tightest width: drop the Plan label, keep the icon (matches mode trigger). */
+  .bolt-chatbox-plan-toggle-label {
+    display: none;
+  }
+}
+
 .bolt-chatbox-mode-menu {
   position: absolute;
   z-index: 90;

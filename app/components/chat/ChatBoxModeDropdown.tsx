@@ -1,13 +1,11 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { classNames } from '~/utils/classNames';
 
-export type ComposerMode = 'agent' | 'plan' | 'assistant';
+export type ComposerMode = 'agent' | 'assistant';
 
 interface ChatBoxModeDropdownProps {
   agentMode: 'agent' | 'assistant';
   setAgentMode: (mode: 'agent' | 'assistant') => void;
-  planFirstEnabled: boolean;
-  onPlanFirstChange: (next: boolean) => void;
   disabled?: boolean;
 }
 
@@ -19,13 +17,11 @@ interface ModeOption {
 }
 
 /*
- * Single combined control that merges the former Agent/Assistant segmented
- * control and the standalone Plan toggle into one dropdown — modelled on
- * Replit's three-tab agent-mode popup. Three mutually-exclusive modes, default
- * Agent. No option is lost: Plan and Assistant are both still reachable.
+ * Agent/Assistant mode selector. Plan-first is a SEPARATE standalone toggle next
+ * to this control (Replit parity — see ChatBox's Plan toggle), so it is not a
+ * mode here; the two are orthogonal (plan-first applies before either mode runs).
  *
- *   Agent     → autonomous execution, build mode, no plan-first.
- *   Plan      → agent execution but must propose a reviewable plan first.
+ *   Agent     → runs the task end to end, autonomously.
  *   Assistant → answers and proposes scoped edits, waits for your go.
  */
 const MODE_OPTIONS: readonly ModeOption[] = [
@@ -36,12 +32,6 @@ const MODE_OPTIONS: readonly ModeOption[] = [
     icon: 'i-ph:robot',
   },
   {
-    id: 'plan',
-    label: 'Plan',
-    description: 'Proposes a reviewable plan before any edits or commands.',
-    icon: 'i-ph:list-checks',
-  },
-  {
     id: 'assistant',
     label: 'Assistant',
     description: 'Answers and suggests scoped edits, waits for your go.',
@@ -49,26 +39,12 @@ const MODE_OPTIONS: readonly ModeOption[] = [
   },
 ];
 
-function resolveMode(agentMode: 'agent' | 'assistant', planFirstEnabled: boolean): ComposerMode {
-  if (planFirstEnabled) {
-    return 'plan';
-  }
-
-  return agentMode === 'assistant' ? 'assistant' : 'agent';
-}
-
-export function ChatBoxModeDropdown({
-  agentMode,
-  setAgentMode,
-  planFirstEnabled,
-  onPlanFirstChange,
-  disabled,
-}: ChatBoxModeDropdownProps) {
+export function ChatBoxModeDropdown({ agentMode, setAgentMode, disabled }: ChatBoxModeDropdownProps) {
   const [open, setOpen] = useState(false);
   const anchorRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
 
-  const current = resolveMode(agentMode, planFirstEnabled);
+  const current: ComposerMode = agentMode === 'assistant' ? 'assistant' : 'agent';
   const currentOption = MODE_OPTIONS.find((option) => option.id === current) ?? MODE_OPTIONS[0];
 
   useEffect(() => {
@@ -98,23 +74,7 @@ export function ChatBoxModeDropdown({
   }, [open]);
 
   const selectMode = (mode: ComposerMode) => {
-    switch (mode) {
-      case 'plan': {
-        setAgentMode('agent');
-        onPlanFirstChange(true);
-        break;
-      }
-      case 'assistant': {
-        setAgentMode('assistant');
-        onPlanFirstChange(false);
-        break;
-      }
-      default: {
-        setAgentMode('agent');
-        onPlanFirstChange(false);
-      }
-    }
-
+    setAgentMode(mode);
     setOpen(false);
   };
 

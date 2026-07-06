@@ -91,10 +91,10 @@ const baseProps: ChatBoxTestProps = {
   onPlanFirstChange: vi.fn(),
 
   /*
-   * The IDE composer always wires the combined Agent/Plan/Assistant mode
-   * dropdown (see BaseChat). Plan is reachable as a mode inside that dropdown,
-   * not a standalone toggle, so agentMode/setAgentMode must be supplied for the
-   * dropdown to render.
+   * The IDE composer wires the Agent/Assistant mode dropdown plus a SEPARATE
+   * standalone Plan-first toggle beside it (Replit parity). agentMode/
+   * setAgentMode drive the dropdown; planFirstEnabled/onPlanFirstChange drive
+   * the standalone Plan toggle.
    */
   agentMode: 'agent',
   setAgentMode: vi.fn(),
@@ -118,13 +118,16 @@ describe('<ChatBox /> toolbar', () => {
     expect(screen.getByRole('button', { name: 'Upload file' }).getAttribute('data-vc-tooltip')).toBe('Upload file');
 
     /*
-     * Plan is no longer a standalone toggle: it is one of three mutually
-     * exclusive modes in the combined Agent/Plan/Assistant dropdown. With
-     * planFirstEnabled=false + agentMode='agent' the trigger reads "Agent".
+     * The mode dropdown is Agent/Assistant only now; Plan is a standalone toggle
+     * beside it. With agentMode='agent' the trigger reads "Agent" and the Plan
+     * toggle is present and not pressed (planFirstEnabled=false).
      */
     const modeTrigger = screen.getByRole('button', { name: /Agent/, expanded: false });
     expect(modeTrigger.getAttribute('aria-haspopup')).toBe('menu');
     expect(modeTrigger.getAttribute('data-mode')).toBe('agent');
+
+    const planToggle = screen.getByRole('button', { name: 'Plan' });
+    expect(planToggle.getAttribute('aria-pressed')).toBe('false');
 
     expect(screen.getByRole('button', { name: 'More composer & tools' }).getAttribute('aria-haspopup')).toBe('menu');
 
@@ -156,27 +159,33 @@ describe('<ChatBox /> toolbar', () => {
     expect(screen.getByRole('button', { name: 'Start speech recognition' })).toBeTruthy();
   });
 
-  it('toggles Plan first from the composer mode dropdown', () => {
+  it('toggles Plan first from the standalone Plan toggle (Replit parity)', () => {
     const onPlanFirstChange = vi.fn();
-    const setAgentMode = vi.fn();
-    renderChatBox({ planFirstEnabled: true, onPlanFirstChange, setAgentMode });
+    renderChatBox({ planFirstEnabled: false, onPlanFirstChange });
 
-    // planFirstEnabled=true resolves the combined dropdown to the "Plan" mode.
-    const modeTrigger = screen.getByRole('button', { name: /Plan/, expanded: false });
-    expect(modeTrigger.getAttribute('data-mode')).toBe('plan');
+    // Standalone toggle, next to the mode dropdown — not a dropdown mode.
+    const planToggle = screen.getByRole('button', { name: 'Plan' });
+    expect(planToggle.getAttribute('aria-pressed')).toBe('false');
 
-    fireEvent.click(modeTrigger);
+    fireEvent.click(planToggle);
+    expect(onPlanFirstChange).toHaveBeenCalledWith(true);
+  });
+
+  it('shows the standalone Plan toggle pressed when plan-first is on, and turns it off', () => {
+    const onPlanFirstChange = vi.fn();
+    renderChatBox({ planFirstEnabled: true, onPlanFirstChange });
+
+    const planToggle = screen.getByRole('button', { name: 'Plan' });
+    expect(planToggle.getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.click(planToggle);
+    expect(onPlanFirstChange).toHaveBeenCalledWith(false);
+
+    // The Agent/Assistant dropdown no longer carries a Plan mode.
+    fireEvent.click(screen.getByRole('button', { name: /Agent/, expanded: false }));
 
     const menu = screen.getByRole('menu', { name: 'Agent mode' });
-
-    // The Plan menu item is currently selected.
-    expect(within(menu).getByRole('menuitemradio', { name: /Plan/ }).getAttribute('aria-checked')).toBe('true');
-
-    // Switching to Agent turns Plan-first off.
-    fireEvent.click(within(menu).getByRole('menuitemradio', { name: /Agent/ }));
-
-    expect(onPlanFirstChange).toHaveBeenCalledWith(false);
-    expect(setAgentMode).toHaveBeenCalledWith('agent');
+    expect(within(menu).queryByRole('menuitemradio', { name: /Plan/ })).toBeNull();
   });
 });
 
