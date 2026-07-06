@@ -2,7 +2,7 @@ import type { MetaFunction } from 'react-router';
 import { useNavigate, useParams } from 'react-router';
 import { ClientOnly } from 'remix-utils/client-only';
 import { ControlPanel } from '~/components/@settings/core/ControlPanel';
-import BackgroundRays from '~/components/ui/BackgroundRays';
+import { closeSettingsOverlay } from '~/lib/settings-navigation';
 import { TAB_ALIASES, settingsTabTitle } from '~/lib/settings-tab-title';
 
 export const meta: MetaFunction = ({ params }) => {
@@ -16,8 +16,9 @@ export default function SettingsTabRoute() {
 
   return (
     <div className="min-h-screen bg-bolt-elements-background-depth-1">
-      <BackgroundRays />
-      <ClientOnly>{() => <ControlPanel open initialTab={initialTab} onClose={() => navigate('/')} />}</ClientOnly>
+      <ClientOnly>
+        {() => <ControlPanel open initialTab={initialTab} onClose={() => closeSettingsOverlay(navigate)} />}
+      </ClientOnly>
     </div>
   );
 }
