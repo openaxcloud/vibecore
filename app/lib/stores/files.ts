@@ -2,6 +2,7 @@ import { Buffer } from 'node:buffer';
 import type { FileChange, FileNode, RuntimeAdapter } from '@vibecore/runtime-contract';
 import { map, type MapStore } from 'nanostores';
 import { resolveContentlessCreate } from './files.watch-create';
+import { reconcileRemoteWrite } from './reconcile-remote-write';
 import {
   addLockedFile,
   removeLockedFile,
@@ -24,6 +25,16 @@ import { unreachable } from '~/utils/unreachable';
 const logger = createScopedLogger('FilesStore');
 
 const utf8TextDecoder = new TextDecoder('utf8', { fatal: true });
+
+export interface SaveFileOptions {
+  /*
+   * How to handle a remote-kubernetes optimistic-concurrency conflict (the file
+   * changed on disk since it was loaded). 'throw' (default) surfaces the
+   * conflict — correct for human saves. 'reconcile' merges JSON / adopts the
+   * fresh version for other files, so parallel agent-patch lanes don't fail.
+   */
+  onRemoteConflict?: 'throw' | 'reconcile';
+}
 
 export interface File {
   type: 'file';
@@ -727,14 +738,14 @@ export class FilesStore {
     this.#modifiedFiles.clear();
   }
 
-  async saveFile(filePath: string, content: string) {
+  async saveFile(filePath: string, content: string, options?: SaveFileOptions) {
     /*
      * Chain on any in-flight write for this path so same-file saves run strictly
      * one-at-a-time (the optimistic concurrency check is otherwise racy).
      */
     const previous = this.#saveQueues.get(filePath) ?? Promise.resolve();
 
-    const run = previous.catch(() => undefined).then(() => this.#saveFileImpl(filePath, content));
+    const run = previous.catch(() => undefined).then(() => this.#saveFileImpl(filePath, content, options));
 
     this.#saveQueues.set(filePath, run);
 
@@ -747,7 +758,7 @@ export class FilesStore {
     }
   }
 
-  async #saveFileImpl(filePath: string, content: string) {
+  async #saveFileImpl(filePath: string, content: string, options?: SaveFileOptions) {
     const currentFile = this.files.get()[filePath];
     const optimisticPreviousFile = currentFile;
 
@@ -764,9 +775,18 @@ export class FilesStore {
         unreachable('Expected content to be defined');
       }
 
+      /*
+       * `effectiveContent` is what actually gets written + stored. It normally
+       * equals `content`, but a reconciled remote-conflict (below) replaces it
+       * with the merged/adopted result. `baselineContent` is the pre-write
+       * on-disk state used for the modified-files bookkeeping.
+       */
+      let effectiveContent = content;
+      let baselineContent = oldContent;
+
       this.files.setKey(filePath, {
         type: 'file',
-        content,
+        content: effectiveContent,
 
         /*
          * Preserve the file's existing binary classification rather than
@@ -791,14 +811,34 @@ export class FilesStore {
           .catch(() => oldContent);
 
         if (remoteContent !== oldContent) {
-          throw new Error(`Remote file changed since it was loaded: ${filePath}`);
+          /*
+           * The file changed under us — a parallel multi-agent lane wrote this
+           * path. A human save (default) still surfaces the conflict so nothing
+           * is clobbered silently; but the agent-patch pipeline opts into
+           * `reconcile`, which merges (JSON) / adopts-fresh (other) instead of
+           * failing with a stack of "Remote file changed since it was loaded".
+           */
+          if (options?.onRemoteConflict !== 'reconcile') {
+            throw new Error(`Remote file changed since it was loaded: ${filePath}`);
+          }
+
+          effectiveContent = reconcileRemoteWrite(filePath, remoteContent, content);
+          baselineContent = remoteContent;
+
+          this.files.setKey(filePath, {
+            type: 'file',
+            content: effectiveContent,
+            isBinary: currentFile?.type === 'file' ? currentFile.isBinary : false,
+            isLocked: currentFile?.type === 'file' ? currentFile.isLocked : false,
+            lockedByFolder: currentFile?.type === 'file' ? currentFile.lockedByFolder : undefined,
+          });
         }
       }
 
-      await this.#runtime.writeFile(relativePath, content);
+      await this.#runtime.writeFile(relativePath, effectiveContent);
 
       if (!this.#modifiedFiles.has(filePath)) {
-        this.#modifiedFiles.set(filePath, oldContent);
+        this.#modifiedFiles.set(filePath, baselineContent);
       }
 
       logger.info('File updated');

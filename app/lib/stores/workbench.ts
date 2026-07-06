@@ -7,7 +7,7 @@ import JSZip from 'jszip';
 import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
 import { toast } from 'react-toastify';
 import { EditorStore } from './editor';
-import { FilesStore, type FileMap, type ProjectStorageFile } from './files';
+import { FilesStore, type FileMap, type ProjectStorageFile, type SaveFileOptions } from './files';
 import {
   appendWorkspaceLogLines,
   decodeArchiveEntry,
@@ -55,6 +55,8 @@ import {
   isResolvedMissingImportPatchFailure,
 } from '~/utils/agent-patch-logs';
 import { mergeJsonContent } from '~/lib/chat/merge-json-content';
+import { reconcileRemoteWrite } from '~/lib/stores/reconcile-remote-write';
+import { KeyedMutex } from '~/lib/common/keyed-mutex';
 import { createSampler } from '~/utils/sampler';
 import { syncWriteContent } from '~/lib/stores/workbench-sync';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
@@ -263,6 +265,13 @@ export class WorkbenchStore {
     hotData.billingUpgradePrompt ?? atom<string | undefined>(undefined);
   #snapshottedArtifacts = new Set<string>();
   #agentPatchOriginals = new Map<string, string>();
+
+  /*
+   * Serializes agent-patch applies per file path so two multi-agent lanes never
+   * apply to the same file (package.json, index.html) at once — the interleave
+   * that surfaced as "Remote file changed since it was loaded".
+   */
+  #agentPatchApplyMutex = new KeyedMutex();
   #runtimeFilesLoadedProjectId: string | undefined;
   #globalExecutionQueue = Promise.resolve();
   constructor() {
@@ -1790,7 +1799,7 @@ export class WorkbenchStore {
     this.#editorStore.setSelectedFile(filePath);
   }
 
-  async saveFile(filePath: string) {
+  async saveFile(filePath: string, options?: SaveFileOptions) {
     const pendingAutosave = this.#autosaveTimers.get(filePath);
 
     if (pendingAutosave) {
@@ -1811,7 +1820,7 @@ export class WorkbenchStore {
      * This is a more complex feature that would be implemented in a future update
      */
 
-    await this.#filesStore.saveFile(filePath, document.value);
+    await this.#filesStore.saveFile(filePath, document.value, options);
 
     const newUnsavedFiles = new Set(this.unsavedFiles.get());
     newUnsavedFiles.delete(filePath);
@@ -2011,114 +2020,152 @@ export class WorkbenchStore {
     });
     this.#syncAgentPatchProposalToServer(proposalId);
 
-    try {
-      let acceptedContent = applyReviewableDiffHunks({
-        originalContent: proposal.originalContent,
-        hunks: proposal.hunks,
-        acceptedHunkIds: acceptedIds,
-      });
-
+    /*
+     * Serialize the whole apply per file path: two multi-agent lanes writing the
+     * same file (package.json / index.html) at once made the remote diverge from
+     * the base each lane computed against, failing with "Remote file changed
+     * since it was loaded" instead of merging. One-at-a-time per path removes the
+     * interleave; different paths still apply concurrently.
+     */
+    return this.#agentPatchApplyMutex.run(proposal.filePath, async () => {
       try {
-        await this.#validateAgentPatchProposal(proposal, acceptedContent);
-      } catch (validationError) {
+        let acceptedContent = applyReviewableDiffHunks({
+          originalContent: proposal.originalContent,
+          hunks: proposal.hunks,
+          acceptedHunkIds: acceptedIds,
+        });
+
+        try {
+          await this.#validateAgentPatchProposal(proposal, acceptedContent);
+        } catch (validationError) {
+          /*
+           * JSON files (package.json, tsconfig.json, …) frequently fail to apply
+           * cleanly during generation: the template writes the file AFTER the
+           * proposal's base was captured, or the proposed content is truncated
+           * mid-stream → invalid JSON. Rather than hard-fail (and repeatedly toast
+           * "Couldn't apply package.json"), MERGE the agent's intent onto the CURRENT
+           * file — never overwriting a valid file with garbage nor dropping template
+           * keys. Re-throw only if a valid merge is impossible.
+           */
+          if (!proposal.relativePath.endsWith('.json')) {
+            throw validationError;
+          }
+
+          const currentContent = this.#filesStore.getFile(proposal.filePath)?.content ?? proposal.originalContent;
+
+          let merged = mergeJsonContent(currentContent, proposal.proposedContent);
+
+          /*
+           * Nothing recoverable from either side (both truncated/empty). For
+           * package.json specifically, a hard-fail here strands `npm install` and
+           * the preview with no manifest and stacks an identical "AI patch failed"
+           * on every retry. Scaffold a minimal VALID manifest instead — the preview
+           * repair (buildPreviewManifestRepair) then infers the real dependencies
+           * from the emitted imports. Other .json files keep the strict behaviour.
+           */
+          if (merged === undefined && proposal.relativePath.split('/').pop() === 'package.json') {
+            merged = `${JSON.stringify({ name: 'app', private: true, version: '0.0.0', type: 'module' }, null, 2)}\n`;
+          }
+
+          if (merged === undefined) {
+            throw validationError;
+          }
+
+          acceptedContent = merged;
+          await this.#validateAgentPatchProposal(proposal, acceptedContent);
+          this.appendWorkspaceLog(`AI patch for ${proposal.relativePath} applied via tolerant JSON merge`);
+        }
+
         /*
-         * JSON files (package.json, tsconfig.json, …) frequently fail to apply
-         * cleanly during generation: the template writes the file AFTER the
-         * proposal's base was captured, or the proposed content is truncated
-         * mid-stream → invalid JSON. Rather than hard-fail (and repeatedly toast
-         * "Couldn't apply package.json"), MERGE the agent's intent onto the CURRENT
-         * file — never overwriting a valid file with garbage nor dropping template
-         * keys. Re-throw only if a valid merge is impossible.
+         * Reconcile against the freshest local content BEFORE writing so a parallel
+         * multi-agent lane's changes (package.json deps, the entry index.html)
+         * aren't clobbered. Under #agentPatchApplyMutex this observes the previous
+         * same-path lane's applied result; JSON unions both edits, other files keep
+         * ours (coherent last-write-wins). Both writes below then emit this result.
          */
-        if (!proposal.relativePath.endsWith('.json')) {
-          throw validationError;
+        const freshBeforeWrite = this.#filesStore.getFile(proposal.filePath)?.content;
+
+        if (
+          freshBeforeWrite !== undefined &&
+          freshBeforeWrite !== proposal.originalContent &&
+          freshBeforeWrite !== acceptedContent
+        ) {
+          const reconciled = reconcileRemoteWrite(proposal.relativePath, freshBeforeWrite, acceptedContent);
+
+          if (reconciled !== acceptedContent) {
+            acceptedContent = reconciled;
+            this.appendWorkspaceLog(`AI patch reconciled ${proposal.relativePath} with a concurrent change`);
+          }
         }
 
-        const currentContent = this.#filesStore.getFile(proposal.filePath)?.content ?? proposal.originalContent;
-        let merged = mergeJsonContent(currentContent, proposal.proposedContent);
+        const fileExistsInEditor = Boolean(this.#editorStore.documents.get()[proposal.filePath]);
 
-        /*
-         * Nothing recoverable from either side (both truncated/empty). For
-         * package.json specifically, a hard-fail here strands `npm install` and
-         * the preview with no manifest and stacks an identical "AI patch failed"
-         * on every retry. Scaffold a minimal VALID manifest instead — the preview
-         * repair (buildPreviewManifestRepair) then infers the real dependencies
-         * from the emitted imports. Other .json files keep the strict behaviour.
-         */
-        if (merged === undefined && proposal.relativePath.split('/').pop() === 'package.json') {
-          merged = `${JSON.stringify({ name: 'app', private: true, version: '0.0.0', type: 'module' }, null, 2)}\n`;
+        if (fileExistsInEditor) {
+          this.#editorStore.updateFile(proposal.filePath, acceptedContent);
+
+          /*
+           * onRemoteConflict:'reconcile' — if the file still changed under us (the
+           * store/remote briefly out of sync), merge/adopt instead of failing the
+           * lane with "Remote file changed since it was loaded".
+           */
+          await this.saveFile(proposal.filePath, { onRemoteConflict: 'reconcile' });
         }
 
-        if (merged === undefined) {
-          throw validationError;
+        const artifact = this.#getArtifact(proposal.artifactId);
+
+        await writeAcceptedAgentFile(this.#runtime, proposal.relativePath, acceptedContent);
+        artifact?.runner.skipAction(proposal.actionId);
+
+        if (!fileExistsInEditor) {
+          await this.loadRuntimeFiles('.').catch((error) => {
+            this.appendWorkspaceLog(
+              error instanceof Error
+                ? `File refresh skipped after accepting AI patch: ${error.message}`
+                : 'File refresh skipped after accepting AI patch',
+            );
+          });
         }
 
-        acceptedContent = merged;
-        await this.#validateAgentPatchProposal(proposal, acceptedContent);
-        this.appendWorkspaceLog(`AI patch for ${proposal.relativePath} applied via tolerant JSON merge`);
-      }
+        this.#agentPatchOriginals.delete(proposal.actionId);
+        this.resetAllFileModifications();
+        this.agentPatchProposals.setKey(proposalId, {
+          ...proposal,
+          proposedContent: acceptedContent,
+          status: 'accepted',
+          updatedAt: new Date().toISOString(),
+        });
+        this.#syncAgentPatchProposalToServer(proposalId);
+        this.#emitFileApplied(proposal.relativePath, 'agent', {
+          artifactId: proposal.artifactId,
+          actionId: proposal.actionId,
+        });
+        this.#dropResolvedAgentPatchLogs(proposal.relativePath);
+        this.#dropResolvedMissingImportFailures();
+        this.appendWorkspaceLog(`AI patch accepted: ${proposal.relativePath}`);
 
-      const fileExistsInEditor = Boolean(this.#editorStore.documents.get()[proposal.filePath]);
-
-      if (fileExistsInEditor) {
-        this.#editorStore.updateFile(proposal.filePath, acceptedContent);
-        await this.saveFile(proposal.filePath);
-      }
-
-      const artifact = this.#getArtifact(proposal.artifactId);
-
-      await writeAcceptedAgentFile(this.#runtime, proposal.relativePath, acceptedContent);
-      artifact?.runner.skipAction(proposal.actionId);
-
-      if (!fileExistsInEditor) {
-        await this.loadRuntimeFiles('.').catch((error) => {
+        await this.#createProjectAgentCheckpoint(`AI accepted ${proposal.relativePath}`).catch((error) => {
           this.appendWorkspaceLog(
             error instanceof Error
-              ? `File refresh skipped after accepting AI patch: ${error.message}`
-              : 'File refresh skipped after accepting AI patch',
+              ? `AI checkpoint skipped after patch accept: ${error.message}`
+              : 'AI checkpoint skipped after patch accept',
           );
         });
+
+        return 'accepted';
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to apply AI patch.';
+        this.agentPatchProposals.setKey(proposalId, {
+          ...proposal,
+          status: 'failed',
+          updatedAt: new Date().toISOString(),
+          error: message,
+        });
+        this.#syncAgentPatchProposalToServer(proposalId);
+        this.appendWorkspaceLog(`AI patch failed: ${proposal.relativePath}: ${message}`);
+
+        return 'failed';
       }
-
-      this.#agentPatchOriginals.delete(proposal.actionId);
-      this.resetAllFileModifications();
-      this.agentPatchProposals.setKey(proposalId, {
-        ...proposal,
-        proposedContent: acceptedContent,
-        status: 'accepted',
-        updatedAt: new Date().toISOString(),
-      });
-      this.#syncAgentPatchProposalToServer(proposalId);
-      this.#emitFileApplied(proposal.relativePath, 'agent', {
-        artifactId: proposal.artifactId,
-        actionId: proposal.actionId,
-      });
-      this.#dropResolvedAgentPatchLogs(proposal.relativePath);
-      this.#dropResolvedMissingImportFailures();
-      this.appendWorkspaceLog(`AI patch accepted: ${proposal.relativePath}`);
-
-      await this.#createProjectAgentCheckpoint(`AI accepted ${proposal.relativePath}`).catch((error) => {
-        this.appendWorkspaceLog(
-          error instanceof Error
-            ? `AI checkpoint skipped after patch accept: ${error.message}`
-            : 'AI checkpoint skipped after patch accept',
-        );
-      });
-
-      return 'accepted';
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to apply AI patch.';
-      this.agentPatchProposals.setKey(proposalId, {
-        ...proposal,
-        status: 'failed',
-        updatedAt: new Date().toISOString(),
-        error: message,
-      });
-      this.#syncAgentPatchProposalToServer(proposalId);
-      this.appendWorkspaceLog(`AI patch failed: ${proposal.relativePath}: ${message}`);
-
-      return 'failed';
-    }
+    });
   }
 
   async acceptAllAgentPatchProposals(proposalIds?: string[], hunkSelections?: Record<string, string[]>) {
