@@ -657,7 +657,7 @@ export const Workbench = memo(
                                 'min-w-[min(240px,calc(100vw-24px))] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-24px))] overflow-auto z-[250]',
                                 'bg-bolt-elements-background-depth-2',
                                 'rounded-lg shadow-lg',
-                                'border border-gray-200/50 dark:border-gray-800/50',
+                                'border border-bolt-elements-borderColor',
                                 'animate-in fade-in-0 zoom-in-95',
                                 'py-1',
                               )}
