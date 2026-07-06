@@ -1,4 +1,5 @@
 import { synthesizeMissingBarrels } from './barrel-synthesis';
+import { ensureViteHmrConfig } from './vite-hmr-config';
 
 export interface GeneratedPreviewFile {
   path: string;
@@ -207,10 +208,6 @@ function hasViteEntryPoint(files: Record<string, string>) {
   );
 }
 
-function hasViteConfig(files: Record<string, string>) {
-  return Boolean(firstExistingPath(files, ['vite.config.ts', 'vite.config.js', 'vite.config.mjs', 'vite.config.mts']));
-}
-
 function runtimeDependencyForImport(specifier: string) {
   if (!specifier || specifier.startsWith('.') || specifier.startsWith('/') || specifier.startsWith('node:')) {
     return undefined;
@@ -297,8 +294,27 @@ function supplementalPreviewFiles(
     result.push({ path: joinRuntimePath(cwd, 'src/main.tsx'), content: VITE_MAIN_TSX });
   }
 
-  if (options.hasReact && !hasViteConfig(files)) {
+  const viteConfigPath = firstExistingPath(files, [
+    'vite.config.ts',
+    'vite.config.js',
+    'vite.config.mjs',
+    'vite.config.mts',
+  ]);
+
+  if (options.hasReact && !viteConfigPath) {
     result.push({ path: joinRuntimePath(cwd, 'vite.config.ts'), content: VITE_REACT_CONFIG });
+  } else if (viteConfigPath) {
+    /*
+     * The model wrote its OWN vite.config, so the scaffold above is skipped and
+     * its HMR isn't wired for the proxy (→ wss://localhost:undefined, blank app).
+     * Post-process it to guarantee server.host + server.hmr without discarding
+     * the model's settings. Only re-emit when the merge actually changed it.
+     */
+    const ensured = ensureViteHmrConfig(files[viteConfigPath]);
+
+    if (ensured !== files[viteConfigPath]) {
+      result.push({ path: joinRuntimePath(cwd, viteConfigPath), content: ensured });
+    }
   }
 
   return result;

@@ -28,6 +28,36 @@ describe('preview manifest repair', () => {
     ).toEqual(['react', 'react-dom']);
   });
 
+  it('post-processes an AI-generated vite.config to guarantee proxy HMR', () => {
+    const repair = buildPreviewManifestRepair({
+      'package.json': JSON.stringify({
+        name: 'kanban',
+        scripts: { dev: 'vite' },
+        dependencies: { vite: '^5.4.19', react: '^18.3.1', 'react-dom': '^18.3.1' },
+      }),
+      'index.html': '<div id="root"></div><script type="module" src="/src/main.tsx"></script>',
+      'src/main.tsx': [
+        "import { createRoot } from 'react-dom/client';",
+        "import App from './App';",
+        "createRoot(document.getElementById('root')!).render(<App />);",
+        '',
+      ].join('\n'),
+      'src/App.tsx': 'export default function App() { return <main />; }\n',
+
+      // The model wrote its OWN vite.config (no server.hmr).
+      'vite.config.ts': "import { defineConfig } from 'vite';\nexport default defineConfig({ plugins: [] });\n",
+    });
+
+    const emittedConfig = repair.supplementalFiles.find((file) => file.path.endsWith('vite.config.ts'));
+
+    expect(emittedConfig).toBeDefined();
+    expect(emittedConfig?.content).toContain('__ecodeMergeConfig');
+    expect(emittedConfig?.content).toContain('VITE_HMR_CLIENT_PORT');
+
+    // The scaffold VITE_REACT_CONFIG must NOT overwrite the model's config.
+    expect(emittedConfig?.content).toContain('const __ecodeUserConfig = defineConfig({ plugins: [] })');
+  });
+
   it('adds missing React dependencies and scripts to an incomplete Vite package', () => {
     const { repair, packageJson } = packageJsonFromRepair({
       'package.json': JSON.stringify({
