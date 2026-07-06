@@ -14,6 +14,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { formatAbsoluteTime } from '~/lib/format-relative';
 import { isReauthRedirect, shouldRethrowActionError } from '~/lib/route-reauth';
 
 /*
@@ -158,7 +159,7 @@ function DeliveryStatus({ webhook }: { webhook: SiemWebhook }) {
     return (
       <span className="inline-flex items-center gap-1 text-xs text-bolt-elements-textSecondary">
         <CheckCircle2 className="h-3.5 w-3.5 text-[var(--status-success-text)]" aria-hidden />
-        Last delivered {new Date(webhook.lastDeliveredAt).toLocaleString()}
+        Last delivered {formatAbsoluteTime(webhook.lastDeliveredAt)}
       </span>
     );
   }
