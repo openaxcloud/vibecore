@@ -18,6 +18,9 @@ export type ProjectLoaderData = {
     slug?: string;
     organizationId?: string;
     gitDefaultBranch?: string;
+
+    /** Number of deployments; drives the top bar's Publish vs Republish label. */
+    deploymentCount?: number;
   };
   workspace: {
     id?: string;
