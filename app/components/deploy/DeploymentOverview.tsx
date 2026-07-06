@@ -92,7 +92,7 @@ export function DeploymentOverview({
           )}
           {deployment.customDomain ? <DomainValue url={`https://${deployment.customDomain}`} /> : null}
           <button type="button" onClick={onBuyDomain} className="inline-flex w-fit items-center gap-1.5 text-[13px]">
-            <span className="text-[var(--ecode-accent,#F26207)] hover:underline">Buy a new domain</span>
+            <span className="text-[var(--vc-ide-accent-action)] hover:underline">Buy a new domain</span>
             <span className="rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-bolt-elements-textTertiary">
               Beta
             </span>
@@ -108,7 +108,7 @@ export function DeploymentOverview({
           <button
             type="button"
             onClick={onManage}
-            className="text-[13px] text-[var(--ecode-accent,#F26207)] hover:underline"
+            className="text-[13px] text-[var(--vc-ide-accent-action)] hover:underline"
           >
             Manage
           </button>
@@ -136,7 +136,7 @@ export function DeploymentOverview({
             <button
               type="button"
               onClick={onManageDatabase}
-              className="text-[13px] text-[var(--ecode-accent,#F26207)] hover:underline"
+              className="text-[13px] text-[var(--vc-ide-accent-action)] hover:underline"
             >
               Manage
             </button>
@@ -187,7 +187,7 @@ function DomainValue({ url }: { url: string }) {
           href={url}
           target="_blank"
           rel="noreferrer"
-          className="truncate text-[var(--ecode-accent,#F26207)] hover:underline"
+          className="truncate text-[var(--vc-ide-accent-action)] hover:underline"
         >
           {url}
         </a>

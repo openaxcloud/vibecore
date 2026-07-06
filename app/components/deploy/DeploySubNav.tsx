@@ -36,7 +36,7 @@ export function DeploySubNav({ active, onSelect }: { active: DeployView; onSelec
             className={classNames(
               'inline-flex h-[38px] items-center border-b-2 px-3 text-[14px] transition-colors',
               selected
-                ? 'border-[var(--ecode-accent,#F26207)] text-bolt-elements-textPrimary'
+                ? 'border-[var(--vc-ide-accent-action)] text-bolt-elements-textPrimary'
                 : 'border-transparent text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
             )}
           >
