@@ -43,6 +43,7 @@ import type { DesignScheme } from '~/types/design-scheme';
 import type { IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 import { WORK_DIR } from '~/utils/constants';
+import { responseEmittedFileAction } from '~/utils/response-file-actions';
 import {
   createPortfolioTemplateArtifact,
   createPortfolioTemplateStreamChunks,
@@ -244,6 +245,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    * on each continuation and capped at MAX_RESPONSE_SEGMENTS.
    */
   let continuationSegments = 0;
+
+  /*
+   * Whether ANY segment of this build produced a `<boltAction type="file">` —
+   * i.e. the model actually emitted files, not just prose. A weak model
+   * (gpt-3.5) often narrates the plan and emits nothing applicable; without this
+   * the run "completes" silently with no app and a PENDING preview. Accumulated
+   * across continuation segments and checked at every terminal exit.
+   */
+  let emittedFileAction = false;
 
   const encoder: TextEncoder = new TextEncoder();
 
@@ -1026,6 +1036,39 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               cumulativeUsage.totalTokens += usage.totalTokens || 0;
             }
 
+            // Latch once any segment emits a real file action (accumulates across continuations).
+            emittedFileAction = emittedFileAction || responseEmittedFileAction(content);
+
+            /*
+             * A build that ends without EVER emitting a `<boltAction type="file">`
+             * produced no app — typically a weak model (gpt-3.5) that narrated the
+             * plan in prose. Rather than a silent "Response Generated" + a preview
+             * stuck PENDING, surface a clear, actionable message. Build mode only
+             * (discuss mode legitimately writes no files). Best-effort — never
+             * throws out of onFinish.
+             */
+            const warnIfNoFilesGenerated = () => {
+              if (chatMode !== 'build' || emittedFileAction) {
+                return;
+              }
+
+              try {
+                dataStream.writeData({
+                  type: 'progress',
+                  label: 'response',
+                  status: 'complete',
+                  order: progressCounter++,
+                  message:
+                    'No files were generated — this model did not emit any file actions. Pick a more capable model (e.g. GPT-4o or Claude Sonnet) and try again.',
+                } satisfies ProgressAnnotation);
+                logger.warn(
+                  `[chat] build produced no file actions (model likely too weak); projectId=${projectId ?? 'n/a'}`,
+                );
+              } catch (error) {
+                logger.warn(`failed to write no-files annotation: ${error instanceof Error ? error.message : error}`);
+              }
+            };
+
             /*
              * Record token usage to the structured log + api-side ledger/quota.
              * Must run on EVERY terminal exit — including the two 'length'
@@ -1113,6 +1156,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
                 await flushUsage(finishReason);
 
+                warnIfNoFilesGenerated();
+
                 dataStream.writeData({
                   type: 'progress',
                   label: 'response',
@@ -1143,6 +1188,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                  */
                 streamRecovery.stop();
                 await flushUsage('length');
+                warnIfNoFilesGenerated();
                 dataStream.writeData({
                   type: 'progress',
                   label: 'response',
@@ -1166,6 +1212,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               if (content.trim().length === 0) {
                 streamRecovery.stop();
                 await flushUsage('length');
+                warnIfNoFilesGenerated();
                 dataStream.writeData({
                   type: 'progress',
                   label: 'response',
