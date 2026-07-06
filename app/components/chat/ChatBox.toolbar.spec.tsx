@@ -115,7 +115,7 @@ describe('<ChatBox /> toolbar', () => {
     renderChatBox();
 
     expect(screen.queryByText(/Use Shift \+ Return a new line/i)).toBeNull();
-    expect(screen.getByRole('button', { name: 'Upload file' }).getAttribute('data-vc-tooltip')).toBe('Upload file');
+    expect(screen.getByRole('button', { name: 'Attach images' }).getAttribute('data-vc-tooltip')).toBe('Attach images');
 
     /*
      * The mode dropdown is Agent/Assistant only now; Plan is a standalone toggle

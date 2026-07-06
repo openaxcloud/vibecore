@@ -534,8 +534,8 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         <div className="bolt-chatbox-toolbar" data-vc-composer-toolbar>
           <div className="bolt-chatbox-toolbar-primary">
             <IconButton
-              title="Upload file"
-              tooltip="Upload file"
+              title="Attach images"
+              tooltip="Attach images"
               className="bolt-chatbox-toolbar-button"
               onClick={() => props.handleFileUpload()}
             >
