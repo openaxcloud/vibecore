@@ -1244,7 +1244,6 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
             </CardDescription>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <StatusPill label={project.status ?? 'Ready'} />
             <ProjectCardMenu project={project} onRename={() => setRenaming(true)} />
           </div>
         </div>
@@ -1266,6 +1265,18 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
               }}
             />
           ) : null}
+          {/* Replit parity: status as a translucent overlay chip in the thumbnail
+              corner (readable over any preview image), not a header pill. */}
+          <span className="absolute right-2 top-2 z-[2] inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
+            <span
+              className={classNames(
+                'h-1.5 w-1.5 rounded-full',
+                /(ready|running|active|live)/i.test(project.status ?? 'Ready') ? 'bg-green-400' : 'bg-white/70',
+              )}
+              aria-hidden
+            />
+            {project.status ?? 'Ready'}
+          </span>
         </div>
         <div className="flex items-center justify-between text-xs text-bolt-elements-textSecondary">
           {project.updatedAtIso ? (
