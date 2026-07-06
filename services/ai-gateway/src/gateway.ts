@@ -297,6 +297,65 @@ export function headers(config: ProviderConfig) {
   return headers;
 }
 
+/*
+ * A provider 429 conflates two very different conditions:
+ *   - a TRANSIENT per-minute rate limit ("...rate limit exceeded...") that
+ *     clears on its own and is worth retrying / falling back on, and
+ *   - the provider ACCOUNT's own usage/spend cap configured in the provider
+ *     console ("You have reached your specified API usage limits. You will
+ *     regain access on <first-of-next-month> at 00:00 UTC."), a hard wall that
+ *     does NOT clear until the reset date and will fail identically on retry.
+ *
+ * Collapsing both into a bare `Provider ... failed: 429` (and, in the stream
+ * path, discarding the upstream body entirely) hid the account cap: it was
+ * indistinguishable from a provider-side incident, so the same self-inflicted
+ * console spend limit could be misread as an internal quota gate — and the
+ * retry/backoff budget was burnt against a wall that never moves. Detect the
+ * account-cap shape from the upstream body so callers can label it (code
+ * `PROVIDER_ACCOUNT_LIMIT`) and skip the pointless retries.
+ */
+export function isProviderAccountLimit(status: number | undefined, body: string | undefined): boolean {
+  if (status !== 429 || !body) {
+    return false;
+  }
+
+  const text = body.toLowerCase();
+
+  return (
+    text.includes('specified api usage') ||
+    text.includes('regain access') ||
+    text.includes('usage limit') ||
+    text.includes('spend limit') ||
+    text.includes('monthly limit')
+  );
+}
+
+/*
+ * Pull the human-readable message out of a provider error body without letting
+ * a malformed/huge body throw or bloat logs. Anthropic and OpenAI both nest it
+ * at `error.message`; fall back to a bounded raw slice for anything else.
+ */
+export function extractProviderErrorMessage(body: string | undefined): string | undefined {
+  if (!body) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(body) as { error?: { message?: unknown }; message?: unknown };
+    const nested = parsed?.error?.message ?? parsed?.message;
+
+    if (typeof nested === 'string' && nested.trim()) {
+      return nested.trim().slice(0, 500);
+    }
+  } catch {
+    // not JSON — fall through to the raw slice
+  }
+
+  const trimmed = body.trim();
+
+  return trimmed ? trimmed.slice(0, 500) : undefined;
+}
+
 async function retry<T>(operation: () => Promise<T>, attempts = 3, signal?: AbortSignal): Promise<T> {
   let lastError: unknown;
 
@@ -331,6 +390,16 @@ async function retry<T>(operation: () => Promise<T>, attempts = 3, signal?: Abor
         throw error;
       }
 
+      /*
+       * An account usage/spend-cap 429 is a hard wall until the provider's reset
+       * date — unlike a transient rate-limit 429 it will fail identically on
+       * every retry. Surface it immediately (the cross-provider fallback in
+       * generate() still gets its chance) instead of sleeping out the backoff.
+       */
+      if (upstreamStatus === 429 && (error as { code?: string })?.code === 'PROVIDER_ACCOUNT_LIMIT') {
+        throw error;
+      }
+
       if (attempt < attempts) {
         await new Promise((resolve) => setTimeout(resolve, 80 * attempt * attempt));
       }
@@ -344,11 +413,23 @@ async function readJson(response: Response) {
   const text = await response.text();
 
   if (!response.ok) {
-    throw Object.assign(new Error(`Provider request failed: ${response.status}`), {
-      statusCode: 502,
-      upstreamStatus: response.status,
-      providerBody: text.slice(0, 500),
-    });
+    const accountLimit = isProviderAccountLimit(response.status, text);
+    const providerMessage = extractProviderErrorMessage(text);
+
+    throw Object.assign(
+      new Error(
+        accountLimit
+          ? `Provider account usage limit reached: ${providerMessage ?? response.status}`
+          : `Provider request failed: ${response.status}`,
+      ),
+      {
+        statusCode: 502,
+        upstreamStatus: response.status,
+        providerBody: text.slice(0, 500),
+        providerMessage,
+        ...(accountLimit ? { code: 'PROVIDER_ACCOUNT_LIMIT' } : {}),
+      },
+    );
   }
 
   if (!text) {
@@ -557,11 +638,19 @@ async function* providerStream(
 
   if (!response.ok || !response.body) {
     /*
-     * Drain/cancel the error body before throwing. An error status (429/5xx,
-     * common during provider incidents) often carries a body; throwing without
-     * consuming it leaks the upstream connection until GC, exhausting sockets.
+     * Read (bounded) then release the error body before throwing. An error
+     * status (429/5xx, common during provider incidents) almost always carries a
+     * body explaining the cause — an account usage-limit 429 puts the real
+     * message ("You have reached your specified API usage limits...") there.
+     * The old code cancelled the body unread, so that message was lost and the
+     * throw was a bare "Provider stream failed: 429" — impossible to tell an
+     * account spend cap from a provider incident. Read it (so the caller can
+     * surface the actual reason) while still releasing the socket promptly.
      */
-    await response.body?.cancel().catch(() => {});
+    const providerBody = await response
+      .text()
+      .catch(() => '')
+      .then((raw) => raw.slice(0, 500));
 
     /*
      * Preserve the upstream status instead of masking every failure as a 502.
@@ -573,7 +662,23 @@ async function* providerStream(
      */
     const upstreamStatus = response.status;
     const statusCode = upstreamStatus === 429 || (upstreamStatus >= 400 && upstreamStatus < 500) ? upstreamStatus : 502;
-    throw Object.assign(new Error(`Provider stream failed: ${upstreamStatus}`), { statusCode, upstreamStatus });
+    const accountLimit = isProviderAccountLimit(upstreamStatus, providerBody);
+    const providerMessage = extractProviderErrorMessage(providerBody);
+
+    throw Object.assign(
+      new Error(
+        accountLimit
+          ? `Provider account usage limit reached: ${providerMessage ?? upstreamStatus}`
+          : `Provider stream failed: ${upstreamStatus}`,
+      ),
+      {
+        statusCode,
+        upstreamStatus,
+        providerBody,
+        providerMessage,
+        ...(accountLimit ? { code: 'PROVIDER_ACCOUNT_LIMIT' } : {}),
+      },
+    );
   }
 
   const reader = response.body.getReader();

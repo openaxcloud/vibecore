@@ -1,6 +1,26 @@
 import { createServer, type Server } from 'node:http';
 import { afterEach, describe, expect, it } from 'vitest';
-import { AiGateway, countTokens, ensureGptTokenizer, modelDisallowsTemperature } from './gateway.js';
+import {
+  AiGateway,
+  countTokens,
+  ensureGptTokenizer,
+  extractProviderErrorMessage,
+  isProviderAccountLimit,
+  modelDisallowsTemperature,
+} from './gateway.js';
+
+/*
+ * The verbatim body Anthropic's API returns when the account's own monthly
+ * usage/spend limit (configured in the Anthropic Console) is exceeded. The
+ * reset date is always the first of the next month at 00:00 UTC.
+ */
+const ANTHROPIC_ACCOUNT_LIMIT_BODY = JSON.stringify({
+  type: 'error',
+  error: {
+    type: 'rate_limit_error',
+    message: 'You have reached your specified API usage limits. You will regain access on 2026-08-01 at 00:00 UTC.',
+  },
+});
 
 async function startProvider(responder: (body: string, response: import('node:http').ServerResponse) => void) {
   const server = createServer((request, response) => {
@@ -190,5 +210,93 @@ describe('AiGateway', () => {
     expect(modelDisallowsTemperature('claude-haiku-4-5-20251001')).toBe(true);
     expect(modelDisallowsTemperature('gpt-4.1')).toBe(true);
     expect(modelDisallowsTemperature('gemini-2.0-flash')).toBe(true);
+  });
+
+  /*
+   * Regression guard for the "specified API usage limits" incident: a provider
+   * ACCOUNT usage-cap 429 (Anthropic Console monthly spend limit) is a real
+   * provider response, not an internal E-Code quota gate. The gateway must (a)
+   * classify it distinctly, (b) surface the provider's REAL message instead of
+   * a bare "Provider stream failed: 429", and — the key requirement — (c) NOT
+   * block an account that has no such cap: a healthy provider streams normally.
+   */
+  it('classifies an Anthropic account usage-limit body but not a transient rate limit', () => {
+    expect(isProviderAccountLimit(429, ANTHROPIC_ACCOUNT_LIMIT_BODY)).toBe(true);
+    // A per-minute rate limit clears on its own — it is NOT an account cap.
+    expect(
+      isProviderAccountLimit(429, JSON.stringify({ error: { message: 'Rate limit exceeded, retry soon.' } })),
+    ).toBe(false);
+    // A non-429 (or empty body) is never an account cap.
+    expect(isProviderAccountLimit(500, ANTHROPIC_ACCOUNT_LIMIT_BODY)).toBe(false);
+    expect(isProviderAccountLimit(429, '')).toBe(false);
+  });
+
+  it('extracts the human-readable provider message from JSON and raw bodies', () => {
+    expect(extractProviderErrorMessage(ANTHROPIC_ACCOUNT_LIMIT_BODY)).toContain('specified API usage limits');
+    expect(extractProviderErrorMessage('gateway timeout')).toBe('gateway timeout');
+    expect(extractProviderErrorMessage('')).toBeUndefined();
+    expect(extractProviderErrorMessage(undefined)).toBeUndefined();
+  });
+
+  it('surfaces the real Anthropic account-limit message on the stream error part (not a bare 429)', async () => {
+    const provider = await startProvider((_body, response) => {
+      response.writeHead(429, { 'content-type': 'application/json' }).end(ANTHROPIC_ACCOUNT_LIMIT_BODY);
+    });
+    servers.push(provider.server);
+    process.env.ANTHROPIC_API_KEY = 'anthropic-key';
+    process.env.ANTHROPIC_BASE_URL = provider.url.replace(/\/v1$/, '');
+
+    const gateway = new AiGateway();
+    const chunks = [];
+
+    for await (const chunk of gateway.stream({
+      plan: 'enterprise',
+      provider: 'anthropic',
+      model: 'claude-3-5-sonnet-latest',
+      stream: true,
+      messages: [{ role: 'user', content: 'build me an app' }],
+    })) {
+      chunks.push(chunk);
+    }
+
+    const errorChunk = chunks.find((chunk) => chunk.type === 'error');
+    expect(errorChunk).toBeDefined();
+    // The real provider reason is preserved, not swallowed into "Provider stream failed: 429".
+    expect(errorChunk?.error).toContain('specified API usage limits');
+    expect(chunks.some((chunk) => chunk.type === 'delta')).toBe(false);
+  });
+
+  it('lets an account with no real usage cap generate — a healthy Anthropic key streams unblocked', async () => {
+    const provider = await startProvider((_body, response) => {
+      response.writeHead(200, { 'content-type': 'text/event-stream' });
+      response.write('data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"hel"}}\n\n');
+      response.write('data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"lo"}}\n\n');
+      response.end('data: [DONE]\n\n');
+    });
+    servers.push(provider.server);
+    process.env.ANTHROPIC_API_KEY = 'anthropic-key';
+    process.env.ANTHROPIC_BASE_URL = provider.url.replace(/\/v1$/, '');
+
+    const gateway = new AiGateway();
+    const chunks = [];
+
+    for await (const chunk of gateway.stream({
+      plan: 'enterprise',
+      provider: 'anthropic',
+      model: 'claude-3-5-sonnet-latest',
+      stream: true,
+      messages: [{ role: 'user', content: 'build me an app' }],
+    })) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks.some((chunk) => chunk.type === 'error')).toBe(false);
+    expect(
+      chunks
+        .filter((chunk) => chunk.type === 'delta')
+        .map((chunk) => chunk.content)
+        .join(''),
+    ).toBe('hello');
+    expect(chunks.at(-1)?.type).toBe('done');
   });
 });
