@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFetcher } from 'react-router';
+import { formatAbsoluteTime } from '~/lib/format-relative';
 
 /*
  * Replit-parity database point-in-time rollback — dormant UI shell (Phase-1).
@@ -219,7 +220,7 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
                 <span>
                   {snapshot.label ?? snapshot.kind} · {formatBytes(snapshot.sizeBytes)}
                 </span>
-                <span>{new Date(snapshot.createdAt).toLocaleString()}</span>
+                <span>{formatAbsoluteTime(snapshot.createdAt)}</span>
               </li>
             ))}
           </ul>
@@ -233,7 +234,7 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
             {restores.map((restore) => (
               <li key={restore.id} className="flex justify-between text-sm text-bolt-elements-textSecondary">
                 <span>{restore.status}</span>
-                <span>{new Date(restore.createdAt).toLocaleString()}</span>
+                <span>{formatAbsoluteTime(restore.createdAt)}</span>
               </li>
             ))}
           </ul>

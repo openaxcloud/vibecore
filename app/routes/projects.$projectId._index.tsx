@@ -3,6 +3,7 @@ import type { MetaFunction } from 'react-router';
 import { useLoaderData } from 'react-router';
 import { ActivityList, ProjectShell, StatGrid } from '~/components/dashboard/SaaSLayout';
 import type { EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { formatAbsoluteTime } from '~/lib/format-relative';
 import { projectPageLoader, type ProjectRecord } from '~/lib/project-route.server';
 
 type DashboardData = {
@@ -66,7 +67,7 @@ export default function ProjectDashboardPage() {
             recentActivity.length
               ? recentActivity.map((item) => ({
                   title: item.action,
-                  detail: item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Recorded by API',
+                  detail: item.createdAt ? formatAbsoluteTime(item.createdAt) : 'Recorded by API',
                   icon: Activity,
                 }))
               : [
