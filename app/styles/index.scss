@@ -9405,19 +9405,20 @@ body :where(.lucide, svg[data-lucide]) {
   /* Fill the (possibly resized/wide) file panel instead of hard-capping at 240px,
      which truncated long names even when there was room. min-w-0 + truncate on the
      name span still handle overflow. */
-  width: calc(100% - 20px);
+  width: calc(100% - 16px);
   max-width: 100%;
-  height: 28px;
-  min-height: 28px;
+  /* Compact density (Replit parity): 24px rows / 13px text vs the old 28/14. */
+  height: 24px;
+  min-height: 24px;
   align-items: center;
   gap: 6px;
-  margin: 0 10px;
+  margin: 0 8px;
   border-width: 0;
   border-radius: 4px;
   padding: 0;
   box-sizing: border-box;
   color: var(--vc-file-tree-foreground);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
   line-height: normal;
 }
@@ -9494,7 +9495,7 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 0;
   max-width: 100%;
   color: var(--vc-file-tree-foreground);
-  font-size: 14px !important;
+  font-size: 13px !important;
   font-weight: 400;
   line-height: normal !important;
   overflow: hidden;
