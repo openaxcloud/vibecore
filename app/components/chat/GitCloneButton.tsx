@@ -12,7 +12,7 @@ import { LoadingOverlay } from '~/components/ui/LoadingOverlay';
 import { useGit } from '~/lib/hooks/useGit';
 import type { IChatMetadata } from '~/lib/persistence/db';
 import { classNames } from '~/utils/classNames';
-import { generateId } from '~/utils/fileUtils';
+import { generateId, isBinaryContent } from '~/utils/fileUtils';
 import {
   detectProjectCommands,
   createCommandsMessage,
@@ -88,11 +88,11 @@ export default function GitCloneButton({ importChat, className }: GitCloneButton
         for (const filePath of filePaths) {
           const { data: content, encoding } = data[filePath];
 
-          // Skip binary files
-          if (
-            content instanceof Uint8Array &&
-            !filePath.match(/\.(txt|md|astro|mjs|js|jsx|ts|tsx|json|html|css|scss|less|yml|yaml|xml|svg|vue|svelte)$/i)
-          ) {
+          /*
+           * Skip binary files — detected by content, not by an extension
+           * allowlist that used to drop .py/.go/.rs/.sql source as "binary".
+           */
+          if (content instanceof Uint8Array && isBinaryContent(content)) {
             skippedFiles.push(filePath);
             continue;
           }

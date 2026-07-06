@@ -23,12 +23,17 @@ export const ig = ignore().add(IGNORE_PATTERNS);
 
 export const generateId = () => Math.random().toString(36).substring(2, 15);
 
-export const isBinaryFile = async (file: File): Promise<boolean> => {
-  const chunkSize = 1024;
-  const buffer = new Uint8Array(await file.slice(0, chunkSize).arrayBuffer());
+/*
+ * Content-based binary sniff: scan the first 1KB for a NUL byte or a control
+ * byte that isn't tab/LF/CR. This is how a real editor decides "binary vs
+ * text" — it never trusts the file extension, so source files with uncommon
+ * extensions (.py, .go, .rs, .sql, Dockerfile, …) are correctly kept as text.
+ */
+export const isBinaryContent = (bytes: Uint8Array): boolean => {
+  const limit = Math.min(bytes.length, 1024);
 
-  for (let i = 0; i < buffer.length; i++) {
-    const byte = buffer[i];
+  for (let i = 0; i < limit; i++) {
+    const byte = bytes[i];
 
     if (byte === 0 || (byte < 32 && byte !== 9 && byte !== 10 && byte !== 13)) {
       return true;
@@ -36,6 +41,13 @@ export const isBinaryFile = async (file: File): Promise<boolean> => {
   }
 
   return false;
+};
+
+export const isBinaryFile = async (file: File): Promise<boolean> => {
+  const chunkSize = 1024;
+  const buffer = new Uint8Array(await file.slice(0, chunkSize).arrayBuffer());
+
+  return isBinaryContent(buffer);
 };
 
 export const shouldIncludeFile = (path: string): boolean => {
