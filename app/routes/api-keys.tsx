@@ -6,6 +6,7 @@ import { data as json } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from 'react-router';
 import { AppShell, StatusPill } from '~/components/dashboard/SaaSLayout';
 import { ConfirmationDialog, Dialog, DialogTitle } from '~/components/ui/Dialog';
+import { EmptyState } from '~/components/ui/EmptyState';
 import { RelativeTime } from '~/components/ui/RelativeTime';
 import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { shouldRethrowActionError } from '~/lib/route-reauth';
@@ -213,12 +214,13 @@ export default function ApiKeysPage() {
           </div>
 
           {keys.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-bolt-elements-background-depth-3">
-                <KeyRound className="h-5 w-5 text-bolt-elements-textTertiary" aria-hidden />
-              </span>
-              <p className="text-sm text-bolt-elements-textSecondary">No API keys yet. Create one to get started.</p>
-            </div>
+            <EmptyState
+              icon={KeyRound}
+              title="No API keys yet"
+              description="Create a key to authenticate with the E-Code API."
+              actionLabel="Create key"
+              onAction={() => setCreateOpen(true)}
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] border-collapse text-sm">
