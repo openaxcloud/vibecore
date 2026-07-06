@@ -1215,7 +1215,7 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
+    <div className="grid min-w-0 grid-cols-1 gap-4 overflow-x-hidden lg:grid-cols-3">
       {projects.map((project) => (
         <ProjectGridCard key={project.id} project={project} />
       ))}
@@ -1228,7 +1228,7 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
   const [renaming, setRenaming] = useState(false);
 
   return (
-    <Card className="group overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3">
+    <Card className="group min-w-0 w-full max-w-full overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3">
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -1250,7 +1250,10 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="vc-project-preview relative aspect-[16/9] overflow-hidden rounded-md">
+        {/* Cap the thumbnail height on phones/tablets (single-column) so a card
+            stays scannable (~40-50% of viewport); the aspect ratio governs again
+            once the 3-column grid kicks in at lg. */}
+        <div className="vc-project-preview relative aspect-[16/10] max-h-52 w-full overflow-hidden rounded-md lg:aspect-[16/9] lg:max-h-none">
           <ProjectPreviewFallback project={project} />
           {project.previewImageUrl ? (
             <img
