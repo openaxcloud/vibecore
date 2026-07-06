@@ -439,20 +439,31 @@ export function parseAgentRunRequest(value: unknown): AgentRunRequest {
   };
 }
 
-function buildRoleMessages(request: AgentRunRequest, role: AgentRunRole): AiMessage[] {
+/*
+ * The lane instructions that are IDENTICAL for every role. Hoisted to a constant
+ * so the leading system message + shared context form a byte-identical prefix
+ * across all N lanes — which lets provider prompt caches (e.g. OpenAI automatic
+ * prefix caching) bill the shared context once at full price and the rest of the
+ * lanes at the cached rate, instead of re-billing it in full N times.
+ */
+const SHARED_AGENT_SYSTEM_PREAMBLE = [
+  'You are a specialist sub-agent for E-Code, collaborating with other specialists to build one app.',
+  'Analyze only your assigned lane, but make your result directly integrable by the final coding agent.',
+  'Do not invent completed files. Only list files when your lane specifically requires creating or changing them.',
+  'Return strict JSON with this shape: {"summary":"string","files":["path"],"risks":["risk"],"verification":["check"]}.',
+].join('\n');
+
+export function buildRoleMessages(request: AgentRunRequest, role: AgentRunRole): AiMessage[] {
   return [
-    {
-      role: 'system',
-      content: [
-        `You are the ${role.title} sub-agent for E-Code.`,
-        `Responsibility: ${role.responsibility}`,
-        `Expected output: ${role.output}`,
-        'Analyze only your lane, but make your result directly integrable by the final coding agent.',
-        'Do not invent completed files. Only list files when your lane specifically requires creating or changing them.',
-        'Return strict JSON with this shape: {"summary":"string","files":["path"],"risks":["risk"],"verification":["check"]}.',
-      ].join('\n'),
-    },
+    // 1) Shared preamble — identical across lanes (cacheable prefix).
+    { role: 'system', content: SHARED_AGENT_SYSTEM_PREAMBLE },
+    // 2) Shared context (system + user + specs) — identical across lanes.
     ...request.messages,
+    // 3) The ONLY per-lane part, kept LAST so it doesn't break the shared prefix.
+    {
+      role: 'user',
+      content: `Act as the ${role.title} sub-agent. Responsibility: ${role.responsibility}. Expected output: ${role.output}. Return only the strict JSON described above.`,
+    },
   ];
 }
 

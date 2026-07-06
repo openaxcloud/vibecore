@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   authorizeAgentRun,
+  buildRoleMessages,
   createAgentRunRateLimiter,
   createRedisAgentRunRateLimiter,
   executeAgentRun,
@@ -8,6 +9,7 @@ import {
   parseAgentRunRequest,
   positiveIntegerOrDefault,
   type AgentRunPersistence,
+  type AgentRunRequest,
   type AgentRunRole,
   type RedisRateLimitClient,
 } from './agent-executor.js';
@@ -26,6 +28,38 @@ const frontend: AgentRunRole = {
   responsibility: 'Build UI.',
   output: 'Frontend code notes.',
 };
+
+describe('buildRoleMessages (cacheable shared prefix)', () => {
+  const request: AgentRunRequest = {
+    mode: 'parallel-subagents',
+    roles: [architect, frontend],
+    messages: [
+      { role: 'system', content: 'Build a todo app with React + Vite.' },
+      { role: 'user', content: 'Include auth and a database.' },
+    ],
+  };
+
+  it('keeps every message before the last identical across lanes (a cacheable prefix)', () => {
+    const forArchitect = buildRoleMessages(request, architect);
+    const forFrontend = buildRoleMessages(request, frontend);
+
+    // Everything except the final per-lane instruction is byte-identical.
+    expect(forArchitect.slice(0, -1)).toEqual(forFrontend.slice(0, -1));
+    // The shared context is carried once per lane (not duplicated within a lane).
+    expect(forArchitect.slice(1, -1)).toEqual(request.messages);
+  });
+
+  it('carries the role-specific instruction ONLY in the trailing message', () => {
+    const messages = buildRoleMessages(request, architect);
+    const last = messages[messages.length - 1];
+
+    expect(last.role).toBe('user');
+    expect(last.content).toContain('Architect');
+    expect(last.content).toContain('Plan architecture.');
+    // The leading (cacheable) system message must NOT mention a specific role.
+    expect(messages[0].content).not.toContain('Architect');
+  });
+});
 
 describe('agent executor', () => {
   it('authorizes agent runs only when the bearer token matches the configured token', () => {
@@ -181,7 +215,8 @@ describe('agent executor', () => {
 
   it('executes roles through the AI gateway and normalizes strict JSON output', async () => {
     const complete = vi.fn(async (request) => {
-      const roleId = request.messages[0].content.includes('Architect') ? 'architect' : 'frontend';
+      const prompt = request.messages.map((message: { content: string }) => message.content).join(' ');
+      const roleId = prompt.includes('Architect') ? 'architect' : 'frontend';
       return {
         provider: 'openai',
         model: 'gpt-4.1-mini',
@@ -220,7 +255,9 @@ describe('agent executor', () => {
 
   it('returns a partial run when one role fails', async () => {
     const complete = vi.fn(async (request) => {
-      if (request.messages[0].content.includes('Frontend')) {
+      const prompt = request.messages.map((message: { content: string }) => message.content).join(' ');
+
+      if (prompt.includes('Frontend')) {
         throw new Error('provider unavailable');
       }
 
@@ -250,7 +287,8 @@ describe('agent executor', () => {
 
   it('streams specialist lanes and persists the final consensus', async () => {
     const stream = vi.fn(async function* (request) {
-      const roleId = request.messages[0].content.includes('Architect') ? 'architect' : 'frontend';
+      const prompt = request.messages.map((message: { content: string }) => message.content).join(' ');
+      const roleId = prompt.includes('Architect') ? 'architect' : 'frontend';
 
       yield { type: 'delta' as const, content: '{"summary":"' };
       yield { type: 'delta' as const, content: `${roleId} complete"}` };

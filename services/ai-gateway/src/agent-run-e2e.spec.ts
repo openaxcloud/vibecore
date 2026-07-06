@@ -52,8 +52,11 @@ function scriptedGateway(scripts: Record<AgentRoleId, RoleScript>): AiGateway {
     stream: async function* () {},
     complete: async (request: { messages: Array<{ role: string; content: string }> }) => {
       calls.push(request);
-      const systemMessage = request.messages.find((m) => m.role === 'system')?.content ?? '';
-      const role = (Object.keys(scripts) as AgentRoleId[]).find((r) => systemMessage.toLowerCase().includes(r));
+      const prompt = request.messages
+        .map((m) => m.content)
+        .join(' ')
+        .toLowerCase();
+      const role = (Object.keys(scripts) as AgentRoleId[]).find((r) => prompt.includes(r));
       const script = role ? scripts[role] : scripts.architect;
       return {
         provider: 'openai',
@@ -221,13 +224,14 @@ describe('parallel-subagents E2E with consensus', () => {
       models: () => [],
       stream: async function* () {},
       complete: async (request: { messages: Array<{ role: string; content: string }> }) => {
-        const systemMessage = request.messages.find((m) => m.role === 'system')?.content ?? '';
-        if (/devops/i.test(systemMessage)) {
+        const prompt = request.messages
+          .map((m) => m.content)
+          .join(' ')
+          .toLowerCase();
+        if (/devops/i.test(prompt)) {
           throw new Error('devops upstream timeout');
         }
-        const role = (Object.keys(fiveRoleScripts) as AgentRoleId[]).find((r) =>
-          systemMessage.toLowerCase().includes(r),
-        );
+        const role = (Object.keys(fiveRoleScripts) as AgentRoleId[]).find((r) => prompt.includes(r));
         const script = role ? fiveRoleScripts[role] : fiveRoleScripts.architect;
         return {
           provider: 'openai',
