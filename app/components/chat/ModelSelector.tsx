@@ -537,7 +537,7 @@ export const ModelSelector = ({
                   type="text"
                   value={providerSearchQuery}
                   onChange={(e) => setProviderSearchQuery(e.target.value)}
-                  placeholder="Search providers... (⌘K to clear)"
+                  placeholder="Search providers..."
                   className={classNames(
                     'w-full rounded-md py-1.5 pl-8 pr-8 text-sm',
                     'bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor',
@@ -756,7 +756,7 @@ export const ModelSelector = ({
                   type="text"
                   value={modelSearchQuery}
                   onChange={(e) => setModelSearchQuery(e.target.value)}
-                  placeholder="Search models... (⌘K to clear)"
+                  placeholder="Search models..."
                   className={classNames(
                     'w-full rounded-md py-1.5 pl-8 pr-8 text-sm',
                     'bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor',
