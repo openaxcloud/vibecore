@@ -33,6 +33,12 @@ describe('ensureViteHmrConfig', () => {
     expect(out).toContain('VITE_HMR_CLIENT_PORT');
     expect(out).toContain('host: true');
 
+    // In the preview env it PINS the dev server to 5173 (the port the workspace
+    // preview proxy targets) so a model config's own server.port (e.g. 3000) can't
+    // leave Vite listening where the proxy never looks → mergeConfig makes it win.
+    expect(out).toContain('port: 5173');
+    expect(out).toContain('strictPort: true');
+
     // Exactly one default export in the output.
     expect(out.match(/export\s+default/g)?.length).toBe(1);
   });

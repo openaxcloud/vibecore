@@ -5258,6 +5258,9 @@ export default defineConfig({
     host: true,
     ...(hmrClientPort
       ? {
+          // Pin to the port the workspace preview proxy targets for Vite (5173).
+          port: 5173,
+          strictPort: true,
           hmr: {
             clientPort: Number(hmrClientPort),
             protocol: process.env.VITE_HMR_PROTOCOL || 'wss',

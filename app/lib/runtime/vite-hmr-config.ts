@@ -25,15 +25,22 @@ const INJECTED_HEADER = `import { mergeConfig as __ecodeMergeConfig } from 'vite
 
 /*
  * E-Code: force Vite HMR through the preview proxy (TLS/wss) so the client does
- * not build "wss://localhost:undefined" and break the app mount. Env-gated: when
- * VITE_HMR_CLIENT_PORT is unset (local dev) only host:true is applied, keeping
- * default HMR. Mirrors preview-manifest's scaffold config.
+ * not build "wss://localhost:undefined" and break the app mount, and PIN the dev
+ * server to port 5173 — the port the workspace's port-detection/preview proxy
+ * targets for a Vite app. A model-authored config often sets its own server.port
+ * (e.g. 3000); left alone Vite binds there while the proxy polls 5173 → endless
+ * "preview.proxy.unreachable" and a preview that never loads. mergeConfig layers
+ * this OVER the user config so the pinned port wins. Env-gated: when
+ * VITE_HMR_CLIENT_PORT is unset (local dev) only host:true is applied, keeping the
+ * user's own port + default HMR. Mirrors preview-manifest's scaffold config.
  */
 const ${MARKER} = {
   server: {
     host: true,
     ...(process.env.VITE_HMR_CLIENT_PORT
       ? {
+          port: 5173,
+          strictPort: true,
           hmr: {
             clientPort: Number(process.env.VITE_HMR_CLIENT_PORT),
             protocol: process.env.VITE_HMR_PROTOCOL || 'wss',
