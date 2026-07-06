@@ -66,7 +66,13 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         forbidden: true as const,
         orgId: organization.id,
         orgName: '',
-        memberships: [] as Array<{ id: string; userId: string; roleKey: string; userName?: string; userEmail?: string }>,
+        memberships: [] as Array<{
+          id: string;
+          userId: string;
+          roleKey: string;
+          userName?: string;
+          userEmail?: string;
+        }>,
         invitations: [] as PendingInvitation[],
         roles: [] as Array<{ key: string; name: string }>,
       });
@@ -254,13 +260,7 @@ export default function OrganizationMembersPage() {
           <Form method="post" className="grid gap-4 lg:grid-cols-[1fr_220px_auto] lg:items-end">
             <input type="hidden" name="intent" value="invite" />
             <input type="hidden" name="orgId" value={orgId} />
-            <TextField
-              label="Invite by email"
-              name="email"
-              type="email"
-              placeholder="teammate@company.com"
-              required
-            />
+            <TextField label="Invite by email" name="email" type="email" placeholder="teammate@company.com" required />
             <SelectField
               label="Role"
               name="roleKey"
@@ -385,9 +385,8 @@ export default function OrganizationMembersPage() {
               </DialogTitle>
               <p className="mt-1 text-sm text-bolt-elements-textSecondary">
                 <span className="font-medium text-bolt-elements-textPrimary">{memberLabel(transferTarget)}</span> will
-                become the
-                owner of <span className="font-medium text-bolt-elements-textPrimary">{orgName}</span> and you will be
-                demoted to admin. This cannot be undone by you.
+                become the owner of <span className="font-medium text-bolt-elements-textPrimary">{orgName}</span> and
+                you will be demoted to admin. This cannot be undone by you.
               </p>
 
               <div className="mt-4">

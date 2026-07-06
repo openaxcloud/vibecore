@@ -84,9 +84,11 @@ describe('preview manifest repair', () => {
     });
     expect(repair.supplementalFiles.map((file) => file.path).sort()).toEqual(['index.html', 'vite.config.ts']);
 
-    // The generated vite.config must wire HMR through the preview proxy (reads the
-    // workspace-injected VITE_HMR_CLIENT_PORT) so the dev server does not build a
-    // `wss://localhost:undefined` HMR websocket behind the TLS proxy.
+    /*
+     * The generated vite.config must wire HMR through the preview proxy (reads the
+     * workspace-injected VITE_HMR_CLIENT_PORT) so the dev server does not build a
+     * `wss://localhost:undefined` HMR websocket behind the TLS proxy.
+     */
     const viteConfig = repair.supplementalFiles.find((file) => file.path === 'vite.config.ts');
     expect(viteConfig?.content).toContain('VITE_HMR_CLIENT_PORT');
     expect(viteConfig?.content).toContain('clientPort');

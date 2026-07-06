@@ -102,10 +102,12 @@ interface DialogProps {
 }
 
 export const Dialog = memo(({ children, className, showCloseButton = true, onClose, onBackdrop }: DialogProps) => {
-  // Only dismiss on a genuine backdrop TAP, not a swipe/pan. On mobile, panning to
-  // scroll the modal (or a stray horizontal drag) used to end on the overlay and
-  // close the dialog, bouncing the user out. Track the pointer-down point and skip
-  // dismissal if it moved more than a few px.
+  /*
+   * Only dismiss on a genuine backdrop TAP, not a swipe/pan. On mobile, panning to
+   * scroll the modal (or a stray horizontal drag) used to end on the overlay and
+   * close the dialog, bouncing the user out. Track the pointer-down point and skip
+   * dismissal if it moved more than a few px.
+   */
   const backdropDownRef = useRef<{ x: number; y: number } | null>(null);
 
   return (
