@@ -1,6 +1,8 @@
 import { KeyRound, Lock } from 'lucide-react';
+import { useState } from 'react';
 import { Form, Link, useActionData, useNavigation, useSearchParams } from 'react-router';
 import { AuthField, AuthScreen, AuthSubmit } from '~/components/auth/AuthScreen';
+import { PASSWORD_MIN_LENGTH, PasswordStrengthMeter } from '~/components/auth/PasswordStrength';
 import { apiRequest, formObject, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
 
 export async function action({ request }: EnterpriseActionArgs) {
@@ -50,6 +52,7 @@ export default function ResetPasswordPage() {
 
   const [searchParams] = useSearchParams();
   const tokenFromUrl = searchParams.get('token') ?? '';
+  const [password, setPassword] = useState('');
 
   return (
     <AuthScreen
@@ -86,11 +89,13 @@ export default function ResetPasswordPage() {
           name="password"
           type="password"
           required
-          minLength={8}
-          placeholder="At least 8 characters"
+          minLength={PASSWORD_MIN_LENGTH}
+          placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
           autoComplete="new-password"
           icon={<Lock className="h-4 w-4" />}
+          inputProps={{ value: password, onChange: (event) => setPassword(event.currentTarget.value) }}
         />
+        <PasswordStrengthMeter password={password} className="-mt-2" />
         <AuthField
           label="Confirm new password"
           name="confirmPassword"
