@@ -223,7 +223,7 @@ const adminSections: Record<string, AdminSectionConfig> = {
   'developer-tools': {
     title: 'Developer tools',
     description:
-      'Operational diagnostics (Debug, Local data, Service Status, Updates, Event Logs) — hidden from the user settings panel; reachable here by platform admins only.',
+      'Operational diagnostics (Debug, Local data, Service Status, Event Logs) — hidden from the user settings panel; reachable here by platform admins only.',
   },
 };
 
@@ -1029,7 +1029,6 @@ export default function AdminSectionPage() {
 const DevDebugTab = React.lazy(() => import('~/components/@settings/tabs/debug/DebugTab'));
 const DevTaskManagerTab = React.lazy(() => import('~/components/@settings/tabs/task-manager/TaskManagerTab'));
 const DevServiceStatusTab = React.lazy(() => import('~/components/@settings/tabs/service-status/ServiceStatusTab'));
-const DevUpdateTab = React.lazy(() => import('~/components/@settings/tabs/update/UpdateTab'));
 
 const DevEventLogsTab = React.lazy(() =>
   import('~/components/@settings/tabs/event-logs/EventLogsTab').then((m) => ({ default: m.EventLogsTab })),
@@ -1076,7 +1075,6 @@ const DEV_TOOLS = [
   { id: 'debug', label: 'Debug', Component: DevDebugTab },
   { id: 'task-manager', label: 'Local data', Component: DevTaskManagerTab },
   { id: 'service-status', label: 'Service Status', Component: DevServiceStatusTab },
-  { id: 'update', label: 'Updates', Component: DevUpdateTab },
   { id: 'event-logs', label: 'Event Logs', Component: DevEventLogsTab },
 ] as const;
 
