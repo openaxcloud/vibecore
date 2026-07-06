@@ -506,13 +506,23 @@ function AppToastContainer() {
           </button>
         );
       }}
-      icon={({ type }) => {
+      icon={({ type, isLoading }) => {
+        if (isLoading) {
+          return <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-textSecondary text-2xl" />;
+        }
+
         switch (type) {
           case 'success': {
             return <div className="i-ph:check-bold text-bolt-elements-icon-success text-2xl" />;
           }
           case 'error': {
             return <div className="i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl" />;
+          }
+          case 'info': {
+            return <div className="i-ph:info text-2xl" style={{ color: 'var(--status-info-text)' }} />;
+          }
+          case 'warning': {
+            return <div className="i-ph:warning text-2xl" style={{ color: 'var(--status-warning-text)' }} />;
           }
         }
 
