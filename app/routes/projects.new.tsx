@@ -1126,6 +1126,7 @@ export default function NewProjectPage() {
     return activeModels.map((model) => ({
       value: model.name,
       label: model.label || model.name,
+
       // "When to use" hint + readable context size, both from real model metadata.
       description: modelUsageHint(model.maxTokenAllowed),
       meta: model.maxTokenAllowed ? `${formatContextWindow(model.maxTokenAllowed)} ctx` : undefined,

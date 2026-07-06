@@ -27,8 +27,10 @@ export const meta: MetaFunction = () => [
 ];
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  // A signed-in visitor who lands on the public gallery belongs in the in-app
-  // templates page (real "Use template" actions), not the marketing twin.
+  /*
+   * A signed-in visitor who lands on the public gallery belongs in the in-app
+   * templates page (real "Use template" actions), not the marketing twin.
+   */
   if (await hasValidWebSession(request)) {
     throw redirect('/dashboard/templates');
   }
