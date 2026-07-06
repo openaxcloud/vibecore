@@ -237,6 +237,51 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     expect((writeCall?.[1]?.headers as Headers).get('authorization')).toBe('Bearer token-123');
   });
 
+  it('retries an idempotent file write through a transient api 5xx so a pod rollout does not silently drop generated files', async () => {
+    let writeAttempts = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.endsWith('/runtime/boot')) {
+        return new Response(null, { status: 204 });
+      }
+
+      if (url.endsWith('/workspaces') && init?.method === 'POST') {
+        return Response.json({
+          id: 'ws-1',
+          runtimeMode: 'remote-kubernetes',
+          status: 'running',
+          workdir: '/workspace',
+          createdAt: '2026-04-28T00:00:00.000Z',
+          updatedAt: '2026-04-28T00:00:00.000Z',
+        });
+      }
+
+      if (url.endsWith('/files/write')) {
+        writeAttempts += 1;
+
+        // First attempt hits a draining/starting api pod during a rollout → 502.
+        // A single-shot write would drop the generated file here; the retry rides it.
+        return writeAttempts === 1 ? new Response('bad gateway', { status: 502 }) : new Response(null, { status: 204 });
+      }
+
+      return Response.json([]);
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token-123',
+      fetchImpl: fetchMock as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    await adapter.boot();
+    await adapter.startWorkspace();
+
+    await expect(adapter.writeFile('src/App.tsx', 'export default null;')).resolves.toBeUndefined();
+    expect(writeAttempts).toBe(2); // failed once (502), retried, succeeded — file not lost
+  });
+
   it('runs project-wide content search against the runtime files/search endpoint (per-tenant, options + results round-trip)', async () => {
     /*
      * Certifies the real search path the IDE uses in remote-kubernetes mode: the

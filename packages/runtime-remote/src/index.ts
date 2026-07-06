@@ -288,30 +288,37 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async writeFile(path: string, content: string): Promise<void> {
-    await this.#request(`/workspaces/${this.#requireWorkspaceId()}/files/write`, {
-      method: 'PUT',
-      body: JSON.stringify({ path, content }),
-    });
+    // Overwrite is idempotent — retry through a transient api/agent 5xx so a pod
+    // rollout/restart mid-generation never silently drops a generated file.
+    await this.#request(
+      `/workspaces/${this.#requireWorkspaceId()}/files/write`,
+      { method: 'PUT', body: JSON.stringify({ path, content }) },
+      { retryIdempotentWrite: true },
+    );
   }
 
   async createFile(path: string, content = ''): Promise<void> {
-    await this.#request(`/workspaces/${this.#requireWorkspaceId()}/files`, {
-      method: 'POST',
-      body: JSON.stringify({ path, content }),
-    });
+    await this.#request(
+      `/workspaces/${this.#requireWorkspaceId()}/files`,
+      { method: 'POST', body: JSON.stringify({ path, content }) },
+      { retryIdempotentWrite: true },
+    );
   }
 
   async createDirectory(path: string): Promise<void> {
-    await this.#request(`/workspaces/${this.#requireWorkspaceId()}/directories`, {
-      method: 'POST',
-      body: JSON.stringify({ path }),
-    });
+    await this.#request(
+      `/workspaces/${this.#requireWorkspaceId()}/directories`,
+      { method: 'POST', body: JSON.stringify({ path }) },
+      { retryIdempotentWrite: true },
+    );
   }
 
   async deleteFile(path: string): Promise<void> {
-    await this.#request(`/workspaces/${this.#requireWorkspaceId()}/files?path=${encodeURIComponent(path)}`, {
-      method: 'DELETE',
-    });
+    await this.#request(
+      `/workspaces/${this.#requireWorkspaceId()}/files?path=${encodeURIComponent(path)}`,
+      { method: 'DELETE' },
+      { retryIdempotentWrite: true },
+    );
   }
 
   async renameFile(path: string, newPath: string): Promise<void> {
@@ -814,16 +821,26 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     );
   }
 
-  async #request<T>(path: string, init: RequestInit = {}, options: { retryReads?: boolean } = {}): Promise<T> {
+  async #request<T>(
+    path: string,
+    init: RequestInit = {},
+    options: { retryReads?: boolean; retryIdempotentWrite?: boolean } = {},
+  ): Promise<T> {
     /*
-     * Idempotent reads (file/dir reads) opt into a short retry so a transient
-     * agent 502/503/504 — the agent pod momentarily unreachable while it is
-     * cold-starting or being restarted (e.g. after a liveness kill under CPU
-     * contention) — doesn't surface as a hard read failure / stale content.
-     * Writes are NOT retried here (a 502 can mean the write already applied);
-     * non-transient errors (4xx) and caller-aborts short-circuit immediately.
+     * Idempotent reads (file/dir reads) AND idempotent writes (file overwrite,
+     * mkdir, delete) opt into a short retry so a transient api/agent 5xx — a pod
+     * momentarily unreachable while it is cold-starting, liveness-killed under CPU
+     * contention, or rolling during a deploy — doesn't surface as a hard failure.
+     *
+     * A file WRITE is safe to retry: re-writing the same path+content is a no-op, so
+     * the old "a 502 may mean the write already applied" concern costs nothing on the
+     * retry. This is what stops a transient api blip from SILENTLY DROPPING generated
+     * files: without it, one 5xx on a files/write POST (e.g. hitting an api pod that
+     * is draining/starting during a rollout) is thrown once and the file is lost even
+     * though the agent reported "done". Non-idempotent mutations (move/rename) and
+     * non-transient errors (4xx) still fail fast.
      */
-    const maxAttempts = options.retryReads ? 4 : 1;
+    const maxAttempts = options.retryReads || options.retryIdempotentWrite ? 4 : 1;
 
     let lastError: unknown;
 
