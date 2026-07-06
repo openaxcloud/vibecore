@@ -2035,7 +2035,19 @@ export class WorkbenchStore {
         }
 
         const currentContent = this.#filesStore.getFile(proposal.filePath)?.content ?? proposal.originalContent;
-        const merged = mergeJsonContent(currentContent, proposal.proposedContent);
+        let merged = mergeJsonContent(currentContent, proposal.proposedContent);
+
+        /*
+         * Nothing recoverable from either side (both truncated/empty). For
+         * package.json specifically, a hard-fail here strands `npm install` and
+         * the preview with no manifest and stacks an identical "AI patch failed"
+         * on every retry. Scaffold a minimal VALID manifest instead — the preview
+         * repair (buildPreviewManifestRepair) then infers the real dependencies
+         * from the emitted imports. Other .json files keep the strict behaviour.
+         */
+        if (merged === undefined && proposal.relativePath.split('/').pop() === 'package.json') {
+          merged = `${JSON.stringify({ name: 'app', private: true, version: '0.0.0', type: 'module' }, null, 2)}\n`;
+        }
 
         if (merged === undefined) {
           throw validationError;
