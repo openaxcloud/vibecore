@@ -107,7 +107,7 @@ export default function ImportGithubPage() {
     >
       <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6">
         <Github className="mb-4 h-6 w-6 text-bolt-elements-textTertiary" aria-hidden />
-        {actionData?.error ? <p className="mb-4 text-sm text-red-500">{actionData.error}</p> : null}
+        {actionData?.error ? <p className="mb-4 text-sm text-[var(--status-error-text)]">{actionData.error}</p> : null}
         <SettingsForm
           submitLabel="Import repository"
           fields={[

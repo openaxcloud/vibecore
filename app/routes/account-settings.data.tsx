@@ -201,7 +201,7 @@ export default function AccountDataPage() {
         {error ? (
           <p
             role="alert"
-            className="rounded-md border border-red-500/40 bg-red-500/5 px-3 py-2 text-sm"
+            className="rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm"
             style={{ color: 'var(--status-error-text)' }}
           >
             {error}
@@ -212,7 +212,7 @@ export default function AccountDataPage() {
           <p
             role="status"
             aria-live="polite"
-            className="rounded-md border border-green-500/40 bg-green-500/5 px-3 py-2 text-sm text-bolt-elements-textSecondary"
+            className="rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-3 py-2 text-sm text-bolt-elements-textSecondary"
           >
             Account deletion cancelled. Your account stays active.
           </p>
@@ -226,7 +226,7 @@ export default function AccountDataPage() {
           </div>
 
           {pending ? (
-            <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-500/5 p-4">
+            <div className="mt-4 rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-4">
               <div className="flex items-start gap-3">
                 <AlertTriangle
                   className="mt-0.5 h-5 w-5 shrink-0"
@@ -341,7 +341,7 @@ export default function AccountDataPage() {
 
         {/* Danger zone: request deletion (typed-confirmation dialog) */}
         {!pending ? (
-          <section className="rounded-lg border border-red-500/40 bg-red-500/5 p-5 shadow-sm sm:p-6">
+          <section className="rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-5 shadow-sm sm:p-6">
             <h2 className="text-base font-semibold" style={{ color: 'var(--status-error-text)' }}>
               Delete account
             </h2>
@@ -361,7 +361,7 @@ export default function AccountDataPage() {
                 color: 'var(--status-error-text)',
                 borderColor: 'color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
               }}
-              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-md border px-4 text-sm font-medium transition-colors hover:bg-red-500/10"
+              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-md border px-4 text-sm font-medium transition-colors hover:bg-[var(--status-error-bg)]"
             >
               <Trash2 className="h-4 w-4" aria-hidden />
               Delete account…
@@ -399,7 +399,7 @@ export default function AccountDataPage() {
               {requestError ? (
                 <p
                   role="alert"
-                  className="mt-3 rounded-md border border-red-500/40 bg-red-500/5 px-3 py-2 text-sm"
+                  className="mt-3 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm"
                   style={{ color: 'var(--status-error-text)' }}
                 >
                   {requestError}
@@ -443,7 +443,7 @@ export default function AccountDataPage() {
                       color: 'var(--status-error-text)',
                       borderColor: 'color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
                     }}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-md border px-4 text-sm font-medium transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-md border px-4 text-sm font-medium transition-colors hover:bg-[var(--status-error-bg)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Trash2 className="h-4 w-4" aria-hidden />
                     {busy ? 'Requesting…' : 'Request account deletion'}

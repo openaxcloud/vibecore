@@ -274,7 +274,7 @@ export default function ProjectDeploymentsPage() {
       {actionData?.error ? (
         <div
           role="alert"
-          className="mb-6 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+          className="mb-6 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-4 py-3 text-sm text-[var(--status-error-text)]"
         >
           {actionData.error}
         </div>

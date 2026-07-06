@@ -37,7 +37,7 @@ export default function SecuritySettingsPage() {
       <div
         className={
           mfaEnabled
-            ? 'mb-5 flex items-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm font-medium text-green-600 dark:text-green-400'
+            ? 'mb-5 flex items-center gap-2 rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-3 py-2 text-sm font-medium text-[var(--status-success-text)]'
             : 'mb-5 flex items-center gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm font-medium text-bolt-elements-textSecondary'
         }
         data-testid="mfa-status-badge"

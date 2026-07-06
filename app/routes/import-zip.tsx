@@ -87,7 +87,7 @@ export default function ImportZipPage() {
       >
         <FileArchive className="mb-4 h-6 w-6 text-bolt-elements-textTertiary" aria-hidden />
         {actionData?.error ? (
-          <p role="alert" className="mb-4 text-sm text-red-500">
+          <p role="alert" className="mb-4 text-sm text-[var(--status-error-text)]">
             {actionData.error}
           </p>
         ) : null}

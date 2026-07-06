@@ -481,6 +481,10 @@ html:has(.vc-app-shell-grid) body {
   --status-warning-bg: color-mix(in srgb, var(--status-warning-text) 16%, transparent);
   --status-error-bg: color-mix(in srgb, var(--status-error-text) 14%, transparent);
   --status-info-bg: color-mix(in srgb, var(--status-info-text) 14%, transparent);
+  --status-success-border: color-mix(in srgb, var(--status-success-text) 40%, transparent);
+  --status-warning-border: color-mix(in srgb, var(--status-warning-text) 40%, transparent);
+  --status-error-border: color-mix(in srgb, var(--status-error-text) 40%, transparent);
+  --status-info-border: color-mix(in srgb, var(--status-info-text) 40%, transparent);
   --ecode-accent-contrast: #111827;
   --ecode-secondary-accent: #f77f00;
   --ecode-orange: #f26207;
@@ -791,6 +795,10 @@ html:has(.vc-app-shell-grid) body {
   --status-warning-bg: color-mix(in srgb, var(--status-warning-text) 12%, transparent);
   --status-error-bg: color-mix(in srgb, var(--status-error-text) 10%, transparent);
   --status-info-bg: color-mix(in srgb, var(--status-info-text) 10%, transparent);
+  --status-success-border: color-mix(in srgb, var(--status-success-text) 38%, transparent);
+  --status-warning-border: color-mix(in srgb, var(--status-warning-text) 38%, transparent);
+  --status-error-border: color-mix(in srgb, var(--status-error-text) 38%, transparent);
+  --status-info-border: color-mix(in srgb, var(--status-info-text) 38%, transparent);
   --ecode-accent-contrast: #111827;
   --ecode-secondary-accent: #f77f00;
   --ecode-orange: #f26207;

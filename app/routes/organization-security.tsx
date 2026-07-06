@@ -251,7 +251,7 @@ function ToggleRow(props: {
         <span
           className={classNames(
             'mt-1 block text-xs',
-            props.warn ? 'text-amber-500 dark:text-amber-400' : 'text-bolt-elements-textSecondary',
+            props.warn ? 'text-[var(--status-warning-text)]' : 'text-bolt-elements-textSecondary',
           )}
         >
           {props.description}
@@ -313,7 +313,7 @@ export default function OrganizationSecurityPage() {
       {loadError ? (
         <p
           role="alert"
-          className="mb-6 rounded-md border border-amber-500/40 px-3 py-2 text-sm text-amber-500 dark:text-amber-400"
+          className="mb-6 rounded-md border border-[var(--status-warning-border)] px-3 py-2 text-sm text-[var(--status-warning-text)]"
         >
           {loadError}
         </p>
@@ -355,7 +355,7 @@ export default function OrganizationSecurityPage() {
             </button>
           </div>
 
-          {draftError ? <p className="mt-2 text-xs text-red-500">{draftError}</p> : null}
+          {draftError ? <p className="mt-2 text-xs text-[var(--status-error-text)]">{draftError}</p> : null}
 
           {entries.length > 0 ? (
             <ul className="mt-3 overflow-hidden rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
@@ -371,7 +371,7 @@ export default function OrganizationSecurityPage() {
                   <button
                     type="button"
                     onClick={() => removeEntry(entry)}
-                    className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-medium text-red-400 hover:bg-red-500/10"
+                    className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-medium text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)]"
                     aria-label={`Remove ${entry}`}
                   >
                     <Trash2 className="h-3.5 w-3.5" aria-hidden />
@@ -425,7 +425,7 @@ export default function OrganizationSecurityPage() {
             onChange={setLegalHold}
           />
           {legalHold ? (
-            <p className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs text-amber-500 dark:text-amber-400">
+            <p className="flex items-start gap-2 rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-3 py-2 text-xs text-[var(--status-warning-text)]">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
               While legal hold is active, no data — including expired records — can be deleted for this organization.
             </p>

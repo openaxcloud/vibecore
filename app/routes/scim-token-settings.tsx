@@ -156,7 +156,11 @@ export default function ScimTokenSettingsPage() {
       error={actionData?.error}
     >
       {actionData?.token ? (
-        <div role="status" aria-live="polite" className="mb-6 rounded-lg border border-green-500/40 bg-green-500/5 p-4">
+        <div
+          role="status"
+          aria-live="polite"
+          className="mb-6 rounded-lg border border-[var(--status-success-border)] bg-[var(--status-success-bg)] p-4"
+        >
           <p className="text-sm font-semibold text-bolt-elements-textPrimary">Copy this token now</p>
           <p className="mt-1 text-sm text-bolt-elements-textSecondary">
             This is the only time the token is shown. Paste it into your identity provider&apos;s SCIM configuration;
@@ -218,7 +222,7 @@ export default function ScimTokenSettingsPage() {
                     <p className="flex items-center gap-2 break-words text-sm font-medium text-bolt-elements-textPrimary">
                       <span title={token.name}>{token.name}</span>
                       {token.expired ? (
-                        <span className="rounded-full border border-red-500/40 px-2 py-0.5 text-xs font-normal text-red-400">
+                        <span className="rounded-full border border-[var(--status-error-border)] px-2 py-0.5 text-xs font-normal text-[var(--status-error-text)]">
                           Expired
                         </span>
                       ) : null}
@@ -256,7 +260,7 @@ export default function ScimTokenSettingsPage() {
                       <button
                         type="submit"
                         disabled={busy}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-red-400 hover:bg-red-500/10 disabled:opacity-60"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)] disabled:opacity-60"
                       >
                         <Trash2 className="h-3.5 w-3.5" aria-hidden />
                         Revoke

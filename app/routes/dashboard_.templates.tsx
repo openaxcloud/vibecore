@@ -98,7 +98,7 @@ export default function DashboardTemplatesPage() {
       }
     >
       {actionData?.error ? (
-        <p className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+        <p className="mb-4 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]">
           {actionData.error}
         </p>
       ) : null}

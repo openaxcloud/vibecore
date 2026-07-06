@@ -158,7 +158,7 @@ export default function OrganizationInvitationsPage() {
         title="Organization invitations"
         description="Invite people to your organization and manage pending invites."
       >
-        <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+        <p className="rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-3 py-2 text-sm text-[var(--status-warning-text)]">
           Invitation management is available only to organization owners or member managers.
         </p>
       </AppShell>
@@ -182,7 +182,10 @@ export default function OrganizationInvitationsPage() {
           </p>
         ) : null}
         {actionData?.error ? (
-          <p role="alert" className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-500">
+          <p
+            role="alert"
+            className="rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]"
+          >
             {actionData.error}
           </p>
         ) : null}
@@ -260,7 +263,7 @@ export default function OrganizationInvitationsPage() {
                       <input type="hidden" name="inviteId" value={invite.id} />
                       <button
                         type="submit"
-                        className="rounded-md border border-red-500/40 px-3 py-1.5 text-xs text-red-500 hover:bg-red-500/10"
+                        className="rounded-md border border-[var(--status-error-border)] px-3 py-1.5 text-xs text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)]"
                         aria-label={`Expire invitation to ${invite.email}`}
                       >
                         Expire

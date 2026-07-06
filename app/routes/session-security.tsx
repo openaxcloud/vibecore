@@ -247,7 +247,7 @@ export default function SessionSecurityPage() {
                   color: 'var(--status-error-text)',
                   borderColor: 'color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
                 }}
-                className="mt-3 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:mt-0"
+                className="mt-3 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors hover:bg-[var(--status-error-bg)] disabled:cursor-not-allowed disabled:opacity-60 sm:mt-0"
               >
                 <LogOut className="h-3.5 w-3.5" aria-hidden />
                 Sign out all other sessions
@@ -258,7 +258,7 @@ export default function SessionSecurityPage() {
           {sessionsUnavailable ? (
             <p
               role="alert"
-              className="mt-4 rounded-md border border-red-500/40 bg-red-500/5 px-3 py-2 text-sm text-red-400"
+              className="mt-4 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]"
             >
               Your active sessions are temporarily unavailable. Reload the page to try again.
             </p>
@@ -319,7 +319,7 @@ export default function SessionSecurityPage() {
                         <button
                           type="submit"
                           disabled={busy}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-red-400 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <Trash2 className="h-3.5 w-3.5" aria-hidden />
                           Revoke

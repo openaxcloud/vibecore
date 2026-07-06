@@ -225,7 +225,7 @@ export default function MfaSetupPage() {
               <RecoveryCodes codes={actionData.codes} />
             </div>
           ) : (
-            <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+            <p className="rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-3 py-2 text-sm text-[var(--status-warning-text)]">
               {actionData.message ??
                 'Two-factor authentication is on, but we couldn’t generate recovery codes. Visit /recovery-codes to create them.'}
             </p>

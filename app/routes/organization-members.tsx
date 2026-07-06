@@ -236,7 +236,7 @@ export default function OrganizationMembersPage() {
         title="Organization members"
         description="Manage members with backend-enforced roles and audit coverage."
       >
-        <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+        <p className="rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-3 py-2 text-sm text-[var(--status-warning-text)]">
           Member management is available only to organization owners or member managers.
         </p>
       </AppShell>
@@ -253,7 +253,7 @@ export default function OrganizationMembersPage() {
             </p>
           ) : null}
           {actionData?.error ? (
-            <p className="mb-4 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-500">
+            <p className="mb-4 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]">
               {actionData.error}
             </p>
           ) : null}

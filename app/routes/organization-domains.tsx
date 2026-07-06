@@ -185,7 +185,7 @@ function CopyField(props: { label: string; value: string }) {
 function StatusBadge({ domain }: { domain: DomainVerification }) {
   if (domain.sslStatus === 'dns_verified' || domain.verifiedAt) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+      <span className="inline-flex items-center gap-1 rounded-full border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-2 py-0.5 text-xs font-medium text-[var(--status-success-text)]">
         <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
         Verified
       </span>
@@ -194,7 +194,7 @@ function StatusBadge({ domain }: { domain: DomainVerification }) {
 
   if (domain.sslStatus === 'failed') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-500">
+      <span className="inline-flex items-center gap-1 rounded-full border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-2 py-0.5 text-xs font-medium text-[var(--status-error-text)]">
         <ShieldAlert className="h-3.5 w-3.5" aria-hidden />
         Verification failed
       </span>
@@ -242,7 +242,7 @@ export default function OrganizationDomainsPage() {
       {loadError ? (
         <p
           role="alert"
-          className="mb-6 rounded-md border border-amber-500/40 px-3 py-2 text-sm text-amber-500 dark:text-amber-400"
+          className="mb-6 rounded-md border border-[var(--status-warning-border)] px-3 py-2 text-sm text-[var(--status-warning-text)]"
         >
           {loadError}
         </p>

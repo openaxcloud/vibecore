@@ -147,7 +147,7 @@ export default function OrganizationRolesPage() {
         title="Organization roles"
         description="Define custom roles and inspect the permission matrix. Backend-enforced privilege boundaries."
       >
-        <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+        <p className="rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-3 py-2 text-sm text-[var(--status-warning-text)]">
           Role management is available only to organization owners or role managers.
         </p>
       </AppShell>
@@ -185,7 +185,10 @@ export default function OrganizationRolesPage() {
           </p>
         ) : null}
         {actionData?.error ? (
-          <p role="alert" className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-500">
+          <p
+            role="alert"
+            className="rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]"
+          >
             {actionData.error}
           </p>
         ) : null}

@@ -129,7 +129,7 @@ export default function OrganizationSwitcherPage() {
                 {error ? (
                   <p
                     role="alert"
-                    className="rounded-md border border-red-500/40 bg-red-500/5 px-3 py-2 text-sm"
+                    className="rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm"
                     style={{ color: 'var(--status-error-text)' }}
                   >
                     {error}

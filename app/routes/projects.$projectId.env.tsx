@@ -116,7 +116,7 @@ export default function ProjectEnvPage() {
                     type="submit"
                     disabled={saving}
                     aria-label={`Delete ${row.key}`}
-                    className="rounded-md p-2 text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-red-500 disabled:opacity-50"
+                    className="rounded-md p-2 text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-[var(--status-error-text)] disabled:opacity-50"
                   >
                     <Trash2 className="h-4 w-4" aria-hidden />
                   </button>
@@ -139,7 +139,7 @@ export default function ProjectEnvPage() {
           />
           <Field label="Value" name="value" placeholder="https://api.example.com" />
           {actionData?.error ? (
-            <p className="text-sm text-red-500" role="alert">
+            <p className="text-sm text-[var(--status-error-text)]" role="alert">
               {actionData.error}
             </p>
           ) : null}
@@ -165,7 +165,7 @@ function Field(props: {
       <span>
         {props.label}
         {props.required ? (
-          <span className="ml-0.5 text-red-500" aria-hidden>
+          <span className="ml-0.5 text-[var(--status-error-text)]" aria-hidden>
             *
           </span>
         ) : null}

@@ -157,7 +157,7 @@ function DeliveryStatus({ webhook }: { webhook: SiemWebhook }) {
   if (webhook.lastDeliveredAt) {
     return (
       <span className="inline-flex items-center gap-1 text-xs text-bolt-elements-textSecondary">
-        <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" aria-hidden />
+        <CheckCircle2 className="h-3.5 w-3.5 text-[var(--status-success-text)]" aria-hidden />
         Last delivered {new Date(webhook.lastDeliveredAt).toLocaleString()}
       </span>
     );
@@ -189,7 +189,7 @@ export default function OrganizationSiemPage() {
       {loadError ? (
         <p
           role="alert"
-          className="mb-6 rounded-md border border-amber-500/40 px-3 py-2 text-sm text-amber-500 dark:text-amber-400"
+          className="mb-6 rounded-md border border-[var(--status-warning-border)] px-3 py-2 text-sm text-[var(--status-warning-text)]"
         >
           {loadError}
         </p>
@@ -261,7 +261,7 @@ export default function OrganizationSiemPage() {
                       </td>
                       <td className="px-4 py-3">
                         {webhook.enabled ? (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-2 py-0.5 text-xs font-medium text-[var(--status-success-text)]">
                             Enabled
                           </span>
                         ) : (
@@ -287,7 +287,7 @@ export default function OrganizationSiemPage() {
                           <button
                             type="submit"
                             disabled={busy}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:border-red-500/50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:border-[var(--status-error-border)] hover:text-[var(--status-error-text)] disabled:cursor-not-allowed disabled:opacity-60"
                             aria-label={`Delete SIEM webhook ${webhook.url}`}
                           >
                             <Trash2 className="h-3.5 w-3.5" aria-hidden />

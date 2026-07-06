@@ -103,10 +103,10 @@ export function spendUsageState(
 
 const SPEND_TONE_BAR: Record<SpendTone, string> = {
   none: 'bg-bolt-elements-borderColor',
-  ok: 'bg-green-500',
-  warn: 'bg-amber-500',
-  critical: 'bg-red-500',
-  reached: 'bg-red-600',
+  ok: 'bg-[var(--status-success-text)]',
+  warn: 'bg-[var(--status-warning-text)]',
+  critical: 'bg-[var(--status-error-text)]',
+  reached: 'bg-[var(--status-error-bg)]',
 };
 
 function SpendUsageIndicator({
@@ -455,7 +455,7 @@ export default function BillingPage() {
           </div>
         ) : null}
         {billingAccessLimited || actionData?.error ? (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
+          <div className="rounded-lg border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-4 text-sm text-[var(--status-warning-text)]">
             {actionData?.error ?? 'Billing is available only to organization owners or billing administrators.'}
           </div>
         ) : null}
@@ -496,7 +496,7 @@ export default function BillingPage() {
               </p>
             </div>
             {credits.shadow ? (
-              <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-300">
+              <span className="rounded-full bg-[var(--status-warning-bg)] px-3 py-1 text-xs font-medium text-[var(--status-warning-text)]">
                 Preview (not charged)
               </span>
             ) : null}
@@ -544,7 +544,7 @@ export default function BillingPage() {
               credits only. Org limits are set in €500 increments.
             </p>
             {!credits.creditsEnabled ? (
-              <p className="mb-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-300">
+              <p className="mb-3 rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-2 text-xs text-[var(--status-warning-text)]">
                 Usage-based billing isn&apos;t enabled for this organization yet — limits you set here apply once it is.
               </p>
             ) : null}
@@ -554,7 +554,7 @@ export default function BillingPage() {
               thresholds={credits.spendAlertThresholds ?? [50, 80, 100]}
             />
             {actionData?.ok ? (
-              <div className="mb-3 rounded-md border border-green-500/30 bg-green-500/10 p-2 text-xs text-green-300">
+              <div className="mb-3 rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] p-2 text-xs text-[var(--status-success-text)]">
                 {actionData.ok}
               </div>
             ) : null}
@@ -631,7 +631,7 @@ export default function BillingPage() {
               credits run to pay-as-you-go.
             </p>
             {!credits.creditsEnabled ? (
-              <p className="mb-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-300">
+              <p className="mb-3 rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-2 text-xs text-[var(--status-warning-text)]">
                 Credit-pack purchases are not enabled for this organization yet.
               </p>
             ) : null}
@@ -656,7 +656,7 @@ export default function BillingPage() {
                         {discount > 0 ? (
                           <>
                             Pay {dollars(pack.priceCents)}{' '}
-                            <span className="text-green-400">save {dollars(discount)}</span>
+                            <span className="text-[var(--status-success-text)]">save {dollars(discount)}</span>
                           </>
                         ) : (
                           <>Pay {dollars(pack.priceCents)}</>

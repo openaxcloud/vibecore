@@ -207,13 +207,13 @@ export default function ConnectedAccountsPage() {
         </div>
       ) : null}
       {linkError ? (
-        <div className="mb-3 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-500">
+        <div className="mb-3 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]">
           Could not link {linkError}
           {linkErrorDetail ? `: ${linkErrorDetail}` : ''}.
         </div>
       ) : null}
       {actionData?.error ? (
-        <div className="mb-3 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-500">
+        <div className="mb-3 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]">
           {actionData.error}
         </div>
       ) : null}
@@ -297,10 +297,10 @@ function ReconnectionAlertsBanner({ alerts }: { alerts: ReconnectionAlert[] }) {
   return (
     <div
       role="alert"
-      className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-bolt-elements-textPrimary shadow-sm"
+      className="mb-4 rounded-lg border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-4 text-bolt-elements-textPrimary shadow-sm"
     >
       <div className="flex items-start gap-3">
-        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" aria-hidden />
+        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[var(--status-warning-text)]" aria-hidden />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium">
             {alerts.length === 1 ? '1 connection needs reconnecting' : `${alerts.length} connections need reconnecting`}
@@ -390,7 +390,8 @@ function ReconnectionAlertRow({ alert }: { alert: ReconnectionAlert }) {
       <p className="min-w-0 break-words text-sm text-bolt-elements-textSecondary">
         <span className="font-medium text-bolt-elements-textPrimary">{providerLabel}</span>
         {alert.externalAccountLabel ? <span className="break-all"> ({alert.externalAccountLabel})</span> : null} —{' '}
-        {reconnectReasonText(alert.reason)}.{error ? <span className="mt-1 block text-red-500">{error}</span> : null}
+        {reconnectReasonText(alert.reason)}.
+        {error ? <span className="mt-1 block text-[var(--status-error-text)]">{error}</span> : null}
       </p>
       <div className="flex shrink-0 items-center gap-2">
         <button
@@ -476,7 +477,7 @@ function IntegrationConnectButton({ provider }: { provider: string }) {
         {busy ? 'Connecting…' : 'Connect'}
       </button>
       {error ? (
-        <span role="alert" className="max-w-[16rem] text-right text-xs text-red-500">
+        <span role="alert" className="max-w-[16rem] text-right text-xs text-[var(--status-error-text)]">
           {error}
         </span>
       ) : null}
@@ -542,7 +543,7 @@ function IntegrationDisconnectButton({ connectionId }: { connectionId: string })
         {busy ? 'Disconnecting…' : 'Disconnect'}
       </button>
       {error ? (
-        <span role="alert" className="max-w-[16rem] text-right text-xs text-red-500">
+        <span role="alert" className="max-w-[16rem] text-right text-xs text-[var(--status-error-text)]">
           {error}
         </span>
       ) : null}

@@ -144,7 +144,7 @@ export default function ProjectSecretsPage() {
           />
           <Field label="Secret value" name="value" type="password" required />
           {actionData?.error ? (
-            <p className="text-sm text-red-500" role="alert">
+            <p className="text-sm text-[var(--status-error-text)]" role="alert">
               {actionData.error}
             </p>
           ) : null}
@@ -171,7 +171,7 @@ function Field(props: {
       <span>
         {props.label}
         {props.required ? (
-          <span className="ml-0.5 text-red-500" aria-hidden>
+          <span className="ml-0.5 text-[var(--status-error-text)]" aria-hidden>
             *
           </span>
         ) : null}

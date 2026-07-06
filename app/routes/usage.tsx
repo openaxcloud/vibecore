@@ -171,7 +171,7 @@ export default function UsagePage() {
             <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Spend by resource</h2>
             <div className="flex items-center gap-2">
               {breakdown.shadow || !breakdown.creditsEnabled ? (
-                <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-300">
+                <span className="rounded-full bg-[var(--status-warning-bg)] px-3 py-1 text-xs font-medium text-[var(--status-warning-text)]">
                   Projected (not charged)
                 </span>
               ) : null}
@@ -348,12 +348,12 @@ export default function UsagePage() {
             overrides the org budget for that member. Leave the field blank and save to clear a limit.
           </p>
           {actionData?.ok ? (
-            <div className="mb-3 rounded-md border border-green-500/30 bg-green-500/10 p-2 text-xs text-green-300">
+            <div className="mb-3 rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] p-2 text-xs text-[var(--status-success-text)]">
               {actionData.ok}
             </div>
           ) : null}
           {actionData?.error ? (
-            <div className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-300">
+            <div className="mb-3 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-2 text-xs text-[var(--status-error-text)]">
               {actionData.error}
             </div>
           ) : null}

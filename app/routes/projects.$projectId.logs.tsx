@@ -68,8 +68,8 @@ export async function loader(args: EnterpriseLoaderArgs) {
 
 const LEVEL_CLASSNAMES: Record<RuntimeLogLevel, string> = {
   info: 'text-bolt-elements-textSecondary',
-  warn: 'text-yellow-500',
-  error: 'text-red-500',
+  warn: 'text-[var(--status-warning-text)]',
+  error: 'text-[var(--status-error-text)]',
 };
 
 export default function ProjectLogsPage() {
@@ -119,7 +119,9 @@ export default function ProjectLogsPage() {
         {view.kind === 'no-workspace' ? (
           <div className="text-bolt-elements-textTertiary">No workspace has been started for this project yet.</div>
         ) : null}
-        {view.kind === 'error' ? <div className="text-red-500">Unable to load logs: {view.message}</div> : null}
+        {view.kind === 'error' ? (
+          <div className="text-[var(--status-error-text)]">Unable to load logs: {view.message}</div>
+        ) : null}
         {view.kind === 'empty' ? (
           <div className="text-bolt-elements-textTertiary">No runtime output captured yet.</div>
         ) : null}

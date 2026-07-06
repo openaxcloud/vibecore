@@ -194,7 +194,7 @@ export default function ApiKeysPage() {
         {error ? (
           <p
             role="alert"
-            className="rounded-md border border-red-500/40 bg-red-500/5 px-3 py-2 text-sm"
+            className="rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm"
             style={{ color: 'var(--status-error-text)' }}
           >
             {error}
@@ -280,7 +280,7 @@ export default function ApiKeysPage() {
                             type="submit"
                             disabled={busy}
                             style={{ color: 'var(--status-error-text)' }}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium hover:bg-red-500/10 disabled:opacity-60"
+                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium hover:bg-[var(--status-error-bg)] disabled:opacity-60"
                           >
                             <Trash2 className="h-3.5 w-3.5" aria-hidden />
                             Revoke

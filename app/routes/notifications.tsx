@@ -335,7 +335,7 @@ function PreferencesMatrixSection({ initial }: { initial: NotificationPreference
       {error ? (
         <p
           role="alert"
-          className="mx-5 mt-4 rounded-md border border-red-500/35 bg-red-500/10 px-3 py-2 text-sm text-red-400 sm:mx-6"
+          className="mx-5 mt-4 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)] sm:mx-6"
         >
           {error} Your changes were reverted.
         </p>
@@ -433,8 +433,10 @@ const categoryTone: Record<string, NotificationCategory['tone']> = {
 
 function toneClasses(tone: NotificationCategory['tone']) {
   return classNames(
-    tone === 'critical' && 'border-red-500/35 bg-red-500/10 text-red-400',
-    tone === 'warning' && 'border-amber-500/35 bg-amber-500/10 text-amber-400',
+    tone === 'critical' &&
+      'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-text)]',
+    tone === 'warning' &&
+      'border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]',
     tone === 'info' && 'border-blue-500/35 bg-blue-500/10 text-blue-400',
     tone === 'success' && 'border-emerald-500/35 bg-emerald-500/10 text-emerald-400',
   );

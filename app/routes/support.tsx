@@ -221,12 +221,12 @@ export default function SupportPage() {
     <AppShell title="Support" description="Open support tickets and review enterprise support status.">
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         {actionData?.error ? (
-          <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-400 lg:col-span-2">
+          <div className="rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-4 text-sm text-[var(--status-error-text)] lg:col-span-2">
             {actionData.error}
           </div>
         ) : null}
         {supportAccessLimited ? (
-          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200 lg:col-span-2">
+          <div className="rounded-lg border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-4 text-sm text-[var(--status-warning-text)] lg:col-span-2">
             {supportAccessLimited}
           </div>
         ) : null}
