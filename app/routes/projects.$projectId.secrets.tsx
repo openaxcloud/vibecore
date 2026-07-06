@@ -1,9 +1,12 @@
-import { KeyRound, Lock, Trash2 } from 'lucide-react';
+import { Copy, KeyRound, Lock, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
+import { toast } from 'react-toastify';
 import { secretRows, type SecretRecord } from './projects.$projectId.secrets.rows';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
+import { RevealButton } from '~/components/ui/RevealButton';
 import {
   apiErrorMessage,
   apiRequest,
@@ -77,6 +80,13 @@ export default function ProjectSecretsPage() {
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
   const rows = secretRows(data.secrets);
 
+  const copyKey = (key: string) => {
+    void navigator.clipboard
+      .writeText(key)
+      .then(() => toast.success('Copied'))
+      .catch(() => toast.error('Could not copy to clipboard'));
+  };
+
   return (
     <ProjectShell
       projectId={project.id}
@@ -102,6 +112,16 @@ export default function ProjectSecretsPage() {
                   <p className="truncate text-sm font-medium">{row.key}</p>
                   <p className="mt-1 text-sm text-bolt-elements-textSecondary">{row.detail}</p>
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copyKey(row.key)}
+                  aria-label={`Copy secret name ${row.key}`}
+                  title={`Copy secret name ${row.key}`}
+                >
+                  <Copy className="h-4 w-4" aria-hidden />
+                </Button>
                 <Form method="post">
                   <input type="hidden" name="intent" value="delete" />
                   <input type="hidden" name="key" value={row.key} />
@@ -142,7 +162,7 @@ export default function ProjectSecretsPage() {
             title="Use uppercase letters, numbers and underscores only."
             required
           />
-          <Field label="Secret value" name="value" type="password" required />
+          <SecretValueField />
           {actionData?.error ? (
             <p className="text-sm text-[var(--status-error-text)]" role="alert">
               {actionData.error}
@@ -154,6 +174,57 @@ export default function ProjectSecretsPage() {
         </Form>
       </div>
     </ProjectShell>
+  );
+}
+
+/*
+ * Secret value input: monospaced so opaque tokens are legible, reveal toggle so
+ * the value can be visually verified before saving, and paste is trimmed so a
+ * stray trailing newline/space copied from a dashboard never poisons the secret.
+ * Controlled locally; the value is still submitted via the `value` form field.
+ */
+function SecretValueField() {
+  const [value, setValue] = useState('');
+  const [revealed, setRevealed] = useState(false);
+
+  return (
+    <label className="grid gap-2 text-sm font-medium">
+      <span>
+        Secret value
+        <span className="ml-0.5 text-[var(--status-error-text)]" aria-hidden>
+          *
+        </span>
+      </span>
+      <div className="relative">
+        <input
+          className="h-10 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 pl-3 pr-11 text-sm outline-none focus:border-bolt-elements-focus"
+          style={{ fontFamily: 'var(--vc-font-code)' }}
+          name="value"
+          type={revealed ? 'text' : 'password'}
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          onPaste={(event) => {
+            event.preventDefault();
+
+            const pasted = event.clipboardData.getData('text').trim();
+            const input = event.currentTarget;
+            const start = input.selectionStart ?? value.length;
+            const end = input.selectionEnd ?? value.length;
+            setValue((current) => current.slice(0, start) + pasted + current.slice(end));
+          }}
+          autoComplete="off"
+          spellCheck={false}
+          required
+          aria-label="Secret value"
+        />
+        <RevealButton
+          revealed={revealed}
+          onToggle={() => setRevealed((current) => !current)}
+          subject="secret value"
+          className="absolute right-1 top-1/2 -translate-y-1/2"
+        />
+      </div>
+    </label>
   );
 }
 
