@@ -12,8 +12,10 @@ import type {
 } from '@ai-sdk/ui-utils';
 import { useStore } from '@nanostores/react';
 import { Markdown } from './Markdown';
+import { useCoarsePointer } from '~/components/sidebar/HistoryItem';
 import { stripInternalAgentScaffolding } from '~/lib/chat/agent-message-scaffolding';
 import { profileStore } from '~/lib/stores/profile';
+import { classNames } from '~/utils/classNames';
 import { MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
 
 interface UserMessageProps {
@@ -31,12 +33,22 @@ interface UserMessageProps {
  * composer with `text`, so the user edits it and resends through the normal path.
  */
 function EditMessageButton({ messageId, text }: { messageId: string; text: string }) {
+  /*
+   * On a coarse (touch) pointer there is no hover, so the hover-only reveal left
+   * the edit affordance permanently invisible. Show it outright on touch; on a
+   * fine pointer keep the hover reveal but also surface it on keyboard focus.
+   */
+  const coarse = useCoarsePointer();
+
   return (
     <button
       type="button"
       aria-label="Edit and resend this message"
       data-vc-tooltip="Edit & resend"
-      className="bolt-user-message-edit opacity-0 group-hover:opacity-100 transition-opacity text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary"
+      className={classNames(
+        'bolt-user-message-edit transition-opacity text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary focus-visible:opacity-100',
+        coarse ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+      )}
       onClick={() => {
         if (typeof window === 'undefined') {
           return;
