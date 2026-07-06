@@ -8,7 +8,8 @@ import {
   type ConsensusAlgorithm,
   type ConsensusOutput,
 } from './consensus/index.js';
-import { AiGateway, type AiChatRequest, type AiMessage } from './gateway.js';
+import { AiGateway, countTokens, type AiChatRequest, type AiMessage } from './gateway.js';
+import { summarizeRunTokenUsage, type LaneTokenUsage } from './token-usage.js';
 
 export type { AgentRunPersistence } from './agent-run-persistence.js';
 
@@ -522,8 +523,8 @@ export async function executeAgentRun(input: {
   const runId = randomUUID();
   const startedAt = new Date();
 
-  const results = await Promise.all(
-    input.request.roles.map(async (role): Promise<AgentRunResult> => {
+  const laneOutputs = await Promise.all(
+    input.request.roles.map(async (role): Promise<{ result: AgentRunResult; usage?: LaneTokenUsage }> => {
       try {
         const completion = await input.gateway.complete(
           {
@@ -545,16 +546,45 @@ export async function executeAgentRun(input: {
           input.signal,
         );
 
-        return normalizeAgentOutput(role.id, completion.content);
+        return { result: normalizeAgentOutput(role.id, completion.content), usage: completion.usage };
       } catch (error) {
         return {
-          roleId: role.id,
-          status: 'failed',
-          summary: error instanceof Error ? error.message : 'Agent execution failed.',
+          result: {
+            roleId: role.id,
+            status: 'failed',
+            summary: error instanceof Error ? error.message : 'Agent execution failed.',
+          },
         };
       }
     }),
   );
+
+  const results = laneOutputs.map((output) => output.result);
+
+  /*
+   * Token accounting so a generation's spend is measurable (and the shared-context
+   * duplication is visible): every lane re-sends the same system+user+specs, so
+   * `duplicatedInputTokens` is the redundant input cost of fanning out N lanes.
+   * The algorithmic consensus below spends NO tokens (no model call). Log-only —
+   * never throws.
+   */
+  try {
+    const sharedContextTokens = countTokens(input.request.messages);
+    const tokenUsage = summarizeRunTokenUsage(
+      laneOutputs.map((output) => output.usage),
+      sharedContextTokens,
+    );
+
+    console.info('[agent-executor] token usage', {
+      runId,
+      model: input.request.model,
+      provider: input.request.provider,
+      roles: input.request.roles.length,
+      ...tokenUsage,
+    });
+  } catch (error) {
+    console.warn('[agent-executor] token usage logging failed', error);
+  }
 
   const status = aggregateStatus(results);
   const hasFailedRoles = results.some((r) => r.status === 'failed');
