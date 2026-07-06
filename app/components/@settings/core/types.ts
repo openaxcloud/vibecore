@@ -89,7 +89,7 @@ export const TAB_LABELS: Record<TabType, string> = {
   connections: 'Connections',
   update: 'Updates',
   debug: 'Debug',
-  'task-manager': 'Task Manager',
+  'task-manager': 'Local data',
   'service-status': 'Service Status',
 };
 

@@ -12,7 +12,7 @@ import {
   Plug,
   RefreshCw,
   Bug,
-  ClipboardList,
+  HardDrive,
   Activity,
 } from 'lucide-react';
 import type { TabType } from './types';
@@ -72,7 +72,7 @@ export const TAB_ICONS: Record<TabType, React.ComponentType<{ className?: string
   connections: Plug,
   update: RefreshCw,
   debug: Bug,
-  'task-manager': ClipboardList,
+  'task-manager': HardDrive,
   'service-status': Activity,
 };
 
@@ -94,7 +94,7 @@ export const TAB_LABELS: Record<TabType, string> = {
   connections: 'Connections',
   update: 'Updates',
   debug: 'Debug',
-  'task-manager': 'Task Manager',
+  'task-manager': 'Local data',
   'service-status': 'Service Status',
 };
 
@@ -116,7 +116,7 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   connections: 'Review service and provider connections',
   update: 'Check upstream updates and changes',
   debug: 'Inspect runtime diagnostics',
-  'task-manager': 'Manage local browser data and tasks',
+  'task-manager': 'Inspect and clear local browser storage',
   'service-status': 'Check application service endpoints',
 };
 
