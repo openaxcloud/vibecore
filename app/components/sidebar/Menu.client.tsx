@@ -12,6 +12,7 @@ import { SettingsButton, HelpButton } from '~/components/ui/SettingsButton';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
 import { db, deleteById, getAll, chatId, type ChatHistoryItem, useChatHistory } from '~/lib/persistence';
+import { sidebarMenuStore } from '~/lib/stores/menu';
 import { profileStore } from '~/lib/stores/profile';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
@@ -68,7 +69,10 @@ export const Menu = () => {
   const { duplicateCurrentChat, exportChat } = useChatHistory();
   const menuRef = useRef<HTMLDivElement>(null);
   const [list, setList] = useState<ChatHistoryItem[]>([]);
-  const [open, setOpen] = useState(false);
+
+  // Drawer open state lives in a shared store so the header toggle stays in sync.
+  const open = useStore(sidebarMenuStore);
+  const setOpen = useCallback((value: boolean) => sidebarMenuStore.set(value), []);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const profile = useStore(profileStore);

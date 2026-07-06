@@ -3,10 +3,12 @@ import { ClientOnly } from 'remix-utils/client-only';
 import { HeaderActionButtons } from './HeaderActionButtons.client';
 import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 import { chatStore } from '~/lib/stores/chat';
+import { sidebarMenuStore } from '~/lib/stores/menu';
 import { classNames } from '~/utils/classNames';
 
 export function Header() {
   const chat = useStore(chatStore);
+  const menuOpen = useStore(sidebarMenuStore);
 
   return (
     <header
@@ -16,11 +18,20 @@ export function Header() {
       })}
     >
       <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary">
-        <div className="i-ph:sidebar-simple-duotone text-xl" />
+        <button
+          type="button"
+          onClick={() => sidebarMenuStore.set(!menuOpen)}
+          aria-label="Chats"
+          aria-expanded={menuOpen}
+          title="Chats"
+          data-vc-tooltip="Chats"
+          className="flex h-8 w-8 items-center justify-center rounded-md text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+        >
+          <span className="i-ph:sidebar-simple-duotone text-xl" aria-hidden />
+        </button>
         <a href="/" className="text-2xl font-semibold text-accent flex items-center">
-          {/* <span className="i-bolt:logo-text?mask w-[46px] inline-block" /> */}
-          <img src="/logo-light-styled.png" alt="logo" className="w-[90px] inline-block dark:hidden" />
-          <img src="/logo-dark-styled.png" alt="logo" className="w-[90px] inline-block hidden dark:block" />
+          <img src="/logo-light-styled.png" alt="E-Code" className="w-[90px] inline-block dark:hidden" />
+          <img src="/logo-dark-styled.png" alt="E-Code" className="w-[90px] inline-block hidden dark:block" />
         </a>
       </div>
       {chat.started && ( // Display ChatDescription and HeaderActionButtons only when the chat has started.
