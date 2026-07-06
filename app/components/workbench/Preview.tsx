@@ -1147,6 +1147,23 @@ export const Preview = memo(
       }
     };
 
+    /*
+     * A cross-origin preview (external URL) blocks contentWindow.history access,
+     * so Back/Forward would silently no-op. Detect that and disable the controls
+     * with an explanatory tooltip instead of pretending they work.
+     */
+    const previewHistoryUnavailable = useMemo(() => {
+      if (typeof window === 'undefined' || !iframeUrl) {
+        return false;
+      }
+
+      try {
+        return new URL(iframeUrl, window.location.href).origin !== window.location.origin;
+      } catch {
+        return false;
+      }
+    }, [iframeUrl]);
+
     const resolveAddressInput = () => {
       if (!activePreview) {
         return;
@@ -1963,8 +1980,18 @@ export const Preview = memo(
         )}
         <div className="bolt-project-webview-toolbar">
           <div className="flex items-center gap-1">
-            <IconButton icon="i-ph:arrow-left" onClick={() => navigatePreviewHistory('back')} title="Back" />
-            <IconButton icon="i-ph:arrow-right" onClick={() => navigatePreviewHistory('forward')} title="Forward" />
+            <IconButton
+              icon="i-ph:arrow-left"
+              onClick={() => navigatePreviewHistory('back')}
+              disabled={previewHistoryUnavailable}
+              title={previewHistoryUnavailable ? 'Navigation history unavailable for external URLs' : 'Back'}
+            />
+            <IconButton
+              icon="i-ph:arrow-right"
+              onClick={() => navigatePreviewHistory('forward')}
+              disabled={previewHistoryUnavailable}
+              title={previewHistoryUnavailable ? 'Navigation history unavailable for external URLs' : 'Forward'}
+            />
             <IconButton icon="i-ph:arrow-clockwise" onClick={() => reloadPreview()} title="Refresh preview" />
             <IconButton
               icon="i-ph:selection"
