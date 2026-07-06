@@ -16322,6 +16322,83 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(204).send();
   });
+  app.post('/orgs/:orgId/siem-webhooks/:webhookId/test', async (request, reply) => {
+    const params = parse(z.object({ orgId: z.string().min(1), webhookId: z.string().min(1) }), request.params);
+    await requireOrg(request, store, params.orgId, 'audit:export');
+
+    // Org-scoped lookup: another tenant's webhook id simply isn't in this list → 404.
+    const webhook = (await store.listSiemWebhooks(params.orgId)).find(
+      (candidate) => candidate.id === params.webhookId,
+    );
+
+    if (!webhook) {
+      return reply.code(404).send({ error: 'SIEM webhook not found', code: 'SIEM_WEBHOOK_NOT_FOUND' });
+    }
+
+    let secret: string;
+
+    try {
+      ({ secret } = decryptJson<{ secret: string }>(webhook.secretCiphertext));
+    } catch {
+      return reply
+        .code(500)
+        .send({ error: 'The webhook signing secret could not be read.', code: 'SIEM_SECRET_UNREADABLE' });
+    }
+
+    /*
+     * A REAL signed delivery — identical schema family, HMAC-SHA256 signature and
+     * headers as production abuse deliveries (deliverSiemAbuseSignal), so the
+     * receiver validates it exactly like a live event. `redirect: 'manual'` keeps
+     * the same redirect-based-SSRF protection; the URL was already validated at
+     * config time. We surface the receiver's real HTTP status instead of
+     * swallowing it (the abuse path is fire-and-forget; a test must report back).
+     */
+    const body = JSON.stringify({
+      schema: 'vibecore.test.v1',
+      deliveredAt: new Date().toISOString(),
+      organizationId: params.orgId,
+      test: true,
+      message: 'Test event from E-Code SIEM webhook configuration.',
+    });
+    const signature = createHmac('sha256', secret).update(body).digest('hex');
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    try {
+      const response = await fetch(webhook.url, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-vibecore-signature': `sha256=${signature}`,
+          'x-vibecore-event': 'test.event',
+        },
+        body,
+        redirect: 'manual',
+        signal: controller.signal,
+      });
+
+      await audit(request, store, {
+        organizationId: params.orgId,
+        action: 'siem.webhook.test',
+        resourceType: 'siemWebhook',
+        resourceId: webhook.id,
+      });
+
+      return { delivered: response.ok, status: response.status, statusText: response.statusText };
+    } catch (error) {
+      const aborted = error instanceof Error && error.name === 'AbortError';
+
+      // Delivery-level failure (DNS/refused/timeout): report it, don't 500.
+      return reply.code(200).send({
+        delivered: false,
+        status: 0,
+        statusText: aborted ? 'Timed out after 5s' : 'Could not connect to the endpoint',
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+  });
 
   app.get('/orgs/:orgId/projects', async (request) => {
     const { orgId } = parse(orgParams, request.params);

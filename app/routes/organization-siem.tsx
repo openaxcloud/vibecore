@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, Radio, Trash2 } from 'lucide-react';
+import { CheckCircle2, Clock, Radio, Send, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
@@ -102,6 +102,29 @@ export async function action({ request }: EnterpriseActionArgs) {
       });
 
       return json({ status: 'SIEM webhook removed. Events will no longer be delivered to that endpoint.' });
+    }
+
+    if (body.intent === 'test') {
+      if (!body.webhookId) {
+        return json({ error: 'Missing webhook.' }, { status: 400 });
+      }
+
+      // Real signed test delivery; the API returns the receiver's actual HTTP status.
+      const result = await apiRequest<{ delivered: boolean; status: number; statusText: string }>(
+        request,
+        `/orgs/${body.orgId}/siem-webhooks/${encodeURIComponent(body.webhookId)}/test`,
+        { method: 'POST' },
+      );
+
+      if (result.delivered) {
+        return json({ status: `Test event delivered — your endpoint responded HTTP ${result.status}.` });
+      }
+
+      return json({
+        error: result.status
+          ? `Test event was signed and sent, but your endpoint responded HTTP ${result.status} ${result.statusText}.`
+          : `Test event could not be delivered — ${result.statusText}.`,
+      });
     }
 
     // Default intent: create/upsert a webhook.
@@ -274,27 +297,43 @@ export default function OrganizationSiemPage() {
                       <td className="px-4 py-3">
                         <DeliveryStatus webhook={webhook} />
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        <Form
-                          method="post"
-                          onSubmit={(event) => {
-                            event.preventDefault();
-                            setWebhookPendingDelete(webhook.id);
-                          }}
-                        >
-                          <input type="hidden" name="orgId" value={orgId} />
-                          <input type="hidden" name="intent" value="delete" />
-                          <input type="hidden" name="webhookId" value={webhook.id} />
-                          <button
-                            type="submit"
-                            disabled={busy}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:border-[var(--status-error-border)] hover:text-[var(--status-error-text)] disabled:cursor-not-allowed disabled:opacity-60"
-                            aria-label={`Delete SIEM webhook ${webhook.url}`}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <Form method="post">
+                            <input type="hidden" name="orgId" value={orgId} />
+                            <input type="hidden" name="intent" value="test" />
+                            <input type="hidden" name="webhookId" value={webhook.id} />
+                            <button
+                              type="submit"
+                              disabled={busy}
+                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:border-[var(--vc-ide-accent-action)] hover:text-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60"
+                              aria-label={`Send a test event to SIEM webhook ${webhook.url}`}
+                            >
+                              <Send className="h-3.5 w-3.5" aria-hidden />
+                              Send test event
+                            </button>
+                          </Form>
+                          <Form
+                            method="post"
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              setWebhookPendingDelete(webhook.id);
+                            }}
                           >
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                            Delete
-                          </button>
-                        </Form>
+                            <input type="hidden" name="orgId" value={orgId} />
+                            <input type="hidden" name="intent" value="delete" />
+                            <input type="hidden" name="webhookId" value={webhook.id} />
+                            <button
+                              type="submit"
+                              disabled={busy}
+                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:border-[var(--status-error-border)] hover:text-[var(--status-error-text)] disabled:cursor-not-allowed disabled:opacity-60"
+                              aria-label={`Delete SIEM webhook ${webhook.url}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                              Delete
+                            </button>
+                          </Form>
+                        </div>
                       </td>
                     </tr>
                   ))}
