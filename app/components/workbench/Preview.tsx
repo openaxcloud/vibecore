@@ -30,7 +30,7 @@ import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { FileMap } from '~/lib/stores/files';
-import { shouldKickReopenPreview } from '~/lib/stores/preview-recovery';
+import { shouldKickReopenPreview, shouldLatchPreviewStartFailure } from '~/lib/stores/preview-recovery';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { captureAndUploadThumbnail } from '~/lib/thumbnail-capture';
@@ -976,9 +976,28 @@ export const Preview = memo(
         toast.info(`Build started: ${label}`, { toastId: 'preview-build-started' });
         window.setTimeout(() => setIsStartingPreview(false), 2500);
       } catch (error) {
-        setPreviewStatus(error instanceof Error ? error.message : 'Failed to start preview server');
-        setPreviewRunFailed(true);
-        setIsStartingPreview(false);
+        const message = error instanceof Error ? error.message : 'Failed to start preview server';
+        setPreviewStatus(message);
+
+        /*
+         * This wrapper is EXCLUSIVELY the auto boot-loop kick (the manual Run
+         * button uses restartPreviewServer with its own latch). A cold-pod
+         * transient failure here must NOT latch previewRunFailed — that would
+         * kill the retry interval + 5-min budget and strand the user behind a
+         * manual Run. Only a deterministic failure latches promptly.
+         */
+        if (shouldLatchPreviewStartFailure({ manual: false, message })) {
+          setPreviewRunFailed(true);
+          setIsStartingPreview(false);
+        } else {
+          /*
+           * Transient failure: keep retrying. Hold the "starting" state for a
+           * short cooldown (mirrors the success path) so this one-shot kick
+           * effect doesn't instantly re-fire and busy-spin the cold agent; the
+           * 2.5s retry interval below then drives the actual reattempts.
+           */
+          window.setTimeout(() => setIsStartingPreview(false), 2500);
+        }
       }
     }, []);
 
