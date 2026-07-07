@@ -186,6 +186,7 @@ import {
   ObjectStorageError,
   type ObjectStorage,
   isObjectStorageEnabled,
+  PROJECT_THUMBNAIL_KEY,
   resolveDefaultObjectStorage,
 } from './object-storage.js';
 import { PrismaApiStore } from './prisma-store.js';
@@ -25002,6 +25003,65 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         : await storage.deleteObject(project.id, { key: body.key! });
 
       return reply.send(result);
+    } catch (error) {
+      return sendObjectStorageError(reply, error);
+    }
+  });
+
+  /*
+   * Project preview thumbnail (P11). The browser captures a real screenshot of
+   * the running preview and PUTs it to a SERVER-PINNED key via this signed URL;
+   * the Dashboard/Projects cards read it back through GET below. No base64 in the
+   * DB — the bytes live in the project's own GCS bucket like every other object.
+   */
+  app.post('/projects/:projectId/thumbnail/upload-url', async (request, reply) => {
+    if (!isObjectStorageEnabled()) {
+      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireObjectStorageProject(request, 'projects:write');
+
+    try {
+      const storage = resolveObjectStorage();
+
+      /*
+       * Ensure the bucket exists first so the browser's PUT to the signed URL
+       * can't 404 for a project that has never used object storage before. The
+       * key is server-pinned, so a caller can only ever overwrite this one
+       * object — it can't smuggle an arbitrary key into the bucket here.
+       */
+      await storage.ensureBucket(project.id);
+
+      return reply.send(
+        await storage.createUploadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY, contentType: 'image/png' }),
+      );
+    } catch (error) {
+      return sendObjectStorageError(reply, error);
+    }
+  });
+
+  app.get('/projects/:projectId/thumbnail', async (request, reply) => {
+    if (!isObjectStorageEnabled()) {
+      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireObjectStorageProject(request, 'projects:read');
+
+    try {
+      const storage = resolveObjectStorage();
+
+      /*
+       * Only sign a URL when a screenshot has actually been captured, so a
+       * project with none 404s and the card keeps its "No preview yet" state
+       * instead of pointing <img> at a would-be-broken signed URL.
+       */
+      const { objects } = await storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY });
+
+      if (!objects.some((object) => object.key === PROJECT_THUMBNAIL_KEY)) {
+        return reply.code(404).send({ error: 'No thumbnail captured', code: 'THUMBNAIL_NOT_FOUND' });
+      }
+
+      return reply.send(await storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }));
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }

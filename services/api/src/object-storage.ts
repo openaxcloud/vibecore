@@ -28,6 +28,13 @@ export const SIGNED_URL_TTL_MS = 15 * 60 * 1000;
 export const TMP_LIFECYCLE_DAYS = Number(process.env.OBJECT_STORAGE_TMP_TTL_DAYS) || 7;
 
 /**
+ * Server-pinned key for a project's latest captured preview thumbnail (P11).
+ * A single object per project, overwritten on each capture ("dernier état").
+ * It lives OUTSIDE the `tmp/` prefix so the lifecycle rule never expires it.
+ */
+export const PROJECT_THUMBNAIL_KEY = 'thumbnails/preview.png';
+
+/**
  * Deterministic per-project bucket name. GCS bucket names must be 3–63 chars,
  * lowercase letters/digits/hyphens, and start/end alphanumeric.
  */
