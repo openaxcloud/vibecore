@@ -371,7 +371,7 @@ const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: st
   agent: { id: 'agent', name: 'Agent', icon: 'agent' },
   deploy: { id: 'deploy', name: 'Deployments', icon: 'i-ph:rocket-launch' },
   deployments: { id: 'deployments', name: 'Deployments', icon: 'i-ph:rocket-launch' },
-  files: { id: 'files', name: 'Files', icon: 'i-ph:folder-open' },
+  files: { id: 'files', name: 'Library', icon: 'i-ph:folder-open' },
   editor: { id: 'editor', name: 'Editor', icon: 'i-ph:code' },
   search: { id: 'search', name: 'Search', icon: 'i-ph:magnifying-glass' },
   locks: { id: 'locks', name: 'Locks', icon: 'i-ph:lock' },
@@ -7047,7 +7047,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const ideRailToolItems = [
       {
         panel: 'files',
-        label: 'Files',
+        label: 'Library',
         icon: 'i-ph:files',
         badge: visibleProjectFilePaths.length || undefined,
         badgeLabel:
@@ -7281,12 +7281,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               >
                 <aside
                   className="bolt-project-right-panel-shell"
-                  aria-label={rightPanelMode === 'files' ? 'Project files panel' : 'Preview logs panel'}
+                  aria-label={rightPanelMode === 'files' ? 'Project library panel' : 'Preview logs panel'}
                   style={{ '--project-right-panel-width': `${rightPanelWidth}px` } as React.CSSProperties}
                 >
                   <div className="bolt-project-right-files-header">
                     <span className={rightPanelMode === 'files' ? 'i-ph:files' : 'i-ph:terminal-window'} aria-hidden />
-                    <span>{rightPanelMode === 'files' ? 'Files' : 'Preview logs'}</span>
+                    <span>{rightPanelMode === 'files' ? 'Library' : 'Preview logs'}</span>
                     <button
                       type="button"
                       className="bolt-project-ide-icon-button ml-auto"
@@ -7301,7 +7301,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   </div>
                   <div className="bolt-project-right-panel-content">
                     <PanelErrorBoundary
-                      panel={rightPanelMode === 'files' ? 'Files' : 'Preview logs'}
+                      panel={rightPanelMode === 'files' ? 'Library' : 'Preview logs'}
                       boundaryId={`project:${projectId}:right:${rightPanelMode}`}
                       projectId={projectId}
                       getSnapshot={() => ({
@@ -19442,7 +19442,7 @@ function panelTitle(panel: string) {
     integrations: 'Integrations',
     workflows: 'Workflows',
     debugger: 'Debugger',
-    files: 'Files',
+    files: 'Library',
     search: 'Search',
     locks: 'Locks',
     overview: 'Overview',
