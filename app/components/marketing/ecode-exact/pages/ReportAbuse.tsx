@@ -206,7 +206,7 @@ export default function ReportAbuse() {
                   <div className="space-y-4">
                     <div>
                       <h3 className="font-semibold flex items-center gap-2 mb-2">
-                        <AlertTriangle className="h-4 w-4 text-purple-500" />
+                        <AlertTriangle className="h-4 w-4 text-teal-500" />
                         Spam or Scams
                       </h3>
                       <p className="text-[13px] text-muted-foreground">
