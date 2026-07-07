@@ -4,9 +4,7 @@
 
 E-Code is an AI web IDE for building, running and deploying full-stack apps from your browser. Choose the LLM you use for each prompt — OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together, Perplexity, Moonshot (Kimi), Hyperbolic, GitHub Models, Amazon Bedrock, and OpenAI-like providers — and it is easily extended to any other model supported by the Vercel AI SDK. See the instructions below for running it locally and extending it with more models.
 
-E-Code builds on the open-source [bolt.diy](https://github.com/stackblitz-labs/bolt.diy) project.
-
-bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMedin) but has quickly grown into a massive community effort to build the BEST open source AI coding assistant!
+Learn more and try it at **[e-code.ai](https://e-code.ai)** — or open the app directly at **[app.e-code.ai](https://app.e-code.ai)**.
 
 ## Table of Contents
 
@@ -25,15 +23,13 @@ bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMed
 
 ## Join the community
 
-[Join the bolt.diy community here, in the oTTomator Think Tank!](https://thinktank.ottomator.ai)
+Build with E-Code at **[e-code.ai](https://e-code.ai)** and **[app.e-code.ai](https://app.e-code.ai)**.
 
 ## Project management
 
-Bolt.diy is a community effort! Still, the core team of contributors aims at organizing the project in way that allows
-you to understand where the current areas of focus are.
-
-If you want to know what we are working on, what we are planning to work on, or if you want to contribute to the
-project, please check the [project management guide](./PROJECT.md) to get started easily.
+The core team organizes the project so you can see the current areas of focus. If you want to know what we are working
+on, what we are planning to work on, or if you want to contribute, please check the
+[project management guide](./PROJECT.md) to get started easily.
 
 ## Recent Major Additions
 
@@ -90,7 +86,7 @@ Let's get you up and running with the stable version of E-Code!
 
 ## Quick Installation
 
-[![Download Latest Release](https://img.shields.io/github/v/release/stackblitz-labs/bolt.diy?label=Download%20Bolt&sort=semver)](https://github.com/stackblitz-labs/bolt.diy/releases/latest) ← Click here to go to the latest release version!
+[![Download Latest Release](https://img.shields.io/github/v/release/openaxcloud/vibecore?label=Download%20E-Code&sort=semver)](https://github.com/openaxcloud/vibecore/releases/latest) ← Click here to go to the latest release version!
 
 - Download the binary for your platform (available for Windows, macOS, and Linux)
 - **Note**: For macOS, if you get the error "This app is damaged", run:
@@ -199,7 +195,7 @@ This option requires Docker and is great when you want an isolated environment o
 For users who prefer a native desktop experience, E-Code is also available as an Electron desktop application:
 
 1. **Download the Desktop App**:
-   - Visit the [latest release](https://github.com/stackblitz-labs/bolt.diy/releases/latest)
+   - Visit the [latest release](https://github.com/openaxcloud/vibecore/releases/latest)
    - Download the appropriate binary for your operating system
    - For macOS: Extract and run the `.dmg` file
    - For Windows: Run the `.exe` installer
@@ -366,13 +362,13 @@ This method is recommended for developers who want to:
 1. **Clone the Repository**:
 
    ```bash
-   git clone -b stable https://github.com/stackblitz-labs/bolt.diy.git
+   git clone https://github.com/openaxcloud/vibecore.git
    ```
 
 2. **Navigate to Project Directory**:
 
    ```bash
-   cd bolt.diy
+   cd vibecore
    ```
 
 3. **Install Dependencies**:
@@ -503,8 +499,11 @@ Explore upcoming features and priorities on our [Roadmap](https://roadmap.sh/r/o
 For answers to common questions, issues, and to see a list of recommended models, visit our [FAQ Page](FAQ.md).
 
 
+# Attribution
+
+E-Code builds on the open-source [bolt.diy](https://github.com/stackblitz-labs/bolt.diy) project (originally started by [Cole Medin](https://www.youtube.com/@ColeMedin) and grown by its community). The bolt.diy source is MIT-licensed; we retain that attribution and license here with thanks.
+
 # Licensing
 **Who needs a commercial WebContainer API license?**
 
-bolt.diy source code is distributed as MIT, but it uses WebContainers API that [requires licensing](https://webcontainers.io/enterprise) for production usage in a commercial, for-profit setting. (Prototypes or POCs do not require a commercial license.) If you're using the API to meet the needs of your customers, prospective customers, and/or employees, you need a license to ensure compliance with our Terms of Service. Usage of the API in violation of these terms may result in your access being revoked.
-# Test commit to trigger Security Analysis workflow
+E-Code is distributed under the MIT license inherited from bolt.diy, but it uses the WebContainers API that [requires licensing](https://webcontainers.io/enterprise) for production usage in a commercial, for-profit setting. (Prototypes or POCs do not require a commercial license.) If you're using the API to meet the needs of your customers, prospective customers, and/or employees, you need a license to ensure compliance with our Terms of Service. Usage of the API in violation of these terms may result in your access being revoked.

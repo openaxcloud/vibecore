@@ -28,6 +28,13 @@ name: Deploy Production (Continuous)
 on:
   push:
     branches: [main]
+    # Doc/branding-only commits don't change any runtime image, so skip the
+    # (expensive) build+rollout for them. Anything under docs/ or any *.md file
+    # (README, CLAUDE.md, runbooks) is ignored; a commit that also touches code
+    # still deploys. Only affects CI triggering, never the runtime.
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
   workflow_dispatch:
     inputs:
       short_sha:
