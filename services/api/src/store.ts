@@ -327,6 +327,17 @@ export interface FeatureFlagRecord {
   rolloutPercent?: number;
 }
 
+/** F23: mutable resolution overlay for a derived security event (keyed by AuditLog id). */
+export interface SecurityEventResolutionRecord {
+  id: string;
+  auditLogId: string;
+  resolved: boolean;
+  note?: string;
+  resolvedByUserId?: string;
+  resolvedAt: string;
+  createdAt: string;
+}
+
 export interface AbuseEventRecord {
   id: string;
   organizationId?: string;
@@ -2035,6 +2046,15 @@ export interface ApiStore {
     resolved?: boolean;
     disposition?: string;
   }): Promise<AbuseEventRecord>;
+  /** F23: security-relevant audit rows WITH their ids (so a resolution can key off them). */
+  listSecurityAuditEvents(): Promise<Array<AuditEvent & { id: string; createdAt: string }>>;
+  /** F23: resolution overlay for security events (derived from AuditLog). */
+  listSecurityEventResolutions(): Promise<SecurityEventResolutionRecord[]>;
+  resolveSecurityEvent(input: {
+    auditLogId: string;
+    note?: string;
+    resolvedByUserId?: string;
+  }): Promise<SecurityEventResolutionRecord>;
   recordAdminAudit(event: AdminAuditLogRecord): Promise<void>;
   listAdminAuditLogs(): Promise<AdminAuditLogRecord[]>;
 

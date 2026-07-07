@@ -189,6 +189,14 @@ export type DeploymentEnvironment = $Result.DefaultSelection<Prisma.$DeploymentE
  */
 export type AuditLog = $Result.DefaultSelection<Prisma.$AuditLogPayload>
 /**
+ * Model SecurityEventResolution
+ * F23: operator resolution overlay for security events. Security events are
+ * DERIVED from immutable AuditLog rows (auth/security/mfa actions); this table
+ * carries the mutable resolution state (resolved + an operator note) keyed by
+ * the audit-log id, without mutating the append-only audit trail. Additive-only.
+ */
+export type SecurityEventResolution = $Result.DefaultSelection<Prisma.$SecurityEventResolutionPayload>
+/**
  * Model AdminAuditLog
  * 
  */
@@ -1264,6 +1272,16 @@ export class PrismaClient<
     * ```
     */
   get auditLog(): Prisma.AuditLogDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.securityEventResolution`: Exposes CRUD operations for the **SecurityEventResolution** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more SecurityEventResolutions
+    * const securityEventResolutions = await prisma.securityEventResolution.findMany()
+    * ```
+    */
+  get securityEventResolution(): Prisma.SecurityEventResolutionDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.adminAuditLog`: Exposes CRUD operations for the **AdminAuditLog** model.
@@ -2363,6 +2381,7 @@ export namespace Prisma {
     Deployment: 'Deployment',
     DeploymentEnvironment: 'DeploymentEnvironment',
     AuditLog: 'AuditLog',
+    SecurityEventResolution: 'SecurityEventResolution',
     AdminAuditLog: 'AdminAuditLog',
     BillingCustomer: 'BillingCustomer',
     Subscription: 'Subscription',
@@ -2441,7 +2460,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5016,6 +5035,80 @@ export namespace Prisma {
           count: {
             args: Prisma.AuditLogCountArgs<ExtArgs>
             result: $Utils.Optional<AuditLogCountAggregateOutputType> | number
+          }
+        }
+      }
+      SecurityEventResolution: {
+        payload: Prisma.$SecurityEventResolutionPayload<ExtArgs>
+        fields: Prisma.SecurityEventResolutionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.SecurityEventResolutionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecurityEventResolutionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.SecurityEventResolutionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecurityEventResolutionPayload>
+          }
+          findFirst: {
+            args: Prisma.SecurityEventResolutionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecurityEventResolutionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.SecurityEventResolutionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecurityEventResolutionPayload>
+          }
+          findMany: {
+            args: Prisma.SecurityEventResolutionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecurityEventResolutionPayload>[]
+          }
+          create: {
+            args: Prisma.SecurityEventResolutionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecurityEventResolutionPayload>
+          }
+          createMany: {
+            args: Prisma.SecurityEventResolutionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.SecurityEventResolutionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecurityEventResolutionPayload>[]
+          }
+          delete: {
+            args: Prisma.SecurityEventResolutionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecurityEventResolutionPayload>
+          }
+          update: {
+            args: Prisma.SecurityEventResolutionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecurityEventResolutionPayload>
+          }
+          deleteMany: {
+            args: Prisma.SecurityEventResolutionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.SecurityEventResolutionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.SecurityEventResolutionUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecurityEventResolutionPayload>[]
+          }
+          upsert: {
+            args: Prisma.SecurityEventResolutionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecurityEventResolutionPayload>
+          }
+          aggregate: {
+            args: Prisma.SecurityEventResolutionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateSecurityEventResolution>
+          }
+          groupBy: {
+            args: Prisma.SecurityEventResolutionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<SecurityEventResolutionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.SecurityEventResolutionCountArgs<ExtArgs>
+            result: $Utils.Optional<SecurityEventResolutionCountAggregateOutputType> | number
           }
         }
       }
@@ -9824,6 +9917,7 @@ export namespace Prisma {
     deployment?: DeploymentOmit
     deploymentEnvironment?: DeploymentEnvironmentOmit
     auditLog?: AuditLogOmit
+    securityEventResolution?: SecurityEventResolutionOmit
     adminAuditLog?: AdminAuditLogOmit
     billingCustomer?: BillingCustomerOmit
     subscription?: SubscriptionOmit
@@ -53150,6 +53244,1045 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: AuditLogInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model SecurityEventResolution
+   */
+
+  export type AggregateSecurityEventResolution = {
+    _count: SecurityEventResolutionCountAggregateOutputType | null
+    _min: SecurityEventResolutionMinAggregateOutputType | null
+    _max: SecurityEventResolutionMaxAggregateOutputType | null
+  }
+
+  export type SecurityEventResolutionMinAggregateOutputType = {
+    id: string | null
+    auditLogId: string | null
+    resolved: boolean | null
+    note: string | null
+    resolvedByUserId: string | null
+    resolvedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type SecurityEventResolutionMaxAggregateOutputType = {
+    id: string | null
+    auditLogId: string | null
+    resolved: boolean | null
+    note: string | null
+    resolvedByUserId: string | null
+    resolvedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type SecurityEventResolutionCountAggregateOutputType = {
+    id: number
+    auditLogId: number
+    resolved: number
+    note: number
+    resolvedByUserId: number
+    resolvedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type SecurityEventResolutionMinAggregateInputType = {
+    id?: true
+    auditLogId?: true
+    resolved?: true
+    note?: true
+    resolvedByUserId?: true
+    resolvedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type SecurityEventResolutionMaxAggregateInputType = {
+    id?: true
+    auditLogId?: true
+    resolved?: true
+    note?: true
+    resolvedByUserId?: true
+    resolvedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type SecurityEventResolutionCountAggregateInputType = {
+    id?: true
+    auditLogId?: true
+    resolved?: true
+    note?: true
+    resolvedByUserId?: true
+    resolvedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type SecurityEventResolutionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SecurityEventResolution to aggregate.
+     */
+    where?: SecurityEventResolutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SecurityEventResolutions to fetch.
+     */
+    orderBy?: SecurityEventResolutionOrderByWithRelationInput | SecurityEventResolutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: SecurityEventResolutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SecurityEventResolutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SecurityEventResolutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned SecurityEventResolutions
+    **/
+    _count?: true | SecurityEventResolutionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: SecurityEventResolutionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: SecurityEventResolutionMaxAggregateInputType
+  }
+
+  export type GetSecurityEventResolutionAggregateType<T extends SecurityEventResolutionAggregateArgs> = {
+        [P in keyof T & keyof AggregateSecurityEventResolution]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateSecurityEventResolution[P]>
+      : GetScalarType<T[P], AggregateSecurityEventResolution[P]>
+  }
+
+
+
+
+  export type SecurityEventResolutionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SecurityEventResolutionWhereInput
+    orderBy?: SecurityEventResolutionOrderByWithAggregationInput | SecurityEventResolutionOrderByWithAggregationInput[]
+    by: SecurityEventResolutionScalarFieldEnum[] | SecurityEventResolutionScalarFieldEnum
+    having?: SecurityEventResolutionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: SecurityEventResolutionCountAggregateInputType | true
+    _min?: SecurityEventResolutionMinAggregateInputType
+    _max?: SecurityEventResolutionMaxAggregateInputType
+  }
+
+  export type SecurityEventResolutionGroupByOutputType = {
+    id: string
+    auditLogId: string
+    resolved: boolean
+    note: string | null
+    resolvedByUserId: string | null
+    resolvedAt: Date
+    createdAt: Date
+    updatedAt: Date
+    _count: SecurityEventResolutionCountAggregateOutputType | null
+    _min: SecurityEventResolutionMinAggregateOutputType | null
+    _max: SecurityEventResolutionMaxAggregateOutputType | null
+  }
+
+  type GetSecurityEventResolutionGroupByPayload<T extends SecurityEventResolutionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<SecurityEventResolutionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof SecurityEventResolutionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], SecurityEventResolutionGroupByOutputType[P]>
+            : GetScalarType<T[P], SecurityEventResolutionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type SecurityEventResolutionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    auditLogId?: boolean
+    resolved?: boolean
+    note?: boolean
+    resolvedByUserId?: boolean
+    resolvedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["securityEventResolution"]>
+
+  export type SecurityEventResolutionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    auditLogId?: boolean
+    resolved?: boolean
+    note?: boolean
+    resolvedByUserId?: boolean
+    resolvedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["securityEventResolution"]>
+
+  export type SecurityEventResolutionSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    auditLogId?: boolean
+    resolved?: boolean
+    note?: boolean
+    resolvedByUserId?: boolean
+    resolvedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["securityEventResolution"]>
+
+  export type SecurityEventResolutionSelectScalar = {
+    id?: boolean
+    auditLogId?: boolean
+    resolved?: boolean
+    note?: boolean
+    resolvedByUserId?: boolean
+    resolvedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type SecurityEventResolutionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "auditLogId" | "resolved" | "note" | "resolvedByUserId" | "resolvedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["securityEventResolution"]>
+
+  export type $SecurityEventResolutionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "SecurityEventResolution"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      auditLogId: string
+      resolved: boolean
+      note: string | null
+      resolvedByUserId: string | null
+      resolvedAt: Date
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["securityEventResolution"]>
+    composites: {}
+  }
+
+  type SecurityEventResolutionGetPayload<S extends boolean | null | undefined | SecurityEventResolutionDefaultArgs> = $Result.GetResult<Prisma.$SecurityEventResolutionPayload, S>
+
+  type SecurityEventResolutionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<SecurityEventResolutionFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: SecurityEventResolutionCountAggregateInputType | true
+    }
+
+  export interface SecurityEventResolutionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['SecurityEventResolution'], meta: { name: 'SecurityEventResolution' } }
+    /**
+     * Find zero or one SecurityEventResolution that matches the filter.
+     * @param {SecurityEventResolutionFindUniqueArgs} args - Arguments to find a SecurityEventResolution
+     * @example
+     * // Get one SecurityEventResolution
+     * const securityEventResolution = await prisma.securityEventResolution.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends SecurityEventResolutionFindUniqueArgs>(args: SelectSubset<T, SecurityEventResolutionFindUniqueArgs<ExtArgs>>): Prisma__SecurityEventResolutionClient<$Result.GetResult<Prisma.$SecurityEventResolutionPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one SecurityEventResolution that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {SecurityEventResolutionFindUniqueOrThrowArgs} args - Arguments to find a SecurityEventResolution
+     * @example
+     * // Get one SecurityEventResolution
+     * const securityEventResolution = await prisma.securityEventResolution.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends SecurityEventResolutionFindUniqueOrThrowArgs>(args: SelectSubset<T, SecurityEventResolutionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__SecurityEventResolutionClient<$Result.GetResult<Prisma.$SecurityEventResolutionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first SecurityEventResolution that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SecurityEventResolutionFindFirstArgs} args - Arguments to find a SecurityEventResolution
+     * @example
+     * // Get one SecurityEventResolution
+     * const securityEventResolution = await prisma.securityEventResolution.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends SecurityEventResolutionFindFirstArgs>(args?: SelectSubset<T, SecurityEventResolutionFindFirstArgs<ExtArgs>>): Prisma__SecurityEventResolutionClient<$Result.GetResult<Prisma.$SecurityEventResolutionPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first SecurityEventResolution that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SecurityEventResolutionFindFirstOrThrowArgs} args - Arguments to find a SecurityEventResolution
+     * @example
+     * // Get one SecurityEventResolution
+     * const securityEventResolution = await prisma.securityEventResolution.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends SecurityEventResolutionFindFirstOrThrowArgs>(args?: SelectSubset<T, SecurityEventResolutionFindFirstOrThrowArgs<ExtArgs>>): Prisma__SecurityEventResolutionClient<$Result.GetResult<Prisma.$SecurityEventResolutionPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more SecurityEventResolutions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SecurityEventResolutionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all SecurityEventResolutions
+     * const securityEventResolutions = await prisma.securityEventResolution.findMany()
+     * 
+     * // Get first 10 SecurityEventResolutions
+     * const securityEventResolutions = await prisma.securityEventResolution.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const securityEventResolutionWithIdOnly = await prisma.securityEventResolution.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends SecurityEventResolutionFindManyArgs>(args?: SelectSubset<T, SecurityEventResolutionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SecurityEventResolutionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a SecurityEventResolution.
+     * @param {SecurityEventResolutionCreateArgs} args - Arguments to create a SecurityEventResolution.
+     * @example
+     * // Create one SecurityEventResolution
+     * const SecurityEventResolution = await prisma.securityEventResolution.create({
+     *   data: {
+     *     // ... data to create a SecurityEventResolution
+     *   }
+     * })
+     * 
+     */
+    create<T extends SecurityEventResolutionCreateArgs>(args: SelectSubset<T, SecurityEventResolutionCreateArgs<ExtArgs>>): Prisma__SecurityEventResolutionClient<$Result.GetResult<Prisma.$SecurityEventResolutionPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many SecurityEventResolutions.
+     * @param {SecurityEventResolutionCreateManyArgs} args - Arguments to create many SecurityEventResolutions.
+     * @example
+     * // Create many SecurityEventResolutions
+     * const securityEventResolution = await prisma.securityEventResolution.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends SecurityEventResolutionCreateManyArgs>(args?: SelectSubset<T, SecurityEventResolutionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many SecurityEventResolutions and returns the data saved in the database.
+     * @param {SecurityEventResolutionCreateManyAndReturnArgs} args - Arguments to create many SecurityEventResolutions.
+     * @example
+     * // Create many SecurityEventResolutions
+     * const securityEventResolution = await prisma.securityEventResolution.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many SecurityEventResolutions and only return the `id`
+     * const securityEventResolutionWithIdOnly = await prisma.securityEventResolution.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends SecurityEventResolutionCreateManyAndReturnArgs>(args?: SelectSubset<T, SecurityEventResolutionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SecurityEventResolutionPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a SecurityEventResolution.
+     * @param {SecurityEventResolutionDeleteArgs} args - Arguments to delete one SecurityEventResolution.
+     * @example
+     * // Delete one SecurityEventResolution
+     * const SecurityEventResolution = await prisma.securityEventResolution.delete({
+     *   where: {
+     *     // ... filter to delete one SecurityEventResolution
+     *   }
+     * })
+     * 
+     */
+    delete<T extends SecurityEventResolutionDeleteArgs>(args: SelectSubset<T, SecurityEventResolutionDeleteArgs<ExtArgs>>): Prisma__SecurityEventResolutionClient<$Result.GetResult<Prisma.$SecurityEventResolutionPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one SecurityEventResolution.
+     * @param {SecurityEventResolutionUpdateArgs} args - Arguments to update one SecurityEventResolution.
+     * @example
+     * // Update one SecurityEventResolution
+     * const securityEventResolution = await prisma.securityEventResolution.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends SecurityEventResolutionUpdateArgs>(args: SelectSubset<T, SecurityEventResolutionUpdateArgs<ExtArgs>>): Prisma__SecurityEventResolutionClient<$Result.GetResult<Prisma.$SecurityEventResolutionPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more SecurityEventResolutions.
+     * @param {SecurityEventResolutionDeleteManyArgs} args - Arguments to filter SecurityEventResolutions to delete.
+     * @example
+     * // Delete a few SecurityEventResolutions
+     * const { count } = await prisma.securityEventResolution.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends SecurityEventResolutionDeleteManyArgs>(args?: SelectSubset<T, SecurityEventResolutionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SecurityEventResolutions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SecurityEventResolutionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many SecurityEventResolutions
+     * const securityEventResolution = await prisma.securityEventResolution.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends SecurityEventResolutionUpdateManyArgs>(args: SelectSubset<T, SecurityEventResolutionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SecurityEventResolutions and returns the data updated in the database.
+     * @param {SecurityEventResolutionUpdateManyAndReturnArgs} args - Arguments to update many SecurityEventResolutions.
+     * @example
+     * // Update many SecurityEventResolutions
+     * const securityEventResolution = await prisma.securityEventResolution.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more SecurityEventResolutions and only return the `id`
+     * const securityEventResolutionWithIdOnly = await prisma.securityEventResolution.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends SecurityEventResolutionUpdateManyAndReturnArgs>(args: SelectSubset<T, SecurityEventResolutionUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SecurityEventResolutionPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one SecurityEventResolution.
+     * @param {SecurityEventResolutionUpsertArgs} args - Arguments to update or create a SecurityEventResolution.
+     * @example
+     * // Update or create a SecurityEventResolution
+     * const securityEventResolution = await prisma.securityEventResolution.upsert({
+     *   create: {
+     *     // ... data to create a SecurityEventResolution
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the SecurityEventResolution we want to update
+     *   }
+     * })
+     */
+    upsert<T extends SecurityEventResolutionUpsertArgs>(args: SelectSubset<T, SecurityEventResolutionUpsertArgs<ExtArgs>>): Prisma__SecurityEventResolutionClient<$Result.GetResult<Prisma.$SecurityEventResolutionPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of SecurityEventResolutions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SecurityEventResolutionCountArgs} args - Arguments to filter SecurityEventResolutions to count.
+     * @example
+     * // Count the number of SecurityEventResolutions
+     * const count = await prisma.securityEventResolution.count({
+     *   where: {
+     *     // ... the filter for the SecurityEventResolutions we want to count
+     *   }
+     * })
+    **/
+    count<T extends SecurityEventResolutionCountArgs>(
+      args?: Subset<T, SecurityEventResolutionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], SecurityEventResolutionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a SecurityEventResolution.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SecurityEventResolutionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends SecurityEventResolutionAggregateArgs>(args: Subset<T, SecurityEventResolutionAggregateArgs>): Prisma.PrismaPromise<GetSecurityEventResolutionAggregateType<T>>
+
+    /**
+     * Group by SecurityEventResolution.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SecurityEventResolutionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends SecurityEventResolutionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: SecurityEventResolutionGroupByArgs['orderBy'] }
+        : { orderBy?: SecurityEventResolutionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, SecurityEventResolutionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSecurityEventResolutionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the SecurityEventResolution model
+   */
+  readonly fields: SecurityEventResolutionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for SecurityEventResolution.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__SecurityEventResolutionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the SecurityEventResolution model
+   */
+  interface SecurityEventResolutionFieldRefs {
+    readonly id: FieldRef<"SecurityEventResolution", 'String'>
+    readonly auditLogId: FieldRef<"SecurityEventResolution", 'String'>
+    readonly resolved: FieldRef<"SecurityEventResolution", 'Boolean'>
+    readonly note: FieldRef<"SecurityEventResolution", 'String'>
+    readonly resolvedByUserId: FieldRef<"SecurityEventResolution", 'String'>
+    readonly resolvedAt: FieldRef<"SecurityEventResolution", 'DateTime'>
+    readonly createdAt: FieldRef<"SecurityEventResolution", 'DateTime'>
+    readonly updatedAt: FieldRef<"SecurityEventResolution", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * SecurityEventResolution findUnique
+   */
+  export type SecurityEventResolutionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecurityEventResolution
+     */
+    select?: SecurityEventResolutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecurityEventResolution
+     */
+    omit?: SecurityEventResolutionOmit<ExtArgs> | null
+    /**
+     * Filter, which SecurityEventResolution to fetch.
+     */
+    where: SecurityEventResolutionWhereUniqueInput
+  }
+
+  /**
+   * SecurityEventResolution findUniqueOrThrow
+   */
+  export type SecurityEventResolutionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecurityEventResolution
+     */
+    select?: SecurityEventResolutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecurityEventResolution
+     */
+    omit?: SecurityEventResolutionOmit<ExtArgs> | null
+    /**
+     * Filter, which SecurityEventResolution to fetch.
+     */
+    where: SecurityEventResolutionWhereUniqueInput
+  }
+
+  /**
+   * SecurityEventResolution findFirst
+   */
+  export type SecurityEventResolutionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecurityEventResolution
+     */
+    select?: SecurityEventResolutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecurityEventResolution
+     */
+    omit?: SecurityEventResolutionOmit<ExtArgs> | null
+    /**
+     * Filter, which SecurityEventResolution to fetch.
+     */
+    where?: SecurityEventResolutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SecurityEventResolutions to fetch.
+     */
+    orderBy?: SecurityEventResolutionOrderByWithRelationInput | SecurityEventResolutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SecurityEventResolutions.
+     */
+    cursor?: SecurityEventResolutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SecurityEventResolutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SecurityEventResolutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SecurityEventResolutions.
+     */
+    distinct?: SecurityEventResolutionScalarFieldEnum | SecurityEventResolutionScalarFieldEnum[]
+  }
+
+  /**
+   * SecurityEventResolution findFirstOrThrow
+   */
+  export type SecurityEventResolutionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecurityEventResolution
+     */
+    select?: SecurityEventResolutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecurityEventResolution
+     */
+    omit?: SecurityEventResolutionOmit<ExtArgs> | null
+    /**
+     * Filter, which SecurityEventResolution to fetch.
+     */
+    where?: SecurityEventResolutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SecurityEventResolutions to fetch.
+     */
+    orderBy?: SecurityEventResolutionOrderByWithRelationInput | SecurityEventResolutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SecurityEventResolutions.
+     */
+    cursor?: SecurityEventResolutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SecurityEventResolutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SecurityEventResolutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SecurityEventResolutions.
+     */
+    distinct?: SecurityEventResolutionScalarFieldEnum | SecurityEventResolutionScalarFieldEnum[]
+  }
+
+  /**
+   * SecurityEventResolution findMany
+   */
+  export type SecurityEventResolutionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecurityEventResolution
+     */
+    select?: SecurityEventResolutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecurityEventResolution
+     */
+    omit?: SecurityEventResolutionOmit<ExtArgs> | null
+    /**
+     * Filter, which SecurityEventResolutions to fetch.
+     */
+    where?: SecurityEventResolutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SecurityEventResolutions to fetch.
+     */
+    orderBy?: SecurityEventResolutionOrderByWithRelationInput | SecurityEventResolutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing SecurityEventResolutions.
+     */
+    cursor?: SecurityEventResolutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SecurityEventResolutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SecurityEventResolutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SecurityEventResolutions.
+     */
+    distinct?: SecurityEventResolutionScalarFieldEnum | SecurityEventResolutionScalarFieldEnum[]
+  }
+
+  /**
+   * SecurityEventResolution create
+   */
+  export type SecurityEventResolutionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecurityEventResolution
+     */
+    select?: SecurityEventResolutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecurityEventResolution
+     */
+    omit?: SecurityEventResolutionOmit<ExtArgs> | null
+    /**
+     * The data needed to create a SecurityEventResolution.
+     */
+    data: XOR<SecurityEventResolutionCreateInput, SecurityEventResolutionUncheckedCreateInput>
+  }
+
+  /**
+   * SecurityEventResolution createMany
+   */
+  export type SecurityEventResolutionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many SecurityEventResolutions.
+     */
+    data: SecurityEventResolutionCreateManyInput | SecurityEventResolutionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SecurityEventResolution createManyAndReturn
+   */
+  export type SecurityEventResolutionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecurityEventResolution
+     */
+    select?: SecurityEventResolutionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecurityEventResolution
+     */
+    omit?: SecurityEventResolutionOmit<ExtArgs> | null
+    /**
+     * The data used to create many SecurityEventResolutions.
+     */
+    data: SecurityEventResolutionCreateManyInput | SecurityEventResolutionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SecurityEventResolution update
+   */
+  export type SecurityEventResolutionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecurityEventResolution
+     */
+    select?: SecurityEventResolutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecurityEventResolution
+     */
+    omit?: SecurityEventResolutionOmit<ExtArgs> | null
+    /**
+     * The data needed to update a SecurityEventResolution.
+     */
+    data: XOR<SecurityEventResolutionUpdateInput, SecurityEventResolutionUncheckedUpdateInput>
+    /**
+     * Choose, which SecurityEventResolution to update.
+     */
+    where: SecurityEventResolutionWhereUniqueInput
+  }
+
+  /**
+   * SecurityEventResolution updateMany
+   */
+  export type SecurityEventResolutionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update SecurityEventResolutions.
+     */
+    data: XOR<SecurityEventResolutionUpdateManyMutationInput, SecurityEventResolutionUncheckedUpdateManyInput>
+    /**
+     * Filter which SecurityEventResolutions to update
+     */
+    where?: SecurityEventResolutionWhereInput
+    /**
+     * Limit how many SecurityEventResolutions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * SecurityEventResolution updateManyAndReturn
+   */
+  export type SecurityEventResolutionUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecurityEventResolution
+     */
+    select?: SecurityEventResolutionSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecurityEventResolution
+     */
+    omit?: SecurityEventResolutionOmit<ExtArgs> | null
+    /**
+     * The data used to update SecurityEventResolutions.
+     */
+    data: XOR<SecurityEventResolutionUpdateManyMutationInput, SecurityEventResolutionUncheckedUpdateManyInput>
+    /**
+     * Filter which SecurityEventResolutions to update
+     */
+    where?: SecurityEventResolutionWhereInput
+    /**
+     * Limit how many SecurityEventResolutions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * SecurityEventResolution upsert
+   */
+  export type SecurityEventResolutionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecurityEventResolution
+     */
+    select?: SecurityEventResolutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecurityEventResolution
+     */
+    omit?: SecurityEventResolutionOmit<ExtArgs> | null
+    /**
+     * The filter to search for the SecurityEventResolution to update in case it exists.
+     */
+    where: SecurityEventResolutionWhereUniqueInput
+    /**
+     * In case the SecurityEventResolution found by the `where` argument doesn't exist, create a new SecurityEventResolution with this data.
+     */
+    create: XOR<SecurityEventResolutionCreateInput, SecurityEventResolutionUncheckedCreateInput>
+    /**
+     * In case the SecurityEventResolution was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<SecurityEventResolutionUpdateInput, SecurityEventResolutionUncheckedUpdateInput>
+  }
+
+  /**
+   * SecurityEventResolution delete
+   */
+  export type SecurityEventResolutionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecurityEventResolution
+     */
+    select?: SecurityEventResolutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecurityEventResolution
+     */
+    omit?: SecurityEventResolutionOmit<ExtArgs> | null
+    /**
+     * Filter which SecurityEventResolution to delete.
+     */
+    where: SecurityEventResolutionWhereUniqueInput
+  }
+
+  /**
+   * SecurityEventResolution deleteMany
+   */
+  export type SecurityEventResolutionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SecurityEventResolutions to delete
+     */
+    where?: SecurityEventResolutionWhereInput
+    /**
+     * Limit how many SecurityEventResolutions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * SecurityEventResolution without action
+   */
+  export type SecurityEventResolutionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecurityEventResolution
+     */
+    select?: SecurityEventResolutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecurityEventResolution
+     */
+    omit?: SecurityEventResolutionOmit<ExtArgs> | null
   }
 
 
@@ -124623,6 +125756,20 @@ export namespace Prisma {
   export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
 
 
+  export const SecurityEventResolutionScalarFieldEnum: {
+    id: 'id',
+    auditLogId: 'auditLogId',
+    resolved: 'resolved',
+    note: 'note',
+    resolvedByUserId: 'resolvedByUserId',
+    resolvedAt: 'resolvedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type SecurityEventResolutionScalarFieldEnum = (typeof SecurityEventResolutionScalarFieldEnum)[keyof typeof SecurityEventResolutionScalarFieldEnum]
+
+
   export const AdminAuditLogScalarFieldEnum: {
     id: 'id',
     actorUserId: 'actorUserId',
@@ -128814,6 +129961,73 @@ export namespace Prisma {
     metadata?: JsonNullableWithAggregatesFilter<"AuditLog">
     ipAddress?: StringNullableWithAggregatesFilter<"AuditLog"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"AuditLog"> | Date | string
+  }
+
+  export type SecurityEventResolutionWhereInput = {
+    AND?: SecurityEventResolutionWhereInput | SecurityEventResolutionWhereInput[]
+    OR?: SecurityEventResolutionWhereInput[]
+    NOT?: SecurityEventResolutionWhereInput | SecurityEventResolutionWhereInput[]
+    id?: StringFilter<"SecurityEventResolution"> | string
+    auditLogId?: StringFilter<"SecurityEventResolution"> | string
+    resolved?: BoolFilter<"SecurityEventResolution"> | boolean
+    note?: StringNullableFilter<"SecurityEventResolution"> | string | null
+    resolvedByUserId?: StringNullableFilter<"SecurityEventResolution"> | string | null
+    resolvedAt?: DateTimeFilter<"SecurityEventResolution"> | Date | string
+    createdAt?: DateTimeFilter<"SecurityEventResolution"> | Date | string
+    updatedAt?: DateTimeFilter<"SecurityEventResolution"> | Date | string
+  }
+
+  export type SecurityEventResolutionOrderByWithRelationInput = {
+    id?: SortOrder
+    auditLogId?: SortOrder
+    resolved?: SortOrder
+    note?: SortOrderInput | SortOrder
+    resolvedByUserId?: SortOrderInput | SortOrder
+    resolvedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type SecurityEventResolutionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    auditLogId?: string
+    AND?: SecurityEventResolutionWhereInput | SecurityEventResolutionWhereInput[]
+    OR?: SecurityEventResolutionWhereInput[]
+    NOT?: SecurityEventResolutionWhereInput | SecurityEventResolutionWhereInput[]
+    resolved?: BoolFilter<"SecurityEventResolution"> | boolean
+    note?: StringNullableFilter<"SecurityEventResolution"> | string | null
+    resolvedByUserId?: StringNullableFilter<"SecurityEventResolution"> | string | null
+    resolvedAt?: DateTimeFilter<"SecurityEventResolution"> | Date | string
+    createdAt?: DateTimeFilter<"SecurityEventResolution"> | Date | string
+    updatedAt?: DateTimeFilter<"SecurityEventResolution"> | Date | string
+  }, "id" | "auditLogId">
+
+  export type SecurityEventResolutionOrderByWithAggregationInput = {
+    id?: SortOrder
+    auditLogId?: SortOrder
+    resolved?: SortOrder
+    note?: SortOrderInput | SortOrder
+    resolvedByUserId?: SortOrderInput | SortOrder
+    resolvedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: SecurityEventResolutionCountOrderByAggregateInput
+    _max?: SecurityEventResolutionMaxOrderByAggregateInput
+    _min?: SecurityEventResolutionMinOrderByAggregateInput
+  }
+
+  export type SecurityEventResolutionScalarWhereWithAggregatesInput = {
+    AND?: SecurityEventResolutionScalarWhereWithAggregatesInput | SecurityEventResolutionScalarWhereWithAggregatesInput[]
+    OR?: SecurityEventResolutionScalarWhereWithAggregatesInput[]
+    NOT?: SecurityEventResolutionScalarWhereWithAggregatesInput | SecurityEventResolutionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"SecurityEventResolution"> | string
+    auditLogId?: StringWithAggregatesFilter<"SecurityEventResolution"> | string
+    resolved?: BoolWithAggregatesFilter<"SecurityEventResolution"> | boolean
+    note?: StringNullableWithAggregatesFilter<"SecurityEventResolution"> | string | null
+    resolvedByUserId?: StringNullableWithAggregatesFilter<"SecurityEventResolution"> | string | null
+    resolvedAt?: DateTimeWithAggregatesFilter<"SecurityEventResolution"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"SecurityEventResolution"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"SecurityEventResolution"> | Date | string
   }
 
   export type AdminAuditLogWhereInput = {
@@ -136714,6 +137928,83 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type SecurityEventResolutionCreateInput = {
+    id?: string
+    auditLogId: string
+    resolved?: boolean
+    note?: string | null
+    resolvedByUserId?: string | null
+    resolvedAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SecurityEventResolutionUncheckedCreateInput = {
+    id?: string
+    auditLogId: string
+    resolved?: boolean
+    note?: string | null
+    resolvedByUserId?: string | null
+    resolvedAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SecurityEventResolutionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    auditLogId?: StringFieldUpdateOperationsInput | string
+    resolved?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SecurityEventResolutionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    auditLogId?: StringFieldUpdateOperationsInput | string
+    resolved?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SecurityEventResolutionCreateManyInput = {
+    id?: string
+    auditLogId: string
+    resolved?: boolean
+    note?: string | null
+    resolvedByUserId?: string | null
+    resolvedAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SecurityEventResolutionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    auditLogId?: StringFieldUpdateOperationsInput | string
+    resolved?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SecurityEventResolutionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    auditLogId?: StringFieldUpdateOperationsInput | string
+    resolved?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type AdminAuditLogCreateInput = {
     id?: string
     action: string
@@ -144378,6 +145669,39 @@ export namespace Prisma {
     resourceId?: SortOrder
     ipAddress?: SortOrder
     createdAt?: SortOrder
+  }
+
+  export type SecurityEventResolutionCountOrderByAggregateInput = {
+    id?: SortOrder
+    auditLogId?: SortOrder
+    resolved?: SortOrder
+    note?: SortOrder
+    resolvedByUserId?: SortOrder
+    resolvedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type SecurityEventResolutionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    auditLogId?: SortOrder
+    resolved?: SortOrder
+    note?: SortOrder
+    resolvedByUserId?: SortOrder
+    resolvedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type SecurityEventResolutionMinOrderByAggregateInput = {
+    id?: SortOrder
+    auditLogId?: SortOrder
+    resolved?: SortOrder
+    note?: SortOrder
+    resolvedByUserId?: SortOrder
+    resolvedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type AdminAuditLogCountOrderByAggregateInput = {

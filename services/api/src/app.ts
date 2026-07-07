@@ -22319,12 +22319,57 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/security-events', async (request) => {
     await requirePlatformAdmin(request);
-    return {
-      events: (await store.listAuditLogs()).filter(
-        (event) =>
-          event.action.startsWith('auth.') || event.action.includes('security') || event.action.includes('mfa'),
-      ),
+
+    const events = await store.listSecurityAuditEvents();
+    const resolutions = new Map((await store.listSecurityEventResolutions()).map((r) => [r.auditLogId, r] as const));
+
+    // F23: derive severity from the action (no severity column on AuditLog).
+    const severityFor = (action: string): 'high' | 'medium' | 'low' => {
+      if (/lockout|locked|breach|compromise|suspend|revoke|disable/i.test(action)) {
+        return 'high';
+      }
+      if (/fail|invalid|denied|mfa|reauth|reset|expired/i.test(action)) {
+        return 'medium';
+      }
+      return 'low';
     };
+
+    const enriched = events.map((event) => {
+      const resolution = resolutions.get(event.id);
+      return {
+        ...event,
+        severity: severityFor(event.action),
+        resolved: resolution?.resolved ?? false,
+        note: resolution?.note,
+        resolvedAt: resolution?.resolvedAt,
+      };
+    });
+
+    return { events: enriched, openCount: enriched.filter((event) => !event.resolved).length };
+  });
+
+  /*
+   * F23: mark a security event resolved with an optional operator note. Keyed by
+   * the immutable AuditLog id via the SecurityEventResolution overlay — the audit
+   * trail itself is never mutated. Platform-admin + recent re-auth gated + audited.
+   */
+  app.post('/admin/security-events/:id/resolve', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { id: auditLogId } = parse(z.object({ id: z.string().min(1) }), request.params);
+    const body = parse(z.object({ note: z.string().max(2000).optional() }), request.body ?? {});
+    const resolution = await store.resolveSecurityEvent({
+      auditLogId,
+      note: body.note,
+      resolvedByUserId: request.currentUser?.id,
+    });
+    await recordAdminAction(request, store, {
+      action: 'admin.security_event.resolve',
+      metadata: { auditLogId, hasNote: Boolean(body.note) },
+    });
+
+    return { resolution };
   });
 
   app.get('/admin/audit-logs', async (request, reply) => {

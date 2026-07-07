@@ -35,7 +35,31 @@ function App() {
   const [authRevision, setAuthRevision] = useState(0);
   const [tokenMessage, setTokenMessage] = useState<string>();
   const [reauthPassword, setReauthPassword] = useState('');
+  // F23: live count of unresolved security events, badged on the sidebar item.
+  const [securityOpenCount, setSecurityOpenCount] = useState(0);
   const section = adminSections.find((item) => item.id === sectionId) ?? adminSections[0];
+
+  useEffect(() => {
+    if (!token.trim()) {
+      setSecurityOpenCount(0);
+      return;
+    }
+    let cancelled = false;
+    apiJson<{ openCount?: number }>('/admin/security-events')
+      .then((result) => {
+        if (!cancelled) {
+          setSecurityOpenCount(result.openCount ?? 0);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSecurityOpenCount(0);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, authRevision, sectionId]);
 
   function useToken() {
     const normalizedToken = token.trim();
@@ -72,6 +96,11 @@ function App() {
               onClick={() => setSectionId(item.id)}
             >
               {item.label}
+              {item.id === 'security-events' && securityOpenCount > 0 ? (
+                <span className="nav-badge" aria-label={`${securityOpenCount} open security events`}>
+                  {securityOpenCount}
+                </span>
+              ) : null}
             </button>
           ))}
         </nav>

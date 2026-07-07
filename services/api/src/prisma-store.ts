@@ -7,6 +7,7 @@ import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { API_KEY_SCOPES } from './store.js';
 import type {
   AbuseEventRecord,
+  SecurityEventResolutionRecord,
   AgentPatchProposalRecord,
   AgentRepairEventRecord,
   AgentRepairOutcome,
@@ -4645,6 +4646,49 @@ export class PrismaApiStore implements ApiStore {
     });
   }
 
+  async listSecurityAuditEvents() {
+    const rows = await this.prisma.auditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 2000 });
+    return rows
+      .filter(
+        (event) =>
+          event.action.startsWith('auth.') || event.action.includes('security') || event.action.includes('mfa'),
+      )
+      .map((event) => ({
+        id: event.id,
+        organizationId: event.organizationId ?? undefined,
+        actorUserId: event.actorUserId ?? undefined,
+        action: event.action,
+        resourceType: event.resourceType,
+        resourceId: event.resourceId ?? undefined,
+        metadata: (event.metadata as Record<string, unknown> | null) ?? undefined,
+        ipAddress: event.ipAddress ?? undefined,
+        createdAt: toIso(event.createdAt)!,
+      }));
+  }
+
+  async listSecurityEventResolutions() {
+    return (await this.prisma.securityEventResolution.findMany()).map(mapSecurityEventResolution);
+  }
+
+  async resolveSecurityEvent(input: { auditLogId: string; note?: string; resolvedByUserId?: string }) {
+    const row = await this.prisma.securityEventResolution.upsert({
+      where: { auditLogId: input.auditLogId },
+      create: {
+        auditLogId: input.auditLogId,
+        resolved: true,
+        note: input.note,
+        resolvedByUserId: input.resolvedByUserId,
+      },
+      update: {
+        resolved: true,
+        note: input.note,
+        resolvedByUserId: input.resolvedByUserId,
+        resolvedAt: new Date(),
+      },
+    });
+    return mapSecurityEventResolution(row);
+  }
+
   async updateAbuseEvent(input: { abuseEventId: string; resolved?: boolean; disposition?: string }) {
     // Serialize the metadata read-modify-write (see updateSupportTicket).
     return this.withSerializedMutation(`abuse-event:${input.abuseEventId}`, async () => {
@@ -5186,6 +5230,18 @@ function mapFeatureFlag(flag: any): FeatureFlagRecord {
     key: flag.key,
     enabled: flag.enabled,
     rolloutPercent,
+  };
+}
+
+function mapSecurityEventResolution(row: any): SecurityEventResolutionRecord {
+  return {
+    id: row.id,
+    auditLogId: row.auditLogId,
+    resolved: row.resolved,
+    note: row.note ?? undefined,
+    resolvedByUserId: row.resolvedByUserId ?? undefined,
+    resolvedAt: toIso(row.resolvedAt)!,
+    createdAt: toIso(row.createdAt)!,
   };
 }
 

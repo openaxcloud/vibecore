@@ -1268,6 +1268,139 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// F23 — Security events: severity + timeline + mark resolved (note) + open count
+// ---------------------------------------------------------------------------
+
+interface SecurityEvent {
+  id: string;
+  action: string;
+  actorUserId?: string;
+  ipAddress?: string;
+  createdAt: string;
+  severity: 'high' | 'medium' | 'low';
+  resolved: boolean;
+  note?: string;
+  resolvedAt?: string;
+}
+
+function severityClass(severity: string): string {
+  if (severity === 'high') {
+    return 'sev-high';
+  }
+  if (severity === 'medium') {
+    return 'sev-medium';
+  }
+  return 'sev-low';
+}
+
+function SecurityEventsPanel({ reauthPassword, pushToast }: PanelProps) {
+  const { data, loading, error, reload } = usePanelData<{ events: SecurityEvent[]; openCount: number }>(
+    '/admin/security-events',
+  );
+  const [openId, setOpenId] = useState<string>();
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  if (loading || error) {
+    return <PanelStates loading={loading} error={error} />;
+  }
+
+  const events = data?.events ?? [];
+
+  async function resolve(id: string) {
+    setBusy(true);
+    const result = await withReauth(reauthPassword, pushToast, () =>
+      apiJson(`/admin/security-events/${id}/resolve`, {
+        method: 'POST',
+        body: JSON.stringify({ note: note.trim() || undefined }),
+      }),
+    );
+    setBusy(false);
+    if (result) {
+      pushToast('Security event marked resolved. Audited.');
+      setOpenId(undefined);
+      setNote('');
+      reload();
+    }
+  }
+
+  return (
+    <section className="panel" aria-label="Security events">
+      <div className="page-title">
+        <h2>
+          Security events{' '}
+          {data && data.openCount > 0 ? <span className="open-badge">{data.openCount} open</span> : null}
+        </h2>
+        <button className="secondary" type="button" onClick={reload}>
+          Refresh
+        </button>
+      </div>
+      <p className="muted">
+        Auth / MFA / security audit events, newest first. Severity is derived from the action. Resolving records an
+        optional note (keyed to the immutable audit row — the trail is never edited).
+      </p>
+      {events.length === 0 ? (
+        <p className="muted">No security events.</p>
+      ) : (
+        <ol className="event-timeline">
+          {events.map((event) => (
+            <li key={event.id} className={event.resolved ? 'event-resolved' : ''}>
+              <span className={`sev-badge ${severityClass(event.severity)}`}>{event.severity}</span>
+              <div className="event-body">
+                <div className="event-head">
+                  <strong>{event.action}</strong>
+                  <span className="muted">{formatDateTime(event.createdAt)}</span>
+                </div>
+                <div className="muted event-meta">
+                  {event.actorUserId ? `actor ${event.actorUserId}` : 'no actor'}
+                  {event.ipAddress ? ` · ${event.ipAddress}` : ''}
+                  {event.resolved ? ` · resolved${event.note ? `: ${event.note}` : ''}` : ''}
+                </div>
+                {!event.resolved ? (
+                  openId === event.id ? (
+                    <div className="event-resolve">
+                      <input
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        placeholder="Resolution note (optional)"
+                      />
+                      <button className="action" type="button" disabled={busy} onClick={() => void resolve(event.id)}>
+                        {busy ? 'Saving…' : 'Confirm resolve'}
+                      </button>
+                      <button
+                        className="secondary"
+                        type="button"
+                        onClick={() => {
+                          setOpenId(undefined);
+                          setNote('');
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="secondary"
+                      type="button"
+                      onClick={() => {
+                        setOpenId(event.id);
+                        setNote('');
+                      }}
+                    >
+                      Mark resolved
+                    </button>
+                  )
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}
+
 /**
  * Registry of section-id → custom panel. main.tsx renders the panel in place of
  * the generic table when an entry exists. Populated one Batch-F point at a time.
@@ -1281,4 +1414,5 @@ export const CUSTOM_PANELS: Record<string, React.ComponentType<PanelProps>> = {
   costs: CostsPanel,
   'agent-checkpoints': CheckpointsPanel,
   'provider-health': ProvidersPanel,
+  'security-events': SecurityEventsPanel,
 };

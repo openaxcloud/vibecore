@@ -521,6 +521,17 @@ exports.Prisma.AuditLogScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.SecurityEventResolutionScalarFieldEnum = {
+  id: 'id',
+  auditLogId: 'auditLogId',
+  resolved: 'resolved',
+  note: 'note',
+  resolvedByUserId: 'resolvedByUserId',
+  resolvedAt: 'resolvedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.AdminAuditLogScalarFieldEnum = {
   id: 'id',
   actorUserId: 'actorUserId',
@@ -1459,6 +1470,7 @@ exports.Prisma.ModelName = {
   Deployment: 'Deployment',
   DeploymentEnvironment: 'DeploymentEnvironment',
   AuditLog: 'AuditLog',
+  SecurityEventResolution: 'SecurityEventResolution',
   AdminAuditLog: 'AdminAuditLog',
   BillingCustomer: 'BillingCustomer',
   Subscription: 'Subscription',

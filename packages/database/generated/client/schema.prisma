@@ -742,6 +742,23 @@ model AuditLog {
   @@index([organizationId, createdAt, id])
 }
 
+/// F23: operator resolution overlay for security events. Security events are
+/// DERIVED from immutable AuditLog rows (auth/security/mfa actions); this table
+/// carries the mutable resolution state (resolved + an operator note) keyed by
+/// the audit-log id, without mutating the append-only audit trail. Additive-only.
+model SecurityEventResolution {
+  id               String   @id @default(cuid())
+  auditLogId       String   @unique
+  resolved         Boolean  @default(true)
+  note             String?
+  resolvedByUserId String?
+  resolvedAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([auditLogId])
+}
+
 model AdminAuditLog {
   id          String   @id @default(cuid())
   actorUserId String?

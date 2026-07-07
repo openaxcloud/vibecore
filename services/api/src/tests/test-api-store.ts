@@ -4,6 +4,7 @@ import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import type {
   AbuseEventRecord,
+  SecurityEventResolutionRecord,
   AgentPatchProposalRecord,
   AgentPatchProposalStatus,
   AgentRepairEventRecord,
@@ -132,6 +133,7 @@ export class TestApiStore implements ApiStore {
   readonly ticketMessages: TicketMessageRecord[] = [];
   readonly featureFlags = new Map<string, FeatureFlagRecord>();
   readonly abuseEvents = new Map<string, AbuseEventRecord>();
+  readonly securityEventResolutions = new Map<string, SecurityEventResolutionRecord>();
   readonly integrationFeatureRequests = new Map<string, IntegrationFeatureRequestRecord>();
   // Keyed `${userId}:${messageId}` — mirrors the prisma @@unique([userId, messageId]).
   readonly aiMessageFeedback = new Map<string, AiMessageFeedbackRecord>();
@@ -177,7 +179,7 @@ export class TestApiStore implements ApiStore {
   readonly quotaOverrides = new Map<string, QuotaOverrideRecord>();
   readonly stripeEvents = new Map<string, StripeEventRecord>();
   readonly emailDeliveryEvents: EmailDeliveryEventRecord[] = [];
-  readonly auditLogs: AuditEvent[] = [];
+  readonly auditLogs: Array<AuditEvent & { id: string; createdAt: string }> = [];
   readonly adminAuditLogs: AdminAuditLogRecord[] = [];
 
   async ping(): Promise<void> {
@@ -3566,11 +3568,18 @@ export class TestApiStore implements ApiStore {
   }
 
   async recordAudit(event: AuditEvent) {
-    this.auditLogs.push({ ...event, metadata: redactAuditMetadata(event.metadata), createdAt: now() } as AuditEvent);
+    this.auditLogs.push({ ...event, id: id('audit'), metadata: redactAuditMetadata(event.metadata), createdAt: now() });
   }
 
   async listAuditLogs(organizationId?: string) {
     return this.auditLogs.filter((event) => !organizationId || event.organizationId === organizationId);
+  }
+
+  async listSecurityAuditEvents() {
+    return this.auditLogs.filter(
+      (event) =>
+        event.action.startsWith('auth.') || event.action.includes('security') || event.action.includes('mfa'),
+    );
   }
 
   async listAdminUsers() {
@@ -3673,6 +3682,25 @@ export class TestApiStore implements ApiStore {
     ticket.assigneeUserId = input.assigneeUserId;
 
     return ticket;
+  }
+
+  async listSecurityEventResolutions() {
+    return [...this.securityEventResolutions.values()];
+  }
+
+  async resolveSecurityEvent(input: { auditLogId: string; note?: string; resolvedByUserId?: string }) {
+    const existing = this.securityEventResolutions.get(input.auditLogId);
+    const record: SecurityEventResolutionRecord = {
+      id: existing?.id ?? id('sec_res'),
+      auditLogId: input.auditLogId,
+      resolved: true,
+      note: input.note,
+      resolvedByUserId: input.resolvedByUserId,
+      resolvedAt: now(),
+      createdAt: existing?.createdAt ?? now(),
+    };
+    this.securityEventResolutions.set(input.auditLogId, record);
+    return record;
   }
 
   async updateAbuseEvent(input: { abuseEventId: string; resolved?: boolean; disposition?: string }) {
