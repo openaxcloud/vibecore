@@ -155,3 +155,59 @@ spec:
       ports:
         - protocol: TCP
           port: {{ $dbEgress.redisPort | default 6379 }}
+{{- if (index .Values.services "screenshotter").enabled }}
+---
+# P11 screenshotter egress (renders only when the service is enabled).
+#
+# The screenshotter loads project preview URLs and screenshots them, so its
+# egress is the one thing worth constraining. It needs exactly:
+#   1. DNS (kube-system:53) to resolve *.preview.e-code.ai,
+#   2. 443 to the internet to fetch the preview (served via the public ingress),
+#      but NEVER the cloud metadata IP (169.254.169.254),
+#   3. intra-namespace to preview-proxy for any in-cluster preview path.
+#
+# NOTE (additivity): NetworkPolicies are a UNION. `allow-platform-required-egress`
+# (podSelector {}) already grants every pod 443-to-internet-except-metadata and
+# `allow-intra-namespace-platform` already grants pod-to-pod, so this policy does
+# not tighten screenshotter below those today — it documents intent and is the
+# hook for real isolation. To make it BINDING, exclude the screenshotter pod
+# (app.kubernetes.io/name=screenshotter) from those two blanket policies. The
+# enforced SSRF control meanwhile is the app-level SCREENSHOTTER_ALLOWED_HOSTS
+# allowlist plus the existing 169.254.169.254 exception above.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-screenshotter-egress
+  labels:
+    app.kubernetes.io/part-of: vibecore
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: screenshotter
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 169.254.169.254/32
+      ports:
+        - protocol: TCP
+          port: 443
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: preview-proxy
+      ports:
+        - protocol: TCP
+          port: {{ (index .Values.services "previewProxy").port | default 3020 }}
+{{- end }}

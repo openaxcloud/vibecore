@@ -191,6 +191,24 @@ services:
     resources:
       requests: { cpu: 250m, memory: 512Mi }
       limits: { cpu: '1', memory: 1Gi }
+  # P11 automatic thumbnails. DISABLED by default — no Deployment/Service is
+  # rendered until enabled (see values-prod.yaml). Chromium needs a writable
+  # rootfs, so readOnlyRootFilesystem is off (defence stays: non-root, dropped
+  # caps, no SA token, egress + app-level SSRF allowlist). Concurrency is held
+  # to 1-2 via SCREENSHOTTER_MAX_CONCURRENCY in the env, not replicas.
+  screenshotter:
+    enabled: false
+    image: screenshotter
+    # server.ts binds SCREENSHOTTER_PORT ?? PORT ?? 3030.
+    port: 3030
+    replicas: 1
+    path: ''
+    readOnlyRootFilesystem: false
+    # Chromium is memory-hungry; give /tmp headroom for its shm/profile writes.
+    tmpSizeLimit: 512Mi
+    resources:
+      requests: { cpu: 300m, memory: 512Mi }
+      limits: { cpu: '1', memory: 1Gi }
 
 # Shared persistent storage for the API. Backs `PROJECT_STORAGE_DIR` and
 # `STATIC_DEPLOY_STORAGE_DIR` so every API replica sees the same project

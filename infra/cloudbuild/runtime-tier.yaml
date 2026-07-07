@@ -150,6 +150,28 @@ steps:
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:latest
       - .
 
+  # screenshotter (P11 auto thumbnails). Diverges from the others only in its
+  # runtime base (Playwright/Chromium) via a dedicated Dockerfile; the build
+  # stage still reuses the shared deps image. Heavier than the node services, so
+  # if pipeline time regresses this step can move to its own trigger — the pod
+  # ships enabled:false so nothing consumes the image until infra is validated.
+  - id: build-screenshotter
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['build-deps']
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - -f=infra/docker/screenshotter.Dockerfile
+      - --build-arg=BUILDKIT_INLINE_CACHE=1
+      - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}
+      - --build-arg=PACKAGE_FILTER=@vibecore/screenshotter
+      - --build-arg=START_CMD=node dist/server.js
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/screenshotter:latest
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/screenshotter:${_SHORT_SHA}
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/screenshotter:latest
+      - .
+
   # ---- 4. vulnerability scan (non-blocking) ----
   - id: scan-images
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -159,13 +181,14 @@ steps:
       - build-preview-proxy
       - build-ai-gateway
       - build-worker
+      - build-screenshotter
     allowFailure: true
     entrypoint: bash
     args:
       - -c
       - |
         set -u
-        for img in api workspace-manager preview-proxy ai-gateway worker; do
+        for img in api workspace-manager preview-proxy ai-gateway worker screenshotter; do
           echo "::: scanning $img:${_SHORT_SHA}"
           gcloud artifacts docker images scan \
             "${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/$img:${_SHORT_SHA}" \
@@ -187,3 +210,5 @@ images:
   - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:latest
   - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:${_SHORT_SHA}
   - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:latest
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/screenshotter:${_SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/screenshotter:latest

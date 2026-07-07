@@ -88,6 +88,14 @@ secrets:
 platformEnv:
   saasApiUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
   apiBaseUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
+  # P11 auto thumbnails. Leave EMPTY until the screenshotter is deployed — while
+  # empty the API's capture triggers are inert. When enabling, set the URL to the
+  # in-cluster service and provision SCREENSHOTTER_SHARED_SECRET in the platform
+  # secret (the API sends it as a Bearer; the pod verifies it).
+  #   screenshotterUrl: 'http://vibecore-vibecore-platform-screenshotter.vibecore.svc.cluster.local:3030'
+  #   screenshotterAllowedHosts: 'preview.e-code.ai'
+  screenshotterUrl: ''
+  screenshotterAllowedHosts: ''
   publicApiBaseUrl: 'https://api.e-code.ai'
   # Comma-separated emails. PlatformAdmin grants global console access
   # (services/api/src/app.ts:2224). Edit cautiously.
@@ -258,6 +266,22 @@ services:
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { cpu: 500m, memory: 512Mi }
+  # P11 automatic thumbnails — headless Chromium render service.
+  # ⚠️ INFRA-GATED: keep enabled:false until Avi validates the envelope. Flip to
+  # true (and provision SCREENSHOTTER_SHARED_SECRET in the platform secret) to
+  # deploy. The API triggers stay inert until SCREENSHOTTER_URL is configured, so
+  # this whole change is safe to merge with the pod absent.
+  screenshotter:
+    enabled: false
+    image: screenshotter
+    port: 3030
+    replicas: 1
+    path: ''
+    readOnlyRootFilesystem: false
+    tmpSizeLimit: 512Mi
+    resources:
+      requests: { cpu: 300m, memory: 512Mi }
+      limits: { cpu: '1', memory: 1Gi }
 
 # Shared NFS storage backing the API's project files and static deployment
 # artifacts. Mounted at /data/vibecore on every API pod so all replicas see
