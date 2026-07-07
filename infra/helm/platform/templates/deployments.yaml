@@ -19,6 +19,22 @@ metadata:
     app.kubernetes.io/part-of: vibecore
 spec:
   replicas: {{ $svc.replicas | default 2 }}
+  # Zero-downtime rollout. Without an explicit strategy Kubernetes defaults to
+  # maxUnavailable: 25%, which at higher replica counts (e.g. the API HPA scaling
+  # past 4) removes >=1 old pod BEFORE a new one is Ready — briefly shrinking
+  # nginx's healthy upstreams and surfacing "503 no healthy upstream" during a CD
+  # cutover. maxUnavailable: 0 keeps the full desired count serving throughout;
+  # maxSurge: 1 rolls one extra pod at a time. minReadySeconds makes a pod wait
+  # ~10s of stable Ready before it counts as available, so a pod that crashes
+  # right after boot never briefly replaces a healthy one. Hardcoded defaults
+  # (overridable per service via values) so the guarantee survives
+  # `helm upgrade --reuse-values`, which ignores newly-added values keys.
+  minReadySeconds: {{ $svc.minReadySeconds | default 10 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: {{ if hasKey $svc "maxUnavailable" }}{{ $svc.maxUnavailable }}{{ else }}0{{ end }}
+      maxSurge: {{ $svc.maxSurge | default 1 }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ kebabcase $name }}
@@ -34,6 +50,11 @@ spec:
         app.kubernetes.io/part-of: vibecore
     spec:
       serviceAccountName: {{ include "vibecore-platform.fullname" $ }}-{{ kebabcase $name }}
+      # Graceful drain window: the preStop below sleeps ~10s so nginx-ingress can
+      # remove this pod from its upstreams before the process gets SIGTERM. Keep
+      # this comfortably above that sleep so the container still has time to close
+      # in-flight connections after the drain.
+      terminationGracePeriodSeconds: {{ $svc.terminationGracePeriodSeconds | default 30 }}
       # Only workspace-manager talks to the Kubernetes API server (it creates and
       # deletes workspace pods/PVCs via @vibecore/k8s-client). Every other service
       # is a stateless HTTP app that never calls the API, so mounting the SA token
@@ -62,6 +83,18 @@ spec:
           ports:
             - name: http
               containerPort: {{ $svc.port }}
+          # Zero-downtime drain: on pod shutdown, keep serving for ~10s while
+          # nginx-ingress propagates the endpoint removal, so in-flight/racing
+          # requests don't hit a socket that's already closing (the "upstream
+          # prematurely closed connection" 502 seen during CD cutovers). `node`
+          # is present in every service image (the worker liveness uses it too).
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - node
+                  - -e
+                  - "setTimeout(function(){}, {{ $svc.preStopDrainMs | default 10000 }})"
           envFrom:
             - secretRef:
                 name: {{ $.Values.secrets.existingSecret }}
