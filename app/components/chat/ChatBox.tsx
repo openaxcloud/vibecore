@@ -552,16 +552,22 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               </span>
             ) : null}
 
-            {props.projectIdeMode ? (
-              <SpeechRecognitionButton
-                isListening={props.isListening}
-                onStart={props.startListening}
-                onStop={props.stopListening}
-                disabled={props.isStreaming}
-                triggerVariant="icon"
-                triggerClassName="bolt-chatbox-toolbar-button"
-              />
-            ) : null}
+            {/*
+             * I13: the mic/dictation button belongs on EVERY composer (landing /
+             * new chat), not just the IDE. Its unsupported-browser guard lives
+             * inside SpeechRecognitionButton itself (returns null when the Web
+             * Speech API is missing — same G30 behaviour), and the listening
+             * props come from BaseChat regardless of projectIdeMode, so it is
+             * safe to render unconditionally here.
+             */}
+            <SpeechRecognitionButton
+              isListening={props.isListening}
+              onStart={props.startListening}
+              onStop={props.stopListening}
+              disabled={props.isStreaming}
+              triggerVariant="icon"
+              triggerClassName="bolt-chatbox-toolbar-button"
+            />
 
             {props.projectIdeMode && props.agentMode && props.setAgentMode && props.onPlanFirstChange ? (
               <>
