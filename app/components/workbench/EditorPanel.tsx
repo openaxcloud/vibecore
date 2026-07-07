@@ -150,8 +150,8 @@ export const EditorPanel = memo(
         <PanelHeader className="w-full text-sm font-medium text-bolt-elements-textSecondary px-1">
           <div className="h-full flex-shrink-0 flex items-center justify-between w-full">
             <Tabs.List className="vc-editor-panel-tabs h-full flex-shrink-0 flex items-center">
-              <Tabs.Trigger value="files" className={classNames('vc-editor-panel-tab')}>
-                Files
+              <Tabs.Trigger value="files" className={classNames('vc-editor-panel-tab')} aria-label="Library">
+                Library
               </Tabs.Trigger>
               <Tabs.Trigger value="search" className={classNames('vc-editor-panel-tab')}>
                 Search
