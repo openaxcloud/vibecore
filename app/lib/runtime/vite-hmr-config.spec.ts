@@ -62,8 +62,10 @@ describe('ensureViteHmrConfig', () => {
   });
 
   it('upgrades an OLD wrap (MARKER present, no port pin) in place without re-wrapping', () => {
-    // A config wrapped before the port pin shipped: it has the marker + host:true +
-    // hmr, but no `port: 5173`, so the model's own server.port (3000) still wins.
+    /*
+     * A config wrapped before the port pin shipped: it has the marker + host:true +
+     * hmr, but no `port: 5173`, so the model's own server.port (3000) still wins.
+     */
     const OLD_WRAP = [
       "import { mergeConfig as __ecodeMergeConfig } from 'vite';",
       'const __ecodeHmrOverride = {',
@@ -87,8 +89,10 @@ describe('ensureViteHmrConfig', () => {
     // The pin is inserted into the existing override block…
     expect(out).toContain('port: 5173');
     expect(out).toContain('strictPort: true');
+
     // …the model's original settings are preserved…
     expect(out).toContain('server: { port: 3000 }');
+
     // …and it is NOT double-wrapped (still exactly one override + one default export).
     expect(out.match(/__ecodeHmrOverride =/g)?.length).toBe(1);
     expect(out.match(/export\s+default/g)?.length).toBe(1);
