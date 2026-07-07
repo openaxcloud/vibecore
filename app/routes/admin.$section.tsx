@@ -808,7 +808,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       const field = String(form.get('field') ?? '');
       const value = String(form.get('value')) === 'true';
 
-      if (!id || !['featured', 'verified', 'featuredForIdePanel'].includes(field)) {
+      if (!id || !['featured', 'verified', 'featuredForIdePanel', 'enabled'].includes(field)) {
         return json({ ok: false, error: 'Invalid toggle.' }, { status: 400 });
       }
 
@@ -818,7 +818,14 @@ export async function action({ request }: EnterpriseActionArgs) {
         body: JSON.stringify({ [field]: value }),
       });
 
-      return json({ ok: true, rowId: id, message: `${field} ${value ? 'enabled' : 'disabled'}.` });
+      const toggleMessage =
+        field === 'enabled'
+          ? value
+            ? 'Server enabled globally — existing installs restored.'
+            : 'Server disabled globally — hidden, un-installable, existing installs turned off.'
+          : `${field} ${value ? 'enabled' : 'disabled'}.`;
+
+      return json({ ok: true, rowId: id, message: toggleMessage });
     }
 
     if (intent === 'mcp-catalog-delete') {
@@ -861,6 +868,35 @@ export async function action({ request }: EnterpriseActionArgs) {
       });
 
       return json({ ok: true, rowId: `${orgId}:${slug}`, message: `Policy cleared for ${slug}.` });
+    }
+
+    // --- Global (platform-wide) MCP policy ---
+    if (intent === 'mcp-global-policy-set' || intent === 'mcp-global-policy-clear') {
+      const slug = String(form.get('slug') ?? '').trim();
+
+      if (!slug) {
+        return json({ ok: false, error: 'Catalog slug is required.' }, { status: 400 });
+      }
+
+      if (intent === 'mcp-global-policy-set') {
+        const mode = String(form.get('mode') ?? '');
+
+        await apiRequest(request, '/admin/mcp/global-policy', {
+          method: 'POST',
+          redirectOn401: false,
+          body: JSON.stringify({ slug, mode }),
+        });
+
+        return json({ ok: true, rowId: `global:${slug}`, message: `Global policy set: ${slug} → ${mode}.` });
+      }
+
+      await apiRequest(request, '/admin/mcp/global-policy', {
+        method: 'DELETE',
+        redirectOn401: false,
+        body: JSON.stringify({ slug }),
+      });
+
+      return json({ ok: true, rowId: `global:${slug}`, message: `Global policy cleared for ${slug}.` });
     }
 
     if (!userId) {
@@ -2559,6 +2595,8 @@ function McpCatalogPanel({ payload }: { payload: Record<string, JsonValue> }) {
         </table>
       </div>
 
+      <McpGlobalPolicyForm entries={entries} password={password} />
+
       <McpOrgPolicyForm entries={entries} password={password} />
     </div>
   );
@@ -2759,8 +2797,9 @@ function McpCatalogRow({ entry, password }: { entry: Record<string, JsonValue>; 
   const featured = entry.featured === true;
   const verified = entry.verified === true;
   const idePanel = entry.featuredForIdePanel === true;
+  const enabled = entry.enabled !== false;
 
-  const toggle = (field: 'featured' | 'verified' | 'featuredForIdePanel', current: boolean) => {
+  const toggle = (field: 'featured' | 'verified' | 'featuredForIdePanel' | 'enabled', current: boolean) => {
     fetcher.submit({ intent: 'mcp-catalog-toggle', id, field, value: String(!current), password }, { method: 'post' });
   };
 
@@ -2775,8 +2814,15 @@ function McpCatalogRow({ entry, password }: { entry: Record<string, JsonValue>; 
 
   return (
     <>
-      <tr className="border-b border-bolt-elements-borderColor align-top">
-        <td className="px-4 py-3 text-bolt-elements-textPrimary">{String(entry.name ?? '')}</td>
+      <tr className={`border-b border-bolt-elements-borderColor align-top${enabled ? '' : ' opacity-60'}`}>
+        <td className="px-4 py-3 text-bolt-elements-textPrimary">
+          {String(entry.name ?? '')}
+          {!enabled ? (
+            <span className="ml-2 rounded-full border border-[color-mix(in_srgb,var(--status-error-text)_40%,transparent)] px-1.5 py-0.5 text-[10px] font-medium uppercase text-[var(--status-error-text)]">
+              Disabled
+            </span>
+          ) : null}
+        </td>
         <td className="px-4 py-3 font-mono text-xs text-bolt-elements-textSecondary">{String(entry.slug ?? '')}</td>
         <td className="px-4 py-3 text-xs text-bolt-elements-textSecondary">{String(entry.domain ?? '')}</td>
         <td className="px-4 py-3 text-bolt-elements-textSecondary">{Number(entry.installCount ?? 0)}</td>
@@ -2810,6 +2856,23 @@ function McpCatalogRow({ entry, password }: { entry: Record<string, JsonValue>; 
         </td>
         <td className="px-4 py-3">
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy || !password}
+              onClick={() => toggle('enabled', enabled)}
+              title={
+                enabled
+                  ? 'Disable globally: hide from the catalog, block new installs and turn off existing installs (reversible).'
+                  : 'Re-enable globally: restore visibility, installs and the previously-disabled installs.'
+              }
+              className={
+                enabled
+                  ? 'rounded-md border border-[color-mix(in_srgb,var(--status-error-text)_40%,transparent)] px-2 py-1 text-[11px] text-[var(--status-error-text)] hover:bg-[color-mix(in_srgb,var(--status-error-text)_10%,transparent)] disabled:opacity-50'
+                  : 'rounded-md bg-[var(--status-success-text)] px-2 py-1 text-[11px] font-medium text-white disabled:opacity-50'
+              }
+            >
+              {enabled ? 'Disable' : 'Enable'}
+            </button>
             <button
               type="button"
               onClick={() => setEditing((v) => !v)}
@@ -3054,6 +3117,87 @@ function McpOrgPolicyForm({ entries, password }: { entries: Array<Record<string,
             type="button"
             disabled={busy || !password || !organizationId || !slug}
             onClick={() => apply('mcp-policy-clear')}
+            className="inline-flex items-center rounded-md border border-bolt-elements-borderColor px-3 py-2 text-xs font-medium text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-2 min-h-[1rem] text-xs">
+        {fetcher.data?.message ? (
+          <span className="text-[var(--status-success-text)]">{fetcher.data.message}</span>
+        ) : null}
+        {fetcher.data?.error ? <span className="text-[var(--status-error-text)]">{fetcher.data.error}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+function McpGlobalPolicyForm({ entries, password }: { entries: Array<Record<string, JsonValue>>; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+
+  const [slug, setSlug] = useState(entries.length > 0 ? String(entries[0].slug ?? '') : '');
+  const [mode, setMode] = useState<'forced' | 'allowed' | 'blocked'>('allowed');
+
+  const apply = (intent: 'mcp-global-policy-set' | 'mcp-global-policy-clear') => {
+    fetcher.submit({ intent, slug, mode, password }, { method: 'post' });
+  };
+
+  return (
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Global MCP policy</h3>
+      <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+        Platform-wide governance, one tier ABOVE the org policy — resolved global-first, then org (a server must clear
+        both). <strong>Forced</strong> and <strong>allowed</strong> entries form the global allow-list; once any exist,
+        only those are installable anywhere. <strong>Blocked</strong> denies an entry platform-wide. Clear removes the
+        global policy (back to default-open). This is distinct from the per-row global <em>Disable</em> kill-switch,
+        which also hides the entry and turns off existing installs. Step-up protected and audited.
+      </p>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Catalog entry
+          <select
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            data-testid="mcp-global-policy-slug"
+            className={mcpInputClass}
+          >
+            {entries.length === 0 ? <option value="">No entries</option> : null}
+            {entries.map((entry) => (
+              <option key={String(entry.slug)} value={String(entry.slug)}>
+                {String(entry.name ?? entry.slug)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Mode
+          <select
+            value={mode}
+            onChange={(e) => setMode(e.target.value as 'forced' | 'allowed' | 'blocked')}
+            className={mcpInputClass}
+          >
+            <option value="allowed">Allow-list</option>
+            <option value="forced">Force-enable</option>
+            <option value="blocked">Block</option>
+          </select>
+        </label>
+        <div className="flex items-end gap-2">
+          <button
+            type="button"
+            disabled={busy || !password || !slug}
+            onClick={() => apply('mcp-global-policy-set')}
+            className="inline-flex items-center rounded-md border border-bolt-elements-borderColor px-3 py-2 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {busy ? 'Applying…' : 'Apply'}
+          </button>
+          <button
+            type="button"
+            disabled={busy || !password || !slug}
+            onClick={() => apply('mcp-global-policy-clear')}
             className="inline-flex items-center rounded-md border border-bolt-elements-borderColor px-3 py-2 text-xs font-medium text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Clear

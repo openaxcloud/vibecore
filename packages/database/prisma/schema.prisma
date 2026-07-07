@@ -1308,6 +1308,10 @@ model McpCatalogEntry {
   featured            Boolean      @default(false)
   verified            Boolean      @default(false)
   featuredForIdePanel Boolean      @default(false)
+  // Global admin kill-switch. false = hidden from the catalog, new installs
+  // blocked, and existing installs soft-disabled (reversible on re-enable —
+  // nothing is deleted). Defaults true so every existing row stays available.
+  enabled             Boolean      @default(true)
   publishedAt         DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
   installs            McpInstall[]
@@ -1315,6 +1319,7 @@ model McpCatalogEntry {
   @@index([domain])
   @@index([featured, verified])
   @@index([featuredForIdePanel])
+  @@index([enabled])
 }
 
 model McpInstall {
@@ -1349,6 +1354,22 @@ model McpUserConfig {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Platform-wide (global) MCP policy — one tier ABOVE the per-org policy that
+// reuses OrganizationConnectorPolicy. One row per catalog slug; `mode` is
+// 'forced' | 'allowed' | 'blocked' (validated in the app, mirroring the org
+// policy modes). Install resolution evaluates GLOBAL first, then the org
+// policy. Absence of any row = default-open, so this is additive and inert
+// until an admin sets a policy.
+model McpGlobalPolicy {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  mode      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([mode])
 }
 
 // Server-side store for a shared conversation snapshot. Replaces embedding the

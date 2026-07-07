@@ -43,6 +43,8 @@ export interface CatalogEntryView {
   featured: boolean;
   verified: boolean;
   featuredForIdePanel: boolean;
+  /** Global kill-switch; false = hidden from the public catalog & un-installable. */
+  enabled: boolean;
   publishedAt: string;
   updatedAt: string;
 }
@@ -125,6 +127,7 @@ export const adminCatalogCreateSchema = z.object({
   featured: z.boolean().optional(),
   verified: z.boolean().optional(),
   featuredForIdePanel: z.boolean().optional(),
+  enabled: z.boolean().optional(),
 });
 
 export const adminCatalogUpdateSchema = z
@@ -143,6 +146,9 @@ export const adminCatalogUpdateSchema = z
     featured: z.boolean().optional(),
     verified: z.boolean().optional(),
     featuredForIdePanel: z.boolean().optional(),
+    // Global kill-switch. Toggling this cascades to existing installs (see
+    // updateCatalogEntry): disable soft-disables them, enable restores them.
+    enabled: z.boolean().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, { message: 'patch must include at least one field' });
 
@@ -536,6 +542,7 @@ export interface AdminCatalogCreateInput {
   featured?: boolean;
   verified?: boolean;
   featuredForIdePanel?: boolean;
+  enabled?: boolean;
 }
 
 export interface AdminCatalogUpdateInput {
@@ -553,6 +560,7 @@ export interface AdminCatalogUpdateInput {
   featured?: boolean;
   verified?: boolean;
   featuredForIdePanel?: boolean;
+  enabled?: boolean;
 }
 
 /*
@@ -582,6 +590,25 @@ export interface McpOrgPolicyView {
   /** True once any allow/forced row exists → install is restricted to the list. */
   allowListEnforced: boolean;
   entries: McpOrgPolicyEntry[];
+}
+
+/*
+ * Platform-wide (global) MCP policy — one tier ABOVE the org policy. Same three
+ * modes; persisted in the dedicated McpGlobalPolicy table (one row per slug).
+ * Install resolution evaluates GLOBAL first, then the org allow-list/block, so a
+ * server must clear BOTH gates. Absence of any global row = default-open.
+ */
+export interface McpGlobalPolicyEntry {
+  slug: string;
+  name: string;
+  domain: McpDomainKey;
+  mode: McpOrgPolicyMode;
+}
+
+export interface McpGlobalPolicyView {
+  /** True once any allowed/forced global row exists → install restricted platform-wide. */
+  allowListEnforced: boolean;
+  entries: McpGlobalPolicyEntry[];
 }
 
 export const MCP_POLICY_PROVIDER_PREFIX = 'mcp:';
@@ -625,6 +652,70 @@ export const adminOrgPolicyClearSchema = z.object({
   slug: z.string().min(1).max(100),
 });
 
+export const adminGlobalPolicySetSchema = z.object({
+  slug: z.string().min(1).max(100),
+  mode: z.enum(['forced', 'allowed', 'blocked']),
+});
+
+export const adminGlobalPolicyClearSchema = z.object({
+  slug: z.string().min(1).max(100),
+});
+
+const GLOBAL_POLICY_MODES: McpOrgPolicyMode[] = ['forced', 'allowed', 'blocked'];
+
+function isGlobalPolicyMode(value: string): value is McpOrgPolicyMode {
+  return (GLOBAL_POLICY_MODES as string[]).includes(value);
+}
+
+/*
+ * Shared install gate for a set of policy rows (org OR global). A blocked slug
+ * is always denied; once ANY allow/forced row exists an allow-list is in force,
+ * so only allow-listed/forced slugs pass. No rows → default-open. Throws a
+ * scope-specific McpMarketplaceError; returns void when the install is allowed.
+ */
+export function evaluatePolicyGate(
+  entries: Array<{ slug: string; mode: McpOrgPolicyMode }>,
+  slug: string,
+  scope: 'organization' | 'platform',
+): void {
+  if (entries.length === 0) {
+    return;
+  }
+
+  let allowListExists = false;
+  let thisAllowedOrForced = false;
+
+  for (const info of entries) {
+    if (info.mode === 'blocked' && info.slug === slug) {
+      throw new McpMarketplaceError(
+        scope === 'platform'
+          ? `MCP server '${slug}' is blocked platform-wide by the administrator`
+          : `MCP server '${slug}' is blocked by your organization's policy`,
+        403,
+        scope === 'platform' ? 'MCP_GLOBAL_POLICY_BLOCKED' : 'MCP_ORG_POLICY_BLOCKED',
+      );
+    }
+
+    if (info.mode === 'allowed' || info.mode === 'forced') {
+      allowListExists = true;
+
+      if (info.slug === slug) {
+        thisAllowedOrForced = true;
+      }
+    }
+  }
+
+  if (allowListExists && !thisAllowedOrForced) {
+    throw new McpMarketplaceError(
+      scope === 'platform'
+        ? `MCP server '${slug}' is not on the platform allow-list`
+        : `MCP server '${slug}' is not on your organization's allow-list`,
+      403,
+      scope === 'platform' ? 'MCP_GLOBAL_POLICY_NOT_ALLOWED' : 'MCP_ORG_POLICY_NOT_ALLOWED',
+    );
+  }
+}
+
 export interface McpMarketplaceServiceDeps {
   prisma: DatabaseClient;
 }
@@ -635,6 +726,7 @@ export class McpMarketplaceService {
   async listDomains(): Promise<DomainCount[]> {
     const counts = await this.deps.prisma.mcpCatalogEntry.groupBy({
       by: ['domain'],
+      where: { enabled: true },
       _count: { _all: true },
       orderBy: { domain: 'asc' },
     });
@@ -674,7 +766,8 @@ export class McpMarketplaceService {
   async getCatalogEntry(slug: string): Promise<CatalogEntryView> {
     const entry = await this.deps.prisma.mcpCatalogEntry.findUnique({ where: { slug } });
 
-    if (!entry) {
+    // A globally-disabled entry is treated as absent on the public read path.
+    if (!entry || !entry.enabled) {
       throw new McpMarketplaceError('Catalog entry not found', 404, 'MCP_CATALOG_NOT_FOUND');
     }
 
@@ -690,6 +783,15 @@ export class McpMarketplaceService {
       throw new McpMarketplaceError('Catalog entry not found', 404, 'MCP_CATALOG_NOT_FOUND');
     }
 
+    // Global kill-switch: a disabled catalog entry can never be installed.
+    if (!entry.enabled) {
+      throw new McpMarketplaceError(
+        `MCP server '${input.catalogEntrySlug}' is disabled by the platform administrator`,
+        403,
+        'MCP_CATALOG_DISABLED',
+      );
+    }
+
     const validationErrors = validateConfigAgainstSchema(input.config, entry.configSchema);
 
     if (validationErrors.length > 0) {
@@ -698,7 +800,9 @@ export class McpMarketplaceService {
 
     assertInstallConfigUrlAllowed(input.config);
 
-    // Enforce org MCP policy for org-scoped installs (allow-list / block).
+    // Enforce policy, GLOBAL first then the org allow-list/block (both must pass).
+    await this.assertGlobalInstallAllowed(input.catalogEntrySlug);
+
     if (input.organizationId) {
       await this.assertOrgInstallAllowed(input.organizationId, input.catalogEntrySlug);
     }
@@ -924,6 +1028,7 @@ export class McpMarketplaceService {
         ...(input.featured !== undefined ? { featured: input.featured } : {}),
         ...(input.verified !== undefined ? { verified: input.verified } : {}),
         ...(input.featuredForIdePanel !== undefined ? { featuredForIdePanel: input.featuredForIdePanel } : {}),
+        ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
       },
     });
 
@@ -937,24 +1042,46 @@ export class McpMarketplaceService {
       throw new McpMarketplaceError('Catalog entry not found', 404, 'MCP_CATALOG_NOT_FOUND');
     }
 
-    const updated = await this.deps.prisma.mcpCatalogEntry.update({
-      where: { id },
-      data: {
-        ...(patch.name !== undefined ? { name: patch.name } : {}),
-        ...(patch.description !== undefined ? { description: patch.description } : {}),
-        ...(patch.domain !== undefined ? { domain: patch.domain } : {}),
-        ...(patch.tags !== undefined ? { tags: patch.tags } : {}),
-        ...(patch.author !== undefined ? { author: patch.author } : {}),
-        ...(patch.homepageUrl !== undefined ? { homepageUrl: patch.homepageUrl } : {}),
-        ...(patch.iconUrl !== undefined ? { iconUrl: patch.iconUrl } : {}),
-        ...(patch.version !== undefined ? { version: patch.version } : {}),
-        ...(patch.transport !== undefined ? { transport: patch.transport } : {}),
-        ...(patch.configTemplate !== undefined ? { configTemplate: patch.configTemplate as never } : {}),
-        ...(patch.configSchema !== undefined ? { configSchema: patch.configSchema as never } : {}),
-        ...(patch.featured !== undefined ? { featured: patch.featured } : {}),
-        ...(patch.verified !== undefined ? { verified: patch.verified } : {}),
-        ...(patch.featuredForIdePanel !== undefined ? { featuredForIdePanel: patch.featuredForIdePanel } : {}),
-      },
+    /*
+     * Kill-switch cascade: flipping `enabled` soft-disables (or restores) every
+     * existing install of this entry, in the SAME transaction as the entry
+     * update. Disabling never deletes a row — re-enabling flips them back on, so
+     * the action is fully reversible. (A user who had manually disabled an
+     * install before a kill-switch will see it re-enabled on restore; that is
+     * the documented, safe default for an admin kill-switch.)
+     */
+    const enabledChanged = patch.enabled !== undefined && patch.enabled !== existing.enabled;
+
+    const updated = await this.deps.prisma.$transaction(async (tx) => {
+      const row = await tx.mcpCatalogEntry.update({
+        where: { id },
+        data: {
+          ...(patch.name !== undefined ? { name: patch.name } : {}),
+          ...(patch.description !== undefined ? { description: patch.description } : {}),
+          ...(patch.domain !== undefined ? { domain: patch.domain } : {}),
+          ...(patch.tags !== undefined ? { tags: patch.tags } : {}),
+          ...(patch.author !== undefined ? { author: patch.author } : {}),
+          ...(patch.homepageUrl !== undefined ? { homepageUrl: patch.homepageUrl } : {}),
+          ...(patch.iconUrl !== undefined ? { iconUrl: patch.iconUrl } : {}),
+          ...(patch.version !== undefined ? { version: patch.version } : {}),
+          ...(patch.transport !== undefined ? { transport: patch.transport } : {}),
+          ...(patch.configTemplate !== undefined ? { configTemplate: patch.configTemplate as never } : {}),
+          ...(patch.configSchema !== undefined ? { configSchema: patch.configSchema as never } : {}),
+          ...(patch.featured !== undefined ? { featured: patch.featured } : {}),
+          ...(patch.verified !== undefined ? { verified: patch.verified } : {}),
+          ...(patch.featuredForIdePanel !== undefined ? { featuredForIdePanel: patch.featuredForIdePanel } : {}),
+          ...(patch.enabled !== undefined ? { enabled: patch.enabled } : {}),
+        },
+      });
+
+      if (enabledChanged) {
+        await tx.mcpInstall.updateMany({
+          where: { catalogEntryId: id },
+          data: { enabled: patch.enabled },
+        });
+      }
+
+      return row;
     });
 
     return this.toEntryView(updated);
@@ -991,44 +1118,27 @@ export class McpMarketplaceService {
       select: { provider: true },
     });
 
-    if (rows.length === 0) {
-      return;
-    }
+    const entries = rows
+      .map((row) => parsePolicyProvider(row.provider))
+      .filter((value): value is { slug: string; mode: McpOrgPolicyMode } => value !== null);
 
-    let allowListExists = false;
-    let thisAllowedOrForced = false;
+    evaluatePolicyGate(entries, slug, 'organization');
+  }
 
-    for (const row of rows) {
-      const info = parsePolicyProvider(row.provider);
+  /*
+   * Platform-wide gate, evaluated BEFORE the org gate. Same block / allow-list
+   * semantics as the org policy, one tier up: a globally-blocked slug is denied
+   * to everyone; once any global allow/forced row exists, only those slugs are
+   * installable platform-wide.
+   */
+  private async assertGlobalInstallAllowed(slug: string): Promise<void> {
+    const rows = await this.deps.prisma.mcpGlobalPolicy.findMany({ select: { slug: true, mode: true } });
 
-      if (!info) {
-        continue;
-      }
+    const entries = rows
+      .filter((row) => isGlobalPolicyMode(row.mode))
+      .map((row) => ({ slug: row.slug, mode: row.mode as McpOrgPolicyMode }));
 
-      if (info.mode === 'blocked' && info.slug === slug) {
-        throw new McpMarketplaceError(
-          `MCP server '${slug}' is blocked by your organization's policy`,
-          403,
-          'MCP_ORG_POLICY_BLOCKED',
-        );
-      }
-
-      if (info.mode === 'allowed' || info.mode === 'forced') {
-        allowListExists = true;
-
-        if (info.slug === slug) {
-          thisAllowedOrForced = true;
-        }
-      }
-    }
-
-    if (allowListExists && !thisAllowedOrForced) {
-      throw new McpMarketplaceError(
-        `MCP server '${slug}' is not on your organization's allow-list`,
-        403,
-        'MCP_ORG_POLICY_NOT_ALLOWED',
-      );
-    }
+    evaluatePolicyGate(entries, slug, 'platform');
   }
 
   async getOrgPolicy(organizationId: string): Promise<McpOrgPolicyView> {
@@ -1128,6 +1238,71 @@ export class McpMarketplaceService {
     return this.getOrgPolicy(input.organizationId);
   }
 
+  // --- Global (platform-wide) MCP policy (dedicated McpGlobalPolicy table) -----
+
+  async getGlobalPolicy(): Promise<McpGlobalPolicyView> {
+    const rows = await this.deps.prisma.mcpGlobalPolicy.findMany({ select: { slug: true, mode: true } });
+    const valid = rows.filter((row) => isGlobalPolicyMode(row.mode));
+
+    // Resolve entry names/domains for display (skip rows whose entry was deleted).
+    const slugs = [...new Set(valid.map((row) => row.slug))];
+    const entries =
+      slugs.length > 0
+        ? await this.deps.prisma.mcpCatalogEntry.findMany({
+            where: { slug: { in: slugs } },
+            select: { slug: true, name: true, domain: true },
+          })
+        : [];
+    const bySlug = new Map(entries.map((entry) => [entry.slug, entry]));
+
+    const list: McpGlobalPolicyEntry[] = valid
+      .map((row) => {
+        const entry = bySlug.get(row.slug);
+        return entry
+          ? {
+              slug: row.slug,
+              name: entry.name,
+              domain: entry.domain as McpDomainKey,
+              mode: row.mode as McpOrgPolicyMode,
+            }
+          : null;
+      })
+      .filter((value): value is McpGlobalPolicyEntry => value !== null)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return {
+      allowListEnforced: list.some((entry) => entry.mode === 'allowed' || entry.mode === 'forced'),
+      entries: list,
+    };
+  }
+
+  /** Set the platform-wide policy for a single catalog entry (one row per slug). */
+  async setGlobalPolicy(input: { slug: string; mode: McpOrgPolicyMode }): Promise<McpGlobalPolicyView> {
+    const entry = await this.deps.prisma.mcpCatalogEntry.findUnique({
+      where: { slug: input.slug },
+      select: { id: true },
+    });
+
+    if (!entry) {
+      throw new McpMarketplaceError('Catalog entry not found', 404, 'MCP_CATALOG_NOT_FOUND');
+    }
+
+    await this.deps.prisma.mcpGlobalPolicy.upsert({
+      where: { slug: input.slug },
+      create: { slug: input.slug, mode: input.mode },
+      update: { mode: input.mode },
+    });
+
+    return this.getGlobalPolicy();
+  }
+
+  /** Remove the global policy for a slug (back to default-open platform-wide). */
+  async clearGlobalPolicy(input: { slug: string }): Promise<McpGlobalPolicyView> {
+    await this.deps.prisma.mcpGlobalPolicy.deleteMany({ where: { slug: input.slug } });
+
+    return this.getGlobalPolicy();
+  }
+
   private toEntryView = (entry: {
     id: string;
     slug: string;
@@ -1146,6 +1321,7 @@ export class McpMarketplaceService {
     featured: boolean;
     verified: boolean;
     featuredForIdePanel?: boolean;
+    enabled?: boolean;
     publishedAt: Date;
     updatedAt: Date;
   }): CatalogEntryView => ({
@@ -1166,6 +1342,7 @@ export class McpMarketplaceService {
     featured: entry.featured,
     verified: entry.verified,
     featuredForIdePanel: entry.featuredForIdePanel ?? false,
+    enabled: entry.enabled ?? true,
     publishedAt: entry.publishedAt.toISOString(),
     updatedAt: entry.updatedAt.toISOString(),
   });

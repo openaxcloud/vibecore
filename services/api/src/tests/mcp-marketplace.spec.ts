@@ -335,6 +335,124 @@ runDbTests('McpMarketplaceService integration (real Postgres)', () => {
       await prisma.$disconnect();
     }
   });
+
+  it(
+    'global kill-switch hides, blocks installs and cascades to existing installs (reversible)',
+    { timeout: 20_000 },
+    async () => {
+      const prisma = createDatabaseClient();
+      const service = new McpMarketplaceService({ prisma });
+      const stamp = Date.now().toString(36);
+      const slug = `killswitch-${stamp}`;
+
+      try {
+        const user = await prisma.user.create({
+          data: { email: `kill-${stamp}@example.com`, name: 'Kill', passwordHash: 'x' },
+        });
+
+        const entry = await service.createCatalogEntry({
+          slug,
+          name: 'Kill Switch Entry',
+          description: 'Kill-switch test entry',
+          domain: 'OTHER',
+          author: 'tester',
+          version: '1.0.0',
+          transport: 'STREAMABLE_HTTP',
+          configSchema: {},
+        });
+        expect(entry.enabled).toBe(true);
+
+        // A user install exists while enabled.
+        const install = await service.install({
+          userId: user.id,
+          catalogEntrySlug: slug,
+          alias: `k-${stamp}`,
+          config: {},
+        });
+        expect(install.enabled).toBe(true);
+
+        // Disable globally: hidden from catalog + single-entry read 404s.
+        const disabled = await service.updateCatalogEntry(entry.id, { enabled: false });
+        expect(disabled.enabled).toBe(false);
+        expect((await service.listCatalog({ limit: 200 })).items.some((e) => e.slug === slug)).toBe(false);
+        await expect(service.getCatalogEntry(slug)).rejects.toMatchObject({ code: 'MCP_CATALOG_NOT_FOUND' });
+
+        // New installs are blocked…
+        await expect(
+          service.install({ userId: user.id, catalogEntrySlug: slug, alias: `k2-${stamp}`, config: {} }),
+        ).rejects.toMatchObject({ statusCode: 403, code: 'MCP_CATALOG_DISABLED' });
+
+        // …and the existing install was soft-disabled (not deleted).
+        expect((await service.getInstall({ id: install.id, userId: user.id })).enabled).toBe(false);
+
+        // Re-enabling restores it (reversible, nothing was deleted).
+        await service.updateCatalogEntry(entry.id, { enabled: true });
+        expect((await service.getInstall({ id: install.id, userId: user.id })).enabled).toBe(true);
+        expect((await service.listCatalog({ limit: 200 })).items.some((e) => e.slug === slug)).toBe(true);
+
+        await prisma.mcpInstall.deleteMany({ where: { userId: user.id } });
+        await prisma.mcpCatalogEntry.delete({ where: { id: entry.id } });
+        await prisma.user.delete({ where: { id: user.id } });
+      } finally {
+        await prisma.$disconnect();
+      }
+    },
+  );
+
+  it('global policy blocks/allow-lists installs platform-wide (resolved before org)', { timeout: 20_000 }, async () => {
+    const prisma = createDatabaseClient();
+    const service = new McpMarketplaceService({ prisma });
+    const stamp = Date.now().toString(36);
+
+    try {
+      const user = await prisma.user.create({
+        data: { email: `global-${stamp}@example.com`, name: 'Global', passwordHash: 'x' },
+      });
+
+      // Default-open.
+      expect((await service.getGlobalPolicy()).allowListEnforced).toBe(false);
+
+      // Block postgres globally → any install denied with the global code.
+      const blocked = await service.setGlobalPolicy({ slug: 'postgres', mode: 'blocked' });
+      expect(blocked.entries.some((e) => e.slug === 'postgres' && e.mode === 'blocked')).toBe(true);
+      await expect(
+        service.install({
+          userId: user.id,
+          catalogEntrySlug: 'postgres',
+          alias: `pg-${stamp}`,
+          config: { connectionString: 'postgres://localhost/db' },
+        }),
+      ).rejects.toMatchObject({ statusCode: 403, code: 'MCP_GLOBAL_POLICY_BLOCKED' });
+
+      // Switch to a global allow-list of only postgres → filesystem is denied platform-wide.
+      await service.setGlobalPolicy({ slug: 'postgres', mode: 'allowed' });
+      await expect(
+        service.install({
+          userId: user.id,
+          catalogEntrySlug: 'filesystem',
+          alias: `fs-${stamp}`,
+          config: { rootDir: '/tmp/x' },
+        }),
+      ).rejects.toMatchObject({ statusCode: 403, code: 'MCP_GLOBAL_POLICY_NOT_ALLOWED' });
+
+      // Clearing restores default-open; postgres installs again.
+      const cleared = await service.clearGlobalPolicy({ slug: 'postgres' });
+      expect(cleared.allowListEnforced).toBe(false);
+      const ok = await service.install({
+        userId: user.id,
+        catalogEntrySlug: 'postgres',
+        alias: `pg2-${stamp}`,
+        config: { connectionString: 'postgres://localhost/db' },
+      });
+      expect(ok.enabled).toBe(true);
+
+      await prisma.mcpGlobalPolicy.deleteMany({ where: { slug: 'postgres' } });
+      await prisma.mcpInstall.deleteMany({ where: { userId: user.id } });
+      await prisma.user.delete({ where: { id: user.id } });
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
 });
 
 const runApiTests = (await canReachDatabase()) ? describe : describe.skip;

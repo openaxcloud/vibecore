@@ -400,6 +400,11 @@ export type McpInstall = $Result.DefaultSelection<Prisma.$McpInstallPayload>
  */
 export type McpUserConfig = $Result.DefaultSelection<Prisma.$McpUserConfigPayload>
 /**
+ * Model McpGlobalPolicy
+ * 
+ */
+export type McpGlobalPolicy = $Result.DefaultSelection<Prisma.$McpGlobalPolicyPayload>
+/**
  * Model ChatShare
  * 
  */
@@ -1654,6 +1659,16 @@ export class PrismaClient<
   get mcpUserConfig(): Prisma.McpUserConfigDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.mcpGlobalPolicy`: Exposes CRUD operations for the **McpGlobalPolicy** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more McpGlobalPolicies
+    * const mcpGlobalPolicies = await prisma.mcpGlobalPolicy.findMany()
+    * ```
+    */
+  get mcpGlobalPolicy(): Prisma.McpGlobalPolicyDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.chatShare`: Exposes CRUD operations for the **ChatShare** model.
     * Example usage:
     * ```ts
@@ -2419,6 +2434,7 @@ export namespace Prisma {
     McpCatalogEntry: 'McpCatalogEntry',
     McpInstall: 'McpInstall',
     McpUserConfig: 'McpUserConfig',
+    McpGlobalPolicy: 'McpGlobalPolicy',
     ChatShare: 'ChatShare',
     AgentRun: 'AgentRun',
     AgentRunResult: 'AgentRunResult',
@@ -2460,7 +2476,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -7850,6 +7866,80 @@ export namespace Prisma {
           }
         }
       }
+      McpGlobalPolicy: {
+        payload: Prisma.$McpGlobalPolicyPayload<ExtArgs>
+        fields: Prisma.McpGlobalPolicyFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.McpGlobalPolicyFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpGlobalPolicyPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.McpGlobalPolicyFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpGlobalPolicyPayload>
+          }
+          findFirst: {
+            args: Prisma.McpGlobalPolicyFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpGlobalPolicyPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.McpGlobalPolicyFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpGlobalPolicyPayload>
+          }
+          findMany: {
+            args: Prisma.McpGlobalPolicyFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpGlobalPolicyPayload>[]
+          }
+          create: {
+            args: Prisma.McpGlobalPolicyCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpGlobalPolicyPayload>
+          }
+          createMany: {
+            args: Prisma.McpGlobalPolicyCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.McpGlobalPolicyCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpGlobalPolicyPayload>[]
+          }
+          delete: {
+            args: Prisma.McpGlobalPolicyDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpGlobalPolicyPayload>
+          }
+          update: {
+            args: Prisma.McpGlobalPolicyUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpGlobalPolicyPayload>
+          }
+          deleteMany: {
+            args: Prisma.McpGlobalPolicyDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.McpGlobalPolicyUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.McpGlobalPolicyUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpGlobalPolicyPayload>[]
+          }
+          upsert: {
+            args: Prisma.McpGlobalPolicyUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpGlobalPolicyPayload>
+          }
+          aggregate: {
+            args: Prisma.McpGlobalPolicyAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateMcpGlobalPolicy>
+          }
+          groupBy: {
+            args: Prisma.McpGlobalPolicyGroupByArgs<ExtArgs>
+            result: $Utils.Optional<McpGlobalPolicyGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.McpGlobalPolicyCountArgs<ExtArgs>
+            result: $Utils.Optional<McpGlobalPolicyCountAggregateOutputType> | number
+          }
+        }
+      }
       ChatShare: {
         payload: Prisma.$ChatSharePayload<ExtArgs>
         fields: Prisma.ChatShareFieldRefs
@@ -9955,6 +10045,7 @@ export namespace Prisma {
     mcpCatalogEntry?: McpCatalogEntryOmit
     mcpInstall?: McpInstallOmit
     mcpUserConfig?: McpUserConfigOmit
+    mcpGlobalPolicy?: McpGlobalPolicyOmit
     chatShare?: ChatShareOmit
     agentRun?: AgentRunOmit
     agentRunResult?: AgentRunResultOmit
@@ -91652,6 +91743,7 @@ export namespace Prisma {
     featured: boolean | null
     verified: boolean | null
     featuredForIdePanel: boolean | null
+    enabled: boolean | null
     publishedAt: Date | null
     updatedAt: Date | null
   }
@@ -91671,6 +91763,7 @@ export namespace Prisma {
     featured: boolean | null
     verified: boolean | null
     featuredForIdePanel: boolean | null
+    enabled: boolean | null
     publishedAt: Date | null
     updatedAt: Date | null
   }
@@ -91693,6 +91786,7 @@ export namespace Prisma {
     featured: number
     verified: number
     featuredForIdePanel: number
+    enabled: number
     publishedAt: number
     updatedAt: number
     _all: number
@@ -91722,6 +91816,7 @@ export namespace Prisma {
     featured?: true
     verified?: true
     featuredForIdePanel?: true
+    enabled?: true
     publishedAt?: true
     updatedAt?: true
   }
@@ -91741,6 +91836,7 @@ export namespace Prisma {
     featured?: true
     verified?: true
     featuredForIdePanel?: true
+    enabled?: true
     publishedAt?: true
     updatedAt?: true
   }
@@ -91763,6 +91859,7 @@ export namespace Prisma {
     featured?: true
     verified?: true
     featuredForIdePanel?: true
+    enabled?: true
     publishedAt?: true
     updatedAt?: true
     _all?: true
@@ -91872,6 +91969,7 @@ export namespace Prisma {
     featured: boolean
     verified: boolean
     featuredForIdePanel: boolean
+    enabled: boolean
     publishedAt: Date
     updatedAt: Date
     _count: McpCatalogEntryCountAggregateOutputType | null
@@ -91913,6 +92011,7 @@ export namespace Prisma {
     featured?: boolean
     verified?: boolean
     featuredForIdePanel?: boolean
+    enabled?: boolean
     publishedAt?: boolean
     updatedAt?: boolean
     installs?: boolean | McpCatalogEntry$installsArgs<ExtArgs>
@@ -91937,6 +92036,7 @@ export namespace Prisma {
     featured?: boolean
     verified?: boolean
     featuredForIdePanel?: boolean
+    enabled?: boolean
     publishedAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["mcpCatalogEntry"]>
@@ -91959,6 +92059,7 @@ export namespace Prisma {
     featured?: boolean
     verified?: boolean
     featuredForIdePanel?: boolean
+    enabled?: boolean
     publishedAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["mcpCatalogEntry"]>
@@ -91981,11 +92082,12 @@ export namespace Prisma {
     featured?: boolean
     verified?: boolean
     featuredForIdePanel?: boolean
+    enabled?: boolean
     publishedAt?: boolean
     updatedAt?: boolean
   }
 
-  export type McpCatalogEntryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "name" | "description" | "domain" | "tags" | "author" | "homepageUrl" | "iconUrl" | "version" | "transport" | "configTemplate" | "configSchema" | "installCount" | "featured" | "verified" | "featuredForIdePanel" | "publishedAt" | "updatedAt", ExtArgs["result"]["mcpCatalogEntry"]>
+  export type McpCatalogEntryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "name" | "description" | "domain" | "tags" | "author" | "homepageUrl" | "iconUrl" | "version" | "transport" | "configTemplate" | "configSchema" | "installCount" | "featured" | "verified" | "featuredForIdePanel" | "enabled" | "publishedAt" | "updatedAt", ExtArgs["result"]["mcpCatalogEntry"]>
   export type McpCatalogEntryInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     installs?: boolean | McpCatalogEntry$installsArgs<ExtArgs>
     _count?: boolean | McpCatalogEntryCountOutputTypeDefaultArgs<ExtArgs>
@@ -92016,6 +92118,7 @@ export namespace Prisma {
       featured: boolean
       verified: boolean
       featuredForIdePanel: boolean
+      enabled: boolean
       publishedAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["mcpCatalogEntry"]>
@@ -92459,6 +92562,7 @@ export namespace Prisma {
     readonly featured: FieldRef<"McpCatalogEntry", 'Boolean'>
     readonly verified: FieldRef<"McpCatalogEntry", 'Boolean'>
     readonly featuredForIdePanel: FieldRef<"McpCatalogEntry", 'Boolean'>
+    readonly enabled: FieldRef<"McpCatalogEntry", 'Boolean'>
     readonly publishedAt: FieldRef<"McpCatalogEntry", 'DateTime'>
     readonly updatedAt: FieldRef<"McpCatalogEntry", 'DateTime'>
   }
@@ -95145,6 +95249,1006 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: McpUserConfigInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model McpGlobalPolicy
+   */
+
+  export type AggregateMcpGlobalPolicy = {
+    _count: McpGlobalPolicyCountAggregateOutputType | null
+    _min: McpGlobalPolicyMinAggregateOutputType | null
+    _max: McpGlobalPolicyMaxAggregateOutputType | null
+  }
+
+  export type McpGlobalPolicyMinAggregateOutputType = {
+    id: string | null
+    slug: string | null
+    mode: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type McpGlobalPolicyMaxAggregateOutputType = {
+    id: string | null
+    slug: string | null
+    mode: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type McpGlobalPolicyCountAggregateOutputType = {
+    id: number
+    slug: number
+    mode: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type McpGlobalPolicyMinAggregateInputType = {
+    id?: true
+    slug?: true
+    mode?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type McpGlobalPolicyMaxAggregateInputType = {
+    id?: true
+    slug?: true
+    mode?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type McpGlobalPolicyCountAggregateInputType = {
+    id?: true
+    slug?: true
+    mode?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type McpGlobalPolicyAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which McpGlobalPolicy to aggregate.
+     */
+    where?: McpGlobalPolicyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of McpGlobalPolicies to fetch.
+     */
+    orderBy?: McpGlobalPolicyOrderByWithRelationInput | McpGlobalPolicyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: McpGlobalPolicyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` McpGlobalPolicies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` McpGlobalPolicies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned McpGlobalPolicies
+    **/
+    _count?: true | McpGlobalPolicyCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: McpGlobalPolicyMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: McpGlobalPolicyMaxAggregateInputType
+  }
+
+  export type GetMcpGlobalPolicyAggregateType<T extends McpGlobalPolicyAggregateArgs> = {
+        [P in keyof T & keyof AggregateMcpGlobalPolicy]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateMcpGlobalPolicy[P]>
+      : GetScalarType<T[P], AggregateMcpGlobalPolicy[P]>
+  }
+
+
+
+
+  export type McpGlobalPolicyGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: McpGlobalPolicyWhereInput
+    orderBy?: McpGlobalPolicyOrderByWithAggregationInput | McpGlobalPolicyOrderByWithAggregationInput[]
+    by: McpGlobalPolicyScalarFieldEnum[] | McpGlobalPolicyScalarFieldEnum
+    having?: McpGlobalPolicyScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: McpGlobalPolicyCountAggregateInputType | true
+    _min?: McpGlobalPolicyMinAggregateInputType
+    _max?: McpGlobalPolicyMaxAggregateInputType
+  }
+
+  export type McpGlobalPolicyGroupByOutputType = {
+    id: string
+    slug: string
+    mode: string
+    createdAt: Date
+    updatedAt: Date
+    _count: McpGlobalPolicyCountAggregateOutputType | null
+    _min: McpGlobalPolicyMinAggregateOutputType | null
+    _max: McpGlobalPolicyMaxAggregateOutputType | null
+  }
+
+  type GetMcpGlobalPolicyGroupByPayload<T extends McpGlobalPolicyGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<McpGlobalPolicyGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof McpGlobalPolicyGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], McpGlobalPolicyGroupByOutputType[P]>
+            : GetScalarType<T[P], McpGlobalPolicyGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type McpGlobalPolicySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    slug?: boolean
+    mode?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["mcpGlobalPolicy"]>
+
+  export type McpGlobalPolicySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    slug?: boolean
+    mode?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["mcpGlobalPolicy"]>
+
+  export type McpGlobalPolicySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    slug?: boolean
+    mode?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["mcpGlobalPolicy"]>
+
+  export type McpGlobalPolicySelectScalar = {
+    id?: boolean
+    slug?: boolean
+    mode?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type McpGlobalPolicyOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "mode" | "createdAt" | "updatedAt", ExtArgs["result"]["mcpGlobalPolicy"]>
+
+  export type $McpGlobalPolicyPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "McpGlobalPolicy"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      slug: string
+      mode: string
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["mcpGlobalPolicy"]>
+    composites: {}
+  }
+
+  type McpGlobalPolicyGetPayload<S extends boolean | null | undefined | McpGlobalPolicyDefaultArgs> = $Result.GetResult<Prisma.$McpGlobalPolicyPayload, S>
+
+  type McpGlobalPolicyCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<McpGlobalPolicyFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: McpGlobalPolicyCountAggregateInputType | true
+    }
+
+  export interface McpGlobalPolicyDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['McpGlobalPolicy'], meta: { name: 'McpGlobalPolicy' } }
+    /**
+     * Find zero or one McpGlobalPolicy that matches the filter.
+     * @param {McpGlobalPolicyFindUniqueArgs} args - Arguments to find a McpGlobalPolicy
+     * @example
+     * // Get one McpGlobalPolicy
+     * const mcpGlobalPolicy = await prisma.mcpGlobalPolicy.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends McpGlobalPolicyFindUniqueArgs>(args: SelectSubset<T, McpGlobalPolicyFindUniqueArgs<ExtArgs>>): Prisma__McpGlobalPolicyClient<$Result.GetResult<Prisma.$McpGlobalPolicyPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one McpGlobalPolicy that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {McpGlobalPolicyFindUniqueOrThrowArgs} args - Arguments to find a McpGlobalPolicy
+     * @example
+     * // Get one McpGlobalPolicy
+     * const mcpGlobalPolicy = await prisma.mcpGlobalPolicy.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends McpGlobalPolicyFindUniqueOrThrowArgs>(args: SelectSubset<T, McpGlobalPolicyFindUniqueOrThrowArgs<ExtArgs>>): Prisma__McpGlobalPolicyClient<$Result.GetResult<Prisma.$McpGlobalPolicyPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first McpGlobalPolicy that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpGlobalPolicyFindFirstArgs} args - Arguments to find a McpGlobalPolicy
+     * @example
+     * // Get one McpGlobalPolicy
+     * const mcpGlobalPolicy = await prisma.mcpGlobalPolicy.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends McpGlobalPolicyFindFirstArgs>(args?: SelectSubset<T, McpGlobalPolicyFindFirstArgs<ExtArgs>>): Prisma__McpGlobalPolicyClient<$Result.GetResult<Prisma.$McpGlobalPolicyPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first McpGlobalPolicy that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpGlobalPolicyFindFirstOrThrowArgs} args - Arguments to find a McpGlobalPolicy
+     * @example
+     * // Get one McpGlobalPolicy
+     * const mcpGlobalPolicy = await prisma.mcpGlobalPolicy.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends McpGlobalPolicyFindFirstOrThrowArgs>(args?: SelectSubset<T, McpGlobalPolicyFindFirstOrThrowArgs<ExtArgs>>): Prisma__McpGlobalPolicyClient<$Result.GetResult<Prisma.$McpGlobalPolicyPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more McpGlobalPolicies that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpGlobalPolicyFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all McpGlobalPolicies
+     * const mcpGlobalPolicies = await prisma.mcpGlobalPolicy.findMany()
+     * 
+     * // Get first 10 McpGlobalPolicies
+     * const mcpGlobalPolicies = await prisma.mcpGlobalPolicy.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const mcpGlobalPolicyWithIdOnly = await prisma.mcpGlobalPolicy.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends McpGlobalPolicyFindManyArgs>(args?: SelectSubset<T, McpGlobalPolicyFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpGlobalPolicyPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a McpGlobalPolicy.
+     * @param {McpGlobalPolicyCreateArgs} args - Arguments to create a McpGlobalPolicy.
+     * @example
+     * // Create one McpGlobalPolicy
+     * const McpGlobalPolicy = await prisma.mcpGlobalPolicy.create({
+     *   data: {
+     *     // ... data to create a McpGlobalPolicy
+     *   }
+     * })
+     * 
+     */
+    create<T extends McpGlobalPolicyCreateArgs>(args: SelectSubset<T, McpGlobalPolicyCreateArgs<ExtArgs>>): Prisma__McpGlobalPolicyClient<$Result.GetResult<Prisma.$McpGlobalPolicyPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many McpGlobalPolicies.
+     * @param {McpGlobalPolicyCreateManyArgs} args - Arguments to create many McpGlobalPolicies.
+     * @example
+     * // Create many McpGlobalPolicies
+     * const mcpGlobalPolicy = await prisma.mcpGlobalPolicy.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends McpGlobalPolicyCreateManyArgs>(args?: SelectSubset<T, McpGlobalPolicyCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many McpGlobalPolicies and returns the data saved in the database.
+     * @param {McpGlobalPolicyCreateManyAndReturnArgs} args - Arguments to create many McpGlobalPolicies.
+     * @example
+     * // Create many McpGlobalPolicies
+     * const mcpGlobalPolicy = await prisma.mcpGlobalPolicy.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many McpGlobalPolicies and only return the `id`
+     * const mcpGlobalPolicyWithIdOnly = await prisma.mcpGlobalPolicy.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends McpGlobalPolicyCreateManyAndReturnArgs>(args?: SelectSubset<T, McpGlobalPolicyCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpGlobalPolicyPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a McpGlobalPolicy.
+     * @param {McpGlobalPolicyDeleteArgs} args - Arguments to delete one McpGlobalPolicy.
+     * @example
+     * // Delete one McpGlobalPolicy
+     * const McpGlobalPolicy = await prisma.mcpGlobalPolicy.delete({
+     *   where: {
+     *     // ... filter to delete one McpGlobalPolicy
+     *   }
+     * })
+     * 
+     */
+    delete<T extends McpGlobalPolicyDeleteArgs>(args: SelectSubset<T, McpGlobalPolicyDeleteArgs<ExtArgs>>): Prisma__McpGlobalPolicyClient<$Result.GetResult<Prisma.$McpGlobalPolicyPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one McpGlobalPolicy.
+     * @param {McpGlobalPolicyUpdateArgs} args - Arguments to update one McpGlobalPolicy.
+     * @example
+     * // Update one McpGlobalPolicy
+     * const mcpGlobalPolicy = await prisma.mcpGlobalPolicy.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends McpGlobalPolicyUpdateArgs>(args: SelectSubset<T, McpGlobalPolicyUpdateArgs<ExtArgs>>): Prisma__McpGlobalPolicyClient<$Result.GetResult<Prisma.$McpGlobalPolicyPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more McpGlobalPolicies.
+     * @param {McpGlobalPolicyDeleteManyArgs} args - Arguments to filter McpGlobalPolicies to delete.
+     * @example
+     * // Delete a few McpGlobalPolicies
+     * const { count } = await prisma.mcpGlobalPolicy.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends McpGlobalPolicyDeleteManyArgs>(args?: SelectSubset<T, McpGlobalPolicyDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more McpGlobalPolicies.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpGlobalPolicyUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many McpGlobalPolicies
+     * const mcpGlobalPolicy = await prisma.mcpGlobalPolicy.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends McpGlobalPolicyUpdateManyArgs>(args: SelectSubset<T, McpGlobalPolicyUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more McpGlobalPolicies and returns the data updated in the database.
+     * @param {McpGlobalPolicyUpdateManyAndReturnArgs} args - Arguments to update many McpGlobalPolicies.
+     * @example
+     * // Update many McpGlobalPolicies
+     * const mcpGlobalPolicy = await prisma.mcpGlobalPolicy.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more McpGlobalPolicies and only return the `id`
+     * const mcpGlobalPolicyWithIdOnly = await prisma.mcpGlobalPolicy.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends McpGlobalPolicyUpdateManyAndReturnArgs>(args: SelectSubset<T, McpGlobalPolicyUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpGlobalPolicyPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one McpGlobalPolicy.
+     * @param {McpGlobalPolicyUpsertArgs} args - Arguments to update or create a McpGlobalPolicy.
+     * @example
+     * // Update or create a McpGlobalPolicy
+     * const mcpGlobalPolicy = await prisma.mcpGlobalPolicy.upsert({
+     *   create: {
+     *     // ... data to create a McpGlobalPolicy
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the McpGlobalPolicy we want to update
+     *   }
+     * })
+     */
+    upsert<T extends McpGlobalPolicyUpsertArgs>(args: SelectSubset<T, McpGlobalPolicyUpsertArgs<ExtArgs>>): Prisma__McpGlobalPolicyClient<$Result.GetResult<Prisma.$McpGlobalPolicyPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of McpGlobalPolicies.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpGlobalPolicyCountArgs} args - Arguments to filter McpGlobalPolicies to count.
+     * @example
+     * // Count the number of McpGlobalPolicies
+     * const count = await prisma.mcpGlobalPolicy.count({
+     *   where: {
+     *     // ... the filter for the McpGlobalPolicies we want to count
+     *   }
+     * })
+    **/
+    count<T extends McpGlobalPolicyCountArgs>(
+      args?: Subset<T, McpGlobalPolicyCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], McpGlobalPolicyCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a McpGlobalPolicy.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpGlobalPolicyAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends McpGlobalPolicyAggregateArgs>(args: Subset<T, McpGlobalPolicyAggregateArgs>): Prisma.PrismaPromise<GetMcpGlobalPolicyAggregateType<T>>
+
+    /**
+     * Group by McpGlobalPolicy.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpGlobalPolicyGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends McpGlobalPolicyGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: McpGlobalPolicyGroupByArgs['orderBy'] }
+        : { orderBy?: McpGlobalPolicyGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, McpGlobalPolicyGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetMcpGlobalPolicyGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the McpGlobalPolicy model
+   */
+  readonly fields: McpGlobalPolicyFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for McpGlobalPolicy.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__McpGlobalPolicyClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the McpGlobalPolicy model
+   */
+  interface McpGlobalPolicyFieldRefs {
+    readonly id: FieldRef<"McpGlobalPolicy", 'String'>
+    readonly slug: FieldRef<"McpGlobalPolicy", 'String'>
+    readonly mode: FieldRef<"McpGlobalPolicy", 'String'>
+    readonly createdAt: FieldRef<"McpGlobalPolicy", 'DateTime'>
+    readonly updatedAt: FieldRef<"McpGlobalPolicy", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * McpGlobalPolicy findUnique
+   */
+  export type McpGlobalPolicyFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpGlobalPolicy
+     */
+    select?: McpGlobalPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpGlobalPolicy
+     */
+    omit?: McpGlobalPolicyOmit<ExtArgs> | null
+    /**
+     * Filter, which McpGlobalPolicy to fetch.
+     */
+    where: McpGlobalPolicyWhereUniqueInput
+  }
+
+  /**
+   * McpGlobalPolicy findUniqueOrThrow
+   */
+  export type McpGlobalPolicyFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpGlobalPolicy
+     */
+    select?: McpGlobalPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpGlobalPolicy
+     */
+    omit?: McpGlobalPolicyOmit<ExtArgs> | null
+    /**
+     * Filter, which McpGlobalPolicy to fetch.
+     */
+    where: McpGlobalPolicyWhereUniqueInput
+  }
+
+  /**
+   * McpGlobalPolicy findFirst
+   */
+  export type McpGlobalPolicyFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpGlobalPolicy
+     */
+    select?: McpGlobalPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpGlobalPolicy
+     */
+    omit?: McpGlobalPolicyOmit<ExtArgs> | null
+    /**
+     * Filter, which McpGlobalPolicy to fetch.
+     */
+    where?: McpGlobalPolicyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of McpGlobalPolicies to fetch.
+     */
+    orderBy?: McpGlobalPolicyOrderByWithRelationInput | McpGlobalPolicyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for McpGlobalPolicies.
+     */
+    cursor?: McpGlobalPolicyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` McpGlobalPolicies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` McpGlobalPolicies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of McpGlobalPolicies.
+     */
+    distinct?: McpGlobalPolicyScalarFieldEnum | McpGlobalPolicyScalarFieldEnum[]
+  }
+
+  /**
+   * McpGlobalPolicy findFirstOrThrow
+   */
+  export type McpGlobalPolicyFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpGlobalPolicy
+     */
+    select?: McpGlobalPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpGlobalPolicy
+     */
+    omit?: McpGlobalPolicyOmit<ExtArgs> | null
+    /**
+     * Filter, which McpGlobalPolicy to fetch.
+     */
+    where?: McpGlobalPolicyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of McpGlobalPolicies to fetch.
+     */
+    orderBy?: McpGlobalPolicyOrderByWithRelationInput | McpGlobalPolicyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for McpGlobalPolicies.
+     */
+    cursor?: McpGlobalPolicyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` McpGlobalPolicies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` McpGlobalPolicies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of McpGlobalPolicies.
+     */
+    distinct?: McpGlobalPolicyScalarFieldEnum | McpGlobalPolicyScalarFieldEnum[]
+  }
+
+  /**
+   * McpGlobalPolicy findMany
+   */
+  export type McpGlobalPolicyFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpGlobalPolicy
+     */
+    select?: McpGlobalPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpGlobalPolicy
+     */
+    omit?: McpGlobalPolicyOmit<ExtArgs> | null
+    /**
+     * Filter, which McpGlobalPolicies to fetch.
+     */
+    where?: McpGlobalPolicyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of McpGlobalPolicies to fetch.
+     */
+    orderBy?: McpGlobalPolicyOrderByWithRelationInput | McpGlobalPolicyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing McpGlobalPolicies.
+     */
+    cursor?: McpGlobalPolicyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` McpGlobalPolicies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` McpGlobalPolicies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of McpGlobalPolicies.
+     */
+    distinct?: McpGlobalPolicyScalarFieldEnum | McpGlobalPolicyScalarFieldEnum[]
+  }
+
+  /**
+   * McpGlobalPolicy create
+   */
+  export type McpGlobalPolicyCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpGlobalPolicy
+     */
+    select?: McpGlobalPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpGlobalPolicy
+     */
+    omit?: McpGlobalPolicyOmit<ExtArgs> | null
+    /**
+     * The data needed to create a McpGlobalPolicy.
+     */
+    data: XOR<McpGlobalPolicyCreateInput, McpGlobalPolicyUncheckedCreateInput>
+  }
+
+  /**
+   * McpGlobalPolicy createMany
+   */
+  export type McpGlobalPolicyCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many McpGlobalPolicies.
+     */
+    data: McpGlobalPolicyCreateManyInput | McpGlobalPolicyCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * McpGlobalPolicy createManyAndReturn
+   */
+  export type McpGlobalPolicyCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpGlobalPolicy
+     */
+    select?: McpGlobalPolicySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpGlobalPolicy
+     */
+    omit?: McpGlobalPolicyOmit<ExtArgs> | null
+    /**
+     * The data used to create many McpGlobalPolicies.
+     */
+    data: McpGlobalPolicyCreateManyInput | McpGlobalPolicyCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * McpGlobalPolicy update
+   */
+  export type McpGlobalPolicyUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpGlobalPolicy
+     */
+    select?: McpGlobalPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpGlobalPolicy
+     */
+    omit?: McpGlobalPolicyOmit<ExtArgs> | null
+    /**
+     * The data needed to update a McpGlobalPolicy.
+     */
+    data: XOR<McpGlobalPolicyUpdateInput, McpGlobalPolicyUncheckedUpdateInput>
+    /**
+     * Choose, which McpGlobalPolicy to update.
+     */
+    where: McpGlobalPolicyWhereUniqueInput
+  }
+
+  /**
+   * McpGlobalPolicy updateMany
+   */
+  export type McpGlobalPolicyUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update McpGlobalPolicies.
+     */
+    data: XOR<McpGlobalPolicyUpdateManyMutationInput, McpGlobalPolicyUncheckedUpdateManyInput>
+    /**
+     * Filter which McpGlobalPolicies to update
+     */
+    where?: McpGlobalPolicyWhereInput
+    /**
+     * Limit how many McpGlobalPolicies to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * McpGlobalPolicy updateManyAndReturn
+   */
+  export type McpGlobalPolicyUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpGlobalPolicy
+     */
+    select?: McpGlobalPolicySelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpGlobalPolicy
+     */
+    omit?: McpGlobalPolicyOmit<ExtArgs> | null
+    /**
+     * The data used to update McpGlobalPolicies.
+     */
+    data: XOR<McpGlobalPolicyUpdateManyMutationInput, McpGlobalPolicyUncheckedUpdateManyInput>
+    /**
+     * Filter which McpGlobalPolicies to update
+     */
+    where?: McpGlobalPolicyWhereInput
+    /**
+     * Limit how many McpGlobalPolicies to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * McpGlobalPolicy upsert
+   */
+  export type McpGlobalPolicyUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpGlobalPolicy
+     */
+    select?: McpGlobalPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpGlobalPolicy
+     */
+    omit?: McpGlobalPolicyOmit<ExtArgs> | null
+    /**
+     * The filter to search for the McpGlobalPolicy to update in case it exists.
+     */
+    where: McpGlobalPolicyWhereUniqueInput
+    /**
+     * In case the McpGlobalPolicy found by the `where` argument doesn't exist, create a new McpGlobalPolicy with this data.
+     */
+    create: XOR<McpGlobalPolicyCreateInput, McpGlobalPolicyUncheckedCreateInput>
+    /**
+     * In case the McpGlobalPolicy was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<McpGlobalPolicyUpdateInput, McpGlobalPolicyUncheckedUpdateInput>
+  }
+
+  /**
+   * McpGlobalPolicy delete
+   */
+  export type McpGlobalPolicyDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpGlobalPolicy
+     */
+    select?: McpGlobalPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpGlobalPolicy
+     */
+    omit?: McpGlobalPolicyOmit<ExtArgs> | null
+    /**
+     * Filter which McpGlobalPolicy to delete.
+     */
+    where: McpGlobalPolicyWhereUniqueInput
+  }
+
+  /**
+   * McpGlobalPolicy deleteMany
+   */
+  export type McpGlobalPolicyDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which McpGlobalPolicies to delete
+     */
+    where?: McpGlobalPolicyWhereInput
+    /**
+     * Limit how many McpGlobalPolicies to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * McpGlobalPolicy without action
+   */
+  export type McpGlobalPolicyDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpGlobalPolicy
+     */
+    select?: McpGlobalPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpGlobalPolicy
+     */
+    omit?: McpGlobalPolicyOmit<ExtArgs> | null
   }
 
 
@@ -126234,6 +127338,7 @@ export namespace Prisma {
     featured: 'featured',
     verified: 'verified',
     featuredForIdePanel: 'featuredForIdePanel',
+    enabled: 'enabled',
     publishedAt: 'publishedAt',
     updatedAt: 'updatedAt'
   };
@@ -126266,6 +127371,17 @@ export namespace Prisma {
   };
 
   export type McpUserConfigScalarFieldEnum = (typeof McpUserConfigScalarFieldEnum)[keyof typeof McpUserConfigScalarFieldEnum]
+
+
+  export const McpGlobalPolicyScalarFieldEnum: {
+    id: 'id',
+    slug: 'slug',
+    mode: 'mode',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type McpGlobalPolicyScalarFieldEnum = (typeof McpGlobalPolicyScalarFieldEnum)[keyof typeof McpGlobalPolicyScalarFieldEnum]
 
 
   export const ChatShareScalarFieldEnum: {
@@ -132315,6 +133431,7 @@ export namespace Prisma {
     featured?: BoolFilter<"McpCatalogEntry"> | boolean
     verified?: BoolFilter<"McpCatalogEntry"> | boolean
     featuredForIdePanel?: BoolFilter<"McpCatalogEntry"> | boolean
+    enabled?: BoolFilter<"McpCatalogEntry"> | boolean
     publishedAt?: DateTimeFilter<"McpCatalogEntry"> | Date | string
     updatedAt?: DateTimeFilter<"McpCatalogEntry"> | Date | string
     installs?: McpInstallListRelationFilter
@@ -132338,6 +133455,7 @@ export namespace Prisma {
     featured?: SortOrder
     verified?: SortOrder
     featuredForIdePanel?: SortOrder
+    enabled?: SortOrder
     publishedAt?: SortOrder
     updatedAt?: SortOrder
     installs?: McpInstallOrderByRelationAggregateInput
@@ -132364,6 +133482,7 @@ export namespace Prisma {
     featured?: BoolFilter<"McpCatalogEntry"> | boolean
     verified?: BoolFilter<"McpCatalogEntry"> | boolean
     featuredForIdePanel?: BoolFilter<"McpCatalogEntry"> | boolean
+    enabled?: BoolFilter<"McpCatalogEntry"> | boolean
     publishedAt?: DateTimeFilter<"McpCatalogEntry"> | Date | string
     updatedAt?: DateTimeFilter<"McpCatalogEntry"> | Date | string
     installs?: McpInstallListRelationFilter
@@ -132387,6 +133506,7 @@ export namespace Prisma {
     featured?: SortOrder
     verified?: SortOrder
     featuredForIdePanel?: SortOrder
+    enabled?: SortOrder
     publishedAt?: SortOrder
     updatedAt?: SortOrder
     _count?: McpCatalogEntryCountOrderByAggregateInput
@@ -132417,6 +133537,7 @@ export namespace Prisma {
     featured?: BoolWithAggregatesFilter<"McpCatalogEntry"> | boolean
     verified?: BoolWithAggregatesFilter<"McpCatalogEntry"> | boolean
     featuredForIdePanel?: BoolWithAggregatesFilter<"McpCatalogEntry"> | boolean
+    enabled?: BoolWithAggregatesFilter<"McpCatalogEntry"> | boolean
     publishedAt?: DateTimeWithAggregatesFilter<"McpCatalogEntry"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"McpCatalogEntry"> | Date | string
   }
@@ -132563,6 +133684,58 @@ export namespace Prisma {
     maxLLMSteps?: IntWithAggregatesFilter<"McpUserConfig"> | number
     createdAt?: DateTimeWithAggregatesFilter<"McpUserConfig"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"McpUserConfig"> | Date | string
+  }
+
+  export type McpGlobalPolicyWhereInput = {
+    AND?: McpGlobalPolicyWhereInput | McpGlobalPolicyWhereInput[]
+    OR?: McpGlobalPolicyWhereInput[]
+    NOT?: McpGlobalPolicyWhereInput | McpGlobalPolicyWhereInput[]
+    id?: StringFilter<"McpGlobalPolicy"> | string
+    slug?: StringFilter<"McpGlobalPolicy"> | string
+    mode?: StringFilter<"McpGlobalPolicy"> | string
+    createdAt?: DateTimeFilter<"McpGlobalPolicy"> | Date | string
+    updatedAt?: DateTimeFilter<"McpGlobalPolicy"> | Date | string
+  }
+
+  export type McpGlobalPolicyOrderByWithRelationInput = {
+    id?: SortOrder
+    slug?: SortOrder
+    mode?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type McpGlobalPolicyWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    slug?: string
+    AND?: McpGlobalPolicyWhereInput | McpGlobalPolicyWhereInput[]
+    OR?: McpGlobalPolicyWhereInput[]
+    NOT?: McpGlobalPolicyWhereInput | McpGlobalPolicyWhereInput[]
+    mode?: StringFilter<"McpGlobalPolicy"> | string
+    createdAt?: DateTimeFilter<"McpGlobalPolicy"> | Date | string
+    updatedAt?: DateTimeFilter<"McpGlobalPolicy"> | Date | string
+  }, "id" | "slug">
+
+  export type McpGlobalPolicyOrderByWithAggregationInput = {
+    id?: SortOrder
+    slug?: SortOrder
+    mode?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: McpGlobalPolicyCountOrderByAggregateInput
+    _max?: McpGlobalPolicyMaxOrderByAggregateInput
+    _min?: McpGlobalPolicyMinOrderByAggregateInput
+  }
+
+  export type McpGlobalPolicyScalarWhereWithAggregatesInput = {
+    AND?: McpGlobalPolicyScalarWhereWithAggregatesInput | McpGlobalPolicyScalarWhereWithAggregatesInput[]
+    OR?: McpGlobalPolicyScalarWhereWithAggregatesInput[]
+    NOT?: McpGlobalPolicyScalarWhereWithAggregatesInput | McpGlobalPolicyScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"McpGlobalPolicy"> | string
+    slug?: StringWithAggregatesFilter<"McpGlobalPolicy"> | string
+    mode?: StringWithAggregatesFilter<"McpGlobalPolicy"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"McpGlobalPolicy"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"McpGlobalPolicy"> | Date | string
   }
 
   export type ChatShareWhereInput = {
@@ -140419,6 +141592,7 @@ export namespace Prisma {
     featured?: boolean
     verified?: boolean
     featuredForIdePanel?: boolean
+    enabled?: boolean
     publishedAt?: Date | string
     updatedAt?: Date | string
     installs?: McpInstallCreateNestedManyWithoutCatalogEntryInput
@@ -140442,6 +141616,7 @@ export namespace Prisma {
     featured?: boolean
     verified?: boolean
     featuredForIdePanel?: boolean
+    enabled?: boolean
     publishedAt?: Date | string
     updatedAt?: Date | string
     installs?: McpInstallUncheckedCreateNestedManyWithoutCatalogEntryInput
@@ -140465,6 +141640,7 @@ export namespace Prisma {
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
     featuredForIdePanel?: BoolFieldUpdateOperationsInput | boolean
+    enabled?: BoolFieldUpdateOperationsInput | boolean
     publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     installs?: McpInstallUpdateManyWithoutCatalogEntryNestedInput
@@ -140488,6 +141664,7 @@ export namespace Prisma {
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
     featuredForIdePanel?: BoolFieldUpdateOperationsInput | boolean
+    enabled?: BoolFieldUpdateOperationsInput | boolean
     publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     installs?: McpInstallUncheckedUpdateManyWithoutCatalogEntryNestedInput
@@ -140511,6 +141688,7 @@ export namespace Prisma {
     featured?: boolean
     verified?: boolean
     featuredForIdePanel?: boolean
+    enabled?: boolean
     publishedAt?: Date | string
     updatedAt?: Date | string
   }
@@ -140533,6 +141711,7 @@ export namespace Prisma {
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
     featuredForIdePanel?: BoolFieldUpdateOperationsInput | boolean
+    enabled?: BoolFieldUpdateOperationsInput | boolean
     publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -140555,6 +141734,7 @@ export namespace Prisma {
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
     featuredForIdePanel?: BoolFieldUpdateOperationsInput | boolean
+    enabled?: BoolFieldUpdateOperationsInput | boolean
     publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -140698,6 +141878,62 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     configJson?: JsonNullValueInput | InputJsonValue
     maxLLMSteps?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type McpGlobalPolicyCreateInput = {
+    id?: string
+    slug: string
+    mode: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type McpGlobalPolicyUncheckedCreateInput = {
+    id?: string
+    slug: string
+    mode: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type McpGlobalPolicyUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    mode?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type McpGlobalPolicyUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    mode?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type McpGlobalPolicyCreateManyInput = {
+    id?: string
+    slug: string
+    mode: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type McpGlobalPolicyUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    mode?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type McpGlobalPolicyUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    mode?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -146967,6 +148203,7 @@ export namespace Prisma {
     featured?: SortOrder
     verified?: SortOrder
     featuredForIdePanel?: SortOrder
+    enabled?: SortOrder
     publishedAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -146990,6 +148227,7 @@ export namespace Prisma {
     featured?: SortOrder
     verified?: SortOrder
     featuredForIdePanel?: SortOrder
+    enabled?: SortOrder
     publishedAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -147009,6 +148247,7 @@ export namespace Prisma {
     featured?: SortOrder
     verified?: SortOrder
     featuredForIdePanel?: SortOrder
+    enabled?: SortOrder
     publishedAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -147112,6 +148351,30 @@ export namespace Prisma {
 
   export type McpUserConfigSumOrderByAggregateInput = {
     maxLLMSteps?: SortOrder
+  }
+
+  export type McpGlobalPolicyCountOrderByAggregateInput = {
+    id?: SortOrder
+    slug?: SortOrder
+    mode?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type McpGlobalPolicyMaxOrderByAggregateInput = {
+    id?: SortOrder
+    slug?: SortOrder
+    mode?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type McpGlobalPolicyMinOrderByAggregateInput = {
+    id?: SortOrder
+    slug?: SortOrder
+    mode?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type ChatShareCountOrderByAggregateInput = {
@@ -174820,6 +176083,7 @@ export namespace Prisma {
     featured?: boolean
     verified?: boolean
     featuredForIdePanel?: boolean
+    enabled?: boolean
     publishedAt?: Date | string
     updatedAt?: Date | string
   }
@@ -174842,6 +176106,7 @@ export namespace Prisma {
     featured?: boolean
     verified?: boolean
     featuredForIdePanel?: boolean
+    enabled?: boolean
     publishedAt?: Date | string
     updatedAt?: Date | string
   }
@@ -175068,6 +176333,7 @@ export namespace Prisma {
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
     featuredForIdePanel?: BoolFieldUpdateOperationsInput | boolean
+    enabled?: BoolFieldUpdateOperationsInput | boolean
     publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -175090,6 +176356,7 @@ export namespace Prisma {
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
     featuredForIdePanel?: BoolFieldUpdateOperationsInput | boolean
+    enabled?: BoolFieldUpdateOperationsInput | boolean
     publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

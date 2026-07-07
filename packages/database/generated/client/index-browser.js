@@ -894,6 +894,7 @@ exports.Prisma.McpCatalogEntryScalarFieldEnum = {
   featured: 'featured',
   verified: 'verified',
   featuredForIdePanel: 'featuredForIdePanel',
+  enabled: 'enabled',
   publishedAt: 'publishedAt',
   updatedAt: 'updatedAt'
 };
@@ -915,6 +916,14 @@ exports.Prisma.McpUserConfigScalarFieldEnum = {
   userId: 'userId',
   configJson: 'configJson',
   maxLLMSteps: 'maxLLMSteps',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.McpGlobalPolicyScalarFieldEnum = {
+  id: 'id',
+  slug: 'slug',
+  mode: 'mode',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -1508,6 +1517,7 @@ exports.Prisma.ModelName = {
   McpCatalogEntry: 'McpCatalogEntry',
   McpInstall: 'McpInstall',
   McpUserConfig: 'McpUserConfig',
+  McpGlobalPolicy: 'McpGlobalPolicy',
   ChatShare: 'ChatShare',
   AgentRun: 'AgentRun',
   AgentRunResult: 'AgentRunResult',

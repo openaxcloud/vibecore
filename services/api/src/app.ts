@@ -171,6 +171,8 @@ import {
   adminCatalogParamsSchema,
   adminOrgPolicySetSchema,
   adminOrgPolicyClearSchema,
+  adminGlobalPolicySetSchema,
+  adminGlobalPolicyClearSchema,
   createDefaultMcpMarketplaceService,
 } from './mcp-marketplace.js';
 import {
@@ -11215,6 +11217,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           featured: entry.featured,
           verified: entry.verified,
           featuredForIdePanel: entry.featuredForIdePanel,
+          enabled: entry.enabled,
           fields: Object.keys(patch),
         },
       });
@@ -11333,6 +11336,88 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         action: 'admin.mcp_policy.clear',
         resourceType: 'organizationMcpPolicy',
         resourceId: orgId,
+        metadata: { slug: body.slug },
+      });
+
+      return { policy };
+    } catch (error) {
+      const mapped = mapMcpMarketplaceError(error);
+
+      if (mapped) {
+        return reply.code(mapped.statusCode).send(mapped.payload);
+      }
+
+      throw error;
+    }
+  });
+
+  /*
+   * --- Global (platform-wide) MCP policy -----------------------------------
+   * One tier above the org policy (dedicated McpGlobalPolicy table). Resolution
+   * at install time is global-first, then org (both gates must pass). Platform-
+   * admin gated; step-up on writes.
+   */
+  app.get('/admin/mcp/global-policy', async (request, reply) => {
+    await requirePlatformAdmin(request);
+
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    try {
+      return { policy: await service.getGlobalPolicy() };
+    } catch (error) {
+      const mapped = mapMcpMarketplaceError(error);
+
+      if (mapped) {
+        return reply.code(mapped.statusCode).send(mapped.payload);
+      }
+
+      throw error;
+    }
+  });
+
+  app.post('/admin/mcp/global-policy', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const body = parse(adminGlobalPolicySetSchema, request.body ?? {});
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    try {
+      const policy = await service.setGlobalPolicy({ slug: body.slug, mode: body.mode });
+
+      await audit(request, store, {
+        action: 'admin.mcp_global_policy.set',
+        resourceType: 'mcpGlobalPolicy',
+        resourceId: body.slug,
+        metadata: { slug: body.slug, mode: body.mode },
+      });
+
+      return { policy };
+    } catch (error) {
+      const mapped = mapMcpMarketplaceError(error);
+
+      if (mapped) {
+        return reply.code(mapped.statusCode).send(mapped.payload);
+      }
+
+      throw error;
+    }
+  });
+
+  app.delete('/admin/mcp/global-policy', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const body = parse(adminGlobalPolicyClearSchema, request.body ?? {});
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    try {
+      const policy = await service.clearGlobalPolicy({ slug: body.slug });
+
+      await audit(request, store, {
+        action: 'admin.mcp_global_policy.clear',
+        resourceType: 'mcpGlobalPolicy',
+        resourceId: body.slug,
         metadata: { slug: body.slug },
       });
 
@@ -17393,10 +17478,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * Scoped to the project via the parent run (getConsensusRecordDetail).
    */
   app.get('/projects/:projectId/agent-consensus/:runId', async (request, reply) => {
-    const params = parse(
-      z.object({ projectId: z.string().min(1), runId: z.string().min(1) }),
-      request.params,
-    );
+    const params = parse(z.object({ projectId: z.string().min(1), runId: z.string().min(1) }), request.params);
     const project = await requireProject(request, store, params.projectId, 'projects:read');
 
     const record = await store.getConsensusRecordDetail(project.id, params.runId);
