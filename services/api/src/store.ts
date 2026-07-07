@@ -307,6 +307,16 @@ export interface SupportTicketRecord {
   firstResponseAt?: string;
 }
 
+/** I25: one message in a support ticket's conversation thread. */
+export interface TicketMessageRecord {
+  id: string;
+  ticketId: string;
+  authorType: 'USER' | 'ADMIN' | 'SYSTEM';
+  authorUserId?: string;
+  body: string;
+  createdAt: string;
+}
+
 export interface FeatureFlagRecord {
   id: string;
   organizationId?: string;
@@ -1321,10 +1331,7 @@ export interface ApiStore {
    * recovery points; record a restore request (no executor yet). See
    * database-rollback-service.ts + migration 0040.
    */
-  getDatabaseInstanceByProject(
-    projectId: string,
-    environment?: string,
-  ): Promise<DatabaseInstanceRecord | undefined>;
+  getDatabaseInstanceByProject(projectId: string, environment?: string): Promise<DatabaseInstanceRecord | undefined>;
   listDatabaseSnapshots(databaseInstanceId: string): Promise<DatabaseSnapshotRecord[]>;
   listDatabaseRestores(databaseInstanceId: string): Promise<DatabaseRestoreRecord[]>;
   createDatabaseRestore(input: {
@@ -1403,6 +1410,17 @@ export interface ApiStore {
     category?: string;
   }): Promise<SupportTicketRecord>;
   listSupportTickets(organizationId: string): Promise<SupportTicketRecord[]>;
+  /** I25: one ticket scoped to an org (returns null if it doesn't belong to that org). */
+  getSupportTicket(organizationId: string, ticketId: string): Promise<SupportTicketRecord | null>;
+  /** I25: the conversation thread for a ticket, oldest first. */
+  listTicketMessages(ticketId: string): Promise<TicketMessageRecord[]>;
+  /** I25: append a message to a ticket's thread. */
+  addTicketMessage(input: {
+    ticketId: string;
+    authorType: TicketMessageRecord['authorType'];
+    authorUserId?: string;
+    body: string;
+  }): Promise<TicketMessageRecord>;
   setFeatureFlag(input: {
     organizationId?: string;
     key: string;

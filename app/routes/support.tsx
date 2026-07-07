@@ -1,6 +1,6 @@
 import { Clock, LifeBuoy, MessageSquare, ShieldAlert } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useLoaderData } from 'react-router';
+import { Form, Link, useActionData, useLoaderData } from 'react-router';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { Badge } from '~/components/ui/Badge';
 import { Button } from '~/components/ui/Button';
@@ -197,7 +197,12 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
         <LifeBuoy className="h-4 w-4" aria-hidden />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{ticket.subject}</p>
+        <Link
+          to={`/support/${ticket.id}`}
+          className="block truncate text-sm font-medium hover:underline focus:underline focus:outline-none"
+        >
+          {ticket.subject}
+        </Link>
         <p className="mt-1 text-sm text-bolt-elements-textSecondary">
           {category ? `${category} · ` : null}
           {ticket.createdAt ? <RelativeTime value={ticket.createdAt} prefix="opened" /> : 'recorded'}

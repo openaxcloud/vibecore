@@ -960,6 +960,9 @@ const createTicketSchema = z.object({
   subject: z.string().min(1),
   category: z.enum(SUPPORT_TICKET_CATEGORIES).default('other'),
 });
+// I25: ticket-detail params + reply body for the real conversation thread.
+const orgTicketParams = orgParams.extend({ ticketId: z.string().min(1) });
+const createTicketMessageSchema = z.object({ body: z.string().min(1).max(10_000) });
 const featureFlagSchema = z.object({ key: z.string().min(1), enabled: z.boolean() });
 
 const addMemberSchema = z.object({
@@ -15655,9 +15658,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (userId === member.userId) {
-      return reply
-        .code(400)
-        .send({ error: 'You already own this organization', code: 'TRANSFER_TO_SELF' });
+      return reply.code(400).send({ error: 'You already own this organization', code: 'TRANSFER_TO_SELF' });
     }
 
     const target = await store.getMembership(userId, orgId);
@@ -16327,9 +16328,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrg(request, store, params.orgId, 'audit:export');
 
     // Org-scoped lookup: another tenant's webhook id simply isn't in this list → 404.
-    const webhook = (await store.listSiemWebhooks(params.orgId)).find(
-      (candidate) => candidate.id === params.webhookId,
-    );
+    const webhook = (await store.listSiemWebhooks(params.orgId)).find((candidate) => candidate.id === params.webhookId);
 
     if (!webhook) {
       return reply.code(404).send({ error: 'SIEM webhook not found', code: 'SIEM_WEBHOOK_NOT_FOUND' });
@@ -16464,7 +16463,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const perTemplate: Record<string, { is: string; steps: string[] }> = {
       'react-saas': {
         is: 'a React + Vite + TypeScript SaaS starter with a landing page and a routing-ready structure',
-        steps: ['Update the hero copy and app name in `src/App.tsx`', 'Add your first page/route', 'Wire up auth and your data/API'],
+        steps: [
+          'Update the hero copy and app name in `src/App.tsx`',
+          'Add your first page/route',
+          'Wire up auth and your data/API',
+        ],
       },
       'next-dashboard': {
         is: 'a Next.js dashboard starter with layout, navigation and example pages',
@@ -16489,7 +16492,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
     const info = (templateName && perTemplate[templateName]) || {
       is: 'a ready-to-run starter project',
-      steps: ['Describe the first change you want and I’ll edit the files', 'Edit files directly in the editor', 'Deploy from the Deployments tab'],
+      steps: [
+        'Describe the first change you want and I’ll edit the files',
+        'Edit files directly in the editor',
+        'Deploy from the Deployments tab',
+      ],
     };
 
     return [
@@ -19749,10 +19756,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * unless BILLING_CREDITS_ENABLED. Fail-open — any lookup error never blocks.
      */
     if (process.env.BILLING_CREDITS_ENABLED === 'true' && request.currentUser?.id) {
-      const limit = await store.getUserSpendLimit(project.organizationId, request.currentUser.id).catch(() => undefined);
+      const limit = await store
+        .getUserSpendLimit(project.organizationId, request.currentUser.id)
+        .catch(() => undefined);
 
       if (limit) {
-        const periodStartMs = (await resolveUsagePeriodStart(project.organizationId).catch(() => new Date(0))).getTime();
+        const periodStartMs = (
+          await resolveUsagePeriodStart(project.organizationId).catch(() => new Date(0))
+        ).getTime();
         const spent = await store
           .sumUserSpendSince(project.organizationId, request.currentUser.id, periodStartMs)
           .catch(() => 0);
@@ -19838,11 +19849,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
       byok: {
         allowed: byokAllowed,
-        reason: byokAllowed
-          ? 'plan-allows-byok'
-          : orgBlocksExternalAi
-            ? 'org-blocks-external-ai'
-            : 'managed-mode-plan',
+        reason: byokAllowed ? 'plan-allows-byok' : orgBlocksExternalAi ? 'org-blocks-external-ai' : 'managed-mode-plan',
         plan: plan.key,
       },
     };
@@ -20439,10 +20446,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   app.put('/orgs/:orgId/usage/limits/:userId', async (request) => {
-    const { orgId, userId } = parse(
-      z.object({ orgId: z.string().min(1), userId: z.string().min(1) }),
-      request.params,
-    );
+    const { orgId, userId } = parse(z.object({ orgId: z.string().min(1), userId: z.string().min(1) }), request.params);
     await requireOrg(request, store, orgId, 'billing:manage');
 
     // The target must be a member of this org (limits are per-membership).
@@ -21609,10 +21613,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       );
 
       if (strandedPlan) {
-        throw Object.assign(new Error(`Disabling this model would leave the "${strandedPlan}" plan with no active model`), {
-          statusCode: 409,
-          code: 'PLAN_WOULD_HAVE_NO_MODEL',
-        });
+        throw Object.assign(
+          new Error(`Disabling this model would leave the "${strandedPlan}" plan with no active model`),
+          {
+            statusCode: 409,
+            code: 'PLAN_WOULD_HAVE_NO_MODEL',
+          },
+        );
       }
     }
 
@@ -23501,6 +23508,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       status: body.status ?? 'PENDING',
       response: body.response,
     });
+
+    // I25: an admin response is now a real thread message (not just an overwritten
+    // metadata field), so the user sees the full conversation on support.$id.
+    if (body.response) {
+      await store.addTicketMessage({
+        ticketId,
+        authorType: 'ADMIN',
+        authorUserId: request.currentUser?.id,
+        body: body.response,
+      });
+    }
+
     await recordAdminAction(request, store, {
       action: 'admin.support.respond',
       metadata: { ticketId, status: body.status },
@@ -25879,6 +25898,50 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrg(request, store, orgId, 'support:write');
 
     return { tickets: await store.listSupportTickets(orgId) };
+  });
+
+  // I25: real ticket detail — the ticket plus its conversation thread. Org-scoped
+  // (getSupportTicket returns null if the ticket isn't in this org → 404).
+  app.get('/support/:orgId/tickets/:ticketId', async (request, reply) => {
+    const { orgId, ticketId } = parse(orgTicketParams, request.params);
+    await requireOrg(request, store, orgId, 'support:write');
+
+    const ticket = await store.getSupportTicket(orgId, ticketId);
+
+    if (!ticket) {
+      return reply.code(404).send({ error: 'Ticket not found.' });
+    }
+
+    return { ticket, messages: await store.listTicketMessages(ticketId) };
+  });
+
+  // I25: post a user reply into the thread. Verifies the ticket belongs to the org
+  // before writing so a member can't append to another org's ticket.
+  app.post('/orgs/:orgId/support/tickets/:ticketId/messages', async (request, reply) => {
+    const { orgId, ticketId } = parse(orgTicketParams, request.params);
+    const body = parse(createTicketMessageSchema, request.body);
+    await requireOrg(request, store, orgId, 'support:write');
+
+    const ticket = await store.getSupportTicket(orgId, ticketId);
+
+    if (!ticket) {
+      return reply.code(404).send({ error: 'Ticket not found.' });
+    }
+
+    const message = await store.addTicketMessage({
+      ticketId,
+      authorType: 'USER',
+      authorUserId: request.currentUser!.id,
+      body: body.body,
+    });
+    await audit(request, store, {
+      organizationId: orgId,
+      action: 'support.ticket.reply',
+      resourceType: 'supportTicket',
+      resourceId: ticketId,
+    });
+
+    return reply.code(201).send({ message });
   });
 
   app.get('/orgs/:orgId/audit-logs', async (request) => {

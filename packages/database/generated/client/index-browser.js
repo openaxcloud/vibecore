@@ -719,6 +719,15 @@ exports.Prisma.SupportTicketScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.TicketMessageScalarFieldEnum = {
+  id: 'id',
+  ticketId: 'ticketId',
+  authorType: 'authorType',
+  authorUserId: 'authorUserId',
+  body: 'body',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.FeatureFlagScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -1327,6 +1336,12 @@ exports.SupportTicketStatus = exports.$Enums.SupportTicketStatus = {
   CLOSED: 'CLOSED'
 };
 
+exports.TicketMessageAuthor = exports.$Enums.TicketMessageAuthor = {
+  USER: 'USER',
+  ADMIN: 'ADMIN',
+  SYSTEM: 'SYSTEM'
+};
+
 exports.McpDomain = exports.$Enums.McpDomain = {
   AI_AGENTS: 'AI_AGENTS',
   CODE_EXECUTION: 'CODE_EXECUTION',
@@ -1463,6 +1478,7 @@ exports.Prisma.ModelName = {
   AiCostLedger: 'AiCostLedger',
   AbuseEvent: 'AbuseEvent',
   SupportTicket: 'SupportTicket',
+  TicketMessage: 'TicketMessage',
   FeatureFlag: 'FeatureFlag',
   SystemSetting: 'SystemSetting',
   EmailVerificationToken: 'EmailVerificationToken',

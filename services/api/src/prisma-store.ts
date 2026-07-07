@@ -72,6 +72,7 @@ import type {
   SubscriptionRecord,
   SsoConfigRecord,
   SupportTicketRecord,
+  TicketMessageRecord,
   SystemSettingRecord,
   UserConnectionRecord,
   UserConnectionStatus,
@@ -2148,6 +2149,39 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapSupportTicket);
   }
 
+  // I25: fetch a single ticket, scoped to its org so one org can't read another's
+  // ticket by guessing an id. Returns null when the ticket isn't in that org.
+  async getSupportTicket(organizationId: string, ticketId: string): Promise<SupportTicketRecord | null> {
+    const ticket = await this.prisma.supportTicket.findFirst({ where: { id: ticketId, organizationId } });
+    return ticket ? mapSupportTicket(ticket) : null;
+  }
+
+  // I25: the conversation thread for a ticket, oldest first.
+  async listTicketMessages(ticketId: string): Promise<TicketMessageRecord[]> {
+    return (await this.prisma.ticketMessage.findMany({ where: { ticketId }, orderBy: { createdAt: 'asc' } })).map(
+      mapTicketMessage,
+    );
+  }
+
+  // I25: append a message (a user reply, an admin response, or a system note).
+  async addTicketMessage(input: {
+    ticketId: string;
+    authorType: TicketMessageRecord['authorType'];
+    authorUserId?: string;
+    body: string;
+  }): Promise<TicketMessageRecord> {
+    return mapTicketMessage(
+      await this.prisma.ticketMessage.create({
+        data: {
+          ticketId: input.ticketId,
+          authorType: input.authorType,
+          authorUserId: input.authorUserId ?? null,
+          body: input.body,
+        },
+      }),
+    );
+  }
+
   async setFeatureFlag(input: { organizationId?: string; key: string; enabled: boolean; rolloutPercent?: number }) {
     const existing = await this.prisma.featureFlag.findFirst({
       where: { organizationId: input.organizationId ?? null, key: input.key },
@@ -3445,7 +3479,10 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listUserSpendLimits(organizationId: string) {
-    const rows = await this.prisma.userSpendLimit.findMany({ where: { organizationId }, orderBy: { createdAt: 'asc' } });
+    const rows = await this.prisma.userSpendLimit.findMany({
+      where: { organizationId },
+      orderBy: { createdAt: 'asc' },
+    });
     return rows.map((row) => ({
       id: row.id,
       organizationId: row.organizationId,
@@ -5012,6 +5049,17 @@ function mapSupportTicket(ticket: any): SupportTicketRecord {
     createdAt: toIso(ticket.createdAt)!,
     assigneeUserId: typeof metadata.assigneeUserId === 'string' ? metadata.assigneeUserId : undefined,
     firstResponseAt: typeof metadata.firstResponseAt === 'string' ? metadata.firstResponseAt : undefined,
+  };
+}
+
+function mapTicketMessage(message: any): TicketMessageRecord {
+  return {
+    id: message.id,
+    ticketId: message.ticketId,
+    authorType: message.authorType,
+    authorUserId: message.authorUserId ?? undefined,
+    body: message.body,
+    createdAt: toIso(message.createdAt)!,
   };
 }
 

@@ -1036,6 +1036,29 @@ model SupportTicket {
   updatedAt      DateTime            @updatedAt
   organization   Organization?       @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   user           User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // I25: real conversation thread. Virtual relation (no column on this table);
+  // the FK lives on TicketMessage. Purely additive.
+  messages       TicketMessage[]
+}
+
+// I25: one message in a support ticket's conversation (the user's replies AND
+// admin responses). Additive — no change to SupportTicket's own columns.
+enum TicketMessageAuthor {
+  USER
+  ADMIN
+  SYSTEM
+}
+
+model TicketMessage {
+  id           String              @id @default(cuid())
+  ticketId     String
+  authorType   TicketMessageAuthor
+  authorUserId String?
+  body         String
+  createdAt    DateTime            @default(now())
+  ticket       SupportTicket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
 }
 
 model FeatureFlag {

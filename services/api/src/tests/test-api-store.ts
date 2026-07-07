@@ -73,6 +73,7 @@ import type {
   SubscriptionRecord,
   SsoConfigRecord,
   SupportTicketRecord,
+  TicketMessageRecord,
   SystemSettingRecord,
   UserRecord,
   UsageEventRecord,
@@ -124,6 +125,7 @@ export class TestApiStore implements ApiStore {
   readonly projectTemplates = new Map<string, ProjectTemplateRecord>();
   readonly deployments = new Map<string, DeploymentRecord>();
   readonly supportTickets = new Map<string, SupportTicketRecord>();
+  readonly ticketMessages: TicketMessageRecord[] = [];
   readonly featureFlags = new Map<string, FeatureFlagRecord>();
   readonly abuseEvents = new Map<string, AbuseEventRecord>();
   readonly integrationFeatureRequests = new Map<string, IntegrationFeatureRequestRecord>();
@@ -1194,10 +1196,7 @@ export class TestApiStore implements ApiStore {
       .map(({ projectId: _projectId, ...record }) => record);
   }
 
-  readonly projectSkillOverrides = new Map<
-    string,
-    { skillId: string; enabled: boolean; updatedAt: string }
-  >();
+  readonly projectSkillOverrides = new Map<string, { skillId: string; enabled: boolean; updatedAt: string }>();
 
   async listProjectSkillOverrides(projectId: string) {
     return [...this.projectSkillOverrides.entries()]
@@ -1613,6 +1612,36 @@ export class TestApiStore implements ApiStore {
 
   async listSupportTickets(organizationId: string) {
     return [...this.supportTickets.values()].filter((ticket) => ticket.organizationId === organizationId);
+  }
+
+  async getSupportTicket(organizationId: string, ticketId: string) {
+    const ticket = this.supportTickets.get(ticketId);
+    return ticket && ticket.organizationId === organizationId ? ticket : null;
+  }
+
+  async listTicketMessages(ticketId: string) {
+    return this.ticketMessages
+      .filter((message) => message.ticketId === ticketId)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  async addTicketMessage(input: {
+    ticketId: string;
+    authorType: TicketMessageRecord['authorType'];
+    authorUserId?: string;
+    body: string;
+  }) {
+    const message: TicketMessageRecord = {
+      id: id('ticketmsg'),
+      ticketId: input.ticketId,
+      authorType: input.authorType,
+      authorUserId: input.authorUserId,
+      body: input.body,
+      createdAt: now(),
+    };
+    this.ticketMessages.push(message);
+
+    return message;
   }
 
   async setFeatureFlag(input: { organizationId?: string; key: string; enabled: boolean; rolloutPercent?: number }) {
@@ -2346,20 +2375,22 @@ export class TestApiStore implements ApiStore {
   }
 
   async listNotificationsByUser(input: { userId: string; limit?: number }) {
-    return Array.from(this.notifications.values())
-      .filter((notification) => notification.userId === input.userId)
-      // Unread first, then newest — matches the prisma-store ordering.
-      .sort((a, b) => {
-        const aRead = a.readAt ? 1 : 0;
-        const bRead = b.readAt ? 1 : 0;
+    return (
+      Array.from(this.notifications.values())
+        .filter((notification) => notification.userId === input.userId)
+        // Unread first, then newest — matches the prisma-store ordering.
+        .sort((a, b) => {
+          const aRead = a.readAt ? 1 : 0;
+          const bRead = b.readAt ? 1 : 0;
 
-        if (aRead !== bRead) {
-          return aRead - bRead;
-        }
+          if (aRead !== bRead) {
+            return aRead - bRead;
+          }
 
-        return b.createdAt.localeCompare(a.createdAt);
-      })
-      .slice(0, Math.min(Math.max(input.limit ?? 50, 1), 200));
+          return b.createdAt.localeCompare(a.createdAt);
+        })
+        .slice(0, Math.min(Math.max(input.limit ?? 50, 1), 200))
+    );
   }
 
   async countUnreadNotificationsByUser(userId: string) {
@@ -2753,11 +2784,7 @@ export class TestApiStore implements ApiStore {
   async sumUserSpendSince(organizationId: string, userId: string, sinceMs: number): Promise<number> {
     let total = 0;
     for (const cp of this.agentCheckpoints.values()) {
-      if (
-        cp.organizationId === organizationId &&
-        cp.userId === userId &&
-        new Date(cp.startedAt).getTime() >= sinceMs
-      ) {
+      if (cp.organizationId === organizationId && cp.userId === userId && new Date(cp.startedAt).getTime() >= sinceMs) {
         total += Math.max(0, cp.creditCents ?? 0);
       }
     }
@@ -3499,17 +3526,18 @@ export class TestApiStore implements ApiStore {
     const query = options.query?.toLowerCase();
 
     const filtered = [...this.users.values()].filter(
-      (user) =>
-        !query || user.name?.toLowerCase().includes(query) || user.email?.toLowerCase().includes(query),
+      (user) => !query || user.name?.toLowerCase().includes(query) || user.email?.toLowerCase().includes(query),
     );
 
     const sortValue = (user: { name?: string | null; email?: string; createdAt?: string }) =>
-      options.sort === 'name' ? (user.name ?? '') : options.sort === 'email' ? (user.email ?? '') : (user.createdAt ?? '');
+      options.sort === 'name'
+        ? (user.name ?? '')
+        : options.sort === 'email'
+          ? (user.email ?? '')
+          : (user.createdAt ?? '');
 
     filtered.sort((a, b) =>
-      options.direction === 'asc'
-        ? sortValue(a).localeCompare(sortValue(b))
-        : sortValue(b).localeCompare(sortValue(a)),
+      options.direction === 'asc' ? sortValue(a).localeCompare(sortValue(b)) : sortValue(b).localeCompare(sortValue(a)),
     );
 
     const start = (options.page - 1) * options.pageSize;
