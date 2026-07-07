@@ -124,6 +124,21 @@ class FakeStorage implements StorageLike {
 
         return [`https://signed.example/${bucketName}/${fileName}?action=${String(opts.action)}`] as [string];
       },
+      async save(data: Uint8Array | Buffer | string, opts?: Record<string, unknown>) {
+        const map = self.buckets.get(bucketName) ?? new Map<string, FakeObject>();
+        const size = typeof data === 'string' ? Buffer.byteLength(data) : data.byteLength;
+
+        map.set(fileName, {
+          name: fileName,
+          size,
+          updated: '2026-06-29T00:00:00.000Z',
+          contentType: (opts?.contentType as string | undefined) ?? 'application/octet-stream',
+          etag: 'e',
+        });
+        self.buckets.set(bucketName, map);
+
+        return undefined;
+      },
       async copy(destination: FileLike) {
         const map = self.buckets.get(bucketName);
         const source = map?.get(fileName);

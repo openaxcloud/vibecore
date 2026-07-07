@@ -121,6 +121,16 @@ export interface ObjectStorage {
   listObjects(projectId: string, opts?: { prefix?: string; delimiter?: string }): Promise<ListObjectsResult>;
   createUploadUrl(projectId: string, input: { key: string; contentType?: string }): Promise<UploadUrlResult>;
   createDownloadUrl(projectId: string, input: { key: string }): Promise<SignedUrlResult>;
+
+  /**
+   * Server-side direct write (bytes originate on the server, e.g. an automatic
+   * headless screenshot). Unlike createUploadUrl this does not hand a signed URL
+   * to a browser — it uploads the buffer straight into the project bucket.
+   */
+  putObject(
+    projectId: string,
+    input: { key: string; body: Uint8Array; contentType?: string },
+  ): Promise<{ key: string; size: number }>;
   moveObject(projectId: string, input: { from: string; to: string }): Promise<{ moved: boolean; key: string }>;
   deleteObject(projectId: string, input: { key: string }): Promise<{ deleted: boolean; count: number }>;
   deletePrefix(projectId: string, input: { prefix: string }): Promise<{ deleted: boolean; count: number }>;
@@ -136,6 +146,7 @@ export interface FileLike {
   name: string;
   metadata?: { size?: string | number; updated?: string; contentType?: string; etag?: string };
   getSignedUrl(opts: Record<string, unknown>): Promise<[string]>;
+  save(data: Uint8Array | Buffer | string, opts?: Record<string, unknown>): Promise<unknown>;
   copy(destination: FileLike): Promise<unknown>;
   delete(): Promise<unknown>;
 }
@@ -171,6 +182,10 @@ export class NoopObjectStorage implements ObjectStorage {
   }
 
   async createDownloadUrl(): Promise<SignedUrlResult> {
+    throw new ObjectStorageError('Object storage is not enabled', 'FEATURE_NOT_ENABLED');
+  }
+
+  async putObject(): Promise<{ key: string; size: number }> {
     throw new ObjectStorageError('Object storage is not enabled', 'FEATURE_NOT_ENABLED');
   }
 
@@ -275,6 +290,22 @@ export class GcsObjectStorage implements ObjectStorage {
       .getSignedUrl({ version: 'v4', action: 'read', expires: expiresMs });
 
     return { url, expiresAt: new Date(expiresMs).toISOString() };
+  }
+
+  async putObject(
+    projectId: string,
+    input: { key: string; body: Uint8Array; contentType?: string },
+  ): Promise<{ key: string; size: number }> {
+    const key = assertValidObjectKey(input.key);
+    const contentType = input.contentType || 'application/octet-stream';
+    const body = Buffer.from(input.body);
+
+    await this._storage
+      .bucket(projectBucketName(projectId))
+      .file(key)
+      .save(body, { contentType, resumable: false });
+
+    return { key, size: body.byteLength };
   }
 
   async moveObject(projectId: string, input: { from: string; to: string }) {
