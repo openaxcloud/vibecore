@@ -463,7 +463,7 @@ const buildOptions = [
     badge: 'Visual First',
     timeEstimate: '~3 minutes',
     features: ['Quick clickable prototype', 'See UI before building', 'Iterate on design', 'Build functionality later'],
-    color: 'purple',
+    color: 'orange',
   },
   {
     id: 'full-app' as const,
@@ -493,7 +493,7 @@ function AnimatedDot({ color, delay, isActive }: { color: string; delay: number;
   }, [isActive, delay]);
 
   const dotColors: Record<string, string> = {
-    purple: 'bg-purple-500',
+    orange: 'bg-orange-500',
     emerald: 'bg-emerald-500',
   };
 
@@ -510,11 +510,11 @@ function AnimatedDot({ color, delay, isActive }: { color: string; delay: number;
 
 function getColorClasses(color: string, type: 'bg' | 'border' | 'text' | 'icon') {
   const colors: Record<string, Record<string, string>> = {
-    purple: {
-      bg: 'bg-purple-50 dark:bg-muted',
-      border: 'border-purple-200 dark:border-purple-800 hover:border-purple-400 dark:hover:border-purple-600',
-      text: 'text-purple-600 dark:text-purple-400',
-      icon: 'bg-purple-100 dark:bg-muted/70',
+    orange: {
+      bg: 'bg-orange-50 dark:bg-muted',
+      border: 'border-orange-200 dark:border-orange-800 hover:border-orange-400 dark:hover:border-orange-600',
+      text: 'text-orange-600 dark:text-orange-400',
+      icon: 'bg-orange-100 dark:bg-muted/70',
     },
     emerald: {
       bg: 'bg-emerald-50 dark:bg-muted',
@@ -577,7 +577,7 @@ export function BuildModeSelector({
       }}
     >
       <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
-        <div className="px-6 pt-6 pb-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-muted dark:to-muted/70 border-b">
+        <div className="px-6 pt-6 pb-4 bg-gradient-to-r from-blue-50 to-orange-50 dark:from-muted dark:to-muted/70 border-b">
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 mb-2">
