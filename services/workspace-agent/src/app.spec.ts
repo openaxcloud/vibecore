@@ -9,6 +9,7 @@ import {
   buildWorkspaceAgentApp,
   classifyListeningPort,
   detectPortsFromOutput,
+  injectPreviewHmrShim,
   type ProcessRecord,
 } from './app.js';
 
@@ -249,6 +250,37 @@ describe('workspace-agent', () => {
     // The agent's own control port and the agent's own pid are never a preview.
     expect(classifyListeningPort({ port: 8080, pid: undefined, selfPort, agentPid }).include).toBe(false);
     expect(classifyListeningPort({ port: 9229, pid: agentPid, selfPort, agentPid }).include).toBe(false);
+  });
+
+  it('injects the HMR-safety shim into preview HTML before Vite module scripts (so a broken HMR config still mounts)', () => {
+    const html = [
+      '<!DOCTYPE html>',
+      '<html lang="en">',
+      '<head>',
+      '  <script type="module" src="/@vite/client"></script>',
+      '  <title>App</title>',
+      '</head>',
+      '<body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body>',
+      '</html>',
+    ].join('\n');
+
+    const out = injectPreviewHmrShim(html);
+
+    // The shim is present and runs as a classic (non-module) script…
+    expect(out).toContain('data-ecode-hmr-shim');
+    expect(out).toContain('window.WebSocket');
+    // …injected right after <head>, i.e. BEFORE Vite's deferred module scripts.
+    expect(out.indexOf('data-ecode-hmr-shim')).toBeLessThan(out.indexOf('/@vite/client'));
+    // The original document is preserved.
+    expect(out).toContain('<div id="root"></div>');
+    expect(out).toContain('/src/main.tsx');
+
+    // Idempotent — a second pass does not double-inject.
+    expect(injectPreviewHmrShim(out)).toBe(out);
+
+    // No <head> → left untouched (never mangle a non-standard document).
+    expect(injectPreviewHmrShim('<html><body>hi</body></html>')).toBe('<html><body>hi</body></html>');
+    expect(injectPreviewHmrShim('')).toBe('');
   });
 
   it('builds preview hosts: loopback first, pod IPv4 next, [::1] last, no internal/IPv6 interface addrs', () => {

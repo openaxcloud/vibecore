@@ -523,10 +523,27 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       });
     }
 
+    const upstreamContentType = response.headers.get('content-type') ?? '';
+
     for (const [key, value] of response.headers.entries()) {
       if (!['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) {
         reply.header(key, value);
       }
+    }
+
+    if (!response.body) {
+      return reply.code(response.status).send();
+    }
+
+    /*
+     * HTML documents are small (the index) — buffer and inject the HMR-safety shim
+     * so a Vite app with a broken HMR config still mounts (see PREVIEW_HMR_SHIM).
+     * Everything else (JS modules, assets, SSE/HMR streams) is streamed untouched.
+     */
+    if (upstreamContentType.includes('text/html')) {
+      const html = await response.text();
+
+      return reply.code(response.status).send(injectPreviewHmrShim(html));
     }
 
     /*
@@ -535,9 +552,6 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
      * (build output, media) would otherwise be fully materialized in the agent's
      * heap and could OOM the workspace pod.
      */
-    if (!response.body) {
-      return reply.code(response.status).send();
-    }
 
     /*
      * Abort the upstream dev-server fetch if the client disconnects mid-stream.
@@ -1850,6 +1864,43 @@ async function runCommandStream(
 }
 
 export type DetectedPort = { port: number; processId: string };
+
+const PREVIEW_HMR_SHIM_MARKER = 'data-ecode-hmr-shim';
+
+/*
+ * A tiny classic (non-module, so it runs BEFORE Vite's deferred module scripts)
+ * script injected into served preview HTML. A Vite dev server whose config lacks
+ * server.hmr — a model-authored vite.config that never got (or lost) the E-Code
+ * HMR override — makes the client infer `wss://localhost:undefined`; the WebSocket
+ * constructor throws on that invalid URL, the module graph never boots, and the app
+ * renders BLANK even though the dev server serves fine on its real port. The shim
+ * rewrites any `:undefined` (or localhost) HMR URL to the current preview host so
+ * construction can't throw — the app mounts on ANY port, and HMR reconnects through
+ * the proxy (or fails silently without blocking the render). Config-independent, so
+ * it survives a re-seed that resets the vite.config to its raw form.
+ */
+const PREVIEW_HMR_SHIM = `<script ${PREVIEW_HMR_SHIM_MARKER}>(function(){if(typeof window==='undefined'||!window.WebSocket)return;var N=window.WebSocket;function P(u,p){try{if(typeof u==='string'&&u.indexOf(':undefined')!==-1){var q=u.indexOf('?');u=(location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/'+(q!==-1?u.slice(q):'')}}catch(e){}return new N(u,p)}P.prototype=N.prototype;P.CONNECTING=N.CONNECTING;P.OPEN=N.OPEN;P.CLOSING=N.CLOSING;P.CLOSED=N.CLOSED;window.WebSocket=P})();</script>`;
+
+/*
+ * Inject the HMR-safety shim right after <head> so it runs before Vite's module
+ * scripts. Idempotent, and a no-op when there is no <head> (never risk mangling a
+ * non-standard document). Pure/exported for unit testing.
+ */
+export function injectPreviewHmrShim(html: string): string {
+  if (!html || html.includes(PREVIEW_HMR_SHIM_MARKER)) {
+    return html;
+  }
+
+  const headMatch = html.match(/<head[^>]*>/i);
+
+  if (!headMatch || headMatch.index === undefined) {
+    return html;
+  }
+
+  const insertAt = headMatch.index + headMatch[0].length;
+
+  return `${html.slice(0, insertAt)}${PREVIEW_HMR_SHIM}${html.slice(insertAt)}`;
+}
 
 /*
  * Decide whether a kernel-observed listening TCP port is a user preview port, and
