@@ -20,17 +20,21 @@ function seedConsensus(
   projectId: string,
   overrides: Partial<{
     id: string;
+    runId: string;
     outcome: 'ACCEPTED' | 'REJECTED' | 'PARTIAL' | 'ABSTAINED';
     algorithm: 'QUORUM' | 'BYZANTINE_PBFT' | 'WEIGHTED_PLURALITY';
     agreementScore: number;
     roundCount: number;
     durationMs: number;
     createdAt: string;
+    claimVotes: unknown[];
+    conflicts: unknown[];
+    consolidated: unknown;
   }> = {},
 ) {
   store.consensusRecords.push({
     id: overrides.id ?? `consensus_${store.consensusRecords.length + 1}`,
-    runId: `run_${store.consensusRecords.length + 1}`,
+    runId: overrides.runId ?? `run_${store.consensusRecords.length + 1}`,
     projectId,
     algorithm: overrides.algorithm ?? 'QUORUM',
     threshold: 0.66,
@@ -39,6 +43,9 @@ function seedConsensus(
     roundCount: overrides.roundCount ?? 2,
     durationMs: overrides.durationMs ?? 4200,
     createdAt: overrides.createdAt ?? new Date().toISOString(),
+    claimVotes: (overrides.claimVotes as never) ?? undefined,
+    conflicts: (overrides.conflicts as never) ?? undefined,
+    consolidated: (overrides.consolidated as never) ?? undefined,
   });
 }
 
@@ -135,6 +142,77 @@ describe('multi-agent consensus API', () => {
     const { app, projectA } = await setup();
 
     expect((await app.inject({ method: 'GET', url: `/projects/${projectA.id}/agent-consensus` })).statusCode).toBe(401);
+  });
+
+  it('returns the full per-agent vote detail for a run', async () => {
+    const { app, store, token, projectA } = await setup();
+    seedConsensus(store, projectA.id, {
+      id: 'c-detail',
+      runId: 'run-detail',
+      claimVotes: [
+        {
+          claim: 'Add a rate limiter to the login route',
+          type: 'verification',
+          supporters: ['architect', 'backend'],
+          dissenters: ['frontend'],
+          abstainers: ['qa'],
+          agreementRatio: 0.66,
+          decision: 'accepted',
+        },
+      ],
+      conflicts: [
+        {
+          type: 'risk-disagreement',
+          description: 'Frontend flagged UX friction',
+          involvedRoles: ['frontend', 'backend'],
+          severity: 'medium',
+        },
+      ],
+      consolidated: { summary: 'Ship with a rate limiter behind a flag.', perRoleSummaries: [] },
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectA.id}/agent-consensus/run-detail`,
+      headers: auth(token),
+    });
+    expect(res.statusCode).toBe(200);
+
+    const record = res.json().record;
+    expect(record).toMatchObject({ id: 'c-detail', runId: 'run-detail', outcome: 'ACCEPTED' });
+    expect(record.claimVotes).toHaveLength(1);
+    expect(record.claimVotes[0]).toMatchObject({
+      supporters: ['architect', 'backend'],
+      dissenters: ['frontend'],
+      abstainers: ['qa'],
+      decision: 'accepted',
+    });
+    expect(record.conflicts[0]).toMatchObject({ severity: 'medium', type: 'risk-disagreement' });
+    expect(record.consolidated).toMatchObject({ summary: 'Ship with a rate limiter behind a flag.' });
+  });
+
+  it('404s an unknown runId', async () => {
+    const { app, token, projectA } = await setup();
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectA.id}/agent-consensus/does-not-exist`,
+      headers: auth(token),
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('never returns another project run detail (tenant isolation)', async () => {
+    const { app, store, token, projectA, projectB } = await setup();
+    seedConsensus(store, projectB.id, { id: 'b-detail', runId: 'run-b' });
+
+    // projectA asking for projectB's runId must not leak it.
+    const res = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectA.id}/agent-consensus/run-b`,
+      headers: auth(token),
+    });
+    expect(res.statusCode).toBe(404);
   });
 
   it('store.listConsensusRecords scopes strictly to the run projectId (write-path proof)', async () => {

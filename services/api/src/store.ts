@@ -854,6 +854,49 @@ export interface ConsensusRecordSummary {
   createdAt: string;
 }
 
+/**
+ * One agent's stance on a single claim in the consensus vote. `supporters`,
+ * `dissenters` and `abstainers` are the specialist lane ids (architect,
+ * frontend, backend, devops, qa) — the actual per-agent vote the ai-gateway
+ * recorded. Shapes mirror the ai-gateway ConsensusOutput persisted as JSON.
+ */
+export interface ConsensusClaimVote {
+  claim: string;
+  type: string;
+  supporters: string[];
+  dissenters: string[];
+  abstainers: string[];
+  agreementRatio: number;
+  decision: string;
+}
+
+export interface ConsensusConflict {
+  type: string;
+  description: string;
+  involvedRoles: string[];
+  severity: string;
+}
+
+export interface ConsensusConsolidated {
+  summary: string;
+  acceptedRisks: string[];
+  acceptedVerification: string[];
+  acceptedFiles: string[];
+  rejectedClaims: Array<{ claim: string; type: string }>;
+  perRoleSummaries: Array<{ roleId: string; summary: string; status: string }>;
+}
+
+/**
+ * The full ConsensusRecord — the SUMMARY plus the persisted per-agent vote
+ * (`claimVotes`), inter-lane `conflicts`, and the `consolidated` merged result.
+ * Read-only; powers the expanded vote view in the Agent Studio panel.
+ */
+export interface ConsensusRecordDetail extends ConsensusRecordSummary {
+  claimVotes: ConsensusClaimVote[];
+  conflicts: ConsensusConflict[];
+  consolidated: ConsensusConsolidated | null;
+}
+
 /** A per-project Skills override row (absent => the skill is at its catalog default). */
 export interface ProjectSkillOverrideRecord {
   skillId: string;
@@ -1260,6 +1303,7 @@ export interface ApiStore {
    * are returned — never another tenant's consensus data.
    */
   listConsensusRecords(projectId: string, options?: { take?: number }): Promise<ConsensusRecordSummary[]>;
+  getConsensusRecordDetail(projectId: string, runId: string): Promise<ConsensusRecordDetail | undefined>;
   /** Sparse per-project enable/disable overrides for the builtin Skills catalog. */
   listProjectSkillOverrides(projectId: string): Promise<ProjectSkillOverrideRecord[]>;
   setProjectSkillEnabled(input: {

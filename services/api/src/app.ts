@@ -17386,6 +17386,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { records: await store.listConsensusRecords(project.id, { take: query.limit }) };
   });
 
+  /*
+   * Full detail of one consensus record — the per-agent vote (claimVotes:
+   * supporters/dissenters/abstainers per claim), inter-lane conflicts and the
+   * consolidated merged result. Powers the expanded vote view in Agent Studio.
+   * Scoped to the project via the parent run (getConsensusRecordDetail).
+   */
+  app.get('/projects/:projectId/agent-consensus/:runId', async (request, reply) => {
+    const params = parse(
+      z.object({ projectId: z.string().min(1), runId: z.string().min(1) }),
+      request.params,
+    );
+    const project = await requireProject(request, store, params.projectId, 'projects:read');
+
+    const record = await store.getConsensusRecordDetail(project.id, params.runId);
+
+    if (!record) {
+      return reply.code(404).send({ error: 'Consensus record not found', code: 'CONSENSUS_RECORD_NOT_FOUND' });
+    }
+
+    return { record };
+  });
+
   /* -------- Skills registry (builtin catalog + per-project enable/disable) -------- */
   app.get('/projects/:projectId/skills', async (request) => {
     const project = await requireProject(

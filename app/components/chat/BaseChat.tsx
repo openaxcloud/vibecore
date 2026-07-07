@@ -14913,6 +14913,185 @@ function formatConsensusDuration(durationMs: number) {
 }
 
 /*
+ * Full consensus detail (the per-agent vote) fetched on demand from
+ * GET /api/projects/:id/agent-consensus/:runId when a row is expanded.
+ */
+interface ConsensusClaimVoteView {
+  claim: string;
+  type: string;
+  supporters: string[];
+  dissenters: string[];
+  abstainers: string[];
+  agreementRatio: number;
+  decision: string;
+}
+
+interface ConsensusConflictView {
+  type: string;
+  description: string;
+  involvedRoles: string[];
+  severity: string;
+}
+
+interface ConsensusConsolidatedView {
+  summary: string;
+  acceptedRisks: string[];
+  acceptedVerification: string[];
+  acceptedFiles: string[];
+  rejectedClaims: Array<{ claim: string; type: string }>;
+  perRoleSummaries: Array<{ roleId: string; summary: string; status: string }>;
+}
+
+interface ConsensusRecordDetailView extends ConsensusRecordView {
+  claimVotes: ConsensusClaimVoteView[];
+  conflicts: ConsensusConflictView[];
+  consolidated: ConsensusConsolidatedView | null;
+}
+
+// Specialist lane ids → human labels (the agents that vote in a run).
+const CONSENSUS_LANE_LABEL: Record<string, string> = {
+  architect: 'Architect',
+  frontend: 'Frontend',
+  backend: 'Backend',
+  devops: 'DevOps',
+  qa: 'QA',
+};
+
+function consensusLaneLabel(roleId: string): string {
+  return CONSENSUS_LANE_LABEL[roleId] ?? roleId;
+}
+
+/** A row of lane chips (supporters / dissenters / abstainers) for one claim. */
+function ConsensusLaneChips({ label, roles, tone }: { label: string; roles: string[]; tone: string }) {
+  if (roles.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      <span className="text-[11px] uppercase tracking-wide text-bolt-elements-textSecondary">{label}</span>
+      {roles.map((role) => (
+        <span key={role} className={`rounded-full border px-1.5 py-0.5 text-[11px] ${tone}`}>
+          {consensusLaneLabel(role)}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+const CONSENSUS_DECISION_CLASS: Record<string, string> = {
+  accepted: 'text-[var(--status-success-text)]',
+  rejected: 'text-[var(--status-error-text)]',
+  inconclusive: 'text-amber-500',
+};
+
+const CONSENSUS_SEVERITY_CLASS: Record<string, string> = {
+  high: 'text-[var(--status-error-text)] border-red-500/40',
+  medium: 'text-amber-500 border-amber-500/40',
+  low: 'text-bolt-elements-textSecondary border-bolt-elements-borderColor',
+};
+
+/**
+ * The real per-agent vote for one consensus run: each claim with the lanes that
+ * supported / dissented / abstained, the inter-lane conflicts, and the merged
+ * consolidated summary. Renders the persisted ConsensusRecord detail.
+ */
+function ConsensusVoteDetail({ detail }: { detail: ConsensusRecordDetailView }) {
+  return (
+    <>
+      <div>
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+          Vote · {detail.claimVotes.length} {detail.claimVotes.length === 1 ? 'claim' : 'claims'}
+        </h4>
+        {detail.claimVotes.length ? (
+          <ul className="mt-1 space-y-2">
+            {detail.claimVotes.map((vote, index) => (
+              <li key={`${vote.type}-${index}`} className="rounded-md border border-bolt-elements-borderColor p-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`text-xs font-medium ${
+                      CONSENSUS_DECISION_CLASS[vote.decision] ?? 'text-bolt-elements-textSecondary'
+                    }`}
+                  >
+                    {vote.decision}
+                  </span>
+                  <span className="text-[11px] uppercase tracking-wide text-bolt-elements-textSecondary">
+                    {vote.type}
+                  </span>
+                  <span className="ml-auto text-[11px] text-bolt-elements-textSecondary">
+                    {Math.round(Math.max(0, Math.min(1, vote.agreementRatio)) * 100)}% agreement
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-bolt-elements-textPrimary">{vote.claim}</p>
+                <div className="mt-1.5 space-y-1">
+                  <ConsensusLaneChips
+                    label="For"
+                    roles={vote.supporters}
+                    tone="text-[var(--status-success-text)] border-green-500/40"
+                  />
+                  <ConsensusLaneChips
+                    label="Against"
+                    roles={vote.dissenters}
+                    tone="text-[var(--status-error-text)] border-red-500/40"
+                  />
+                  <ConsensusLaneChips
+                    label="Abstain"
+                    roles={vote.abstainers}
+                    tone="text-bolt-elements-textSecondary border-bolt-elements-borderColor"
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-1 text-xs text-bolt-elements-textSecondary">No individual claims were voted on.</p>
+        )}
+      </div>
+
+      {detail.conflicts.length ? (
+        <div>
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+            Conflicts · {detail.conflicts.length}
+          </h4>
+          <ul className="mt-1 space-y-1">
+            {detail.conflicts.map((conflict, index) => (
+              <li key={`${conflict.type}-${index}`} className="flex flex-wrap items-center gap-2 text-xs">
+                <span
+                  className={`rounded-full border px-1.5 py-0.5 ${
+                    CONSENSUS_SEVERITY_CLASS[conflict.severity] ??
+                    'text-bolt-elements-textSecondary border-bolt-elements-borderColor'
+                  }`}
+                >
+                  {conflict.severity}
+                </span>
+                <span className="text-bolt-elements-textSecondary">{conflict.type}</span>
+                <span className="text-bolt-elements-textPrimary">{conflict.description}</span>
+                {conflict.involvedRoles.length ? (
+                  <span className="text-bolt-elements-textSecondary">
+                    ({conflict.involvedRoles.map(consensusLaneLabel).join(', ')})
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {detail.consolidated && detail.consolidated.summary ? (
+        <div>
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+            Consolidated
+          </h4>
+          <p className="mt-1 whitespace-pre-wrap text-xs text-bolt-elements-textPrimary">
+            {detail.consolidated.summary}
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+/*
  * Agent Studio supervisor — a single per-project oversight surface that
  * AGGREGATES the agent signals that already exist elsewhere in the IDE, so an
  * operator can see (and action) everything the agent is doing in one place:
@@ -14961,6 +15140,46 @@ function ProjectAgentStudioPanel({
   const consensusRecords: ConsensusRecordView[] = useMemo(
     () => (Array.isArray(data?.consensusRecords) ? (data.consensusRecords as ConsensusRecordView[]) : []),
     [data?.consensusRecords],
+  );
+
+  /*
+   * The consensus list is a summary; the full per-agent vote is fetched on
+   * demand (GET /api/projects/:id/agent-consensus/:runId) when a row expands,
+   * then cached by runId so re-expanding is instant.
+   */
+  const [expandedConsensusRunId, setExpandedConsensusRunId] = useState<string | null>(null);
+
+  const [consensusDetails, setConsensusDetails] = useState<
+    Record<string, ConsensusRecordDetailView | 'loading' | 'error'>
+  >({});
+
+  const toggleConsensus = useCallback(
+    (runId: string) => {
+      setExpandedConsensusRunId((current) => (current === runId ? null : runId));
+
+      const existing = consensusDetails[runId];
+
+      if (!projectId || existing === 'loading' || (existing && existing !== 'error')) {
+        return;
+      }
+
+      setConsensusDetails((current) => ({ ...current, [runId]: 'loading' }));
+
+      void fetch(`/api/projects/${encodeURIComponent(projectId)}/agent-consensus/${encodeURIComponent(runId)}`, {
+        credentials: 'include',
+        headers: { accept: 'application/json' },
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error(String(response.status));
+          }
+
+          const payload = (await response.json()) as { record?: ConsensusRecordDetailView };
+          setConsensusDetails((current) => ({ ...current, [runId]: payload.record ?? 'error' }));
+        })
+        .catch(() => setConsensusDetails((current) => ({ ...current, [runId]: 'error' })));
+    },
+    [projectId, consensusDetails],
   );
 
   const [memory, setMemory] = useState<StudioMemorySummary | undefined>();
@@ -15092,26 +15311,54 @@ function ProjectAgentStudioPanel({
         </h3>
         {consensusRecords.length ? (
           <ul className="divide-y divide-bolt-elements-borderColor">
-            {consensusRecords.map((record) => (
-              <li key={record.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm">
-                <AgentConsensusOutcomeBadge outcome={record.outcome} />
-                <span className="font-medium text-bolt-elements-textPrimary">
-                  {formatConsensusScore(record.agreementScore)}
-                </span>
-                <span className="text-xs text-bolt-elements-textSecondary">
-                  {formatConsensusAlgorithm(record.algorithm)}
-                </span>
-                <span className="text-xs text-bolt-elements-textSecondary">
-                  {record.roundCount} {record.roundCount === 1 ? 'round' : 'rounds'}
-                </span>
-                <span className="text-xs text-bolt-elements-textSecondary">
-                  {formatConsensusDuration(record.durationMs)}
-                </span>
-                <span className="ml-auto text-xs text-bolt-elements-textSecondary" title={record.createdAt}>
-                  {timeAgo(record.createdAt)}
-                </span>
-              </li>
-            ))}
+            {consensusRecords.map((record) => {
+              const expanded = expandedConsensusRunId === record.runId;
+              const detail = consensusDetails[record.runId];
+
+              return (
+                <li key={record.id} className="py-2 text-sm">
+                  <button
+                    type="button"
+                    className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 text-left"
+                    aria-expanded={expanded}
+                    onClick={() => toggleConsensus(record.runId)}
+                    data-testid={`consensus-row-${record.runId}`}
+                  >
+                    <span className={expanded ? 'i-ph:caret-down' : 'i-ph:caret-right'} aria-hidden />
+                    <AgentConsensusOutcomeBadge outcome={record.outcome} />
+                    <span className="font-medium text-bolt-elements-textPrimary">
+                      {formatConsensusScore(record.agreementScore)}
+                    </span>
+                    <span className="text-xs text-bolt-elements-textSecondary">
+                      {formatConsensusAlgorithm(record.algorithm)}
+                    </span>
+                    <span className="text-xs text-bolt-elements-textSecondary">
+                      {record.roundCount} {record.roundCount === 1 ? 'round' : 'rounds'}
+                    </span>
+                    <span className="text-xs text-bolt-elements-textSecondary">
+                      {formatConsensusDuration(record.durationMs)}
+                    </span>
+                    <span className="ml-auto text-xs text-bolt-elements-textSecondary" title={record.createdAt}>
+                      {timeAgo(record.createdAt)}
+                    </span>
+                  </button>
+
+                  {expanded ? (
+                    <div className="mt-2 space-y-3 border-l-2 border-bolt-elements-borderColor pl-3">
+                      {detail === 'loading' || detail === undefined ? (
+                        <p className="text-xs text-bolt-elements-textSecondary">Loading the vote…</p>
+                      ) : detail === 'error' ? (
+                        <p className="text-xs text-[var(--status-error-text)]">
+                          Could not load the consensus detail. Try again.
+                        </p>
+                      ) : (
+                        <ConsensusVoteDetail detail={detail} />
+                      )}
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="text-sm text-bolt-elements-textSecondary">

@@ -12,6 +12,10 @@ import type {
   AgentRepairOutcome,
   AgentPatchProposalStatus,
   ConsensusRecordSummary,
+  ConsensusRecordDetail,
+  ConsensusClaimVote,
+  ConsensusConflict,
+  ConsensusConsolidated,
   ApiKeyRecord,
   ApiKeyScope,
   ApiStore,
@@ -1613,6 +1617,20 @@ export class PrismaApiStore implements ApiStore {
         take: Math.min(Math.max(options?.take ?? 50, 1), 200),
       })
     ).map(mapConsensusRecord);
+  }
+
+  async getConsensusRecordDetail(projectId: string, runId: string) {
+    /*
+     * Same tenant-isolation guard as listConsensusRecords: scope by the parent
+     * run's projectId so a runId from another project can't be read. Returns the
+     * full record incl. the persisted per-agent vote (claimVotes/conflicts/
+     * consolidated JSON), or undefined when no such record exists in this project.
+     */
+    const row = await this.prisma.consensusRecord.findFirst({
+      where: { runId, run: { projectId } },
+    });
+
+    return row ? mapConsensusRecordDetail(row) : undefined;
   }
 
   async listProjectSkillOverrides(projectId: string) {
@@ -4998,6 +5016,66 @@ function mapConsensusRecord(row: any): ConsensusRecordSummary {
     roundCount: row.rounds,
     durationMs: row.durationMs,
     createdAt: toIso(row.createdAt)!,
+  };
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function mapClaimVote(value: any): ConsensusClaimVote {
+  return {
+    claim: typeof value?.claim === 'string' ? value.claim : '',
+    type: typeof value?.type === 'string' ? value.type : '',
+    supporters: asStringArray(value?.supporters),
+    dissenters: asStringArray(value?.dissenters),
+    abstainers: asStringArray(value?.abstainers),
+    agreementRatio: typeof value?.agreementRatio === 'number' ? value.agreementRatio : 0,
+    decision: typeof value?.decision === 'string' ? value.decision : 'inconclusive',
+  };
+}
+
+function mapConflict(value: any): ConsensusConflict {
+  return {
+    type: typeof value?.type === 'string' ? value.type : '',
+    description: typeof value?.description === 'string' ? value.description : '',
+    involvedRoles: asStringArray(value?.involvedRoles),
+    severity: typeof value?.severity === 'string' ? value.severity : 'low',
+  };
+}
+
+function mapConsolidated(value: any): ConsensusConsolidated | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  return {
+    summary: typeof value.summary === 'string' ? value.summary : '',
+    acceptedRisks: asStringArray(value.acceptedRisks),
+    acceptedVerification: asStringArray(value.acceptedVerification),
+    acceptedFiles: asStringArray(value.acceptedFiles),
+    rejectedClaims: Array.isArray(value.rejectedClaims)
+      ? value.rejectedClaims.map((claim: any) => ({
+          claim: typeof claim?.claim === 'string' ? claim.claim : '',
+          type: typeof claim?.type === 'string' ? claim.type : '',
+        }))
+      : [],
+    perRoleSummaries: Array.isArray(value.perRoleSummaries)
+      ? value.perRoleSummaries.map((entry: any) => ({
+          roleId: typeof entry?.roleId === 'string' ? entry.roleId : '',
+          summary: typeof entry?.summary === 'string' ? entry.summary : '',
+          status: typeof entry?.status === 'string' ? entry.status : '',
+        }))
+      : [],
+  };
+}
+
+function mapConsensusRecordDetail(row: any): ConsensusRecordDetail {
+  return {
+    ...mapConsensusRecord(row),
+    claimVotes: Array.isArray(row.claimVotes) ? row.claimVotes.map(mapClaimVote) : [],
+    conflicts: Array.isArray(row.conflicts) ? row.conflicts.map(mapConflict) : [],
+    consolidated: mapConsolidated(row.consolidated),
   };
 }
 

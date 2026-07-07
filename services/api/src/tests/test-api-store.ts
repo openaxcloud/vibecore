@@ -9,6 +9,10 @@ import type {
   AgentRepairEventRecord,
   AgentRepairOutcome,
   ConsensusRecordSummary,
+  ConsensusRecordDetail,
+  ConsensusClaimVote,
+  ConsensusConflict,
+  ConsensusConsolidated,
   ContactRequestRecord,
   ApiKeyRecord,
   ApiKeyScope,
@@ -1186,14 +1190,38 @@ export class TestApiStore implements ApiStore {
    * AgentRun.projectId; here the fixture stores the projectId directly so tests
    * can assert tenant isolation.
    */
-  readonly consensusRecords: (ConsensusRecordSummary & { projectId: string })[] = [];
+  readonly consensusRecords: (ConsensusRecordSummary & {
+    projectId: string;
+    claimVotes?: ConsensusClaimVote[];
+    conflicts?: ConsensusConflict[];
+    consolidated?: ConsensusConsolidated | null;
+  })[] = [];
 
   async listConsensusRecords(projectId: string, options?: { take?: number }) {
     return this.consensusRecords
       .filter((record) => record.projectId === projectId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, Math.min(Math.max(options?.take ?? 50, 1), 200))
-      .map(({ projectId: _projectId, ...record }) => record);
+      .map(({ projectId: _projectId, claimVotes: _cv, conflicts: _cf, consolidated: _cs, ...record }) => record);
+  }
+
+  async getConsensusRecordDetail(projectId: string, runId: string): Promise<ConsensusRecordDetail | undefined> {
+    const found = this.consensusRecords.find(
+      (record) => record.projectId === projectId && record.runId === runId,
+    );
+
+    if (!found) {
+      return undefined;
+    }
+
+    const { projectId: _projectId, claimVotes, conflicts, consolidated, ...summary } = found;
+
+    return {
+      ...summary,
+      claimVotes: claimVotes ?? [],
+      conflicts: conflicts ?? [],
+      consolidated: consolidated ?? null,
+    };
   }
 
   readonly projectSkillOverrides = new Map<string, { skillId: string; enabled: boolean; updatedAt: string }>();
