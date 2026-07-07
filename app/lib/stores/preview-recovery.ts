@@ -100,8 +100,44 @@ const TRANSIENT_FAILURE_PATTERNS = [
   /aborted/i,
 ];
 
+/**
+ * Whether a single error/log message matches a transient runtime-failure pattern
+ * (cold-start 502/unavailable, dropped socket, aborted stream, …).
+ */
+export function isTransientFailureMessage(message: string): boolean {
+  return TRANSIENT_FAILURE_PATTERNS.some((pattern) => pattern.test(message));
+}
+
 export function isTransientCommandFailure(logTail: readonly string[]): boolean {
-  return logTail.some((line) => TRANSIENT_FAILURE_PATTERNS.some((pattern) => pattern.test(line)));
+  return logTail.some((line) => isTransientFailureMessage(line));
+}
+
+/**
+ * Whether an auto-start preview failure should LATCH the manual "Run to preview"
+ * recovery UI (previewRunFailed = true) or be swallowed so the boot loop keeps
+ * retrying.
+ *
+ * The auto boot loop fires an immediate `startPreviewServer()` the moment a
+ * project opens. On a freshly (re)provisioned / cold pod that first attempt very
+ * often throws a transient failure — the agent is still booting, the manager is
+ * mid-reprovision, the install socket dropped — before the pod is warm. Latching
+ * on that first transient throw permanently disabled the retry interval + 5-min
+ * budget (all three gate on `!previewRunFailed`), stranding the user behind a
+ * manual Run even though a couple more seconds would have succeeded. So on the
+ * auto path we DON'T latch a transient failure — the interval keeps retrying and
+ * the 5-minute timeout remains the single legitimate give-up. A DETERMINISTIC
+ * failure (missing package.json, ERESOLVE, 404 archive) still latches promptly so
+ * a genuinely-broken project surfaces the recovery UI without a 5-minute wait.
+ *
+ * A MANUAL run/restart always latches on failure — the user asked explicitly and
+ * must see the immediate result rather than a silent retry.
+ */
+export function shouldLatchPreviewStartFailure(input: { manual: boolean; message: string }): boolean {
+  if (input.manual) {
+    return true;
+  }
+
+  return !isTransientFailureMessage(input.message);
 }
 
 export interface DecodedArchiveEntry {
