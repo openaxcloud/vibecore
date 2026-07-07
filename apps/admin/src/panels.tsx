@@ -1132,6 +1132,142 @@ function CheckpointsPanel({ reauthPassword, pushToast }: PanelProps) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// F18 — AI providers: fallback order ↑↓ (+ honest note on p95/error metrics)
+// ---------------------------------------------------------------------------
+
+interface ProviderRow {
+  provider: string;
+  displayName: string;
+  enabled: boolean;
+}
+
+interface FallbackOrder {
+  order: string[];
+  providers: ProviderRow[];
+  metricsAvailable: boolean;
+  thresholds: { warnErrorPct: number; errorErrorPct: number };
+}
+
+function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
+  const { data, loading, error, reload } = usePanelData<FallbackOrder>('/admin/providers/fallback-order');
+  const [order, setOrder] = useState<string[]>([]);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (data?.order) {
+      setOrder(data.order);
+      setDirty(false);
+    }
+  }, [data?.order]);
+
+  if (loading || error) {
+    return <PanelStates loading={loading} error={error} />;
+  }
+
+  const byName = new Map((data?.providers ?? []).map((provider) => [provider.provider, provider]));
+
+  function move(index: number, delta: number) {
+    const next = [...order];
+    const target = index + delta;
+    if (target < 0 || target >= next.length) {
+      return;
+    }
+    [next[index], next[target]] = [next[target], next[index]];
+    setOrder(next);
+    setDirty(true);
+  }
+
+  async function save() {
+    setSaving(true);
+    const result = await withReauth(reauthPassword, pushToast, () =>
+      apiJson('/admin/providers/fallback-order', { method: 'POST', body: JSON.stringify({ order }) }),
+    );
+    setSaving(false);
+    if (result) {
+      pushToast('Provider fallback order saved. Audited.');
+      reload();
+    }
+  }
+
+  return (
+    <section className="panel" aria-label="AI providers">
+      <div className="page-title">
+        <h2>AI providers</h2>
+        <button className="secondary" type="button" onClick={reload}>
+          Refresh
+        </button>
+      </div>
+      <p className="muted">
+        Fallback order — the priority the gateway tries providers in. Use ↑/↓ to reorder, then Save.
+      </p>
+
+      {!data?.metricsAvailable ? (
+        <div className="cost-alert cost-alert-warn" role="note">
+          Per-provider p95 latency and 24h error rate are not recorded yet (no request-metrics source). Alert thresholds
+          — warn ≥{data?.thresholds.warnErrorPct ?? 2}%, error ≥{data?.thresholds.errorErrorPct ?? 5}% — will apply once
+          request instrumentation lands.
+        </div>
+      ) : null}
+
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Provider</th>
+              <th>Status</th>
+              <th>Order</th>
+            </tr>
+          </thead>
+          <tbody>
+            {order.map((name, index) => {
+              const provider = byName.get(name);
+              return (
+                <tr key={name}>
+                  <td className="ledger-amount">{index + 1}</td>
+                  <td>{provider?.displayName ?? name}</td>
+                  <td className={provider?.enabled ? 'ledger-credit' : 'muted'}>
+                    {provider?.enabled ? 'enabled' : 'disabled'}
+                  </td>
+                  <td>
+                    <div className="actions">
+                      <button
+                        className="secondary"
+                        type="button"
+                        disabled={index === 0}
+                        aria-label={`Move ${name} up`}
+                        onClick={() => move(index, -1)}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        className="secondary"
+                        type="button"
+                        disabled={index === order.length - 1}
+                        aria-label={`Move ${name} down`}
+                        onClick={() => move(index, 1)}
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="actions" style={{ marginTop: 10 }}>
+        <button className="action" type="button" disabled={!dirty || saving} onClick={() => void save()}>
+          {saving ? 'Saving…' : 'Save order'}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 /**
  * Registry of section-id → custom panel. main.tsx renders the panel in place of
  * the generic table when an entry exists. Populated one Batch-F point at a time.
@@ -1144,4 +1280,5 @@ export const CUSTOM_PANELS: Record<string, React.ComponentType<PanelProps>> = {
   'abuse-events': AbuseEventsPanel,
   costs: CostsPanel,
   'agent-checkpoints': CheckpointsPanel,
+  'provider-health': ProvidersPanel,
 };

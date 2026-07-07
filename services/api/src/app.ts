@@ -21584,6 +21584,53 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /*
+   * F18: provider fallback order — the priority in which the gateway tries
+   * providers. Persisted as the ordered `providers.fallbackOrder` system setting
+   * (saved order first, then any known provider not yet placed). Read-only.
+   *
+   * NOTE: p95 latency / 24h error-rate (warn ≥2%, err ≥5%) are intentionally NOT
+   * returned as real numbers — there is no per-request provider metric source in
+   * the schema yet (no ProviderRequestMetric table). `metricsAvailable:false` is
+   * honest; the thresholds are surfaced so the panel can render them once request
+   * instrumentation lands. We do not fabricate latency/error values.
+   */
+  app.get('/admin/providers/fallback-order', async (request) => {
+    await requirePlatformAdmin(request);
+
+    const configs = (await store.listProviderConfigs()).filter((p) => KNOWN_LLM_PROVIDER_SET.has(p.provider));
+    const byName = new Map(configs.map((p) => [p.provider, p] as const));
+    const saved = (await store.listSystemSettings()).find((s) => s.key === 'providers.fallbackOrder')?.value;
+    const savedOrder = Array.isArray(saved)
+      ? saved.filter((value): value is string => typeof value === 'string' && byName.has(value))
+      : [];
+    const order = [...savedOrder, ...KNOWN_LLM_PROVIDERS.filter((name) => !savedOrder.includes(name))];
+
+    return {
+      order,
+      providers: order.map((name) => ({
+        provider: name,
+        displayName: byName.get(name)?.displayName ?? name,
+        enabled: byName.get(name)?.enabled ?? false,
+      })),
+      metricsAvailable: false,
+      thresholds: { warnErrorPct: 2, errorErrorPct: 5 },
+    };
+  });
+
+  app.post('/admin/providers/fallback-order', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const body = parse(z.object({ order: z.array(z.string().min(1)).min(1) }), request.body ?? {});
+    const known = new Set<string>(KNOWN_LLM_PROVIDERS);
+    const order = body.order.filter((name) => known.has(name));
+    await store.setSystemSetting({ key: 'providers.fallbackOrder', value: order });
+    await recordAdminAction(request, store, { action: 'admin.providers.reorder', metadata: { order } });
+
+    return { order };
+  });
+
+  /*
    * The set of provider DISPLAY NAMES enabled for the user model selector. Read
    * server-side by the web (/api/models + /projects/new loader) to hide providers
    * an admin disabled. Any authenticated user; returns no secrets. A known provider
