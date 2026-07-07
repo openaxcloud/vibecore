@@ -3922,6 +3922,37 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapAgentCheckpoint);
   }
 
+  async summarizeAgentCheckpoints() {
+    const groups = await this.prisma.agentCheckpoint.groupBy({
+      by: ['organizationId'],
+      _count: { _all: true },
+      _sum: { inputTokens: true, outputTokens: true, creditCents: true },
+      orderBy: { _sum: { creditCents: 'desc' } },
+    });
+
+    return groups.map((group) => ({
+      organizationId: group.organizationId,
+      checkpoints: group._count._all,
+      inputTokens: group._sum.inputTokens ?? 0,
+      outputTokens: group._sum.outputTokens ?? 0,
+      creditCents: group._sum.creditCents ?? 0,
+    }));
+  }
+
+  async purgeAgentCheckpoints(input: { before: string; dryRun: boolean }) {
+    const where = {
+      startedAt: { lt: new Date(input.before) },
+      status: { in: ['COMPLETED', 'FAILED'] as ('COMPLETED' | 'FAILED')[] },
+    };
+
+    if (input.dryRun) {
+      return { count: await this.prisma.agentCheckpoint.count({ where }) };
+    }
+
+    const result = await this.prisma.agentCheckpoint.deleteMany({ where });
+    return { count: result.count };
+  }
+
   async listModelConfigs(options?: { enabledOnly?: boolean }) {
     return (
       await this.prisma.modelConfig.findMany({

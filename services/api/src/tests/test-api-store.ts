@@ -1206,9 +1206,7 @@ export class TestApiStore implements ApiStore {
   }
 
   async getConsensusRecordDetail(projectId: string, runId: string): Promise<ConsensusRecordDetail | undefined> {
-    const found = this.consensusRecords.find(
-      (record) => record.projectId === projectId && record.runId === runId,
-    );
+    const found = this.consensusRecords.find((record) => record.projectId === projectId && record.runId === runId);
 
     if (!found) {
       return undefined;
@@ -3152,6 +3150,41 @@ export class TestApiStore implements ApiStore {
     return [...this.agentCheckpoints.values()]
       .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
       .slice(0, options?.take ?? 200);
+  }
+
+  async summarizeAgentCheckpoints() {
+    const byOrg = new Map<
+      string,
+      { organizationId: string; checkpoints: number; inputTokens: number; outputTokens: number; creditCents: number }
+    >();
+    for (const cp of this.agentCheckpoints.values()) {
+      const entry = byOrg.get(cp.organizationId) ?? {
+        organizationId: cp.organizationId,
+        checkpoints: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        creditCents: 0,
+      };
+      entry.checkpoints += 1;
+      entry.inputTokens += cp.inputTokens;
+      entry.outputTokens += cp.outputTokens;
+      entry.creditCents += cp.creditCents;
+      byOrg.set(cp.organizationId, entry);
+    }
+    return [...byOrg.values()].sort((a, b) => b.creditCents - a.creditCents);
+  }
+
+  async purgeAgentCheckpoints(input: { before: string; dryRun: boolean }) {
+    const beforeMs = new Date(input.before).getTime();
+    const matches = [...this.agentCheckpoints.values()].filter(
+      (cp) => new Date(cp.startedAt).getTime() < beforeMs && (cp.status === 'COMPLETED' || cp.status === 'FAILED'),
+    );
+    if (!input.dryRun) {
+      for (const cp of matches) {
+        this.agentCheckpoints.delete(cp.id);
+      }
+    }
+    return { count: matches.length };
   }
 
   async listModelConfigs(options?: { enabledOnly?: boolean }) {

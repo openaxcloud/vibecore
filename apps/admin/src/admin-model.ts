@@ -21,6 +21,7 @@ export const adminSections: AdminSection[] = [
   { id: 'ai-usage', label: 'AI usage', endpoint: '/admin/ai-usage', collectionKey: 'usage', description: 'AI token and cost ledger.' },
   { id: 'credit-wallets', label: 'Credit wallets', endpoint: '/admin/wallets', collectionKey: 'wallets', description: 'Org credit balances, signed adjustments (reason required) and movement history.' },
   { id: 'ai-models', label: 'AI models', endpoint: '/admin/models', collectionKey: 'models', description: 'Plan × model access matrix, cost per 1M tokens, and enable/disable (≥1 active per plan).' },
+  { id: 'agent-checkpoints', label: 'Agent checkpoints', endpoint: '/admin/checkpoints/storage', collectionKey: 'byOrg', description: 'Per-org checkpoint storage footprint, retention rule and manual purge with estimate.' },
   { id: 'provider-health', label: 'Provider health', endpoint: '/admin/provider-health', collectionKey: 'providers', description: 'AI gateway and provider status.' },
   { id: 'quotas', label: 'Quotas', endpoint: '/admin/quotas', collectionKey: 'quotas', description: 'Plan limits, usage and quota overrides.' },
   { id: 'abuse-events', label: 'Abuse events', endpoint: '/admin/abuse-events', collectionKey: 'abuseEvents', description: 'Abuse queue and resolution flow.' },

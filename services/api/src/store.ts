@@ -1870,6 +1870,16 @@ export interface ApiStore {
   // Admin-wide listings for the supervision console.
   listAdminCreditWallets(): Promise<CreditWalletRecord[]>;
   listAdminAgentCheckpoints(options?: { take?: number }): Promise<AgentCheckpointRecord[]>;
+  /** F21: per-org agent-checkpoint storage footprint (row count + token/credit totals). */
+  summarizeAgentCheckpoints(): Promise<
+    { organizationId: string; checkpoints: number; inputTokens: number; outputTokens: number; creditCents: number }[]
+  >;
+  /**
+   * F21: count (dryRun) or delete terminal (COMPLETED/FAILED) agent checkpoints
+   * started before `before`. dryRun powers the pre-purge estimate; the real purge
+   * removes settled billing checkpoints, so it is admin + re-auth gated + audited.
+   */
+  purgeAgentCheckpoints(input: { before: string; dryRun: boolean }): Promise<{ count: number }>;
   upsertModelConfig(input: {
     provider: string;
     modelId: string;

@@ -1002,6 +1002,136 @@ function CostsPanel({ reauthPassword, pushToast }: PanelProps) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// F21 — Agent checkpoints: storage total/org + retention rule + purge w/ estimate
+// ---------------------------------------------------------------------------
+
+interface CheckpointOrg {
+  organizationId: string;
+  checkpoints: number;
+  inputTokens: number;
+  outputTokens: number;
+  creditCents: number;
+}
+
+interface CheckpointStorage {
+  retentionDays: number;
+  cutoff: string;
+  totalCheckpoints: number;
+  totalCreditCents: number;
+  byOrg: CheckpointOrg[];
+  purgeEstimate: number;
+}
+
+function CheckpointsPanel({ reauthPassword, pushToast }: PanelProps) {
+  const [days, setDays] = useState('');
+  const path = days ? `/admin/checkpoints/storage?olderThanDays=${days}` : '/admin/checkpoints/storage';
+  const { data, loading, error, reload } = usePanelData<CheckpointStorage>(path);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!days && data?.retentionDays) {
+      setDays(String(data.retentionDays));
+    }
+  }, [data?.retentionDays, days]);
+
+  if (loading || error) {
+    return <PanelStates loading={loading} error={error} />;
+  }
+
+  const storage = data!;
+
+  async function purge() {
+    const olderThanDays = Math.trunc(Number(days));
+    if (!Number.isFinite(olderThanDays) || olderThanDays <= 0) {
+      pushToast('Enter a positive number of days.');
+      return;
+    }
+    setBusy(true);
+    const result = await withReauth(reauthPassword, pushToast, () =>
+      apiJson<{ deleted: number }>('/admin/checkpoints/purge', {
+        method: 'POST',
+        body: JSON.stringify({ olderThanDays }),
+      }),
+    );
+    setBusy(false);
+    if (result) {
+      pushToast(`Purged ${result.deleted} checkpoint(s) older than ${olderThanDays} days. Audited.`);
+      reload();
+    }
+  }
+
+  return (
+    <section className="panel" aria-label="Agent checkpoints">
+      <div className="page-title">
+        <h2>Agent checkpoints</h2>
+        <button className="secondary" type="button" onClick={reload}>
+          Refresh
+        </button>
+      </div>
+      <div className="cost-stats">
+        <div>
+          <span className="muted">Total checkpoints</span>
+          <strong>{storage.totalCheckpoints.toLocaleString()}</strong>
+        </div>
+        <div>
+          <span className="muted">Total settled credit</span>
+          <strong>{formatCents(storage.totalCreditCents)}</strong>
+        </div>
+      </div>
+
+      <form
+        className="ttl-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void purge();
+        }}
+      >
+        <label>
+          Purge terminal checkpoints older than (days)
+          <input type="number" step="1" min="1" value={days} onChange={(event) => setDays(event.target.value)} />
+        </label>
+        <button className="danger" type="submit" disabled={busy || storage.purgeEstimate === 0}>
+          {busy ? 'Purging…' : `Purge ${storage.purgeEstimate}`}
+        </button>
+      </form>
+      <p className="muted">
+        Estimate: {storage.purgeEstimate} COMPLETED/FAILED checkpoint(s) started before {formatDateTime(storage.cutoff)}{' '}
+        would be permanently deleted (removes settled billing history — audited).
+      </p>
+
+      {storage.byOrg.length === 0 ? (
+        <p className="muted">No agent checkpoints.</p>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Organization</th>
+                <th>Checkpoints</th>
+                <th>Input tokens</th>
+                <th>Output tokens</th>
+                <th>Settled credit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {storage.byOrg.map((row) => (
+                <tr key={row.organizationId}>
+                  <td>{row.organizationId}</td>
+                  <td className="ledger-amount">{row.checkpoints.toLocaleString()}</td>
+                  <td className="ledger-amount">{row.inputTokens.toLocaleString()}</td>
+                  <td className="ledger-amount">{row.outputTokens.toLocaleString()}</td>
+                  <td className="ledger-amount">{formatCents(row.creditCents)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 /**
  * Registry of section-id → custom panel. main.tsx renders the panel in place of
  * the generic table when an entry exists. Populated one Batch-F point at a time.
@@ -1013,4 +1143,5 @@ export const CUSTOM_PANELS: Record<string, React.ComponentType<PanelProps>> = {
   previews: PreviewsPanel,
   'abuse-events': AbuseEventsPanel,
   costs: CostsPanel,
+  'agent-checkpoints': CheckpointsPanel,
 };

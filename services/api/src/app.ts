@@ -22163,6 +22163,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { checkpoints: await store.listAdminAgentCheckpoints({ take: 200 }) };
   });
 
+  /*
+   * F21: agent-checkpoint storage — per-org footprint (row count + token/credit
+   * totals) + the retention rule (`checkpoints.retentionDays` system setting,
+   * default 90) and a dry-run purge estimate (terminal checkpoints older than it).
+   */
+  app.get('/admin/checkpoints/storage', async (request) => {
+    await requirePlatformAdmin(request);
+
+    const query = parse(z.object({ olderThanDays: z.coerce.number().int().positive().optional() }), request.query ?? {});
+    const settings = await store.listSystemSettings();
+    const settingDays = Number(settings.find((setting) => setting.key === 'checkpoints.retentionDays')?.value);
+    const retentionDays =
+      query.olderThanDays ?? (Number.isFinite(settingDays) && settingDays > 0 ? settingDays : 90);
+    const cutoff = new Date(Date.now() - retentionDays * 86_400_000).toISOString();
+
+    const byOrg = await store.summarizeAgentCheckpoints();
+    const purgeEstimate = (await store.purgeAgentCheckpoints({ before: cutoff, dryRun: true })).count;
+
+    return {
+      retentionDays,
+      cutoff,
+      totalCheckpoints: byOrg.reduce((sum, entry) => sum + entry.checkpoints, 0),
+      totalCreditCents: byOrg.reduce((sum, entry) => sum + entry.creditCents, 0),
+      byOrg,
+      purgeEstimate,
+    };
+  });
+
+  /*
+   * F21: manual purge — removes terminal (COMPLETED/FAILED) checkpoints older than
+   * `olderThanDays`. This deletes settled billing checkpoints, so it is platform-admin
+   * + recent re-auth gated and written to AdminAuditLog. The panel shows the estimate
+   * before this runs.
+   */
+  app.post('/admin/checkpoints/purge', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const body = parse(z.object({ olderThanDays: z.coerce.number().int().positive() }), request.body ?? {});
+    const cutoff = new Date(Date.now() - body.olderThanDays * 86_400_000).toISOString();
+    const { count } = await store.purgeAgentCheckpoints({ before: cutoff, dryRun: false });
+    await recordAdminAction(request, store, {
+      action: 'admin.checkpoints.purge',
+      metadata: { olderThanDays: body.olderThanDays, cutoff, deleted: count },
+    });
+
+    return { deleted: count, cutoff };
+  });
+
   app.get('/admin/stripe-health', async (request) => {
     await requirePlatformAdmin(request);
 
