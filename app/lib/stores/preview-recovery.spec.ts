@@ -4,7 +4,9 @@ import {
   appendWorkspaceLogLines,
   decodeArchiveEntry,
   isTransientCommandFailure,
+  isTransientFailureMessage,
   shouldKickReopenPreview,
+  shouldLatchPreviewStartFailure,
   shouldUseExistingPreviewServer,
   workspaceNeedsReprovision,
 } from './preview-recovery';
@@ -131,5 +133,40 @@ describe('appendWorkspaceLogLines', () => {
   it('returns the current array unchanged when there is nothing to append', () => {
     const current = ['a'];
     expect(appendWorkspaceLogLines(current, [], 5)).toBe(current);
+  });
+});
+
+describe('isTransientFailureMessage', () => {
+  it('matches cold-start / dropped-socket / aborted signatures', () => {
+    expect(isTransientFailureMessage('Remote runtime request failed: 502')).toBe(true);
+    expect(isTransientFailureMessage('workspace unavailable')).toBe(true);
+    expect(isTransientFailureMessage('connect ECONNREFUSED 10.0.0.1:5173')).toBe(true);
+    expect(isTransientFailureMessage('stream closed before completion')).toBe(true);
+    expect(isTransientFailureMessage('The operation was aborted')).toBe(true);
+  });
+
+  it('does NOT match a deterministic failure', () => {
+    expect(isTransientFailureMessage('No package.json found in the project')).toBe(false);
+    expect(isTransientFailureMessage('project file archive returned 404')).toBe(false);
+    expect(isTransientFailureMessage('ERESOLVE unable to resolve dependency tree')).toBe(false);
+  });
+});
+
+describe('shouldLatchPreviewStartFailure', () => {
+  it('does NOT latch a transient failure on the auto path (boot loop keeps retrying)', () => {
+    expect(shouldLatchPreviewStartFailure({ manual: false, message: 'Remote runtime request failed: 502' })).toBe(
+      false,
+    );
+    expect(shouldLatchPreviewStartFailure({ manual: false, message: 'workspace_not_started' })).toBe(false);
+  });
+
+  it('latches a deterministic failure on the auto path (no 5-min wait for a broken project)', () => {
+    expect(shouldLatchPreviewStartFailure({ manual: false, message: 'No package.json found' })).toBe(true);
+    expect(shouldLatchPreviewStartFailure({ manual: false, message: 'ERESOLVE unable to resolve' })).toBe(true);
+  });
+
+  it('always latches a manual run/restart failure, transient or not', () => {
+    expect(shouldLatchPreviewStartFailure({ manual: true, message: 'Remote runtime request failed: 502' })).toBe(true);
+    expect(shouldLatchPreviewStartFailure({ manual: true, message: 'No package.json found' })).toBe(true);
   });
 });
