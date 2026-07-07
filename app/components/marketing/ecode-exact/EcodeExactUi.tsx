@@ -24,10 +24,12 @@ export const BRAND = {
     primaryLight: '#FF6B35',
     primaryDark: '#D84315',
     accent: '#F77F00',
+
+    // Brand rule: marketing accents are warm orange/amber (never off-brand violet/fuchsia).
     gradient: {
       primary: 'from-orange-500 to-amber-500',
-      ai: 'from-violet-600 to-fuchsia-600',
-      code: 'from-blue-500 to-purple-500',
+      ai: 'from-amber-400 to-orange-600',
+      code: 'from-orange-600 to-amber-500',
     },
   },
   assets: {
