@@ -4,7 +4,13 @@ import { join } from 'node:path';
 import { signAgentToken } from '@vibecore/workspace-sdk';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
-import { buildPreviewHosts, buildWorkspaceAgentApp, detectPortsFromOutput, type ProcessRecord } from './app.js';
+import {
+  buildPreviewHosts,
+  buildWorkspaceAgentApp,
+  classifyListeningPort,
+  detectPortsFromOutput,
+  type ProcessRecord,
+} from './app.js';
 
 const tokenSecret = 'test-secret';
 const workspaceId = 'workspace_1';
@@ -221,6 +227,28 @@ describe('workspace-agent', () => {
 
     // Plain commands with no port signal yield nothing.
     expect(detectPortsFromOutput(new Map([['e', record('e', 'echo hi', 'hi')]]))).toEqual([]);
+  });
+
+  it('surfaces a real listening port even when /proc cannot attribute it to a pid (not just 5173)', () => {
+    const selfPort = 8080;
+    const agentPid = 1;
+
+    // A dev server on a non-default port whose socket-inode -> pid mapping is missing
+    // (gVisor) must STILL be surfaced — else detection falls back to the 5173 guess.
+    expect(classifyListeningPort({ port: 3000, pid: undefined, selfPort, agentPid })).toEqual({
+      include: true,
+      fallbackId: 'port:3000',
+    });
+
+    // With a resolved (non-agent) pid, include it with a pid-scoped fallback id.
+    expect(classifyListeningPort({ port: 5173, pid: 42, selfPort, agentPid })).toEqual({
+      include: true,
+      fallbackId: 'pid:42',
+    });
+
+    // The agent's own control port and the agent's own pid are never a preview.
+    expect(classifyListeningPort({ port: 8080, pid: undefined, selfPort, agentPid }).include).toBe(false);
+    expect(classifyListeningPort({ port: 9229, pid: agentPid, selfPort, agentPid }).include).toBe(false);
   });
 
   it('builds preview hosts: loopback first, pod IPv4 next, [::1] last, no internal/IPv6 interface addrs', () => {

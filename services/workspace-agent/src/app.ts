@@ -1852,6 +1852,32 @@ async function runCommandStream(
 export type DetectedPort = { port: number; processId: string };
 
 /*
+ * Decide whether a kernel-observed listening TCP port is a user preview port, and
+ * (when it is) the display owner id to use if it can't be tied to a managed command.
+ *
+ * A workspace pod runs the agent alone, so every listening socket other than the
+ * agent's own control port belongs to a user process — INCLUDING ports whose
+ * socket-inode -> pid mapping /proc couldn't resolve (gVisor drops that mapping for
+ * terminal-started dev servers / under sandbox restrictions). Dropping unattributed
+ * ports made port detection fall back to the 5173 heuristic, which guessed wrong for
+ * any app binding another port (e.g. a Vite config with server.port: 3000) → the
+ * preview proxy polled 5173 forever and the app never showed. Surfacing the real
+ * port fixes the preview for ANY port, old or new projects, without config migration.
+ */
+export function classifyListeningPort(input: {
+  port: number;
+  pid: number | undefined;
+  selfPort: number;
+  agentPid: number;
+}): { include: boolean; fallbackId: string } {
+  if (input.port === input.selfPort || input.pid === input.agentPid) {
+    return { include: false, fallbackId: '' };
+  }
+
+  return { include: true, fallbackId: input.pid !== undefined ? `pid:${input.pid}` : `port:${input.port}` };
+}
+
+/*
  * Authoritative port detection: read the kernel's listening TCP sockets from /proc/net/tcp(6) and
  * attribute each to the managed process (or descendant) that owns it via the socket inode -> pid ->
  * process-tree mapping. The workspace agent runs alone in its per-workspace container, so every
@@ -1874,30 +1900,25 @@ async function detectPorts(processes: Map<string, ProcessRecord>): Promise<Detec
       }
 
       const detected: DetectedPort[] = [];
+      // The agent's own control port (mirrors the createApp numericEnv default).
+      const selfPort = Number(process.env.PORT) || 8080;
 
       for (const [port, inode] of listening) {
         const pid = inodeToPid.get(inode);
+        const classification = classifyListeningPort({ port, pid, selfPort, agentPid: process.pid });
 
-        if (pid === undefined || pid === process.pid) {
-          /*
-           * No owning pid, or the agent's own control port — never a user
-           * preview. The workspace agent runs alone in its per-workspace
-           * container, so every other listening socket belongs to a user
-           * process.
-           */
+        if (!classification.include) {
           continue;
         }
 
         /*
-         * Prefer attributing the port to a tracked managed command; otherwise
-         * it was started outside /commands/run — most importantly a dev server
-         * launched from the IDE terminal (the primary "run my app" flow), whose
-         * pid is not in the managed map. Previously these were dropped, so the
-         * preview never opened for terminal-started servers. Surface them with a
-         * synthetic, display-only owner id.
+         * When we resolved a pid, prefer attributing the port to a tracked managed
+         * command (falling back to a synthetic pid id). With no pid, use the
+         * port-scoped id from the classifier — the port is still real (see
+         * classifyListeningPort) so it must drive the preview, not be dropped.
          */
-        const managedId = await owningManagedProcess(pid, managedPids);
-        detected.push({ port, processId: managedId ?? `pid:${pid}` });
+        const managedId = pid !== undefined ? await owningManagedProcess(pid, managedPids) : undefined;
+        detected.push({ port, processId: managedId ?? classification.fallbackId });
       }
 
       if (detected.length > 0) {
