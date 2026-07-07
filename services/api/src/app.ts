@@ -191,6 +191,7 @@ import {
   PROJECT_THUMBNAIL_KEY,
   resolveDefaultObjectStorage,
 } from './object-storage.js';
+import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
 import { PrismaApiStore } from './prisma-store.js';
 import {
   decodeFileContent,
@@ -254,6 +255,8 @@ export interface ApiAppOptions {
 
   /** Override the per-project object storage backend (tests inject a fake). */
   objectStorage?: ObjectStorage;
+  /** Injectable for tests; defaults to an env-configured (inert-unless-set) capturer. */
+  thumbnailCapturer?: ThumbnailCapturer;
   gitProvider?: GitProvider;
   emailProvider?: EmailProvider;
   jwtSecret?: string;
@@ -25160,6 +25163,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const resolveObjectStorage = (): ObjectStorage => options.objectStorage ?? resolveDefaultObjectStorage();
 
+  /*
+   * P11 automatic thumbnails. Inert unless SCREENSHOTTER_URL is set, so this is a
+   * no-op until the screenshotter is deployed. schedule() is fire-and-forget and
+   * never throws into the request flow; captures are debounced per project.
+   */
+  const thumbnailCapturer =
+    options.thumbnailCapturer ?? createThumbnailCapturer(resolveObjectStorage(), app.log as unknown as ThumbnailLogger);
+
   const requireObjectStorageProject = async (
     request: FastifyRequest,
     permission: 'projects:read' | 'projects:write',
@@ -25666,6 +25677,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { deploymentId: ready.id, provider: ready.provider, environment: ready.environment, url: ready.url },
     });
 
+    // P11: refresh the project thumbnail from the freshly deployed URL (auto,
+    // debounced, inert unless the screenshotter is configured).
+    if (ready.url) {
+      thumbnailCapturer.schedule(project.id, ready.url);
+    }
+
     return reply.code(201).send({ deployment: ready });
   });
   app.get('/projects/:projectId/deployments/:deploymentId/logs', async (request, reply) => {
@@ -26100,6 +26117,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: ready.id,
       metadata: { sourceDeploymentId: source.id },
     });
+
+    // P11: refresh the thumbnail from the redeployed URL (auto, debounced, inert
+    // unless the screenshotter is configured).
+    if (ready.url) {
+      thumbnailCapturer.schedule(project.id, ready.url);
+    }
 
     return reply.code(201).send({ deployment: ready });
   });
