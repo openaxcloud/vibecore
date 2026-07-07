@@ -21,6 +21,12 @@
 
 const MARKER = '__ecodeHmrOverride';
 
+/*
+ * Presence of the port pin in an already-wrapped config. Configs wrapped before the
+ * pin shipped carry MARKER but not this — they get upgraded in place (see below).
+ */
+const PIN_MARKER = 'port: 5173';
+
 const INJECTED_HEADER = `import { mergeConfig as __ecodeMergeConfig } from 'vite';
 
 /*
@@ -64,9 +70,28 @@ export default typeof __ecodeUserConfig === 'function'
  * (no ESM `export default`, e.g. a CommonJS `module.exports` config).
  */
 export function ensureViteHmrConfig(source: string): string {
-  if (!source || source.includes(MARKER)) {
-    // Already processed (idempotent) or nothing to do.
+  if (!source) {
     return source;
+  }
+
+  if (source.includes(MARKER)) {
+    /*
+     * Already wrapped. If it predates the port pin (an older injected header that
+     * only set host:true + hmr, MARKER present but no `port: 5173`), UPGRADE it in
+     * place: such a config still lets the model's own server.port win (e.g. 3000)
+     * while the preview proxy targets 5173, so the app stays blank. The plain
+     * MARKER-only idempotency check skipped these forever. Insert the pin into the
+     * existing env-gated override block so it aligns without a full, fragile
+     * re-wrap. When the pin is already there it's current → no-op (idempotent).
+     */
+    if (source.includes(PIN_MARKER)) {
+      return source;
+    }
+
+    return source.replace(
+      /(process\.env\.VITE_HMR_CLIENT_PORT\s*\?\s*\{)/,
+      '$1\n          port: 5173,\n          strictPort: true,',
+    );
   }
 
   /*

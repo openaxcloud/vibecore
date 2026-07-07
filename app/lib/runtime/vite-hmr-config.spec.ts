@@ -61,6 +61,42 @@ describe('ensureViteHmrConfig', () => {
     expect(twice.match(/__ecodeHmrOverride =/g)?.length).toBe(1);
   });
 
+  it('upgrades an OLD wrap (MARKER present, no port pin) in place without re-wrapping', () => {
+    // A config wrapped before the port pin shipped: it has the marker + host:true +
+    // hmr, but no `port: 5173`, so the model's own server.port (3000) still wins.
+    const OLD_WRAP = [
+      "import { mergeConfig as __ecodeMergeConfig } from 'vite';",
+      'const __ecodeHmrOverride = {',
+      '  server: {',
+      '    host: true,',
+      '    ...(process.env.VITE_HMR_CLIENT_PORT',
+      '      ? {',
+      '          hmr: { clientPort: Number(process.env.VITE_HMR_CLIENT_PORT) },',
+      '        }',
+      '      : {}),',
+      '  },',
+      '};',
+      "import { defineConfig } from 'vite';",
+      'const __ecodeUserConfig = defineConfig({ server: { port: 3000 } });',
+      'export default __ecodeMergeConfig(__ecodeUserConfig, __ecodeHmrOverride);',
+      '',
+    ].join('\n');
+
+    const out = ensureViteHmrConfig(OLD_WRAP);
+
+    // The pin is inserted into the existing override block…
+    expect(out).toContain('port: 5173');
+    expect(out).toContain('strictPort: true');
+    // …the model's original settings are preserved…
+    expect(out).toContain('server: { port: 3000 }');
+    // …and it is NOT double-wrapped (still exactly one override + one default export).
+    expect(out.match(/__ecodeHmrOverride =/g)?.length).toBe(1);
+    expect(out.match(/export\s+default/g)?.length).toBe(1);
+
+    // Second pass is now a no-op (pin present → idempotent).
+    expect(ensureViteHmrConfig(out)).toBe(out);
+  });
+
   it('leaves a config without an ESM default export untouched (CJS safety)', () => {
     const cjs = "const react = require('@vitejs/plugin-react');\nmodule.exports = { plugins: [react()] };\n";
     expect(ensureViteHmrConfig(cjs)).toBe(cjs);
