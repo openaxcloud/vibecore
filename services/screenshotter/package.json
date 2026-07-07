@@ -1,0 +1,21 @@
+{
+  "name": "@vibecore/screenshotter",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "fastify": "^5.8.5",
+    "playwright-core": "^1.59.1",
+    "tsx": "^4.21.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.6"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc --outDir dist --rootDir src --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck true --strict true src/app.ts src/server.ts src/browser.ts",
+    "test": "vitest --run",
+    "typecheck": "tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck true --strict true src/app.ts src/server.ts src/browser.ts",
+    "lint": "pnpm run typecheck"
+  }
+}
