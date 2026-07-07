@@ -33,6 +33,7 @@ import type { FileMap } from '~/lib/stores/files';
 import { shouldKickReopenPreview } from '~/lib/stores/preview-recovery';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { captureAndUploadThumbnail } from '~/lib/thumbnail-capture';
 import { WORK_DIR } from '~/utils/constants';
 
 /*
@@ -531,6 +532,7 @@ export const Preview = memo(
     const [logsOpen, setLogsOpen] = useState(false);
     const [activeLogTab, setActiveLogTab] = useState<PreviewLogTab>('webview');
     const [devToolsOpen, setDevToolsOpen] = useState(false);
+    const [capturingThumbnail, setCapturingThumbnail] = useState(false);
     const [activeDevToolsTab, setActiveDevToolsTab] = useState<PreviewDevToolsTab>('console');
 
     const [previewConsoleEvents, setPreviewConsoleEvents] = useState<
@@ -1850,6 +1852,41 @@ export const Preview = memo(
       }
     };
 
+    /*
+     * P11 — capture the live preview and store it as the project thumbnail that
+     * the Dashboard/Projects cards render. Uses the Screen Capture API (the only
+     * real in-browser capture of the cross-origin preview) and PUTs the PNG to a
+     * signed object-storage URL. Silently no-ops when object storage is disabled.
+     */
+    const captureThumbnail = useCallback(async () => {
+      const iframe = iframeRef.current;
+
+      if (!iframe || !projectId || capturingThumbnail) {
+        return;
+      }
+
+      setCapturingThumbnail(true);
+
+      try {
+        const stored = await captureAndUploadThumbnail(projectId, iframe);
+
+        if (stored) {
+          toast.success('Saved as the project thumbnail.');
+        } else {
+          toast.info('Object storage is not enabled — thumbnail was not saved.');
+        }
+      } catch (error) {
+        // A user cancelling the screen-share picker throws NotAllowedError — stay quiet.
+        if (error instanceof DOMException && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
+          return;
+        }
+
+        toast.error(error instanceof Error ? error.message : 'Could not capture the thumbnail.');
+      } finally {
+        setCapturingThumbnail(false);
+      }
+    }, [projectId, capturingThumbnail]);
+
     const recordPreviewLoad = useCallback(
       (url?: string) => {
         const targetUrl = url ?? iframeRef.current?.src ?? visiblePreviewUrl;
@@ -1999,6 +2036,12 @@ export const Preview = memo(
               onClick={() => setIsSelectionMode(!isSelectionMode)}
               className={isSelectionMode ? 'bg-bolt-elements-background-depth-3' : ''}
               title={isSelectionMode ? 'Disable screenshot selection' : 'Select preview area'}
+            />
+            <IconButton
+              icon={capturingThumbnail ? 'i-ph:circle-notch animate-spin' : 'i-ph:camera'}
+              onClick={() => void captureThumbnail()}
+              disabled={capturingThumbnail || !activePreview || !projectId}
+              title="Capture preview as project thumbnail"
             />
           </div>
 

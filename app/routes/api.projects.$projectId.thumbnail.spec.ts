@@ -71,3 +71,60 @@ describe('project thumbnail route (card image proxy)', () => {
     expect(apiRequest).not.toHaveBeenCalled();
   });
 });
+
+function actionArgs(projectId = 'proj-42') {
+  return {
+    request: new Request(`https://app.test/api/projects/${projectId}/thumbnail`, { method: 'POST' }),
+    params: { projectId },
+  } as any;
+}
+
+/* The action returns RR7's data() sentinel (aliased `json`): body on `.data`, status on `.init`. */
+function readData(result: any): any {
+  return result && typeof result === 'object' && 'data' in result ? result.data : result;
+}
+
+describe('project thumbnail upload proxy (action)', () => {
+  afterEach(() => {
+    apiRequest.mockReset();
+  });
+
+  it('mints a signed PUT from the project-scoped upload-url endpoint', async () => {
+    apiRequest.mockResolvedValueOnce({
+      url: 'https://storage.example/signed-put',
+      method: 'PUT',
+      headers: { 'Content-Type': 'image/png' },
+    });
+
+    const { action } = await import('./api.projects.$projectId.thumbnail');
+    const body = readData(await action(actionArgs()));
+
+    const [, url, init] = apiRequest.mock.calls[0];
+    expect(url).toBe('/projects/proj-42/thumbnail/upload-url');
+    expect(init.method).toBe('POST');
+    expect(body).toEqual({
+      ok: true,
+      url: 'https://storage.example/signed-put',
+      method: 'PUT',
+      headers: { 'Content-Type': 'image/png' },
+    });
+  });
+
+  it('degrades to { enabled: false } (not an error) when object storage is off', async () => {
+    apiRequest.mockRejectedValueOnce(new Response(null, { status: 404 }));
+
+    const { action } = await import('./api.projects.$projectId.thumbnail');
+    const result = await action(actionArgs());
+
+    expect(result.init.status).toBe(404);
+    expect(readData(result)).toEqual({ ok: false, enabled: false });
+  });
+
+  it('404s without touching the backend when the project id is missing', async () => {
+    const { action } = await import('./api.projects.$projectId.thumbnail');
+    const result = await action({ request: new Request('https://app.test/x', { method: 'POST' }), params: {} } as any);
+
+    expect(result.init.status).toBe(404);
+    expect(apiRequest).not.toHaveBeenCalled();
+  });
+});
