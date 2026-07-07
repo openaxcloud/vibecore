@@ -10,11 +10,70 @@ import {
   classifyListeningPort,
   detectPortsFromOutput,
   injectPreviewHmrShim,
+  isProductionBuildCommand,
+  sanitizedChildEnv,
   type ProcessRecord,
 } from './app.js';
 
 const tokenSecret = 'test-secret';
 const workspaceId = 'workspace_1';
+
+describe('isProductionBuildCommand', () => {
+  it('recognizes production build invocations', () => {
+    expect(isProductionBuildCommand('vite', ['build'])).toBe(true);
+    expect(isProductionBuildCommand('npm', ['run', 'build'])).toBe(true);
+    expect(isProductionBuildCommand('next', ['build'])).toBe(true);
+    expect(isProductionBuildCommand('npx', ['react-scripts', 'build'])).toBe(true);
+    expect(isProductionBuildCommand('pnpm', ['build'])).toBe(true);
+  });
+
+  it('does NOT flag dev servers / installs / REPLs', () => {
+    expect(isProductionBuildCommand('vite', [])).toBe(false);
+    expect(isProductionBuildCommand('npm', ['run', 'dev'])).toBe(false);
+    expect(isProductionBuildCommand('next', ['dev'])).toBe(false);
+    expect(isProductionBuildCommand('npm', ['install'])).toBe(false);
+    expect(isProductionBuildCommand('node', ['server.js'])).toBe(false);
+  });
+});
+
+describe('sanitizedChildEnv', () => {
+  it('coerces a leaked NODE_ENV=production to development for a dev server (fixes the _jsxDEV blank)', () => {
+    const env = sanitizedChildEnv({ NODE_ENV: 'production', PATH: '/usr/bin' }, { command: 'vite', args: [] });
+    expect(env.NODE_ENV).toBe('development');
+    expect(env.PATH).toBe('/usr/bin');
+  });
+
+  it('coerces for an install and for a terminal (no command context)', () => {
+    expect(sanitizedChildEnv({ NODE_ENV: 'production' }, { command: 'npm', args: ['install'] }).NODE_ENV).toBe(
+      'development',
+    );
+    expect(sanitizedChildEnv({ NODE_ENV: 'production' }).NODE_ENV).toBe('development');
+  });
+
+  it('PRESERVES NODE_ENV=production for a real production build', () => {
+    expect(sanitizedChildEnv({ NODE_ENV: 'production' }, { command: 'vite', args: ['build'] }).NODE_ENV).toBe(
+      'production',
+    );
+    expect(sanitizedChildEnv({ NODE_ENV: 'production' }, { command: 'npm', args: ['run', 'build'] }).NODE_ENV).toBe(
+      'production',
+    );
+  });
+
+  it('leaves an already-development / test / unset NODE_ENV untouched', () => {
+    expect(sanitizedChildEnv({ NODE_ENV: 'development' }, { command: 'vite', args: [] }).NODE_ENV).toBe('development');
+    expect(sanitizedChildEnv({ NODE_ENV: 'test' }, { command: 'vite', args: [] }).NODE_ENV).toBe('test');
+    expect(sanitizedChildEnv({}, { command: 'vite', args: [] }).NODE_ENV).toBeUndefined();
+  });
+
+  it('still strips the agent-private signing secret', () => {
+    const env = sanitizedChildEnv(
+      { WORKSPACE_AGENT_TOKEN_SECRET: 'super-secret', NODE_ENV: 'production' },
+      { command: 'vite', args: [] },
+    );
+    expect(env.WORKSPACE_AGENT_TOKEN_SECRET).toBeUndefined();
+    expect(env.NODE_ENV).toBe('development');
+  });
+});
 
 describe('workspace-agent', () => {
   let root: string;

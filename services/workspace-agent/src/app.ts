@@ -97,11 +97,49 @@ const snapshotSchema = z.object({ files: z.array(writeSchema).default([]) });
  */
 const AGENT_PRIVATE_ENV_KEYS = ['WORKSPACE_AGENT_TOKEN_SECRET'];
 
-function sanitizedChildEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+/*
+ * Whether a spawned command is a production BUILD (as opposed to a dev server /
+ * install / REPL). Used to decide if a leaked `NODE_ENV=production` should be
+ * preserved (builds legitimately want it — Vite/webpack derive the bundle's
+ * `process.env.NODE_ENV` define + minification from it) or coerced to
+ * development (dev servers REQUIRE it — see sanitizedChildEnv). Matches a
+ * standalone `build` token in the command or its args, so `vite build`,
+ * `npm run build`, `next build`, `react-scripts build`, `nest build`, etc. are
+ * recognized, while `vite`, `npm run dev`, `next dev` are not.
+ */
+export function isProductionBuildCommand(command: string, args: readonly string[] = []): boolean {
+  return /\bbuild\b/.test([command, ...args].join(' ').toLowerCase());
+}
+
+export function sanitizedChildEnv(
+  base: NodeJS.ProcessEnv = process.env,
+  spawnCommand?: { command: string; args: readonly string[] },
+): NodeJS.ProcessEnv {
   const env = { ...base };
 
   for (const key of AGENT_PRIVATE_ENV_KEYS) {
     delete env[key];
+  }
+
+  /*
+   * These are DEVELOPMENT workspaces: every child the tenant runs for "Run to
+   * preview" is a dev server / install / REPL, never a production deploy. The pod
+   * image inherits NODE_ENV=production from the platform base, which silently
+   * breaks dev tooling — most destructively Vite: under NODE_ENV=production,
+   * `react/jsx-dev-runtime` resolves to its PRODUCTION stub where `jsxDEV` is
+   * `void 0`, so Vite pre-bundles it that way and every compiled JSX module hits
+   * `_jsxDEV is not a function` → React never mounts → the app is BLANK even
+   * though the dev server serves HTTP 200. (It also makes `npm install` omit
+   * devDependencies like vite / @vitejs/plugin-react.) Coerce a leaked production
+   * value to development for dev-server / install / terminal children. A genuine
+   * production BUILD keeps it — Vite/webpack drive the output bundle's NODE_ENV
+   * define + minification off this value, so a build must stay production.
+   */
+  if (
+    env.NODE_ENV === 'production' &&
+    !(spawnCommand && isProductionBuildCommand(spawnCommand.command, spawnCommand.args))
+  ) {
+    env.NODE_ENV = 'development';
   }
 
   return env;
@@ -1478,7 +1516,12 @@ async function runCommand(
    * child's grandchildren (e.g. a shell launching a server) orphaned, leaking
    * processes that hold a maxProcesses slot. Mirrors runCommandStream.
    */
-  const child = spawn(command, normalizedArgs, { cwd, shell: false, env: sanitizedChildEnv(), detached: true });
+  const child = spawn(command, normalizedArgs, {
+    cwd,
+    shell: false,
+    env: sanitizedChildEnv(process.env, { command, args: normalizedArgs }),
+    detached: true,
+  });
 
   const killGroup = (sig: NodeJS.Signals) => {
     if (child.pid === undefined) {
@@ -1655,7 +1698,12 @@ async function runCommandStream(
    * commands are dev servers etc. that spawn children; killing only the direct
    * child orphaned those grandchildren (leaked processes + held ports).
    */
-  const child = spawn(command, normalizedArgs, { cwd, shell: false, env: sanitizedChildEnv(), detached: true });
+  const child = spawn(command, normalizedArgs, {
+    cwd,
+    shell: false,
+    env: sanitizedChildEnv(process.env, { command, args: normalizedArgs }),
+    detached: true,
+  });
 
   /*
    * Signal the child's PROCESS GROUP (negative pid) so its children die too;
