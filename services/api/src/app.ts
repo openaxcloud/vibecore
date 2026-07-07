@@ -22366,6 +22366,65 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /*
+   * F26: cost dashboard — last-30-day AI cost per provider per day + the monthly
+   * budget (system setting `costs.monthlyBudgetCents`) with month-to-date spend and
+   * an 80%/100% alert level (C9 thresholds). Read-only, platform-admin gated.
+   */
+  app.get('/admin/costs/summary', async (request) => {
+    await requirePlatformAdmin(request);
+
+    const aiCosts = await store.listAdminAiCosts();
+    const settings = await store.listSystemSettings();
+    const budgetRaw = Number(settings.find((setting) => setting.key === 'costs.monthlyBudgetCents')?.value);
+    const monthlyBudgetCents = Number.isFinite(budgetRaw) && budgetRaw > 0 ? budgetRaw : null;
+
+    const DAYS = 30;
+    const dayMs = 86_400_000;
+    const nowMs = Date.now();
+    const days: string[] = [];
+    for (let offset = DAYS - 1; offset >= 0; offset -= 1) {
+      days.push(new Date(nowMs - offset * dayMs).toISOString().slice(0, 10));
+    }
+    const dayIndex = new Map(days.map((day, index) => [day, index]));
+    const providers = Array.from(new Set(aiCosts.map((cost) => cost.provider))).sort();
+    const series: Record<string, number[]> = {};
+    for (const provider of providers) {
+      series[provider] = new Array<number>(DAYS).fill(0);
+    }
+
+    let windowTotalCents = 0;
+    for (const cost of aiCosts) {
+      const index = dayIndex.get(cost.createdAt.slice(0, 10));
+      if (index != null) {
+        series[cost.provider][index] += cost.costCents;
+        windowTotalCents += cost.costCents;
+      }
+    }
+
+    const monthPrefix = new Date(nowMs).toISOString().slice(0, 7);
+    const monthToDateCents = aiCosts
+      .filter((cost) => cost.createdAt.slice(0, 7) === monthPrefix)
+      .reduce((sum, cost) => sum + cost.costCents, 0);
+
+    const budgetUsedPct =
+      monthlyBudgetCents != null ? Math.round((monthToDateCents / monthlyBudgetCents) * 100) : null;
+    const alertLevel =
+      budgetUsedPct == null ? null : budgetUsedPct >= 100 ? 'over' : budgetUsedPct >= 80 ? 'warn' : 'ok';
+
+    return {
+      days,
+      providers,
+      series,
+      windowTotalCents,
+      monthToDateCents,
+      monthlyBudgetCents,
+      budgetUsedPct,
+      alertLevel,
+      alertThresholds: [80, 100],
+    };
+  });
+
+  /*
    * Suspension state changes require a mandatory operator-supplied reason; it is
    * persisted in the admin audit event so every account action stays reviewable.
    */

@@ -847,6 +847,161 @@ function AbuseEventsPanel({ reauthPassword, pushToast }: PanelProps) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// F26 — Costs: 30-day cost/day per provider + monthly budget + 80/100% alerts
+// ---------------------------------------------------------------------------
+
+// Non-purple categorical chart palette (blue/emerald/amber/teal/rose/cyan/lime/orange).
+const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#14b8a6', '#f43f5e', '#06b6d4', '#84cc16', '#f97316'];
+
+interface CostsSummary {
+  days: string[];
+  providers: string[];
+  series: Record<string, number[]>;
+  windowTotalCents: number;
+  monthToDateCents: number;
+  monthlyBudgetCents: number | null;
+  budgetUsedPct: number | null;
+  alertLevel: 'ok' | 'warn' | 'over' | null;
+  alertThresholds: number[];
+}
+
+function CostsPanel({ reauthPassword, pushToast }: PanelProps) {
+  const { data, loading, error, reload } = usePanelData<CostsSummary>('/admin/costs/summary');
+  const [budget, setBudget] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (data?.monthlyBudgetCents != null) {
+      setBudget((data.monthlyBudgetCents / 100).toFixed(2));
+    }
+  }, [data?.monthlyBudgetCents]);
+
+  if (loading || error) {
+    return <PanelStates loading={loading} error={error} />;
+  }
+
+  const summary = data!;
+  const dayTotals = summary.days.map((_, index) =>
+    summary.providers.reduce((sum, provider) => sum + (summary.series[provider]?.[index] ?? 0), 0),
+  );
+  const maxDay = Math.max(1, ...dayTotals);
+
+  async function saveBudget() {
+    const dollars = Number(budget);
+    if (!Number.isFinite(dollars) || dollars < 0) {
+      pushToast('Enter a monthly budget in dollars (0 to clear).');
+      return;
+    }
+    setSaving(true);
+    const result = await withReauth(reauthPassword, pushToast, () =>
+      apiJson('/admin/system-settings', {
+        method: 'POST',
+        body: JSON.stringify({ key: 'costs.monthlyBudgetCents', value: Math.round(dollars * 100) }),
+      }),
+    );
+    setSaving(false);
+    if (result) {
+      pushToast(`Monthly AI budget set to $${dollars.toFixed(2)}.`);
+      reload();
+    }
+  }
+
+  const alertClass =
+    summary.alertLevel === 'over' ? 'cost-alert-over' : summary.alertLevel === 'warn' ? 'cost-alert-warn' : '';
+
+  return (
+    <section className="panel" aria-label="Cost dashboard">
+      <div className="page-title">
+        <h2>Cost dashboard</h2>
+        <button className="secondary" type="button" onClick={reload}>
+          Refresh
+        </button>
+      </div>
+
+      {summary.alertLevel === 'warn' || summary.alertLevel === 'over' ? (
+        <div className={`cost-alert ${alertClass}`} role="alert">
+          Month-to-date AI spend is {summary.budgetUsedPct}% of the $
+          {((summary.monthlyBudgetCents ?? 0) / 100).toFixed(2)} budget
+          {summary.alertLevel === 'over' ? ' — over budget.' : ' — approaching the limit.'}
+        </div>
+      ) : null}
+
+      <div className="cost-stats">
+        <div>
+          <span className="muted">30-day AI spend</span>
+          <strong>{formatCents(summary.windowTotalCents)}</strong>
+        </div>
+        <div>
+          <span className="muted">Month to date</span>
+          <strong>{formatCents(summary.monthToDateCents)}</strong>
+        </div>
+        <div>
+          <span className="muted">Budget used</span>
+          <strong>{summary.budgetUsedPct == null ? '— (no budget)' : `${summary.budgetUsedPct}%`}</strong>
+        </div>
+      </div>
+
+      <form
+        className="ttl-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void saveBudget();
+        }}
+      >
+        <label>
+          Monthly AI budget ($)
+          <input type="number" step="0.01" min="0" value={budget} onChange={(event) => setBudget(event.target.value)} />
+        </label>
+        <button className="action" type="submit" disabled={saving}>
+          {saving ? 'Saving…' : 'Save budget'}
+        </button>
+      </form>
+
+      {summary.providers.length === 0 ? (
+        <p className="muted">No AI cost records in the last 30 days.</p>
+      ) : (
+        <>
+          <div className="cost-chart" role="img" aria-label="AI cost per day for the last 30 days by provider">
+            {summary.days.map((day, index) => (
+              <div key={day} className="cost-bar" title={`${day}: ${formatCents(dayTotals[index])}`}>
+                <div className="cost-bar-stack">
+                  {summary.providers.map((provider, providerIndex) => {
+                    const cents = summary.series[provider]?.[index] ?? 0;
+                    if (cents <= 0) {
+                      return null;
+                    }
+                    return (
+                      <div
+                        key={provider}
+                        style={{
+                          height: `${(cents / maxDay) * 100}%`,
+                          background: CHART_COLORS[providerIndex % CHART_COLORS.length],
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="cost-legend">
+            {summary.providers.map((provider, providerIndex) => (
+              <span key={provider} className="cost-legend-item">
+                <span
+                  className="cost-swatch"
+                  style={{ background: CHART_COLORS[providerIndex % CHART_COLORS.length] }}
+                />
+                {provider}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
 /**
  * Registry of section-id → custom panel. main.tsx renders the panel in place of
  * the generic table when an entry exists. Populated one Batch-F point at a time.
@@ -857,4 +1012,5 @@ export const CUSTOM_PANELS: Record<string, React.ComponentType<PanelProps>> = {
   'ai-models': AiModelsPanel,
   previews: PreviewsPanel,
   'abuse-events': AbuseEventsPanel,
+  costs: CostsPanel,
 };
