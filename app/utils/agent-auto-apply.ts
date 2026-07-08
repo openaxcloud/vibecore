@@ -78,7 +78,7 @@ export function isRiskyAgentPatchPath(relativePath: string | null | undefined): 
 }
 
 export interface AutoApplyDecisionInput {
-  /** Legacy caller input kept for compatibility; policy is always enabled. */
+  /** Whether auto-apply is enabled (the inverse of "require review of AI changes"). */
   autoApplyEnabled: boolean;
 
   /** Current proposal status — only `'pending'` is eligible for auto-apply. */
@@ -97,11 +97,13 @@ export interface AutoApplyAttemptKeyInput {
 }
 
 /**
- * Returns true only when the proposal is still pending. Auto-apply is a
- * fixed product policy, so the legacy `autoApplyEnabled` input is ignored.
+ * Auto-apply a proposal only when auto-apply is enabled AND the proposal is
+ * still pending. When the user has turned ON "Require review of AI changes"
+ * (`autoApplyEnabled === false`) the proposal stays pending for the review
+ * queue instead of being accepted silently.
  */
 export function shouldAutoApplyPatch(input: AutoApplyDecisionInput): boolean {
-  return input.status === 'pending';
+  return input.autoApplyEnabled && input.status === 'pending';
 }
 
 /**

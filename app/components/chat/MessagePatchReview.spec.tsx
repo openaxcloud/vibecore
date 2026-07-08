@@ -6,7 +6,7 @@ import { cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { MessagePatchReview } from './MessagePatchReview';
-import { AGENT_AUTO_APPLY_STORAGE_KEY } from '~/lib/hooks/useAutoApplyEnabled';
+import { REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY } from '~/lib/hooks/useAutoApplyEnabled';
 import type { FileActionDiff } from '~/lib/hooks/useFileActionDiff';
 import type { FileActionBlock } from '~/types/message-blocks';
 import { buildReviewableDiffHunks, summarizeReviewableDiffHunks } from '~/utils/diff';
@@ -64,7 +64,7 @@ const MESSAGE_WITH_TWO_FILES = [
 
 describe('<MessagePatchReview />', () => {
   afterEach(() => {
-    window.localStorage.removeItem(AGENT_AUTO_APPLY_STORAGE_KEY);
+    window.localStorage.removeItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY);
     cleanup();
   });
 
@@ -75,8 +75,8 @@ describe('<MessagePatchReview />', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders nothing when auto-apply is enabled', () => {
-    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'true');
+  it('renders nothing when review is not required (auto-apply enabled)', () => {
+    window.localStorage.setItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, 'false');
 
     const { container } = render(
       <MessagePatchReview messageId="m-auto" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />,
@@ -84,13 +84,14 @@ describe('<MessagePatchReview />', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders nothing even when legacy storage says auto-apply is disabled', () => {
-    window.localStorage.setItem(AGENT_AUTO_APPLY_STORAGE_KEY, 'false');
+  it('renders the review panel when the user requires review of AI changes', () => {
+    window.localStorage.setItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, 'true');
 
     const { container } = render(
-      <MessagePatchReview messageId="m-legacy" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />,
+      <MessagePatchReview messageId="m-review" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />,
     );
-    expect(container.firstChild).toBeNull();
+    expect(container.firstChild).not.toBeNull();
+    expect(container.querySelector('.bolt-message-patch-review')).not.toBeNull();
   });
 
   it('renders nothing when the message has no file actions', () => {
