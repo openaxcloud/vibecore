@@ -11,6 +11,16 @@ export interface PlaywrightRendererOptions {
   navTimeoutMs?: number;
   /** Extra settle time after network idle for late paints/animations. */
   settleMs?: number;
+  /*
+   * In-cluster base URL of the preview-proxy (e.g. `http://preview-proxy:3020`).
+   * When set, requests to a preview host (see previewHostSuffixes) are routed to
+   * this proxy with the original Host preserved — avoiding the in-cluster→public-LB
+   * hairpin that makes the public preview URL unreachable from this pod. Unset =
+   * navigate the URL directly (dev/local).
+   */
+  previewProxyUrl?: string;
+  /** Host suffixes that identify a preview to route through previewProxyUrl. */
+  previewHostSuffixes?: string[];
 }
 
 export class PlaywrightPageRenderer implements PageRenderer {
@@ -54,6 +64,37 @@ export class PlaywrightPageRenderer implements PageRenderer {
     });
 
     try {
+      /*
+       * Route preview requests through the in-cluster preview-proxy. The public
+       * preview URL resolves to the cluster's own external LB, which an in-cluster
+       * pod can't reach (hairpin). We rewrite the URL to the internal proxy while
+       * PRESERVING the original Host header — the proxy routes by Host, so it lands
+       * on the right workspace. Covers the document AND all subresources (JS/CSS/
+       * assets are loaded from the same preview host). The SSRF allowlist has
+       * already vetted the input URL in app.ts, so this only redirects vetted hosts.
+       */
+      const proxyBase = this.options.previewProxyUrl;
+      const suffixes = this.options.previewHostSuffixes ?? [];
+
+      if (proxyBase && suffixes.length > 0) {
+        const proxy = new URL(proxyBase);
+
+        await context.route('**/*', async (route) => {
+          const requestUrl = new URL(route.request().url());
+          const host = requestUrl.hostname.toLowerCase();
+          const isPreview = suffixes.some((suffix) => host === suffix || host.endsWith(`.${suffix}`));
+
+          if (!isPreview) {
+            await route.continue();
+            return;
+          }
+
+          const target = `${proxy.protocol}//${proxy.host}${requestUrl.pathname}${requestUrl.search}`;
+          // Preserve the original preview Host (incl. any port) so the proxy routes correctly.
+          await route.continue({ url: target, headers: { ...route.request().headers(), host: requestUrl.host } });
+        });
+      }
+
       const page = await context.newPage();
       // Use 'load', NOT 'networkidle': a preview is a Vite/HMR app that holds a
       // persistent HMR WebSocket open, so the network is never idle and

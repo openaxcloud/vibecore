@@ -7,19 +7,25 @@ import { PlaywrightPageRenderer } from './browser.js';
  * "preview.e-code.ai,e-code.app") so /capture can't be abused as an open renderer
  * against internal addresses.
  */
+const allowedHostSuffixes = (process.env.SCREENSHOTTER_ALLOWED_HOSTS ?? '')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
+
 const renderer = new PlaywrightPageRenderer({
   navTimeoutMs: Number(process.env.SCREENSHOTTER_NAV_TIMEOUT_MS ?? 15_000),
   settleMs: Number(process.env.SCREENSHOTTER_SETTLE_MS ?? 500),
+  // Route preview hosts through the in-cluster preview-proxy (avoids the hairpin).
+  // Same suffixes as the SSRF allowlist: an allowed preview host is proxied.
+  previewProxyUrl: process.env.SCREENSHOTTER_PREVIEW_PROXY_URL?.trim() || undefined,
+  previewHostSuffixes: allowedHostSuffixes,
 });
 
 const app = await buildScreenshotterApp({
   logger: true,
   renderer,
   sharedSecret: process.env.SCREENSHOTTER_SHARED_SECRET,
-  allowedHostSuffixes: (process.env.SCREENSHOTTER_ALLOWED_HOSTS ?? '')
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean),
+  allowedHostSuffixes,
   maxConcurrency: Number(process.env.SCREENSHOTTER_MAX_CONCURRENCY ?? 2),
   width: Number(process.env.SCREENSHOTTER_WIDTH ?? 1280),
   height: Number(process.env.SCREENSHOTTER_HEIGHT ?? 800),

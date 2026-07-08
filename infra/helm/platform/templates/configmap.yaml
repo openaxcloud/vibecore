@@ -24,6 +24,10 @@ data:
   # the screenshotter's own SSRF allowlist (only read by that pod).
   SCREENSHOTTER_URL: {{ .Values.platformEnv.screenshotterUrl | default "" | quote }}
   SCREENSHOTTER_ALLOWED_HOSTS: {{ .Values.platformEnv.screenshotterAllowedHosts | default "" | quote }}
+  # In-cluster preview-proxy base URL. When set, the screenshotter routes preview
+  # requests through it (preserving Host) instead of the public preview URL, which
+  # an in-cluster pod can't reach (hairpin to the cluster's own external LB).
+  SCREENSHOTTER_PREVIEW_PROXY_URL: {{ .Values.platformEnv.screenshotterPreviewProxyUrl | default "" | quote }}
   {{- if .Values.platformEnv.publicApiBaseUrl }}
   PUBLIC_API_BASE_URL: {{ .Values.platformEnv.publicApiBaseUrl | quote }}
   {{- end }}
