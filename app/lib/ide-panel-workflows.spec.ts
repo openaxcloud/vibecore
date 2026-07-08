@@ -144,6 +144,37 @@ describe('runWorkflowSteps — sequential multi-step', () => {
     expect(run.steps[0]).toMatchObject({ status: 'succeeded', command: 'npm run dev' });
   });
 
+  it('runs ONLY the selected workflow when several exist (Run now targets the right one)', async () => {
+    const target = makeWorkflow({
+      id: 7,
+      name: 'Deploy',
+      tasks: [{ id: 71, orderIndex: 0, taskType: 'shell', command: 'deploy', targetWorkflowId: null }],
+    });
+    const sibling = makeWorkflow({
+      id: 8,
+      name: 'Test',
+      tasks: [{ id: 81, orderIndex: 0, taskType: 'shell', command: 'run-tests', targetWorkflowId: null }],
+    });
+
+    const state: WorkflowStateLike = { workflows: [target, sibling], runs: [] };
+    const { exec, calls } = scriptedExecutor({ deploy: { exitCode: 0, output: 'deployed' } });
+
+    const run = await runWorkflowSteps({
+      state,
+      workflow: target,
+      execCommand: exec,
+      startedAt: fixedNow()(),
+      now: fixedNow(),
+      makeId: fixedId(),
+    });
+
+    // The sibling workflow's command must never be dispatched.
+    expect(calls).toEqual(['deploy']);
+    expect(run.workflowId).toBe(7);
+    expect(run.steps).toHaveLength(1);
+    expect(run.steps[0]).toMatchObject({ taskId: 71, status: 'succeeded' });
+  });
+
   it('skips a disabled workflow without executing anything', async () => {
     const workflow = makeWorkflow({
       enabled: false,

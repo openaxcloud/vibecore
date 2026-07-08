@@ -16201,12 +16201,15 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
             {workflow.isRunButton && <em data-kind="run-button">Run Button</em>}
             {workflow.isGenerated && <em data-kind="generated">Generated</em>}
             {workflow.lastRunStatus && <em data-status={workflow.lastRunStatus}>{workflow.lastRunStatus}</em>}
-            <form onSubmit={onSubmit}>
+            <form onSubmit={onSubmit} className="bolt-project-workflow-run-now">
               <input type="hidden" name="intent" value="run-workflow" />
               <input type="hidden" name="workflowId" value={workflow.id} />
-              <PanelButton disabled={busy || workflow.enabled === false}>
+              <PanelButton
+                disabled={busy || workflow.enabled === false}
+                data-testid={`workflow-run-now-${workflow.id}`}
+              >
                 <span className="i-ph:play" aria-hidden />
-                Run
+                Run now
               </PanelButton>
             </form>
           </div>
