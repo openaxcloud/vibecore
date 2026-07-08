@@ -1160,16 +1160,16 @@ export function StatGrid({
 
         const cardBody = (
           <>
-            <CardHeader className="pb-3">
+            <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-3">
               <div className="flex items-center justify-between">
                 <CardDescription>{stat.label}</CardDescription>
                 <span className="flex h-8 w-8 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
                   <Icon className="h-4 w-4 text-bolt-elements-textSecondary" aria-hidden />
                 </span>
               </div>
-              <CardTitle className="text-3xl">{stat.value}</CardTitle>
+              <CardTitle className="text-2xl sm:text-3xl">{stat.value}</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
               <p className="text-xs text-bolt-elements-textSecondary">{stat.detail}</p>
             </CardContent>
           </>
