@@ -125,3 +125,21 @@ export function shouldAutoRunPreview(input: {
 }): boolean {
   return (!input.isMobileWorkbench && input.hasProject) || input.isPreviewTabActive;
 }
+
+/**
+ * Whether the not-ready → ready auto-reload should actually fire.
+ *
+ * The readiness of a remote preview port is driven by an HTTP probe on the API
+ * (`probePortReady`), so `ready` legitimately FLAPS false ↔ true whenever the dev
+ * server is briefly slow to answer — vite re-optimizing deps, a GC pause, CPU
+ * contention on the gVisor node. The auto-reload exists ONLY to rescue a frame
+ * that loaded the upstream "dev server is starting / 502" holding page before the
+ * server was serving. Once the iframe has genuinely RENDERED the app, replaying a
+ * full reload on every subsequent probe flap is the preview FLICKER Avi filmed
+ * (app → black → app → black). So reload on the ready edge only while the frame is
+ * NOT yet showing the app; a real dev-server death removes the port entirely (a
+ * `close` event resets the frame), which is a different, correctly-handled path.
+ */
+export function shouldReloadPreviewOnReadyEdge(input: { readyEdgeReload: boolean; frameRendered: boolean }): boolean {
+  return input.readyEdgeReload && !input.frameRendered;
+}
