@@ -749,6 +749,37 @@ const projectKeyValueSchema = z.object({
 });
 
 const projectKeySchema = projectKeyValueSchema.pick({ key: true });
+
+// Environment variables additionally carry a deployment scope (F11). Scope is
+// optional on the wire so pre-scope clients keep working; it defaults to
+// production in the store when omitted.
+const envVarScopeSchema = z.enum(['development', 'preview', 'production']);
+const projectEnvVarUpsertSchema = projectKeyValueSchema.extend({ scope: envVarScopeSchema.optional() });
+const projectEnvVarDeleteSchema = projectKeySchema.extend({ scope: envVarScopeSchema.optional() });
+
+/*
+ * A key can now hold a different value per scope, so building the flat runtime
+ * env map for the live IDE workspace needs a deterministic winner per key. The
+ * IDE workspace is the *development* runtime, so development wins, then we fall
+ * back to production (the pre-scope default every legacy row carries) and
+ * finally preview. This keeps behaviour identical for existing production-only
+ * rows while letting a development-scoped override apply in the workspace.
+ */
+function collapseEnvForWorkspace(records: Array<{ key: string; value: string; scope?: string }>): Record<string, string> {
+  const priority: Record<string, number> = { development: 3, production: 2, preview: 1 };
+  const winners = new Map<string, { value: string; rank: number }>();
+
+  for (const record of records) {
+    const rank = priority[record.scope ?? 'production'] ?? 2;
+    const current = winners.get(record.key);
+
+    if (!current || rank > current.rank) {
+      winners.set(record.key, { value: record.value, rank });
+    }
+  }
+
+  return Object.fromEntries([...winners.entries()].map(([key, { value }]) => [key, value]));
+}
 const databaseConnectionQuerySchema = z.object({ key: z.string().min(1).max(160) });
 
 const databaseQuerySchema = z.object({
@@ -11776,7 +11807,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       store.listProjectSecrets(authorized.projectId),
     ]);
 
-    const env = Object.fromEntries(projectEnvVars.map((entry) => [entry.key, entry.value]));
+    const env = collapseEnvForWorkspace(projectEnvVars);
     const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
     const allowedSecrets = await resolveProjectSecretValues(store, authorized.projectId).catch(() => undefined);
 
@@ -13306,7 +13337,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       store.listProjectSecrets(authorized.projectId),
     ]);
 
-    const env = Object.fromEntries(projectEnvVars.map((entry) => [entry.key, entry.value]));
+    const env = collapseEnvForWorkspace(projectEnvVars);
     const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
     const allowedSecrets = await resolveProjectSecretValues(store, authorized.projectId);
 
@@ -13535,7 +13566,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       store.listProjectSecrets(authorized.projectId),
     ]);
 
-    const env = Object.fromEntries(projectEnvVars.map((entry) => [entry.key, entry.value]));
+    const env = collapseEnvForWorkspace(projectEnvVars);
     const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
     const allowedSecrets = await resolveProjectSecretValues(store, authorized.projectId);
 
@@ -17763,20 +17794,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
     );
 
-    const body = parse(projectKeyValueSchema, request.body);
-    const envVar = await store.upsertProjectEnvVar({ projectId: project.id, key: body.key, value: body.value });
+    const body = parse(projectEnvVarUpsertSchema, request.body);
+    const envVar = await store.upsertProjectEnvVar({
+      projectId: project.id,
+      key: body.key,
+      value: body.value,
+      scope: body.scope,
+    });
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
       action: 'project.env.upsert',
-      metadata: { key: body.key },
+      metadata: { key: body.key, scope: envVar.scope },
     });
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'project.env.upsert',
       resourceType: 'projectEnvironment',
       resourceId: envVar.id,
-      metadata: { key: body.key },
+      metadata: { key: body.key, scope: envVar.scope },
     });
 
     return { envVar };
@@ -17789,8 +17825,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
     );
 
-    const body = parse(projectKeySchema, request.body);
-    const envVar = await store.deleteProjectEnvVar(project.id, body.key);
+    const body = parse(projectEnvVarDeleteSchema, request.body);
+    const envVar = await store.deleteProjectEnvVar(project.id, body.key, body.scope);
 
     if (!envVar) {
       return reply.code(404).send({ error: 'Environment variable not found', code: 'PROJECT_ENV_NOT_FOUND' });
@@ -17800,14 +17836,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       projectId: project.id,
       actorUserId: request.currentUser!.id,
       action: 'project.env.delete',
-      metadata: { key: body.key },
+      metadata: { key: body.key, scope: envVar.scope },
     });
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'project.env.delete',
       resourceType: 'projectEnvironment',
       resourceId: envVar.id,
-      metadata: { key: body.key },
+      metadata: { key: body.key, scope: envVar.scope },
     });
 
     return { envVar };
@@ -23701,7 +23737,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       store.listProjectSecrets(record.projectId),
     ]);
 
-    const env = Object.fromEntries(projectEnvVars.map((entry) => [entry.key, entry.value]));
+    const env = collapseEnvForWorkspace(projectEnvVars);
     const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
     const allowedSecrets = await resolveProjectSecretValues(store, record.projectId);
 

@@ -330,6 +330,7 @@ exports.Prisma.ProjectEnvVarScalarFieldEnum = {
   projectId: 'projectId',
   key: 'key',
   value: 'value',
+  scope: 'scope',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
