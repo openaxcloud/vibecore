@@ -74,7 +74,7 @@ describe('admin wallet adjust', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it('requires a reason (400)', async () => {
+  it('requires a reason — missing (400 WALLET_ADJUST_REASON_REQUIRED)', async () => {
     const { app, org } = await setup();
 
     const res = await app.inject({
@@ -84,6 +84,41 @@ describe('admin wallet adjust', () => {
       payload: { deltaCents: 100 },
     });
     expect(res.statusCode).toBe(400);
+    expect(res.json().code).toBe('WALLET_ADJUST_REASON_REQUIRED');
+  });
+
+  it('rejects a whitespace-only reason (400 WALLET_ADJUST_REASON_REQUIRED)', async () => {
+    const { app, org } = await setup();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/admin/wallets/${org.id}/adjust`,
+      headers: auth('admin-token'),
+      payload: { deltaCents: 100, reason: '   ' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().code).toBe('WALLET_ADJUST_REASON_REQUIRED');
+  });
+
+  it('succeeds with a reason and persists the trimmed reason in the ledger', async () => {
+    const { app, org } = await setup();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/admin/wallets/${org.id}/adjust`,
+      headers: auth('admin-token'),
+      payload: { deltaCents: 100, reason: '  goodwill credit  ' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().entry).toMatchObject({ kind: 'ADJUSTMENT', reason: 'goodwill credit' });
+
+    const ledger = await app.inject({
+      method: 'GET',
+      url: `/admin/wallets/${org.id}/ledger`,
+      headers: auth('admin-token'),
+    });
+    const entries = ledger.json().ledger as Array<{ reason: string }>;
+    expect(entries.map((entry) => entry.reason)).toContain('goodwill credit');
   });
 
   it('rejects a non-platform-admin caller (403)', async () => {
