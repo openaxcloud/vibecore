@@ -28,13 +28,13 @@ export class PlaywrightPageRenderer implements PageRenderer {
     if (!this.#launching) {
       this.#launching = chromium
         .launch({ headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] })
-        .then((browser) => {
+        .then((browser: Browser) => {
           this.#browser = browser;
           this.#launching = undefined;
 
           return browser;
         })
-        .catch((error) => {
+        .catch((error: unknown) => {
           this.#launching = undefined;
           throw error;
         });
