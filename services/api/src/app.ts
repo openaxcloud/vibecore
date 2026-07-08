@@ -25965,6 +25965,127 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { logs: deployment.logs.map((log) => ({ ...log, message: redactDeploymentLog(log.message) })) };
   });
+  /*
+   * P2: live build-log + status stream (SSE). Tails the deployment record — which
+   * the async build flushes to incrementally — and pushes new log lines + status
+   * / phase changes to the client so the Logs tab is never a frozen screen.
+   * Closes when the deploy is terminal (READY/FAILED/CANCELED), the client hangs
+   * up, or a hard 20-min safety cap is hit. EventSource carries the session cookie
+   * (same-origin), and the auth layer also accepts ?token= for text/event-stream.
+   */
+  app.get('/projects/:projectId/deployments/:deploymentId/logs/stream', async (request, reply) => {
+    const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:read');
+    const initial = await store.getDeployment(project.id, deploymentId);
+
+    if (!initial) {
+      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      // Defeat proxy buffering (nginx) so events arrive as they're written.
+      'X-Accel-Buffering': 'no',
+    });
+    reply.hijack();
+
+    const terminalStatuses = new Set(['READY', 'FAILED', 'CANCELED']);
+    let sentLogCount = 0;
+    let lastStatus = '';
+    let lastPhase = '';
+    let closed = false;
+    let pollTimer: ReturnType<typeof setInterval> | undefined;
+    let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+    let lifetimeTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const send = (event: string, data: unknown) => {
+      if (closed) {
+        return;
+      }
+
+      try {
+        reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      } catch {
+        end();
+      }
+    };
+
+    function end() {
+      if (closed) {
+        return;
+      }
+
+      closed = true;
+
+      if (pollTimer) {
+        clearInterval(pollTimer);
+      }
+
+      if (heartbeatTimer) {
+        clearInterval(heartbeatTimer);
+      }
+
+      if (lifetimeTimer) {
+        clearTimeout(lifetimeTimer);
+      }
+
+      try {
+        reply.raw.end();
+      } catch {
+        // already closed
+      }
+    }
+
+    const tick = async () => {
+      if (closed) {
+        return;
+      }
+
+      const dep = await store.getDeployment(project.id, deploymentId).catch(() => undefined);
+
+      if (!dep) {
+        send('error', { message: 'Deployment not found' });
+        end();
+
+        return;
+      }
+
+      const logs = Array.isArray(dep.logs) ? dep.logs : [];
+
+      if (logs.length > sentLogCount) {
+        const delta = logs
+          .slice(sentLogCount)
+          .map((log) => ({ ...log, message: redactDeploymentLog(log.message) }));
+        sentLogCount = logs.length;
+        send('logs', delta);
+      }
+
+      const phase = ((dep.metadata as Record<string, unknown> | null)?.phase as string | undefined) ?? '';
+
+      if (dep.status !== lastStatus || phase !== lastPhase) {
+        lastStatus = dep.status;
+        lastPhase = phase;
+        send('status', { status: dep.status, phase, url: dep.url });
+      }
+
+      if (terminalStatuses.has(dep.status)) {
+        send('done', { status: dep.status, url: dep.url });
+        end();
+      }
+    };
+
+    request.raw.on('close', end);
+    pollTimer = setInterval(() => void tick(), 1000);
+    heartbeatTimer = setInterval(() => send('ping', { t: 0 }), 15000);
+    lifetimeTimer = setTimeout(end, 20 * 60 * 1000);
+
+    // Emit the current state immediately so a late subscriber isn't blank for 1s.
+    await tick();
+
+    return reply;
+  });
   app.post('/projects/:projectId/deployments/:deploymentId/cancel', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
     const project = await requireProject(request, store, projectId, 'projects:write');
