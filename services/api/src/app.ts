@@ -26902,6 +26902,45 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { auditLogs };
   });
 
+  /*
+   * F17: Team access log. Teams have no distinct model in this platform — a
+   * "team" IS an organization (teams.new → create-organization flow, the team
+   * surface routes key off the org id). So the team access log REUSES the
+   * immutable AuditLog trail scoped to that team/org's id, no new table. The
+   * `:teamId` path param is the organization id; membership + permission are
+   * enforced exactly like the org audit-log endpoints above (`org:read` to view,
+   * the stronger `audit:export` to download). A non-member gets 404 from
+   * requireOrg (no org disclosure), a member without export gets 403.
+   */
+  const teamParams = z.object({ teamId: z.string().min(1) });
+
+  app.get('/teams/:teamId/access-log', async (request) => {
+    const { teamId } = parse(teamParams, request.params);
+    await requireOrg(request, store, teamId, 'org:read');
+
+    return { accessLog: await store.listAuditLogs(teamId) };
+  });
+  app.get('/teams/:teamId/access-log/export', async (request, reply) => {
+    const { teamId } = parse(teamParams, request.params);
+    const { format } = parse(z.object({ format: z.enum(['json', 'csv']).default('json') }), request.query ?? {});
+    await requireOrg(request, store, teamId, 'audit:export');
+
+    const accessLog = await store.listAuditLogs(teamId);
+    await audit(request, store, {
+      organizationId: teamId,
+      action: 'team.access-log.export',
+      resourceType: 'auditLog',
+      metadata: { format },
+    });
+
+    if (format === 'csv') {
+      reply.header('content-type', 'text/csv');
+      return auditEventsToCsv(accessLog);
+    }
+
+    return { accessLog };
+  });
+
   app.get('/scim/v2/:orgId/Users', async (request, reply) => {
     const token = bearerToken(request);
     const { orgId } = parse(orgParams, request.params);
