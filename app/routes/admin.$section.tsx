@@ -17,6 +17,7 @@ import {
   requirePlatformAdmin,
   sessionCookie,
 } from '~/lib/enterprise-api.server';
+import { errorRateTone, moveItem } from '~/utils/admin-provider-metrics';
 
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
@@ -377,6 +378,16 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     return { section, config, payload };
   }
 
+  /*
+   * F18 providers: the panel is an ordered, actionable list, so it reads the
+   * fallback-order endpoint (saved order first + per-provider enabled state +
+   * p95/error thresholds) instead of the flat /admin/providers toggle list.
+   */
+  if (section === 'providers') {
+    const payload = await apiRequest<Record<string, JsonValue>>(request, '/admin/providers/fallback-order');
+    return { section, config, payload };
+  }
+
   // Sections without an endpoint (developer-tools) render self-fetching panels.
   const payload = config.endpoint
     ? await apiRequest<Record<string, JsonValue>>(request, config.endpoint)
@@ -482,6 +493,30 @@ export async function action({ request }: EnterpriseActionArgs) {
       });
 
       return json({ ok: true, rowId: provider, message: `Provider ${enabled ? 'enabled' : 'disabled'}.` });
+    }
+
+    // F18: persist a new provider fallback order (the full reordered name list).
+    if (intent === 'provider-reorder') {
+      let order: string[];
+
+      try {
+        const parsed = JSON.parse(String(form.get('order') ?? '[]'));
+        order = Array.isArray(parsed) ? parsed.map(String) : [];
+      } catch {
+        return json({ ok: false, rowId: 'fallback-order', error: 'Invalid order.' }, { status: 400 });
+      }
+
+      if (order.length === 0) {
+        return json({ ok: false, rowId: 'fallback-order', error: 'Order is empty.' }, { status: 400 });
+      }
+
+      await apiRequest(request, '/admin/providers/fallback-order', {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({ order }),
+      });
+
+      return json({ ok: true, rowId: 'fallback-order', message: 'Fallback order updated.' });
     }
 
     if (intent === 'model-toggle') {
@@ -1030,7 +1065,7 @@ export default function AdminSectionPage() {
           {section === 'health' ? <HealthPanel payload={payload} /> : null}
           {section === 'monitoring' ? <MonitoringPanel payload={payload} /> : null}
           {section === 'users' ? <UsersPanel payload={payload} /> : null}
-          {section === 'providers' ? <ToggleListPanel payload={payload} kind="providers" /> : null}
+          {section === 'providers' ? <ProvidersPanel payload={payload} /> : null}
           {section === 'models' ? <ToggleListPanel payload={payload} kind="models" /> : null}
           {section === 'feature-flags' ? <ToggleListPanel payload={payload} kind="feature-flags" /> : null}
           {section === 'oauth-providers' ? <OauthProvidersPanel payload={payload} /> : null}
@@ -2477,6 +2512,219 @@ function StatusPill({
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${tones[tone]}`}>
       {children}
     </span>
+  );
+}
+
+type AdminProviderRow = {
+  provider: string;
+  displayName: string;
+  enabled: boolean;
+  p95Ms?: number;
+  errorPct?: number;
+};
+
+type ProviderThresholds = { warnErrorPct: number; errorErrorPct: number };
+
+/*
+ * F18: AI providers panel. Replaces the flat provider toggle with an ordered,
+ * actionable list. Each row can be enabled/disabled (real /admin/providers/toggle)
+ * and reordered ↑/↓ — the reorder persists the whole name list to the
+ * `providers.fallbackOrder` system setting (POST /admin/providers/fallback-order),
+ * which the gateway's enabled-provider resolution (/providers/enabled) honors.
+ * p95 latency and 24h error-rate render with warn (≥2%) / error (≥5%) thresholds;
+ * they show “no data” until per-request provider instrumentation lands (the API
+ * reports metricsAvailable:false rather than fabricating numbers). Step-up
+ * protected like the other operational panels.
+ */
+function ProvidersPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const providers = (Array.isArray(payload.providers) ? payload.providers : []) as AdminProviderRow[];
+  const metricsAvailable = payload.metricsAvailable === true;
+
+  const thresholds: ProviderThresholds =
+    payload.thresholds && typeof payload.thresholds === 'object' && !Array.isArray(payload.thresholds)
+      ? {
+          warnErrorPct: Number((payload.thresholds as Record<string, JsonValue>).warnErrorPct) || 2,
+          errorErrorPct: Number((payload.thresholds as Record<string, JsonValue>).errorErrorPct) || 5,
+        }
+      : { warnErrorPct: 2, errorErrorPct: 5 };
+
+  const [password, setPassword] = useState('');
+  const reorder = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const reordering = reorder.state !== 'idle';
+
+  const order = providers.map((provider) => provider.provider);
+
+  const move = (index: number, dir: -1 | 1) => {
+    const next = moveItem(order, index, dir);
+
+    if (next === order) {
+      return;
+    }
+
+    reorder.submit({ intent: 'provider-reorder', order: JSON.stringify(next), password }, { method: 'post' });
+  };
+
+  return (
+    <div className="grid gap-4">
+      <ReauthHeader
+        password={password}
+        onChange={setPassword}
+        hint="Provider changes are step-up protected. Enter your password once, then enable/disable a provider or reorder the fallback priority below. The gateway tries enabled providers top-to-bottom."
+      />
+
+      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="font-semibold text-bolt-elements-textPrimary">24h error-rate thresholds</span>
+          <StatusPill tone="warn">warn ≥ {thresholds.warnErrorPct}%</StatusPill>
+          <StatusPill tone="danger">error ≥ {thresholds.errorErrorPct}%</StatusPill>
+        </div>
+        {!metricsAvailable ? (
+          <p className="mt-2 text-xs text-bolt-elements-textTertiary">
+            Per-request provider metrics are not recorded yet, so p95 latency and 24h error-rate show “no data”.
+            Fallback order below is fully live.
+          </p>
+        ) : null}
+        <RowFeedback data={reorder.data} />
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
+        <table className="w-full min-w-[760px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
+              <th className="px-4 py-3 font-medium">Priority</th>
+              <th className="px-4 py-3 font-medium">Provider</th>
+              <th className="px-4 py-3 font-medium">State</th>
+              <th className="px-4 py-3 font-medium">p95 latency</th>
+              <th className="px-4 py-3 font-medium">24h errors</th>
+            </tr>
+          </thead>
+          <tbody>
+            {providers.length === 0 ? (
+              <tr>
+                <td className="px-4 py-3 text-bolt-elements-textSecondary" colSpan={5}>
+                  No providers found.
+                </td>
+              </tr>
+            ) : (
+              providers.map((row, index) => (
+                <ProviderRow
+                  key={row.provider}
+                  row={row}
+                  index={index}
+                  count={providers.length}
+                  password={password}
+                  metricsAvailable={metricsAvailable}
+                  thresholds={thresholds}
+                  reordering={reordering}
+                  onMove={move}
+                />
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ProviderRow({
+  row,
+  index,
+  count,
+  password,
+  metricsAvailable,
+  thresholds,
+  reordering,
+  onMove,
+}: {
+  row: AdminProviderRow;
+  index: number;
+  count: number;
+  password: string;
+  metricsAvailable: boolean;
+  thresholds: ProviderThresholds;
+  reordering: boolean;
+  onMove: (index: number, dir: -1 | 1) => void;
+}) {
+  const toggle = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const toggling = toggle.state !== 'idle';
+  const enabled = row.enabled;
+
+  const p95Label = metricsAvailable && typeof row.p95Ms === 'number' ? `${row.p95Ms} ms` : '—';
+  const errPct = metricsAvailable && typeof row.errorPct === 'number' ? row.errorPct : undefined;
+  const errTone = errPct === undefined ? 'muted' : errorRateTone(errPct, thresholds);
+
+  return (
+    <tr className="border-b border-bolt-elements-borderColor align-top last:border-b-0">
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="w-5 text-xs font-medium text-bolt-elements-textSecondary">{index + 1}</span>
+          <div className="flex flex-col gap-0.5">
+            <button
+              type="button"
+              className={ROW_BTN}
+              disabled={reordering || !password || index === 0}
+              aria-label={`Move ${row.displayName} up`}
+              data-testid={`provider-up-${row.provider}`}
+              onClick={() => onMove(index, -1)}
+            >
+              <span className="i-ph:arrow-up" aria-hidden />
+            </button>
+            <button
+              type="button"
+              className={ROW_BTN}
+              disabled={reordering || !password || index === count - 1}
+              aria-label={`Move ${row.displayName} down`}
+              data-testid={`provider-down-${row.provider}`}
+              onClick={() => onMove(index, 1)}
+            >
+              <span className="i-ph:arrow-down" aria-hidden />
+            </button>
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <div className="font-medium text-bolt-elements-textPrimary">{row.displayName}</div>
+        <div className="text-xs text-bolt-elements-textSecondary">{row.provider}</div>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusPill tone={enabled ? 'ok' : 'muted'}>{enabled ? 'enabled' : 'disabled'}</StatusPill>
+          <button
+            type="button"
+            className={ROW_BTN}
+            disabled={toggling || !password}
+            data-testid={`provider-toggle-${row.provider}`}
+            onClick={() =>
+              toggle.submit(
+                {
+                  intent: 'provider-toggle',
+                  provider: row.provider,
+                  displayName: row.displayName,
+                  value: String(!enabled),
+                  password,
+                },
+                { method: 'post' },
+              )
+            }
+          >
+            {toggling ? '…' : enabled ? 'Disable' : 'Enable'}
+          </button>
+        </div>
+        {!password ? (
+          <p className="mt-1.5 text-xs text-bolt-elements-textTertiary">Enter your password above first.</p>
+        ) : null}
+        <RowFeedback data={toggle.data} />
+      </td>
+      <td className="px-4 py-3 text-bolt-elements-textSecondary">{p95Label}</td>
+      <td className="px-4 py-3">
+        {errPct === undefined ? (
+          <span className="text-bolt-elements-textTertiary">—</span>
+        ) : (
+          <StatusPill tone={errTone}>{errPct.toFixed(1)}%</StatusPill>
+        )}
+      </td>
+    </tr>
   );
 }
 

@@ -21970,10 +21970,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /*
-   * The set of provider DISPLAY NAMES enabled for the user model selector. Read
-   * server-side by the web (/api/models + /projects/new loader) to hide providers
-   * an admin disabled. Any authenticated user; returns no secrets. A known provider
-   * with no row yet is treated as enabled (fail-open).
+   * The set of provider DISPLAY NAMES enabled for the user model selector, in the
+   * admin-configured fallback order (F18). Read server-side by the web (/api/models
+   * + /projects/new loader) to hide providers an admin disabled and to try them in
+   * the operator's preferred priority. Any authenticated user; returns no secrets.
+   * A known provider with no row yet is treated as enabled (fail-open). The order
+   * mirrors GET /admin/providers/fallback-order: saved order first, then any known
+   * provider not yet placed — so resolution honors the same order the admin sees.
    */
   app.get('/providers/enabled', async (request: any) => {
     if (!request.currentUser) {
@@ -21981,8 +21984,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const byName = new Map((await store.listProviderConfigs()).map((p) => [p.provider, p.enabled] as const));
+    const saved = (await store.listSystemSettings()).find((s) => s.key === 'providers.fallbackOrder')?.value;
+    const savedOrder = Array.isArray(saved)
+      ? saved.filter((value): value is string => typeof value === 'string' && KNOWN_LLM_PROVIDER_SET.has(value))
+      : [];
+    const order = [...savedOrder, ...KNOWN_LLM_PROVIDERS.filter((name) => !savedOrder.includes(name))];
 
-    return { providers: KNOWN_LLM_PROVIDERS.filter((name) => byName.get(name) !== false) };
+    return { providers: order.filter((name) => byName.get(name) !== false) };
   });
 
   app.get('/admin/models', async (request) => {
