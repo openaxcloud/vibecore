@@ -86,6 +86,9 @@ import type {
   WorkspaceRecord,
   QuotaOverrideRecord,
   AdminAuditLogRecord,
+  InstalledSkillRecord,
+  InstalledSkillScope,
+  InstallSkillInput,
 } from '../store.js';
 
 function id(prefix: string) {
@@ -1237,6 +1240,80 @@ export class TestApiStore implements ApiStore {
     this.projectSkillOverrides.set(`${input.projectId}:${input.skillId}`, record);
 
     return record;
+  }
+
+  readonly installedSkills = new Map<string, InstalledSkillRecord>();
+
+  #installedSkillKey(scope: InstalledSkillScope, scopeId: string, ownerRepo: string) {
+    return `${scope}:${scopeId}:${ownerRepo}`;
+  }
+
+  async listInstalledSkills(scope: InstalledSkillScope, scopeId: string): Promise<InstalledSkillRecord[]> {
+    return [...this.installedSkills.values()]
+      .filter((row) => row.scope === scope && row.scopeId === scopeId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  async installSkill(input: InstallSkillInput): Promise<{ record: InstalledSkillRecord; created: boolean }> {
+    const key = this.#installedSkillKey(input.scope, input.scopeId, input.ownerRepo);
+    const existing = this.installedSkills.get(key);
+
+    if (existing) {
+      return { record: existing, created: false };
+    }
+
+    const now = new Date().toISOString();
+    const record: InstalledSkillRecord = {
+      id: id('iskill'),
+      scope: input.scope,
+      scopeId: input.scopeId,
+      ownerRepo: input.ownerRepo,
+      name: input.name,
+      description: input.description,
+      instructions: input.instructions,
+      homepageUrl: input.homepageUrl ?? null,
+      enabled: true,
+      installedByUserId: input.installedByUserId ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this.installedSkills.set(key, record);
+
+    return { record, created: true };
+  }
+
+  async uninstallSkill(scope: InstalledSkillScope, scopeId: string, ownerRepo: string): Promise<boolean> {
+    return this.installedSkills.delete(this.#installedSkillKey(scope, scopeId, ownerRepo));
+  }
+
+  async setInstalledSkillEnabled(input: {
+    scope: InstalledSkillScope;
+    scopeId: string;
+    ownerRepo: string;
+    enabled: boolean;
+  }): Promise<InstalledSkillRecord | undefined> {
+    const key = this.#installedSkillKey(input.scope, input.scopeId, input.ownerRepo);
+    const existing = this.installedSkills.get(key);
+
+    if (!existing) {
+      return undefined;
+    }
+
+    const updated: InstalledSkillRecord = { ...existing, enabled: input.enabled, updatedAt: new Date().toISOString() };
+    this.installedSkills.set(key, updated);
+
+    return updated;
+  }
+
+  async countInstallsByRepo(): Promise<Record<string, number>> {
+    const counts: Record<string, number> = {};
+
+    for (const row of this.installedSkills.values()) {
+      counts[row.ownerRepo] = (counts[row.ownerRepo] ?? 0) + 1;
+    }
+
+    return counts;
   }
 
   async createWorkspace(input: {

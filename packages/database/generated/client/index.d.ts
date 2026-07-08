@@ -94,6 +94,11 @@ export type AgentRepairEvent = $Result.DefaultSelection<Prisma.$AgentRepairEvent
  */
 export type ProjectSkill = $Result.DefaultSelection<Prisma.$ProjectSkillPayload>
 /**
+ * Model InstalledSkill
+ * 
+ */
+export type InstalledSkill = $Result.DefaultSelection<Prisma.$InstalledSkillPayload>
+/**
  * Model ProjectEnvironment
  * 
  */
@@ -1087,6 +1092,16 @@ export class PrismaClient<
     * ```
     */
   get projectSkill(): Prisma.ProjectSkillDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.installedSkill`: Exposes CRUD operations for the **InstalledSkill** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more InstalledSkills
+    * const installedSkills = await prisma.installedSkill.findMany()
+    * ```
+    */
+  get installedSkill(): Prisma.InstalledSkillDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.projectEnvironment`: Exposes CRUD operations for the **ProjectEnvironment** model.
@@ -2377,6 +2392,7 @@ export namespace Prisma {
     AgentPatchProposal: 'AgentPatchProposal',
     AgentRepairEvent: 'AgentRepairEvent',
     ProjectSkill: 'ProjectSkill',
+    InstalledSkill: 'InstalledSkill',
     ProjectEnvironment: 'ProjectEnvironment',
     ProjectSecret: 'ProjectSecret',
     ProjectEnvVar: 'ProjectEnvVar',
@@ -2476,7 +2492,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3645,6 +3661,80 @@ export namespace Prisma {
           count: {
             args: Prisma.ProjectSkillCountArgs<ExtArgs>
             result: $Utils.Optional<ProjectSkillCountAggregateOutputType> | number
+          }
+        }
+      }
+      InstalledSkill: {
+        payload: Prisma.$InstalledSkillPayload<ExtArgs>
+        fields: Prisma.InstalledSkillFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.InstalledSkillFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InstalledSkillPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.InstalledSkillFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InstalledSkillPayload>
+          }
+          findFirst: {
+            args: Prisma.InstalledSkillFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InstalledSkillPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.InstalledSkillFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InstalledSkillPayload>
+          }
+          findMany: {
+            args: Prisma.InstalledSkillFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InstalledSkillPayload>[]
+          }
+          create: {
+            args: Prisma.InstalledSkillCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InstalledSkillPayload>
+          }
+          createMany: {
+            args: Prisma.InstalledSkillCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.InstalledSkillCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InstalledSkillPayload>[]
+          }
+          delete: {
+            args: Prisma.InstalledSkillDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InstalledSkillPayload>
+          }
+          update: {
+            args: Prisma.InstalledSkillUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InstalledSkillPayload>
+          }
+          deleteMany: {
+            args: Prisma.InstalledSkillDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.InstalledSkillUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.InstalledSkillUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InstalledSkillPayload>[]
+          }
+          upsert: {
+            args: Prisma.InstalledSkillUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InstalledSkillPayload>
+          }
+          aggregate: {
+            args: Prisma.InstalledSkillAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateInstalledSkill>
+          }
+          groupBy: {
+            args: Prisma.InstalledSkillGroupByArgs<ExtArgs>
+            result: $Utils.Optional<InstalledSkillGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.InstalledSkillCountArgs<ExtArgs>
+            result: $Utils.Optional<InstalledSkillCountAggregateOutputType> | number
           }
         }
       }
@@ -9988,6 +10078,7 @@ export namespace Prisma {
     agentPatchProposal?: AgentPatchProposalOmit
     agentRepairEvent?: AgentRepairEventOmit
     projectSkill?: ProjectSkillOmit
+    installedSkill?: InstalledSkillOmit
     projectEnvironment?: ProjectEnvironmentOmit
     projectSecret?: ProjectSecretOmit
     projectEnvVar?: ProjectEnvVarOmit
@@ -31824,6 +31915,1097 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ProjectSkillInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model InstalledSkill
+   */
+
+  export type AggregateInstalledSkill = {
+    _count: InstalledSkillCountAggregateOutputType | null
+    _min: InstalledSkillMinAggregateOutputType | null
+    _max: InstalledSkillMaxAggregateOutputType | null
+  }
+
+  export type InstalledSkillMinAggregateOutputType = {
+    id: string | null
+    scope: string | null
+    scopeId: string | null
+    ownerRepo: string | null
+    name: string | null
+    description: string | null
+    instructions: string | null
+    homepageUrl: string | null
+    enabled: boolean | null
+    installedByUserId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type InstalledSkillMaxAggregateOutputType = {
+    id: string | null
+    scope: string | null
+    scopeId: string | null
+    ownerRepo: string | null
+    name: string | null
+    description: string | null
+    instructions: string | null
+    homepageUrl: string | null
+    enabled: boolean | null
+    installedByUserId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type InstalledSkillCountAggregateOutputType = {
+    id: number
+    scope: number
+    scopeId: number
+    ownerRepo: number
+    name: number
+    description: number
+    instructions: number
+    homepageUrl: number
+    enabled: number
+    installedByUserId: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type InstalledSkillMinAggregateInputType = {
+    id?: true
+    scope?: true
+    scopeId?: true
+    ownerRepo?: true
+    name?: true
+    description?: true
+    instructions?: true
+    homepageUrl?: true
+    enabled?: true
+    installedByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type InstalledSkillMaxAggregateInputType = {
+    id?: true
+    scope?: true
+    scopeId?: true
+    ownerRepo?: true
+    name?: true
+    description?: true
+    instructions?: true
+    homepageUrl?: true
+    enabled?: true
+    installedByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type InstalledSkillCountAggregateInputType = {
+    id?: true
+    scope?: true
+    scopeId?: true
+    ownerRepo?: true
+    name?: true
+    description?: true
+    instructions?: true
+    homepageUrl?: true
+    enabled?: true
+    installedByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type InstalledSkillAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which InstalledSkill to aggregate.
+     */
+    where?: InstalledSkillWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of InstalledSkills to fetch.
+     */
+    orderBy?: InstalledSkillOrderByWithRelationInput | InstalledSkillOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: InstalledSkillWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` InstalledSkills from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` InstalledSkills.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned InstalledSkills
+    **/
+    _count?: true | InstalledSkillCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: InstalledSkillMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: InstalledSkillMaxAggregateInputType
+  }
+
+  export type GetInstalledSkillAggregateType<T extends InstalledSkillAggregateArgs> = {
+        [P in keyof T & keyof AggregateInstalledSkill]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateInstalledSkill[P]>
+      : GetScalarType<T[P], AggregateInstalledSkill[P]>
+  }
+
+
+
+
+  export type InstalledSkillGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: InstalledSkillWhereInput
+    orderBy?: InstalledSkillOrderByWithAggregationInput | InstalledSkillOrderByWithAggregationInput[]
+    by: InstalledSkillScalarFieldEnum[] | InstalledSkillScalarFieldEnum
+    having?: InstalledSkillScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: InstalledSkillCountAggregateInputType | true
+    _min?: InstalledSkillMinAggregateInputType
+    _max?: InstalledSkillMaxAggregateInputType
+  }
+
+  export type InstalledSkillGroupByOutputType = {
+    id: string
+    scope: string
+    scopeId: string
+    ownerRepo: string
+    name: string
+    description: string
+    instructions: string
+    homepageUrl: string | null
+    enabled: boolean
+    installedByUserId: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: InstalledSkillCountAggregateOutputType | null
+    _min: InstalledSkillMinAggregateOutputType | null
+    _max: InstalledSkillMaxAggregateOutputType | null
+  }
+
+  type GetInstalledSkillGroupByPayload<T extends InstalledSkillGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<InstalledSkillGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof InstalledSkillGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], InstalledSkillGroupByOutputType[P]>
+            : GetScalarType<T[P], InstalledSkillGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type InstalledSkillSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    scope?: boolean
+    scopeId?: boolean
+    ownerRepo?: boolean
+    name?: boolean
+    description?: boolean
+    instructions?: boolean
+    homepageUrl?: boolean
+    enabled?: boolean
+    installedByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["installedSkill"]>
+
+  export type InstalledSkillSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    scope?: boolean
+    scopeId?: boolean
+    ownerRepo?: boolean
+    name?: boolean
+    description?: boolean
+    instructions?: boolean
+    homepageUrl?: boolean
+    enabled?: boolean
+    installedByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["installedSkill"]>
+
+  export type InstalledSkillSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    scope?: boolean
+    scopeId?: boolean
+    ownerRepo?: boolean
+    name?: boolean
+    description?: boolean
+    instructions?: boolean
+    homepageUrl?: boolean
+    enabled?: boolean
+    installedByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["installedSkill"]>
+
+  export type InstalledSkillSelectScalar = {
+    id?: boolean
+    scope?: boolean
+    scopeId?: boolean
+    ownerRepo?: boolean
+    name?: boolean
+    description?: boolean
+    instructions?: boolean
+    homepageUrl?: boolean
+    enabled?: boolean
+    installedByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type InstalledSkillOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "scope" | "scopeId" | "ownerRepo" | "name" | "description" | "instructions" | "homepageUrl" | "enabled" | "installedByUserId" | "createdAt" | "updatedAt", ExtArgs["result"]["installedSkill"]>
+
+  export type $InstalledSkillPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "InstalledSkill"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      scope: string
+      scopeId: string
+      ownerRepo: string
+      name: string
+      description: string
+      instructions: string
+      homepageUrl: string | null
+      enabled: boolean
+      installedByUserId: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["installedSkill"]>
+    composites: {}
+  }
+
+  type InstalledSkillGetPayload<S extends boolean | null | undefined | InstalledSkillDefaultArgs> = $Result.GetResult<Prisma.$InstalledSkillPayload, S>
+
+  type InstalledSkillCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<InstalledSkillFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: InstalledSkillCountAggregateInputType | true
+    }
+
+  export interface InstalledSkillDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['InstalledSkill'], meta: { name: 'InstalledSkill' } }
+    /**
+     * Find zero or one InstalledSkill that matches the filter.
+     * @param {InstalledSkillFindUniqueArgs} args - Arguments to find a InstalledSkill
+     * @example
+     * // Get one InstalledSkill
+     * const installedSkill = await prisma.installedSkill.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends InstalledSkillFindUniqueArgs>(args: SelectSubset<T, InstalledSkillFindUniqueArgs<ExtArgs>>): Prisma__InstalledSkillClient<$Result.GetResult<Prisma.$InstalledSkillPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one InstalledSkill that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {InstalledSkillFindUniqueOrThrowArgs} args - Arguments to find a InstalledSkill
+     * @example
+     * // Get one InstalledSkill
+     * const installedSkill = await prisma.installedSkill.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends InstalledSkillFindUniqueOrThrowArgs>(args: SelectSubset<T, InstalledSkillFindUniqueOrThrowArgs<ExtArgs>>): Prisma__InstalledSkillClient<$Result.GetResult<Prisma.$InstalledSkillPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first InstalledSkill that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InstalledSkillFindFirstArgs} args - Arguments to find a InstalledSkill
+     * @example
+     * // Get one InstalledSkill
+     * const installedSkill = await prisma.installedSkill.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends InstalledSkillFindFirstArgs>(args?: SelectSubset<T, InstalledSkillFindFirstArgs<ExtArgs>>): Prisma__InstalledSkillClient<$Result.GetResult<Prisma.$InstalledSkillPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first InstalledSkill that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InstalledSkillFindFirstOrThrowArgs} args - Arguments to find a InstalledSkill
+     * @example
+     * // Get one InstalledSkill
+     * const installedSkill = await prisma.installedSkill.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends InstalledSkillFindFirstOrThrowArgs>(args?: SelectSubset<T, InstalledSkillFindFirstOrThrowArgs<ExtArgs>>): Prisma__InstalledSkillClient<$Result.GetResult<Prisma.$InstalledSkillPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more InstalledSkills that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InstalledSkillFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all InstalledSkills
+     * const installedSkills = await prisma.installedSkill.findMany()
+     * 
+     * // Get first 10 InstalledSkills
+     * const installedSkills = await prisma.installedSkill.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const installedSkillWithIdOnly = await prisma.installedSkill.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends InstalledSkillFindManyArgs>(args?: SelectSubset<T, InstalledSkillFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InstalledSkillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a InstalledSkill.
+     * @param {InstalledSkillCreateArgs} args - Arguments to create a InstalledSkill.
+     * @example
+     * // Create one InstalledSkill
+     * const InstalledSkill = await prisma.installedSkill.create({
+     *   data: {
+     *     // ... data to create a InstalledSkill
+     *   }
+     * })
+     * 
+     */
+    create<T extends InstalledSkillCreateArgs>(args: SelectSubset<T, InstalledSkillCreateArgs<ExtArgs>>): Prisma__InstalledSkillClient<$Result.GetResult<Prisma.$InstalledSkillPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many InstalledSkills.
+     * @param {InstalledSkillCreateManyArgs} args - Arguments to create many InstalledSkills.
+     * @example
+     * // Create many InstalledSkills
+     * const installedSkill = await prisma.installedSkill.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends InstalledSkillCreateManyArgs>(args?: SelectSubset<T, InstalledSkillCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many InstalledSkills and returns the data saved in the database.
+     * @param {InstalledSkillCreateManyAndReturnArgs} args - Arguments to create many InstalledSkills.
+     * @example
+     * // Create many InstalledSkills
+     * const installedSkill = await prisma.installedSkill.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many InstalledSkills and only return the `id`
+     * const installedSkillWithIdOnly = await prisma.installedSkill.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends InstalledSkillCreateManyAndReturnArgs>(args?: SelectSubset<T, InstalledSkillCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InstalledSkillPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a InstalledSkill.
+     * @param {InstalledSkillDeleteArgs} args - Arguments to delete one InstalledSkill.
+     * @example
+     * // Delete one InstalledSkill
+     * const InstalledSkill = await prisma.installedSkill.delete({
+     *   where: {
+     *     // ... filter to delete one InstalledSkill
+     *   }
+     * })
+     * 
+     */
+    delete<T extends InstalledSkillDeleteArgs>(args: SelectSubset<T, InstalledSkillDeleteArgs<ExtArgs>>): Prisma__InstalledSkillClient<$Result.GetResult<Prisma.$InstalledSkillPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one InstalledSkill.
+     * @param {InstalledSkillUpdateArgs} args - Arguments to update one InstalledSkill.
+     * @example
+     * // Update one InstalledSkill
+     * const installedSkill = await prisma.installedSkill.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends InstalledSkillUpdateArgs>(args: SelectSubset<T, InstalledSkillUpdateArgs<ExtArgs>>): Prisma__InstalledSkillClient<$Result.GetResult<Prisma.$InstalledSkillPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more InstalledSkills.
+     * @param {InstalledSkillDeleteManyArgs} args - Arguments to filter InstalledSkills to delete.
+     * @example
+     * // Delete a few InstalledSkills
+     * const { count } = await prisma.installedSkill.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends InstalledSkillDeleteManyArgs>(args?: SelectSubset<T, InstalledSkillDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more InstalledSkills.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InstalledSkillUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many InstalledSkills
+     * const installedSkill = await prisma.installedSkill.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends InstalledSkillUpdateManyArgs>(args: SelectSubset<T, InstalledSkillUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more InstalledSkills and returns the data updated in the database.
+     * @param {InstalledSkillUpdateManyAndReturnArgs} args - Arguments to update many InstalledSkills.
+     * @example
+     * // Update many InstalledSkills
+     * const installedSkill = await prisma.installedSkill.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more InstalledSkills and only return the `id`
+     * const installedSkillWithIdOnly = await prisma.installedSkill.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends InstalledSkillUpdateManyAndReturnArgs>(args: SelectSubset<T, InstalledSkillUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InstalledSkillPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one InstalledSkill.
+     * @param {InstalledSkillUpsertArgs} args - Arguments to update or create a InstalledSkill.
+     * @example
+     * // Update or create a InstalledSkill
+     * const installedSkill = await prisma.installedSkill.upsert({
+     *   create: {
+     *     // ... data to create a InstalledSkill
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the InstalledSkill we want to update
+     *   }
+     * })
+     */
+    upsert<T extends InstalledSkillUpsertArgs>(args: SelectSubset<T, InstalledSkillUpsertArgs<ExtArgs>>): Prisma__InstalledSkillClient<$Result.GetResult<Prisma.$InstalledSkillPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of InstalledSkills.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InstalledSkillCountArgs} args - Arguments to filter InstalledSkills to count.
+     * @example
+     * // Count the number of InstalledSkills
+     * const count = await prisma.installedSkill.count({
+     *   where: {
+     *     // ... the filter for the InstalledSkills we want to count
+     *   }
+     * })
+    **/
+    count<T extends InstalledSkillCountArgs>(
+      args?: Subset<T, InstalledSkillCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], InstalledSkillCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a InstalledSkill.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InstalledSkillAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends InstalledSkillAggregateArgs>(args: Subset<T, InstalledSkillAggregateArgs>): Prisma.PrismaPromise<GetInstalledSkillAggregateType<T>>
+
+    /**
+     * Group by InstalledSkill.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InstalledSkillGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends InstalledSkillGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: InstalledSkillGroupByArgs['orderBy'] }
+        : { orderBy?: InstalledSkillGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, InstalledSkillGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetInstalledSkillGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the InstalledSkill model
+   */
+  readonly fields: InstalledSkillFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for InstalledSkill.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__InstalledSkillClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the InstalledSkill model
+   */
+  interface InstalledSkillFieldRefs {
+    readonly id: FieldRef<"InstalledSkill", 'String'>
+    readonly scope: FieldRef<"InstalledSkill", 'String'>
+    readonly scopeId: FieldRef<"InstalledSkill", 'String'>
+    readonly ownerRepo: FieldRef<"InstalledSkill", 'String'>
+    readonly name: FieldRef<"InstalledSkill", 'String'>
+    readonly description: FieldRef<"InstalledSkill", 'String'>
+    readonly instructions: FieldRef<"InstalledSkill", 'String'>
+    readonly homepageUrl: FieldRef<"InstalledSkill", 'String'>
+    readonly enabled: FieldRef<"InstalledSkill", 'Boolean'>
+    readonly installedByUserId: FieldRef<"InstalledSkill", 'String'>
+    readonly createdAt: FieldRef<"InstalledSkill", 'DateTime'>
+    readonly updatedAt: FieldRef<"InstalledSkill", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * InstalledSkill findUnique
+   */
+  export type InstalledSkillFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InstalledSkill
+     */
+    select?: InstalledSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InstalledSkill
+     */
+    omit?: InstalledSkillOmit<ExtArgs> | null
+    /**
+     * Filter, which InstalledSkill to fetch.
+     */
+    where: InstalledSkillWhereUniqueInput
+  }
+
+  /**
+   * InstalledSkill findUniqueOrThrow
+   */
+  export type InstalledSkillFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InstalledSkill
+     */
+    select?: InstalledSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InstalledSkill
+     */
+    omit?: InstalledSkillOmit<ExtArgs> | null
+    /**
+     * Filter, which InstalledSkill to fetch.
+     */
+    where: InstalledSkillWhereUniqueInput
+  }
+
+  /**
+   * InstalledSkill findFirst
+   */
+  export type InstalledSkillFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InstalledSkill
+     */
+    select?: InstalledSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InstalledSkill
+     */
+    omit?: InstalledSkillOmit<ExtArgs> | null
+    /**
+     * Filter, which InstalledSkill to fetch.
+     */
+    where?: InstalledSkillWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of InstalledSkills to fetch.
+     */
+    orderBy?: InstalledSkillOrderByWithRelationInput | InstalledSkillOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for InstalledSkills.
+     */
+    cursor?: InstalledSkillWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` InstalledSkills from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` InstalledSkills.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of InstalledSkills.
+     */
+    distinct?: InstalledSkillScalarFieldEnum | InstalledSkillScalarFieldEnum[]
+  }
+
+  /**
+   * InstalledSkill findFirstOrThrow
+   */
+  export type InstalledSkillFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InstalledSkill
+     */
+    select?: InstalledSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InstalledSkill
+     */
+    omit?: InstalledSkillOmit<ExtArgs> | null
+    /**
+     * Filter, which InstalledSkill to fetch.
+     */
+    where?: InstalledSkillWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of InstalledSkills to fetch.
+     */
+    orderBy?: InstalledSkillOrderByWithRelationInput | InstalledSkillOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for InstalledSkills.
+     */
+    cursor?: InstalledSkillWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` InstalledSkills from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` InstalledSkills.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of InstalledSkills.
+     */
+    distinct?: InstalledSkillScalarFieldEnum | InstalledSkillScalarFieldEnum[]
+  }
+
+  /**
+   * InstalledSkill findMany
+   */
+  export type InstalledSkillFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InstalledSkill
+     */
+    select?: InstalledSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InstalledSkill
+     */
+    omit?: InstalledSkillOmit<ExtArgs> | null
+    /**
+     * Filter, which InstalledSkills to fetch.
+     */
+    where?: InstalledSkillWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of InstalledSkills to fetch.
+     */
+    orderBy?: InstalledSkillOrderByWithRelationInput | InstalledSkillOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing InstalledSkills.
+     */
+    cursor?: InstalledSkillWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` InstalledSkills from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` InstalledSkills.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of InstalledSkills.
+     */
+    distinct?: InstalledSkillScalarFieldEnum | InstalledSkillScalarFieldEnum[]
+  }
+
+  /**
+   * InstalledSkill create
+   */
+  export type InstalledSkillCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InstalledSkill
+     */
+    select?: InstalledSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InstalledSkill
+     */
+    omit?: InstalledSkillOmit<ExtArgs> | null
+    /**
+     * The data needed to create a InstalledSkill.
+     */
+    data: XOR<InstalledSkillCreateInput, InstalledSkillUncheckedCreateInput>
+  }
+
+  /**
+   * InstalledSkill createMany
+   */
+  export type InstalledSkillCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many InstalledSkills.
+     */
+    data: InstalledSkillCreateManyInput | InstalledSkillCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * InstalledSkill createManyAndReturn
+   */
+  export type InstalledSkillCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InstalledSkill
+     */
+    select?: InstalledSkillSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the InstalledSkill
+     */
+    omit?: InstalledSkillOmit<ExtArgs> | null
+    /**
+     * The data used to create many InstalledSkills.
+     */
+    data: InstalledSkillCreateManyInput | InstalledSkillCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * InstalledSkill update
+   */
+  export type InstalledSkillUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InstalledSkill
+     */
+    select?: InstalledSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InstalledSkill
+     */
+    omit?: InstalledSkillOmit<ExtArgs> | null
+    /**
+     * The data needed to update a InstalledSkill.
+     */
+    data: XOR<InstalledSkillUpdateInput, InstalledSkillUncheckedUpdateInput>
+    /**
+     * Choose, which InstalledSkill to update.
+     */
+    where: InstalledSkillWhereUniqueInput
+  }
+
+  /**
+   * InstalledSkill updateMany
+   */
+  export type InstalledSkillUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update InstalledSkills.
+     */
+    data: XOR<InstalledSkillUpdateManyMutationInput, InstalledSkillUncheckedUpdateManyInput>
+    /**
+     * Filter which InstalledSkills to update
+     */
+    where?: InstalledSkillWhereInput
+    /**
+     * Limit how many InstalledSkills to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * InstalledSkill updateManyAndReturn
+   */
+  export type InstalledSkillUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InstalledSkill
+     */
+    select?: InstalledSkillSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the InstalledSkill
+     */
+    omit?: InstalledSkillOmit<ExtArgs> | null
+    /**
+     * The data used to update InstalledSkills.
+     */
+    data: XOR<InstalledSkillUpdateManyMutationInput, InstalledSkillUncheckedUpdateManyInput>
+    /**
+     * Filter which InstalledSkills to update
+     */
+    where?: InstalledSkillWhereInput
+    /**
+     * Limit how many InstalledSkills to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * InstalledSkill upsert
+   */
+  export type InstalledSkillUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InstalledSkill
+     */
+    select?: InstalledSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InstalledSkill
+     */
+    omit?: InstalledSkillOmit<ExtArgs> | null
+    /**
+     * The filter to search for the InstalledSkill to update in case it exists.
+     */
+    where: InstalledSkillWhereUniqueInput
+    /**
+     * In case the InstalledSkill found by the `where` argument doesn't exist, create a new InstalledSkill with this data.
+     */
+    create: XOR<InstalledSkillCreateInput, InstalledSkillUncheckedCreateInput>
+    /**
+     * In case the InstalledSkill was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<InstalledSkillUpdateInput, InstalledSkillUncheckedUpdateInput>
+  }
+
+  /**
+   * InstalledSkill delete
+   */
+  export type InstalledSkillDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InstalledSkill
+     */
+    select?: InstalledSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InstalledSkill
+     */
+    omit?: InstalledSkillOmit<ExtArgs> | null
+    /**
+     * Filter which InstalledSkill to delete.
+     */
+    where: InstalledSkillWhereUniqueInput
+  }
+
+  /**
+   * InstalledSkill deleteMany
+   */
+  export type InstalledSkillDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which InstalledSkills to delete
+     */
+    where?: InstalledSkillWhereInput
+    /**
+     * Limit how many InstalledSkills to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * InstalledSkill without action
+   */
+  export type InstalledSkillDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InstalledSkill
+     */
+    select?: InstalledSkillSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InstalledSkill
+     */
+    omit?: InstalledSkillOmit<ExtArgs> | null
   }
 
 
@@ -126590,6 +127772,24 @@ export namespace Prisma {
   export type ProjectSkillScalarFieldEnum = (typeof ProjectSkillScalarFieldEnum)[keyof typeof ProjectSkillScalarFieldEnum]
 
 
+  export const InstalledSkillScalarFieldEnum: {
+    id: 'id',
+    scope: 'scope',
+    scopeId: 'scopeId',
+    ownerRepo: 'ownerRepo',
+    name: 'name',
+    description: 'description',
+    instructions: 'instructions',
+    homepageUrl: 'homepageUrl',
+    enabled: 'enabled',
+    installedByUserId: 'installedByUserId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type InstalledSkillScalarFieldEnum = (typeof InstalledSkillScalarFieldEnum)[keyof typeof InstalledSkillScalarFieldEnum]
+
+
   export const ProjectEnvironmentScalarFieldEnum: {
     id: 'id',
     projectId: 'projectId',
@@ -129667,6 +130867,94 @@ export namespace Prisma {
     enabled?: BoolWithAggregatesFilter<"ProjectSkill"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"ProjectSkill"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"ProjectSkill"> | Date | string
+  }
+
+  export type InstalledSkillWhereInput = {
+    AND?: InstalledSkillWhereInput | InstalledSkillWhereInput[]
+    OR?: InstalledSkillWhereInput[]
+    NOT?: InstalledSkillWhereInput | InstalledSkillWhereInput[]
+    id?: StringFilter<"InstalledSkill"> | string
+    scope?: StringFilter<"InstalledSkill"> | string
+    scopeId?: StringFilter<"InstalledSkill"> | string
+    ownerRepo?: StringFilter<"InstalledSkill"> | string
+    name?: StringFilter<"InstalledSkill"> | string
+    description?: StringFilter<"InstalledSkill"> | string
+    instructions?: StringFilter<"InstalledSkill"> | string
+    homepageUrl?: StringNullableFilter<"InstalledSkill"> | string | null
+    enabled?: BoolFilter<"InstalledSkill"> | boolean
+    installedByUserId?: StringNullableFilter<"InstalledSkill"> | string | null
+    createdAt?: DateTimeFilter<"InstalledSkill"> | Date | string
+    updatedAt?: DateTimeFilter<"InstalledSkill"> | Date | string
+  }
+
+  export type InstalledSkillOrderByWithRelationInput = {
+    id?: SortOrder
+    scope?: SortOrder
+    scopeId?: SortOrder
+    ownerRepo?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    instructions?: SortOrder
+    homepageUrl?: SortOrderInput | SortOrder
+    enabled?: SortOrder
+    installedByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type InstalledSkillWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    scope_scopeId_ownerRepo?: InstalledSkillScopeScopeIdOwnerRepoCompoundUniqueInput
+    AND?: InstalledSkillWhereInput | InstalledSkillWhereInput[]
+    OR?: InstalledSkillWhereInput[]
+    NOT?: InstalledSkillWhereInput | InstalledSkillWhereInput[]
+    scope?: StringFilter<"InstalledSkill"> | string
+    scopeId?: StringFilter<"InstalledSkill"> | string
+    ownerRepo?: StringFilter<"InstalledSkill"> | string
+    name?: StringFilter<"InstalledSkill"> | string
+    description?: StringFilter<"InstalledSkill"> | string
+    instructions?: StringFilter<"InstalledSkill"> | string
+    homepageUrl?: StringNullableFilter<"InstalledSkill"> | string | null
+    enabled?: BoolFilter<"InstalledSkill"> | boolean
+    installedByUserId?: StringNullableFilter<"InstalledSkill"> | string | null
+    createdAt?: DateTimeFilter<"InstalledSkill"> | Date | string
+    updatedAt?: DateTimeFilter<"InstalledSkill"> | Date | string
+  }, "id" | "scope_scopeId_ownerRepo">
+
+  export type InstalledSkillOrderByWithAggregationInput = {
+    id?: SortOrder
+    scope?: SortOrder
+    scopeId?: SortOrder
+    ownerRepo?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    instructions?: SortOrder
+    homepageUrl?: SortOrderInput | SortOrder
+    enabled?: SortOrder
+    installedByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: InstalledSkillCountOrderByAggregateInput
+    _max?: InstalledSkillMaxOrderByAggregateInput
+    _min?: InstalledSkillMinOrderByAggregateInput
+  }
+
+  export type InstalledSkillScalarWhereWithAggregatesInput = {
+    AND?: InstalledSkillScalarWhereWithAggregatesInput | InstalledSkillScalarWhereWithAggregatesInput[]
+    OR?: InstalledSkillScalarWhereWithAggregatesInput[]
+    NOT?: InstalledSkillScalarWhereWithAggregatesInput | InstalledSkillScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"InstalledSkill"> | string
+    scope?: StringWithAggregatesFilter<"InstalledSkill"> | string
+    scopeId?: StringWithAggregatesFilter<"InstalledSkill"> | string
+    ownerRepo?: StringWithAggregatesFilter<"InstalledSkill"> | string
+    name?: StringWithAggregatesFilter<"InstalledSkill"> | string
+    description?: StringWithAggregatesFilter<"InstalledSkill"> | string
+    instructions?: StringWithAggregatesFilter<"InstalledSkill"> | string
+    homepageUrl?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
+    enabled?: BoolWithAggregatesFilter<"InstalledSkill"> | boolean
+    installedByUserId?: StringNullableWithAggregatesFilter<"InstalledSkill"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"InstalledSkill"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"InstalledSkill"> | Date | string
   }
 
   export type ProjectEnvironmentWhereInput = {
@@ -137614,6 +138902,111 @@ export namespace Prisma {
     projectId?: StringFieldUpdateOperationsInput | string
     skillId?: StringFieldUpdateOperationsInput | string
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InstalledSkillCreateInput = {
+    id?: string
+    scope: string
+    scopeId: string
+    ownerRepo: string
+    name: string
+    description: string
+    instructions: string
+    homepageUrl?: string | null
+    enabled?: boolean
+    installedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type InstalledSkillUncheckedCreateInput = {
+    id?: string
+    scope: string
+    scopeId: string
+    ownerRepo: string
+    name: string
+    description: string
+    instructions: string
+    homepageUrl?: string | null
+    enabled?: boolean
+    installedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type InstalledSkillUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
+    scopeId?: StringFieldUpdateOperationsInput | string
+    ownerRepo?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    instructions?: StringFieldUpdateOperationsInput | string
+    homepageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InstalledSkillUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
+    scopeId?: StringFieldUpdateOperationsInput | string
+    ownerRepo?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    instructions?: StringFieldUpdateOperationsInput | string
+    homepageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InstalledSkillCreateManyInput = {
+    id?: string
+    scope: string
+    scopeId: string
+    ownerRepo: string
+    name: string
+    description: string
+    instructions: string
+    homepageUrl?: string | null
+    enabled?: boolean
+    installedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type InstalledSkillUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
+    scopeId?: StringFieldUpdateOperationsInput | string
+    ownerRepo?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    instructions?: StringFieldUpdateOperationsInput | string
+    homepageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InstalledSkillUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
+    scopeId?: StringFieldUpdateOperationsInput | string
+    ownerRepo?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    instructions?: StringFieldUpdateOperationsInput | string
+    homepageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -146103,6 +147496,57 @@ export namespace Prisma {
     projectId?: SortOrder
     skillId?: SortOrder
     enabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type InstalledSkillScopeScopeIdOwnerRepoCompoundUniqueInput = {
+    scope: string
+    scopeId: string
+    ownerRepo: string
+  }
+
+  export type InstalledSkillCountOrderByAggregateInput = {
+    id?: SortOrder
+    scope?: SortOrder
+    scopeId?: SortOrder
+    ownerRepo?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    instructions?: SortOrder
+    homepageUrl?: SortOrder
+    enabled?: SortOrder
+    installedByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type InstalledSkillMaxOrderByAggregateInput = {
+    id?: SortOrder
+    scope?: SortOrder
+    scopeId?: SortOrder
+    ownerRepo?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    instructions?: SortOrder
+    homepageUrl?: SortOrder
+    enabled?: SortOrder
+    installedByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type InstalledSkillMinOrderByAggregateInput = {
+    id?: SortOrder
+    scope?: SortOrder
+    scopeId?: SortOrder
+    ownerRepo?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    instructions?: SortOrder
+    homepageUrl?: SortOrder
+    enabled?: SortOrder
+    installedByUserId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }

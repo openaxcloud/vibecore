@@ -915,6 +915,36 @@ export interface ProjectSkillOverrideRecord {
   updatedAt: string;
 }
 
+/** Scope target for an installed GitHub-repo skill (F#27). */
+export type InstalledSkillScope = 'project' | 'workspace';
+
+/** An installed GitHub-repo skill row (F#27). */
+export interface InstalledSkillRecord {
+  id: string;
+  scope: InstalledSkillScope;
+  scopeId: string;
+  ownerRepo: string;
+  name: string;
+  description: string;
+  instructions: string;
+  homepageUrl: string | null;
+  enabled: boolean;
+  installedByUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InstallSkillInput {
+  scope: InstalledSkillScope;
+  scopeId: string;
+  ownerRepo: string;
+  name: string;
+  description: string;
+  instructions: string;
+  homepageUrl?: string | null;
+  installedByUserId?: string | null;
+}
+
 export interface BillingCustomerRecord {
   id: string;
   organizationId: string;
@@ -1322,6 +1352,24 @@ export interface ApiStore {
     skillId: string;
     enabled: boolean;
   }): Promise<ProjectSkillOverrideRecord>;
+  /** Installed GitHub-repo skills for a scope target (F#27), newest first. */
+  listInstalledSkills(scope: InstalledSkillScope, scopeId: string): Promise<InstalledSkillRecord[]>;
+  /**
+   * Install (or return the existing) GitHub-repo skill for a scope target.
+   * `created` is false when a row for (scope, scopeId, ownerRepo) already existed.
+   */
+  installSkill(input: InstallSkillInput): Promise<{ record: InstalledSkillRecord; created: boolean }>;
+  /** Uninstall a GitHub-repo skill; resolves true when a row was removed. */
+  uninstallSkill(scope: InstalledSkillScope, scopeId: string, ownerRepo: string): Promise<boolean>;
+  /** Toggle an installed skill's enabled flag; undefined when no such row. */
+  setInstalledSkillEnabled(input: {
+    scope: InstalledSkillScope;
+    scopeId: string;
+    ownerRepo: string;
+    enabled: boolean;
+  }): Promise<InstalledSkillRecord | undefined>;
+  /** Live install counts per `owner/repo` across all scopes (for the catalog). */
+  countInstallsByRepo(): Promise<Record<string, number>>;
   createWorkspace(input: {
     id?: string;
     projectId: string;

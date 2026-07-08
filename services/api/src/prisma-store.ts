@@ -87,6 +87,9 @@ import type {
   WorkspaceRecord,
   QuotaOverrideRecord,
   AdminAuditLogRecord,
+  InstalledSkillRecord,
+  InstalledSkillScope,
+  InstallSkillInput,
 } from './store.js';
 
 function now() {
@@ -1652,6 +1655,117 @@ export class PrismaApiStore implements ApiStore {
     });
 
     return { skillId: row.skillId, enabled: row.enabled, updatedAt: row.updatedAt.toISOString() };
+  }
+
+  async listInstalledSkills(scope: InstalledSkillScope, scopeId: string): Promise<InstalledSkillRecord[]> {
+    const rows = await this.prisma.installedSkill.findMany({
+      where: { scope, scopeId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return rows.map((row) => this.#toInstalledSkill(row));
+  }
+
+  async installSkill(input: InstallSkillInput): Promise<{ record: InstalledSkillRecord; created: boolean }> {
+    const existing = await this.prisma.installedSkill.findUnique({
+      where: {
+        scope_scopeId_ownerRepo: { scope: input.scope, scopeId: input.scopeId, ownerRepo: input.ownerRepo },
+      },
+    });
+
+    if (existing) {
+      return { record: this.#toInstalledSkill(existing), created: false };
+    }
+
+    const created = await this.prisma.installedSkill.create({
+      data: {
+        scope: input.scope,
+        scopeId: input.scopeId,
+        ownerRepo: input.ownerRepo,
+        name: input.name,
+        description: input.description,
+        instructions: input.instructions,
+        homepageUrl: input.homepageUrl ?? null,
+        installedByUserId: input.installedByUserId ?? null,
+      },
+    });
+
+    return { record: this.#toInstalledSkill(created), created: true };
+  }
+
+  async uninstallSkill(scope: InstalledSkillScope, scopeId: string, ownerRepo: string): Promise<boolean> {
+    const result = await this.prisma.installedSkill.deleteMany({ where: { scope, scopeId, ownerRepo } });
+
+    return result.count > 0;
+  }
+
+  async setInstalledSkillEnabled(input: {
+    scope: InstalledSkillScope;
+    scopeId: string;
+    ownerRepo: string;
+    enabled: boolean;
+  }): Promise<InstalledSkillRecord | undefined> {
+    const result = await this.prisma.installedSkill.updateMany({
+      where: { scope: input.scope, scopeId: input.scopeId, ownerRepo: input.ownerRepo },
+      data: { enabled: input.enabled },
+    });
+
+    if (result.count === 0) {
+      return undefined;
+    }
+
+    const row = await this.prisma.installedSkill.findUnique({
+      where: {
+        scope_scopeId_ownerRepo: { scope: input.scope, scopeId: input.scopeId, ownerRepo: input.ownerRepo },
+      },
+    });
+
+    return row ? this.#toInstalledSkill(row) : undefined;
+  }
+
+  async countInstallsByRepo(): Promise<Record<string, number>> {
+    const grouped = await this.prisma.installedSkill.groupBy({
+      by: ['ownerRepo'],
+      _count: { _all: true },
+    });
+
+    const counts: Record<string, number> = {};
+
+    for (const row of grouped) {
+      counts[row.ownerRepo] = row._count._all;
+    }
+
+    return counts;
+  }
+
+  #toInstalledSkill(row: {
+    id: string;
+    scope: string;
+    scopeId: string;
+    ownerRepo: string;
+    name: string;
+    description: string;
+    instructions: string;
+    homepageUrl: string | null;
+    enabled: boolean;
+    installedByUserId: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }): InstalledSkillRecord {
+    return {
+      id: row.id,
+      scope: row.scope as InstalledSkillScope,
+      scopeId: row.scopeId,
+      ownerRepo: row.ownerRepo,
+      name: row.name,
+      description: row.description,
+      instructions: row.instructions,
+      homepageUrl: row.homepageUrl,
+      enabled: row.enabled,
+      installedByUserId: row.installedByUserId,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    };
   }
 
   async createWorkspace(input: {
