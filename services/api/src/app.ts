@@ -139,6 +139,7 @@ import {
   detectFramework,
   redactDeploymentLog,
   type RunStaticBuildResult,
+  type StaticBuildLog,
 } from './deployments.js';
 import {
   detectPodPackageManager,
@@ -11909,6 +11910,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     project: { id: string; organizationId: string },
     body: { buildCommand: string; outputDirectory: string; timeoutSeconds: number; artifactSizeLimitMb?: number },
     deploymentId: string,
+    progress?: { onLog?: (log: StaticBuildLog) => void; onPhase?: (phase: string) => void },
   ): Promise<{ handled: false } | { handled: true; result: RunStaticBuildResult; tempDir: string }> => {
     const userId = request.currentUser?.id;
 
@@ -11974,6 +11976,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           materializeDir: tempDir,
           maxFileBytes: DEPLOY_MAX_PULL_FILE_BYTES,
           artifactSizeLimitMb: body.artifactSizeLimitMb,
+          onLog: progress?.onLog,
+          onPhase: progress?.onPhase,
         },
         buildAgent,
       );
@@ -25677,11 +25681,60 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const queued = createResult.queued;
 
-    const hookResult = await triggerProviderDeployHook(body.provider);
+    /*
+     * P2: static deploys build in the workspace pod, which can take minutes —
+     * longer than the ingress idle timeout that would 504 a blocking POST. When
+     * we build in the pod, respond immediately with the QUEUED deployment and
+     * finish the build in the background, persisting status + build logs to the
+     * deployment record so the client tails them over SSE (see .../logs/stream).
+     * Test / injected-runner builds stay synchronous so their response carries
+     * the final status (and the existing deploy tests keep asserting on it).
+     */
+    const asyncBuild = useWorkspacePodBuild && body.provider === 'static';
 
-    let staticBuildFailed = false;
-    let staticBuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
-    let workspaceBuildTempDir: string | undefined;
+    // Incremental log/phase flush (coalesced ~1/s) so the UI streams progress
+    // instead of showing a frozen screen while the pod builds.
+    const liveLog: StaticBuildLog[] = [];
+    let livePhase = 'queued';
+    let flushScheduled = false;
+    const scheduleLogFlush = () => {
+      if (flushScheduled) {
+        return;
+      }
+
+      flushScheduled = true;
+      setTimeout(() => {
+        flushScheduled = false;
+        void store
+          .updateDeployment(project.id, queued.id, {
+            status: 'BUILDING',
+            logs: liveLog.slice(),
+            metadata: { ...(queued.metadata as Record<string, unknown>), phase: livePhase },
+          })
+          .catch(() => undefined);
+      }, 1000);
+    };
+    const buildProgress = {
+      onLog: (entry: StaticBuildLog) => {
+        liveLog.push(entry);
+        scheduleLogFlush();
+      },
+      onPhase: (phase: string) => {
+        livePhase = phase;
+        scheduleLogFlush();
+      },
+    };
+
+    if (asyncBuild) {
+      reply.code(202).send({ deployment: queued });
+    }
+
+    try {
+      const hookResult = await triggerProviderDeployHook(body.provider);
+
+      let staticBuildFailed = false;
+      let staticBuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
+      let workspaceBuildTempDir: string | undefined;
 
     if (body.provider === 'static') {
       /*
@@ -25690,7 +25743,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * be reached (no user context / agent unreachable).
        */
       const workspaceAttempt = useWorkspacePodBuild
-        ? await buildStaticInWorkspacePod(request, project, body, queued.id)
+        ? await buildStaticInWorkspacePod(request, project, body, queued.id, buildProgress)
         : { handled: false as const };
       workspaceBuildTempDir = workspaceAttempt.handled ? workspaceAttempt.tempDir : undefined;
 
@@ -25863,11 +25916,43 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // P11: refresh the project thumbnail from the freshly deployed URL (auto,
     // debounced, inert unless the screenshotter is configured).
-    if (ready.url) {
-      thumbnailCapturer.schedule(project.id, ready.url);
-    }
+      if (ready.url) {
+        thumbnailCapturer.schedule(project.id, ready.url);
+      }
 
-    return reply.code(201).send({ deployment: ready });
+      if (!asyncBuild) {
+        return reply.code(201).send({ deployment: ready });
+      }
+
+      return undefined;
+    } catch (error) {
+      if (!asyncBuild) {
+        // Synchronous path: surface the error normally (no response sent yet).
+        throw error;
+      }
+
+      /*
+       * The 202 already went out, so we can't reply — finalize the row as FAILED
+       * (with whatever build output we streamed) so the UI + SSE stop at a clear
+       * error instead of a deployment stuck in BUILDING.
+       */
+      await store
+        .updateDeployment(project.id, queued.id, {
+          status: 'FAILED',
+          finishedAt: new Date().toISOString(),
+          logs: [
+            ...liveLog,
+            {
+              timestamp: new Date().toISOString(),
+              level: 'error' as const,
+              message: `Deploy failed: ${(error as Error).message ?? 'unknown error'}`,
+            },
+          ],
+        })
+        .catch(() => undefined);
+
+      return undefined;
+    }
   });
   app.get('/projects/:projectId/deployments/:deploymentId/logs', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);

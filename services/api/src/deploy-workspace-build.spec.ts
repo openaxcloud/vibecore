@@ -100,6 +100,36 @@ describe('runWorkspaceStaticBuild', () => {
     expect((agent.runStep as ReturnType<typeof vi.fn>).mock.calls[0][0].command).toBe('npm');
   });
 
+  it('streams logs via onLog and reports phase transitions', async () => {
+    const dir = await materializeDir();
+    const phases: string[] = [];
+    const logged: string[] = [];
+    const agent = fakeAgent({
+      runStep: vi.fn(
+        async ({ onLine }: { onLine: (level: 'info' | 'error', line: string) => void }) => {
+          onLine('info', 'step output');
+          return { exitCode: 0, timedOut: false };
+        },
+      ),
+      listFiles: vi.fn(async () => ({ files: [{ path: 'dist/index.html', size: 5 }] })),
+      readFile: vi.fn(async () => ({ content: '<html></html>', encoding: 'utf8' as const })),
+    });
+
+    const result = await runWorkspaceStaticBuild(
+      {
+        ...baseOptions,
+        materializeDir: dir,
+        onLog: (log) => logged.push(log.message),
+        onPhase: (phase) => phases.push(phase),
+      },
+      agent,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(phases).toEqual(['installing', 'building', 'deploying']);
+    expect(logged.some((m) => m.includes('step output'))).toBe(true);
+  });
+
   it('fails clearly when install fails', async () => {
     const dir = await materializeDir();
     const agent = fakeAgent({

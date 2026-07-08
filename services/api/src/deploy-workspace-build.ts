@@ -68,7 +68,19 @@ export interface WorkspaceStaticBuildOptions {
   /** Per-file cap enforced by the workspace-agent (bytes) — files above it can't be pulled. */
   maxFileBytes: number;
   artifactSizeLimitMb?: number;
+  /**
+   * Called for every log line as it happens (P2: lets the caller flush build
+   * output to the deployment record incrementally so the UI streams it live).
+   */
+  onLog?: (log: StaticBuildLog) => void;
+  /**
+   * Called when the build enters a new phase (installing → building → deploying).
+   * Drives the async status/phase the UI shows.
+   */
+  onPhase?: (phase: WorkspaceBuildPhase) => void;
 }
+
+export type WorkspaceBuildPhase = 'installing' | 'building' | 'deploying';
 
 export type WorkspaceStaticBuildErrorCode =
   | 'INSTALL_FAILED'
@@ -89,10 +101,12 @@ export interface WorkspaceStaticBuildResult {
   error?: WorkspaceStaticBuildErrorCode;
 }
 
-function makeLogger() {
+function makeLogger(onLog?: (log: StaticBuildLog) => void) {
   const logs: StaticBuildLog[] = [];
   const push = (level: StaticBuildLogLevel, message: string) => {
-    logs.push({ timestamp: new Date().toISOString(), level, message });
+    const entry = { timestamp: new Date().toISOString(), level, message };
+    logs.push(entry);
+    onLog?.(entry);
   };
 
   return { logs, push };
@@ -140,12 +154,13 @@ export async function runWorkspaceStaticBuild(
   options: WorkspaceStaticBuildOptions,
   agent: WorkspaceBuildAgent,
 ): Promise<WorkspaceStaticBuildResult> {
-  const log = makeLogger();
+  const log = makeLogger(options.onLog);
   const cwd = options.cwd || '.';
 
   log.push('info', `Workspace deploy: building in pod (cwd ${cwd})`);
 
   // 1. Install dependencies.
+  options.onPhase?.('installing');
   log.push('info', `Workspace deploy: installing dependencies (${options.install.command} ${options.install.args.join(' ')})`);
 
   const install = await agent.runStep({
@@ -176,6 +191,7 @@ export async function runWorkspaceStaticBuild(
     return { ok: false, logs: log.logs, error: 'BUILD_FAILED' };
   }
 
+  options.onPhase?.('building');
   log.push('info', `Workspace deploy: running build (${options.buildCommand})`);
 
   const build = await agent.runStep({
@@ -200,7 +216,8 @@ export async function runWorkspaceStaticBuild(
     return { ok: false, logs: log.logs, error: 'BUILD_FAILED' };
   }
 
-  // 3. Enumerate the built output directory.
+  // 3. Enumerate + pull the built output directory.
+  options.onPhase?.('deploying');
   const prefix = outputPrefix(cwd, options.outputDirectory);
   const listing = await agent.listFiles(prefix);
 
