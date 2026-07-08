@@ -1154,7 +1154,7 @@ export function StatGrid({
   stats: Array<{ label: string; value: string; detail: string; icon: Icon; to?: string; ariaLabel?: string }>;
 }) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat) => {
         const Icon = stat.icon;
 
@@ -1654,7 +1654,7 @@ export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCar
   );
 
   return (
-    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 shadow-sm">
+    <div className="min-w-0 max-w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 shadow-sm">
       <label className="flex items-center gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm">
         <Command className="h-4 w-4 text-bolt-elements-textTertiary" aria-hidden />
         <input

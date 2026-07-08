@@ -223,10 +223,10 @@ export default function DashboardPage() {
         </>
       }
     >
-      <div className="grid gap-6">
+      <div className="grid gap-6 overflow-x-clip">
         <StatGrid stats={statsFromUsage(usageSummary)} />
         <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
-          <div>
+          <div className="min-w-0">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold">Recent projects</h2>
               <LinkButton to="/recent-projects" variant="ghost">
@@ -274,7 +274,7 @@ export default function DashboardPage() {
               />
             </div>
           </div>
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             <CommandPalettePreview projects={projects} />
             <h2 className="text-lg font-semibold">System status</h2>
             <ActivityList
@@ -297,7 +297,7 @@ export default function DashboardPage() {
             />
           </div>
         </section>
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {importOptions.map((option) => {
             const Icon = option.icon;
 
