@@ -13814,6 +13814,10 @@ function formatObjectStorageSize(size?: number): string {
 function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; busy: boolean }) {
   const [prefix, setPrefix] = useState('');
   const [enabled, setEnabled] = useState<boolean | null>(null);
+
+  // Per-project bucket provisioning (Replit App Storage first-run). null = unknown.
+  const [provisioned, setProvisioned] = useState<boolean | null>(null);
+  const [enabling, setEnabling] = useState(false);
   const [objects, setObjects] = useState<ObjectStorageObject[]>([]);
   const [folders, setFolders] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -13884,9 +13888,64 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     [postIntent, projectId],
   );
 
+  /*
+   * Load per-project status first: it tells us whether the platform flag is on
+   * AND whether THIS project's bucket exists. The object list is only fetched
+   * once provisioned, so a brand-new project shows the "Enable" CTA instead of a
+   * failed list against a bucket that doesn't exist yet.
+   */
+  const loadStatus = useCallback(async () => {
+    if (!projectId) {
+      return;
+    }
+
+    const result = await postIntent({ intent: 'status' });
+
+    if (!result) {
+      return;
+    }
+
+    setEnabled(Boolean(result.enabled));
+    setProvisioned(result.enabled ? Boolean(result.provisioned) : false);
+  }, [postIntent, projectId]);
+
   useEffect(() => {
-    void refresh(prefix);
-  }, [prefix, refresh]);
+    void loadStatus();
+  }, [loadStatus]);
+
+  useEffect(() => {
+    if (provisioned) {
+      void refresh(prefix);
+    }
+  }, [prefix, provisioned, refresh]);
+
+  // Replit-style first-run: create the project's GCS bucket, then reveal the panel.
+  const enableStorage = useCallback(async () => {
+    setEnabling(true);
+    setStatus(null);
+
+    try {
+      const result = await postIntent({ intent: 'ensure-bucket' });
+
+      if (result && result.error) {
+        setStatus(typeof result.error === 'string' ? result.error : 'Could not enable Object Storage.');
+        return;
+      }
+
+      if (result && result.enabled === false) {
+        setEnabled(false);
+        return;
+      }
+
+      setProvisioned(true);
+      setStatus('Object Storage enabled.');
+      await refresh(prefix);
+    } catch {
+      setStatus('Could not enable Object Storage.');
+    } finally {
+      setEnabling(false);
+    }
+  }, [postIntent, prefix, refresh]);
 
   const runOperation = useCallback(
     async (fields: Record<string, string>, successMessage: string) => {
@@ -14056,16 +14115,59 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     ? objects.filter((object) => object.key.replace(prefix, '').toLowerCase().includes(normalizedFilter))
     : objects;
 
+  if (enabled === null) {
+    return (
+      <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
+        <div className="bolt-project-empty-panel grid gap-2 text-sm text-bolt-elements-textSecondary">
+          Checking Object Storage…
+        </div>
+      </div>
+    );
+  }
+
   if (enabled === false) {
     return (
       <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
         <div className="bolt-project-empty-panel grid gap-2 text-sm">
-          <strong className="text-bolt-elements-textPrimary">Object Storage is not enabled for this project</strong>
+          <strong className="text-bolt-elements-textPrimary">Object Storage is not available yet</strong>
           <span className="text-bolt-elements-textSecondary">
-            Per-project GCS buckets are gated behind the OBJECT_STORAGE_ENABLED platform flag. Once a platform admin
-            enables it (and binds the API workload identity), this panel lists, uploads, downloads, moves and deletes
-            real objects in the project bucket.
+            Cloud Object Storage hasn’t been turned on for this workspace’s platform. Once an administrator enables it,
+            you’ll be able to create this project’s bucket and manage files right here — no further setup on your side.
           </span>
+        </div>
+      </div>
+    );
+  }
+
+  /*
+   * Platform storage is available but this project has no bucket yet — offer the
+   * one-click "Enable" (create bucket) CTA, Replit App Storage style.
+   */
+  if (provisioned === false) {
+    return (
+      <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
+        <div className="bolt-project-empty-panel grid gap-3 text-sm">
+          <div className="flex items-center gap-2 text-bolt-elements-textPrimary">
+            <span className="i-ph:hard-drives text-lg" aria-hidden />
+            <strong>Enable Object Storage for this project</strong>
+          </div>
+          <span className="text-bolt-elements-textSecondary">
+            Create a private cloud bucket to store files, uploads and generated assets for this app. You can list,
+            upload, download, move and delete objects here as soon as it’s ready.
+          </span>
+          {status ? (
+            <span className="text-xs text-bolt-elements-textTertiary" role="status">
+              {status}
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void enableStorage()}
+            disabled={enabling || busy}
+            className="w-fit rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {enabling ? 'Enabling…' : 'Enable Object Storage'}
+          </button>
         </div>
       </div>
     );
