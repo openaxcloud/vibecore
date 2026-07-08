@@ -23,7 +23,11 @@ import { Inspector, type ElementInfo } from './Inspector';
 import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
 import { evaluatePreviewReadyEdge, resolvePreviewAddress, type PreviewReadyEdgeState } from './preview-address';
-import { decidePreviewLoadOutcome, shouldRunPreviewBootLoop } from './preview-frame-recovery';
+import {
+  decidePreviewLoadOutcome,
+  shouldReloadPreviewOnReadyEdge,
+  shouldRunPreviewBootLoop,
+} from './preview-frame-recovery';
 import { EmptyState } from '~/components/ui/EmptyState';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
@@ -960,10 +964,17 @@ export const Preview = memo(
       );
       wasPreviewReadyRef.current = next;
 
-      if (shouldReload) {
+      /*
+       * Suppress the reload once the iframe already shows the app for the current
+       * URL: a readiness re-probe blip (probePortReady flapping false→true while the
+       * dev server is up) must NOT reload a healthy frame — that is the flicker.
+       */
+      const frameRendered = previewFrameLoaded && loadedPreviewUrl === iframeUrl;
+
+      if (shouldReloadPreviewOnReadyEdge({ readyEdgeReload: shouldReload, frameRendered })) {
         reloadPreview('runtime:ready');
       }
-    }, [activePreview, activePreview?.ready, reloadPreview]);
+    }, [activePreview, activePreview?.ready, reloadPreview, previewFrameLoaded, loadedPreviewUrl, iframeUrl]);
 
     /*
      * P11 — automatic project thumbnail. When a preview becomes ready, tell the

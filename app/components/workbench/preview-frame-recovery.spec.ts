@@ -3,6 +3,7 @@ import {
   MAX_PREVIEW_LOAD_RETRIES,
   decidePreviewLoadOutcome,
   shouldAutoRunPreview,
+  shouldReloadPreviewOnReadyEdge,
   shouldRunPreviewBootLoop,
 } from './preview-frame-recovery';
 
@@ -119,5 +120,24 @@ describe('shouldAutoRunPreview', () => {
     expect(shouldAutoRunPreview({ isMobileWorkbench: false, hasProject: false, isPreviewTabActive: false })).toBe(
       false,
     );
+  });
+});
+
+describe('shouldReloadPreviewOnReadyEdge', () => {
+  it('reloads to rescue a frame that has NOT yet rendered the app (stuck on the 502 holding page)', () => {
+    expect(shouldReloadPreviewOnReadyEdge({ readyEdgeReload: true, frameRendered: false })).toBe(true);
+  });
+
+  it('does NOT reload once the app is rendered — a readiness re-probe flap must not flicker a healthy frame', () => {
+    /*
+     * This is the exact bug: probePortReady blips false→true while the dev server is
+     * up, firing the ready edge; reloading the already-rendered app is the flicker.
+     */
+    expect(shouldReloadPreviewOnReadyEdge({ readyEdgeReload: true, frameRendered: true })).toBe(false);
+  });
+
+  it('never reloads when there was no ready edge, regardless of render state', () => {
+    expect(shouldReloadPreviewOnReadyEdge({ readyEdgeReload: false, frameRendered: false })).toBe(false);
+    expect(shouldReloadPreviewOnReadyEdge({ readyEdgeReload: false, frameRendered: true })).toBe(false);
   });
 });
