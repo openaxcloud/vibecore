@@ -342,11 +342,9 @@ export class PreviewsStore {
       return;
     }
 
-    console.log('[Preview] Runtime port event:', port, url);
-    this.broadcastUpdate(url);
-    this._broadcastStorageSync();
-
     const previews = this.previews.get();
+    const isNewPort = !previewInfo;
+    const urlChanged = Boolean(previewInfo && previewInfo.baseUrl !== url);
 
     if (!previewInfo) {
       previewInfo = { port, ready: ready ?? type === 'open', baseUrl: url };
@@ -358,6 +356,21 @@ export class PreviewsStore {
     previewInfo.baseUrl = url;
 
     this.previews.set([...previews]);
+
+    /*
+     * Only sync a cross-tab reload when the port genuinely APPEARED or changed URL.
+     * This used to fire on EVERY idempotent port event — every ~2.5s boot-loop
+     * refresh and every ports/watch push re-reports the same running port — so each
+     * poll posted a 'file-change' → refreshPreview → the ready false→true flap → a
+     * full iframe reload in OTHER tabs (a cross-tab echo of the same flicker). A
+     * re-detection of an unchanged port must be a no-op; readiness changes never
+     * warrant a reload (the same-tab ready edge has its own guard in Preview).
+     */
+    if (isNewPort || urlChanged) {
+      console.log('[Preview] Runtime port event:', port, url);
+      this.broadcastUpdate(url);
+      this._broadcastStorageSync();
+    }
   }
 
   /*
