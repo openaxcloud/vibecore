@@ -55,11 +55,14 @@ export class PlaywrightPageRenderer implements PageRenderer {
 
     try {
       const page = await context.newPage();
-      await page.goto(input.url, { waitUntil: 'networkidle', timeout: this.options.navTimeoutMs ?? 15_000 });
-
-      if (this.options.settleMs) {
-        await page.waitForTimeout(this.options.settleMs);
-      }
+      // Use 'load', NOT 'networkidle': a preview is a Vite/HMR app that holds a
+      // persistent HMR WebSocket open, so the network is never idle and
+      // 'networkidle' would always hit the timeout ("render failed") — the exact
+      // symptom that blocked every real preview capture. 'load' fires once the
+      // document + subresources are in; a short settle then covers SPA mount and
+      // late paints/animations.
+      await page.goto(input.url, { waitUntil: 'load', timeout: this.options.navTimeoutMs ?? 15_000 });
+      await page.waitForTimeout(this.options.settleMs ?? 1_500);
 
       return await page.screenshot({ type: 'png', fullPage: false });
     } finally {
