@@ -216,6 +216,8 @@ import {
 } from './project-storage.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
+import { SKILL_REPO_CATALOG, findRepoEntry, normalizeOwnerRepo } from './skills-repo-catalog.js';
+import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
 import {
   API_KEY_SCOPES,
@@ -550,6 +552,24 @@ const agentPatchProposalParams = z.object({
 const skillParams = z.object({
   projectId: z.string().min(1),
   skillId: z.string().min(1).max(64),
+});
+
+/** F#27 installable GitHub-repo skills. */
+const installedSkillScope = z.enum(['project', 'workspace']);
+const skillCatalogQuery = z.object({ q: z.string().max(120).optional() });
+const skillInstalledQuery = z.object({ scope: installedSkillScope.default('project') });
+const skillInstallBody = z.object({
+  ownerRepo: z.string().min(1).max(220),
+  scope: installedSkillScope.default('project'),
+});
+const skillUninstallBody = z.object({
+  ownerRepo: z.string().min(1).max(220),
+  scope: installedSkillScope.default('project'),
+});
+const skillToggleBody = z.object({
+  ownerRepo: z.string().min(1).max(220),
+  scope: installedSkillScope.default('project'),
+  enabled: z.boolean(),
 });
 
 /** P2d: which database environment a provision/read targets (default development). */
@@ -17642,6 +17662,258 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/projects/:projectId/skills/:skillId/enable', (request, reply) => setSkillEnabled(request, reply, true));
   app.post('/projects/:projectId/skills/:skillId/disable', (request, reply) => setSkillEnabled(request, reply, false));
+
+  /* -------- Installable GitHub-repo skills (F#27) -------- */
+
+  /**
+   * Resolve the storage target for a scope. 'project' => projectId; 'workspace'
+   * => the project's (first) workspace id, mirroring how other project routes
+   * pick the workspace. Throws a typed 409 when a workspace-scoped op has no
+   * workspace yet.
+   */
+  const resolveSkillScopeId = async (
+    scope: 'project' | 'workspace',
+    project: { id: string },
+    reply: FastifyReply,
+  ): Promise<string | undefined> => {
+    if (scope === 'project') {
+      return project.id;
+    }
+
+    const workspace = (await store.listWorkspaces(project.id).catch(() => []))[0] ?? null;
+
+    if (!workspace) {
+      reply.code(409).send({
+        error: 'This project has no workspace yet. Open the project once, then install workspace-scoped skills.',
+        code: 'SKILL_NO_WORKSPACE',
+      });
+
+      return undefined;
+    }
+
+    return workspace.id;
+  };
+
+  // Community catalog: curated public skill repos + live install counts + whether
+  // installed in this project or its workspace. Optional ?q= filters name/desc/repo.
+  app.get('/projects/:projectId/skills/catalog', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const { q } = parse(skillCatalogQuery, request.query);
+
+    const [counts, projectInstalls, workspaceScopeId] = await Promise.all([
+      store.countInstallsByRepo(),
+      store.listInstalledSkills('project', project.id),
+      (async () => (await store.listWorkspaces(project.id).catch(() => []))[0]?.id ?? null)(),
+    ]);
+    const workspaceInstalls = workspaceScopeId
+      ? await store.listInstalledSkills('workspace', workspaceScopeId)
+      : [];
+
+    const projectSet = new Set(projectInstalls.map((row) => row.ownerRepo));
+    const workspaceSet = new Set(workspaceInstalls.map((row) => row.ownerRepo));
+
+    const needle = q?.trim().toLowerCase();
+    const entries = SKILL_REPO_CATALOG.filter((entry) => {
+      if (!needle) {
+        return true;
+      }
+
+      return (
+        entry.name.toLowerCase().includes(needle) ||
+        entry.description.toLowerCase().includes(needle) ||
+        entry.ownerRepo.toLowerCase().includes(needle) ||
+        entry.category.toLowerCase().includes(needle)
+      );
+    }).map((entry) => ({
+      ownerRepo: entry.ownerRepo,
+      name: entry.name,
+      description: entry.description,
+      category: entry.category,
+      homepageUrl: entry.homepageUrl,
+      installCount: counts[entry.ownerRepo] ?? 0,
+      installedInProject: projectSet.has(entry.ownerRepo),
+      installedInWorkspace: workspaceSet.has(entry.ownerRepo),
+    }));
+
+    return { entries, hasWorkspace: workspaceScopeId !== null };
+  });
+
+  // Installed skills for a scope (project or the project's workspace).
+  app.get('/projects/:projectId/skills/installed', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const scope = parse(skillInstalledQuery, request.query).scope ?? 'project';
+
+    const scopeId = await resolveSkillScopeId(scope, project, reply);
+
+    if (scopeId === undefined) {
+      return reply; // 409 already sent
+    }
+
+    return reply.send({ scope, skills: await store.listInstalledSkills(scope, scopeId) });
+  });
+
+  // Install a public GitHub-repo skill: validate owner/repo, fetch instructions
+  // server-side (SSRF-guarded to raw.githubusercontent.com), persist the row.
+  app.post('/projects/:projectId/skills/install', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(skillInstallBody, request.body);
+    const scope = body.scope ?? 'project';
+
+    const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
+
+    if (!ownerRepo) {
+      return reply.code(400).send({
+        error: 'ownerRepo must be a valid "owner/repo" GitHub slug',
+        code: 'SKILL_REPO_INVALID',
+      });
+    }
+
+    const scopeId = await resolveSkillScopeId(scope, project, reply);
+
+    if (scopeId === undefined) {
+      return reply; // 409 already sent
+    }
+
+    const already = (await store.listInstalledSkills(scope, scopeId)).some((row) => row.ownerRepo === ownerRepo);
+
+    if (already) {
+      return reply.code(409).send({ error: `'${ownerRepo}' is already installed`, code: 'SKILL_ALREADY_INSTALLED' });
+    }
+
+    const catalogEntry = findRepoEntry(ownerRepo);
+    const fetched = await fetchSkillRepoInstructions(ownerRepo);
+
+    let instructions: string;
+    let note: string | undefined;
+
+    if (fetched.ok) {
+      instructions = fetched.instructions;
+    } else if (catalogEntry) {
+      // Public curated repo we couldn't read right now — fall back to our summary.
+      instructions = catalogEntry.description;
+      note =
+        fetched.reason === 'private_or_missing'
+          ? 'No SKILL.md/AGENTS.md/README.md found in the repo; using the catalog summary.'
+          : 'The repo could not be reached right now; using the catalog summary.';
+    } else if (fetched.reason === 'private_or_missing') {
+      return reply.code(404).send({
+        error: `'${ownerRepo}' has no public SKILL.md/AGENTS.md/README.md — it may be private or not exist.`,
+        code: 'SKILL_REPO_PRIVATE',
+      });
+    } else {
+      return reply.code(502).send({
+        error: `Could not reach GitHub to read '${ownerRepo}'. Try again shortly.`,
+        code: 'SKILL_REPO_UNREACHABLE',
+      });
+    }
+
+    const name = catalogEntry?.name ?? ownerRepo.split('/')[1];
+    const description = catalogEntry?.description ?? `Installed from ${ownerRepo}`;
+    const homepageUrl = catalogEntry?.homepageUrl ?? `https://github.com/${ownerRepo}`;
+    const userId = request.currentUser?.id ?? null;
+
+    const { record, created } = await store.installSkill({
+      scope,
+      scopeId,
+      ownerRepo,
+      name,
+      description,
+      instructions,
+      homepageUrl,
+      installedByUserId: userId,
+    });
+
+    if (!created) {
+      // Lost a race with a concurrent install of the same repo.
+      return reply.code(409).send({ error: `'${ownerRepo}' is already installed`, code: 'SKILL_ALREADY_INSTALLED' });
+    }
+
+    return reply.code(201).send({ skill: record, source: fetched.ok ? fetched.source : null, note });
+  });
+
+  // Uninstall a GitHub-repo skill from a scope.
+  app.delete('/projects/:projectId/skills/installed', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(skillUninstallBody, request.body);
+    const scope = body.scope ?? 'project';
+
+    const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
+
+    if (!ownerRepo) {
+      return reply.code(400).send({ error: 'ownerRepo must be a valid "owner/repo" slug', code: 'SKILL_REPO_INVALID' });
+    }
+
+    const scopeId = await resolveSkillScopeId(scope, project, reply);
+
+    if (scopeId === undefined) {
+      return reply; // 409 already sent
+    }
+
+    const removed = await store.uninstallSkill(scope, scopeId, ownerRepo);
+
+    if (!removed) {
+      return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
+    }
+
+    return reply.send({ removed: true, ownerRepo, scope });
+  });
+
+  // Enable/disable an installed GitHub-repo skill without uninstalling it.
+  app.patch('/projects/:projectId/skills/installed', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(skillToggleBody, request.body);
+    const scope = body.scope ?? 'project';
+
+    const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
+
+    if (!ownerRepo) {
+      return reply.code(400).send({ error: 'ownerRepo must be a valid "owner/repo" slug', code: 'SKILL_REPO_INVALID' });
+    }
+
+    const scopeId = await resolveSkillScopeId(scope, project, reply);
+
+    if (scopeId === undefined) {
+      return reply; // 409 already sent
+    }
+
+    const updated = await store.setInstalledSkillEnabled({
+      scope,
+      scopeId,
+      ownerRepo,
+      enabled: body.enabled,
+    });
+
+    if (!updated) {
+      return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
+    }
+
+    return reply.send({ skill: updated });
+  });
 
   app.get('/projects/:projectId/settings', async (request) => ({
     project: await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read'),
