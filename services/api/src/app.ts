@@ -1,9 +1,10 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, createHmac, createVerify, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { mkdir, readdir, readFile, realpath, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
-import { dirname, extname, sep, resolve } from 'node:path';
+import { dirname, extname, join, sep, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import { signObjectStorageAccessToken, verifyObjectStorageAccessToken } from '@e-code/sdk';
 import cookie from '@fastify/cookie';
@@ -137,7 +138,14 @@ import {
   deploymentProviders,
   detectFramework,
   redactDeploymentLog,
+  type RunStaticBuildResult,
 } from './deployments.js';
+import {
+  detectPodPackageManager,
+  runWorkspaceStaticBuild,
+  type WorkspaceStaticBuildResult,
+} from './deploy-workspace-build.js';
+import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
 import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
 import {
@@ -6832,6 +6840,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const projectStorage = options.projectStorage ?? new LocalProjectStorage();
   const gitProvider = options.gitProvider ?? new GitCliProvider();
   const staticBuildRunner = options.staticBuildRunner ?? runStaticBuild;
+  /*
+   * When a caller injects its own staticBuildRunner (unit/integration tests), it
+   * wants the in-process build path — skip the workspace-pod build entirely so
+   * tests don't block on ensureWorkspaceReachable's cold-start poll. Prod injects
+   * nothing, so the workspace-pod build (P1) is the real default.
+   */
+  const useWorkspacePodBuild = !options.staticBuildRunner;
   const emailProvider = options.emailProvider ?? createEmailProvider();
   const isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
 
@@ -11875,6 +11890,109 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const file = await agentFileRead(workspaceId, path);
 
     return file.content;
+  };
+
+  /*
+   * P1 (vague2-deploy): build a static deploy INSIDE the project's workspace pod
+   * (gVisor — real toolchain, fast local disk, its own CPU/RAM) instead of running
+   * `npm install && build` in-process on the API pod (500m/1Gi, node_modules on a
+   * Filestore/NFS share) which OOM'd/timed-out systematically. The build streams
+   * over the agent `/commands/stream` WS; the produced `dist/` is pulled back and
+   * materialized into a temp dir that the caller snapshots (serve path unchanged).
+   * Returns { handled:false } when the pod can't be reached / there's no user
+   * context, so the caller falls back to the legacy in-process build.
+   */
+  const DEPLOY_MAX_PULL_FILE_BYTES = 2 * 1024 * 1024; // matches the agent's default WORKSPACE_MAX_FILE_BYTES
+
+  const buildStaticInWorkspacePod = async (
+    request: any,
+    project: { id: string; organizationId: string },
+    body: { buildCommand: string; outputDirectory: string; timeoutSeconds: number; artifactSizeLimitMb?: number },
+    deploymentId: string,
+  ): Promise<{ handled: false } | { handled: true; result: RunStaticBuildResult; tempDir: string }> => {
+    const userId = request.currentUser?.id;
+
+    if (!userId) {
+      return { handled: false };
+    }
+
+    const WebSocketCtor = (globalThis as { WebSocket?: new (url: string) => WsLike }).WebSocket;
+
+    if (!WebSocketCtor) {
+      return { handled: false };
+    }
+
+    const workspaceId = runtimeWorkspaceId(project.id, userId);
+    const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
+
+    try {
+      await ensureWorkspaceReachable(request, authorized);
+    } catch {
+      return { handled: false };
+    }
+
+    let token: string;
+
+    try {
+      token = await agentToken(workspaceId);
+    } catch {
+      return { handled: false };
+    }
+
+    const buildAgent = createWorkspaceBuildAgent({
+      agentWsBaseUrl: agentBaseUrl(workspaceId).replace(/^http/i, 'ws'),
+      token,
+      deadlineMs: Math.max(1, body.timeoutSeconds) * 1000,
+      wsFactory: (url) => new WebSocketCtor(url),
+      agentGet: <T,>(path: string) => agentRequest<T>(workspaceId, path, { method: 'GET' }),
+    });
+
+    // Detect the package manager from the pod's lockfiles (probe; absent read throws).
+    const presentLockfiles: string[] = [];
+
+    for (const lockfile of ['pnpm-lock.yaml', 'yarn.lock', 'bun.lockb']) {
+      try {
+        await buildAgent.readFile(lockfile);
+        presentLockfiles.push(lockfile);
+      } catch {
+        // absent
+      }
+    }
+
+    const pm = detectPodPackageManager([...presentLockfiles, 'package.json']);
+    const tempDir = await mkdtemp(join(tmpdir(), `deploy-${deploymentId}-`));
+
+    let result: WorkspaceStaticBuildResult;
+
+    try {
+      result = await runWorkspaceStaticBuild(
+        {
+          install: { command: pm.command, args: pm.args },
+          buildCommand: body.buildCommand,
+          outputDirectory: body.outputDirectory,
+          cwd: '.',
+          materializeDir: tempDir,
+          maxFileBytes: DEPLOY_MAX_PULL_FILE_BYTES,
+          artifactSizeLimitMb: body.artifactSizeLimitMb,
+        },
+        buildAgent,
+      );
+    } catch {
+      await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
+      return { handled: false };
+    }
+
+    // Couldn't reach the pod to run the build → fall back to the API-pod build.
+    if (!result.ok && result.error === 'AGENT_UNREACHABLE') {
+      await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
+      return { handled: false };
+    }
+
+    return {
+      handled: true,
+      result: { ok: result.ok, logs: result.logs, outputDir: result.ok ? tempDir : undefined, error: result.error },
+      tempDir,
+    };
   };
 
   /*
@@ -25563,17 +25681,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     let staticBuildFailed = false;
     let staticBuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
+    let workspaceBuildTempDir: string | undefined;
 
     if (body.provider === 'static') {
-      const staticBuild = await staticBuildRunner({
-        projectId: project.id,
-        workspaceId: secondaryWorkspaceId,
-        buildCommand: body.buildCommand,
-        outputDirectory: body.outputDirectory,
-        envVars: body.envVars,
-        timeoutSeconds: body.timeoutSeconds,
-        artifactSizeLimitMb: body.artifactSizeLimitMb,
-      });
+      /*
+       * P1: build in the project's workspace pod (real toolchain + local disk);
+       * only fall back to the legacy in-process API-pod build when the pod can't
+       * be reached (no user context / agent unreachable).
+       */
+      const workspaceAttempt = useWorkspacePodBuild
+        ? await buildStaticInWorkspacePod(request, project, body, queued.id)
+        : { handled: false as const };
+      workspaceBuildTempDir = workspaceAttempt.handled ? workspaceAttempt.tempDir : undefined;
+
+      const staticBuild = workspaceAttempt.handled
+        ? workspaceAttempt.result
+        : await staticBuildRunner({
+            projectId: project.id,
+            workspaceId: secondaryWorkspaceId,
+            buildCommand: body.buildCommand,
+            outputDirectory: body.outputDirectory,
+            envVars: body.envVars,
+            timeoutSeconds: body.timeoutSeconds,
+            artifactSizeLimitMb: body.artifactSizeLimitMb,
+          });
 
       staticBuildLogs = staticBuild.logs;
 
@@ -25619,6 +25750,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
       } else {
         staticBuildFailed = true;
+      }
+
+      // The workspace-pod build materializes the artifact into a temp dir that
+      // snapshotStaticBuild has now copied out of — remove it either way.
+      if (workspaceBuildTempDir) {
+        await rm(workspaceBuildTempDir, { recursive: true, force: true }).catch(() => undefined);
       }
     }
 
@@ -26034,19 +26171,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const hookResult = await triggerProviderDeployHook(sourceProvider);
 
     let staticBuildFailed = false;
+    let workspaceBuildTempDir: string | undefined;
 
     const rebuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
 
     if (source.provider === 'static') {
-      const staticBuild = await staticBuildRunner({
-        projectId: project.id,
-        workspaceId: secondaryWorkspaceId,
+      // P1: build in the workspace pod (see create handler); fall back to the
+      // in-process API-pod build only when the pod is unreachable.
+      const redeployBody = {
         buildCommand: source.buildCommand ?? 'npm run build',
         outputDirectory: source.outputDirectory ?? 'dist',
-        envVars: sourceEnvVars,
         timeoutSeconds: sourceTimeoutSeconds,
         artifactSizeLimitMb: sourceArtifactSizeLimitMb,
-      });
+      };
+
+      const workspaceAttempt = useWorkspacePodBuild
+        ? await buildStaticInWorkspacePod(request, project, redeployBody, redeploy.id)
+        : { handled: false as const };
+      workspaceBuildTempDir = workspaceAttempt.handled ? workspaceAttempt.tempDir : undefined;
+
+      const staticBuild = workspaceAttempt.handled
+        ? workspaceAttempt.result
+        : await staticBuildRunner({
+            projectId: project.id,
+            workspaceId: secondaryWorkspaceId,
+            buildCommand: redeployBody.buildCommand,
+            outputDirectory: redeployBody.outputDirectory,
+            envVars: sourceEnvVars,
+            timeoutSeconds: sourceTimeoutSeconds,
+            artifactSizeLimitMb: sourceArtifactSizeLimitMb,
+          });
 
       rebuildLogs.push(...staticBuild.logs);
 
@@ -26087,6 +26241,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
       } else {
         staticBuildFailed = true;
+      }
+
+      // Remove the workspace-pod build's temp artifact dir (snapshot copied it out).
+      if (workspaceBuildTempDir) {
+        await rm(workspaceBuildTempDir, { recursive: true, force: true }).catch(() => undefined);
       }
     } else if (hookResult) {
       rebuildLogs.push({
