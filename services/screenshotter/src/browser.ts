@@ -73,36 +73,61 @@ export class PlaywrightPageRenderer implements PageRenderer {
        * assets are loaded from the same preview host). The SSRF allowlist has
        * already vetted the input URL in app.ts, so this only redirects vetted hosts.
        */
-      const proxyBase = this.options.previewProxyUrl;
       const suffixes = this.options.previewHostSuffixes ?? [];
+      const isPreviewHost = (h: string) => suffixes.some((suffix) => h === suffix || h.endsWith(`.${suffix}`));
+      const proxying = Boolean(this.options.previewProxyUrl) && suffixes.length > 0;
 
-      if (proxyBase && suffixes.length > 0) {
-        const proxy = new URL(proxyBase);
+      if (proxying) {
+        const proxy = new URL(this.options.previewProxyUrl!);
 
         await context.route('**/*', async (route) => {
-          const requestUrl = new URL(route.request().url());
-          const host = requestUrl.hostname.toLowerCase();
-          const isPreview = suffixes.some((suffix) => host === suffix || host.endsWith(`.${suffix}`));
+          try {
+            const requestUrl = new URL(route.request().url());
 
-          if (!isPreview) {
-            await route.continue();
-            return;
+            if (!isPreviewHost(requestUrl.hostname.toLowerCase())) {
+              await route.continue();
+              return;
+            }
+
+            // route.continue requires the SAME protocol; the proxy is http, so the
+            // request must already be http (we force http on the nav below, and an
+            // http page's subresources are http/relative). Preserve the original
+            // preview Host so the proxy routes to the right workspace.
+            const target = `${proxy.protocol}//${proxy.host}${requestUrl.pathname}${requestUrl.search}`;
+            await route.continue({ url: target, headers: { ...route.request().headers(), host: requestUrl.host } });
+          } catch {
+            // Never let a routing hiccup crash the process (an unhandled throw in a
+            // route handler would take down the pod). Fall back to the original.
+            await route.continue().catch(() => route.abort().catch(() => {}));
           }
-
-          const target = `${proxy.protocol}//${proxy.host}${requestUrl.pathname}${requestUrl.search}`;
-          // Preserve the original preview Host (incl. any port) so the proxy routes correctly.
-          await route.continue({ url: target, headers: { ...route.request().headers(), host: requestUrl.host } });
         });
       }
 
       const page = await context.newPage();
+
+      /*
+       * Force http on the top-level nav for a preview host: the proxy is http and
+       * route.continue can't cross protocols (https→http throws). An http page then
+       * requests http/relative subresources, which the route above rewrites cleanly.
+       */
+      let navUrl = input.url;
+
+      if (proxying) {
+        const parsed = new URL(input.url);
+
+        if (isPreviewHost(parsed.hostname.toLowerCase())) {
+          parsed.protocol = 'http:';
+          parsed.port = '';
+          navUrl = parsed.toString();
+        }
+      }
       // Use 'load', NOT 'networkidle': a preview is a Vite/HMR app that holds a
       // persistent HMR WebSocket open, so the network is never idle and
       // 'networkidle' would always hit the timeout ("render failed") — the exact
       // symptom that blocked every real preview capture. 'load' fires once the
       // document + subresources are in; a short settle then covers SPA mount and
       // late paints/animations.
-      await page.goto(input.url, { waitUntil: 'load', timeout: this.options.navTimeoutMs ?? 15_000 });
+      await page.goto(navUrl, { waitUntil: 'load', timeout: this.options.navTimeoutMs ?? 15_000 });
       await page.waitForTimeout(this.options.settleMs ?? 1_500);
 
       return await page.screenshot({ type: 'png', fullPage: false });
