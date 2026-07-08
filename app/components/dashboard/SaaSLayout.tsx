@@ -1252,9 +1252,10 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Cap the thumbnail height on phones/tablets (single-column) so a card
-            stays scannable (~40-50% of viewport); the aspect ratio governs again
-            once the 3-column grid kicks in at lg. */}
-        <div className="vc-project-preview relative aspect-[16/10] max-h-52 w-full overflow-hidden rounded-md lg:aspect-[16/9] lg:max-h-none">
+            stays scannable — tighter on phones (~44/176px) than tablets (~52/208px)
+            so a project card is not dominated by its preview; the aspect ratio
+            governs again once the 3-column grid kicks in at lg. */}
+        <div className="vc-project-preview relative aspect-[16/10] max-h-44 w-full overflow-hidden rounded-md sm:max-h-52 lg:aspect-[16/9] lg:max-h-none">
           <ProjectPreviewFallback project={project} />
           {project.previewImageUrl ? (
             <img
