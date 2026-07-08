@@ -17,7 +17,7 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'react-toastify';
 import { Inspector, type ElementInfo } from './Inspector';
 import { PortDropdown } from './PortDropdown';
@@ -80,11 +80,133 @@ function resolvePreviewSourcePath(filename: string): string | undefined {
   );
 }
 
-/* Open a resolved source file in the editor at the reported 1-based line. */
-function openPreviewSource(path: string, line: number) {
+/* Open a resolved source file in the editor at the reported 1-based line/column. */
+function openPreviewSource(path: string, line: number, column?: number) {
   workbenchStore.setSelectedFile(path);
-  workbenchStore.setCurrentDocumentScrollPosition({ line: Math.max(0, line - 1), column: 0 });
+  workbenchStore.setCurrentDocumentScrollPosition({
+    line: Math.max(0, line - 1),
+
+    // CodeMirror treats scroll.column as a 0-based offset from the line start.
+    column: column && column > 0 ? column - 1 : 0,
+  });
   workbenchStore.currentView.set('code');
+}
+
+/*
+ * F7 — a single `path:line[:col]` reference recovered from console/stack text.
+ * `path` is exactly the substring that appeared before the line number (it may
+ * be a workspace path, a leading-slash absolute path, or a full Vite iframe URL
+ * with a `?t=` cache-busting query); resolution to a real workbench file is done
+ * later by resolvePreviewSourcePath so the parser stays pure and unit-testable.
+ */
+export interface ConsoleSourceRef {
+  path: string;
+  line: number;
+  column?: number;
+}
+
+export type ConsoleMessageSegment =
+  | { type: 'text'; value: string }
+  | { type: 'ref'; value: string; ref: ConsoleSourceRef };
+
+/*
+ * Restrict matches to real source extensions so stack-trace noise (host:port,
+ * timestamps like 12:34:56, `example.com:443`) never masquerades as a file ref.
+ * The optional `?query`/`#hash` after the extension covers Vite's transformed
+ * URLs (…/src/App.tsx?t=1699999999:12:5).
+ */
+const CONSOLE_SOURCE_REF_REGEX =
+  /([^\s()<>'"]+?\.(?:tsx?|jsx?|mjs|cjs|vue|svelte|astro|css|scss|sass|less|html?|json|mdx?|ya?ml)(?:[?#][^\s():]*)?):(\d+)(?::(\d+))?/gi;
+
+/*
+ * Split console/stack text into plain-text and `path:line[:col]` reference
+ * segments. Pure: does not touch the workbench file map, so the render layer can
+ * decide (per ref) whether the path resolves to an open file and only then wire
+ * a clickable jump — an unresolved ref stays plain text (no dead link).
+ */
+export function parseConsoleSourceRefs(text: string): ConsoleMessageSegment[] {
+  const segments: ConsoleMessageSegment[] = [];
+
+  if (!text) {
+    return segments;
+  }
+
+  CONSOLE_SOURCE_REF_REGEX.lastIndex = 0;
+
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = CONSOLE_SOURCE_REF_REGEX.exec(text)) !== null) {
+    const [raw, path, lineText, columnText] = match;
+
+    if (match.index > lastIndex) {
+      segments.push({ type: 'text', value: text.slice(lastIndex, match.index) });
+    }
+
+    segments.push({
+      type: 'ref',
+      value: raw,
+      ref: {
+        path,
+        line: Number(lineText),
+        column: columnText ? Number(columnText) : undefined,
+      },
+    });
+
+    lastIndex = match.index + raw.length;
+
+    // Guard against a zero-length match stalling the loop.
+    if (CONSOLE_SOURCE_REF_REGEX.lastIndex === match.index) {
+      CONSOLE_SOURCE_REF_REGEX.lastIndex += 1;
+    }
+  }
+
+  if (lastIndex < text.length) {
+    segments.push({ type: 'text', value: text.slice(lastIndex) });
+  }
+
+  return segments;
+}
+
+/*
+ * Render console/stack text with each resolvable `path:line[:col]` ref turned
+ * into a keyboard-activatable jump button (blue = action). Refs that don't map
+ * to an open workbench file render as plain text.
+ */
+function renderConsoleMessage(message: string): ReactNode {
+  const segments = parseConsoleSourceRefs(message);
+
+  if (segments.length <= 1 && segments[0]?.type !== 'ref') {
+    return message;
+  }
+
+  return segments.map((segment, index) => {
+    if (segment.type === 'text') {
+      return <Fragment key={index}>{segment.value}</Fragment>;
+    }
+
+    const resolvedPath = resolvePreviewSourcePath(segment.ref.path);
+
+    if (!resolvedPath) {
+      return <Fragment key={index}>{segment.value}</Fragment>;
+    }
+
+    const { line, column } = segment.ref;
+    const location = `${resolvedPath}:${line}${column ? `:${column}` : ''}`;
+
+    return (
+      <button
+        key={index}
+        type="button"
+        className="bolt-preview-console-ref"
+        onClick={() => openPreviewSource(resolvedPath, line, column)}
+        title={`Open ${location}`}
+        aria-label={`Open ${resolvedPath} at line ${line}`}
+      >
+        {segment.value}
+      </button>
+    );
+  });
 }
 
 type ResizeSide = 'left' | 'right' | null;
@@ -2707,7 +2829,7 @@ export const Preview = memo(
                     return (
                       <div key={`${event.level}-${index}`} data-level={event.level}>
                         <strong>{event.level}</strong>
-                        <span>{event.message}</span>
+                        <span>{renderConsoleMessage(event.message)}</span>
                         {source ? (
                           <button
                             type="button"
