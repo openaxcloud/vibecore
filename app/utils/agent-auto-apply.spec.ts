@@ -78,12 +78,12 @@ describe('isRiskyAgentPatchPath', () => {
 });
 
 describe('shouldAutoApplyPatch', () => {
-  it('approves a pending patch when the toggle is on, regardless of path', () => {
+  it('approves a pending patch when auto-apply is on, regardless of path', () => {
     expect(shouldAutoApplyPatch({ autoApplyEnabled: true, status: 'pending' })).toBe(true);
   });
 
-  it('approves pending patches even when a legacy caller passes the toggle as off', () => {
-    expect(shouldAutoApplyPatch({ autoApplyEnabled: false, status: 'pending' })).toBe(true);
+  it('keeps a pending patch for review when auto-apply is off (review required)', () => {
+    expect(shouldAutoApplyPatch({ autoApplyEnabled: false, status: 'pending' })).toBe(false);
   });
 
   it('refuses anything other than a pending status', () => {
