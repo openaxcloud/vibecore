@@ -16,7 +16,6 @@ describe('E-Code product surface registry', () => {
     expect(ecodeCompatibilityRoutePatterns).toEqual(
       expect.arrayContaining([
         '/ai-agent/studio',
-        '/github-import',
         '/projects/:id/import/figma',
         '/projects/:id/import/bolt',
         '/projects/:id/import/lovable',
@@ -133,5 +132,15 @@ describe('E-Code product surface registry', () => {
     expect(getEcodeAdvancedSurfacePage('sso')?.route).toBe('/advanced/sso');
     expect(getEcodeStandaloneSurfacePage('ai-agent/studio')?.route).toBe('/ai-agent/studio');
     expect(getEcodeSurfacePage('missing-route')).toBeUndefined();
+  });
+
+  it('purges the github-import brochure surface (I28): it redirects to /import-github instead', () => {
+    // No surface page for the slug in any registry…
+    expect(getEcodeStandaloneSurfacePage('github-import')).toBeUndefined();
+    expect(getEcodeSurfacePage('github-import')).toBeUndefined();
+    expect(getEcodeAdvancedSurfacePage('github-import')).toBeUndefined();
+
+    // …and it no longer contributes a compatibility route pattern.
+    expect(ecodeCompatibilityRoutePatterns as readonly string[]).not.toContain('/github-import');
   });
 });
