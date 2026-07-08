@@ -22521,16 +22521,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           .number()
           .int()
           .refine((value) => value !== 0, { message: 'deltaCents must be a non-zero integer' }),
-        reason: z.string().min(1).max(500),
+        // Optional at the schema layer so both a missing AND a whitespace-only
+        // reason fall through to the explicit check below, which rejects with the
+        // specific WALLET_ADJUST_REASON_REQUIRED code (not the generic zod 400).
+        reason: z.string().max(500).optional(),
       }),
       request.body ?? {},
     );
+
+    /*
+     * F20: a reason is MANDATORY on every wallet adjustment — it is the human
+     * "why" persisted alongside the signed ADJUSTMENT ledger entry (the audit
+     * trail the movement-history table renders). Trim first so a whitespace-only
+     * reason ("   ") is rejected too, and store the trimmed value.
+     */
+    const reason = (body.reason ?? '').trim();
+
+    if (!reason) {
+      throw Object.assign(new Error('A reason is required for wallet adjustments — it is recorded in the audit trail.'), {
+        statusCode: 400,
+        code: 'WALLET_ADJUST_REASON_REQUIRED',
+      });
+    }
 
     const { entry, balanceCents } = await store.recordCreditEntry({
       organizationId,
       deltaCents: body.deltaCents,
       kind: 'ADJUSTMENT',
-      reason: body.reason,
+      reason,
     });
 
     await audit(request, store, {
@@ -22538,7 +22556,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       action: 'admin.wallet.adjust',
       resourceType: 'wallet',
       resourceId: organizationId,
-      metadata: { deltaCents: body.deltaCents, reason: body.reason, balanceCents },
+      metadata: { deltaCents: body.deltaCents, reason, balanceCents },
     });
 
     return { wallet: { organizationId, balanceCents }, entry };
