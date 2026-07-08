@@ -537,10 +537,16 @@ const projectSettingsSchema = z.object({
   description: z.string().optional(),
   gitRepositoryUrl: gitRemoteUrlSchema.optional(),
   gitDefaultBranch: z.string().min(1).optional(),
+  // F13: optional slug rename. Free-form here (2–160 chars); the route
+  // slugifies it into canonical form and rejects a value that normalizes empty.
+  slug: z.string().min(2).max(160).optional(),
 });
 const projectIdeStateSchema = z.object({
   state: z.record(z.unknown()),
 });
+
+// F13: optional name confirmation on permanent delete (type-to-confirm guard).
+const projectDeleteConfirmSchema = z.object({ confirmName: z.string().optional() });
 
 const agentPatchProposalParams = z.object({
   projectId: z.string().min(1),
@@ -17005,11 +17011,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
     }
 
-    const project = await store.getProjectBySlugs({ organizationSlug, projectSlug });
+    /*
+     * F13: fall back to a live slug redirect. When the current slug misses, a
+     * non-expired ProjectSlugRedirect (old slug → project) resolves the RENAMED
+     * project. We return it with its CURRENT slug, so `canonicalPath` differs
+     * from the requested old-slug URL and the web loader 301s to the new URL.
+     */
+    const project =
+      (await store.getProjectBySlugs({ organizationSlug, projectSlug })) ??
+      (await store.resolveProjectSlugRedirect({ organizationSlug, oldSlug: projectSlug }));
 
     if (!project) {
       throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
     }
+
+    const redirectedFromOldSlug = project.slug !== projectSlug;
 
     const organization = await store.getOrganization(project.organizationId);
 
@@ -17023,6 +17039,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       project,
       organization,
       canonicalPath: `/@${organization.slug}/${project.slug}`,
+      redirectedFromOldSlug,
     };
   });
   app.get('/projects/:projectId', async (request) => ({
@@ -17654,8 +17671,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
     );
 
-    const body = parse(projectSettingsSchema, request.body);
-    const updated = await store.updateProject({ projectId: project.id, ...body });
+    const { slug: requestedSlug, ...metadata } = parse(projectSettingsSchema, request.body);
+    let updated = await store.updateProject({ projectId: project.id, ...metadata });
+
+    /*
+     * F13 slug rename. Normalize to the same canonical form the URL router uses
+     * (slugifyRouteSegment), reject a value that collapses to empty, and let the
+     * store mint a 30-day redirect from the old slug + surface a 409 on a clash.
+     */
+    if (requestedSlug !== undefined) {
+      const normalizedSlug = slugifyRouteSegment(requestedSlug);
+
+      if (!normalizedSlug) {
+        throw Object.assign(new Error('Slug must contain at least one letter or number.'), {
+          statusCode: 400,
+          code: 'PROJECT_SLUG_INVALID',
+        });
+      }
+
+      if (normalizedSlug !== project.slug) {
+        updated = await store.renameProjectSlug({ projectId: project.id, newSlug: normalizedSlug });
+        await store.recordProjectActivity({
+          projectId: project.id,
+          actorUserId: request.currentUser!.id,
+          action: 'project.slug.rename',
+          metadata: { from: project.slug, to: normalizedSlug },
+        });
+      }
+    }
+
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
@@ -19213,6 +19257,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // Permanent destruction — same real-org-membership bar as soft delete/restore.
     await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    /*
+     * F13 defense-in-depth: when the client sends a name confirmation (the
+     * type-to-confirm danger zone does), it MUST match the project name exactly.
+     * Guards against a mis-scoped/replayed delete even if the UI check is bypassed.
+     */
+    const confirmation = parse(projectDeleteConfirmSchema, request.body ?? {});
+
+    if (confirmation.confirmName !== undefined && confirmation.confirmName !== project.name) {
+      throw Object.assign(new Error('Project name confirmation does not match.'), {
+        statusCode: 400,
+        code: 'PROJECT_NAME_MISMATCH',
+      });
+    }
 
     const deleted = await store.hardDeleteProject(project.id);
 

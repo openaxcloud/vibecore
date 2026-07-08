@@ -1122,6 +1122,26 @@ export interface ApiStore {
     gitRepositoryUrl?: string;
     gitDefaultBranch?: string;
   }): Promise<ProjectRecord>;
+
+  /**
+   * F13: change a project's slug and persist a redirect from the old slug so the
+   * previous canonical URL keeps resolving for `redirectTtlDays` (default 30).
+   * Throws `{ statusCode: 409, code: 'PROJECT_SLUG_TAKEN' }` when another project
+   * in the same org already owns `newSlug`. A no-op (same slug) returns the
+   * project unchanged without minting a redirect.
+   */
+  renameProjectSlug(input: { projectId: string; newSlug: string; redirectTtlDays?: number }): Promise<ProjectRecord>;
+
+  /**
+   * F13: resolve a project by an old slug via a non-expired ProjectSlugRedirect,
+   * scoped to the org slug. Returns the (renamed) project so callers can 301 to
+   * its current canonical URL, or undefined when there is no live redirect.
+   */
+  resolveProjectSlugRedirect(input: {
+    organizationSlug: string;
+    oldSlug: string;
+    now?: Date;
+  }): Promise<ProjectRecord | undefined>;
   listProjects(organizationId: string, options?: { includeArchived?: boolean }): Promise<ProjectRecord[]>;
 
   /**

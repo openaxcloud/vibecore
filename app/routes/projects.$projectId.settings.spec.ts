@@ -74,6 +74,43 @@ describe('project settings route action', () => {
     expect(typeof result.data.error).toBe('string');
   });
 
+  it('rename-slug intent PATCHes only the slug and returns the new slug on success', async () => {
+    apiRequest.mockResolvedValueOnce({ project: { slug: 'my-new-slug' } });
+
+    const { action } = await import('./projects.$projectId.settings');
+
+    const result = (await action({
+      request: formRequest({ intent: 'rename-slug', slug: 'my-new-slug' }),
+      params: { projectId: 'p1' },
+      context: {},
+    } as never)) as { data: { ok?: boolean; slug?: string } };
+
+    expect(apiRequest).toHaveBeenCalledTimes(1);
+
+    const [, path, init] = apiRequest.mock.calls[0];
+
+    expect(path).toBe('/projects/p1/settings');
+    expect(init).toMatchObject({ method: 'PATCH' });
+    expect(JSON.parse((init as { body: string }).body)).toEqual({ slug: 'my-new-slug' });
+    expect(result.data).toMatchObject({ ok: true, slug: 'my-new-slug' });
+  });
+
+  it('rename-slug surfaces a duplicate-slug 409 inline instead of throwing', async () => {
+    apiRequest.mockRejectedValueOnce(new Response('slug taken', { status: 409 }));
+
+    const { action } = await import('./projects.$projectId.settings');
+
+    const result = (await action({
+      request: formRequest({ intent: 'rename-slug', slug: 'taken' }),
+      params: { projectId: 'p1' },
+      context: {},
+    } as never)) as { data: { ok?: boolean; error?: string }; init?: { status?: number } };
+
+    expect(result.init?.status).toBe(409);
+    expect(result.data.ok).toBe(false);
+    expect(typeof result.data.error).toBe('string');
+  });
+
   it('re-throws a session-expiry login redirect instead of swallowing it into an inline error', async () => {
     /* A 302 to /login (or the MFA re-auth path) is an instanceof Response; it must propagate. */
     const loginRedirect = new Response(null, {
