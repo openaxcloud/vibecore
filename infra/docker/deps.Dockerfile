@@ -28,8 +28,13 @@ RUN pnpm config set store-dir "${PNPM_STORE_DIR}"
 
 # git: required by some workspace install scripts and runtime tooling.
 # openssl + ca-certificates: required by Prisma's binary download + TLS.
+# python3 + make + g++: the node-gyp toolchain that native deps (e.g. node-pty,
+# used by services/workspace-agent) compile against during `pnpm install`. A
+# fresh (cache-cold) install fails without them ("gyp ERR! Could not find any
+# Python installation"); prior builds only got away without it by reusing a
+# cached install layer. Build-stage only — never shipped in a runtime image.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git openssl ca-certificates \
+        git openssl ca-certificates python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 
 # Root manifests first — these are the most stable and pin the workspace
