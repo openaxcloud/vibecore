@@ -9,6 +9,7 @@ import {
   Globe2,
   Copy,
   History,
+  Loader2,
   RotateCcw,
   Rocket,
   Settings,
@@ -265,6 +266,24 @@ export default function ProjectDeploymentsPage() {
   // Replit-style sub-nav: Overview · Logs · Domains · Manage.
   const [view, setView] = useState<DeployView>('overview');
 
+  /*
+   * P2: reflect the ACTUAL build status (not just the fast async POST). The
+   * create POST now returns 202 immediately and the build runs in the pod, so
+   * the loader-poll drives QUEUED/BUILDING → READY/FAILED with logs growing each
+   * tick. Jump to the Logs view when a build starts so the user watches it live.
+   */
+  const latestStatus = latest?.status ?? '';
+  const building = latestStatus === 'QUEUED' || latestStatus === 'BUILDING';
+  const buildingRef = useRef(false);
+
+  useEffect(() => {
+    if (building && !buildingRef.current) {
+      setView('logs');
+    }
+
+    buildingRef.current = building;
+  }, [building]);
+
   return (
     <ProjectShell
       projectId={project.id}
@@ -281,7 +300,7 @@ export default function ProjectDeploymentsPage() {
       ) : null}
       <DeploySubNav active={view} onSelect={setView} />
 
-      {view === 'logs' ? <DeployLogsView deployment={latest} /> : null}
+      {view === 'logs' ? <DeployLogsView deployment={latest} building={building} /> : null}
       {view === 'domains' ? <DeployDomainsView deployment={latest} /> : null}
       {view === 'manage' ? (
         <DeployHistory deployments={data.deployments} busy={busy} workspaceId={workspaceId} />
@@ -420,9 +439,9 @@ export default function ProjectDeploymentsPage() {
                   Create preview deployment URL when environment is not production.
                 </label>
 
-                <Button type="submit" disabled={busy} className="gap-2">
+                <Button type="submit" disabled={busy || building} className="gap-2">
                   <Rocket className="h-4 w-4" aria-hidden />
-                  {busy ? 'Deploying...' : 'Deploy project'}
+                  {busy || building ? 'Deploying…' : 'Deploy project'}
                 </Button>
               </Form>
             ) : (
@@ -457,17 +476,66 @@ function DeployActionButton({
   );
 }
 
-/** Logs view — the latest deployment's redacted build/deploy logs. */
-function DeployLogsView({ deployment }: { deployment?: Deployment }) {
+/**
+ * Logs view — the latest deployment's redacted build/deploy logs, streamed live.
+ * The loader-poll refreshes this row every few seconds while a build runs and the
+ * API flushes logs to the record incrementally, so lines appear as they happen
+ * (no frozen screen). Auto-scrolls, colours error lines, and shows a clear
+ * building / failed / deployed header.
+ */
+function DeployLogsView({ deployment, building = false }: { deployment?: Deployment; building?: boolean }) {
   const logs = deployment?.logs ?? [];
+  const status = deployment?.status ?? '';
+  const failed = status === 'FAILED';
+  const ready = status === 'READY';
+
+  // Keep the newest line in view as logs stream in (only when pinned to bottom).
+  const preRef = useRef<HTMLPreElement>(null);
+
+  useEffect(() => {
+    const el = preRef.current;
+
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [logs.length, status]);
 
   return (
     <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-md">
-      <div className="flex items-center gap-2 border-b border-bolt-elements-borderColor px-4 py-3 text-[14px] font-medium text-bolt-elements-textPrimary">
-        <TerminalSquare className="h-4 w-4" aria-hidden /> Build &amp; deploy logs
+      <div className="flex items-center justify-between gap-2 border-b border-bolt-elements-borderColor px-4 py-3 text-[14px] font-medium text-bolt-elements-textPrimary">
+        <span className="flex items-center gap-2">
+          <TerminalSquare className="h-4 w-4" aria-hidden /> Build &amp; deploy logs
+        </span>
+        {building ? (
+          <span className="flex items-center gap-1.5 text-[13px] text-[var(--vc-ide-accent-action)]">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Building…
+          </span>
+        ) : failed ? (
+          <span className="flex items-center gap-1.5 text-[13px]" style={{ color: 'var(--status-error-text)' }}>
+            <Ban className="h-3.5 w-3.5" aria-hidden /> Failed
+          </span>
+        ) : ready ? (
+          <span className="flex items-center gap-1.5 text-[13px]" style={{ color: 'var(--status-ok, #3fb950)' }}>
+            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Deployed
+          </span>
+        ) : null}
       </div>
-      <pre className="max-h-[480px] overflow-auto p-4 font-mono text-[12px] leading-5 text-bolt-elements-textSecondary">
-        {logs.length ? logs.map((log) => `[${log.level}] ${log.message}`).join('\n') : 'No logs yet'}
+      <pre
+        ref={preRef}
+        className="max-h-[480px] overflow-auto p-4 font-mono text-[12px] leading-5 text-bolt-elements-textSecondary"
+        aria-live="polite"
+      >
+        {logs.length ? (
+          logs.map((log, index) => (
+            <div key={index} style={log.level === 'error' ? { color: 'var(--status-error-text)' } : undefined}>
+              {`[${log.level}] ${log.message}`}
+            </div>
+          ))
+        ) : (
+          <span className="text-bolt-elements-textTertiary">
+            {building ? 'Starting the build…' : 'No logs yet — click Deploy project to build and publish.'}
+          </span>
+        )}
       </pre>
     </div>
   );
