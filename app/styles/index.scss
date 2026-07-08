@@ -10318,6 +10318,41 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-accent-warning);
 }
 
+/*
+ * F7 — stack traces carry the clickable path:line:col refs, so let their message
+ * column wrap instead of clipping to a single ellipsised line (otherwise most of
+ * the trace, and its refs, would be hidden).
+ */
+.bolt-preview-devtools-body [data-level='trace'] span {
+  overflow: visible;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* F7 — inline clickable path:line:col ref inside a console/stack entry (blue = action). */
+.bolt-preview-devtools-body .bolt-preview-console-ref {
+  display: inline;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--vc-ide-accent-action);
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.bolt-preview-devtools-body .bolt-preview-console-ref:hover {
+  color: var(--vc-ide-accent-action);
+  filter: brightness(1.15);
+}
+
+.bolt-preview-devtools-body .bolt-preview-console-ref:focus-visible {
+  outline: 2px solid var(--vc-ide-accent-action);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
 /* F7 — clickable file:line jump on a console error entry (blue = action). */
 .bolt-preview-devtools-body .bolt-preview-console-open {
   display: inline-flex;
