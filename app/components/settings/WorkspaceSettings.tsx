@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { Minus, Plus } from 'lucide-react';
 import { ThemePreferenceControl } from '~/components/ui/ThemePreferenceControl';
+import { setRequireAiChangeReview, useRequireAiChangeReview } from '~/lib/hooks/useAutoApplyEnabled';
 import {
   editorSettingsStore,
   resetEditorSettings,
@@ -52,6 +53,7 @@ function ToggleRow({
 
 export function WorkspaceSettings() {
   const editor = useStore(editorSettingsStore);
+  const requireAiChangeReview = useRequireAiChangeReview();
 
   const patch = (next: Partial<EditorSettings>) => setEditorSettings(next);
 
@@ -140,11 +142,21 @@ export function WorkspaceSettings() {
       </Section>
 
       <Section title="AI &amp; Agent" description="Model and agent behaviour.">
+        <ToggleRow
+          label="Require review of AI changes"
+          checked={requireAiChangeReview}
+          onChange={setRequireAiChangeReview}
+        />
+        <p className="text-[12px] text-bolt-elements-textSecondary">
+          {requireAiChangeReview
+            ? "The agent's file changes stay pending in “Pending AI changes” — accept or reject each one before it lands."
+            : "Off (default): the agent's file changes apply automatically. Turn on to review and approve each change first."}
+        </p>
         <a href="/settings" className="w-fit text-[13px] text-[var(--ecode-accent,#F26207)] hover:underline">
           Open model &amp; provider settings
         </a>
         <p className="text-[12px] text-bolt-elements-textTertiary">
-          Auto-apply, model selection and provider keys are managed in account settings.
+          Model selection and provider keys are managed in account settings.
         </p>
       </Section>
 
