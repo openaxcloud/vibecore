@@ -87,4 +87,37 @@ describe('F18 admin provider fallback order', () => {
     });
     expect(res.statusCode).toBe(403);
   });
+
+  it('the enabled-provider resolution honors the saved fallback order', async () => {
+    const { app, store } = await setup();
+
+    // A regular (non-admin) authed user reads /providers/enabled during resolution.
+    const user = await store.createUser({
+      email: 'user@example.com',
+      name: 'User',
+      passwordHash: hashPassword('password123'),
+    });
+    await store.createSession({ userId: user.id, token: 'user-token', expiresAt: new Date(Date.now() + 3600_000) });
+
+    const before = await app.inject({ method: 'GET', url: '/providers/enabled', headers: auth('user-token') });
+    expect(before.statusCode).toBe(200);
+    // Default order is the static KNOWN_LLM_PROVIDERS list (Anthropic before Google).
+    const beforeList: string[] = before.json().providers;
+    expect(beforeList.indexOf('Anthropic')).toBeLessThan(beforeList.indexOf('Google'));
+
+    // Admin reprioritizes Google ahead of Anthropic.
+    await app.inject({
+      method: 'POST',
+      url: '/admin/providers/fallback-order',
+      headers: auth('admin-token'),
+      payload: { order: ['Google', 'Anthropic'] },
+    });
+
+    const after = await app.inject({ method: 'GET', url: '/providers/enabled', headers: auth('user-token') });
+    const afterList: string[] = after.json().providers;
+    expect(afterList[0]).toBe('Google');
+    expect(afterList.indexOf('Google')).toBeLessThan(afterList.indexOf('Anthropic'));
+    // Providers not placed in the saved order are still present (appended).
+    expect(afterList).toContain('OpenAI');
+  });
 });
