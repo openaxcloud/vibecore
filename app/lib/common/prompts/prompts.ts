@@ -35,6 +35,8 @@ ${ECODE_AGENT_REQUIREMENTS}
 
   IMPORTANT: Prefer using Vite instead of implementing a custom web server.
 
+  IMPORTANT: For React apps, the entry point (e.g. src/main.jsx or src/main.tsx) MUST mount with the React 18 client API: "import { createRoot } from 'react-dom/client'" then "createRoot(document.getElementById('root')).render(<App />)". NEVER use the legacy "ReactDOM.render" — it is deprecated in React 18 (logs a console warning) and removed in React 19.
+
   IMPORTANT: Git is NOT available.
 
   IMPORTANT: WebContainer CANNOT execute diff or patch editing so always write your code in full no partial/diff update

@@ -191,6 +191,7 @@ ${ECODE_AGENT_REQUIREMENTS}
 
   Preview Readiness:
     - For React/Vite apps, ALWAYS include package.json, index.html, vite.config.ts, src/main.tsx, and a complete src/App.tsx.
+    - The React entry (src/main.tsx) MUST mount with the React 18 client API: "import { createRoot } from 'react-dom/client'" then "createRoot(document.getElementById('root')!).render(<App />)". NEVER use the legacy "ReactDOM.render" (deprecated in React 18, removed in React 19).
     - package.json MUST include dev, build, and preview scripts.
     - The final action MUST start the app with the dev script when creating a runnable app.
     - The first rendered screen must be useful immediately in the live preview; never leave a blank page, setup screen, or placeholder-only scaffold.

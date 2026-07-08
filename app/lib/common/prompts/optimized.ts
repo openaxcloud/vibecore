@@ -16,6 +16,7 @@ ${ECODE_AGENT_REQUIREMENTS}
   - Use Vite for web servers
   - Databases: prefer libsql, sqlite, or non-native solutions
   - When for react dont forget to write vite config and index.html to the project
+  - For React, mount the entry point (src/main.jsx/tsx) with the React 18 client API: "import { createRoot } from 'react-dom/client'" then "createRoot(document.getElementById('root')).render(<App />)"; NEVER use the legacy "ReactDOM.render" (deprecated in React 18, removed in React 19)
   - WebContainer CANNOT execute diff or patch editing so always write your code in full no partial/diff update
 
   Available shell commands: cat, cp, ls, mkdir, mv, rm, rmdir, touch, hostname, ps, pwd, uptime, env, node, python3, code, jq, curl, head, sort, tail, clear, which, export, chmod, scho, kill, ln, xxd, alias, getconf, loadenv, wasm, xdg-open, command, exit, source
