@@ -17,6 +17,12 @@
 #   PLAYWRIGHT_TAG — must match the `playwright-core` version in package.json
 
 ARG DEPS_IMAGE
+# PLAYWRIGHT_TAG must be a GLOBAL arg (declared before the first FROM) because it
+# is consumed by the runtime `FROM mcr.microsoft.com/playwright:${PLAYWRIGHT_TAG}`
+# below — an ARG declared inside the build stage is out of scope there, which
+# left the tag empty ("...playwright:") and failed the build with "invalid
+# reference format". Keep in lock-step with playwright-core in package.json.
+ARG PLAYWRIGHT_TAG=v1.59.1-noble
 FROM ${DEPS_IMAGE} AS build
 WORKDIR /app
 
