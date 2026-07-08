@@ -9,7 +9,6 @@ import {
   FileCode2,
   Gauge,
   GitBranch,
-  Github,
   Globe2,
   KeyRound,
   Layers,
@@ -229,7 +228,7 @@ const categoryCopy = {
   },
   integration: {
     eyebrow: 'Integration surface',
-    primaryAction: ['Connect GitHub', '/github-import'],
+    primaryAction: ['Connect GitHub', '/import-github'],
     secondaryAction: ['View integrations', '/integrations'],
     stats: [
       { label: 'Source', value: 'Importable' },
@@ -238,7 +237,7 @@ const categoryCopy = {
     ],
     controls: ['Repository import', 'Provider adapters', 'API contracts', 'Connection health'],
     relatedRoutes: [
-      { label: 'GitHub import', to: '/github-import', description: 'Import repositories into E-Code.' },
+      { label: 'GitHub import', to: '/import-github', description: 'Import repositories into E-Code.' },
       { label: 'Integrations', to: '/integrations', description: 'Connect approved product tools.' },
       { label: 'API SDK', to: '/api-sdk', description: 'Build against typed platform interfaces.' },
     ],
@@ -806,15 +805,14 @@ export const ecodeStandaloneSurfacePages = {
     icon: Sparkles,
     highlights: ['Prompt planning', 'Tool boundaries', 'Patch review', 'Preview-aware validation'],
   }),
-  'github-import': makeSurfacePage({
-    slug: 'github-import',
-    route: '/github-import',
-    title: 'GitHub Import',
-    description: 'Import a GitHub repository into E-Code with project analysis, dependency checks and preview setup.',
-    category: 'integration',
-    icon: Github,
-    highlights: ['Repository import', 'Dependency analysis', 'Branch selection', 'Preview setup'],
-  }),
+
+  /*
+   * I28: `github-import` was a standalone brochure surface duplicating the real
+   * `/import-github` flow. The `/github-import` route is now a 301 redirect to
+   * `/import-github` (see app/routes/github-import.tsx), so it is intentionally
+   * absent from this catalog — no surface page, no `ecodeCompatibilityRoutePatterns`
+   * entry, and `getEcodeStandaloneSurfacePage('github-import')` resolves undefined.
+   */
   'editor/new': makeSurfacePage({
     slug: 'editor/new',
     route: '/editor/new',
@@ -1109,7 +1107,7 @@ export function createProjectImportSurfacePage(projectId: string, source: string
     icon: Upload,
     highlights: [`${label} source mapping`, 'Project context', 'Dependency planning', 'Preview validation'],
     relatedRoutes: [
-      { label: 'GitHub import', to: '/github-import', description: 'Import repository-backed projects.' },
+      { label: 'GitHub import', to: '/import-github', description: 'Import repository-backed projects.' },
       { label: 'Project overview', to: `/projects/${projectId}`, description: 'Return to the project workspace.' },
       { label: 'Preview', to: `/projects/${projectId}/preview`, description: 'Validate the imported app visually.' },
     ],
