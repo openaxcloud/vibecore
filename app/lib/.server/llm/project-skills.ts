@@ -12,8 +12,20 @@ export interface ResolvedSkill {
   source: string;
 }
 
+/** An installed GitHub-repo skill as the agent context needs it (F#27). */
+export interface InstalledSkillForPrompt {
+  ownerRepo: string;
+  name: string;
+  description: string;
+  instructions: string;
+  enabled: boolean;
+  scope: string;
+  homepageUrl?: string | null;
+}
+
 export interface ProjectSkillsContext {
   skills: ResolvedSkill[];
+  installed: InstalledSkillForPrompt[];
   context: string;
 }
 
@@ -35,6 +47,61 @@ ${lines.join('\n')}
 }
 
 /**
+ * Build the system-prompt section for a project's ENABLED installed GitHub-repo
+ * skills (F#27). Unlike builtin skills (which are a one-line capability hint),
+ * each installed skill carries the full instructions fetched from its repo, so
+ * they are emitted as their own blocks the agent must follow. Exported for unit
+ * testing without a live API.
+ */
+export function formatInstalledSkillsContext(installed: InstalledSkillForPrompt[]): string {
+  const blocks = installed.map((skill) => {
+    const header = `### ${skill.name} (${skill.ownerRepo})`;
+
+    return `${header}\n${skill.instructions.trim()}`;
+  });
+
+  return `<installed_skills>
+The user has INSTALLED the following skills from GitHub repositories for this
+project. Each block below is the skill's own instructions — treat them as active,
+binding guidance and apply them whenever relevant, exactly like the builtin
+skills. The user manages this list from the IDE "Skills" panel (Community tab).
+
+${blocks.join('\n\n')}
+</installed_skills>`;
+}
+
+/** Merge builtin + installed sections into the single system-prompt context. */
+export function composeSkillsContext(
+  builtin: ResolvedSkill[],
+  installed: InstalledSkillForPrompt[],
+): string | undefined {
+  const sections: string[] = [];
+
+  if (builtin.length) {
+    sections.push(formatSkillsContext(builtin));
+  }
+
+  if (installed.length) {
+    sections.push(formatInstalledSkillsContext(installed));
+  }
+
+  return sections.length ? sections.join('\n\n') : undefined;
+}
+
+/** De-duplicate installed skills by ownerRepo (project scope wins over workspace). */
+function dedupeInstalled(rows: InstalledSkillForPrompt[]): InstalledSkillForPrompt[] {
+  const byRepo = new Map<string, InstalledSkillForPrompt>();
+
+  for (const row of rows) {
+    if (!byRepo.has(row.ownerRepo)) {
+      byRepo.set(row.ownerRepo, row);
+    }
+  }
+
+  return [...byRepo.values()];
+}
+
+/**
  * Load the project's ENABLED agent skills and format them as a system-prompt
  * section. Enabling/disabling a skill in the IDE Skills panel changes what the
  * agent is told it can do — this is the consumption path that makes the toggles
@@ -49,21 +116,43 @@ export async function retrieveSkillsForAgentContext(
     return undefined;
   }
 
-  try {
-    const payload = await apiRequest<{ skills?: ResolvedSkill[] }>(
+  const projectId = encodeURIComponent(input.projectId);
+
+  // Builtin catalog skills (unchanged behaviour). Fail open per-source.
+  const builtin = await apiRequest<{ skills?: ResolvedSkill[] }>(request, `/projects/${projectId}/skills`)
+    .then((payload) => (payload.skills ?? []).filter((skill) => skill && skill.enabled))
+    .catch((error) => {
+      logger.warn('Project skills lookup skipped', error);
+      return [] as ResolvedSkill[];
+    });
+
+  /*
+   * Installed GitHub-repo skills, for BOTH the project and its workspace scope
+   * (F#27). Each scope is fetched independently and fails open to [].
+   */
+  const fetchInstalled = (scope: 'project' | 'workspace') =>
+    apiRequest<{ skills?: InstalledSkillForPrompt[] }>(
       request,
-      `/projects/${encodeURIComponent(input.projectId)}/skills`,
-    );
+      `/projects/${projectId}/skills/installed?scope=${scope}`,
+    )
+      .then((payload) => (payload.skills ?? []).filter((skill) => skill && skill.enabled))
+      .catch((error) => {
+        logger.warn(`Installed skills lookup skipped (${scope})`, error);
+        return [] as InstalledSkillForPrompt[];
+      });
 
-    const enabled = (payload.skills ?? []).filter((skill) => skill && skill.enabled);
+  const [projectInstalled, workspaceInstalled] = await Promise.all([
+    fetchInstalled('project'),
+    fetchInstalled('workspace'),
+  ]);
 
-    if (!enabled.length) {
-      return undefined;
-    }
+  const installed = dedupeInstalled([...projectInstalled, ...workspaceInstalled]);
 
-    return { skills: enabled, context: formatSkillsContext(enabled) };
-  } catch (error) {
-    logger.warn('Project skills lookup skipped', error);
+  const context = composeSkillsContext(builtin, installed);
+
+  if (!context) {
     return undefined;
   }
+
+  return { skills: builtin, installed, context };
 }
