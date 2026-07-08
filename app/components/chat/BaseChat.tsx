@@ -18747,7 +18747,6 @@ function ProjectSecretsPanel({
 }) {
   const [revealed, setRevealed] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
-  const [confirmRevealKey, setConfirmRevealKey] = useState<string | null>(null);
   const [editingKey, setEditingKey] = useState('');
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState('');
@@ -18879,7 +18878,13 @@ function ProjectSecretsPanel({
       return;
     }
 
-    setConfirmRevealKey(key);
+    /*
+     * Reveal in place immediately, like a password field's eye toggle — no
+     * blocking confirmation dialog. The value is still fetched only on reveal
+     * (never listed by default) and only kept for this browser session; the
+     * "revealed for this session" notice is surfaced non-blockingly as a toast.
+     */
+    void performRevealSecret(key);
   }
 
   async function performRevealSecret(key: string) {
@@ -18918,21 +18923,6 @@ function ProjectSecretsPanel({
 
   return (
     <div className="bolt-project-secrets-tool">
-      <ConfirmationDialog
-        isOpen={confirmRevealKey !== null}
-        onClose={() => setConfirmRevealKey(null)}
-        onConfirm={() => {
-          const key = confirmRevealKey;
-          setConfirmRevealKey(null);
-
-          if (key) {
-            void performRevealSecret(key);
-          }
-        }}
-        title={`Reveal the secret value for ${confirmRevealKey ?? ''}?`}
-        description="The value is only shown in this browser session."
-        confirmLabel="Reveal"
-      />
       <form onSubmit={onSubmit} className="bolt-project-inline-form">
         <input name="intent" value="upsert" type="hidden" />
         {/*
