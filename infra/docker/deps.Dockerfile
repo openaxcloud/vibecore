@@ -70,6 +70,7 @@ COPY services/ai-gateway/package.json        ./services/ai-gateway/
 COPY services/api/package.json               ./services/api/
 COPY services/connector-proxy/package.json   ./services/connector-proxy/
 COPY services/preview-proxy/package.json     ./services/preview-proxy/
+COPY services/screenshotter/package.json     ./services/screenshotter/
 COPY services/worker/package.json            ./services/worker/
 COPY services/workspace-agent/package.json   ./services/workspace-agent/
 COPY services/workspace-manager/package.json ./services/workspace-manager/
