@@ -53,7 +53,7 @@ import {
   type CheckpointTurn,
   type CheckpointSnapshotPairing,
 } from '~/lib/chat/checkpoint-snapshots';
-import { setAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
+import { useAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
 import { autoApplyAttemptKey, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
 import { AgentRepairHistory } from './AgentRepairHistory';
@@ -2965,11 +2965,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.dispatchEvent(new CustomEvent('vibecore:plan-first-change', { detail: projectPlanFirst }));
     }, [projectPlanFirst]);
 
-    const projectAutoApply = true;
-
-    useEffect(() => {
-      setAutoApplyEnabled(true);
-    }, []);
+    /*
+     * Auto-apply follows the user's "Require review of AI changes" setting:
+     * default OFF ⇒ auto-apply ON (changes land silently). When the user turns
+     * review on, proposals stay pending for the review queue instead.
+     */
+    const projectAutoApply = useAutoApplyEnabled();
 
     const [guidedTourOpen, setGuidedTourOpen] = useState(false);
     const [guidedTourStepIndex, setGuidedTourStepIndex] = useState(0);
@@ -3102,7 +3103,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           continue;
         }
 
-        if (!shouldAutoApplyPatch({ autoApplyEnabled: true, status: proposal.status })) {
+        if (!shouldAutoApplyPatch({ autoApplyEnabled: projectAutoApply, status: proposal.status })) {
           continue;
         }
 
@@ -3133,7 +3134,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             toast.error(describeAutoApplyFailure(filePath, error), { toastId: `auto-apply-error-${filePath}` });
           });
       }
-    }, [agentPatchProposals, scheduleAppliedFilesToast]);
+    }, [agentPatchProposals, scheduleAppliedFilesToast, projectAutoApply]);
 
     const [archivedProjectConversations, setArchivedProjectConversations] = useState<
       Array<{ id: string; title?: string; messages: Message[]; createdAt?: string; updatedAt?: string }>
