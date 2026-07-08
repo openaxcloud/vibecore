@@ -25382,6 +25382,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   });
 
+  /*
+   * P11 preview-ready trigger. The client posts here when a project's preview
+   * finishes booting; the API schedules a debounced, server-side screenshotter
+   * capture of that preview URL (no user gesture, no browser Screen Capture).
+   * This is NOT SSRF-open: the caller must own the project (requireObjectStorage-
+   * Project) AND the screenshotter enforces its own host allowlist, so an
+   * attacker-supplied url is rejected there. Inert (202 { enabled:false }) until
+   * SCREENSHOTTER_URL is configured, and per-project debounced so a reload storm
+   * can't spam renders.
+   */
+  app.post('/projects/:projectId/thumbnail/refresh', async (request, reply) => {
+    if (!isObjectStorageEnabled()) {
+      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireObjectStorageProject(request, 'projects:write');
+    const body = parse(z.object({ url: z.string().url().max(2048) }), request.body ?? {});
+
+    if (!thumbnailCapturer.enabled) {
+      return reply.code(202).send({ scheduled: false, enabled: false });
+    }
+
+    thumbnailCapturer.schedule(project.id, body.url);
+
+    return reply.code(202).send({ scheduled: true, enabled: true });
+  });
+
   app.post('/projects/:projectId/deployments', async (request, reply) => {
     const project = await requireProject(
       request,
