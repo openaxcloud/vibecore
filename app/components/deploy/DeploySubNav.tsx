@@ -2,9 +2,10 @@ import { classNames } from '~/utils/classNames';
 
 /**
  * Replit-style Deploy/Publish sub-navigation: Overview · Logs · Domains · Manage.
- * Measured from Replit: 38px tall row, 14px tab labels. Active tab uses the
- * E-Code orange accent (blue→orange) with a 2px underline; surfaces stay dark for
- * IDE consistency.
+ * Measured from Replit: 38px tall row, 14px tab labels. The active tab uses the
+ * blue action accent (`--vc-ide-accent-action`) as a 2px underline — NOT orange;
+ * orange is reserved for provider-branded surfaces. Surfaces stay dark for IDE
+ * consistency.
  */
 export type DeployView = 'overview' | 'logs' | 'domains' | 'manage';
 

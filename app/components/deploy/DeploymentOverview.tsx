@@ -17,7 +17,7 @@ export interface OverviewDeployment {
 /**
  * Replit "Production" overview: label→value rows (Status / Visibility / Domain
  * with copy + QR / Type + resources / Database). Measured from Replit — 14px
- * labels+values, blue accent → E-Code orange, dark surfaces kept. Read-only; the
+ * labels+values, blue action accent (`--vc-ide-accent-action`), dark surfaces kept. Read-only; the
  * deploy actions live in the wizard. `deploymentType` is the selected tier so the
  * Type row shows the right resource summary.
  */
