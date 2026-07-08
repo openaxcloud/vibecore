@@ -25194,6 +25194,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return requireProject(request, store, projectId, permission);
   };
 
+  /*
+   * Per-project storage status. When the platform flag is off this 404s like the
+   * other routes (→ the panel's "ask an admin" state). When on, it reports whether
+   * THIS project's bucket has been provisioned yet, so the panel can show a
+   * Replit-style "Enable Object Storage / Create bucket" CTA before the first use.
+   */
+  app.get('/projects/:projectId/object-storage/status', async (request, reply) => {
+    if (!isObjectStorageEnabled()) {
+      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+    }
+
+    const project = await requireObjectStorageProject(request, 'projects:read');
+
+    try {
+      return reply.send({ enabled: true, provisioned: await resolveObjectStorage().bucketExists(project.id) });
+    } catch (error) {
+      return sendObjectStorageError(reply, error);
+    }
+  });
+
   app.post('/projects/:projectId/object-storage/bucket', async (request, reply) => {
     if (!isObjectStorageEnabled()) {
       return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });

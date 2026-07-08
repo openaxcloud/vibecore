@@ -220,6 +220,16 @@ describe('GcsObjectStorage', () => {
     expect(storage.created).toHaveLength(1);
   });
 
+  it('bucketExists reflects whether the project bucket has been provisioned', async () => {
+    const storage = new FakeStorage();
+    const svc = new GcsObjectStorage(storage);
+
+    expect(await svc.bucketExists(projectId)).toBe(false);
+
+    await svc.ensureBucket(projectId);
+    expect(await svc.bucketExists(projectId)).toBe(true);
+  });
+
   it('listObjects splits files and folders by delimiter', async () => {
     const storage = new FakeStorage();
     storage.seed(bucket, ['readme.md', 'src/index.ts', 'src/util/x.ts', 'tmp/scratch']);

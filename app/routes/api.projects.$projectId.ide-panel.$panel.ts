@@ -1690,7 +1690,22 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       body: JSON.stringify({ key: PORTS_STATE_ENV_KEY, value: JSON.stringify(state) }),
     });
   } else if (panel === 'object-storage') {
-    if (intent === 'list') {
+    if (intent === 'status') {
+      /*
+       * Per-project provisioning status. 404 (flag off) => not enabled; on =>
+       * { enabled, provisioned } so the panel can offer the "Enable" CTA.
+       */
+      try {
+        const result = await apiRequest(request, `/projects/${projectId}/object-storage/status`);
+        return json({ enabled: true, provisioned: false, ...(result as any) });
+      } catch (error) {
+        if (error instanceof Response && error.status === 404) {
+          return json({ enabled: false, provisioned: false });
+        }
+
+        throw error;
+      }
+    } else if (intent === 'list') {
       const search = new URLSearchParams({ delimiter: '/' });
 
       if (body.prefix) {

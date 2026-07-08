@@ -148,4 +148,23 @@ describe('ide-panel object-storage action (functional browser round-trip)', () =
 
     expect(body).toEqual({ enabled: false, objects: [], folders: [] });
   });
+
+  it('status: reports { enabled, provisioned } from the project-scoped status endpoint', async () => {
+    apiRequest.mockResolvedValueOnce({ enabled: true, provisioned: false });
+
+    const { action } = await import('./api.projects.$projectId.ide-panel.$panel');
+    const body = readJson(await action(actionArgs({ intent: 'status' })));
+
+    expect(apiRequest.mock.calls[0][1]).toBe('/projects/proj-42/object-storage/status');
+    expect(body).toEqual({ enabled: true, provisioned: false });
+  });
+
+  it('status: a flag-off backend (404) degrades to { enabled: false, provisioned: false }', async () => {
+    apiRequest.mockRejectedValueOnce(apiNotFound('FEATURE_NOT_ENABLED'));
+
+    const { action } = await import('./api.projects.$projectId.ide-panel.$panel');
+    const body = readJson(await action(actionArgs({ intent: 'status' })));
+
+    expect(body).toEqual({ enabled: false, provisioned: false });
+  });
 });

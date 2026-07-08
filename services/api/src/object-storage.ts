@@ -118,6 +118,14 @@ export interface ObjectStorage {
   /** Whether the service is wired to a real backend (false = inert/disabled). */
   readonly active: boolean;
   ensureBucket(projectId: string): Promise<{ bucket: string; created: boolean; location: string }>;
+
+  /**
+   * Whether THIS project's bucket already exists — the per-project "provisioned"
+   * signal that lets the UI show an "Enable Object Storage" first-run CTA (bucket
+   * missing) vs the live browser (bucket present), independent of the platform
+   * feature flag.
+   */
+  bucketExists(projectId: string): Promise<boolean>;
   listObjects(projectId: string, opts?: { prefix?: string; delimiter?: string }): Promise<ListObjectsResult>;
   createUploadUrl(projectId: string, input: { key: string; contentType?: string }): Promise<UploadUrlResult>;
   createDownloadUrl(projectId: string, input: { key: string }): Promise<SignedUrlResult>;
@@ -171,6 +179,10 @@ export class NoopObjectStorage implements ObjectStorage {
 
   async ensureBucket(projectId: string) {
     return { bucket: projectBucketName(projectId), created: false, location: OBJECT_STORAGE_LOCATION };
+  }
+
+  async bucketExists(): Promise<boolean> {
+    return false;
   }
 
   async listObjects(): Promise<ListObjectsResult> {
@@ -234,6 +246,12 @@ export class GcsObjectStorage implements ObjectStorage {
     });
 
     return { bucket: name, created: true, location: OBJECT_STORAGE_LOCATION };
+  }
+
+  async bucketExists(projectId: string): Promise<boolean> {
+    const [exists] = await this._storage.bucket(projectBucketName(projectId)).exists();
+
+    return exists;
   }
 
   async listObjects(projectId: string, opts: { prefix?: string; delimiter?: string } = {}) {
