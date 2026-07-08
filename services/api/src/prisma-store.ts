@@ -4,7 +4,7 @@ import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
-import { API_KEY_SCOPES } from './store.js';
+import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
 import type {
   AbuseEventRecord,
   SecurityEventResolutionRecord,
@@ -56,6 +56,7 @@ import type {
   ProjectCollaboratorRecord,
   ProjectConnectionLinkRecord,
   ReconnectionAlertRecord,
+  EnvVarScope,
   ProjectEnvironmentRecord,
   ProjectIdeStateRecord,
   ProjectRecord,
@@ -1017,11 +1018,14 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
-  async upsertProjectEnvVar(input: { projectId: string; key: string; value: string }) {
+  async upsertProjectEnvVar(input: { projectId: string; key: string; value: string; scope?: EnvVarScope }) {
+    // Omitted scope defaults to production so pre-scope callers keep the same row.
+    const scope = input.scope ?? DEFAULT_ENV_VAR_SCOPE;
+
     return mapEnvVar(
       await this.prisma.projectEnvVar.upsert({
-        where: { projectId_key: { projectId: input.projectId, key: input.key } },
-        create: input,
+        where: { projectId_key_scope: { projectId: input.projectId, key: input.key, scope } },
+        create: { projectId: input.projectId, key: input.key, value: input.value, scope },
         update: { value: input.value },
       }),
     );
@@ -1031,18 +1035,23 @@ export class PrismaApiStore implements ApiStore {
     return (await this.prisma.projectEnvVar.findMany({ where: { projectId } })).map(mapEnvVar);
   }
 
-  async deleteProjectEnvVar(projectId: string, key: string) {
+  async deleteProjectEnvVar(projectId: string, key: string, scope?: EnvVarScope) {
+    // Omitted scope targets the production-scoped row (the pre-scope default).
+    const targetScope = scope ?? DEFAULT_ENV_VAR_SCOPE;
+
     /*
      * find-then-delete raced a concurrent delete into an unhandled P2025; read
      * the row, then deleteMany (count-gated) so a lost race is "already gone".
      */
-    const existing = await this.prisma.projectEnvVar.findUnique({ where: { projectId_key: { projectId, key } } });
+    const existing = await this.prisma.projectEnvVar.findUnique({
+      where: { projectId_key_scope: { projectId, key, scope: targetScope } },
+    });
 
     if (!existing) {
       return undefined;
     }
 
-    const deleted = await this.prisma.projectEnvVar.deleteMany({ where: { projectId, key } });
+    const deleted = await this.prisma.projectEnvVar.deleteMany({ where: { projectId, key, scope: targetScope } });
 
     return deleted.count > 0 ? mapEnvVar(existing) : undefined;
   }
@@ -4930,12 +4939,18 @@ function mapProjectStorageObject(object: any): ProjectStorageObjectRecord {
   };
 }
 
+function normalizeEnvVarScope(scope: unknown): EnvVarScope {
+  return ENV_VAR_SCOPES.includes(scope as EnvVarScope) ? (scope as EnvVarScope) : DEFAULT_ENV_VAR_SCOPE;
+}
+
 function mapEnvVar(envVar: any): ProjectEnvironmentRecord {
   return {
     id: envVar.id,
     projectId: envVar.projectId,
     key: envVar.key,
     value: envVar.value,
+    // Back-compat: rows read before the column was populated fall back to production.
+    scope: normalizeEnvVarScope(envVar.scope),
     createdAt: toIso(envVar.createdAt)!,
     updatedAt: toIso(envVar.updatedAt)!,
   };

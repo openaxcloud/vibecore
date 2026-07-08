@@ -17108,10 +17108,34 @@ function ProjectIntegrationsPanel({
   );
 }
 
+const ENV_VAR_SCOPES = [
+  { key: 'development', label: 'Development', short: 'Dev' },
+  { key: 'preview', label: 'Preview', short: 'Preview' },
+  { key: 'production', label: 'Production', short: 'Prod' },
+] as const;
+
+type EnvVarScope = (typeof ENV_VAR_SCOPES)[number]['key'];
+
+function normalizeEnvScope(scope: unknown): EnvVarScope {
+  // Legacy rows carry no scope; treat them as production (the store default).
+  return scope === 'development' || scope === 'preview' || scope === 'production' ? scope : 'production';
+}
+
+function maskEnvValue(value: string): string {
+  if (!value) {
+    return 'empty value';
+  }
+
+  return '•'.repeat(Math.min(Math.max(value.length, 4), 12));
+}
+
 function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
-  const envVars = data.envVars ?? [];
+  const envVars: Array<{ key: string; value?: string; scope?: string; updatedAt?: string }> = data.envVars ?? [];
   const [query, setQuery] = useState('');
-  const [editing, setEditing] = useState<{ key: string; value?: string } | null>(null);
+  const [activeScope, setActiveScope] = useState<EnvVarScope>('production');
+  const [showDiff, setShowDiff] = useState(false);
+  const [revealDiff, setRevealDiff] = useState(false);
+  const [editing, setEditing] = useState<{ key: string; value?: string; scope: EnvVarScope } | null>(null);
 
   /*
    * The key/value inputs are React-controlled via `editing`, so the shared
@@ -17136,9 +17160,40 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
 
   const [message, setMessage] = useState('');
 
-  const filtered = envVars.filter((item: any) =>
+  // Per-scope view: only the variables that belong to the active scope.
+  const scopedVars = envVars.filter((item) => normalizeEnvScope(item.scope) === activeScope);
+
+  const filtered = scopedVars.filter((item) =>
     [item.key, item.value, item.updatedAt].join(' ').toLowerCase().includes(query.toLowerCase()),
   );
+
+  // Diff view: one row per key, its value/presence across all three scopes.
+  const diffRows = (() => {
+    const byKey = new Map<string, Partial<Record<EnvVarScope, string>>>();
+
+    for (const item of envVars) {
+      const scope = normalizeEnvScope(item.scope);
+      const row = byKey.get(item.key) ?? {};
+      row[scope] = item.value ?? '';
+      byKey.set(item.key, row);
+    }
+
+    return [...byKey.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .filter(([key]) => key.toLowerCase().includes(query.toLowerCase()))
+      .map(([key, values]) => {
+        const present = ENV_VAR_SCOPES.map((s) => values[s.key]).filter((v) => v !== undefined) as string[];
+        const distinct = new Set(present);
+
+        /*
+         * Diverges when the scopes disagree: either a different value OR the key
+         * is set in some scopes but missing in others.
+         */
+        const diverges = distinct.size > 1 || present.length !== ENV_VAR_SCOPES.length;
+
+        return { key, values, diverges };
+      });
+  })();
 
   async function copyEnv(key: string, value?: string) {
     try {
@@ -17153,79 +17208,195 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
   return (
     <div className="bolt-project-managed-panel">
       <section>
+        <div className="bolt-project-env-scopes" role="tablist" aria-label="Environment scope">
+          {ENV_VAR_SCOPES.map((scope) => (
+            <button
+              key={scope.key}
+              type="button"
+              role="tab"
+              aria-selected={activeScope === scope.key}
+              className={activeScope === scope.key ? 'selected' : undefined}
+              disabled={showDiff}
+              onClick={() => {
+                setActiveScope(scope.key);
+                setEditing((current) => (current ? { ...current, scope: scope.key } : current));
+              }}
+            >
+              {scope.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            className={showDiff ? 'bolt-project-env-diff-toggle selected' : 'bolt-project-env-diff-toggle'}
+            aria-pressed={showDiff}
+            onClick={() => setShowDiff((current) => !current)}
+          >
+            {showDiff ? 'Exit diff' : 'Diff scopes'}
+          </button>
+        </div>
+
         <div className="bolt-project-panel-toolbar">
           <label>
-            Search variables
+            {showDiff ? 'Filter keys' : `Search ${activeScope} variables`}
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="VITE_, DATABASE, API"
             />
           </label>
-          <button type="button" onClick={() => setEditing({ key: 'VITE_API_URL', value: '' })}>
-            New variable
-          </button>
-        </div>
-        {message && <div className="bolt-project-empty-panel">{message}</div>}
-        <div className="bolt-project-env-list">
-          {filtered.length ? (
-            filtered.map((item: any) => (
-              <div key={item.key} className="bolt-project-env-row">
-                <strong>{item.key}</strong>
-                <span>{item.value || 'empty value'}</span>
-                <small>{item.updatedAt ?? 'Stored in project metadata'}</small>
-                <button type="button" onClick={() => setEditing({ key: item.key, value: item.value ?? '' })}>
-                  Edit
-                </button>
-                <button type="button" onClick={() => void copyEnv(item.key, item.value)}>
-                  Copy
-                </button>
-                <ConfirmSubmitForm
-                  onSubmit={onSubmit}
-                  title={`Delete environment variable ${item.key}?`}
-                  description="The variable is removed from the project. This cannot be undone."
-                  confirmLabel="Delete variable"
-                >
-                  <input name="intent" value="delete" type="hidden" />
-                  <input name="key" value={item.key} type="hidden" />
-                  <PanelButton disabled={busy} variant="outline">
-                    Delete
-                  </PanelButton>
-                </ConfirmSubmitForm>
-              </div>
-            ))
-          ) : query ? (
-            <div className="bolt-project-empty-panel">No environment variable matches this search.</div>
-          ) : (
-            <EmptyState
-              variant="compact"
-              icon="i-ph:brackets-curly"
-              title="No environment variables"
-              description="Add a variable to configure this project's runtime."
-              actionLabel="New variable"
-              onAction={() => setEditing({ key: 'VITE_API_URL', value: '' })}
-            />
+          {!showDiff && (
+            <button type="button" onClick={() => setEditing({ key: 'VITE_API_URL', value: '', scope: activeScope })}>
+              New variable
+            </button>
           )}
         </div>
+        {message && <div className="bolt-project-empty-panel">{message}</div>}
+
+        {showDiff ? (
+          <div className="bolt-project-env-diff-wrap">
+            <div className="bolt-project-env-diff-actions">
+              <button type="button" onClick={() => setRevealDiff((current) => !current)} aria-pressed={revealDiff}>
+                {revealDiff ? 'Mask values' : 'Reveal values'}
+              </button>
+            </div>
+            {diffRows.length ? (
+              <table className="bolt-project-env-diff">
+                <thead>
+                  <tr>
+                    <th scope="col">Key</th>
+                    {ENV_VAR_SCOPES.map((scope) => (
+                      <th key={scope.key} scope="col">
+                        {scope.short}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {diffRows.map((row) => (
+                    <tr key={row.key} className={row.diverges ? 'diverges' : undefined}>
+                      <th scope="row">
+                        <span>{row.key}</span>
+                        {row.diverges && <em className="bolt-project-env-diff-flag">differs</em>}
+                      </th>
+                      {ENV_VAR_SCOPES.map((scope) => {
+                        const value = row.values[scope.key];
+                        const absent = value === undefined;
+
+                        return (
+                          <td key={scope.key} className={absent ? 'absent' : undefined}>
+                            {absent ? '—' : revealDiff ? value || 'empty value' : maskEnvValue(value)}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="bolt-project-empty-panel">
+                {query ? 'No key matches this filter.' : 'No environment variables to compare yet.'}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bolt-project-env-list">
+            {filtered.length ? (
+              filtered.map((item) => (
+                <div key={`${item.scope ?? 'production'}:${item.key}`} className="bolt-project-env-row">
+                  <strong>{item.key}</strong>
+                  <span>{item.value || 'empty value'}</span>
+                  <small>{item.updatedAt ?? 'Stored in project metadata'}</small>
+                  <button
+                    type="button"
+                    onClick={() => setEditing({ key: item.key, value: item.value ?? '', scope: activeScope })}
+                  >
+                    Edit
+                  </button>
+                  <button type="button" onClick={() => void copyEnv(item.key, item.value)}>
+                    Copy
+                  </button>
+                  <ConfirmSubmitForm
+                    onSubmit={onSubmit}
+                    title={`Delete ${item.key} from ${activeScope}?`}
+                    description="The variable is removed from this scope only. This cannot be undone."
+                    confirmLabel="Delete variable"
+                  >
+                    <input name="intent" value="delete" type="hidden" />
+                    <input name="key" value={item.key} type="hidden" />
+                    <input name="scope" value={activeScope} type="hidden" />
+                    <PanelButton disabled={busy} variant="outline">
+                      Delete
+                    </PanelButton>
+                  </ConfirmSubmitForm>
+                </div>
+              ))
+            ) : query ? (
+              <div className="bolt-project-empty-panel">No environment variable matches this search.</div>
+            ) : (
+              <EmptyState
+                variant="compact"
+                icon="i-ph:brackets-curly"
+                title={`No ${activeScope} variables`}
+                description={`Add a variable to configure this project's ${activeScope} runtime.`}
+                actionLabel="New variable"
+                onAction={() => setEditing({ key: 'VITE_API_URL', value: '', scope: activeScope })}
+              />
+            )}
+          </div>
+        )}
       </section>
-      <form onSubmit={onSubmit} className="grid gap-3 rounded-lg border border-bolt-elements-borderColor p-3">
-        <input name="intent" value="upsert" type="hidden" />
-        <PanelInput
-          name="key"
-          placeholder="VITE_API_URL"
-          required
-          value={editing?.key ?? ''}
-          onChange={(event: any) => setEditing((current) => ({ key: event.target.value, value: current?.value ?? '' }))}
-        />
-        <PanelInput
-          name="value"
-          value={editing?.value ?? ''}
-          onChange={(event: any) => setEditing((current) => ({ key: current?.key ?? '', value: event.target.value }))}
-        />
-        <PanelButton disabled={busy || !editing?.key?.trim()}>
-          {editing ? 'Save variable' : 'Create variable'}
-        </PanelButton>
-      </form>
+      {!showDiff && (
+        <form onSubmit={onSubmit} className="grid gap-3 rounded-lg border border-bolt-elements-borderColor p-3">
+          <input name="intent" value="upsert" type="hidden" />
+          <label className="bolt-project-env-scope-field">
+            <span>Scope</span>
+            <select
+              name="scope"
+              value={editing?.scope ?? activeScope}
+              onChange={(event) =>
+                setEditing((current) => ({
+                  key: current?.key ?? '',
+                  value: current?.value ?? '',
+                  scope: normalizeEnvScope(event.target.value),
+                }))
+              }
+            >
+              {ENV_VAR_SCOPES.map((scope) => (
+                <option key={scope.key} value={scope.key}>
+                  {scope.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <PanelInput
+            name="key"
+            placeholder="VITE_API_URL"
+            required
+            value={editing?.key ?? ''}
+            onChange={(event: any) =>
+              setEditing((current) => ({
+                key: event.target.value,
+                value: current?.value ?? '',
+                scope: current?.scope ?? activeScope,
+              }))
+            }
+          />
+          <PanelInput
+            name="value"
+            value={editing?.value ?? ''}
+            onChange={(event: any) =>
+              setEditing((current) => ({
+                key: current?.key ?? '',
+                value: event.target.value,
+                scope: current?.scope ?? activeScope,
+              }))
+            }
+          />
+          <PanelButton disabled={busy || !editing?.key?.trim()}>
+            {editing ? 'Save variable' : 'Create variable'}
+          </PanelButton>
+        </form>
+      )}
     </div>
   );
 }

@@ -2,7 +2,9 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
 import type {
+  EnvVarScope,
   AbuseEventRecord,
   SecurityEventResolutionRecord,
   AgentPatchProposalRecord,
@@ -704,13 +706,18 @@ export class TestApiStore implements ApiStore {
     return [...this.projectTemplates.values()].filter((template) => template.organizationId === organizationId);
   }
 
-  async upsertProjectEnvVar(input: { projectId: string; key: string; value: string }) {
-    const key = `${input.projectId}:${input.key}`;
+  async upsertProjectEnvVar(input: { projectId: string; key: string; value: string; scope?: EnvVarScope }) {
+    // Omitted scope defaults to production (pre-scope back-compat).
+    const scope = input.scope ?? DEFAULT_ENV_VAR_SCOPE;
+    const key = `${input.projectId}:${input.key}:${scope}`;
     const existing = this.projectEnvVars.get(key);
 
     const envVar: ProjectEnvironmentRecord = {
       id: existing?.id ?? id('env'),
-      ...input,
+      projectId: input.projectId,
+      key: input.key,
+      value: input.value,
+      scope,
       createdAt: existing?.createdAt ?? now(),
       updatedAt: now(),
     };
@@ -723,8 +730,9 @@ export class TestApiStore implements ApiStore {
     return [...this.projectEnvVars.values()].filter((envVar) => envVar.projectId === projectId);
   }
 
-  async deleteProjectEnvVar(projectId: string, key: string) {
-    const mapKey = `${projectId}:${key}`;
+  async deleteProjectEnvVar(projectId: string, key: string, scope?: EnvVarScope) {
+    const targetScope = scope ?? DEFAULT_ENV_VAR_SCOPE;
+    const mapKey = `${projectId}:${key}:${targetScope}`;
     const existing = this.projectEnvVars.get(mapKey);
     this.projectEnvVars.delete(mapKey);
 

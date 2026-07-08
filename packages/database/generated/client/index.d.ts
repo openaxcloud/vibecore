@@ -33981,6 +33981,7 @@ export namespace Prisma {
     projectId: string | null
     key: string | null
     value: string | null
+    scope: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -33990,6 +33991,7 @@ export namespace Prisma {
     projectId: string | null
     key: string | null
     value: string | null
+    scope: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -33999,6 +34001,7 @@ export namespace Prisma {
     projectId: number
     key: number
     value: number
+    scope: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -34010,6 +34013,7 @@ export namespace Prisma {
     projectId?: true
     key?: true
     value?: true
+    scope?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -34019,6 +34023,7 @@ export namespace Prisma {
     projectId?: true
     key?: true
     value?: true
+    scope?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -34028,6 +34033,7 @@ export namespace Prisma {
     projectId?: true
     key?: true
     value?: true
+    scope?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -34110,6 +34116,7 @@ export namespace Prisma {
     projectId: string
     key: string
     value: string
+    scope: string
     createdAt: Date
     updatedAt: Date
     _count: ProjectEnvVarCountAggregateOutputType | null
@@ -34136,6 +34143,7 @@ export namespace Prisma {
     projectId?: boolean
     key?: boolean
     value?: boolean
+    scope?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
@@ -34146,6 +34154,7 @@ export namespace Prisma {
     projectId?: boolean
     key?: boolean
     value?: boolean
+    scope?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
@@ -34156,6 +34165,7 @@ export namespace Prisma {
     projectId?: boolean
     key?: boolean
     value?: boolean
+    scope?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
@@ -34166,11 +34176,12 @@ export namespace Prisma {
     projectId?: boolean
     key?: boolean
     value?: boolean
+    scope?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type ProjectEnvVarOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "key" | "value" | "createdAt" | "updatedAt", ExtArgs["result"]["projectEnvVar"]>
+  export type ProjectEnvVarOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "key" | "value" | "scope" | "createdAt" | "updatedAt", ExtArgs["result"]["projectEnvVar"]>
   export type ProjectEnvVarInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
   }
@@ -34191,6 +34202,7 @@ export namespace Prisma {
       projectId: string
       key: string
       value: string
+      scope: string
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["projectEnvVar"]>
@@ -34621,6 +34633,7 @@ export namespace Prisma {
     readonly projectId: FieldRef<"ProjectEnvVar", 'String'>
     readonly key: FieldRef<"ProjectEnvVar", 'String'>
     readonly value: FieldRef<"ProjectEnvVar", 'String'>
+    readonly scope: FieldRef<"ProjectEnvVar", 'String'>
     readonly createdAt: FieldRef<"ProjectEnvVar", 'DateTime'>
     readonly updatedAt: FieldRef<"ProjectEnvVar", 'DateTime'>
   }
@@ -126618,6 +126631,7 @@ export namespace Prisma {
     projectId: 'projectId',
     key: 'key',
     value: 'value',
+    scope: 'scope',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -129794,6 +129808,7 @@ export namespace Prisma {
     projectId?: StringFilter<"ProjectEnvVar"> | string
     key?: StringFilter<"ProjectEnvVar"> | string
     value?: StringFilter<"ProjectEnvVar"> | string
+    scope?: StringFilter<"ProjectEnvVar"> | string
     createdAt?: DateTimeFilter<"ProjectEnvVar"> | Date | string
     updatedAt?: DateTimeFilter<"ProjectEnvVar"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
@@ -129804,6 +129819,7 @@ export namespace Prisma {
     projectId?: SortOrder
     key?: SortOrder
     value?: SortOrder
+    scope?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     project?: ProjectOrderByWithRelationInput
@@ -129811,23 +129827,25 @@ export namespace Prisma {
 
   export type ProjectEnvVarWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    projectId_key?: ProjectEnvVarProjectIdKeyCompoundUniqueInput
+    projectId_key_scope?: ProjectEnvVarProjectIdKeyScopeCompoundUniqueInput
     AND?: ProjectEnvVarWhereInput | ProjectEnvVarWhereInput[]
     OR?: ProjectEnvVarWhereInput[]
     NOT?: ProjectEnvVarWhereInput | ProjectEnvVarWhereInput[]
     projectId?: StringFilter<"ProjectEnvVar"> | string
     key?: StringFilter<"ProjectEnvVar"> | string
     value?: StringFilter<"ProjectEnvVar"> | string
+    scope?: StringFilter<"ProjectEnvVar"> | string
     createdAt?: DateTimeFilter<"ProjectEnvVar"> | Date | string
     updatedAt?: DateTimeFilter<"ProjectEnvVar"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
-  }, "id" | "projectId_key">
+  }, "id" | "projectId_key_scope">
 
   export type ProjectEnvVarOrderByWithAggregationInput = {
     id?: SortOrder
     projectId?: SortOrder
     key?: SortOrder
     value?: SortOrder
+    scope?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: ProjectEnvVarCountOrderByAggregateInput
@@ -129843,6 +129861,7 @@ export namespace Prisma {
     projectId?: StringWithAggregatesFilter<"ProjectEnvVar"> | string
     key?: StringWithAggregatesFilter<"ProjectEnvVar"> | string
     value?: StringWithAggregatesFilter<"ProjectEnvVar"> | string
+    scope?: StringWithAggregatesFilter<"ProjectEnvVar"> | string
     createdAt?: DateTimeWithAggregatesFilter<"ProjectEnvVar"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"ProjectEnvVar"> | Date | string
   }
@@ -137739,6 +137758,7 @@ export namespace Prisma {
     id?: string
     key: string
     value: string
+    scope?: string
     createdAt?: Date | string
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutEnvVarsInput
@@ -137749,6 +137769,7 @@ export namespace Prisma {
     projectId: string
     key: string
     value: string
+    scope?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -137757,6 +137778,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     key?: StringFieldUpdateOperationsInput | string
     value?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutEnvVarsNestedInput
@@ -137767,6 +137789,7 @@ export namespace Prisma {
     projectId?: StringFieldUpdateOperationsInput | string
     key?: StringFieldUpdateOperationsInput | string
     value?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -137776,6 +137799,7 @@ export namespace Prisma {
     projectId: string
     key: string
     value: string
+    scope?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -137784,6 +137808,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     key?: StringFieldUpdateOperationsInput | string
     value?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -137793,6 +137818,7 @@ export namespace Prisma {
     projectId?: StringFieldUpdateOperationsInput | string
     key?: StringFieldUpdateOperationsInput | string
     value?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -146168,9 +146194,10 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
-  export type ProjectEnvVarProjectIdKeyCompoundUniqueInput = {
+  export type ProjectEnvVarProjectIdKeyScopeCompoundUniqueInput = {
     projectId: string
     key: string
+    scope: string
   }
 
   export type ProjectEnvVarCountOrderByAggregateInput = {
@@ -146178,6 +146205,7 @@ export namespace Prisma {
     projectId?: SortOrder
     key?: SortOrder
     value?: SortOrder
+    scope?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -146187,6 +146215,7 @@ export namespace Prisma {
     projectId?: SortOrder
     key?: SortOrder
     value?: SortOrder
+    scope?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -146196,6 +146225,7 @@ export namespace Prisma {
     projectId?: SortOrder
     key?: SortOrder
     value?: SortOrder
+    scope?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -162059,6 +162089,7 @@ export namespace Prisma {
     id?: string
     key: string
     value: string
+    scope?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -162067,6 +162098,7 @@ export namespace Prisma {
     id?: string
     key: string
     value: string
+    scope?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -162883,6 +162915,7 @@ export namespace Prisma {
     projectId?: StringFilter<"ProjectEnvVar"> | string
     key?: StringFilter<"ProjectEnvVar"> | string
     value?: StringFilter<"ProjectEnvVar"> | string
+    scope?: StringFilter<"ProjectEnvVar"> | string
     createdAt?: DateTimeFilter<"ProjectEnvVar"> | Date | string
     updatedAt?: DateTimeFilter<"ProjectEnvVar"> | Date | string
   }
@@ -184314,6 +184347,7 @@ export namespace Prisma {
     id?: string
     key: string
     value: string
+    scope?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -184556,6 +184590,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     key?: StringFieldUpdateOperationsInput | string
     value?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -184564,6 +184599,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     key?: StringFieldUpdateOperationsInput | string
     value?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -184572,6 +184608,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     key?: StringFieldUpdateOperationsInput | string
     value?: StringFieldUpdateOperationsInput | string
+    scope?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

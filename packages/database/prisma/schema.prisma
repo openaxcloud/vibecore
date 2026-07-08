@@ -438,11 +438,14 @@ model ProjectEnvVar {
   projectId String
   key       String
   value     String
+  // Deployment scope this value applies to: development | preview | production.
+  // Defaults to "production" so every pre-scope row keeps its existing meaning.
+  scope     String   @default("production")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  @@unique([projectId, key])
+  @@unique([projectId, key, scope])
 }
 
 model ProjectCollaborator {

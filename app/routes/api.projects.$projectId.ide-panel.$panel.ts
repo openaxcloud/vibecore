@@ -32,6 +32,17 @@ export type IdePanelStatus = 'ok' | 'empty' | 'error';
 
 const OVERVIEW_STREAM_INTERVAL_MS = 15_000;
 
+const ENV_VAR_SCOPES = ['development', 'preview', 'production'] as const;
+type EnvVarScope = (typeof ENV_VAR_SCOPES)[number];
+
+/*
+ * Only forward a known scope; anything else is dropped so the API applies its
+ * own production default (keeps pre-scope clients working).
+ */
+function normalizeEnvScope(scope: string | undefined): EnvVarScope | undefined {
+  return ENV_VAR_SCOPES.includes(scope as EnvVarScope) ? (scope as EnvVarScope) : undefined;
+}
+
 export interface IdePanelEnvelope<T = unknown> {
   panel: string;
   project: unknown;
@@ -1225,15 +1236,18 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       });
     }
   } else if (panel === 'env') {
+    // scope is optional; the API defaults it to production for pre-scope clients.
+    const scope = normalizeEnvScope(body.scope);
+
     if (intent === 'delete') {
       await apiRequest(request, `/projects/${projectId}/env-vars`, {
         method: 'DELETE',
-        body: JSON.stringify({ key: body.key }),
+        body: JSON.stringify({ key: body.key, ...(scope ? { scope } : {}) }),
       });
     } else {
       await apiRequest(request, `/projects/${projectId}/env-vars`, {
         method: 'PUT',
-        body: JSON.stringify({ key: body.key, value: body.value ?? '' }),
+        body: JSON.stringify({ key: body.key, value: body.value ?? '', ...(scope ? { scope } : {}) }),
       });
     }
   } else if (panel === 'secrets') {

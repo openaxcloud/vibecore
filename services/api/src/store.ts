@@ -201,11 +201,23 @@ export interface DatabaseRestoreRecord {
   completedAt?: string;
 }
 
+/**
+ * Deployment scope an environment variable applies to. A single key can carry a
+ * different value per scope (e.g. a development vs production DATABASE_URL).
+ * "production" is the default so rows written before scopes existed keep working.
+ */
+export type EnvVarScope = 'development' | 'preview' | 'production';
+
+export const ENV_VAR_SCOPES: readonly EnvVarScope[] = ['development', 'preview', 'production'];
+
+export const DEFAULT_ENV_VAR_SCOPE: EnvVarScope = 'production';
+
 export interface ProjectEnvironmentRecord {
   id: string;
   projectId: string;
   key: string;
   value: string;
+  scope: EnvVarScope;
   createdAt: string;
   updatedAt: string;
 }
@@ -1163,9 +1175,18 @@ export interface ApiStore {
     description?: string;
   }): Promise<ProjectTemplateRecord>;
   listProjectTemplates(organizationId: string): Promise<ProjectTemplateRecord[]>;
-  upsertProjectEnvVar(input: { projectId: string; key: string; value: string }): Promise<ProjectEnvironmentRecord>;
+  upsertProjectEnvVar(input: {
+    projectId: string;
+    key: string;
+    value: string;
+    scope?: EnvVarScope;
+  }): Promise<ProjectEnvironmentRecord>;
   listProjectEnvVars(projectId: string): Promise<ProjectEnvironmentRecord[]>;
-  deleteProjectEnvVar(projectId: string, key: string): Promise<ProjectEnvironmentRecord | undefined>;
+  deleteProjectEnvVar(
+    projectId: string,
+    key: string,
+    scope?: EnvVarScope,
+  ): Promise<ProjectEnvironmentRecord | undefined>;
   upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }): Promise<ProjectSecretRecord>;
   listProjectSecrets(projectId: string): Promise<Array<Omit<ProjectSecretRecord, 'valueEncrypted'>>>;
   getProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
