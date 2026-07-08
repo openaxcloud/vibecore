@@ -691,6 +691,23 @@ export async function action({ request }: EnterpriseActionArgs) {
       });
     }
 
+    // Kill a preview (stops the workspace pod that serves it).
+    if (intent === 'preview-kill') {
+      const workspaceId = String(form.get('workspaceId') ?? '');
+
+      if (!workspaceId) {
+        return json({ ok: false, error: 'Missing preview.' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/admin/previews/${workspaceId}/kill`, {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({}),
+      });
+
+      return json({ ok: true, rowId: workspaceId, message: 'Preview killed (workspace pod stopped).' });
+    }
+
     // Abuse event resolve.
     if (intent === 'abuse-resolve') {
       const abuseEventId = String(form.get('abuseEventId') ?? '');
@@ -1021,6 +1038,7 @@ export default function AdminSectionPage() {
           {section === 'system-settings' ? <SystemSettingUpsertPanel /> : null}
           {section === 'ops-controls' ? <OpsControlsPanel payload={payload} /> : null}
           {section === 'workspaces' ? <WorkspacesPanel payload={payload} /> : null}
+          {section === 'previews' ? <PreviewsPanel payload={payload} /> : null}
           {section === 'abuse-events' ? <AbuseEventsPanel payload={payload} /> : null}
           {section === 'organizations' ? <OrganizationsPanel payload={payload} /> : null}
           {section === 'support-tickets' ? <SupportTicketsPanel payload={payload} /> : null}
@@ -1039,6 +1057,7 @@ export default function AdminSectionPage() {
             'feature-flags',
             'oauth-providers',
             'workspaces',
+            'previews',
             'abuse-events',
             'organizations',
             'support-tickets',
@@ -2439,10 +2458,17 @@ function UserActionReasonDialog({
   );
 }
 
-function StatusPill({ tone, children }: { tone: 'ok' | 'danger' | 'accent' | 'muted'; children: React.ReactNode }) {
+function StatusPill({
+  tone,
+  children,
+}: {
+  tone: 'ok' | 'danger' | 'warn' | 'accent' | 'muted';
+  children: React.ReactNode;
+}) {
   const tones: Record<string, string> = {
     ok: 'border-[color-mix(in_srgb,var(--status-success-text)_30%,transparent)] text-[var(--status-success-text)]',
     danger: 'border-[color-mix(in_srgb,var(--status-error-text)_30%,transparent)] text-[var(--status-error-text)]',
+    warn: 'border-[color-mix(in_srgb,var(--status-warning-text)_35%,transparent)] text-[var(--status-warning-text)]',
     accent: 'border-bolt-elements-borderColorActive text-bolt-elements-textPrimary',
     muted: 'border-bolt-elements-borderColor text-bolt-elements-textSecondary',
   };
@@ -4025,6 +4051,216 @@ function WorkspaceRow({ workspace, password }: { workspace: AdminWorkspace; pass
           title={`Delete workspace "${workspace.name ?? workspace.id}"?`}
           description="This reclaims its pod and storage and cannot be undone."
           confirmLabel="Delete workspace"
+          variant="destructive"
+        />
+      </td>
+    </tr>
+  );
+}
+
+type AdminPreview = {
+  workspaceId: string;
+  url?: string;
+  status?: string;
+  createdAt?: string;
+  expiresAt?: string;
+};
+
+/*
+ * Remaining TTL for a preview, derived from its server-computed expiresAt
+ * (createdAt + the configured default TTL). Warn tone within the last 10 min,
+ * danger once expired.
+ */
+function remainingTtl(expiresAt?: string): { label: string; tone: 'ok' | 'warn' | 'danger' | 'muted' } {
+  if (!expiresAt) {
+    return { label: '—', tone: 'muted' };
+  }
+
+  const ms = new Date(expiresAt).getTime() - Date.now();
+
+  if (!Number.isFinite(ms)) {
+    return { label: '—', tone: 'muted' };
+  }
+
+  if (ms <= 0) {
+    return { label: 'expired', tone: 'danger' };
+  }
+
+  const totalMinutes = Math.floor(ms / 60_000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const human = hours > 0 ? `${hours}h ${minutes}m` : totalMinutes > 0 ? `${totalMinutes}m` : '<1m';
+
+  return { label: `expires in ${human}`, tone: totalMinutes <= 10 ? 'warn' : 'ok' };
+}
+
+/*
+ * F25 previews panel: shows each preview's remaining TTL, a per-row Kill button
+ * (POST /admin/previews/:id/kill — stops the workspace pod serving the preview),
+ * and a default-TTL editor that writes the `preview.defaultTtlMinutes` system
+ * setting via the shared system-setting upsert. Step-up protected: the admin
+ * types their password once in the shared header and every action submits it.
+ */
+function PreviewsPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const previews = (Array.isArray(payload.previews) ? payload.previews : []) as AdminPreview[];
+  const defaultTtlMinutes = typeof payload.defaultTtlMinutes === 'number' ? payload.defaultTtlMinutes : 120;
+  const [password, setPassword] = useState('');
+
+  return (
+    <div className="grid gap-4">
+      <ReauthHeader
+        password={password}
+        onChange={setPassword}
+        hint="Preview actions are step-up protected. Enter your password once, then set the default TTL or Kill a preview below. Killing a preview stops the workspace pod serving it; the preview goes blank until the workspace is restarted."
+      />
+
+      <DefaultTtlEditor password={password} currentTtlMinutes={defaultTtlMinutes} />
+
+      <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
+        <table className="w-full min-w-[680px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
+              <th className="px-4 py-3 font-medium">Preview</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Remaining TTL</th>
+              <th className="px-4 py-3 font-medium">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {previews.length === 0 ? (
+              <tr>
+                <td className="px-4 py-3 text-bolt-elements-textSecondary" colSpan={4}>
+                  No previews found.
+                </td>
+              </tr>
+            ) : (
+              previews.map((preview) => <PreviewRow key={preview.workspaceId} preview={preview} password={password} />)
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/*
+ * Default-TTL editor — a focused wrapper over the generic system-setting upsert.
+ * It writes the fixed `preview.defaultTtlMinutes` key so ops never have to know
+ * the key name, prefilled with the currently-effective value.
+ */
+function DefaultTtlEditor({ password, currentTtlMinutes }: { password: string; currentTtlMinutes: number }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+  const [value, setValue] = useState(String(currentTtlMinutes));
+
+  const save = () => {
+    fetcher.submit(
+      { intent: 'system-setting', key: 'preview.defaultTtlMinutes', value: String(Number(value)), password },
+      { method: 'post' },
+    );
+  };
+
+  const parsed = Number(value);
+  const valid = Number.isFinite(parsed) && parsed > 0;
+
+  return (
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Default preview TTL</h3>
+      <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+        How long a preview stays alive after its workspace is created. Stored as the{' '}
+        <code className="rounded bg-bolt-elements-background-depth-1 px-1 py-0.5">preview.defaultTtlMinutes</code>{' '}
+        system setting. Currently{' '}
+        <span className="font-medium text-bolt-elements-textPrimary">{currentTtlMinutes} min</span>.
+      </p>
+
+      <div className="mt-3 flex flex-wrap items-end gap-3">
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Minutes
+          <input
+            type="number"
+            min={1}
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            data-testid="preview-default-ttl"
+            className="mt-1 w-32 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
+          />
+        </label>
+        <button
+          type="button"
+          disabled={busy || !valid || !password}
+          onClick={save}
+          data-testid="preview-default-ttl-save"
+          className="inline-flex items-center rounded-md border border-[var(--vc-ide-accent-action)] px-3 py-2 text-xs font-medium text-[var(--vc-ide-accent-action)] transition-colors hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {busy ? 'Saving…' : 'Save default TTL'}
+        </button>
+      </div>
+      {!password ? (
+        <p className="mt-2 text-xs text-bolt-elements-textTertiary">Enter your password above to save.</p>
+      ) : null}
+      <RowFeedback data={fetcher.data} />
+    </div>
+  );
+}
+
+function PreviewRow({ preview, password }: { preview: AdminPreview; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+  const killed = fetcher.data?.ok === true;
+  const status = String(preview.status ?? 'UNKNOWN');
+  const running = ['PENDING', 'STARTING', 'RUNNING'].includes(status);
+  const effectiveStatus = killed ? 'STOPPED' : status;
+  const statusTone = effectiveStatus === 'FAILED' ? 'danger' : running && !killed ? 'ok' : 'muted';
+  const ttl = killed ? { label: '—', tone: 'muted' as const } : remainingTtl(preview.expiresAt);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  return (
+    <tr className="border-b border-bolt-elements-borderColor align-top last:border-b-0">
+      <td className="px-4 py-3">
+        <div className="font-medium text-bolt-elements-textPrimary">{preview.workspaceId}</div>
+        {preview.url ? <div className="text-xs text-bolt-elements-textSecondary">{preview.url}</div> : null}
+        {preview.createdAt ? (
+          <div className="text-xs text-bolt-elements-textTertiary">created {preview.createdAt}</div>
+        ) : null}
+      </td>
+      <td className="px-4 py-3">
+        <StatusPill tone={statusTone}>{effectiveStatus.toLowerCase()}</StatusPill>
+      </td>
+      <td className="px-4 py-3">
+        <StatusPill tone={ttl.tone}>{ttl.label}</StatusPill>
+      </td>
+      <td className="px-4 py-3">
+        {killed || !running ? (
+          <StatusPill tone="muted">killed</StatusPill>
+        ) : (
+          <>
+            <button
+              type="button"
+              className={ROW_DANGER}
+              disabled={busy || !password}
+              data-testid={`preview-kill-${preview.workspaceId}`}
+              onClick={() => setConfirmOpen(true)}
+            >
+              {busy ? 'Killing…' : 'Kill'}
+            </button>
+            {!password && !busy ? (
+              <p className="mt-1.5 text-xs text-bolt-elements-textTertiary">Enter your password above first.</p>
+            ) : null}
+          </>
+        )}
+        <RowFeedback data={fetcher.data} />
+        {/* Renders via portal, so it is valid inside the table cell. */}
+        <ConfirmationDialog
+          isOpen={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={() => {
+            setConfirmOpen(false);
+            fetcher.submit({ intent: 'preview-kill', workspaceId: preview.workspaceId, password }, { method: 'post' });
+          }}
+          title={`Kill preview for "${preview.workspaceId}"?`}
+          description="This stops the workspace pod serving the preview. The preview goes blank until the workspace is restarted."
+          confirmLabel="Kill preview"
           variant="destructive"
         />
       </td>

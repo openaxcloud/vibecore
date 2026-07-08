@@ -21716,32 +21716,70 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   });
 
+  /*
+   * F25: preview TTL. A preview is not a standalone record — it is the dev
+   * server the workspace pod serves on its preview port (surfaced through
+   * preview-proxy). We cap it at `preview.defaultTtlMinutes` after the workspace
+   * was created, derive the remaining time from createdAt + that default, and
+   * expose a "kill" action. The default lives in System settings so ops can tune
+   * it without a deploy; unset/invalid falls back to 120 minutes.
+   */
+  const resolveDefaultPreviewTtlMinutes = async () => {
+    const settings = await store.listSystemSettings();
+    const ttlSetting = settings.find((setting) => setting.key === 'preview.defaultTtlMinutes');
+    const parsed = Number(ttlSetting?.value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 120;
+  };
+
+  const buildPreviewRow = (workspace: { id: string; status: string; createdAt: string }, ttlMinutes: number) => ({
+    workspaceId: workspace.id,
+    url: `/api/runtime/workspaces/${workspace.id}/preview/3000`,
+    status: workspace.status,
+    createdAt: workspace.createdAt,
+    expiresAt: new Date(new Date(workspace.createdAt).getTime() + ttlMinutes * 60_000).toISOString(),
+  });
+
   app.get('/admin/previews', async (request) => {
     await requirePlatformAdmin(request);
 
     const workspaces = await store.listAdminWorkspaces();
-
-    /*
-     * F25: preview TTL. A preview is capped at `preview.defaultTtlMinutes` after
-     * its workspace was created; the panel shows the remaining time and can kill
-     * (stop) an over-TTL preview. The default lives in System settings so ops can
-     * tune it without a deploy.
-     */
-    const settings = await store.listSystemSettings();
-    const ttlSetting = settings.find((setting) => setting.key === 'preview.defaultTtlMinutes');
-    const defaultTtlMinutes = Number(ttlSetting?.value);
-    const ttlMinutes = Number.isFinite(defaultTtlMinutes) && defaultTtlMinutes > 0 ? defaultTtlMinutes : 120;
+    const ttlMinutes = await resolveDefaultPreviewTtlMinutes();
 
     return {
       defaultTtlMinutes: ttlMinutes,
-      previews: workspaces.map((workspace) => ({
-        workspaceId: workspace.id,
-        url: `/api/runtime/workspaces/${workspace.id}/preview/3000`,
-        status: workspace.status,
-        createdAt: workspace.createdAt,
-        expiresAt: new Date(new Date(workspace.createdAt).getTime() + ttlMinutes * 60_000).toISOString(),
-      })),
+      previews: workspaces.map((workspace) => buildPreviewRow(workspace, ttlMinutes)),
     };
+  });
+
+  /*
+   * F25: kill a preview. There is no per-port "kill" primitive in the runtime —
+   * a preview is served by the workspace pod, so terminating the preview means
+   * stopping that pod via the manager stop route (the real, closest mechanism).
+   * Reaping the pod tears the preview down: preview-proxy 404s / the iframe
+   * renders blank until the workspace is restarted. Platform-admin + recent
+   * step-up gated + audited, mirroring the workspace stop/restart/delete routes.
+   * An already-gone workspace is treated as a no-op (idempotent kill).
+   */
+  app.post('/admin/previews/:workspaceId/kill', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { workspaceId } = parse(adminWorkspaceParams, request.params);
+
+    try {
+      await managerRequest(`/workspaces/${workspaceId}/stop`, { method: 'POST' });
+    } catch (error) {
+      if (!isRuntimeWorkspaceGone(error)) {
+        throw error;
+      }
+    }
+
+    const workspace = await store.updateWorkspaceStatus({ workspaceId, status: 'STOPPED' });
+    await recordAdminAction(request, store, { action: 'admin.preview.kill', metadata: { workspaceId } });
+
+    const ttlMinutes = await resolveDefaultPreviewTtlMinutes();
+
+    return { preview: buildPreviewRow(workspace, ttlMinutes) };
   });
 
   app.get('/admin/deployments', async (request) => {
