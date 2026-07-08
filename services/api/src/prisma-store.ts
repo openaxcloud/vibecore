@@ -841,6 +841,69 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async renameProjectSlug(input: { projectId: string; newSlug: string; redirectTtlDays?: number }) {
+    const project = assertFound(
+      await this.prisma.project.findUnique({ where: { id: input.projectId } }),
+      'Project not found',
+      'PROJECT_NOT_FOUND',
+    );
+
+    // No-op rename: don't mint a self-redirect (it would loop the old→new URL
+    // back onto itself) — just hand back the project unchanged.
+    if (project.slug === input.newSlug) {
+      return mapProject(project);
+    }
+
+    // slug is only @@unique within an org, so a bare update would 500 on P2002.
+    // Surface the clash as a typed 409 the route can translate into an inline
+    // "slug already taken" message.
+    const clash = await this.prisma.project.findFirst({
+      where: { organizationId: project.organizationId, slug: input.newSlug, id: { not: project.id } },
+      select: { id: true },
+    });
+
+    if (clash) {
+      throw Object.assign(new Error('A project with this URL slug already exists in this organization.'), {
+        statusCode: 409,
+        code: 'PROJECT_SLUG_TAKEN',
+      });
+    }
+
+    const ttlDays = input.redirectTtlDays ?? 30;
+    const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
+
+    return this.prisma.$transaction(async (tx) => {
+      // Persist old → project redirect (upsert so a re-rename of the same old
+      // slug just refreshes the 30-day window instead of P2002-ing).
+      await tx.projectSlugRedirect.upsert({
+        where: { projectId_oldSlug: { projectId: project.id, oldSlug: project.slug } },
+        create: { projectId: project.id, oldSlug: project.slug, expiresAt },
+        update: { expiresAt },
+      });
+
+      // Renaming BACK to a slug this project previously redirected FROM would
+      // leave a self-redirect (newSlug → this project) that bounces the fresh
+      // canonical URL. Drop it.
+      await tx.projectSlugRedirect.deleteMany({ where: { projectId: project.id, oldSlug: input.newSlug } });
+
+      return mapProject(await tx.project.update({ where: { id: project.id }, data: { slug: input.newSlug } }));
+    });
+  }
+
+  async resolveProjectSlugRedirect(input: { organizationSlug: string; oldSlug: string; now?: Date }) {
+    const redirect = await this.prisma.projectSlugRedirect.findFirst({
+      where: {
+        oldSlug: input.oldSlug,
+        expiresAt: { gt: input.now ?? new Date() },
+        project: { deletedAt: null, organization: { slug: input.organizationSlug } },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: { project: true },
+    });
+
+    return redirect ? mapProject(redirect.project) : undefined;
+  }
+
   async listProjects(organizationId: string, options: { includeArchived?: boolean } = {}) {
     return (
       await this.prisma.project.findMany({

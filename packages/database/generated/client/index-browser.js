@@ -224,6 +224,14 @@ exports.Prisma.ProjectScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ProjectSlugRedirectScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  oldSlug: 'oldSlug',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.AgentMemoryScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1455,6 +1463,7 @@ exports.Prisma.ModelName = {
   Permission: 'Permission',
   RolePermission: 'RolePermission',
   Project: 'Project',
+  ProjectSlugRedirect: 'ProjectSlugRedirect',
   AgentMemory: 'AgentMemory',
   AgentMemoryPreference: 'AgentMemoryPreference',
   ProjectIdeState: 'ProjectIdeState',

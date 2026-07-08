@@ -590,6 +590,81 @@ export class TestApiStore implements ApiStore {
     return project;
   }
 
+  readonly projectSlugRedirects: Array<{ projectId: string; oldSlug: string; expiresAt: Date }> = [];
+
+  async renameProjectSlug(input: { projectId: string; newSlug: string; redirectTtlDays?: number }) {
+    const project = this.projects.get(input.projectId);
+
+    if (!project) {
+      throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
+    }
+
+    if (project.slug === input.newSlug) {
+      return project;
+    }
+
+    const clash = [...this.projects.values()].some(
+      (candidate) =>
+        candidate.organizationId === project.organizationId &&
+        candidate.slug === input.newSlug &&
+        candidate.id !== project.id,
+    );
+
+    if (clash) {
+      throw Object.assign(new Error('A project with this URL slug already exists in this organization.'), {
+        statusCode: 409,
+        code: 'PROJECT_SLUG_TAKEN',
+      });
+    }
+
+    const ttlDays = input.redirectTtlDays ?? 30;
+    const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
+    const existing = this.projectSlugRedirects.find(
+      (row) => row.projectId === project.id && row.oldSlug === project.slug,
+    );
+
+    if (existing) {
+      existing.expiresAt = expiresAt;
+    } else {
+      this.projectSlugRedirects.push({ projectId: project.id, oldSlug: project.slug, expiresAt });
+    }
+
+    // Drop a self-redirect if renaming back to a previously-used slug.
+    for (let i = this.projectSlugRedirects.length - 1; i >= 0; i -= 1) {
+      const row = this.projectSlugRedirects[i];
+
+      if (row.projectId === project.id && row.oldSlug === input.newSlug) {
+        this.projectSlugRedirects.splice(i, 1);
+      }
+    }
+
+    project.slug = input.newSlug;
+    project.updatedAt = now();
+
+    return project;
+  }
+
+  async resolveProjectSlugRedirect(input: { organizationSlug: string; oldSlug: string; now?: Date }) {
+    const organization = [...this.organizations.values()].find((org) => org.slug === input.organizationSlug);
+
+    if (!organization) {
+      return undefined;
+    }
+
+    const cutoff = input.now ?? new Date();
+    const match = this.projectSlugRedirects.find((row) => {
+      if (row.oldSlug !== input.oldSlug || row.expiresAt <= cutoff) {
+        return false;
+      }
+
+      const project = this.projects.get(row.projectId);
+
+      return Boolean(project && !project.deletedAt && project.organizationId === organization.id);
+    });
+
+    return match ? this.projects.get(match.projectId) : undefined;
+  }
+
   async listProjects(organizationId: string, options: { includeArchived?: boolean } = {}) {
     return [...this.projects.values()].filter(
       (project) => project.organizationId === organizationId && (options.includeArchived || !project.deletedAt),

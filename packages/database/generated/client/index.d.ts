@@ -64,6 +64,11 @@ export type RolePermission = $Result.DefaultSelection<Prisma.$RolePermissionPayl
  */
 export type Project = $Result.DefaultSelection<Prisma.$ProjectPayload>
 /**
+ * Model ProjectSlugRedirect
+ * 
+ */
+export type ProjectSlugRedirect = $Result.DefaultSelection<Prisma.$ProjectSlugRedirectPayload>
+/**
  * Model AgentMemory
  * 
  */
@@ -1027,6 +1032,16 @@ export class PrismaClient<
     * ```
     */
   get project(): Prisma.ProjectDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.projectSlugRedirect`: Exposes CRUD operations for the **ProjectSlugRedirect** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectSlugRedirects
+    * const projectSlugRedirects = await prisma.projectSlugRedirect.findMany()
+    * ```
+    */
+  get projectSlugRedirect(): Prisma.ProjectSlugRedirectDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.agentMemory`: Exposes CRUD operations for the **AgentMemory** model.
@@ -2371,6 +2386,7 @@ export namespace Prisma {
     Permission: 'Permission',
     RolePermission: 'RolePermission',
     Project: 'Project',
+    ProjectSlugRedirect: 'ProjectSlugRedirect',
     AgentMemory: 'AgentMemory',
     AgentMemoryPreference: 'AgentMemoryPreference',
     ProjectIdeState: 'ProjectIdeState',
@@ -2476,7 +2492,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3217,6 +3233,80 @@ export namespace Prisma {
           count: {
             args: Prisma.ProjectCountArgs<ExtArgs>
             result: $Utils.Optional<ProjectCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProjectSlugRedirect: {
+        payload: Prisma.$ProjectSlugRedirectPayload<ExtArgs>
+        fields: Prisma.ProjectSlugRedirectFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectSlugRedirectFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSlugRedirectPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectSlugRedirectFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSlugRedirectPayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectSlugRedirectFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSlugRedirectPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectSlugRedirectFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSlugRedirectPayload>
+          }
+          findMany: {
+            args: Prisma.ProjectSlugRedirectFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSlugRedirectPayload>[]
+          }
+          create: {
+            args: Prisma.ProjectSlugRedirectCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSlugRedirectPayload>
+          }
+          createMany: {
+            args: Prisma.ProjectSlugRedirectCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectSlugRedirectCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSlugRedirectPayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectSlugRedirectDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSlugRedirectPayload>
+          }
+          update: {
+            args: Prisma.ProjectSlugRedirectUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSlugRedirectPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectSlugRedirectDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectSlugRedirectUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectSlugRedirectUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSlugRedirectPayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectSlugRedirectUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectSlugRedirectPayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectSlugRedirectAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectSlugRedirect>
+          }
+          groupBy: {
+            args: Prisma.ProjectSlugRedirectGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectSlugRedirectGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectSlugRedirectCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectSlugRedirectCountAggregateOutputType> | number
           }
         }
       }
@@ -9982,6 +10072,7 @@ export namespace Prisma {
     permission?: PermissionOmit
     rolePermission?: RolePermissionOmit
     project?: ProjectOmit
+    projectSlugRedirect?: ProjectSlugRedirectOmit
     agentMemory?: AgentMemoryOmit
     agentMemoryPreference?: AgentMemoryPreferenceOmit
     projectIdeState?: ProjectIdeStateOmit
@@ -10847,6 +10938,7 @@ export namespace Prisma {
     databaseInstances: number
     skills: number
     repairEvents: number
+    slugRedirects: number
   }
 
   export type ProjectCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -10872,6 +10964,7 @@ export namespace Prisma {
     databaseInstances?: boolean | ProjectCountOutputTypeCountDatabaseInstancesArgs
     skills?: boolean | ProjectCountOutputTypeCountSkillsArgs
     repairEvents?: boolean | ProjectCountOutputTypeCountRepairEventsArgs
+    slugRedirects?: boolean | ProjectCountOutputTypeCountSlugRedirectsArgs
   }
 
   // Custom InputTypes
@@ -11037,6 +11130,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountRepairEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: AgentRepairEventWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountSlugRedirectsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectSlugRedirectWhereInput
   }
 
 
@@ -23379,6 +23479,7 @@ export namespace Prisma {
     databaseInstances?: boolean | Project$databaseInstancesArgs<ExtArgs>
     skills?: boolean | Project$skillsArgs<ExtArgs>
     repairEvents?: boolean | Project$repairEventsArgs<ExtArgs>
+    slugRedirects?: boolean | Project$slugRedirectsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
@@ -23464,6 +23565,7 @@ export namespace Prisma {
     databaseInstances?: boolean | Project$databaseInstancesArgs<ExtArgs>
     skills?: boolean | Project$skillsArgs<ExtArgs>
     repairEvents?: boolean | Project$repairEventsArgs<ExtArgs>
+    slugRedirects?: boolean | Project$slugRedirectsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -23500,6 +23602,7 @@ export namespace Prisma {
       databaseInstances: Prisma.$DatabaseInstancePayload<ExtArgs>[]
       skills: Prisma.$ProjectSkillPayload<ExtArgs>[]
       repairEvents: Prisma.$AgentRepairEventPayload<ExtArgs>[]
+      slugRedirects: Prisma.$ProjectSlugRedirectPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -23935,6 +24038,7 @@ export namespace Prisma {
     databaseInstances<T extends Project$databaseInstancesArgs<ExtArgs> = {}>(args?: Subset<T, Project$databaseInstancesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     skills<T extends Project$skillsArgs<ExtArgs> = {}>(args?: Subset<T, Project$skillsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSkillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     repairEvents<T extends Project$repairEventsArgs<ExtArgs> = {}>(args?: Subset<T, Project$repairEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRepairEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    slugRedirects<T extends Project$slugRedirectsArgs<ExtArgs> = {}>(args?: Subset<T, Project$slugRedirectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSlugRedirectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -24927,6 +25031,30 @@ export namespace Prisma {
   }
 
   /**
+   * Project.slugRedirects
+   */
+  export type Project$slugRedirectsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSlugRedirect
+     */
+    select?: ProjectSlugRedirectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSlugRedirect
+     */
+    omit?: ProjectSlugRedirectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSlugRedirectInclude<ExtArgs> | null
+    where?: ProjectSlugRedirectWhereInput
+    orderBy?: ProjectSlugRedirectOrderByWithRelationInput | ProjectSlugRedirectOrderByWithRelationInput[]
+    cursor?: ProjectSlugRedirectWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProjectSlugRedirectScalarFieldEnum | ProjectSlugRedirectScalarFieldEnum[]
+  }
+
+  /**
    * Project without action
    */
   export type ProjectDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -24942,6 +25070,1069 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ProjectInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProjectSlugRedirect
+   */
+
+  export type AggregateProjectSlugRedirect = {
+    _count: ProjectSlugRedirectCountAggregateOutputType | null
+    _min: ProjectSlugRedirectMinAggregateOutputType | null
+    _max: ProjectSlugRedirectMaxAggregateOutputType | null
+  }
+
+  export type ProjectSlugRedirectMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    oldSlug: string | null
+    expiresAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type ProjectSlugRedirectMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    oldSlug: string | null
+    expiresAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type ProjectSlugRedirectCountAggregateOutputType = {
+    id: number
+    projectId: number
+    oldSlug: number
+    expiresAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ProjectSlugRedirectMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    oldSlug?: true
+    expiresAt?: true
+    createdAt?: true
+  }
+
+  export type ProjectSlugRedirectMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    oldSlug?: true
+    expiresAt?: true
+    createdAt?: true
+  }
+
+  export type ProjectSlugRedirectCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    oldSlug?: true
+    expiresAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ProjectSlugRedirectAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectSlugRedirect to aggregate.
+     */
+    where?: ProjectSlugRedirectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectSlugRedirects to fetch.
+     */
+    orderBy?: ProjectSlugRedirectOrderByWithRelationInput | ProjectSlugRedirectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ProjectSlugRedirectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectSlugRedirects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectSlugRedirects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ProjectSlugRedirects
+    **/
+    _count?: true | ProjectSlugRedirectCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectSlugRedirectMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectSlugRedirectMaxAggregateInputType
+  }
+
+  export type GetProjectSlugRedirectAggregateType<T extends ProjectSlugRedirectAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectSlugRedirect]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectSlugRedirect[P]>
+      : GetScalarType<T[P], AggregateProjectSlugRedirect[P]>
+  }
+
+
+
+
+  export type ProjectSlugRedirectGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectSlugRedirectWhereInput
+    orderBy?: ProjectSlugRedirectOrderByWithAggregationInput | ProjectSlugRedirectOrderByWithAggregationInput[]
+    by: ProjectSlugRedirectScalarFieldEnum[] | ProjectSlugRedirectScalarFieldEnum
+    having?: ProjectSlugRedirectScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectSlugRedirectCountAggregateInputType | true
+    _min?: ProjectSlugRedirectMinAggregateInputType
+    _max?: ProjectSlugRedirectMaxAggregateInputType
+  }
+
+  export type ProjectSlugRedirectGroupByOutputType = {
+    id: string
+    projectId: string
+    oldSlug: string
+    expiresAt: Date
+    createdAt: Date
+    _count: ProjectSlugRedirectCountAggregateOutputType | null
+    _min: ProjectSlugRedirectMinAggregateOutputType | null
+    _max: ProjectSlugRedirectMaxAggregateOutputType | null
+  }
+
+  type GetProjectSlugRedirectGroupByPayload<T extends ProjectSlugRedirectGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectSlugRedirectGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectSlugRedirectGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectSlugRedirectGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectSlugRedirectGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectSlugRedirectSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    oldSlug?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectSlugRedirect"]>
+
+  export type ProjectSlugRedirectSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    oldSlug?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectSlugRedirect"]>
+
+  export type ProjectSlugRedirectSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    oldSlug?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectSlugRedirect"]>
+
+  export type ProjectSlugRedirectSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    oldSlug?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type ProjectSlugRedirectOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "oldSlug" | "expiresAt" | "createdAt", ExtArgs["result"]["projectSlugRedirect"]>
+  export type ProjectSlugRedirectInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type ProjectSlugRedirectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type ProjectSlugRedirectIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+
+  export type $ProjectSlugRedirectPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectSlugRedirect"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      oldSlug: string
+      expiresAt: Date
+      createdAt: Date
+    }, ExtArgs["result"]["projectSlugRedirect"]>
+    composites: {}
+  }
+
+  type ProjectSlugRedirectGetPayload<S extends boolean | null | undefined | ProjectSlugRedirectDefaultArgs> = $Result.GetResult<Prisma.$ProjectSlugRedirectPayload, S>
+
+  type ProjectSlugRedirectCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectSlugRedirectFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectSlugRedirectCountAggregateInputType | true
+    }
+
+  export interface ProjectSlugRedirectDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectSlugRedirect'], meta: { name: 'ProjectSlugRedirect' } }
+    /**
+     * Find zero or one ProjectSlugRedirect that matches the filter.
+     * @param {ProjectSlugRedirectFindUniqueArgs} args - Arguments to find a ProjectSlugRedirect
+     * @example
+     * // Get one ProjectSlugRedirect
+     * const projectSlugRedirect = await prisma.projectSlugRedirect.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectSlugRedirectFindUniqueArgs>(args: SelectSubset<T, ProjectSlugRedirectFindUniqueArgs<ExtArgs>>): Prisma__ProjectSlugRedirectClient<$Result.GetResult<Prisma.$ProjectSlugRedirectPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectSlugRedirect that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectSlugRedirectFindUniqueOrThrowArgs} args - Arguments to find a ProjectSlugRedirect
+     * @example
+     * // Get one ProjectSlugRedirect
+     * const projectSlugRedirect = await prisma.projectSlugRedirect.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectSlugRedirectFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectSlugRedirectFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectSlugRedirectClient<$Result.GetResult<Prisma.$ProjectSlugRedirectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectSlugRedirect that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectSlugRedirectFindFirstArgs} args - Arguments to find a ProjectSlugRedirect
+     * @example
+     * // Get one ProjectSlugRedirect
+     * const projectSlugRedirect = await prisma.projectSlugRedirect.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectSlugRedirectFindFirstArgs>(args?: SelectSubset<T, ProjectSlugRedirectFindFirstArgs<ExtArgs>>): Prisma__ProjectSlugRedirectClient<$Result.GetResult<Prisma.$ProjectSlugRedirectPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectSlugRedirect that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectSlugRedirectFindFirstOrThrowArgs} args - Arguments to find a ProjectSlugRedirect
+     * @example
+     * // Get one ProjectSlugRedirect
+     * const projectSlugRedirect = await prisma.projectSlugRedirect.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectSlugRedirectFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectSlugRedirectFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectSlugRedirectClient<$Result.GetResult<Prisma.$ProjectSlugRedirectPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectSlugRedirects that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectSlugRedirectFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectSlugRedirects
+     * const projectSlugRedirects = await prisma.projectSlugRedirect.findMany()
+     * 
+     * // Get first 10 ProjectSlugRedirects
+     * const projectSlugRedirects = await prisma.projectSlugRedirect.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const projectSlugRedirectWithIdOnly = await prisma.projectSlugRedirect.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ProjectSlugRedirectFindManyArgs>(args?: SelectSubset<T, ProjectSlugRedirectFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSlugRedirectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectSlugRedirect.
+     * @param {ProjectSlugRedirectCreateArgs} args - Arguments to create a ProjectSlugRedirect.
+     * @example
+     * // Create one ProjectSlugRedirect
+     * const ProjectSlugRedirect = await prisma.projectSlugRedirect.create({
+     *   data: {
+     *     // ... data to create a ProjectSlugRedirect
+     *   }
+     * })
+     * 
+     */
+    create<T extends ProjectSlugRedirectCreateArgs>(args: SelectSubset<T, ProjectSlugRedirectCreateArgs<ExtArgs>>): Prisma__ProjectSlugRedirectClient<$Result.GetResult<Prisma.$ProjectSlugRedirectPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectSlugRedirects.
+     * @param {ProjectSlugRedirectCreateManyArgs} args - Arguments to create many ProjectSlugRedirects.
+     * @example
+     * // Create many ProjectSlugRedirects
+     * const projectSlugRedirect = await prisma.projectSlugRedirect.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ProjectSlugRedirectCreateManyArgs>(args?: SelectSubset<T, ProjectSlugRedirectCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectSlugRedirects and returns the data saved in the database.
+     * @param {ProjectSlugRedirectCreateManyAndReturnArgs} args - Arguments to create many ProjectSlugRedirects.
+     * @example
+     * // Create many ProjectSlugRedirects
+     * const projectSlugRedirect = await prisma.projectSlugRedirect.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ProjectSlugRedirects and only return the `id`
+     * const projectSlugRedirectWithIdOnly = await prisma.projectSlugRedirect.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ProjectSlugRedirectCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectSlugRedirectCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSlugRedirectPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectSlugRedirect.
+     * @param {ProjectSlugRedirectDeleteArgs} args - Arguments to delete one ProjectSlugRedirect.
+     * @example
+     * // Delete one ProjectSlugRedirect
+     * const ProjectSlugRedirect = await prisma.projectSlugRedirect.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectSlugRedirect
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ProjectSlugRedirectDeleteArgs>(args: SelectSubset<T, ProjectSlugRedirectDeleteArgs<ExtArgs>>): Prisma__ProjectSlugRedirectClient<$Result.GetResult<Prisma.$ProjectSlugRedirectPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectSlugRedirect.
+     * @param {ProjectSlugRedirectUpdateArgs} args - Arguments to update one ProjectSlugRedirect.
+     * @example
+     * // Update one ProjectSlugRedirect
+     * const projectSlugRedirect = await prisma.projectSlugRedirect.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ProjectSlugRedirectUpdateArgs>(args: SelectSubset<T, ProjectSlugRedirectUpdateArgs<ExtArgs>>): Prisma__ProjectSlugRedirectClient<$Result.GetResult<Prisma.$ProjectSlugRedirectPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectSlugRedirects.
+     * @param {ProjectSlugRedirectDeleteManyArgs} args - Arguments to filter ProjectSlugRedirects to delete.
+     * @example
+     * // Delete a few ProjectSlugRedirects
+     * const { count } = await prisma.projectSlugRedirect.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ProjectSlugRedirectDeleteManyArgs>(args?: SelectSubset<T, ProjectSlugRedirectDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectSlugRedirects.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectSlugRedirectUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectSlugRedirects
+     * const projectSlugRedirect = await prisma.projectSlugRedirect.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ProjectSlugRedirectUpdateManyArgs>(args: SelectSubset<T, ProjectSlugRedirectUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectSlugRedirects and returns the data updated in the database.
+     * @param {ProjectSlugRedirectUpdateManyAndReturnArgs} args - Arguments to update many ProjectSlugRedirects.
+     * @example
+     * // Update many ProjectSlugRedirects
+     * const projectSlugRedirect = await prisma.projectSlugRedirect.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ProjectSlugRedirects and only return the `id`
+     * const projectSlugRedirectWithIdOnly = await prisma.projectSlugRedirect.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ProjectSlugRedirectUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectSlugRedirectUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSlugRedirectPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectSlugRedirect.
+     * @param {ProjectSlugRedirectUpsertArgs} args - Arguments to update or create a ProjectSlugRedirect.
+     * @example
+     * // Update or create a ProjectSlugRedirect
+     * const projectSlugRedirect = await prisma.projectSlugRedirect.upsert({
+     *   create: {
+     *     // ... data to create a ProjectSlugRedirect
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectSlugRedirect we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectSlugRedirectUpsertArgs>(args: SelectSubset<T, ProjectSlugRedirectUpsertArgs<ExtArgs>>): Prisma__ProjectSlugRedirectClient<$Result.GetResult<Prisma.$ProjectSlugRedirectPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectSlugRedirects.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectSlugRedirectCountArgs} args - Arguments to filter ProjectSlugRedirects to count.
+     * @example
+     * // Count the number of ProjectSlugRedirects
+     * const count = await prisma.projectSlugRedirect.count({
+     *   where: {
+     *     // ... the filter for the ProjectSlugRedirects we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectSlugRedirectCountArgs>(
+      args?: Subset<T, ProjectSlugRedirectCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectSlugRedirectCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectSlugRedirect.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectSlugRedirectAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectSlugRedirectAggregateArgs>(args: Subset<T, ProjectSlugRedirectAggregateArgs>): Prisma.PrismaPromise<GetProjectSlugRedirectAggregateType<T>>
+
+    /**
+     * Group by ProjectSlugRedirect.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectSlugRedirectGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ProjectSlugRedirectGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectSlugRedirectGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectSlugRedirectGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectSlugRedirectGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectSlugRedirectGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectSlugRedirect model
+   */
+  readonly fields: ProjectSlugRedirectFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectSlugRedirect.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectSlugRedirectClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectSlugRedirect model
+   */
+  interface ProjectSlugRedirectFieldRefs {
+    readonly id: FieldRef<"ProjectSlugRedirect", 'String'>
+    readonly projectId: FieldRef<"ProjectSlugRedirect", 'String'>
+    readonly oldSlug: FieldRef<"ProjectSlugRedirect", 'String'>
+    readonly expiresAt: FieldRef<"ProjectSlugRedirect", 'DateTime'>
+    readonly createdAt: FieldRef<"ProjectSlugRedirect", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ProjectSlugRedirect findUnique
+   */
+  export type ProjectSlugRedirectFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSlugRedirect
+     */
+    select?: ProjectSlugRedirectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSlugRedirect
+     */
+    omit?: ProjectSlugRedirectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSlugRedirectInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectSlugRedirect to fetch.
+     */
+    where: ProjectSlugRedirectWhereUniqueInput
+  }
+
+  /**
+   * ProjectSlugRedirect findUniqueOrThrow
+   */
+  export type ProjectSlugRedirectFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSlugRedirect
+     */
+    select?: ProjectSlugRedirectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSlugRedirect
+     */
+    omit?: ProjectSlugRedirectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSlugRedirectInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectSlugRedirect to fetch.
+     */
+    where: ProjectSlugRedirectWhereUniqueInput
+  }
+
+  /**
+   * ProjectSlugRedirect findFirst
+   */
+  export type ProjectSlugRedirectFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSlugRedirect
+     */
+    select?: ProjectSlugRedirectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSlugRedirect
+     */
+    omit?: ProjectSlugRedirectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSlugRedirectInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectSlugRedirect to fetch.
+     */
+    where?: ProjectSlugRedirectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectSlugRedirects to fetch.
+     */
+    orderBy?: ProjectSlugRedirectOrderByWithRelationInput | ProjectSlugRedirectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectSlugRedirects.
+     */
+    cursor?: ProjectSlugRedirectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectSlugRedirects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectSlugRedirects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectSlugRedirects.
+     */
+    distinct?: ProjectSlugRedirectScalarFieldEnum | ProjectSlugRedirectScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectSlugRedirect findFirstOrThrow
+   */
+  export type ProjectSlugRedirectFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSlugRedirect
+     */
+    select?: ProjectSlugRedirectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSlugRedirect
+     */
+    omit?: ProjectSlugRedirectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSlugRedirectInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectSlugRedirect to fetch.
+     */
+    where?: ProjectSlugRedirectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectSlugRedirects to fetch.
+     */
+    orderBy?: ProjectSlugRedirectOrderByWithRelationInput | ProjectSlugRedirectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectSlugRedirects.
+     */
+    cursor?: ProjectSlugRedirectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectSlugRedirects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectSlugRedirects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectSlugRedirects.
+     */
+    distinct?: ProjectSlugRedirectScalarFieldEnum | ProjectSlugRedirectScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectSlugRedirect findMany
+   */
+  export type ProjectSlugRedirectFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSlugRedirect
+     */
+    select?: ProjectSlugRedirectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSlugRedirect
+     */
+    omit?: ProjectSlugRedirectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSlugRedirectInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectSlugRedirects to fetch.
+     */
+    where?: ProjectSlugRedirectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectSlugRedirects to fetch.
+     */
+    orderBy?: ProjectSlugRedirectOrderByWithRelationInput | ProjectSlugRedirectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ProjectSlugRedirects.
+     */
+    cursor?: ProjectSlugRedirectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectSlugRedirects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectSlugRedirects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectSlugRedirects.
+     */
+    distinct?: ProjectSlugRedirectScalarFieldEnum | ProjectSlugRedirectScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectSlugRedirect create
+   */
+  export type ProjectSlugRedirectCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSlugRedirect
+     */
+    select?: ProjectSlugRedirectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSlugRedirect
+     */
+    omit?: ProjectSlugRedirectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSlugRedirectInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectSlugRedirect.
+     */
+    data: XOR<ProjectSlugRedirectCreateInput, ProjectSlugRedirectUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectSlugRedirect createMany
+   */
+  export type ProjectSlugRedirectCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectSlugRedirects.
+     */
+    data: ProjectSlugRedirectCreateManyInput | ProjectSlugRedirectCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectSlugRedirect createManyAndReturn
+   */
+  export type ProjectSlugRedirectCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSlugRedirect
+     */
+    select?: ProjectSlugRedirectSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSlugRedirect
+     */
+    omit?: ProjectSlugRedirectOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectSlugRedirects.
+     */
+    data: ProjectSlugRedirectCreateManyInput | ProjectSlugRedirectCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSlugRedirectIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectSlugRedirect update
+   */
+  export type ProjectSlugRedirectUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSlugRedirect
+     */
+    select?: ProjectSlugRedirectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSlugRedirect
+     */
+    omit?: ProjectSlugRedirectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSlugRedirectInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectSlugRedirect.
+     */
+    data: XOR<ProjectSlugRedirectUpdateInput, ProjectSlugRedirectUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectSlugRedirect to update.
+     */
+    where: ProjectSlugRedirectWhereUniqueInput
+  }
+
+  /**
+   * ProjectSlugRedirect updateMany
+   */
+  export type ProjectSlugRedirectUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectSlugRedirects.
+     */
+    data: XOR<ProjectSlugRedirectUpdateManyMutationInput, ProjectSlugRedirectUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectSlugRedirects to update
+     */
+    where?: ProjectSlugRedirectWhereInput
+    /**
+     * Limit how many ProjectSlugRedirects to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectSlugRedirect updateManyAndReturn
+   */
+  export type ProjectSlugRedirectUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSlugRedirect
+     */
+    select?: ProjectSlugRedirectSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSlugRedirect
+     */
+    omit?: ProjectSlugRedirectOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectSlugRedirects.
+     */
+    data: XOR<ProjectSlugRedirectUpdateManyMutationInput, ProjectSlugRedirectUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectSlugRedirects to update
+     */
+    where?: ProjectSlugRedirectWhereInput
+    /**
+     * Limit how many ProjectSlugRedirects to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSlugRedirectIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectSlugRedirect upsert
+   */
+  export type ProjectSlugRedirectUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSlugRedirect
+     */
+    select?: ProjectSlugRedirectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSlugRedirect
+     */
+    omit?: ProjectSlugRedirectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSlugRedirectInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectSlugRedirect to update in case it exists.
+     */
+    where: ProjectSlugRedirectWhereUniqueInput
+    /**
+     * In case the ProjectSlugRedirect found by the `where` argument doesn't exist, create a new ProjectSlugRedirect with this data.
+     */
+    create: XOR<ProjectSlugRedirectCreateInput, ProjectSlugRedirectUncheckedCreateInput>
+    /**
+     * In case the ProjectSlugRedirect was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectSlugRedirectUpdateInput, ProjectSlugRedirectUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectSlugRedirect delete
+   */
+  export type ProjectSlugRedirectDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSlugRedirect
+     */
+    select?: ProjectSlugRedirectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSlugRedirect
+     */
+    omit?: ProjectSlugRedirectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSlugRedirectInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectSlugRedirect to delete.
+     */
+    where: ProjectSlugRedirectWhereUniqueInput
+  }
+
+  /**
+   * ProjectSlugRedirect deleteMany
+   */
+  export type ProjectSlugRedirectDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectSlugRedirects to delete
+     */
+    where?: ProjectSlugRedirectWhereInput
+    /**
+     * Limit how many ProjectSlugRedirects to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectSlugRedirect without action
+   */
+  export type ProjectSlugRedirectDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectSlugRedirect
+     */
+    select?: ProjectSlugRedirectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectSlugRedirect
+     */
+    omit?: ProjectSlugRedirectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectSlugRedirectInclude<ExtArgs> | null
   }
 
 
@@ -126501,6 +127692,17 @@ export namespace Prisma {
   export type ProjectScalarFieldEnum = (typeof ProjectScalarFieldEnum)[keyof typeof ProjectScalarFieldEnum]
 
 
+  export const ProjectSlugRedirectScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    oldSlug: 'oldSlug',
+    expiresAt: 'expiresAt',
+    createdAt: 'createdAt'
+  };
+
+  export type ProjectSlugRedirectScalarFieldEnum = (typeof ProjectSlugRedirectScalarFieldEnum)[keyof typeof ProjectSlugRedirectScalarFieldEnum]
+
+
   export const AgentMemoryScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
@@ -129019,6 +130221,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceListRelationFilter
     skills?: ProjectSkillListRelationFilter
     repairEvents?: AgentRepairEventListRelationFilter
+    slugRedirects?: ProjectSlugRedirectListRelationFilter
   }
 
   export type ProjectOrderByWithRelationInput = {
@@ -129061,6 +130264,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceOrderByRelationAggregateInput
     skills?: ProjectSkillOrderByRelationAggregateInput
     repairEvents?: AgentRepairEventOrderByRelationAggregateInput
+    slugRedirects?: ProjectSlugRedirectOrderByRelationAggregateInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -129107,6 +130311,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceListRelationFilter
     skills?: ProjectSkillListRelationFilter
     repairEvents?: AgentRepairEventListRelationFilter
+    slugRedirects?: ProjectSlugRedirectListRelationFilter
   }, "id" | "organizationId_slug">
 
   export type ProjectOrderByWithAggregationInput = {
@@ -129149,6 +130354,62 @@ export namespace Prisma {
     deletedAt?: DateTimeNullableWithAggregatesFilter<"Project"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Project"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Project"> | Date | string
+  }
+
+  export type ProjectSlugRedirectWhereInput = {
+    AND?: ProjectSlugRedirectWhereInput | ProjectSlugRedirectWhereInput[]
+    OR?: ProjectSlugRedirectWhereInput[]
+    NOT?: ProjectSlugRedirectWhereInput | ProjectSlugRedirectWhereInput[]
+    id?: StringFilter<"ProjectSlugRedirect"> | string
+    projectId?: StringFilter<"ProjectSlugRedirect"> | string
+    oldSlug?: StringFilter<"ProjectSlugRedirect"> | string
+    expiresAt?: DateTimeFilter<"ProjectSlugRedirect"> | Date | string
+    createdAt?: DateTimeFilter<"ProjectSlugRedirect"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }
+
+  export type ProjectSlugRedirectOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    oldSlug?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+  }
+
+  export type ProjectSlugRedirectWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    projectId_oldSlug?: ProjectSlugRedirectProjectIdOldSlugCompoundUniqueInput
+    AND?: ProjectSlugRedirectWhereInput | ProjectSlugRedirectWhereInput[]
+    OR?: ProjectSlugRedirectWhereInput[]
+    NOT?: ProjectSlugRedirectWhereInput | ProjectSlugRedirectWhereInput[]
+    projectId?: StringFilter<"ProjectSlugRedirect"> | string
+    oldSlug?: StringFilter<"ProjectSlugRedirect"> | string
+    expiresAt?: DateTimeFilter<"ProjectSlugRedirect"> | Date | string
+    createdAt?: DateTimeFilter<"ProjectSlugRedirect"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }, "id" | "projectId_oldSlug">
+
+  export type ProjectSlugRedirectOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    oldSlug?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    _count?: ProjectSlugRedirectCountOrderByAggregateInput
+    _max?: ProjectSlugRedirectMaxOrderByAggregateInput
+    _min?: ProjectSlugRedirectMinOrderByAggregateInput
+  }
+
+  export type ProjectSlugRedirectScalarWhereWithAggregatesInput = {
+    AND?: ProjectSlugRedirectScalarWhereWithAggregatesInput | ProjectSlugRedirectScalarWhereWithAggregatesInput[]
+    OR?: ProjectSlugRedirectScalarWhereWithAggregatesInput[]
+    NOT?: ProjectSlugRedirectScalarWhereWithAggregatesInput | ProjectSlugRedirectScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ProjectSlugRedirect"> | string
+    projectId?: StringWithAggregatesFilter<"ProjectSlugRedirect"> | string
+    oldSlug?: StringWithAggregatesFilter<"ProjectSlugRedirect"> | string
+    expiresAt?: DateTimeWithAggregatesFilter<"ProjectSlugRedirect"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"ProjectSlugRedirect"> | Date | string
   }
 
   export type AgentMemoryWhereInput = {
@@ -136957,6 +138218,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
@@ -136998,6 +138260,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUpdateInput = {
@@ -137039,6 +138302,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
@@ -137080,6 +138344,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
@@ -137133,6 +138398,61 @@ export namespace Prisma {
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectSlugRedirectCreateInput = {
+    id?: string
+    oldSlug: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+    project: ProjectCreateNestedOneWithoutSlugRedirectsInput
+  }
+
+  export type ProjectSlugRedirectUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    oldSlug: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type ProjectSlugRedirectUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    oldSlug?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutSlugRedirectsNestedInput
+  }
+
+  export type ProjectSlugRedirectUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    oldSlug?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectSlugRedirectCreateManyInput = {
+    id?: string
+    projectId: string
+    oldSlug: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type ProjectSlugRedirectUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    oldSlug?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectSlugRedirectUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    oldSlug?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type AgentMemoryUpdateInput = {
@@ -145624,6 +146944,12 @@ export namespace Prisma {
     none?: AgentRepairEventWhereInput
   }
 
+  export type ProjectSlugRedirectListRelationFilter = {
+    every?: ProjectSlugRedirectWhereInput
+    some?: ProjectSlugRedirectWhereInput
+    none?: ProjectSlugRedirectWhereInput
+  }
+
   export type ProjectEnvironmentOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -145665,6 +146991,10 @@ export namespace Prisma {
   }
 
   export type AgentRepairEventOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ProjectSlugRedirectOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -145725,6 +147055,40 @@ export namespace Prisma {
     deletedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type ProjectScalarRelationFilter = {
+    is?: ProjectWhereInput
+    isNot?: ProjectWhereInput
+  }
+
+  export type ProjectSlugRedirectProjectIdOldSlugCompoundUniqueInput = {
+    projectId: string
+    oldSlug: string
+  }
+
+  export type ProjectSlugRedirectCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    oldSlug?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProjectSlugRedirectMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    oldSlug?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProjectSlugRedirectMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    oldSlug?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
   }
 
   export type IntFilter<$PrismaModel = never> = {
@@ -145957,11 +147321,6 @@ export namespace Prisma {
     enabled?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
-  }
-
-  export type ProjectScalarRelationFilter = {
-    is?: ProjectWhereInput
-    isNot?: ProjectWhereInput
   }
 
   export type UserNullableScalarRelationFilter = {
@@ -153018,6 +154377,13 @@ export namespace Prisma {
     connect?: AgentRepairEventWhereUniqueInput | AgentRepairEventWhereUniqueInput[]
   }
 
+  export type ProjectSlugRedirectCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ProjectSlugRedirectCreateWithoutProjectInput, ProjectSlugRedirectUncheckedCreateWithoutProjectInput> | ProjectSlugRedirectCreateWithoutProjectInput[] | ProjectSlugRedirectUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectSlugRedirectCreateOrConnectWithoutProjectInput | ProjectSlugRedirectCreateOrConnectWithoutProjectInput[]
+    createMany?: ProjectSlugRedirectCreateManyProjectInputEnvelope
+    connect?: ProjectSlugRedirectWhereUniqueInput | ProjectSlugRedirectWhereUniqueInput[]
+  }
+
   export type ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -153173,6 +154539,13 @@ export namespace Prisma {
     connectOrCreate?: AgentRepairEventCreateOrConnectWithoutProjectInput | AgentRepairEventCreateOrConnectWithoutProjectInput[]
     createMany?: AgentRepairEventCreateManyProjectInputEnvelope
     connect?: AgentRepairEventWhereUniqueInput | AgentRepairEventWhereUniqueInput[]
+  }
+
+  export type ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ProjectSlugRedirectCreateWithoutProjectInput, ProjectSlugRedirectUncheckedCreateWithoutProjectInput> | ProjectSlugRedirectCreateWithoutProjectInput[] | ProjectSlugRedirectUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectSlugRedirectCreateOrConnectWithoutProjectInput | ProjectSlugRedirectCreateOrConnectWithoutProjectInput[]
+    createMany?: ProjectSlugRedirectCreateManyProjectInputEnvelope
+    connect?: ProjectSlugRedirectWhereUniqueInput | ProjectSlugRedirectWhereUniqueInput[]
   }
 
   export type OrganizationUpdateOneRequiredWithoutProjectsNestedInput = {
@@ -153497,6 +154870,20 @@ export namespace Prisma {
     deleteMany?: AgentRepairEventScalarWhereInput | AgentRepairEventScalarWhereInput[]
   }
 
+  export type ProjectSlugRedirectUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ProjectSlugRedirectCreateWithoutProjectInput, ProjectSlugRedirectUncheckedCreateWithoutProjectInput> | ProjectSlugRedirectCreateWithoutProjectInput[] | ProjectSlugRedirectUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectSlugRedirectCreateOrConnectWithoutProjectInput | ProjectSlugRedirectCreateOrConnectWithoutProjectInput[]
+    upsert?: ProjectSlugRedirectUpsertWithWhereUniqueWithoutProjectInput | ProjectSlugRedirectUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ProjectSlugRedirectCreateManyProjectInputEnvelope
+    set?: ProjectSlugRedirectWhereUniqueInput | ProjectSlugRedirectWhereUniqueInput[]
+    disconnect?: ProjectSlugRedirectWhereUniqueInput | ProjectSlugRedirectWhereUniqueInput[]
+    delete?: ProjectSlugRedirectWhereUniqueInput | ProjectSlugRedirectWhereUniqueInput[]
+    connect?: ProjectSlugRedirectWhereUniqueInput | ProjectSlugRedirectWhereUniqueInput[]
+    update?: ProjectSlugRedirectUpdateWithWhereUniqueWithoutProjectInput | ProjectSlugRedirectUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ProjectSlugRedirectUpdateManyWithWhereWithoutProjectInput | ProjectSlugRedirectUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ProjectSlugRedirectScalarWhereInput | ProjectSlugRedirectScalarWhereInput[]
+  }
+
   export type ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -153809,6 +155196,34 @@ export namespace Prisma {
     update?: AgentRepairEventUpdateWithWhereUniqueWithoutProjectInput | AgentRepairEventUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: AgentRepairEventUpdateManyWithWhereWithoutProjectInput | AgentRepairEventUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: AgentRepairEventScalarWhereInput | AgentRepairEventScalarWhereInput[]
+  }
+
+  export type ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ProjectSlugRedirectCreateWithoutProjectInput, ProjectSlugRedirectUncheckedCreateWithoutProjectInput> | ProjectSlugRedirectCreateWithoutProjectInput[] | ProjectSlugRedirectUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectSlugRedirectCreateOrConnectWithoutProjectInput | ProjectSlugRedirectCreateOrConnectWithoutProjectInput[]
+    upsert?: ProjectSlugRedirectUpsertWithWhereUniqueWithoutProjectInput | ProjectSlugRedirectUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ProjectSlugRedirectCreateManyProjectInputEnvelope
+    set?: ProjectSlugRedirectWhereUniqueInput | ProjectSlugRedirectWhereUniqueInput[]
+    disconnect?: ProjectSlugRedirectWhereUniqueInput | ProjectSlugRedirectWhereUniqueInput[]
+    delete?: ProjectSlugRedirectWhereUniqueInput | ProjectSlugRedirectWhereUniqueInput[]
+    connect?: ProjectSlugRedirectWhereUniqueInput | ProjectSlugRedirectWhereUniqueInput[]
+    update?: ProjectSlugRedirectUpdateWithWhereUniqueWithoutProjectInput | ProjectSlugRedirectUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ProjectSlugRedirectUpdateManyWithWhereWithoutProjectInput | ProjectSlugRedirectUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ProjectSlugRedirectScalarWhereInput | ProjectSlugRedirectScalarWhereInput[]
+  }
+
+  export type ProjectCreateNestedOneWithoutSlugRedirectsInput = {
+    create?: XOR<ProjectCreateWithoutSlugRedirectsInput, ProjectUncheckedCreateWithoutSlugRedirectsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutSlugRedirectsInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type ProjectUpdateOneRequiredWithoutSlugRedirectsNestedInput = {
+    create?: XOR<ProjectCreateWithoutSlugRedirectsInput, ProjectUncheckedCreateWithoutSlugRedirectsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutSlugRedirectsInput
+    upsert?: ProjectUpsertWithoutSlugRedirectsInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutSlugRedirectsInput, ProjectUpdateWithoutSlugRedirectsInput>, ProjectUncheckedUpdateWithoutSlugRedirectsInput>
   }
 
   export type IntFieldUpdateOperationsInput = {
@@ -159189,6 +160604,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutOrganizationInput = {
@@ -159229,6 +160645,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutOrganizationInput = {
@@ -162770,6 +164187,30 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ProjectSlugRedirectCreateWithoutProjectInput = {
+    id?: string
+    oldSlug: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type ProjectSlugRedirectUncheckedCreateWithoutProjectInput = {
+    id?: string
+    oldSlug: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type ProjectSlugRedirectCreateOrConnectWithoutProjectInput = {
+    where: ProjectSlugRedirectWhereUniqueInput
+    create: XOR<ProjectSlugRedirectCreateWithoutProjectInput, ProjectSlugRedirectUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ProjectSlugRedirectCreateManyProjectInputEnvelope = {
+    data: ProjectSlugRedirectCreateManyProjectInput | ProjectSlugRedirectCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationUpsertWithoutProjectsInput = {
     update: XOR<OrganizationUpdateWithoutProjectsInput, OrganizationUncheckedUpdateWithoutProjectsInput>
     create: XOR<OrganizationCreateWithoutProjectsInput, OrganizationUncheckedCreateWithoutProjectsInput>
@@ -163417,6 +164858,213 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"AgentRepairEvent"> | Date | string
   }
 
+  export type ProjectSlugRedirectUpsertWithWhereUniqueWithoutProjectInput = {
+    where: ProjectSlugRedirectWhereUniqueInput
+    update: XOR<ProjectSlugRedirectUpdateWithoutProjectInput, ProjectSlugRedirectUncheckedUpdateWithoutProjectInput>
+    create: XOR<ProjectSlugRedirectCreateWithoutProjectInput, ProjectSlugRedirectUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ProjectSlugRedirectUpdateWithWhereUniqueWithoutProjectInput = {
+    where: ProjectSlugRedirectWhereUniqueInput
+    data: XOR<ProjectSlugRedirectUpdateWithoutProjectInput, ProjectSlugRedirectUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ProjectSlugRedirectUpdateManyWithWhereWithoutProjectInput = {
+    where: ProjectSlugRedirectScalarWhereInput
+    data: XOR<ProjectSlugRedirectUpdateManyMutationInput, ProjectSlugRedirectUncheckedUpdateManyWithoutProjectInput>
+  }
+
+  export type ProjectSlugRedirectScalarWhereInput = {
+    AND?: ProjectSlugRedirectScalarWhereInput | ProjectSlugRedirectScalarWhereInput[]
+    OR?: ProjectSlugRedirectScalarWhereInput[]
+    NOT?: ProjectSlugRedirectScalarWhereInput | ProjectSlugRedirectScalarWhereInput[]
+    id?: StringFilter<"ProjectSlugRedirect"> | string
+    projectId?: StringFilter<"ProjectSlugRedirect"> | string
+    oldSlug?: StringFilter<"ProjectSlugRedirect"> | string
+    expiresAt?: DateTimeFilter<"ProjectSlugRedirect"> | Date | string
+    createdAt?: DateTimeFilter<"ProjectSlugRedirect"> | Date | string
+  }
+
+  export type ProjectCreateWithoutSlugRedirectsInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutSlugRedirectsInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutSlugRedirectsInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutSlugRedirectsInput, ProjectUncheckedCreateWithoutSlugRedirectsInput>
+  }
+
+  export type ProjectUpsertWithoutSlugRedirectsInput = {
+    update: XOR<ProjectUpdateWithoutSlugRedirectsInput, ProjectUncheckedUpdateWithoutSlugRedirectsInput>
+    create: XOR<ProjectCreateWithoutSlugRedirectsInput, ProjectUncheckedCreateWithoutSlugRedirectsInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutSlugRedirectsInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutSlugRedirectsInput, ProjectUncheckedUpdateWithoutSlugRedirectsInput>
+  }
+
+  export type ProjectUpdateWithoutSlugRedirectsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutSlugRedirectsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
   export type UserCreateWithoutAgentMemoriesInput = {
     id?: string
     email: string
@@ -163843,6 +165491,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoriesInput = {
@@ -163883,6 +165532,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoriesInput = {
@@ -163939,6 +165589,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -163979,6 +165630,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoryPreferencesInput = {
@@ -164207,6 +165859,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -164247,6 +165900,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -164503,6 +166157,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -164543,6 +166198,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutIdeStateInput = {
@@ -164583,6 +166239,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutIdeStateInput = {
@@ -164623,6 +166280,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutIdeStateInput = {
@@ -164778,6 +166436,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutIdeStateInput = {
@@ -164818,6 +166477,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectIdeStateUpdatesInput = {
@@ -164963,6 +166623,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentPatchProposalsInput = {
@@ -165003,6 +166664,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentPatchProposalsInput = {
@@ -165059,6 +166721,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentPatchProposalsInput = {
@@ -165099,6 +166762,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutRepairEventsInput = {
@@ -165139,6 +166803,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRepairEventsInput = {
@@ -165179,6 +166844,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRepairEventsInput = {
@@ -165235,6 +166901,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRepairEventsInput = {
@@ -165275,6 +166942,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSkillsInput = {
@@ -165315,6 +166983,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSkillsInput = {
@@ -165355,6 +167024,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSkillsInput = {
@@ -165411,6 +167081,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSkillsInput = {
@@ -165451,6 +167122,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvironmentsInput = {
@@ -165491,6 +167163,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvironmentsInput = {
@@ -165531,6 +167204,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvironmentsInput = {
@@ -165587,6 +167261,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvironmentsInput = {
@@ -165627,6 +167302,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSecretsInput = {
@@ -165667,6 +167343,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSecretsInput = {
@@ -165707,6 +167384,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSecretsInput = {
@@ -165763,6 +167441,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSecretsInput = {
@@ -165803,6 +167482,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvVarsInput = {
@@ -165843,6 +167523,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvVarsInput = {
@@ -165883,6 +167564,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvVarsInput = {
@@ -165939,6 +167621,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvVarsInput = {
@@ -165979,6 +167662,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutCollaboratorsInput = {
@@ -166019,6 +167703,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaboratorsInput = {
@@ -166059,6 +167744,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaboratorsInput = {
@@ -166214,6 +167900,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaboratorsInput = {
@@ -166254,6 +167941,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCollaborationsInput = {
@@ -166399,6 +168087,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutActivityInput = {
@@ -166439,6 +168128,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutActivityInput = {
@@ -166594,6 +168284,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutActivityInput = {
@@ -166634,6 +168325,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectActivityInput = {
@@ -166779,6 +168471,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -166819,6 +168512,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -166974,6 +168668,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -167014,6 +168709,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationPresenceInput = {
@@ -167159,6 +168855,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -167199,6 +168896,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -167354,6 +169052,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -167394,6 +169093,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationCommentsInput = {
@@ -167539,6 +169239,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutShareLinksInput = {
@@ -167579,6 +169280,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -167734,6 +169436,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutShareLinksInput = {
@@ -167774,6 +169477,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationShareLinksInput = {
@@ -167919,6 +169623,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTemplatesInput = {
@@ -167959,6 +169664,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTemplatesInput = {
@@ -168104,6 +169810,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTemplatesInput = {
@@ -168144,6 +169851,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutProjectTemplatesInput = {
@@ -168279,6 +169987,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutWorkspacesInput = {
@@ -168319,6 +170028,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutWorkspacesInput = {
@@ -168478,6 +170188,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutWorkspacesInput = {
@@ -168518,6 +170229,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceSessionUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -168897,6 +170609,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutFileSnapshotsInput = {
@@ -168937,6 +170650,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutFileSnapshotsInput = {
@@ -169030,6 +170744,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutFileSnapshotsInput = {
@@ -169070,6 +170785,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceUpsertWithoutSnapshotsInput = {
@@ -169153,6 +170869,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSnapshotsInput = {
@@ -169193,6 +170910,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSnapshotsInput = {
@@ -169348,6 +171066,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSnapshotsInput = {
@@ -169388,6 +171107,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectSnapshotsInput = {
@@ -169533,6 +171253,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutStorageObjectsInput = {
@@ -169573,6 +171294,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutStorageObjectsInput = {
@@ -169629,6 +171351,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutStorageObjectsInput = {
@@ -169669,6 +171392,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutDeploymentsInput = {
@@ -169709,6 +171433,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDeploymentsInput = {
@@ -169749,6 +171474,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDeploymentsInput = {
@@ -169820,6 +171546,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDeploymentsInput = {
@@ -169860,6 +171587,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentEnvironmentUpsertWithoutDeploymentsInput = {
@@ -171825,6 +173553,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConversationsInput = {
@@ -171865,6 +173594,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConversationsInput = {
@@ -172048,6 +173778,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConversationsInput = {
@@ -172088,6 +173819,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutConversationsInput = {
@@ -177904,6 +179636,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConnectionLinksInput = {
@@ -177944,6 +179677,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConnectionLinksInput = {
@@ -178152,6 +179886,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConnectionLinksInput = {
@@ -178192,6 +179927,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserConnectionUpsertWithoutProjectLinksInput = {
@@ -181131,6 +182867,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDatabaseInstancesInput = {
@@ -181171,6 +182908,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDatabaseInstancesInput = {
@@ -181295,6 +183033,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDatabaseInstancesInput = {
@@ -181335,6 +183074,7 @@ export namespace Prisma {
     connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DatabaseSnapshotUpsertWithWhereUniqueWithoutDatabaseInstanceInput = {
@@ -183240,6 +184980,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutOrganizationInput = {
@@ -183280,6 +185021,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {
@@ -184568,6 +186310,13 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type ProjectSlugRedirectCreateManyProjectInput = {
+    id?: string
+    oldSlug: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
   export type ProjectEnvironmentUpdateWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -185344,6 +187093,27 @@ export namespace Prisma {
     outcome?: StringFieldUpdateOperationsInput | string
     validationError?: NullableStringFieldUpdateOperationsInput | string | null
     repairError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectSlugRedirectUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    oldSlug?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectSlugRedirectUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    oldSlug?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectSlugRedirectUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    oldSlug?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

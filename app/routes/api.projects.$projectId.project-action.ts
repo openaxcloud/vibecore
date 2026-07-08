@@ -108,7 +108,14 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     }
 
     if (intent === 'delete-permanent') {
-      await apiRequest(request, `/projects/${projectId}/permanent`, { method: 'DELETE' });
+      /*
+       * F13: forward the typed name confirmation so the API can re-verify it
+       * server-side (defense-in-depth) before the irreversible hard delete.
+       */
+      await apiRequest(request, `/projects/${projectId}/permanent`, {
+        method: 'DELETE',
+        ...(body.confirmName ? { body: JSON.stringify({ confirmName: body.confirmName }) } : {}),
+      });
 
       return json({ ok: true });
     }

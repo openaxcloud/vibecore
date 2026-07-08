@@ -273,9 +273,26 @@ model Project {
   databaseInstances      DatabaseInstance[]
   skills                 ProjectSkill[]
   repairEvents           AgentRepairEvent[]
+  slugRedirects          ProjectSlugRedirect[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
+}
+
+// F13: preserves an old project slug after a rename so the previous canonical
+// URL keeps redirecting to the current one until `expiresAt` (30 days). Purely
+// additive: an `oldSlug` snapshot with an FK back to the project so rows cascade
+// away when the project is hard-deleted.
+model ProjectSlugRedirect {
+  id        String   @id @default(cuid())
+  projectId String
+  oldSlug   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, oldSlug])
+  @@index([oldSlug])
 }
 
 model AgentMemory {
