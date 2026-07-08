@@ -9029,6 +9029,50 @@ function ProjectIdeGuidedTour({
 const PROJECT_PANEL_FETCH_MAX_ATTEMPTS = 3;
 const PROJECT_PANEL_FETCH_BASE_RETRY_MS = 650;
 
+/*
+ * How long the initial panel fetch may run before we surface a manual Retry
+ * affordance under the loading skeleton. Below this the panel shows only a
+ * discreet skeleton (no "Retry", which reads as broken); a normal fetch — even
+ * with the retry/backoff above — resolves well under this budget, so Retry only
+ * appears when the load is genuinely stuck (e.g. the workspace is still booting).
+ */
+const PROJECT_PANEL_SLOW_LOAD_MS = 7000;
+
+/*
+ * In-memory cache of the last successful payload per `${projectId}:${panel}`.
+ * Panels are keyed by panel name in the workbench, so switching tabs unmounts
+ * and remounts ProjectIdeServicePanel — without this, returning to a tab would
+ * re-flash the loading skeleton every time. Seeding from this cache lets a
+ * revisited tab render its previous content immediately while it refreshes
+ * silently in the background. Bounded so it can't grow without limit.
+ */
+const PROJECT_PANEL_CACHE_MAX = 60;
+const projectPanelPayloadCache = new Map<string, { payload: any; lastLoadedAt: string }>();
+
+function readProjectPanelCache(key: string | undefined) {
+  return key ? projectPanelPayloadCache.get(key) : undefined;
+}
+
+function writeProjectPanelCache(key: string | undefined, entry: { payload: any; lastLoadedAt: string }) {
+  if (!key) {
+    return;
+  }
+
+  // Refresh insertion order (Map preserves it) so the oldest key evicts first.
+  projectPanelPayloadCache.delete(key);
+  projectPanelPayloadCache.set(key, entry);
+
+  while (projectPanelPayloadCache.size > PROJECT_PANEL_CACHE_MAX) {
+    const oldest = projectPanelPayloadCache.keys().next().value;
+
+    if (oldest === undefined) {
+      break;
+    }
+
+    projectPanelPayloadCache.delete(oldest);
+  }
+}
+
 function projectPanelFetchMethod(init?: RequestInit) {
   return (init?.method ?? 'GET').toUpperCase();
 }
@@ -9076,10 +9120,17 @@ function ProjectIdeServicePanel({
   displayIcon?: string;
   initialPayload?: any;
 }) {
-  const [payload, setPayload] = useState<any>(() => initialPayload);
+  /*
+   * Seed from SSR payload first, else the in-memory cache from a previous visit
+   * to this tab (avoids a re-flash of the loading skeleton on tab switch).
+   */
+  const panelCacheKey = projectId ? `${projectId}:${panel}` : undefined;
+  const seededCache = readProjectPanelCache(panelCacheKey);
+  const [payload, setPayload] = useState<any>(() => initialPayload ?? seededCache?.payload);
   const [error, setError] = useState<string>();
   const [actionNotice, setActionNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [slowLoad, setSlowLoad] = useState(false);
   const [panelActionsOpen, setPanelActionsOpen] = useState(false);
 
   // One-time share link returned by the share-link action; the raw token is never re-listed afterwards.
@@ -9089,7 +9140,7 @@ function ProjectIdeServicePanel({
   const panelActionsRef = useRef<HTMLDivElement | null>(null);
 
   const [lastLoadedAt, setLastLoadedAt] = useState<string | undefined>(() =>
-    initialPayload ? new Date().toISOString() : undefined,
+    initialPayload ? new Date().toISOString() : seededCache?.lastLoadedAt,
   );
 
   const selectedFile = useStore(workbenchStore.selectedFile);
@@ -9194,8 +9245,14 @@ function ProjectIdeServicePanel({
           setError(`[${result.error.code}] ${result.error.message}`);
         }
 
+        const loadedAt = new Date().toISOString();
         setPayload(result);
-        setLastLoadedAt(new Date().toISOString());
+        setLastLoadedAt(loadedAt);
+
+        // Cache the fresh payload so a later revisit to this tab renders instantly.
+        if (projectId) {
+          writeProjectPanelCache(`${projectId}:${panel}`, { payload: result, lastLoadedAt: loadedAt });
+        }
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : 'Unable to load IDE panel');
 
@@ -9214,13 +9271,38 @@ function ProjectIdeServicePanel({
   );
 
   useEffect(() => {
+    /*
+     * Silent (no skeleton) whenever we already have content to show — an SSR
+     * payload or a cached payload from a previous visit to this tab — so the
+     * refresh happens in the background instead of re-flashing the loader.
+     */
+    const seeded =
+      Boolean(initialPayload) ||
+      Boolean(readProjectPanelCache(projectId ? `${projectId}:${panel}` : undefined)?.payload);
+
     if (initialPayload) {
       setPayload(initialPayload);
       setLastLoadedAt(new Date().toISOString());
     }
 
-    void loadPanel({ silent: Boolean(initialPayload) });
-  }, [initialPayload, loadPanel]);
+    void loadPanel({ silent: seeded });
+  }, [initialPayload, loadPanel, panel, projectId]);
+
+  /*
+   * Only surface a manual Retry once the initial load has been stuck past
+   * PROJECT_PANEL_SLOW_LOAD_MS. During a normal (fast) load the skeleton shows
+   * alone — a Retry button that appears instantly reads as "broken".
+   */
+  useEffect(() => {
+    if (!busy || payload) {
+      setSlowLoad(false);
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => setSlowLoad(true), PROJECT_PANEL_SLOW_LOAD_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [busy, payload]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -9491,23 +9573,30 @@ function ProjectIdeServicePanel({
           </div>
         ) : null}
         {busy && !payload ? (
-          <div
-            className="flex flex-col gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-sm text-bolt-elements-textSecondary"
-            role="status"
-          >
-            <span>Loading {title.toLowerCase()} from backend&hellip;</span>
+          <div className="flex flex-col gap-3">
+            {/* Discreet skeleton while the first fetch is in flight — no raw
+                "from backend" text and no immediate Retry (which reads as broken). */}
+            <PanelLoading title={`Loading ${title.toLowerCase()}…`} />
             {/*
-             * This load can hang when the workspace is still starting (or has no
-             * data for this panel, e.g. a project with no database) — don't leave
-             * the user on a dead-end spinner; offer a manual retry.
+             * Retry only appears once the load is genuinely stuck (past the slow
+             * threshold) — e.g. the workspace is still starting, or the panel has
+             * no data yet. During a normal fast load the skeleton shows alone.
              */}
-            <button
-              type="button"
-              className="self-start rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
-              onClick={() => void loadPanel()}
-            >
-              Retry
-            </button>
+            {slowLoad ? (
+              <div
+                className="flex flex-col items-center gap-2 text-center text-xs text-bolt-elements-textSecondary"
+                role="status"
+              >
+                <span>This is taking longer than usual — the workspace may still be starting.</span>
+                <button
+                  type="button"
+                  className="rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+                  onClick={() => void loadPanel()}
+                >
+                  Retry
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : payload?.status === 'empty' && !error && !rendersEmptyStateActions ? (
           <div className="rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6 text-center text-sm text-bolt-elements-textSecondary">
