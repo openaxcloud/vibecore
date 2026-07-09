@@ -244,6 +244,81 @@ describe('WorkspaceManager', () => {
     expect((await manager.restartWorkspace(input)).status).toBe('RUNNING');
   });
 
+  it('does NOT idle-stop a RUNNING workspace while the agent is busy (build/install in flight)', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input);
+    // Idle past the window (no client heartbeat) — but a build is running.
+    await store.update(input.workspaceId, { lastActiveAt: new Date(Date.now() - 60 * 60 * 1000).toISOString() });
+
+    const busySpy = vi
+      .spyOn(manager as unknown as { isAgentBusy: (id: string, ns: string) => Promise<boolean> }, 'isAgentBusy')
+      .mockResolvedValue(true);
+
+    await manager.garbageCollect('workspaces', 5 * 60 * 1000, 30 * 60 * 1000);
+
+    expect(busySpy).toHaveBeenCalledWith(input.workspaceId, 'workspaces');
+    // The busy pod is spared: row stays RUNNING and the Pod is untouched.
+    expect((await store.get(input.workspaceId))?.status).toBe('RUNNING');
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(true);
+
+    busySpy.mockRestore();
+  });
+
+  it('idle-stops a RUNNING workspace when the agent reports NOT busy', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input);
+    await store.update(input.workspaceId, { lastActiveAt: new Date(Date.now() - 60 * 60 * 1000).toISOString() });
+
+    const busySpy = vi
+      .spyOn(manager as unknown as { isAgentBusy: (id: string, ns: string) => Promise<boolean> }, 'isAgentBusy')
+      .mockResolvedValue(false);
+
+    await manager.garbageCollect('workspaces', 5 * 60 * 1000, 30 * 60 * 1000);
+
+    expect(busySpy).toHaveBeenCalledWith(input.workspaceId, 'workspaces');
+    expect((await store.get(input.workspaceId))?.status).toBe('STOPPED');
+
+    busySpy.mockRestore();
+  });
+
+  it('idle-stops a RUNNING workspace when the busy probe fails (fail-safe: unreachable agent = dead pod)', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input);
+    await store.update(input.workspaceId, { lastActiveAt: new Date(Date.now() - 60 * 60 * 1000).toISOString() });
+
+    /*
+     * Enable the REAL isAgentBusy fetch (the vitest config disables it with 0)
+     * and make the probe throw — the fail-safe must swallow it and still stop.
+     */
+    const previousTimeout = process.env.WORKSPACE_AGENT_BUSY_PROBE_TIMEOUT_MS;
+    process.env.WORKSPACE_AGENT_BUSY_PROBE_TIMEOUT_MS = '3000';
+    const fetchSpy = vi.fn(async () => {
+      throw new Error('ENOTFOUND workspace agent');
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    try {
+      await manager.garbageCollect('workspaces', 5 * 60 * 1000, 30 * 60 * 1000);
+
+      expect(fetchSpy).toHaveBeenCalled();
+      expect((fetchSpy.mock.calls[0]![0] as string)).toContain('/busy');
+      // Fail-safe: probe error → treated as not busy → stopped (PVC kept).
+      expect((await store.get(input.workspaceId))?.status).toBe('STOPPED');
+    } finally {
+      vi.unstubAllGlobals();
+      process.env.WORKSPACE_AGENT_BUSY_PROBE_TIMEOUT_MS = previousTimeout ?? '0';
+    }
+  });
+
   it('garbage-collects a FAILED workspace whose Pod/PVC leaked', async () => {
     const k8s = new TestWorkspaceK8sClient();
     const store = new TestWorkspaceStore();

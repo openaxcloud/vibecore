@@ -651,6 +651,30 @@ export class WorkspaceManager {
 
         if (workspace.status === 'RUNNING' && inactiveFor > inactiveMs) {
           /*
+           * Idle past the window — but never stop a pod mid build/install/deploy.
+           * lastActiveAt is entirely CLIENT-driven (agent-token mints + the IDE's
+           * 60s heartbeat), so a long headless `npm install` / `vite build` /
+           * deploy with no open IDE tab does NOT refresh activity and would be
+           * reaped mid-flight, corrupting node_modules or a half-written dist/.
+           * Probe the agent's /busy first and skip this tick if it is running a
+           * transient build/install. On ANY probe failure isAgentBusy returns
+           * false and we proceed: an unreachable agent means the pod is dead/gone,
+           * and stopping keeps the PVC (exactly what the pod-gone branch does).
+           */
+          if (await this.isAgentBusy(workspace.id, namespace)) {
+            console.log(
+              JSON.stringify({
+                level: 'info',
+                service: 'workspace-manager',
+                event: 'workspace.gc.skip_busy',
+                workspaceId: workspace.id,
+                namespace,
+              }),
+            );
+            continue;
+          }
+
+          /*
            * stopWorkspace meters the active runtime window (marker→lastActiveAt),
            * post-guard, before flipping to STOPPED.
            */
@@ -884,6 +908,45 @@ export class WorkspaceManager {
    */
   private agentHealthUrl(workspaceId: string, namespace: string): string {
     return `${resolveAgentBaseUrl(workspaceId, namespace)}/health`;
+  }
+
+  /*
+   * Ask the workspace agent whether it is running a transient build/install/
+   * deploy, so #garbageCollect can spare an idle-but-busy pod from the idle-stop
+   * branch. Probes the SAME Service DNS the start-gate uses, bounded at 3s.
+   *
+   * FAIL-SAFE: any error / timeout / non-2xx / malformed body → returns false
+   * (NOT busy). An unreachable agent means a dead or gone pod; stopping it keeps
+   * the PVC and is safe. A dedicated TS-private method (not a `#private`) so the
+   * unit tests can spy it, mirroring the manager's existing injected-collaborator
+   * style. Override the probe timeout — or disable the real fetch entirely with a
+   * value <= 0 (unit tests, no real agent Service) — via
+   * WORKSPACE_AGENT_BUSY_PROBE_TIMEOUT_MS.
+   */
+  private async isAgentBusy(workspaceId: string, namespace: string): Promise<boolean> {
+    const parsed = Number(process.env.WORKSPACE_AGENT_BUSY_PROBE_TIMEOUT_MS);
+
+    if (Number.isFinite(parsed) && parsed <= 0) {
+      return false;
+    }
+
+    const timeoutMs = Number.isFinite(parsed) && parsed > 0 ? parsed : 3_000;
+
+    try {
+      const res = await fetch(`${resolveAgentBaseUrl(workspaceId, namespace)}/busy`, {
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+
+      if (!res.ok) {
+        return false;
+      }
+
+      const body = (await res.json().catch(() => null)) as { busy?: unknown } | null;
+
+      return body?.busy === true;
+    } catch {
+      return false;
+    }
   }
 
   /*
