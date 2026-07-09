@@ -30,6 +30,7 @@ import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
+import { accumulateCacheUsage } from '~/lib/.server/llm/cache-usage';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { checkChatQuota, recordChatUsage } from '~/lib/.server/ai-usage';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
@@ -234,6 +235,16 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     completionTokens: 0,
     promptTokens: 0,
     totalTokens: 0,
+
+    /*
+     * Prompt-cache hit accounting (proves the caching from the Anthropic wire
+     * middleware / OpenAI automatic caching is actually landing). `cachedPromptTokens`
+     * are input tokens served from cache (~10% price); `cacheWriteTokens` are the
+     * one-time write cost. Best-effort — populated from provider metadata when the
+     * provider surfaces it, otherwise stays 0.
+     */
+    cachedPromptTokens: 0,
+    cacheWriteTokens: 0,
   };
 
   /*
@@ -1027,7 +1038,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               mcpService.processToolCall(toolCall, dataStream);
             });
           },
-          onFinish: async ({ text: content, finishReason, usage }) => {
+          onFinish: async ({ text: content, finishReason, usage, ...rest }) => {
             logger.debug('usage', JSON.stringify(usage));
 
             if (usage) {
@@ -1035,6 +1046,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               cumulativeUsage.promptTokens += usage.promptTokens || 0;
               cumulativeUsage.totalTokens += usage.totalTokens || 0;
             }
+
+            accumulateCacheUsage(cumulativeUsage, (rest as Record<string, unknown>).providerMetadata);
 
             // Latch once any segment emits a real file action (accumulates across continuations).
             emittedFileAction = emittedFileAction || responseEmittedFileAction(content);
@@ -1094,6 +1107,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   promptTokens: cumulativeUsage.promptTokens,
                   completionTokens: cumulativeUsage.completionTokens,
                   totalTokens: cumulativeUsage.totalTokens,
+                  cachedPromptTokens: cumulativeUsage.cachedPromptTokens,
+                  cacheWriteTokens: cumulativeUsage.cacheWriteTokens,
                   timestamp: new Date().toISOString(),
                 }),
               );
