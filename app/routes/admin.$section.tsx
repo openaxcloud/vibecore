@@ -190,7 +190,8 @@ const adminSections: Record<string, AdminSectionConfig> = {
   },
   providers: {
     title: 'AI providers',
-    description: 'Platform-owned AI provider registry — admin enables providers and supplies keys.',
+    description:
+      'Platform-owned AI provider registry — enable/disable providers, set the fallback order, and set each provider’s platform API key (write-only, encrypted; runtime resolves it DB-first and falls back to the env var).',
     endpoint: '/admin/providers',
     primaryKey: 'providers',
   },

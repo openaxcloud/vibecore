@@ -1008,6 +1008,31 @@ pre {
   gap: 6px;
 }
 
+/* Provider API-key form (AI providers panel): stacked + responsive. */
+.provider-key-form {
+  display: grid;
+  gap: 10px;
+  max-width: 640px;
+}
+
+.provider-key-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.provider-key-form label.byok-toggle {
+  grid-auto-flow: column;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  justify-content: start;
+  gap: 8px;
+}
+
+.provider-key-form label.byok-toggle input {
+  width: auto;
+  justify-self: start;
+}
+
 .ledger-amount {
   font-variant-numeric: tabular-nums;
   font-weight: 600;

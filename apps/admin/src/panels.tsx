@@ -1149,11 +1149,65 @@ interface FallbackOrder {
   thresholds: { warnErrorPct: number; errorErrorPct: number };
 }
 
+/*
+ * Write-only key view from GET /admin/providers. `hasKey` + `source` (db beats
+ * env) drive the badge; the key itself is never returned. `keyLast4` only ever
+ * comes back from a POST credentials response (the just-submitted key).
+ */
+interface ProviderKeyInfo {
+  provider: string;
+  displayName: string;
+  enabled: boolean;
+  hasKey: boolean;
+  source: 'db' | 'env' | 'none';
+  baseUrl: string | null;
+  byokAllowed: boolean;
+}
+
+function KeyBadge({ info }: { info: ProviderKeyInfo | undefined }) {
+  if (!info) {
+    return <span className="muted">—</span>;
+  }
+
+  if (info.hasKey) {
+    return (
+      <span className="ledger-credit" title="Admin-set key stored (encrypted)">
+        ✓ key (db)
+      </span>
+    );
+  }
+
+  if (info.source === 'env') {
+    return (
+      <span className="muted" title="Resolved from the platform env var">
+        ✓ key (env)
+      </span>
+    );
+  }
+
+  return (
+    <span className="ledger-debit" title="No platform key configured">
+      ✗ no key
+    </span>
+  );
+}
+
 function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
   const { data, loading, error, reload } = usePanelData<FallbackOrder>('/admin/providers/fallback-order');
+  const keys = usePanelData<{ providers: ProviderKeyInfo[] }>('/admin/providers');
   const [order, setOrder] = useState<string[]>([]);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Per-provider key form state (only one row is open at a time).
+  const [openKeys, setOpenKeys] = useState<string | null>(null);
+  const [keyInput, setKeyInput] = useState('');
+  const [baseUrlInput, setBaseUrlInput] = useState('');
+  const [byokInput, setByokInput] = useState(false);
+  const [keyBusy, setKeyBusy] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  // Last-4 of the just-saved key, surfaced from the write-only POST response only.
+  const [lastSavedLast4, setLastSavedLast4] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (data?.order) {
@@ -1167,6 +1221,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
   }
 
   const byName = new Map((data?.providers ?? []).map((provider) => [provider.provider, provider]));
+  const keyByName = new Map((keys.data?.providers ?? []).map((provider) => [provider.provider, provider]));
 
   function move(index: number, delta: number) {
     const next = [...order];
@@ -1191,16 +1246,98 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
     }
   }
 
+  function toggleKeys(name: string) {
+    if (openKeys === name) {
+      setOpenKeys(null);
+      return;
+    }
+    const info = keyByName.get(name);
+    setOpenKeys(name);
+    setKeyInput('');
+    setBaseUrlInput(info?.baseUrl ?? '');
+    setByokInput(info?.byokAllowed ?? false);
+    setConfirmRemove(false);
+  }
+
+  async function saveKey(name: string) {
+    const trimmedKey = keyInput.trim();
+    const info = keyByName.get(name);
+    const currentBaseUrl = info?.baseUrl ?? '';
+    const nextBaseUrl = baseUrlInput.trim();
+
+    const payload: { apiKey?: string; baseUrl?: string; byokAllowed?: boolean } = {};
+    if (trimmedKey) {
+      payload.apiKey = trimmedKey;
+    }
+    if (nextBaseUrl !== currentBaseUrl) {
+      payload.baseUrl = nextBaseUrl;
+    }
+    if ((info?.byokAllowed ?? false) !== byokInput) {
+      payload.byokAllowed = byokInput;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      pushToast('Nothing to save — enter a key or change a field first.');
+      return;
+    }
+
+    setKeyBusy(true);
+    const result = await withReauth(reauthPassword, pushToast, () =>
+      apiJson<{ keyLast4: string | null }>(`/admin/providers/${encodeURIComponent(name)}/credentials`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    );
+    setKeyBusy(false);
+
+    if (result) {
+      if (result.keyLast4) {
+        setLastSavedLast4((prev) => ({ ...prev, [name]: result.keyLast4 as string }));
+      }
+      setKeyInput('');
+      pushToast(`Saved ${name} credentials. Audited.`);
+      keys.reload();
+    }
+  }
+
+  async function removeKey(name: string) {
+    setKeyBusy(true);
+    const result = await withReauth(reauthPassword, pushToast, () =>
+      apiJson(`/admin/providers/${encodeURIComponent(name)}/credentials`, { method: 'DELETE' }),
+    );
+    setKeyBusy(false);
+    setConfirmRemove(false);
+
+    if (result) {
+      setLastSavedLast4((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+      pushToast(`Removed ${name} key. Env fallback resumes. Audited.`);
+      keys.reload();
+    }
+  }
+
   return (
     <section className="panel" aria-label="AI providers">
       <div className="page-title">
         <h2>AI providers</h2>
-        <button className="secondary" type="button" onClick={reload}>
+        <button
+          className="secondary"
+          type="button"
+          onClick={() => {
+            reload();
+            keys.reload();
+          }}
+        >
           Refresh
         </button>
       </div>
       <p className="muted">
-        Fallback order — the priority the gateway tries providers in. Use ↑/↓ to reorder, then Save.
+        Enable/disable providers, set the fallback order (↑/↓, then Save), and set each provider’s platform API key. Keys
+        are write-only and encrypted; the runtime resolves them DB-first and falls back to the provider’s env var, so a
+        provider with no key here keeps its current env behaviour.
       </p>
 
       {!data?.metricsAvailable ? (
@@ -1218,42 +1355,146 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
               <th>#</th>
               <th>Provider</th>
               <th>Status</th>
-              <th>Order</th>
+              <th>Key</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {order.map((name, index) => {
               const provider = byName.get(name);
+              const info = keyByName.get(name);
+              const isOpen = openKeys === name;
               return (
-                <tr key={name}>
-                  <td className="ledger-amount">{index + 1}</td>
-                  <td>{provider?.displayName ?? name}</td>
-                  <td className={provider?.enabled ? 'ledger-credit' : 'muted'}>
-                    {provider?.enabled ? 'enabled' : 'disabled'}
-                  </td>
-                  <td>
-                    <div className="actions">
-                      <button
-                        className="secondary"
-                        type="button"
-                        disabled={index === 0}
-                        aria-label={`Move ${name} up`}
-                        onClick={() => move(index, -1)}
-                      >
-                        ↑
-                      </button>
-                      <button
-                        className="secondary"
-                        type="button"
-                        disabled={index === order.length - 1}
-                        aria-label={`Move ${name} down`}
-                        onClick={() => move(index, 1)}
-                      >
-                        ↓
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                <React.Fragment key={name}>
+                  <tr>
+                    <td className="ledger-amount">{index + 1}</td>
+                    <td>{provider?.displayName ?? info?.displayName ?? name}</td>
+                    <td className={provider?.enabled ? 'ledger-credit' : 'muted'}>
+                      {provider?.enabled ? 'enabled' : 'disabled'}
+                    </td>
+                    <td>
+                      <KeyBadge info={info} />
+                    </td>
+                    <td>
+                      <div className="actions">
+                        <button
+                          className="secondary"
+                          type="button"
+                          disabled={index === 0}
+                          aria-label={`Move ${name} up`}
+                          onClick={() => move(index, -1)}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          className="secondary"
+                          type="button"
+                          disabled={index === order.length - 1}
+                          aria-label={`Move ${name} down`}
+                          onClick={() => move(index, 1)}
+                        >
+                          ↓
+                        </button>
+                        <button
+                          className="secondary"
+                          type="button"
+                          aria-expanded={isOpen}
+                          onClick={() => toggleKeys(name)}
+                        >
+                          {isOpen ? 'Close' : 'Key'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {isOpen ? (
+                    <tr>
+                      <td colSpan={5}>
+                        <div className="wallet-detail">
+                          <form
+                            className="provider-key-form"
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              void saveKey(name);
+                            }}
+                          >
+                            <label>
+                              API key (write-only — leave blank to keep the current key)
+                              <input
+                                type="password"
+                                autoComplete="off"
+                                value={keyInput}
+                                onChange={(event) => setKeyInput(event.target.value)}
+                                placeholder={info?.hasKey ? '•••• stored — enter to rotate' : 'Paste the platform API key'}
+                              />
+                            </label>
+                            <label>
+                              Base URL (optional — leave blank to clear; OpenAI-compatible only)
+                              <input
+                                type="url"
+                                value={baseUrlInput}
+                                onChange={(event) => setBaseUrlInput(event.target.value)}
+                                placeholder="https://api.example.com/v1"
+                              />
+                            </label>
+                            <label className="byok-toggle">
+                              <input
+                                type="checkbox"
+                                checked={byokInput}
+                                onChange={(event) => setByokInput(event.target.checked)}
+                              />
+                              Allow users to bring their own key (BYOK)
+                            </label>
+                            <div className="actions">
+                              <button className="action" type="submit" disabled={keyBusy}>
+                                {keyBusy ? 'Saving…' : info?.hasKey ? 'Save / rotate' : 'Save key'}
+                              </button>
+                              {info?.hasKey ? (
+                                confirmRemove ? (
+                                  <>
+                                    <button
+                                      className="danger"
+                                      type="button"
+                                      disabled={keyBusy}
+                                      onClick={() => void removeKey(name)}
+                                    >
+                                      Confirm remove
+                                    </button>
+                                    <button
+                                      className="secondary"
+                                      type="button"
+                                      disabled={keyBusy}
+                                      onClick={() => setConfirmRemove(false)}
+                                    >
+                                      Cancel
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    className="danger"
+                                    type="button"
+                                    disabled={keyBusy}
+                                    onClick={() => setConfirmRemove(true)}
+                                  >
+                                    Remove key
+                                  </button>
+                                )
+                              ) : null}
+                            </div>
+                          </form>
+                          <p className="muted">
+                            Source: <strong>{info?.source ?? 'none'}</strong>
+                            {lastSavedLast4[name] ? (
+                              <>
+                                {' '}
+                                · saved key ending <code>····{lastSavedLast4[name]}</code>
+                              </>
+                            ) : null}
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : null}
+                </React.Fragment>
               );
             })}
           </tbody>
