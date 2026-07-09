@@ -17,6 +17,7 @@ import {
   requirePlatformAdmin,
   sessionCookie,
 } from '~/lib/enterprise-api.server';
+import { budgetTone, centsToUsd } from '~/utils/admin-cost-budget';
 import { rowsToCsv } from '~/utils/admin-csv';
 import { errorRateTone, moveItem } from '~/utils/admin-provider-metrics';
 
@@ -422,6 +423,16 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
    */
   if (section === 'providers') {
     const payload = await apiRequest<Record<string, JsonValue>>(request, '/admin/providers/fallback-order');
+    return { section, config, payload, securityOpenCount: await securityOpenCountPromise };
+  }
+
+  /*
+   * F26 costs: the panel needs the 30-day-per-provider series + monthly budget
+   * gauge, so it reads /admin/costs/summary (days × provider series, month-to-date
+   * spend, budget + 80/100% alert level) rather than the raw /admin/costs ledger.
+   */
+  if (section === 'costs') {
+    const payload = await apiRequest<Record<string, JsonValue>>(request, '/admin/costs/summary');
     return { section, config, payload, securityOpenCount: await securityOpenCountPromise };
   }
 
@@ -1201,6 +1212,7 @@ export default function AdminSectionPage() {
           {section === 'security-events' ? <SecurityEventsPanel payload={payload} /> : null}
           {section === 'organizations' ? <OrganizationsPanel payload={payload} /> : null}
           {section === 'account-deletions' ? <AccountDeletionsPanel payload={payload} /> : null}
+          {section === 'costs' ? <CostsPanel payload={payload} /> : null}
           {section === 'support-tickets' ? <SupportTicketsPanel payload={payload} /> : null}
           {section === 'audit-logs' || section === 'admin-audit-logs' ? (
             <AuditLogsPanel payload={payload} section={section} />
@@ -1222,6 +1234,7 @@ export default function AdminSectionPage() {
             'security-events',
             'organizations',
             'account-deletions',
+            'costs',
             'support-tickets',
             'developer-tools',
             'ops-controls',
@@ -5174,6 +5187,187 @@ function DeletionRow({ request, password }: { request: AdminDeletionRequest; pas
         />
       </td>
     </tr>
+  );
+}
+
+/*
+ * F26: costs panel. Renders cost/day per provider over the last 30 days as a
+ * stacked bar (from /admin/costs/summary — grouped server-side by day × provider)
+ * and a monthly-budget gauge with 80% (warn) / 100% (over) alert thresholds vs
+ * month-to-date spend. The budget is a platform system setting
+ * (costs.monthlyBudgetCents) editable inline via the shared system-setting upsert
+ * (step-up protected). Read-only charts; only the budget write mutates state.
+ */
+function CostsPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const days = (Array.isArray(payload.days) ? payload.days : []) as string[];
+  const providers = (Array.isArray(payload.providers) ? payload.providers : []) as string[];
+
+  const series = (payload.series && typeof payload.series === 'object' ? payload.series : {}) as Record<
+    string,
+    number[]
+  >;
+
+  const monthToDateCents = typeof payload.monthToDateCents === 'number' ? payload.monthToDateCents : 0;
+  const windowTotalCents = typeof payload.windowTotalCents === 'number' ? payload.windowTotalCents : 0;
+  const monthlyBudgetCents = typeof payload.monthlyBudgetCents === 'number' ? payload.monthlyBudgetCents : null;
+  const budgetUsedPct = typeof payload.budgetUsedPct === 'number' ? payload.budgetUsedPct : null;
+
+  const tone = budgetTone(budgetUsedPct);
+
+  const toneVar =
+    tone === 'over'
+      ? 'var(--status-error-text)'
+      : tone === 'warn'
+        ? 'var(--status-warning-text)'
+        : 'var(--status-success-text)';
+
+  // Chart wants dollars; the summary series is in cents.
+  const datasets = providers.map((provider, index) => ({
+    label: provider,
+    values: (series[provider] ?? []).map((cents) => cents / 100),
+    colorIndex: index,
+  }));
+
+  const chartFallback = (
+    <div className="flex h-full items-center justify-center text-sm text-bolt-elements-textTertiary">
+      Loading chart…
+    </div>
+  );
+
+  return (
+    <div className="grid gap-6">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <MetricCard label="Month to date" value={centsToUsd(monthToDateCents)} />
+        <MetricCard label="Last 30 days" value={centsToUsd(windowTotalCents)} />
+        <MetricCard
+          label="Monthly budget"
+          value={monthlyBudgetCents != null ? centsToUsd(monthlyBudgetCents) : 'Not set'}
+        />
+      </div>
+
+      {/* Budget gauge */}
+      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Monthly budget</h3>
+          {budgetUsedPct != null ? (
+            <StatusPill tone={tone === 'over' ? 'danger' : tone === 'warn' ? 'warn' : 'ok'}>
+              {budgetUsedPct}% used{tone === 'over' ? ' — over budget' : tone === 'warn' ? ' — nearing limit' : ''}
+            </StatusPill>
+          ) : (
+            <span className="text-xs text-bolt-elements-textTertiary">Set a budget to enable 80% / 100% alerts.</span>
+          )}
+        </div>
+
+        {budgetUsedPct != null ? (
+          <div className="relative mt-3 h-3 w-full overflow-hidden rounded-full bg-bolt-elements-background-depth-3">
+            <div
+              className="h-full rounded-full transition-[width]"
+              style={{ width: `${Math.min(budgetUsedPct, 100)}%`, backgroundColor: toneVar }}
+            />
+            {/* 80% threshold marker */}
+            <span
+              aria-hidden
+              className="absolute top-0 h-full w-px bg-[var(--status-warning-text)]"
+              style={{ left: '80%' }}
+            />
+          </div>
+        ) : null}
+        {budgetUsedPct != null ? (
+          <p className="mt-2 text-xs text-bolt-elements-textSecondary">
+            {centsToUsd(monthToDateCents)} of {monthlyBudgetCents != null ? centsToUsd(monthlyBudgetCents) : '—'} this
+            month. Alerts: warn ≥ 80%, over ≥ 100%.
+          </p>
+        ) : null}
+
+        <MonthlyBudgetEditor currentBudgetCents={monthlyBudgetCents} />
+      </div>
+
+      {/* Cost/day per provider over 30 days */}
+      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+        <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Cost per day by provider (30 days)</h3>
+        {providers.length === 0 ? (
+          <p className="mt-2 text-sm text-bolt-elements-textSecondary">No AI cost recorded in the last 30 days.</p>
+        ) : (
+          <div className="mt-3 h-80">
+            <React.Suspense fallback={chartFallback}>
+              <MonitoringCharts.GroupedBarChart
+                labels={days.map((day) => day.slice(5))}
+                datasets={datasets}
+                stacked
+                valueFormat={(value) => `$${value.toFixed(2)}`}
+              />
+            </React.Suspense>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MonthlyBudgetEditor({ currentBudgetCents }: { currentBudgetCents: number | null }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+  const [usd, setUsd] = useState(currentBudgetCents != null ? String(currentBudgetCents / 100) : '');
+  const [password, setPassword] = useState('');
+
+  const save = () => {
+    const dollars = Number(usd);
+
+    if (!Number.isFinite(dollars) || dollars < 0) {
+      return;
+    }
+
+    const cents = Math.round(dollars * 100);
+    fetcher.submit(
+      { intent: 'system-setting', key: 'costs.monthlyBudgetCents', value: String(cents), password },
+      { method: 'post' },
+    );
+    setPassword('');
+  };
+
+  const inputClass =
+    'mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive';
+
+  return (
+    <div className="mt-4 border-t border-bolt-elements-borderColor pt-4">
+      <p className="text-xs text-bolt-elements-textSecondary">
+        Set the platform monthly budget (USD). Stored as <code>costs.monthlyBudgetCents</code>. Step-up protected — your
+        password is sent only with the change.
+      </p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Monthly budget (USD)
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={usd}
+            onChange={(event) => setUsd(event.target.value)}
+            placeholder="e.g. 5000"
+            data-testid="cost-budget-usd"
+            className={inputClass}
+          />
+        </label>
+        <label className="block text-xs text-bolt-elements-textSecondary sm:col-span-2">
+          Confirm with your password
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            placeholder="Your password"
+            data-testid="cost-budget-password"
+            className={inputClass}
+          />
+        </label>
+      </div>
+      <div className="mt-3 flex items-center gap-3">
+        <button type="button" disabled={busy || !usd || !password} onClick={save} className={ROW_BTN}>
+          {busy ? 'Saving…' : 'Save budget'}
+        </button>
+        <RowFeedback data={fetcher.data} />
+      </div>
+    </div>
   );
 }
 

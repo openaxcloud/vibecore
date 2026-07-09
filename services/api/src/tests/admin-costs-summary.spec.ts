@@ -86,6 +86,25 @@ describe('F26 admin cost summary — 30d per-provider + budget alerts', () => {
     expect(over.json().alertLevel).toBe('over');
   });
 
+  it('round-trips the budget through the admin system-setting endpoint', async () => {
+    const { app } = await setup();
+
+    // The admin panel writes the budget via POST /admin/system-settings (the same
+    // intent the CostsPanel editor uses), then the summary reflects it.
+    const save = await app.inject({
+      method: 'POST',
+      url: '/admin/system-settings',
+      headers: auth('admin-token'),
+      payload: { key: 'costs.monthlyBudgetCents', value: 1000 },
+    });
+    expect([200, 201]).toContain(save.statusCode);
+
+    const summary = await app.inject({ method: 'GET', url: '/admin/costs/summary', headers: auth('admin-token') });
+    expect(summary.json().monthlyBudgetCents).toBe(1000);
+    expect(summary.json().budgetUsedPct).toBe(80);
+    expect(summary.json().alertLevel).toBe('warn');
+  });
+
   it('forbids non-admins', async () => {
     const { app, store } = await setup();
     const user = await store.createUser({
