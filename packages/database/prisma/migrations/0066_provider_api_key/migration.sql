@@ -1,0 +1,11 @@
+-- Admin-managed AI-provider platform API key (2026-07-09): a platform admin can
+-- paste each LLM provider's platform API key in /admin (Providers panel) instead
+-- of editing the platform Secret + redeploying. Stored ENCRYPTED (encryptJson,
+-- write-only) on the existing ProviderConfig row, mirroring LoginProviderConfig's
+-- clientSecretEnc. The runtime (ai-gateway + web LLM) reads this DB-first and
+-- falls back to the *_API_KEY env vars, so an absent value keeps the current
+-- env-based behaviour with ZERO regression.
+--
+-- ADDITIVE ONLY: one nullable column, no default. No ALTER TYPE / DROP / RENAME
+-- on any existing object; existing rows are untouched (apiKeyEnc = NULL).
+ALTER TABLE "ProviderConfig" ADD COLUMN "apiKeyEnc" TEXT;

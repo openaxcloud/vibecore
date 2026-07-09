@@ -3935,13 +3935,16 @@ export class PrismaApiStore implements ApiStore {
     displayName: string;
     enabled?: boolean;
     apiKeySecret?: string;
-    baseUrl?: string;
+    apiKeyEnc?: string | null;
+    baseUrl?: string | null;
     byokAllowed?: boolean;
   }) {
     const data = {
       displayName: input.displayName,
       ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
       ...(input.apiKeySecret !== undefined ? { apiKeySecret: input.apiKeySecret } : {}),
+      // `undefined` = leave unchanged; explicit `null` = clear the encrypted key.
+      ...(input.apiKeyEnc !== undefined ? { apiKeyEnc: input.apiKeyEnc } : {}),
       ...(input.baseUrl !== undefined ? { baseUrl: input.baseUrl } : {}),
       ...(input.byokAllowed !== undefined ? { byokAllowed: input.byokAllowed } : {}),
     };
@@ -5818,6 +5821,7 @@ function mapProviderConfig(config: any): ProviderConfigRecord {
     displayName: config.displayName,
     enabled: config.enabled,
     apiKeySecret: config.apiKeySecret ?? undefined,
+    apiKeyEnc: config.apiKeyEnc ?? undefined,
     baseUrl: config.baseUrl ?? undefined,
     byokAllowed: config.byokAllowed,
     createdAt: toIso(config.createdAt)!,

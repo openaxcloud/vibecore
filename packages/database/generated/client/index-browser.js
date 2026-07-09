@@ -1259,6 +1259,7 @@ exports.Prisma.ProviderConfigScalarFieldEnum = {
   displayName: 'displayName',
   enabled: 'enabled',
   apiKeySecret: 'apiKeySecret',
+  apiKeyEnc: 'apiKeyEnc',
   baseUrl: 'baseUrl',
   byokAllowed: 'byokAllowed',
   createdAt: 'createdAt',
