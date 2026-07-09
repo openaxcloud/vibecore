@@ -1,4 +1,12 @@
-import type { ActionType, BoltAction, BoltActionData, FileAction, ShellAction, SupabaseAction } from '~/types/actions';
+import type {
+  ActionType,
+  BoltAction,
+  BoltActionData,
+  DiffAction,
+  FileAction,
+  ShellAction,
+  SupabaseAction,
+} from '~/types/actions';
 import type { BoltArtifactData } from '~/types/artifact';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
@@ -234,6 +242,17 @@ export class StreamingMessageParser {
               content += '\n';
             }
 
+            /*
+             * A `diff` action intentionally takes NONE of the file-only
+             * massaging above (fence strip, highlighter cleanup, trailing
+             * newline): its `content` must round-trip byte-exact so the
+             * increment-3 applier sees the raw `<<<<<<< / ======= / >>>>>>>`
+             * search/replace markers unaltered. It shares only the outer
+             * `.trim()` — identical to every non-file action (e.g. shell) — so
+             * surrounding prose/whitespace is dropped while the block itself is
+             * preserved verbatim.
+             */
+
             currentAction.content = content;
 
             this._options.callbacks?.onActionClose?.({
@@ -278,6 +297,27 @@ export class StreamingMessageParser {
                 action: {
                   ...(currentAction as FileAction),
                   content,
+                  filePath: currentAction.filePath,
+                },
+              });
+            } else if ('type' in currentAction && currentAction.type === 'diff') {
+              /*
+               * Diff (anchored search/replace) content must round-trip
+               * BYTE-EXACT so the increment-3 applier sees the exact
+               * `<<<<<<< SEARCH` / `=======` / `>>>>>>> REPLACE` markers. Stream
+               * the RAW accumulated text with NONE of the file-only massaging
+               * that runs above — no markdown-fence stripping, no
+               * highlighter-markup cleanup, no leading-fence removal — any of
+               * which could rewrite a marker line and corrupt the block. This
+               * only drives the live render; nothing is applied mid-stream.
+               */
+              this._options.callbacks?.onActionStream?.({
+                artifactId: currentArtifact.id,
+                messageId,
+                actionId: String(state.actionId - 1),
+                action: {
+                  ...(currentAction as DiffAction),
+                  content: input.slice(i),
                   filePath: currentAction.filePath,
                 },
               });
@@ -498,11 +538,25 @@ export class StreamingMessageParser {
       }
 
       (actionAttributes as FileAction).filePath = filePath;
+    } else if (actionType === 'diff') {
+      /*
+       * A diff (anchored search/replace) action carries the same `filePath`
+       * attribute as a file action; its `content` is the raw search/replace
+       * block text. Parsing/accumulation is identical to a file action here —
+       * the difference is only in how the runner applies it (increment 3/5).
+       */
+      const filePath = this.#extractAttribute(actionTag, 'filePath') as string;
+
+      if (!filePath) {
+        logger.debug('Diff action filePath not specified');
+      }
+
+      (actionAttributes as DiffAction).filePath = filePath;
     } else if (!['shell', 'start'].includes(actionType)) {
       logger.warn(`Unknown action type '${actionType}'`);
     }
 
-    return actionAttributes as FileAction | ShellAction;
+    return actionAttributes as FileAction | ShellAction | DiffAction;
   }
 
   #extractAttribute(tag: string, attributeName: string): string | undefined {

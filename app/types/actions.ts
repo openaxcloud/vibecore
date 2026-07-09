@@ -1,6 +1,6 @@
 import type { Change } from 'diff';
 
-export type ActionType = 'file' | 'shell' | 'supabase';
+export type ActionType = 'file' | 'shell' | 'supabase' | 'diff';
 
 export interface BaseAction {
   content: string;
@@ -8,6 +8,19 @@ export interface BaseAction {
 
 export interface FileAction extends BaseAction {
   type: 'file';
+  filePath: string;
+}
+
+/**
+ * Anchored search/replace ("diff-edit") action. Same shape as a FileAction
+ * (a `filePath` + `content`), but `content` is the RAW Aider-style
+ * search/replace block text (`<<<<<<< SEARCH … ======= … >>>>>>> REPLACE`)
+ * rather than the file's full new contents. The runner applies it as a patch
+ * via `app/utils/search-replace.ts` instead of overwriting the whole file.
+ * Parsing/streaming lands in increment 2/5; application in increment 3/5.
+ */
+export interface DiffAction extends BaseAction {
+  type: 'diff';
   filePath: string;
 }
 
@@ -30,7 +43,7 @@ export interface SupabaseAction extends BaseAction {
   projectId?: string;
 }
 
-export type BoltAction = FileAction | ShellAction | StartAction | BuildAction | SupabaseAction;
+export type BoltAction = FileAction | ShellAction | StartAction | BuildAction | SupabaseAction | DiffAction;
 
 export type BoltActionData = BoltAction | BaseAction;
 

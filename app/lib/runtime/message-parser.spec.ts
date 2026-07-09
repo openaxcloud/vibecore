@@ -6,6 +6,7 @@ import {
   type ActionCallback,
   type ArtifactCallback,
 } from './message-parser';
+import { parseSearchReplaceBlocks } from '~/utils/search-replace';
 
 interface ExpectedResult {
   output: string;
@@ -930,6 +931,195 @@ describe('cleanFileActionContent (HTML-entity corruption regression)', () => {
     // `&lt;` must survive: decoding it to `<` would break the JSX.
     expect(content).toContain('a &lt; b');
     expect(content).not.toContain('a < b');
+  });
+});
+
+describe('diff (anchored search/replace) actions — increment 2/5 parser wiring', () => {
+  const mkCallbacks = () => ({
+    onArtifactOpen: vi.fn(),
+    onArtifactClose: vi.fn(),
+    onActionOpen: vi.fn(),
+    onActionStream: vi.fn(),
+    onActionClose: vi.fn(),
+  });
+
+  /*
+   * A raw search/replace block with NO surrounding whitespace, so the parser's
+   * universal outer `.trim()` is a no-op and `content` is byte-exact.
+   */
+  const diffBlock =
+    '<<<<<<< SEARCH\n' + '  const answer = 41;\n' + '=======\n' + '  const answer = 42;\n' + '>>>>>>> REPLACE';
+
+  it('parses a diff action with type "diff", the correct filePath, and BYTE-EXACT content', () => {
+    const callbacks = mkCallbacks();
+    const parser = new StreamingMessageParser({ callbacks });
+
+    const input =
+      '<boltArtifact title="Patch" id="a1" type="bundled">' +
+      '<boltAction type="diff" filePath="src/answer.ts">' +
+      diffBlock +
+      '</boltAction></boltArtifact>';
+
+    parser.parse('diff_1', input);
+
+    expect(callbacks.onActionClose).toHaveBeenCalledTimes(1);
+
+    const action = callbacks.onActionClose.mock.calls[0][0].action;
+
+    expect(action.type).toBe('diff');
+    expect(action.filePath).toBe('src/answer.ts');
+
+    /*
+     * Byte-exact: markers preserved verbatim, no trailing '\n' appended (that is
+     * a file-only massaging that must NOT run for a diff), no fence/entity edits.
+     */
+    expect(action.content).toBe(diffBlock);
+    expect(action.content.endsWith('>>>>>>> REPLACE')).toBe(true);
+    expect(action.content).toContain('<<<<<<< SEARCH');
+    expect(action.content).toContain('\n=======\n');
+    expect(action.content).toContain('>>>>>>> REPLACE');
+
+    // The preserved markers round-trip through the increment-1 block parser.
+    const parsed = parseSearchReplaceBlocks(action.content);
+    expect(parsed.malformed).toBe(false);
+    expect(parsed.blocks).toEqual([{ search: '  const answer = 41;', replace: '  const answer = 42;' }]);
+  });
+
+  it('preserves markers byte-exact even with surrounding prose/whitespace (only outer trim applied)', () => {
+    const callbacks = mkCallbacks();
+    const parser = new StreamingMessageParser({ callbacks });
+
+    const input =
+      '<boltArtifact title="Patch" id="a1" type="bundled">' +
+      '<boltAction type="diff" filePath="src/x.ts">\n' +
+      diffBlock +
+      '\n</boltAction></boltArtifact>';
+
+    parser.parse('diff_ws', input);
+
+    const action = callbacks.onActionClose.mock.calls[0][0].action;
+
+    // Outer whitespace trimmed (same as every non-file action), block verbatim.
+    expect(action.content).toBe(diffBlock);
+  });
+
+  it('fires onActionStream as diff content accumulates and onActionClose with the full raw block', () => {
+    const callbacks = mkCallbacks();
+    const parser = new StreamingMessageParser({ callbacks });
+
+    const head = '<boltArtifact title="Patch" id="a1" type="bundled"><boltAction type="diff" filePath="src/answer.ts">';
+    const tail = '</boltAction></boltArtifact>';
+    const full = head + diffBlock + tail;
+
+    // Feed cumulative chunks (the parser is called with the growing message).
+    const chunks: string[] = [];
+
+    for (let i = 4; i < full.length; i += 7) {
+      chunks.push(full.slice(0, i));
+    }
+
+    chunks.push(full);
+
+    for (const cumulative of chunks) {
+      parser.parse('diff_stream', cumulative);
+    }
+
+    // onActionStream fired at least once for the diff action while it streamed.
+    expect(callbacks.onActionStream).toHaveBeenCalled();
+
+    const streamedTypes = callbacks.onActionStream.mock.calls.map((c: any) => c[0].action.type);
+    expect(streamedTypes.every((t: string) => t === 'diff')).toBe(true);
+
+    /*
+     * Streamed content is the RAW accumulating text (no fence/newline massaging):
+     * every streamed payload is a prefix of the final raw block.
+     */
+    for (const call of callbacks.onActionStream.mock.calls) {
+      const streamed = call[0].action.content as string;
+      expect(diffBlock.startsWith(streamed) || streamed.startsWith(diffBlock)).toBe(true);
+    }
+
+    // Final close carries the full byte-exact block.
+    expect(callbacks.onActionClose).toHaveBeenCalledTimes(1);
+    expect(callbacks.onActionClose.mock.calls[0][0].action.content).toBe(diffBlock);
+  });
+
+  it('parses file + diff + shell in a single artifact, in order, with the correct types', () => {
+    const callbacks = mkCallbacks();
+    const parser = new StreamingMessageParser({ callbacks });
+
+    const input =
+      '<boltArtifact title="Mixed" id="a1" type="bundled">' +
+      '<boltAction type="file" filePath="index.js">console.log(1);</boltAction>' +
+      '<boltAction type="diff" filePath="src/answer.ts">' +
+      diffBlock +
+      '</boltAction>' +
+      '<boltAction type="shell">npm run build</boltAction>' +
+      '</boltArtifact>';
+
+    parser.parse('mixed_1', input);
+
+    const openedTypes = callbacks.onActionOpen.mock.calls.map((c: any) => c[0].action.type);
+    expect(openedTypes).toEqual(['file', 'diff', 'shell']);
+
+    const closedTypes = callbacks.onActionClose.mock.calls.map((c: any) => c[0].action.type);
+    expect(closedTypes).toEqual(['file', 'diff', 'shell']);
+
+    // The file action is unaffected by the diff wiring: fences/newline as before.
+    const fileClose = callbacks.onActionClose.mock.calls.find((c: any) => c[0].action.type === 'file');
+    expect(fileClose[0].action.content).toBe('console.log(1);\n');
+
+    // The diff action is byte-exact (no trailing newline).
+    const diffClose = callbacks.onActionClose.mock.calls.find((c: any) => c[0].action.type === 'diff');
+    expect(diffClose[0].action.content).toBe(diffBlock);
+  });
+
+  it('parses a MALFORMED diff at the parser level (validation/apply is the runner job, increment 3/5)', () => {
+    const callbacks = mkCallbacks();
+    const parser = new StreamingMessageParser({ callbacks });
+
+    // Not a valid search/replace payload (no divider / no REPLACE marker).
+    const junk = '<<<<<<< SEARCH\nthis block never closes';
+
+    const input =
+      '<boltArtifact title="Bad" id="a1" type="bundled">' +
+      '<boltAction type="diff" filePath="src/broken.ts">' +
+      junk +
+      '</boltAction></boltArtifact>';
+
+    parser.parse('diff_bad', input);
+
+    // Parser still emits the action verbatim — it does NOT validate or apply.
+    expect(callbacks.onActionClose).toHaveBeenCalledTimes(1);
+
+    const action = callbacks.onActionClose.mock.calls[0][0].action;
+    expect(action.type).toBe('diff');
+    expect(action.filePath).toBe('src/broken.ts');
+    expect(action.content).toBe(junk);
+
+    /*
+     * And the increment-1 parser flags it malformed — proving the parser passed
+     * the raw (invalid) markers through untouched for the runner to reject later.
+     */
+    expect(parseSearchReplaceBlocks(action.content).malformed).toBe(true);
+  });
+
+  it('leaves an existing file action BYTE-IDENTICAL (regression guard alongside diff wiring)', () => {
+    const callbacks = mkCallbacks();
+    const parser = new StreamingMessageParser({ callbacks });
+
+    const input =
+      '<boltArtifact title="File" id="a1" type="bundled">' +
+      '<boltAction type="file" filePath="src/App.tsx">' +
+      'export default function App() {\n  return <p>a &lt; b</p>;\n}' +
+      '</boltAction></boltArtifact>';
+
+    parser.parse('file_regress', input);
+
+    const content = callbacks.onActionClose.mock.calls[0][0].action.content as string;
+
+    // Same behavior as before the diff wiring: JSX entity preserved, trailing '\n' added.
+    expect(content).toBe('export default function App() {\n  return <p>a &lt; b</p>;\n}\n');
   });
 });
 

@@ -348,6 +348,22 @@ export class ActionRunner {
             await this.#runFileAction(action, isStreaming);
             break;
           }
+          case 'diff': {
+            /*
+             * INCREMENT 2/5: the 'diff' (anchored search/replace) action type is
+             * parsed and streamed by the message-parser, but application is NOT
+             * yet wired. Real apply — parse the block via
+             * `~/utils/search-replace.ts`, run `applySearchReplace` against the
+             * current file, then write the patched contents — lands in
+             * increment 3/5 as a dedicated `#runDiffAction`. For now this is an
+             * explicit no-op so a diff action reaching the runner neither
+             * crashes (it must not hit the `default` throw) nor writes anything.
+             *
+             * TODO(increment 3/5): replace this with `await this.#runDiffAction(action, isStreaming);`
+             */
+            logger.warn('[diff]: apply not yet wired (increment 3/5) — no-op, nothing written');
+            break;
+          }
           case 'supabase': {
             await this.handleSupabaseAction(action as SupabaseAction);
             break;
