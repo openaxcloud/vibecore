@@ -14,6 +14,7 @@ import {
   type FileMap,
 } from './constants';
 import { removeUnsupportedModelSettings } from './model-compat';
+import { estimateOutputBudget, clampOutputBudget } from './output-budget';
 import { resolveUsableProvider } from './provider-credentials';
 import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { PromptLibrary } from '~/lib/common/prompt-library';
@@ -243,14 +244,8 @@ export async function streamText(props: {
     }
   }
 
+  // Model completion ceiling — the hard upper bound for the adaptive budget computed below.
   const dynamicMaxTokens = modelDetails ? getCompletionTokenLimit(modelDetails) : Math.min(MAX_TOKENS, 16384);
-
-  // Use model-specific limits directly - no artificial cap needed
-  const safeMaxTokens = dynamicMaxTokens;
-
-  logger.info(
-    `Token limits for model ${modelDetails.name}: maxTokens=${safeMaxTokens}, maxTokenAllowed=${modelDetails.maxTokenAllowed}, maxCompletionTokens=${modelDetails.maxCompletionTokens}`,
-  );
 
   let systemPrompt =
     PromptLibrary.getPropmtFromLibrary(promptId || 'default', {
@@ -272,6 +267,34 @@ export async function streamText(props: {
       chatMode,
       subagentsAvailable: areParallelSubagentsAvailable(serverEnv as Record<string, string | undefined> | undefined),
     });
+
+  /*
+   * Adaptive output ceiling (É1): size max_tokens to the task class instead of
+   * always requesting the model's full completion limit. The model ceiling stays
+   * the hard upper bound (clampOutputBudget) and the caller's MAX_RESPONSE_SEGMENTS
+   * auto-continuation finishes anything that runs past a conservative estimate, so
+   * this never truncates a generation — it only stops reserving, e.g., 64k of
+   * Anthropic output-rate-limit budget for a one-line edit. A from-scratch build
+   * lands in the `scaffold` class whose budget equals the OpenAI ceiling, so the
+   * certified OpenAI build path is unchanged.
+   */
+  const lastUserText = (() => {
+    const lastUser = [...processedMessages].reverse().find((message) => message.role === 'user');
+    return typeof lastUser?.content === 'string' ? lastUser.content : '';
+  })();
+  const outputBudgetEstimate = estimateOutputBudget({
+    chatMode,
+    lastUserMessage: lastUserText,
+    contextFileCount: contextFiles ? Object.keys(contextFiles).length : 0,
+    planFirst: orchestrationPlan.enabled,
+    isReasoningModel: isReasoningModel(modelDetails.name),
+  });
+
+  const safeMaxTokens = clampOutputBudget(outputBudgetEstimate, dynamicMaxTokens);
+
+  logger.info(
+    `Token limits for model ${modelDetails.name}: adaptive maxTokens=${safeMaxTokens} (estimate=${outputBudgetEstimate}, ceiling=${dynamicMaxTokens}, mode=${chatMode}), maxTokenAllowed=${modelDetails.maxTokenAllowed}, maxCompletionTokens=${modelDetails.maxCompletionTokens}`,
+  );
 
   const orchestrationPrompt = createAgentOrchestrationPrompt(orchestrationPlan);
 
