@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { triggerDeployBuild, triggerDeployReap } from './deploy-jobs.js';
 
-const ENV_KEYS = ['API_INTERNAL_URL', 'API_URL', 'INTERNAL_API_SHARED_SECRET', 'WORKSPACE_MANAGER_SHARED_SECRET'];
+const ENV_KEYS = [
+  'API_INTERNAL_URL',
+  'API_URL',
+  'API_BASE_URL',
+  'INTERNAL_API_SHARED_SECRET',
+  'WORKSPACE_MANAGER_SHARED_SECRET',
+];
+
 const ORIGINAL: Record<string, string | undefined> = {};
 
 beforeEach(() => {
@@ -26,14 +33,32 @@ afterEach(() => {
 
 describe('triggerDeployBuild', () => {
   it('throws when no API base URL is configured', async () => {
-    await expect(triggerDeployBuild({})).rejects.toThrowError(/API_INTERNAL_URL .* is required/);
+    await expect(triggerDeployBuild({})).rejects.toThrowError(/API_INTERNAL_URL.* is required/);
+  });
+
+  it('falls back to API_BASE_URL (the var the prod configmap actually sets)', async () => {
+    process.env.API_BASE_URL = 'http://api.svc:80';
+    process.env.WORKSPACE_MANAGER_SHARED_SECRET = 'wms';
+
+    const fetchSpy = vi.fn(
+      async () => new Response(JSON.stringify({ deployment: { status: 'READY' } }), { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await triggerDeployBuild({ deploymentId: 'd1' });
+
+    const call = fetchSpy.mock.calls[0] as unknown as [string, RequestInit];
+    expect(call[0]).toBe('http://api.svc:80/internal/deployments/build');
+    expect((call[1].headers as Record<string, string>).authorization).toBe('Bearer wms');
   });
 
   it('POSTs the job payload to /internal/deployments/build with the internal secret', async () => {
     process.env.API_INTERNAL_URL = 'http://api.test:3001';
     process.env.INTERNAL_API_SHARED_SECRET = 'sekret';
 
-    const fetchSpy = vi.fn(async () => new Response(JSON.stringify({ deployment: { status: 'READY' } }), { status: 200 }));
+    const fetchSpy = vi.fn(
+      async () => new Response(JSON.stringify({ deployment: { status: 'READY' } }), { status: 200 }),
+    );
     vi.stubGlobal('fetch', fetchSpy);
 
     const jobData = { projectId: 'p1', deploymentId: 'd1', userId: 'u1', buildInput: { provider: 'static' } };
@@ -48,7 +73,10 @@ describe('triggerDeployBuild', () => {
 
   it('throws on non-2xx so BullMQ retries', async () => {
     process.env.API_URL = 'http://api.test:3001';
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', { status: 503 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('boom', { status: 503 })),
+    );
 
     await expect(triggerDeployBuild({})).rejects.toThrowError(/deploy.build upstream failed: 503/);
   });
@@ -72,7 +100,10 @@ describe('triggerDeployReap', () => {
 
   it('throws on non-2xx so BullMQ retries', async () => {
     process.env.API_URL = 'http://api.test:3001';
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', { status: 500 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('boom', { status: 500 })),
+    );
 
     await expect(triggerDeployReap({})).rejects.toThrowError(/deploy.reap upstream failed: 500/);
   });
