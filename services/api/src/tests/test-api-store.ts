@@ -1945,6 +1945,8 @@ export class TestApiStore implements ApiStore {
       requireMfaForAdmins: false,
       dataRetentionDays: 365,
       legalHoldEnabled: false,
+      ssoEnforced: false,
+      ssoEnforcedAt: null,
       updatedAt: now(),
     };
     this.enterpriseSettings.set(organizationId, defaults);

@@ -1178,6 +1178,8 @@ model EnterpriseOrganizationSettings {
   requireMfaForAdmins    Boolean      @default(true)
   dataRetentionDays      Int          @default(365)
   legalHoldEnabled       Boolean      @default(false)
+  ssoEnforced            Boolean      @default(false)
+  ssoEnforcedAt          DateTime?
   updatedAt              DateTime     @updatedAt
   organization           Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
