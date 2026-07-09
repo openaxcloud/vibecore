@@ -28,6 +28,7 @@ export interface DeployBuildJobInput {
   previewDeployment: boolean;
   workspaceId?: string;
   githubIntegration?: { repositoryUrl?: string; branch?: string };
+
   /**
    * The resolved secondary-workspace id (undefined for the primary workspace).
    * Carried on the job so the worker-triggered build reproduces the same build
@@ -39,6 +40,7 @@ export interface DeployBuildJobInput {
 export interface DeployBuildJobData {
   projectId: string;
   deploymentId: string;
+
   /** Owner/actor id so the worker-triggered build can reach the right workspace pod. */
   userId?: string;
   buildInput: DeployBuildJobInput;
@@ -75,6 +77,21 @@ function getQueue(): Queue {
 }
 
 /**
+ * Deterministic BullMQ job id for a deployment's build. Keyed on the deployment
+ * id so a retried POST / duplicate enqueue coalesces onto the same job instead
+ * of kicking off a second build for the same row.
+ *
+ * MUST NOT contain ':' — BullMQ uses ':' as its Redis key separator and rejects
+ * a custom job id that contains one ("Custom Id cannot contain :"). The previous
+ * `deploy.build:<id>` form threw on EVERY enqueue, so the api answered every
+ * static deploy with "Could not queue the build". A '-' separator is safe (the
+ * job name keeps its '.' and the deployment id is a cuid — both colon-free).
+ */
+export function deployBuildJobId(deploymentId: string): string {
+  return `${DEPLOY_BUILD_JOB}-${deploymentId}`;
+}
+
+/**
  * Enqueue a durable `deploy.build` job. jobId is keyed on the deployment id so a
  * retried POST or a duplicate enqueue coalesces onto the same job instead of
  * kicking off a second build for the same deployment row.
@@ -83,7 +100,7 @@ export async function enqueueDeployBuildJob(data: DeployBuildJobData): Promise<s
   const queue = getQueue();
 
   const job = await queue.add(DEPLOY_BUILD_JOB, data, {
-    jobId: `${DEPLOY_BUILD_JOB}:${data.deploymentId}`,
+    jobId: deployBuildJobId(data.deploymentId),
     removeOnComplete: { age: 3600, count: 1000 },
     removeOnFail: { age: 24 * 3600 },
     attempts: 3,
