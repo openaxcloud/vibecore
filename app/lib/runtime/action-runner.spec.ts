@@ -1,9 +1,10 @@
 import type { RuntimeAdapter } from '@vibecore/runtime-contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { validateAndFormatHunkMock, buildSelfRepairPromptMock } = vi.hoisted(() => ({
+const { validateAndFormatHunkMock, buildSelfRepairPromptMock, applyEntryExportReconcileMock } = vi.hoisted(() => ({
   validateAndFormatHunkMock: vi.fn(),
   buildSelfRepairPromptMock: vi.fn(),
+  applyEntryExportReconcileMock: vi.fn(),
 }));
 
 vi.mock('./hunk-validate', async () => {
@@ -12,6 +13,19 @@ vi.mock('./hunk-validate', async () => {
     ...actual,
     validateAndFormatHunk: validateAndFormatHunkMock,
     buildSelfRepairPrompt: buildSelfRepairPromptMock,
+  };
+});
+
+/*
+ * Spy the project-doctor (entry/import↔export reconcile) so the diff tests can
+ * assert it still runs post-write on the applied full content, and so its real
+ * fs probing is a controllable no-op in the file-action tests.
+ */
+vi.mock('./entry-export-reconcile', async () => {
+  const actual = await vi.importActual<typeof import('./entry-export-reconcile')>('./entry-export-reconcile');
+  return {
+    ...actual,
+    applyEntryExportReconcile: applyEntryExportReconcileMock,
   };
 });
 
@@ -52,6 +66,11 @@ function createShell() {
     executeCommand: vi.fn(),
   };
 }
+
+beforeEach(() => {
+  applyEntryExportReconcileMock.mockReset();
+  applyEntryExportReconcileMock.mockResolvedValue([]);
+});
 
 describe('ActionRunner tool timeout handling', () => {
   beforeEach(() => {
@@ -504,5 +523,257 @@ describe('ActionRunner self-repair retry loop', () => {
 
     expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const broken = ;');
     expect(progressEvents.some((event) => event.status === null)).toBe(true);
+  });
+});
+
+describe('ActionRunner diff action apply', () => {
+  beforeEach(() => {
+    validateAndFormatHunkMock.mockReset();
+    validateAndFormatHunkMock.mockResolvedValue({ kind: 'skipped' });
+    buildSelfRepairPromptMock.mockReset();
+    buildSelfRepairPromptMock.mockReturnValue('synthetic-prompt');
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** A runtime adapter backed by an in-memory file map (read reflects prior writes). */
+  function createStatefulRuntime(initial: Record<string, string> = {}) {
+    const files = new Map(Object.entries(initial));
+
+    const readFile = vi.fn(async (filePath: string) => {
+      if (!files.has(filePath)) {
+        throw new Error(`ENOENT: no such file ${filePath}`);
+      }
+
+      return { content: files.get(filePath) as string, encoding: 'utf8' as const };
+    });
+
+    const writeFile = vi.fn(async (filePath: string, content: string) => {
+      files.set(filePath, content);
+    });
+
+    const runtime = createRuntime({ readFile, writeFile } as Partial<RuntimeAdapter>);
+
+    return { runtime, files, readFile, writeFile };
+  }
+
+  function diffActionData(filePath: string, content: string, actionId = 'diff-1'): ActionCallbackData {
+    return {
+      artifactId: 'artifact-1',
+      messageId: 'message-1',
+      actionId,
+      action: { type: 'diff', filePath, content },
+    };
+  }
+
+  function fileActionData(filePath: string, content: string, actionId = 'file-1'): ActionCallbackData {
+    return {
+      artifactId: 'artifact-1',
+      messageId: 'message-1',
+      actionId,
+      action: { type: 'file', filePath, content },
+    };
+  }
+
+  it('applies an anchored 2-line edit into a 600-line file and writes the FULL applied content once', async () => {
+    const original = Array.from({ length: 600 }, (_, i) => `line ${i + 1}`).join('\n') + '\n';
+    const { runtime, writeFile } = createStatefulRuntime({ 'src/big.ts': original });
+
+    const runner = new ActionRunner(runtime, () => createShell() as any);
+
+    const data = diffActionData(
+      'src/big.ts',
+      ['<<<<<<< SEARCH', 'line 300', '=======', 'line THREE-HUNDRED', '>>>>>>> REPLACE'].join('\n'),
+    );
+
+    runner.addAction(data);
+    await runner.runAction(data, false);
+
+    expect(writeFile).toHaveBeenCalledTimes(1);
+
+    const expected = original.replace('line 300\n', 'line THREE-HUNDRED\n');
+    expect(writeFile).toHaveBeenCalledWith('src/big.ts', expected);
+
+    // project-doctor / reconcile ran AFTER the write on the applied full content.
+    expect(applyEntryExportReconcileMock).toHaveBeenCalledTimes(1);
+    expect(applyEntryExportReconcileMock.mock.calls[0][1]).toBe('src/big.ts');
+    expect(runner.actions.get()[data.actionId]?.status).toBe('complete');
+  });
+
+  it('BASE DRIFT: an anchor not present writes nothing, leaves the file intact, and alerts', async () => {
+    const original = 'const answer = 41;\n';
+    const { runtime, files, writeFile } = createStatefulRuntime({ 'src/answer.ts': original });
+
+    const onAlert = vi.fn();
+    const runner = new ActionRunner(runtime, () => createShell() as any, onAlert);
+
+    const data = diffActionData(
+      'src/answer.ts',
+      ['<<<<<<< SEARCH', 'const answer = 99;', '=======', 'const answer = 42;', '>>>>>>> REPLACE'].join('\n'),
+    );
+
+    runner.addAction(data);
+    await runner.runAction(data, false);
+
+    // THE key safety assertion: nothing written, old content byte-identical.
+    expect(writeFile).not.toHaveBeenCalled();
+    expect(files.get('src/answer.ts')).toBe(original);
+    expect(applyEntryExportReconcileMock).not.toHaveBeenCalled();
+
+    expect(onAlert).toHaveBeenCalledTimes(1);
+    expect(onAlert.mock.calls[0][0]).toMatchObject({ type: 'warning', title: 'Diff could not be applied' });
+    expect(onAlert.mock.calls[0][0].description).toContain('src/answer.ts');
+  });
+
+  it('AMBIGUOUS anchor (multiple matches) writes nothing and alerts', async () => {
+    const original = 'value = 1;\nvalue = 1;\n';
+    const { runtime, files, writeFile } = createStatefulRuntime({ 'src/dup.ts': original });
+
+    const onAlert = vi.fn();
+    const runner = new ActionRunner(runtime, () => createShell() as any, onAlert);
+
+    const data = diffActionData(
+      'src/dup.ts',
+      ['<<<<<<< SEARCH', 'value = 1;', '=======', 'value = 2;', '>>>>>>> REPLACE'].join('\n'),
+    );
+
+    runner.addAction(data);
+    await runner.runAction(data, false);
+
+    expect(writeFile).not.toHaveBeenCalled();
+    expect(files.get('src/dup.ts')).toBe(original);
+    expect(onAlert).toHaveBeenCalledWith(expect.objectContaining({ title: 'Diff could not be applied' }));
+  });
+
+  it('MALFORMED blocks write nothing and alert', async () => {
+    const original = 'const x = 1;\n';
+    const { runtime, files, writeFile } = createStatefulRuntime({ 'src/x.ts': original });
+
+    const onAlert = vi.fn();
+    const runner = new ActionRunner(runtime, () => createShell() as any, onAlert);
+
+    // Missing the >>>>>>> REPLACE terminator → parser reports malformed.
+    const data = diffActionData('src/x.ts', ['<<<<<<< SEARCH', 'const x = 1;', '=======', 'const x = 2;'].join('\n'));
+
+    runner.addAction(data);
+    await runner.runAction(data, false);
+
+    expect(writeFile).not.toHaveBeenCalled();
+    expect(files.get('src/x.ts')).toBe(original);
+    expect(onAlert).toHaveBeenCalledWith(expect.objectContaining({ title: 'Diff could not be applied' }));
+  });
+
+  it('TARGET MISSING: a diff against a non-existent file writes nothing, creates nothing, and alerts', async () => {
+    const { runtime, files, writeFile } = createStatefulRuntime({});
+
+    const onAlert = vi.fn();
+    const runner = new ActionRunner(runtime, () => createShell() as any, onAlert);
+
+    const data = diffActionData(
+      'src/missing.ts',
+      ['<<<<<<< SEARCH', 'const a = 1;', '=======', 'const a = 2;', '>>>>>>> REPLACE'].join('\n'),
+    );
+
+    runner.addAction(data);
+    await runner.runAction(data, false);
+
+    expect(writeFile).not.toHaveBeenCalled();
+    expect(files.has('src/missing.ts')).toBe(false);
+    expect(onAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Diff could not be applied',
+        description: expect.stringContaining('does not exist'),
+      }),
+    );
+  });
+
+  it('MULTI-BLOCK success routes the full applied content through sanitize + project-doctor reconcile', async () => {
+    const original = ['const a = 1;', 'const b = 2;', 'const c = 3;', ''].join('\n');
+    const { runtime, writeFile } = createStatefulRuntime({ 'src/multi.ts': original });
+
+    const runner = new ActionRunner(runtime, () => createShell() as any);
+
+    const data = diffActionData(
+      'src/multi.ts',
+      [
+        '<<<<<<< SEARCH',
+        'const a = 1;',
+        '=======',
+        'const a = 10;',
+        '>>>>>>> REPLACE',
+        '<<<<<<< SEARCH',
+        'const c = 3;',
+        '=======',
+        'const c = 30;',
+        '>>>>>>> REPLACE',
+      ].join('\n'),
+    );
+
+    runner.addAction(data);
+    await runner.runAction(data, false);
+
+    const expected = ['const a = 10;', 'const b = 2;', 'const c = 30;', ''].join('\n');
+    expect(writeFile).toHaveBeenCalledTimes(1);
+    expect(writeFile).toHaveBeenCalledWith('src/multi.ts', expected);
+
+    // Sanitize + self-repair validation ran on the applied content, then reconcile.
+    expect(validateAndFormatHunkMock).toHaveBeenCalledWith('src/multi.ts', expected);
+    expect(applyEntryExportReconcileMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('STREAMING: a streaming diff call writes nothing (only the authoritative call applies)', async () => {
+    const original = 'const x = 1;\n';
+    const { runtime, files, writeFile } = createStatefulRuntime({ 'src/s.ts': original });
+
+    const runner = new ActionRunner(runtime, () => createShell() as any);
+
+    const data = diffActionData(
+      'src/s.ts',
+      ['<<<<<<< SEARCH', 'const x = 1;', '=======', 'const x = 2;', '>>>>>>> REPLACE'].join('\n'),
+    );
+
+    runner.addAction(data);
+    await runner.runAction(data, true);
+
+    expect(writeFile).not.toHaveBeenCalled();
+    expect(files.get('src/s.ts')).toBe(original);
+  });
+
+  it('MUTEX: a file write and a diff to the same path serialize without interleaving', async () => {
+    // Start empty; the file action creates the base, the diff patches THAT base.
+    const { runtime, files, writeFile, readFile } = createStatefulRuntime({});
+
+    const runner = new ActionRunner(runtime, () => createShell() as any);
+
+    const fileData = fileActionData('src/shared.ts', 'const version = 1;\n', 'file-shared');
+
+    const diffData = diffActionData(
+      'src/shared.ts',
+      ['<<<<<<< SEARCH', 'const version = 1;', '=======', 'const version = 2;', '>>>>>>> REPLACE'].join('\n'),
+      'diff-shared',
+    );
+
+    runner.addAction(fileData);
+    runner.addAction(diffData);
+
+    // Dispatch both back-to-back; the runner's single execution chain serializes them.
+    const p1 = runner.runAction(fileData, false);
+    const p2 = runner.runAction(diffData, false);
+    await Promise.all([p1, p2]);
+
+    /*
+     * The diff must have read the file-action's committed content (no stale/empty read),
+     * proving the two same-path writes did not interleave.
+     */
+    expect(files.get('src/shared.ts')).toBe('const version = 2;\n');
+
+    // Both writes happened, in order, each with a complete buffer (never a partial).
+    const writtenContents = writeFile.mock.calls.map((call) => call[1]);
+    expect(writtenContents).toEqual(['const version = 1;\n', 'const version = 2;\n']);
+
+    // The diff's read observed the file action's write (serialized, not concurrent).
+    expect(readFile).toHaveBeenCalledWith('src/shared.ts');
   });
 });

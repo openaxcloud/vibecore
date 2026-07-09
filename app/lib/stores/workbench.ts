@@ -2631,6 +2631,51 @@ export class WorkbenchStore {
       return;
     }
 
+    if (data.action.type === 'diff') {
+      /*
+       * Anchored diff edit. This is the EARLIEST seam common to BOTH the review
+       * proposal and the auto-apply write: resolve the diff into the full applied
+       * file content ONCE here, then substitute the exact equivalent of a
+       * `type="file"` action so the entire file pipeline below runs unchanged —
+       * the review proposal (built via buildReviewableDiffHunks) and the direct
+       * write (sanitize / self-repair / writeFile / project-doctor reconcile)
+       * both operate on the applied FULL content, never the raw blocks.
+       */
+      if (isStreaming) {
+        // A partial search/replace payload is unparseable — render nothing, never apply.
+        return;
+      }
+
+      const resolution = await artifact.runner.resolveDiffAction(data.action);
+
+      if (!resolution.ok) {
+        /*
+         * STRICT fail-safe: the base file is left byte-unchanged. Surface the
+         * failure and ask the model for a full-file re-emission; write nothing.
+         */
+        this.actionAlert.set({
+          type: 'warning',
+          title: 'Diff could not be applied',
+          description: resolution.message,
+          content: resolution.message,
+          source: 'preview',
+        });
+        this.appendWorkspaceLog(`AI diff not applied: ${resolution.message}`);
+        artifact.runner.skipAction(data.actionId);
+
+        return;
+      }
+
+      data = {
+        ...data,
+        action: {
+          type: 'file',
+          filePath: data.action.filePath,
+          content: resolution.content,
+        },
+      };
+    }
+
     if (data.action.type === 'file') {
       if (this.agentPatchReviewRequired.get()) {
         this.#queueAgentPatchProposal(data, isStreaming);

@@ -4,10 +4,19 @@ import { applyEntryExportReconcile } from './entry-export-reconcile';
 import { buildSelfRepairPrompt, validateAndFormatHunk, type HunkValidationError } from './hunk-validate';
 import type { ActionCallbackData } from './message-parser';
 import { workspaceEvents } from './workspace-events';
-import type { ActionAlert, BoltAction, DeployAlert, FileHistory, SupabaseAction, SupabaseAlert } from '~/types/actions';
+import type {
+  ActionAlert,
+  BoltAction,
+  DeployAlert,
+  DiffAction,
+  FileHistory,
+  SupabaseAction,
+  SupabaseAlert,
+} from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { path as nodePath } from '~/utils/path';
 import { JsonValidationError, sanitizeFileContent } from '~/utils/sanitize-file-content';
+import { applySearchReplace, parseSearchReplaceBlocks, type HunkResult } from '~/utils/search-replace';
 import type { BoltShell } from '~/utils/shell';
 import { unreachable } from '~/utils/unreachable';
 
@@ -136,6 +145,20 @@ export type FailedActionState = BoltAction &
   };
 
 export type ActionState = BaseActionState | FailedActionState;
+
+/**
+ * Outcome of resolving a `diff` (anchored search/replace) action into the full
+ * applied file content. STRICT: `ok: true` carries the complete new file; any
+ * failure carries `ok: false` with a human-readable `message` and NO content —
+ * the caller must write nothing (fail-safe) and surface the message.
+ *
+ *  - `missing-file`  — the diff target does not exist (a diff has no base).
+ *  - `malformed`     — the search/replace blocks could not be parsed.
+ *  - `apply-failed`  — a search anchor was not found / was ambiguous (base drift).
+ */
+export type DiffResolution =
+  | { ok: true; content: string; originalContent: string; hunks: HunkResult[] }
+  | { ok: false; kind: 'missing-file' | 'malformed' | 'apply-failed'; message: string; hunks?: HunkResult[] };
 
 type BaseActionUpdate = Partial<Pick<BaseActionState, 'status' | 'abort' | 'executed' | 'startedAt' | 'finishedAt'>>;
 
@@ -349,19 +372,7 @@ export class ActionRunner {
             break;
           }
           case 'diff': {
-            /*
-             * INCREMENT 2/5: the 'diff' (anchored search/replace) action type is
-             * parsed and streamed by the message-parser, but application is NOT
-             * yet wired. Real apply — parse the block via
-             * `~/utils/search-replace.ts`, run `applySearchReplace` against the
-             * current file, then write the patched contents — lands in
-             * increment 3/5 as a dedicated `#runDiffAction`. For now this is an
-             * explicit no-op so a diff action reaching the runner neither
-             * crashes (it must not hit the `default` throw) nor writes anything.
-             *
-             * TODO(increment 3/5): replace this with `await this.#runDiffAction(action, isStreaming);`
-             */
-            logger.warn('[diff]: apply not yet wired (increment 3/5) — no-op, nothing written');
+            await this.#runDiffAction(action, isStreaming);
             break;
           }
           case 'supabase': {
@@ -537,7 +548,11 @@ export class ActionRunner {
   }
 
   #timeoutMsForAction(action: Pick<ActionState, 'type'> & Partial<Pick<ActionState, 'content'>>) {
-    if (action.type === 'file') {
+    if (action.type === 'file' || action.type === 'diff') {
+      /*
+       * A diff normalizes into a full-file write (sanitize + self-repair loop), so
+       * it needs the same generous budget as a direct file action.
+       */
       return FILE_TOOL_TIMEOUT_MS;
     }
 
@@ -744,6 +759,142 @@ export class ActionRunner {
         logger.warn('Entry export/import reconcile skipped', error);
       }
     }
+  }
+
+  /**
+   * Resolve a `diff` (anchored search/replace) action into the FULL applied file
+   * content — the single boundary where a diff becomes the byte-for-byte
+   * equivalent of a `type="file"` action. Pure w.r.t. the workspace: it only
+   * READS the current file (the same `readFile` the entry-export reconcile uses)
+   * and computes; it never writes. STRICT fail-safe — a diff has no base file to
+   * patch unless the target already exists, and a partial/malformed/non-anchoring
+   * payload yields `ok: false` with NO content so the caller writes nothing.
+   *
+   * Shared by BOTH consumers so they can never diverge: the runner's own
+   * `#runDiffAction` (auto-apply write) and the workbench review path (which
+   * builds the agent-patch proposal from the applied full content).
+   */
+  async resolveDiffAction(action: Pick<DiffAction, 'filePath' | 'content'>): Promise<DiffResolution> {
+    const relativePath = this.#toRuntimePath(action.filePath);
+
+    /*
+     * A diff edits an EXISTING file — there is no base to patch otherwise. If the
+     * read fails (ENOENT and friends) or yields non-string content, fail safe and
+     * ask for a full file; never create a new file from a diff.
+     */
+    let original: string;
+
+    try {
+      const read = await this.#runtime.readFile(relativePath);
+      original = read?.content as string;
+    } catch {
+      return {
+        ok: false,
+        kind: 'missing-file',
+        message: `diff target ${action.filePath} does not exist — full file required`,
+      };
+    }
+
+    if (typeof original !== 'string') {
+      return {
+        ok: false,
+        kind: 'missing-file',
+        message: `diff target ${action.filePath} does not exist — full file required`,
+      };
+    }
+
+    const parsed = parseSearchReplaceBlocks(action.content);
+
+    if (parsed.malformed || parsed.blocks.length === 0) {
+      const detail = parsed.error ?? 'no SEARCH/REPLACE blocks found';
+      return {
+        ok: false,
+        kind: 'malformed',
+        message: `diff for ${action.filePath} could not be parsed (${detail}) — re-emit the full file`,
+      };
+    }
+
+    const result = applySearchReplace(original, parsed.blocks);
+
+    if (!result.ok || result.content === null) {
+      const failed = result.hunks.filter(
+        (hunk) => hunk.status === 'failed-not-found' || hunk.status === 'failed-ambiguous',
+      );
+
+      const anchors = failed.map((hunk) => `block #${hunk.index + 1}: ${hunk.status}`).join(', ');
+
+      return {
+        ok: false,
+        kind: 'apply-failed',
+        message:
+          `diff for ${action.filePath} did not apply against the current file` +
+          (anchors ? ` (${anchors})` : '') +
+          ' — the file drifted from the anchor; re-emit the full file',
+        hunks: result.hunks,
+      };
+    }
+
+    return { ok: true, content: result.content, originalContent: original, hunks: result.hunks };
+  }
+
+  /**
+   * Apply a `diff` action. The apply+write is normalized onto the file pipeline:
+   * on success the resolved FULL content is handed to `#runFileAction`, so
+   * `sanitizeFileContent` → `#repairWithSelfRepairLoop` → `writeFile` →
+   * `applyEntryExportReconcile` (project-doctor) all run EXACTLY as they do for a
+   * `type="file"` action. Ordering/serialization is inherited from the runner's
+   * single execution chain (`#currentExecutionPromise`) that already serializes
+   * file writes — the read+apply+write happen inside ONE queued action, so a
+   * concurrent file write to the same path cannot interleave. No second lock.
+   *
+   * Fail-safe: streaming never writes (a partial payload is unparseable), and any
+   * resolution failure writes NOTHING and surfaces a clear alert asking for a
+   * full-file re-emission — the old file is left byte-unchanged.
+   */
+  async #runDiffAction(action: ActionState, isStreaming: boolean = false) {
+    if (action.type !== 'diff') {
+      unreachable('Expected diff action');
+    }
+
+    /*
+     * Streaming: the payload is a partial search/replace block by definition and
+     * cannot be parsed or applied. Render only — the authoritative non-streaming
+     * call is the sole writer (mirrors #runFileAction gating its write on
+     * !isStreaming).
+     */
+    if (isStreaming) {
+      return;
+    }
+
+    const resolution = await this.resolveDiffAction(action);
+
+    if (!resolution.ok) {
+      logger.warn(`[diff]: ${resolution.message}`);
+      this.onAlert?.({
+        type: 'warning',
+        title: 'Diff could not be applied',
+        description: resolution.message,
+        content: resolution.message,
+        source: 'preview',
+      });
+
+      // STRICT fail-safe: nothing is written; the base file is left untouched.
+      return;
+    }
+
+    if (action.abortSignal.aborted) {
+      logger.debug(`Skipping diff write of ${action.filePath}; action was aborted`);
+      return;
+    }
+
+    /*
+     * Substitute the exact equivalent of a file action carrying the APPLIED FULL
+     * content and reuse the whole file pipeline (sanitize / self-repair / write /
+     * project-doctor reconcile). Keep the diff action's abortSignal so Stop still
+     * cancels the write mid-flight.
+     */
+    const fileAction = { ...action, type: 'file' as const, content: resolution.content } as ActionState;
+    await this.#runFileAction(fileAction, isStreaming);
   }
 
   async #repairWithSelfRepairLoop(relativePath: string, initialPayload: string, signal?: AbortSignal): Promise<string> {

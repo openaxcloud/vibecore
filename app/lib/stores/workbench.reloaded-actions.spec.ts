@@ -206,6 +206,24 @@ function shellAction(messageId = 'assistant-1'): ActionCallbackData {
   };
 }
 
+function diffAction(
+  filePath: string,
+  content: string,
+  actionId = 'diff-1',
+  messageId = 'assistant-1',
+): ActionCallbackData {
+  return {
+    artifactId: 'artifact-1',
+    messageId,
+    actionId,
+    action: {
+      type: 'diff',
+      filePath,
+      content,
+    },
+  };
+}
+
 function actionStatus(store: WorkbenchStore, actionId: string) {
   return store.artifacts.get()['artifact-1']?.runner.actions.get()[actionId]?.status;
 }
@@ -552,6 +570,157 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
     await store.startPreviewServer();
 
     expect(runtimeAdapterMock.startWorkspace).not.toHaveBeenCalled();
+  });
+
+  it('builds an agent-patch proposal from the APPLIED full content for a diff action in review mode', async () => {
+    const original = ["export const greeting = 'Hello';", "export const name = 'App';", ''].join('\n');
+    const applied = ["export const greeting = 'Goodbye';", "export const name = 'App';", ''].join('\n');
+    runtimeFiles.set('src/config.ts', original);
+
+    const store = new WorkbenchStore();
+    const artifact = artifactData();
+
+    store.setAgentPatchReviewRequired(true);
+    store.addArtifact(artifact);
+    await store.loadRuntimeFiles('.');
+
+    const diff = diffAction(
+      'src/config.ts',
+      [
+        '<<<<<<< SEARCH',
+        "export const greeting = 'Hello';",
+        '=======',
+        "export const greeting = 'Goodbye';",
+        '>>>>>>> REPLACE',
+      ].join('\n'),
+    );
+
+    store.addAction(diff);
+    store.runAction(diff);
+
+    await vi.waitFor(() => {
+      expect(store.agentPatchProposals.get()['artifact-1:diff-1']?.status).toBe('pending');
+    });
+
+    const proposal = store.agentPatchProposals.get()['artifact-1:diff-1'];
+
+    // The proposal is built from the applied FULL content — NOT the raw blocks.
+    expect(proposal?.proposedContent).toBe(applied);
+    expect(proposal?.originalContent).toBe(original);
+    expect(proposal?.proposedContent).not.toContain('<<<<<<< SEARCH');
+    expect(proposal?.relativePath).toBe('src/config.ts');
+
+    // Nothing was written yet — a review proposal is not an on-disk write.
+    expect(runtimeFiles.get('src/config.ts')).toBe(original);
+  });
+
+  it('writes the full applied file when a diff-derived proposal is accepted', async () => {
+    const original = ["export const greeting = 'Hello';", "export const name = 'App';", ''].join('\n');
+    const applied = ["export const greeting = 'Goodbye';", "export const name = 'App';", ''].join('\n');
+    runtimeFiles.set('src/config.ts', original);
+
+    const store = new WorkbenchStore();
+    const artifact = artifactData();
+
+    store.setAgentPatchReviewRequired(true);
+    store.addArtifact(artifact);
+    await store.loadRuntimeFiles('.');
+
+    const diff = diffAction(
+      'src/config.ts',
+      [
+        '<<<<<<< SEARCH',
+        "export const greeting = 'Hello';",
+        '=======',
+        "export const greeting = 'Goodbye';",
+        '>>>>>>> REPLACE',
+      ].join('\n'),
+    );
+
+    store.addAction(diff);
+    store.runAction(diff);
+
+    await vi.waitFor(() => {
+      expect(store.agentPatchProposals.get()['artifact-1:diff-1']?.status).toBe('pending');
+    });
+
+    const result = await store.acceptAgentPatchProposal('artifact-1:diff-1');
+
+    expect(result).toBe('accepted');
+    expect(runtimeFiles.get('src/config.ts')).toBe(applied);
+  });
+
+  it('auto-applies a diff (review off) by writing the full applied content', async () => {
+    // Double-quoted so the file pipeline's prettier pass is a byte no-op on the applied content.
+    const original = ['export const greeting = "Hello";', 'export const name = "App";', ''].join('\n');
+    const applied = ['export const greeting = "Goodbye";', 'export const name = "App";', ''].join('\n');
+    runtimeFiles.set('src/config.ts', original);
+
+    const store = new WorkbenchStore();
+    const artifact = artifactData();
+
+    store.addArtifact(artifact);
+    await store.loadRuntimeFiles('.');
+
+    const diff = diffAction(
+      'src/config.ts',
+      [
+        '<<<<<<< SEARCH',
+        'export const greeting = "Hello";',
+        '=======',
+        'export const greeting = "Goodbye";',
+        '>>>>>>> REPLACE',
+      ].join('\n'),
+    );
+
+    store.addAction(diff);
+    store.runAction(diff);
+
+    await vi.waitFor(() => {
+      expect(actionStatus(store, 'diff-1')).toBe('complete');
+    });
+
+    // The full applied file landed on disk (not the raw blocks, and the untouched line survives).
+    const written = runtimeFiles.get('src/config.ts') ?? '';
+    expect(written).toBe(applied);
+    expect(written).not.toContain('<<<<<<< SEARCH');
+    expect(store.agentPatchProposals.get()).toEqual({});
+  });
+
+  it('fail-safe: a non-anchoring diff (review off) writes nothing and surfaces an alert', async () => {
+    const original = ["export const greeting = 'Hello';", ''].join('\n');
+    runtimeFiles.set('src/config.ts', original);
+
+    const store = new WorkbenchStore();
+    const artifact = artifactData();
+
+    store.addArtifact(artifact);
+    await store.loadRuntimeFiles('.');
+
+    runtimeAdapterMock.writeFile.mockClear();
+
+    const diff = diffAction(
+      'src/config.ts',
+      [
+        '<<<<<<< SEARCH',
+        "export const greeting = 'NOT PRESENT';",
+        '=======',
+        "export const greeting = 'X';",
+        '>>>>>>> REPLACE',
+      ].join('\n'),
+    );
+
+    store.addAction(diff);
+    store.runAction(diff);
+
+    await vi.waitFor(() => {
+      expect(store.actionAlert.get()?.title).toBe('Diff could not be applied');
+    });
+
+    // STRICT fail-safe: the base file is byte-unchanged and no write was attempted.
+    expect(runtimeFiles.get('src/config.ts')).toBe(original);
+    expect(runtimeAdapterMock.writeFile).not.toHaveBeenCalledWith('src/config.ts', expect.anything());
+    expect(store.workspaceLogs.get()).toEqual(expect.arrayContaining([expect.stringContaining('AI diff not applied')]));
   });
 
   it('clears the in-flight start guard on stop so the dev server can be relaunched', async () => {
