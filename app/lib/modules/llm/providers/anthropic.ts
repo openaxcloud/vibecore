@@ -1,6 +1,7 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import type { LanguageModelV1 } from 'ai';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
+import { ANTHROPIC_CACHE_BREAKPOINT } from '~/lib/modules/llm/cache-breakpoint';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
 
@@ -25,13 +26,26 @@ export function buildAnthropicModelLabel(model: { display_name?: string | null; 
  *
  * The request body's `system` — the large, turn-stable prefix (Bolt system
  * prompt + CONTEXT BUFFER + orchestration/memory blocks appended by
- * stream-text) — is rewritten from a string into a single text block carrying
- * `cache_control: { type: 'ephemeral' }`. Anthropic then serves that prefix from
- * cache on the next turn / each of the 8 auto-continuation segments at ~10% of
- * the input price, instead of re-billing it in full every time. Below Anthropic's
- * ~1024-token cache minimum this is a silent no-op (no error), and the response
- * stream is never touched, so generation output is byte-for-byte unchanged.
- * Any parse/shape surprise falls through to the original request untouched.
+ * stream-text) — is rewritten from a string into one or two text blocks carrying
+ * `cache_control`. Anthropic then serves that prefix from cache on the next turn
+ * / each of the 8 auto-continuation segments at ~10% of the input price, instead
+ * of re-billing it in full every time. Below Anthropic's ~1024-token cache
+ * minimum this is a silent no-op (no error), and the response stream is never
+ * touched, so generation output is byte-for-byte unchanged. Any parse/shape
+ * surprise falls through to the original request untouched.
+ *
+ * Cross-turn split (P0-a): when `stream-text` inserted the
+ * {@link ANTHROPIC_CACHE_BREAKPOINT} sentinel, the `system` is the STABLE Bolt
+ * head + sentinel + the VARIABLE tail (orchestration exec-context, CONTEXT
+ * BUFFER, chat summary, locked files). We split on the sentinel into two cache
+ * blocks: the head with `ttl: '1h'` so it survives ACROSS user turns, and the
+ * tail with the default ephemeral (5min) TTL so the full context still caches
+ * across the continuation segments WITHIN one generation. The sentinel itself is
+ * stripped from both texts — the model never sees it. Without the sentinel we
+ * keep the original single-block behaviour (backward safe).
+ *
+ * `ttl: '1h'` requires the `extended-cache-ttl-2025-04-11` beta, added to the
+ * `anthropic-beta` header alongside the prompt-caching beta.
  */
 export function createAnthropicCachingFetch(baseFetch: typeof fetch): typeof fetch {
   return async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
@@ -39,7 +53,32 @@ export function createAnthropicCachingFetch(baseFetch: typeof fetch): typeof fet
       if (init && typeof init.body === 'string' && init.body.includes('"system"')) {
         const parsed = JSON.parse(init.body);
 
-        if (parsed && typeof parsed.system === 'string' && parsed.system.trim().length > 0) {
+        if (parsed && typeof parsed.system === 'string' && parsed.system.includes(ANTHROPIC_CACHE_BREAKPOINT)) {
+          /*
+           * Two-breakpoint split: stable head cached 1h (cross-turn), variable
+           * tail cached 5min (across the continuation segments of this turn).
+           * Well under Anthropic's max of 4 cache breakpoints.
+           */
+          const [rawHead, ...rawTailParts] = parsed.system.split(ANTHROPIC_CACHE_BREAKPOINT);
+          const head = rawHead.trim();
+          const tail = rawTailParts.join(ANTHROPIC_CACHE_BREAKPOINT).trim();
+
+          const blocks: Array<Record<string, unknown>> = [];
+
+          if (head.length > 0) {
+            blocks.push({ type: 'text', text: head, cache_control: { type: 'ephemeral', ttl: '1h' } });
+          }
+
+          if (tail.length > 0) {
+            blocks.push({ type: 'text', text: tail, cache_control: { type: 'ephemeral' } });
+          }
+
+          if (blocks.length > 0) {
+            parsed.system = blocks;
+            init = { ...init, body: JSON.stringify(parsed) };
+          }
+        } else if (parsed && typeof parsed.system === 'string' && parsed.system.trim().length > 0) {
+          // No sentinel (non-split path, e.g. below the cache minimum): single block, unchanged behaviour.
           parsed.system = [{ type: 'text', text: parsed.system, cache_control: { type: 'ephemeral' } }];
           init = { ...init, body: JSON.stringify(parsed) };
         }
@@ -199,10 +238,16 @@ export default class AnthropicProvider extends BaseProvider {
 
       /*
        * `prompt-caching-2024-07-31` enables the `cache_control` breakpoint that
-       * createAnthropicCachingFetch injects into the request body; kept alongside
-       * the existing 128k-output beta (comma-separated, both honoured).
+       * createAnthropicCachingFetch injects into the request body;
+       * `extended-cache-ttl-2025-04-11` enables the `ttl: '1h'` on the stable head
+       * block (cross-turn cache). Kept alongside the existing 128k-output beta
+       * (comma-separated, all honoured). If the account lacks the extended-ttl
+       * beta the ttl field is ignored and the head falls back to the default
+       * 5-minute ephemeral cache — never an error.
        */
-      headers: { 'anthropic-beta': 'output-128k-2025-02-19,prompt-caching-2024-07-31' },
+      headers: {
+        'anthropic-beta': 'output-128k-2025-02-19,prompt-caching-2024-07-31,extended-cache-ttl-2025-04-11',
+      },
       fetch: createAnthropicCachingFetch(globalThis.fetch),
     });
 

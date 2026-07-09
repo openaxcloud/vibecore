@@ -535,9 +535,12 @@ export function headers(config: ProviderConfig) {
      * Enable the `cache_control` breakpoint set on the system block in
      * anthropicPayload. The N specialist lanes re-send an IDENTICAL system prefix
      * (shared preamble + shared context), so caching it collapses the duplicated
-     * input cost from N× to ~1× + N×10%.
+     * input cost from N× to ~1× + N×10%. `extended-cache-ttl-2025-04-11` enables
+     * the `ttl: '1h'` on that block so the cache survives across turns; if the
+     * account lacks the beta the ttl is ignored (default 5-minute cache), never an
+     * error.
      */
-    headers['anthropic-beta'] = 'prompt-caching-2024-07-31';
+    headers['anthropic-beta'] = 'prompt-caching-2024-07-31,extended-cache-ttl-2025-04-11';
   }
 
   return headers;
@@ -828,13 +831,18 @@ function anthropicPayload(request: AiChatRequest, model: string, stream: boolean
     model,
 
     /*
-     * Mark the system prefix as a cache breakpoint (ephemeral). It is identical
-     * across every lane of a multi-agent run and re-sent each turn, so Anthropic
-     * serves it from cache (~10% input price) instead of re-billing it in full.
+     * Mark the system prefix as a cache breakpoint. The gateway's system is FULLY
+     * stable — either the hoisted SHARED_AGENT_SYSTEM_PREAMBLE (identical across
+     * every lane of a multi-agent run, re-sent each turn) or the short fixed
+     * system of the regular api→gateway completion path (no variable tail, no
+     * sentinel is ever forwarded here). So the whole thing is one cacheable head:
+     * `ttl: '1h'` keeps it warm ACROSS turns (not just the 5-minute default), and
+     * Anthropic serves it from cache (~10% input price) instead of re-billing it.
      * A string system stays a plain string when there's nothing to cache. Below
-     * Anthropic's ~1024-token minimum this is a silent no-op, never an error.
+     * Anthropic's ~1024-token minimum this is a silent no-op, never an error; if
+     * the account lacks the extended-ttl beta the ttl is ignored (5min fallback).
      */
-    system: system ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }] : undefined,
+    system: system ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral', ttl: '1h' } }] : undefined,
     messages,
     stream,
     max_tokens: resolveMaxOutputTokens(request, model),

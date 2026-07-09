@@ -21,6 +21,7 @@ import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { PromptLibrary } from '~/lib/common/prompt-library';
 import { discussPrompt } from '~/lib/common/prompts/discuss-prompt';
 import { getSystemPrompt } from '~/lib/common/prompts/prompts';
+import { ANTHROPIC_CACHE_BREAKPOINT, shouldInsertCacheBreakpoint } from '~/lib/modules/llm/cache-breakpoint';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { IProviderSetting } from '~/types/model';
@@ -274,6 +275,24 @@ export async function streamText(props: {
         credentials: options?.supabaseConnection?.credentials || undefined,
       },
     }) ?? getSystemPrompt();
+
+  /*
+   * Cross-turn cache breakpoint (P0-a): everything appended below this line —
+   * orchestration exec-context, agent memory/skills, the CONTEXT BUFFER of
+   * project files, the chat summary, locked-file lists — is the VARIABLE tail
+   * that changes every turn. Mark the head/tail boundary HERE, right after the
+   * stable Bolt prompt and before the first variable block, so the Anthropic
+   * caching fetch can cache the stable head across turns instead of re-billing
+   * the whole system string. Inserted ONLY for Anthropic-family providers; every
+   * other provider's system stays byte-identical (the sentinel never appears).
+   * The sentinel is stripped from the wire body by createAnthropicCachingFetch /
+   * the OpenRouter caching fetch, so the model never sees it.
+   */
+  const insertCacheBreakpoint = shouldInsertCacheBreakpoint(provider.name, modelDetails.name);
+
+  if (insertCacheBreakpoint) {
+    systemPrompt = `${systemPrompt}${ANTHROPIC_CACHE_BREAKPOINT}`;
+  }
 
   const orchestrationPlan =
     agentOrchestrationPlan ??
