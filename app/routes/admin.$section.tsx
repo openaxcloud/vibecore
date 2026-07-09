@@ -320,6 +320,20 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
   }
 
   /*
+   * F23: the count of unresolved security events powers a badge on the admin
+   * sidebar's Security-events nav item — so it shows on every admin page, not
+   * only that section. Fetched in parallel with the section payload and guarded
+   * (never blocks/breaks the page). When we're already on the security-events
+   * page we derive it from that section's payload instead of fetching twice.
+   */
+  const securityOpenCountPromise: Promise<number | undefined> =
+    section === 'security-events'
+      ? Promise.resolve(undefined)
+      : apiRequest<{ openCount?: number }>(request, '/admin/security-events')
+          .then((result) => (typeof result?.openCount === 'number' ? result.openCount : undefined))
+          .catch(() => undefined);
+
+  /*
    * Monitoring is a read-only dashboard that VISUALIZES several existing admin
    * JSON endpoints. The web's API base URL is server-only, so a client panel
    * can't hit /admin/* directly — instead we fan out the reads here (over the
@@ -354,7 +368,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       liveProbe,
     };
 
-    return { section, config, payload };
+    return { section, config, payload, securityOpenCount: await securityOpenCountPromise };
   }
 
   /*
@@ -375,7 +389,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     const qs = passthrough.toString();
     const payload = await apiRequest<Record<string, JsonValue>>(request, `/admin/users${qs ? `?${qs}` : ''}`);
 
-    return { section, config, payload };
+    return { section, config, payload, securityOpenCount: await securityOpenCountPromise };
   }
 
   /*
@@ -385,7 +399,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
    */
   if (section === 'providers') {
     const payload = await apiRequest<Record<string, JsonValue>>(request, '/admin/providers/fallback-order');
-    return { section, config, payload };
+    return { section, config, payload, securityOpenCount: await securityOpenCountPromise };
   }
 
   // Sections without an endpoint (developer-tools) render self-fetching panels.
@@ -393,7 +407,13 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     ? await apiRequest<Record<string, JsonValue>>(request, config.endpoint)
     : ({} as Record<string, JsonValue>);
 
-  return { section, config, payload };
+  // On the security-events page itself the count is in the payload (no 2nd fetch).
+  const securityOpenCount =
+    section === 'security-events' && typeof payload.openCount === 'number'
+      ? payload.openCount
+      : await securityOpenCountPromise;
+
+  return { section, config, payload, securityOpenCount };
 }
 
 /*
@@ -804,6 +824,24 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json({ ok: true, rowId: abuseEventId, message: 'User suspended.' });
     }
 
+    // F23: mark a security event resolved with an optional operator note.
+    if (intent === 'security-event-resolve') {
+      const securityEventId = String(form.get('securityEventId') ?? '');
+      const note = String(form.get('note') ?? '').trim();
+
+      if (!securityEventId) {
+        return json({ ok: false, error: 'Missing security event.' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/admin/security-events/${securityEventId}/resolve`, {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify(note ? { note } : {}),
+      });
+
+      return json({ ok: true, rowId: securityEventId, message: 'Security event resolved.' });
+    }
+
     // Organization suspend. (No unsuspend endpoint exists server-side today.)
     if (intent === 'org-suspend') {
       const organizationId = String(form.get('organizationId') ?? '');
@@ -1095,6 +1133,7 @@ export default function AdminSectionPage() {
   }
 
   const { section, config, payload } = data;
+  const securityOpenCount = 'securityOpenCount' in data ? data.securityOpenCount : undefined;
 
   return (
     <AppShell
@@ -1103,7 +1142,7 @@ export default function AdminSectionPage() {
       actions={<LinkButton to="/admin/billing">Billing admin</LinkButton>}
     >
       <div className="grid items-start gap-6 lg:grid-cols-[232px_1fr]">
-        <AdminNav active={section} />
+        <AdminNav active={section} securityOpenCount={securityOpenCount} />
         <div className="grid gap-6">
           {section === 'overview' ? <OverviewPanel payload={payload} /> : null}
           {section === 'health' ? <HealthPanel payload={payload} /> : null}
@@ -1119,6 +1158,7 @@ export default function AdminSectionPage() {
           {section === 'workspaces' ? <WorkspacesPanel payload={payload} /> : null}
           {section === 'previews' ? <PreviewsPanel payload={payload} /> : null}
           {section === 'abuse-events' ? <AbuseEventsPanel payload={payload} /> : null}
+          {section === 'security-events' ? <SecurityEventsPanel payload={payload} /> : null}
           {section === 'organizations' ? <OrganizationsPanel payload={payload} /> : null}
           {section === 'support-tickets' ? <SupportTicketsPanel payload={payload} /> : null}
           {section === 'audit-logs' || section === 'admin-audit-logs' ? (
@@ -1138,6 +1178,7 @@ export default function AdminSectionPage() {
             'workspaces',
             'previews',
             'abuse-events',
+            'security-events',
             'organizations',
             'support-tickets',
             'developer-tools',
@@ -1243,8 +1284,14 @@ function DeveloperToolsPanel() {
   );
 }
 
-function AdminNav({ active }: { active: string }) {
+function AdminNav({ active, securityOpenCount }: { active: string; securityOpenCount?: number }) {
   const navigate = useNavigate();
+
+  // F23: badge count per nav item (today only unresolved security events).
+  const badgeFor = (item: string): number | undefined =>
+    item === 'security-events' && typeof securityOpenCount === 'number' && securityOpenCount > 0
+      ? securityOpenCount
+      : undefined;
 
   return (
     <>
@@ -1286,20 +1333,33 @@ function AdminNav({ active }: { active: string }) {
             <p className="vc-sidebar-group-label px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
               {group.label}
             </p>
-            {group.items.map((item) => (
-              <Link
-                key={item}
-                to={`/admin/${item}`}
-                className={[
-                  'flex min-h-8 items-center rounded-md px-2 text-sm transition-colors',
-                  active === item
-                    ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
-                    : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
-                ].join(' ')}
-              >
-                {adminSections[item].title}
-              </Link>
-            ))}
+            {group.items.map((item) => {
+              const badge = badgeFor(item);
+
+              return (
+                <Link
+                  key={item}
+                  to={`/admin/${item}`}
+                  className={[
+                    'flex min-h-8 items-center justify-between gap-2 rounded-md px-2 text-sm transition-colors',
+                    active === item
+                      ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
+                      : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
+                  ].join(' ')}
+                >
+                  <span className="truncate">{adminSections[item].title}</span>
+                  {badge !== undefined ? (
+                    <span
+                      data-testid={`admin-nav-badge-${item}`}
+                      aria-label={`${badge} unresolved`}
+                      className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[var(--status-error-text)] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white"
+                    >
+                      {badge > 99 ? '99+' : badge}
+                    </span>
+                  ) : null}
+                </Link>
+              );
+            })}
           </div>
         ))}
       </nav>
@@ -4770,6 +4830,150 @@ function AbuseEventRow({ event, password }: { event: AdminAbuseEvent; password: 
         </DialogRoot>
       </td>
     </tr>
+  );
+}
+
+type AdminSecurityEvent = {
+  id: string;
+  action: string;
+  severity?: string;
+  resolved?: boolean;
+  note?: string;
+  resolvedAt?: string;
+  actorUserId?: string;
+  organizationId?: string;
+  resourceType?: string;
+  resourceId?: string;
+  ipAddress?: string;
+  createdAt?: string;
+};
+
+/* F23: map the API's derived severity (low/medium/high) to a labelled tone. */
+function securitySeverity(severity?: string): { label: string; tone: 'danger' | 'warn' | 'muted' } {
+  if (severity === 'high') {
+    return { label: 'critical', tone: 'danger' };
+  }
+
+  if (severity === 'medium') {
+    return { label: 'warning', tone: 'warn' };
+  }
+
+  return { label: 'info', tone: 'muted' };
+}
+
+/*
+ * F23: security-events panel. Renders the derived-severity audit stream as a
+ * chronological timeline, shows the unresolved open count, and lets an admin
+ * « Mark resolved » with an optional note (persisted via the SecurityEventResolution
+ * overlay from migration 0062 — the immutable audit row is never mutated). The
+ * sidebar badge (see AdminNav) mirrors the same open count. Step-up protected.
+ */
+function SecurityEventsPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const events = (Array.isArray(payload.events) ? payload.events : []) as AdminSecurityEvent[];
+
+  const openCount =
+    typeof payload.openCount === 'number' ? payload.openCount : events.filter((e) => !e.resolved).length;
+
+  const [password, setPassword] = useState('');
+
+  return (
+    <div className="grid gap-4">
+      <ReauthHeader
+        password={password}
+        onChange={setPassword}
+        hint="Resolving a security event is step-up protected. Enter your password once, then Mark resolved (with an optional note) below. Resolutions are recorded separately — the audit trail itself is never changed."
+      />
+
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-xs shadow-sm">
+        <span className="font-semibold text-bolt-elements-textPrimary">Unresolved</span>
+        <StatusPill tone={openCount > 0 ? 'danger' : 'ok'}>{openCount} open</StatusPill>
+        <span className="text-bolt-elements-textTertiary">of {events.length} recent security events</span>
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+        {events.length === 0 ? (
+          <p className="text-sm text-bolt-elements-textSecondary">No security events found.</p>
+        ) : (
+          <ol className="relative ml-2 min-w-[520px] border-l border-bolt-elements-borderColor pl-5">
+            {events.map((event) => (
+              <SecurityEventItem key={event.id} event={event} password={password} />
+            ))}
+          </ol>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SecurityEventItem({ event, password }: { event: AdminSecurityEvent; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+  const resolved = event.resolved === true || fetcher.data?.ok === true;
+  const severity = securitySeverity(event.severity);
+  const [note, setNote] = useState('');
+
+  const meta = [
+    event.actorUserId ? `actor ${event.actorUserId}` : null,
+    event.organizationId ? `org ${event.organizationId}` : null,
+    event.ipAddress ? `ip ${event.ipAddress}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  return (
+    <li className="relative pb-6 last:pb-0">
+      {/* timeline dot */}
+      <span
+        aria-hidden
+        className="absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-bolt-elements-background-depth-2 bg-[var(--vc-ide-accent-action)]"
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-medium text-bolt-elements-textPrimary">{event.action}</span>
+        <StatusPill tone={severity.tone}>{severity.label}</StatusPill>
+        {resolved ? <StatusPill tone="ok">resolved</StatusPill> : <StatusPill tone="warn">open</StatusPill>}
+      </div>
+      {event.createdAt ? <div className="mt-0.5 text-xs text-bolt-elements-textTertiary">{event.createdAt}</div> : null}
+      {meta ? <div className="mt-0.5 text-xs text-bolt-elements-textSecondary">{meta}</div> : null}
+
+      {resolved ? (
+        event.note ? (
+          <p className="mt-1.5 text-xs text-bolt-elements-textSecondary">
+            <span className="font-medium">Note:</span> {event.note}
+          </p>
+        ) : null
+      ) : (
+        <div className="mt-2 flex flex-wrap items-end gap-2">
+          <label className="block text-xs text-bolt-elements-textSecondary">
+            Resolution note (optional)
+            <input
+              value={note}
+              onChange={(inputEvent) => setNote(inputEvent.target.value)}
+              placeholder="e.g. investigated — false positive"
+              data-testid={`security-note-${event.id}`}
+              className="mt-1 w-72 max-w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
+            />
+          </label>
+          <button
+            type="button"
+            className={ROW_BTN}
+            disabled={busy || !password}
+            data-testid={`security-resolve-${event.id}`}
+            onClick={() =>
+              fetcher.submit(
+                { intent: 'security-event-resolve', securityEventId: event.id, note, password },
+                { method: 'post' },
+              )
+            }
+          >
+            {busy ? 'Resolving…' : 'Mark resolved'}
+          </button>
+        </div>
+      )}
+      {!password && !resolved ? (
+        <p className="mt-1.5 text-xs text-bolt-elements-textTertiary">Enter your password above first.</p>
+      ) : null}
+      <RowFeedback data={fetcher.data} />
+    </li>
   );
 }
 
