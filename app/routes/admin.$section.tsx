@@ -760,6 +760,50 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json({ ok: true, rowId: abuseEventId, message: 'Abuse event resolved.' });
     }
 
+    // F22: abuse event Dismiss / Warn / Suspend.
+    if (intent === 'abuse-dismiss' || intent === 'abuse-warn' || intent === 'abuse-suspend') {
+      const abuseEventId = String(form.get('abuseEventId') ?? '');
+
+      if (!abuseEventId) {
+        return json({ ok: false, error: 'Missing abuse event.' }, { status: 400 });
+      }
+
+      if (intent === 'abuse-dismiss') {
+        await apiRequest(request, `/admin/abuse-events/${abuseEventId}/dismiss`, {
+          method: 'POST',
+          redirectOn401: false,
+          body: JSON.stringify({}),
+        });
+
+        return json({ ok: true, rowId: abuseEventId, message: 'Event dismissed.' });
+      }
+
+      if (intent === 'abuse-warn') {
+        await apiRequest(request, `/admin/abuse-events/${abuseEventId}/warn`, {
+          method: 'POST',
+          redirectOn401: false,
+          body: JSON.stringify({}),
+        });
+
+        return json({ ok: true, rowId: abuseEventId, message: 'Warning emailed to the user.' });
+      }
+
+      // abuse-suspend — mandatory reason, persisted in the admin audit log.
+      const reason = String(form.get('reason') ?? '').trim();
+
+      if (!reason) {
+        return json({ ok: false, rowId: abuseEventId, error: 'A reason is required to suspend.' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/admin/abuse-events/${abuseEventId}/suspend`, {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({ reason }),
+      });
+
+      return json({ ok: true, rowId: abuseEventId, message: 'User suspended.' });
+    }
+
     // Organization suspend. (No unsuspend endpoint exists server-side today.)
     if (intent === 'org-suspend') {
       const organizationId = String(form.get('organizationId') ?? '');
@@ -4523,15 +4567,39 @@ type AdminAbuseEvent = {
   type?: string;
   severity?: string;
   resolved?: boolean;
+  disposition?: string;
   createdAt?: string;
 };
 
 /*
- * Abuse-event review panel: per-row Resolve wired to POST
- * /admin/abuse-events/:id/resolve. The Resolve button hides once the row is
- * resolved (the loader payload may omit `resolved`; we hide on the fetcher's
- * success too, so a just-resolved row stops offering the action).
+ * F22: abuse-event review panel. Each row shows a status badge (open / warned /
+ * dismissed / suspended / resolved) and offers Dismiss, Warn and Suspend actions
+ * on top of the legacy Resolve — all wired to the real backend:
+ *   Dismiss  → POST /admin/abuse-events/:id/dismiss  (resolves, no user action)
+ *   Warn     → POST /admin/abuse-events/:id/warn      (emails the user, stays open)
+ *   Suspend  → POST /admin/abuse-events/:id/suspend   (blocks the user, reason req.)
+ * Step-up protected (password header). Suspend is destructive → a reason dialog.
  */
+function abuseStatus(event: AdminAbuseEvent): { label: string; tone: 'ok' | 'danger' | 'warn' | 'muted' } {
+  if (event.disposition === 'suspended') {
+    return { label: 'suspended', tone: 'danger' };
+  }
+
+  if (event.disposition === 'warned') {
+    return { label: 'warned', tone: 'warn' };
+  }
+
+  if (event.disposition === 'dismissed') {
+    return { label: 'dismissed', tone: 'muted' };
+  }
+
+  if (event.resolved === true) {
+    return { label: 'resolved', tone: 'ok' };
+  }
+
+  return { label: 'open', tone: 'warn' };
+}
+
 function AbuseEventsPanel({ payload }: { payload: Record<string, JsonValue> }) {
   const events = (Array.isArray(payload.abuseEvents) ? payload.abuseEvents : []) as AdminAbuseEvent[];
   const [password, setPassword] = useState('');
@@ -4541,22 +4609,23 @@ function AbuseEventsPanel({ payload }: { payload: Record<string, JsonValue> }) {
       <ReauthHeader
         password={password}
         onChange={setPassword}
-        hint="Resolving an abuse event is step-up protected. Enter your password once, then Resolve events below."
+        hint="Abuse actions are step-up protected. Enter your password once, then Dismiss, Warn (emails the user) or Suspend the offender. Suspend blocks the account and requires a reason."
       />
 
       <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
-        <table className="w-full min-w-[680px] border-collapse text-sm">
+        <table className="w-full min-w-[760px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
               <th className="px-4 py-3 font-medium">Event</th>
               <th className="px-4 py-3 font-medium">Severity</th>
-              <th className="px-4 py-3 font-medium">Action</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {events.length === 0 ? (
               <tr>
-                <td className="px-4 py-3 text-bolt-elements-textSecondary" colSpan={3}>
+                <td className="px-4 py-3 text-bolt-elements-textSecondary" colSpan={4}>
                   No abuse events found.
                 </td>
               </tr>
@@ -4573,9 +4642,22 @@ function AbuseEventsPanel({ payload }: { payload: Record<string, JsonValue> }) {
 function AbuseEventRow({ event, password }: { event: AdminAbuseEvent; password: string }) {
   const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
   const busy = fetcher.state !== 'idle';
-  const resolved = event.resolved === true || fetcher.data?.ok === true;
   const severity = String(event.severity ?? 'unknown');
-  const tone = severity === 'critical' || severity === 'high' ? 'danger' : 'muted';
+  const severityTone = severity === 'critical' || severity === 'high' ? 'danger' : 'muted';
+
+  const [suspendOpen, setSuspendOpen] = useState(false);
+  const [reason, setReason] = useState('');
+
+  /*
+   * The loader payload reflects the persisted disposition; after a successful
+   * fetcher action the row shows the just-applied status until revalidation lands.
+   */
+  const optimistic = fetcher.data?.ok ? fetcher.data.message : undefined;
+  const status = abuseStatus(event);
+  const terminal = event.disposition === 'suspended' || event.disposition === 'dismissed' || event.resolved === true;
+
+  const run = (intent: string, extra?: Record<string, string>) =>
+    fetcher.submit({ intent, abuseEventId: event.id, password, ...extra }, { method: 'post' });
 
   return (
     <tr className="border-b border-bolt-elements-borderColor align-top last:border-b-0">
@@ -4589,30 +4671,103 @@ function AbuseEventRow({ event, password }: { event: AdminAbuseEvent; password: 
         {event.createdAt ? <div className="text-xs text-bolt-elements-textTertiary">{event.createdAt}</div> : null}
       </td>
       <td className="px-4 py-3">
-        <StatusPill tone={tone}>{severity}</StatusPill>
+        <StatusPill tone={severityTone}>{severity}</StatusPill>
       </td>
       <td className="px-4 py-3">
-        {resolved ? (
-          <StatusPill tone="ok">resolved</StatusPill>
+        <StatusPill tone={status.tone}>{status.label}</StatusPill>
+      </td>
+      <td className="px-4 py-3">
+        {terminal ? (
+          <span className="text-xs text-bolt-elements-textTertiary">{optimistic ?? 'No further action.'}</span>
         ) : (
-          <>
+          <div className="flex flex-wrap gap-1.5">
             <button
               type="button"
               className={ROW_BTN}
               disabled={busy || !password}
-              data-testid={`abuse-resolve-${event.id}`}
-              onClick={() =>
-                fetcher.submit({ intent: 'abuse-resolve', abuseEventId: event.id, password }, { method: 'post' })
-              }
+              data-testid={`abuse-dismiss-${event.id}`}
+              onClick={() => run('abuse-dismiss')}
             >
-              {busy ? 'Resolving…' : 'Resolve'}
+              Dismiss
             </button>
-            {!password && !busy ? (
-              <p className="mt-1.5 text-xs text-bolt-elements-textTertiary">Enter your password above first.</p>
-            ) : null}
-          </>
+            <button
+              type="button"
+              className={ROW_BTN}
+              disabled={busy || !password || !event.userId}
+              title={event.userId ? undefined : 'No user attached to this event.'}
+              data-testid={`abuse-warn-${event.id}`}
+              onClick={() => run('abuse-warn')}
+            >
+              Warn
+            </button>
+            <button
+              type="button"
+              className={ROW_DANGER}
+              disabled={busy || !password || !event.userId}
+              title={event.userId ? undefined : 'No user attached to this event.'}
+              data-testid={`abuse-suspend-${event.id}`}
+              onClick={() => setSuspendOpen(true)}
+            >
+              Suspend
+            </button>
+          </div>
         )}
+        {!password && !busy && !terminal ? (
+          <p className="mt-1.5 text-xs text-bolt-elements-textTertiary">Enter your password above first.</p>
+        ) : null}
         <RowFeedback data={fetcher.data} />
+
+        <DialogRoot open={suspendOpen} onOpenChange={(next) => (next ? null : setSuspendOpen(false))}>
+          <Dialog showCloseButton={false} onBackdrop={() => setSuspendOpen(false)}>
+            <div className="p-6">
+              <DialogTitle>Suspend the offending user?</DialogTitle>
+              <DialogDescription>
+                The user is signed out everywhere and blocked from signing in until reactivated. This event is marked
+                “suspended”. The reason below is written to the admin audit log.
+              </DialogDescription>
+              <label
+                htmlFor={`abuse-suspend-reason-${event.id}`}
+                className="mt-4 block text-xs font-medium text-bolt-elements-textSecondary"
+              >
+                Reason{' '}
+                <span aria-hidden className="text-[var(--status-error-text)]">
+                  *
+                </span>
+              </label>
+              <textarea
+                id={`abuse-suspend-reason-${event.id}`}
+                value={reason}
+                onChange={(inputEvent) => setReason(inputEvent.target.value)}
+                rows={3}
+                required
+                data-testid={`abuse-suspend-reason-${event.id}`}
+                className="mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
+              />
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSuspendOpen(false)}
+                  className="inline-flex h-8 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={busy || reason.trim().length === 0}
+                  data-testid={`abuse-suspend-confirm-${event.id}`}
+                  onClick={() => {
+                    setSuspendOpen(false);
+                    run('abuse-suspend', { reason: reason.trim() });
+                    setReason('');
+                  }}
+                  className="inline-flex h-8 items-center justify-center rounded-md bg-[var(--status-error-text)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Suspend user
+                </button>
+              </div>
+            </div>
+          </Dialog>
+        </DialogRoot>
       </td>
     </tr>
   );

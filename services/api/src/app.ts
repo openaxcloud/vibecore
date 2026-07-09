@@ -24066,6 +24066,44 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { abuseEvent, warned: true };
   });
 
+  /*
+   * F22: suspend the offending user from an abuse event. Reuses the exact suspend
+   * mechanics as POST /admin/users/:id/suspend (last-admin guard, session revoke,
+   * audit) and marks the event 'suspended' + resolved. A reason is mandatory and
+   * persisted in the admin audit event. Audited under both actions.
+   */
+  app.post('/admin/abuse-events/:abuseEventId/suspend', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { abuseEventId } = parse(adminAbuseParams, request.params);
+    const { reason } = parse(adminSuspendReasonBody, request.body ?? {});
+    const event = (await store.listAbuseEvents()).find((candidate) => candidate.id === abuseEventId);
+
+    if (!event) {
+      return reply.code(404).send({ error: 'abuse_event_not_found' });
+    }
+
+    if (!event.userId) {
+      return reply.code(400).send({ error: 'no_user_to_suspend' });
+    }
+
+    const userId = event.userId;
+    await store.withSerializedMutation('platform-admin', async () => {
+      await assertNotLastPlatformAdmin(store, userId);
+      await store.mutateSystemSettingIds('admin.suspendedUserIds', { add: userId });
+    });
+    await store.revokeAllSessions(userId);
+
+    const abuseEvent = await store.updateAbuseEvent({ abuseEventId, resolved: true, disposition: 'suspended' });
+    await recordAdminAction(request, store, {
+      action: 'admin.abuse_event.suspend',
+      metadata: { abuseEventId, userId, reason },
+    });
+
+    return { abuseEvent, suspended: true };
+  });
+
   app.post('/admin/support-tickets/:ticketId/respond', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
