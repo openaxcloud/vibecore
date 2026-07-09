@@ -11,6 +11,7 @@ import {
   workspaceLimitRange,
   workspaceResourceQuota,
   workspaceRuntimeClass,
+  resolvePlanResourcesTable,
   WORKSPACE_CONTAINER_MAX_DISK_GB,
   type WorkspaceRuntimeInput,
 } from './index.js';
@@ -248,5 +249,106 @@ describe('workspace Kubernetes manifests', () => {
     expect(byName('VITE_HMR_PROTOCOL')).toContain('wss');
     // Host is intentionally NOT injected: the client uses the page's own hostname.
     expect(env.some((e) => e.name === 'VITE_HMR_HOST')).toBe(false);
+  });
+
+  describe('resolvePlanResourcesTable (env-configurable fallback plan resources)', () => {
+    it('keeps free/pro at their unchanged defaults with no override', () => {
+      const table = resolvePlanResourcesTable();
+      expect(table.free).toEqual({
+        cpuRequest: '250m',
+        memoryRequest: '512Mi',
+        cpuLimit: '1',
+        memoryLimit: '1Gi',
+        storageRequest: '10Gi',
+      });
+      expect(table.pro).toEqual({
+        cpuRequest: '500m',
+        memoryRequest: '1Gi',
+        cpuLimit: '2',
+        memoryLimit: '4Gi',
+        storageRequest: '20Gi',
+      });
+    });
+
+    it('lowers team and enterprise cpuRequest to 500m while keeping the burstable 4-core limit', () => {
+      const table = resolvePlanResourcesTable();
+      expect(table.team.cpuRequest).toBe('500m');
+      expect(table.team.cpuLimit).toBe('4');
+      expect(table.enterprise.cpuRequest).toBe('500m');
+      expect(table.enterprise.cpuLimit).toBe('4');
+    });
+
+    it('surfaces the lowered team request through the built pod spec by default', () => {
+      const container = (workspacePod({ ...input, plan: 'team' }).spec?.containers as any[])[0];
+      expect(container.resources).toMatchObject({
+        requests: { cpu: '500m', memory: '1.5Gi' },
+        limits: { cpu: '4', memory: '8Gi' },
+      });
+    });
+
+    it('applies a valid WORKSPACE_PLAN_RESOURCES_JSON override to the resolved request/limit', () => {
+      const table = resolvePlanResourcesTable(
+        JSON.stringify({
+          team: { cpuRequest: '400m', memoryRequest: '2Gi' },
+          enterprise: { cpuRequest: '600m', cpuLimit: '4' },
+        }),
+      );
+      expect(table.team.cpuRequest).toBe('400m');
+      expect(table.team.memoryRequest).toBe('2Gi');
+      // Untouched fields keep their defaults.
+      expect(table.team.cpuLimit).toBe('4');
+      expect(table.enterprise.cpuRequest).toBe('600m');
+      expect(table.enterprise.cpuLimit).toBe('4');
+      // Plans absent from the override are untouched.
+      expect(table.free.cpuRequest).toBe('250m');
+    });
+
+    it('falls back to defaults on invalid JSON and never yields request > limit', () => {
+      const table = resolvePlanResourcesTable('{not valid json');
+      expect(table.team.cpuRequest).toBe('500m');
+      expect(table.enterprise.cpuRequest).toBe('500m');
+    });
+
+    it('rejects malformed field values per field, keeping the default', () => {
+      const table = resolvePlanResourcesTable(
+        JSON.stringify({ team: { cpuRequest: 'not-a-cpu', memoryRequest: 'blah', cpuLimit: '3' } }),
+      );
+      // Garbage request/memory ignored → defaults; the valid cpuLimit override applies.
+      expect(table.team.cpuRequest).toBe('500m');
+      expect(table.team.memoryRequest).toBe('1.5Gi');
+      expect(table.team.cpuLimit).toBe('3');
+    });
+
+    it('never lets an override produce request > limit (reverts the pair to defaults)', () => {
+      const table = resolvePlanResourcesTable(
+        JSON.stringify({ team: { cpuRequest: '4', cpuLimit: '1', memoryRequest: '8Gi', memoryLimit: '1Gi' } }),
+      );
+      // cpuRequest 4 > cpuLimit 1 → both revert to defaults.
+      expect(table.team.cpuRequest).toBe('500m');
+      expect(table.team.cpuLimit).toBe('4');
+      // memoryRequest 8Gi > memoryLimit 1Gi → both revert to defaults.
+      expect(table.team.memoryRequest).toBe('1.5Gi');
+      expect(table.team.memoryLimit).toBe('8Gi');
+    });
+
+    it('clamps an over-max limit override to the namespace LimitRange max', () => {
+      const table = resolvePlanResourcesTable(
+        JSON.stringify({ enterprise: { cpuLimit: '16', memoryLimit: '64Gi' } }),
+      );
+      // Limits above the LimitRange max (4 cpu / 8Gi) would fail admission → clamped.
+      expect(table.enterprise.cpuLimit).toBe('4');
+      expect(table.enterprise.memoryLimit).toBe('8192Mi');
+    });
+
+    it('lets a custom resourceLimits entitlement win over the fallback table', () => {
+      // Even with a table override in play, an explicit per-workspace entitlement
+      // takes precedence (request = limit/4, capped at the LimitRange max).
+      const custom = { ...input, plan: 'team' as const, resourceLimits: { cpuMillicores: 2000, ramMb: 4096 } };
+      const container = (workspacePod(custom).spec?.containers as any[])[0];
+      expect(container.resources).toMatchObject({
+        requests: { cpu: '500m', memory: '1024Mi' },
+        limits: { cpu: '2', memory: '4096Mi' },
+      });
+    });
   });
 });

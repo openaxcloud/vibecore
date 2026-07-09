@@ -252,6 +252,15 @@ services:
     port: 3010
     replicas: 2
     path: /runtime
+    # Optional operator override (JSON) for the per-plan FALLBACK per-workspace
+    # pod resource table in @vibecore/k8s-client (used when a plan carries no
+    # custom entitlement). Partial per plan/field; malformed values fall back to
+    # the built-in code defaults per field (request can never exceed limit,
+    # limits clamped to the LimitRange max). Empty (the default) → the built-in
+    # defaults apply, which already request 250-500m and burst to 1-4 cores.
+    # Injected as WORKSPACE_PLAN_RESOURCES_JSON only on this pod. Example:
+    #   planResourcesJson: '{"team":{"cpuRequest":"400m"},"enterprise":{"cpuRequest":"600m"}}'
+    planResourcesJson: ''
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { cpu: 500m, memory: 512Mi }

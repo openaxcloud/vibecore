@@ -116,6 +116,20 @@ spec:
               value: {{ $svc.port | quote }}
             - name: HOST
               value: "0.0.0.0"
+            {{- if and (eq $name "workspaceManager") $svc.planResourcesJson }}
+            # Operator override for the per-plan FALLBACK pod resource table in
+            # @vibecore/k8s-client (used when a plan carries no custom entitlement).
+            # JSON, partial per plan/field, e.g.
+            #   {"team":{"cpuRequest":"400m"},"enterprise":{"cpuRequest":"600m"}}
+            # Unknown plans/fields and malformed values fall back to the built-in
+            # defaults per field; the code guarantees request<=limit and clamps
+            # limits to the LimitRange max, so a bad value can never brick pods.
+            # Unset (the default) → the built-in code defaults apply unchanged.
+            # Computed from the service name in-template so it survives
+            # `helm upgrade --reuse-values` (which ignores newly-added values keys).
+            - name: WORKSPACE_PLAN_RESOURCES_JSON
+              value: {{ $svc.planResourcesJson | quote }}
+            {{- end }}
             {{- if $needsSharedStorage }}
             # When shared storage is enabled the chart overrides whatever
             # PROJECT_STORAGE_DIR / STATIC_DEPLOY_STORAGE_DIR come from the
