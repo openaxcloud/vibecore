@@ -2,7 +2,7 @@ import type { MetaFunction } from 'react-router';
 import { Link, useLoaderData } from 'react-router';
 import { EnterpriseFormPage } from '~/components/enterprise/EnterpriseFormPage';
 import { TeamAccessLogPanel } from '~/components/teams/TeamAccessLogPanel';
-import { type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import type { EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { loadTeamAccessLog, type TeamAccessLogData } from '~/lib/team-access-log.server';
 
 export const meta: MetaFunction = ({ params }) => [
