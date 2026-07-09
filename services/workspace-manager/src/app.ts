@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { getClusterCapacity } from '@vibecore/k8s-client';
 import Fastify from 'fastify';
 import { z } from 'zod';
 import { WorkspaceManager } from './manager.js';
@@ -124,9 +125,10 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
 
     if (!expected) {
       if (process.env.NODE_ENV === 'production') {
-        return reply
-          .code(503)
-          .send({ error: 'Workspace manager shared secret is not configured', code: 'WORKSPACE_MANAGER_NOT_CONFIGURED' });
+        return reply.code(503).send({
+          error: 'Workspace manager shared secret is not configured',
+          code: 'WORKSPACE_MANAGER_NOT_CONFIGURED',
+        });
       }
 
       return; // dev/test convenience only
@@ -137,11 +139,14 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     const token = normalizeSharedSecret(value?.replace(/^Bearer\s+/i, ''));
 
     if (!token || !secretsMatch(token, expected)) {
-      return reply.code(401).send({ error: 'Unauthorized workspace manager request', code: 'WORKSPACE_MANAGER_UNAUTHORIZED' });
+      return reply
+        .code(401)
+        .send({ error: 'Unauthorized workspace manager request', code: 'WORKSPACE_MANAGER_UNAUTHORIZED' });
     }
   });
 
   app.get('/health', async () => ({ status: 'ok' }));
+
   /*
    * The MANAGER pod's runtimeNamespace() is the single source of truth for where
    * workspace pods live. start used to trust the request-body namespace while
@@ -156,6 +161,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   app.get('/workspaces/:workspaceId', async (request) => manager.store.get((request.params as any).workspaceId));
   app.get('/workspaces/:workspaceId/agent-token', async (request) => {
     const workspaceId = (request.params as any).workspaceId;
+
     /*
      * Minting a token means the api is about to act on the workspace for a user
      * — and the IDE's file/port watch pollers mint one every few seconds for the
@@ -164,22 +170,30 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
      * throttled so it never adds latency to the token mint.
      */
     void manager.touch(workspaceId).catch(() => undefined);
+
     return { token: manager.issueAgentToken(workspaceId) };
   });
-  // Explicit activity heartbeat for callers that keep a workspace open without
-  // minting tokens; same throttled bump as the agent-token side effect.
+
+  /*
+   * Explicit activity heartbeat for callers that keep a workspace open without
+   * minting tokens; same throttled bump as the agent-token side effect.
+   */
   app.post('/workspaces/:workspaceId/touch', async (request) => {
     const touched = await manager.touch((request.params as any).workspaceId);
     return { ok: true, lastActiveAt: touched?.lastActiveAt };
   });
   app.get('/workspaces/:workspaceId/logs', async (request) => {
     const logs = [];
+
     for await (const line of await manager.streamLogs(runtimeNamespace(), (request.params as any).workspaceId)) {
       logs.push(line);
     }
+
     return { logs };
   });
-  app.post('/workspaces/:workspaceId/stop', async (request) => manager.stopWorkspace(runtimeNamespace(), (request.params as any).workspaceId));
+  app.post('/workspaces/:workspaceId/stop', async (request) =>
+    manager.stopWorkspace(runtimeNamespace(), (request.params as any).workspaceId),
+  );
   app.post('/workspaces/:workspaceId/restart', async (request) =>
     manager.restartWorkspace({
       ...startSchema.parse(request.body),
@@ -187,12 +201,38 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       namespace: runtimeNamespace(),
     }),
   );
-  app.delete('/workspaces/:workspaceId', async (request) => manager.deleteWorkspace(runtimeNamespace(), (request.params as any).workspaceId));
+  app.delete('/workspaces/:workspaceId', async (request) =>
+    manager.deleteWorkspace(runtimeNamespace(), (request.params as any).workspaceId),
+  );
+
+  /*
+   * Live cluster-capacity snapshot for the admin Infrastructure view. The manager
+   * is the only tier with in-cluster kubectl credentials, so it gathers node /
+   * pod / metrics / autoscaler data here; the api proxies this and layers on
+   * alert thresholds. Read-only.
+   */
+  app.get('/capacity', async () =>
+    getClusterCapacity({
+      nodePool: process.env.WORKSPACE_NODE_POOL ?? 'sandbox-gvisor',
+      workspacesNamespace: runtimeNamespace(),
+      orgLabelKey: 'vibecore.ai/org-id',
+    }),
+  );
   app.post('/workspaces/gc', async (request) => {
-    const body = z.object({ namespace: z.string().default('workspaces'), inactiveMs: z.number().default(30 * 60_000), deleteMs: z.number().default(24 * 60 * 60_000) }).parse(request.body ?? {});
-    // GC against the manager's own namespace (single source of truth), not a
-    // caller-supplied one that could diverge and scan the wrong namespace.
+    const body = z
+      .object({
+        namespace: z.string().default('workspaces'),
+        inactiveMs: z.number().default(30 * 60_000),
+        deleteMs: z.number().default(24 * 60 * 60_000),
+      })
+      .parse(request.body ?? {});
+
+    /*
+     * GC against the manager's own namespace (single source of truth), not a
+     * caller-supplied one that could diverge and scan the wrong namespace.
+     */
     await manager.garbageCollect(runtimeNamespace(), body.inactiveMs, body.deleteMs);
+
     return { ok: true };
   });
   app.get('/internal/workspaces/:workspaceId/agent', async (request, reply) => {
@@ -235,8 +275,10 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
         return reply.code(403).send({ error: 'Preview access denied', code: 'WORKSPACE_TENANT_FORBIDDEN' });
       }
     } else if (requesterOrgId && requesterOrgId !== workspace.orgId) {
-      // Enforcement off but a mismatching orgId was supplied — still deny; this
-      // can only happen once preview-proxy is sending the cookie-derived org.
+      /*
+       * Enforcement off but a mismatching orgId was supplied — still deny; this
+       * can only happen once preview-proxy is sending the cookie-derived org.
+       */
       return reply.code(403).send({ error: 'Preview access denied', code: 'WORKSPACE_TENANT_FORBIDDEN' });
     }
 
@@ -281,11 +323,13 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   app.post('/databases/apply', async (request, reply) => {
     const { manifest } = z
       .object({
-        manifest: z.object({
-          apiVersion: z.string(),
-          kind: z.string(),
-          metadata: z.object({ name: z.string(), namespace: z.string().optional() }).passthrough(),
-        }).passthrough(),
+        manifest: z
+          .object({
+            apiVersion: z.string(),
+            kind: z.string(),
+            metadata: z.object({ name: z.string(), namespace: z.string().optional() }).passthrough(),
+          })
+          .passthrough(),
       })
       .parse(request.body ?? {});
 
@@ -296,7 +340,9 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     }
 
     if (!/^postgresql\.cnpg\.io\//.test(manifest.apiVersion)) {
-      return reply.code(403).send({ error: 'Only CloudNativePG resources are permitted', code: 'DB_RESOURCE_FORBIDDEN' });
+      return reply
+        .code(403)
+        .send({ error: 'Only CloudNativePG resources are permitted', code: 'DB_RESOURCE_FORBIDDEN' });
     }
 
     await manager.k8s.apply(manifest as any);
@@ -331,14 +377,18 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   app.get('/databases/secret', async (request, reply) => {
     const { namespace, name } = z.object({ namespace: z.string(), name: z.string() }).parse(request.query ?? {});
 
-    // Per-project CNPG connection secrets (`db-*-app`/`db-*-conn`) plus the
-    // shared free-tier cluster's admin secret (`shared-pg-N-app`), which the api
-    // reads to provision shared tenants. Never arbitrary secrets.
+    /*
+     * Per-project CNPG connection secrets (`db-*-app`/`db-*-conn`) plus the
+     * shared free-tier cluster's admin secret (`shared-pg-N-app`), which the api
+     * reads to provision shared tenants. Never arbitrary secrets.
+     */
     if (namespace !== DB_ROLLBACK_NAMESPACE || !/^(db-[a-z0-9-]+|shared-pg-[0-9]+)-(app|conn)$/.test(name)) {
       return reply.code(403).send({ error: 'Secret not permitted', code: 'DB_SECRET_FORBIDDEN' });
     }
 
-    const resource = (await manager.k8s.get('Secret', namespace, name)) as { data?: Record<string, string> } | undefined;
+    const resource = (await manager.k8s.get('Secret', namespace, name)) as
+      | { data?: Record<string, string> }
+      | undefined;
 
     if (!resource?.data) {
       return reply.code(404).send({ error: 'Not found', code: 'DB_SECRET_NOT_FOUND' });

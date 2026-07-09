@@ -1,0 +1,73 @@
+{{- if (index .Values.services "workspaceManager" "enabled") }}
+{{- /*
+  Read-only cluster access for the admin Infrastructure (capacity) view. Only the
+  workspace-manager gathers this (it is the tier with in-cluster kubectl creds);
+  the api proxies its /capacity endpoint. Grants:
+    - get/list nodes + pods (core, cluster-wide) for allocatable + scheduled requests
+    - get/list nodes + pods (metrics.k8s.io) for `kubectl top` (live usage)
+    - get the single cluster-autoscaler-status configmap in kube-system (min/max/current)
+  Everything is read-only; no write/patch/delete verbs are granted.
+*/}}
+{{- $saName := printf "%s-workspace-manager" (include "vibecore-platform.fullname" .) }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "vibecore-platform.fullname" . }}-capacity-reader
+  labels:
+    app.kubernetes.io/name: capacity-reader
+    app.kubernetes.io/part-of: {{ include "vibecore-platform.fullname" . }}
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "pods"]
+    verbs: ["get", "list"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes", "pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "vibecore-platform.fullname" . }}-capacity-reader
+  labels:
+    app.kubernetes.io/name: capacity-reader
+    app.kubernetes.io/part-of: {{ include "vibecore-platform.fullname" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "vibecore-platform.fullname" . }}-capacity-reader
+subjects:
+  - kind: ServiceAccount
+    name: {{ $saName }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "vibecore-platform.fullname" . }}-autoscaler-status-reader
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: capacity-reader
+    app.kubernetes.io/part-of: {{ include "vibecore-platform.fullname" . }}
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["cluster-autoscaler-status"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "vibecore-platform.fullname" . }}-autoscaler-status-reader
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: capacity-reader
+    app.kubernetes.io/part-of: {{ include "vibecore-platform.fullname" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "vibecore-platform.fullname" . }}-autoscaler-status-reader
+subjects:
+  - kind: ServiceAccount
+    name: {{ $saName }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

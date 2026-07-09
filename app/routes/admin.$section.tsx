@@ -2,6 +2,7 @@ import { AlertTriangle, BarChart3, CheckCircle2, Database, ShieldCheck } from 'l
 import React, { useEffect, useMemo, useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Link, useFetcher, useLoaderData, useNavigate, useNavigation, useSearchParams } from 'react-router';
+import { InfrastructurePanel } from '~/components/admin/InfrastructurePanel';
 import { SupportTicketsPanel } from '~/components/admin/SupportTicketsPanel';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 import { ConfirmationDialog, Dialog, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
@@ -73,6 +74,13 @@ const adminSections: Record<string, AdminSectionConfig> = {
     description: 'Runtime workspace sessions and current states.',
     endpoint: '/admin/workspaces',
     primaryKey: 'workspaces',
+  },
+  infrastructure: {
+    title: 'Infrastructure',
+    description:
+      'Live cluster capacity: running workspaces, pods, CPU/RAM used vs reserved, node count vs autoscaling max, autoscaling state, idle-stopped workspaces. Alerts when the pool approaches its ceiling. Read-only.',
+
+    // Self-loaded from /admin/capacity (workspace-manager kubectl + metrics-server).
   },
   terminals: {
     title: 'Terminals',
@@ -238,7 +246,7 @@ const adminSections: Record<string, AdminSectionConfig> = {
 const navGroups: Array<{ label: string; items: string[] }> = [
   {
     label: 'Platform',
-    items: ['overview', 'health', 'monitoring', 'projects', 'workspaces', 'previews', 'deployments'],
+    items: ['overview', 'health', 'monitoring', 'infrastructure', 'projects', 'workspaces', 'previews', 'deployments'],
   },
   {
     label: 'People',
@@ -391,6 +399,19 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       platformMetricsError: platformMetrics.status === 'rejected',
       liveProbe,
     };
+
+    return { section, config, payload, securityOpenCount: await securityOpenCountPromise };
+  }
+
+  /*
+   * Infrastructure: the api combines the workspace-manager's live cluster
+   * snapshot with configurable alert thresholds. Tolerant load — a momentary
+   * manager/metrics outage renders the "unavailable" state, not a 500.
+   */
+  if (section === 'infrastructure') {
+    const payload = await apiRequest<Record<string, JsonValue>>(request, '/admin/capacity').catch(() => ({
+      available: false,
+    }));
 
     return { section, config, payload, securityOpenCount: await securityOpenCountPromise };
   }
@@ -1198,6 +1219,7 @@ export default function AdminSectionPage() {
           {section === 'overview' ? <OverviewPanel payload={payload} /> : null}
           {section === 'health' ? <HealthPanel payload={payload} /> : null}
           {section === 'monitoring' ? <MonitoringPanel payload={payload} /> : null}
+          {section === 'infrastructure' ? <InfrastructurePanel payload={payload as never} /> : null}
           {section === 'users' ? <UsersPanel payload={payload} /> : null}
           {section === 'providers' ? <ProvidersPanel payload={payload} /> : null}
           {section === 'models' ? <ToggleListPanel payload={payload} kind="models" /> : null}

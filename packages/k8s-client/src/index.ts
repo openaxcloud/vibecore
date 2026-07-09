@@ -5,6 +5,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
+import { parseClusterCapacity, type ClusterCapacity } from './cluster-capacity.js';
+
+export * from './cluster-capacity.js';
+
 const execFile = promisify(execFileCallback);
 
 /*
@@ -760,4 +764,66 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
       yield line;
     }
   }
+}
+
+/**
+ * Live cluster-capacity snapshot for the admin Infrastructure view. Runs a
+ * handful of read-only `kubectl` commands (nodes, pods, `top`, and the
+ * cluster-autoscaler status configmap) with the pod's in-cluster credentials,
+ * then delegates the number-crunching to the pure `parseClusterCapacity`.
+ *
+ * `run` is injectable so the orchestration is unit-testable without a cluster;
+ * production uses the real kubectl exec. `top` and the autoscaler configmap are
+ * best-effort (metrics-server can briefly be unavailable) — the snapshot still
+ * returns node/pod/request data with used metrics zeroed and autoscaling null.
+ */
+export interface ClusterCapacityOptions {
+  nodePool: string;
+  workspacesNamespace: string;
+  orgLabelKey?: string;
+  kubectl?: string;
+  run?: (args: string[]) => Promise<string>;
+}
+
+export async function getClusterCapacity(options: ClusterCapacityOptions): Promise<ClusterCapacity> {
+  const bin = options.kubectl ?? process.env.KUBECTL_BIN ?? 'kubectl';
+  const configArgs = resolveInClusterKubeconfigArgs();
+
+  const run =
+    options.run ??
+    (async (args: string[]) => {
+      const { stdout } = await execFile(bin, [...configArgs, ...args, `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`], {
+        timeout: KUBECTL_TIMEOUT_MS,
+        maxBuffer: 64 * 1024 * 1024,
+      });
+
+      return stdout;
+    });
+
+  const [nodesRaw, podsRaw, topNodes, autoscalerStatus] = await Promise.all([
+    run(['get', 'nodes', '-o', 'json']),
+    run(['get', 'pods', '-A', '-o', 'json']),
+    run(['top', 'nodes', '--no-headers']).catch(() => ''),
+    run(['-n', 'kube-system', 'get', 'configmap', 'cluster-autoscaler-status', '-o', 'jsonpath={.data.status}']).catch(
+      () => '',
+    ),
+  ]);
+
+  const safeParse = (raw: string): { items?: unknown[] } => {
+    try {
+      return JSON.parse(raw || '{}');
+    } catch {
+      return {};
+    }
+  };
+
+  return parseClusterCapacity({
+    nodes: safeParse(nodesRaw) as Parameters<typeof parseClusterCapacity>[0]['nodes'],
+    pods: safeParse(podsRaw) as Parameters<typeof parseClusterCapacity>[0]['pods'],
+    topNodes,
+    autoscalerStatus,
+    nodePool: options.nodePool,
+    workspacesNamespace: options.workspacesNamespace,
+    orgLabelKey: options.orgLabelKey,
+  });
 }

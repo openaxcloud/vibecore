@@ -2,8 +2,8 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, createHmac, createVerify, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
 import { dirname, extname, join, sep, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import { signObjectStorageAccessToken, verifyObjectStorageAccessToken } from '@e-code/sdk';
@@ -51,6 +51,7 @@ import {
   type PlanKey,
   type QuotaKey,
 } from '@vibecore/billing';
+import { evaluateCapacityAlerts, DEFAULT_CAPACITY_ALERT_THRESHOLDS, type ClusterCapacity } from '@vibecore/k8s-client';
 import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSeconds } from '@vibecore/observability';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import {
@@ -116,6 +117,14 @@ import {
   retentionFloorMs,
   validateRestoreTarget,
 } from './database-rollback-service.js';
+import { enqueueDeployBuildJob } from './deploy-queue.js';
+import { reapStaleDeployments, resolveDeployBuildTimeoutMs } from './deploy-reaper.js';
+import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
+import {
+  detectPodPackageManager,
+  runWorkspaceStaticBuild,
+  type WorkspaceStaticBuildResult,
+} from './deploy-workspace-build.js';
 import { shouldRecordDeploymentUsage } from './deployment-billing.js';
 import {
   assertDeploymentRequestAllowed,
@@ -142,14 +151,6 @@ import {
   type RunStaticBuildResult,
   type StaticBuildLog,
 } from './deployments.js';
-import {
-  detectPodPackageManager,
-  runWorkspaceStaticBuild,
-  type WorkspaceStaticBuildResult,
-} from './deploy-workspace-build.js';
-import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
-import { enqueueDeployBuildJob } from './deploy-queue.js';
-import { reapStaleDeployments, resolveDeployBuildTimeoutMs } from './deploy-reaper.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
 import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
 import {
@@ -203,7 +204,6 @@ import {
   PROJECT_THUMBNAIL_KEY,
   resolveDefaultObjectStorage,
 } from './object-storage.js';
-import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
 import { PrismaApiStore } from './prisma-store.js';
 import {
   decodeFileContent,
@@ -219,8 +219,8 @@ import {
 } from './project-storage.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
-import { SKILL_REPO_CATALOG, findRepoEntry, normalizeOwnerRepo } from './skills-repo-catalog.js';
 import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
+import { SKILL_REPO_CATALOG, findRepoEntry, normalizeOwnerRepo } from './skills-repo-catalog.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
 import {
   API_KEY_SCOPES,
@@ -244,6 +244,7 @@ import {
   higherConsequence,
   permissionsForAction,
 } from './strike-system.js';
+import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -283,6 +284,7 @@ export interface ApiAppOptions {
 
   /** Override the per-project object storage backend (tests inject a fake). */
   objectStorage?: ObjectStorage;
+
   /** Injectable for tests; defaults to an env-configured (inert-unless-set) capturer. */
   thumbnailCapturer?: ThumbnailCapturer;
   gitProvider?: GitProvider;
@@ -392,6 +394,7 @@ const contactSalesSchema = z
     teamSize: z.string().trim().max(32).optional(),
     requirements: z.string().trim().min(1).max(5000),
     pagePath: z.string().trim().max(300).optional(),
+
     /** General-contact routing topic ("General", "Support", "Press", ...). */
     topic: z.string().trim().min(1).max(100).optional(),
   })
@@ -580,8 +583,11 @@ const projectSettingsSchema = z.object({
   description: z.string().optional(),
   gitRepositoryUrl: gitRemoteUrlSchema.optional(),
   gitDefaultBranch: z.string().min(1).optional(),
-  // F13: optional slug rename. Free-form here (2–160 chars); the route
-  // slugifies it into canonical form and rejects a value that normalizes empty.
+
+  /*
+   * F13: optional slug rename. Free-form here (2–160 chars); the route
+   * slugifies it into canonical form and rejects a value that normalizes empty.
+   */
   slug: z.string().min(2).max(160).optional(),
 });
 const projectIdeStateSchema = z.object({
@@ -605,6 +611,7 @@ const skillParams = z.object({
 const installedSkillScope = z.enum(['project', 'workspace']);
 const skillCatalogQuery = z.object({ q: z.string().max(120).optional() });
 const skillInstalledQuery = z.object({ scope: installedSkillScope.default('project') });
+
 const skillInstallBody = z.object({
   ownerRepo: z.string().min(1).max(220),
   scope: installedSkillScope.default('project'),
@@ -817,9 +824,11 @@ const projectKeyValueSchema = z.object({
 
 const projectKeySchema = projectKeyValueSchema.pick({ key: true });
 
-// Environment variables additionally carry a deployment scope (F11). Scope is
-// optional on the wire so pre-scope clients keep working; it defaults to
-// production in the store when omitted.
+/*
+ * Environment variables additionally carry a deployment scope (F11). Scope is
+ * optional on the wire so pre-scope clients keep working; it defaults to
+ * production in the store when omitted.
+ */
 const envVarScopeSchema = z.enum(['development', 'preview', 'production']);
 const projectEnvVarUpsertSchema = projectKeyValueSchema.extend({ scope: envVarScopeSchema.optional() });
 const projectEnvVarDeleteSchema = projectKeySchema.extend({ scope: envVarScopeSchema.optional() });
@@ -832,7 +841,9 @@ const projectEnvVarDeleteSchema = projectKeySchema.extend({ scope: envVarScopeSc
  * finally preview. This keeps behaviour identical for existing production-only
  * rows while letting a development-scoped override apply in the workspace.
  */
-function collapseEnvForWorkspace(records: Array<{ key: string; value: string; scope?: string }>): Record<string, string> {
+function collapseEnvForWorkspace(
+  records: Array<{ key: string; value: string; scope?: string }>,
+): Record<string, string> {
   const priority: Record<string, number> = { development: 3, production: 2, preview: 1 };
   const winners = new Map<string, { value: string; rank: number }>();
 
@@ -847,6 +858,7 @@ function collapseEnvForWorkspace(records: Array<{ key: string; value: string; sc
 
   return Object.fromEntries([...winners.entries()].map(([key, { value }]) => [key, value]));
 }
+
 const databaseConnectionQuerySchema = z.object({ key: z.string().min(1).max(160) });
 
 const databaseQuerySchema = z.object({
@@ -1063,16 +1075,19 @@ const pullRequestSchema = z.object({
 });
 
 const deploymentActionParams = projectParams.extend({ deploymentId: z.string().min(1) });
+
 /*
  * Support ticket categories surfaced in the /support form. Kept as a plain
  * string on the record (persisted in SupportTicket.metadata — no migration)
  * so adding a category is a one-line change here + in the form options.
  */
 const SUPPORT_TICKET_CATEGORIES = ['runtime', 'billing', 'security', 'account', 'other'] as const;
+
 const createTicketSchema = z.object({
   subject: z.string().min(1),
   category: z.enum(SUPPORT_TICKET_CATEGORIES).default('other'),
 });
+
 // I25: ticket-detail params + reply body for the real conversation thread.
 const orgTicketParams = orgParams.extend({ ticketId: z.string().min(1) });
 const createTicketMessageSchema = z.object({ body: z.string().min(1).max(10_000) });
@@ -1212,6 +1227,7 @@ const samlConfigSchema = z.object({
   x509Certificate: z.string().min(32),
   enabled: z.boolean().default(true),
 });
+
 const ssoTestParams = z.object({ orgId: z.string().min(1), type: z.enum(['oidc', 'saml']) });
 const ssoEnforcementSchema = z.object({ enforced: z.boolean() });
 
@@ -1305,6 +1321,7 @@ const integrationFeatureRequestCreateSchema = z.object({
 
 const aiMessageFeedbackSchema = z.object({
   messageId: z.string().trim().min(1).max(256),
+
   // 'up' | 'down' records/changes the vote; null retracts it (thumb toggled off).
   vote: z.enum(['up', 'down']).nullable(),
   chatId: z.string().trim().min(1).max(256).optional(),
@@ -2027,6 +2044,7 @@ function buildSsoEnforcementView(settings: SsoEnforcementSettings, now = Date.no
     enforcedAt: settings.ssoEnforcedAt ?? null,
     graceDays: SSO_ENFORCEMENT_GRACE_DAYS,
     graceDeadline,
+
     // `active` = enforcement is on AND the grace window has elapsed (login-blocking is live).
     active: Boolean(graceDeadline && now >= new Date(graceDeadline).getTime()),
   };
@@ -2050,8 +2068,10 @@ async function reachUrl(
 
   try {
     const response = await fetch(url, {
-      // GET (not HEAD) — some discovery/SSO endpoints reject HEAD. redirect:'manual'
-      // so a 3xx cannot bounce this in-cluster pod to an internal target.
+      /*
+       * GET (not HEAD) — some discovery/SSO endpoints reject HEAD. redirect:'manual'
+       * so a 3xx cannot bounce this in-cluster pod to an internal target.
+       */
       method: 'GET',
       redirect: 'manual',
       headers: { accept: 'application/json' },
@@ -2161,6 +2181,7 @@ async function runSamlConnectionChecks(config: {
 
   // Well-formed PEM check only — the certificate body is NEVER echoed back.
   const cert = config.x509Certificate ?? '';
+
   const certBody = cert
     .replace(/-----BEGIN CERTIFICATE-----/g, '')
     .replace(/-----END CERTIFICATE-----/g, '')
@@ -2183,7 +2204,9 @@ async function runSamlConnectionChecks(config: {
   checks.push({
     name: 'SSO URL',
     ok: ssoSafe,
-    detail: ssoSafe ? 'SSO URL is a valid HTTPS URL to a public host.' : 'SSO URL must be an HTTPS URL to a public host.',
+    detail: ssoSafe
+      ? 'SSO URL is a valid HTTPS URL to a public host.'
+      : 'SSO URL must be an HTTPS URL to a public host.',
   });
 
   if (!ssoSafe) {
@@ -2199,6 +2222,7 @@ async function runSamlConnectionChecks(config: {
   const result = await reachUrl(ssoUrl);
   checks.push({
     name: 'SSO endpoint reachable',
+
     // Any HTTP response (incl. 3xx/4xx) proves reachability; only a network error/timeout fails.
     ok: result.ok,
     detail: result.ok
@@ -7189,6 +7213,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const projectStorage = options.projectStorage ?? new LocalProjectStorage();
   const gitProvider = options.gitProvider ?? new GitCliProvider();
   const staticBuildRunner = options.staticBuildRunner ?? runStaticBuild;
+
   /*
    * When a caller injects its own staticBuildRunner (unit/integration tests), it
    * wants the in-process build path — skip the workspace-pod build entirely so
@@ -7840,6 +7865,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         message: body.requirements,
         pagePath: body.pagePath,
       });
+
       const reference = record.id.slice(0, 8).toUpperCase();
 
       /*
@@ -7851,8 +7877,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       try {
         await emailProvider.send({
-          // General messages go to the contact inbox when one is configured;
-          // sales leads keep going to the sales inbox.
+          /*
+           * General messages go to the contact inbox when one is configured;
+           * sales leads keep going to the sales inbox.
+           */
           to: isGeneralContact
             ? (process.env.CONTACT_EMAIL_TO ??
               process.env.SALES_EMAIL_TO ??
@@ -7868,8 +7896,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             body.name ? `Name: ${body.name}` : undefined,
             body.company ? `Company: ${body.company}` : undefined,
             body.topic ? `Topic: ${body.topic}` : undefined,
-            // "not provided" is only meaningful on a sales lead; the general
-            // form never asks for a team size, so the line is omitted there.
+
+            /*
+             * "not provided" is only meaningful on a sales lead; the general
+             * form never asks for a team size, so the line is omitted there.
+             */
             isGeneralContact ? undefined : `Team size: ${body.teamSize ?? 'not provided'}`,
             body.pagePath ? `Page: ${body.pagePath}` : undefined,
             '',
@@ -12312,7 +12343,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       token,
       deadlineMs: Math.max(1, body.timeoutSeconds) * 1000,
       wsFactory: (url) => new WebSocketCtor(url),
-      agentGet: <T,>(path: string) => agentRequest<T>(workspaceId, path, { method: 'GET' }),
+      agentGet: <T>(path: string) => agentRequest<T>(workspaceId, path, { method: 'GET' }),
     });
 
     // Detect the package manager from the pod's lockfiles (probe; absent read throws).
@@ -16372,6 +16403,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .send({ invitation: { ...invitation, tokenHash: undefined }, token: isProduction ? undefined : token });
     },
   );
+
   /*
    * Per-invite resend cooldown (1/minute) so a member manager cannot spam the
    * invitee's inbox by clicking Resend repeatedly. Same in-process bucket idiom
@@ -17034,6 +17066,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       test: true,
       message: 'Test event from E-Code SIEM webhook configuration.',
     });
+
     const signature = createHmac('sha256', secret).update(body).digest('hex');
 
     const controller = new AbortController();
@@ -17129,6 +17162,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ project });
   });
+
   /*
    * Contextualised "next steps" welcome the agent shows when a template project is
    * opened (so the agent panel isn't empty). Derived from the template id — no made-up
@@ -17213,8 +17247,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
 
-    // Seed a contextualised agent welcome so the IDE opens with "next steps", not an
-    // empty agent panel. Non-fatal — never fail project creation on a seeding hiccup.
+    /*
+     * Seed a contextualised agent welcome so the IDE opens with "next steps", not an
+     * empty agent panel. Non-fatal — never fail project creation on a seeding hiccup.
+     */
     try {
       const conversation = await store.createAiConversation({
         projectId: project.id,
@@ -18149,8 +18185,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return workspace.id;
   };
 
-  // Community catalog: curated public skill repos + live install counts + whether
-  // installed in this project or its workspace. Optional ?q= filters name/desc/repo.
+  /*
+   * Community catalog: curated public skill repos + live install counts + whether
+   * installed in this project or its workspace. Optional ?q= filters name/desc/repo.
+   */
   app.get('/projects/:projectId/skills/catalog', async (request) => {
     const project = await requireProject(
       request,
@@ -18158,6 +18196,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const { q } = parse(skillCatalogQuery, request.query);
 
     const [counts, projectInstalls, workspaceScopeId] = await Promise.all([
@@ -18165,14 +18204,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       store.listInstalledSkills('project', project.id),
       (async () => (await store.listWorkspaces(project.id).catch(() => []))[0]?.id ?? null)(),
     ]);
-    const workspaceInstalls = workspaceScopeId
-      ? await store.listInstalledSkills('workspace', workspaceScopeId)
-      : [];
+
+    const workspaceInstalls = workspaceScopeId ? await store.listInstalledSkills('workspace', workspaceScopeId) : [];
 
     const projectSet = new Set(projectInstalls.map((row) => row.ownerRepo));
     const workspaceSet = new Set(workspaceInstalls.map((row) => row.ownerRepo));
 
     const needle = q?.trim().toLowerCase();
+
     const entries = SKILL_REPO_CATALOG.filter((entry) => {
       if (!needle) {
         return true;
@@ -18206,6 +18245,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const scope = parse(skillInstalledQuery, request.query).scope ?? 'project';
 
     const scopeId = await resolveSkillScopeId(scope, project, reply);
@@ -18217,8 +18257,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.send({ scope, skills: await store.listInstalledSkills(scope, scopeId) });
   });
 
-  // Install a public GitHub-repo skill: validate owner/repo, fetch instructions
-  // server-side (SSRF-guarded to raw.githubusercontent.com), persist the row.
+  /*
+   * Install a public GitHub-repo skill: validate owner/repo, fetch instructions
+   * server-side (SSRF-guarded to raw.githubusercontent.com), persist the row.
+   */
   app.post('/projects/:projectId/skills/install', async (request, reply) => {
     const project = await requireProject(
       request,
@@ -18226,6 +18268,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(skillInstallBody, request.body);
     const scope = body.scope ?? 'project';
 
@@ -18309,6 +18352,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(skillUninstallBody, request.body);
     const scope = body.scope ?? 'project';
 
@@ -18341,6 +18385,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(skillToggleBody, request.body);
     const scope = body.scope ?? 'project';
 
@@ -18382,6 +18427,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const { slug: requestedSlug, ...metadata } = parse(projectSettingsSchema, request.body);
+
     let updated = await store.updateProject({ projectId: project.id, ...metadata });
 
     /*
@@ -18518,6 +18564,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(projectEnvVarUpsertSchema, request.body);
+
     const envVar = await store.upsertProjectEnvVar({
       projectId: project.id,
       key: body.key,
@@ -20363,6 +20410,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ snapshot });
   });
+
   /*
    * Dry-run diffstat for a snapshot restore (E25). Compares the snapshot's
    * archived files against the project's CURRENT files so the UI can show what
@@ -20393,6 +20441,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const added: Array<{ path: string; sizeBytes: number }> = [];
     const changed: Array<{ path: string; sizeBytes: number }> = [];
     const removed: Array<{ path: string; sizeBytes: number }> = [];
+
     let unchanged = 0;
 
     for (const file of snapshotFiles) {
@@ -20460,12 +20509,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const currentFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
     const safetyLabel = `Before restore of ${snapshot.label ?? snapshot.id}`;
+
     const safetyArchive = await projectStorage.createSnapshot({
       projectId: project.id,
       label: safetyLabel,
       files: currentFiles,
     });
     await persistProjectArchiveObject(safetyArchive, { projectId: project.id, kind: 'snapshot' });
+
     const safetySnapshot = await store.createSnapshot({
       projectId: project.id,
       label: safetyLabel,
@@ -20834,6 +20885,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const orgBlocksExternalAi =
       (await store.findFeatureFlag('block_external_ai', project.organizationId).catch(() => undefined))?.enabled ===
       true;
+
     const byokAllowed = !forceManaged && !orgBlocksExternalAi && byokAllowedPlans.includes(plan.key);
 
     return {
@@ -21345,6 +21397,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     // Org AI policy: block external AI-model integrations (BYOK) org-wide.
     const blockExternalAi =
       (await store.findFeatureFlag('block_external_ai', orgId).catch(() => undefined))?.enabled === true;
+
     const entitled = subscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(subscription.status);
 
     let periodEndIso: string | undefined;
@@ -21445,6 +21498,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrg(request, store, orgId, 'usage:read');
 
     const [limits, members] = await Promise.all([store.listUserSpendLimits(orgId), store.listMembers(orgId)]);
+
     return { limits, members };
   });
 
@@ -21473,6 +21527,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         resourceId: userId,
         metadata: {},
       });
+
       return { userId, limitCents: null };
     }
 
@@ -21484,6 +21539,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: userId,
       metadata: { limitCents: record.limitCents },
     });
+
     return { userId, limitCents: record.limitCents };
   });
 
@@ -21498,6 +21554,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrg(request, store, orgId, 'billing:manage');
 
     const body = parse(z.object({ blockExternalAi: z.boolean() }), request.body ?? {});
+
     const flag = await store.setFeatureFlag({
       organizationId: orgId,
       key: 'block_external_ai',
@@ -21823,6 +21880,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       plans: await store.listBillingPlans(),
     };
   });
+
   /*
    * Core Stripe webhook processing, shared by the live webhook route (below)
    * and the admin replay endpoints (/admin/stripe/webhook-failures/*). The
@@ -22464,6 +22522,47 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { workspaces: await store.listAdminWorkspaces() };
   });
 
+  /*
+   * Admin Infrastructure view: live cluster capacity + autoscaling state, with
+   * configurable alert thresholds. The workspace-manager gathers the raw k8s
+   * numbers (it holds the in-cluster kubectl creds); we layer on the DB-derived
+   * idle-stopped count and evaluate alerts against admin-tunable thresholds
+   * (System settings: capacity.alertNodePct / capacity.alertReservedCpuPct, as
+   * percentages). Degrades gracefully to available:false if the manager or
+   * metrics are momentarily unreachable rather than 500-ing the admin page.
+   */
+  app.get('/admin/capacity', async (request) => {
+    await requirePlatformAdmin(request);
+
+    const capacity = await managerRequest<ClusterCapacity>('/capacity').catch(() => null);
+
+    const settings = await store.listSystemSettings();
+
+    const pctSetting = (key: string, fallbackRatio: number) => {
+      const raw = Number(settings.find((setting) => setting.key === key)?.value);
+
+      // Stored as a percentage (e.g. 80); fall back to the default ratio × 100.
+      return Number.isFinite(raw) && raw > 0 && raw <= 100 ? raw / 100 : fallbackRatio;
+    };
+
+    const thresholds = {
+      nodePctOfMax: pctSetting('capacity.alertNodePct', DEFAULT_CAPACITY_ALERT_THRESHOLDS.nodePctOfMax),
+      reservedCpuRatio: pctSetting('capacity.alertReservedCpuPct', DEFAULT_CAPACITY_ALERT_THRESHOLDS.reservedCpuRatio),
+    };
+
+    const workspaces = await store.listAdminWorkspaces().catch(() => []);
+    const idleStopped = workspaces.filter((workspace) => workspace.status === 'STOPPED').length;
+
+    return {
+      available: capacity !== null,
+      capacity,
+      idleStopped,
+      thresholds,
+      alerts: capacity ? evaluateCapacityAlerts(capacity, thresholds) : [],
+      generatedAt: new Date().toISOString(),
+    };
+  });
+
   app.get('/admin/terminals', async (request) => {
     await requirePlatformAdmin(request);
 
@@ -22501,6 +22600,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const settings = await store.listSystemSettings();
     const ttlSetting = settings.find((setting) => setting.key === 'preview.defaultTtlMinutes');
     const parsed = Number(ttlSetting?.value);
+
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 120;
   };
 
@@ -22618,9 +22718,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const configs = (await store.listProviderConfigs()).filter((p) => KNOWN_LLM_PROVIDER_SET.has(p.provider));
     const byName = new Map(configs.map((p) => [p.provider, p] as const));
     const saved = (await store.listSystemSettings()).find((s) => s.key === 'providers.fallbackOrder')?.value;
+
     const savedOrder = Array.isArray(saved)
       ? saved.filter((value): value is string => typeof value === 'string' && byName.has(value))
       : [];
+
     const order = [...savedOrder, ...KNOWN_LLM_PROVIDERS.filter((name) => !savedOrder.includes(name))];
 
     return {
@@ -22664,9 +22766,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const byName = new Map((await store.listProviderConfigs()).map((p) => [p.provider, p.enabled] as const));
     const saved = (await store.listSystemSettings()).find((s) => s.key === 'providers.fallbackOrder')?.value;
+
     const savedOrder = Array.isArray(saved)
       ? saved.filter((value): value is string => typeof value === 'string' && KNOWN_LLM_PROVIDER_SET.has(value))
       : [];
+
     const order = [...savedOrder, ...KNOWN_LLM_PROVIDERS.filter((name) => !savedOrder.includes(name))];
 
     return { providers: order.filter((name) => byName.get(name) !== false) };
@@ -22685,6 +22789,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       z.object({ provider: z.string().min(1), modelId: z.string().min(1), enabled: z.boolean() }),
       request.body ?? {},
     );
+
     const allModels = await store.listModelConfigs();
     const existing = allModels.find((m) => m.provider === body.provider && m.modelId === body.modelId);
 
@@ -23056,6 +23161,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { eventId: failure.eventId, type: failure.type, ok: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+
       const updated = await store
         .recordStripeWebhookFailure({
           eventId: failure.eventId,
@@ -23090,8 +23196,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const failures = await store.listStripeWebhookFailures({ limit: 50 });
     const results: Array<{ eventId: string; type: string; ok: boolean; attempts?: number; error?: string }> = [];
 
-    // Sequential on purpose: replays share subscription rows; parallel replays
-    // of the same org's events could interleave upserts out of order.
+    /*
+     * Sequential on purpose: replays share subscription rows; parallel replays
+     * of the same org's events could interleave upserts out of order.
+     */
     for (const failure of failures) {
       results.push(await replayStripeWebhookFailure(request, failure));
     }
@@ -23186,7 +23294,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.get('/admin/wallets/:organizationId/ledger', async (request) => {
     await requirePlatformAdmin(request);
+
     const { organizationId } = parse(z.object({ organizationId: z.string().min(1) }), request.params);
+
     return { ledger: await store.listCreditLedger(organizationId, { take: 100 }) };
   });
 
@@ -23208,9 +23318,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           .number()
           .int()
           .refine((value) => value !== 0, { message: 'deltaCents must be a non-zero integer' }),
-        // Optional at the schema layer so both a missing AND a whitespace-only
-        // reason fall through to the explicit check below, which rejects with the
-        // specific WALLET_ADJUST_REASON_REQUIRED code (not the generic zod 400).
+
+        /*
+         * Optional at the schema layer so both a missing AND a whitespace-only
+         * reason fall through to the explicit check below, which rejects with the
+         * specific WALLET_ADJUST_REASON_REQUIRED code (not the generic zod 400).
+         */
         reason: z.string().max(500).optional(),
       }),
       request.body ?? {},
@@ -23225,10 +23338,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const reason = (body.reason ?? '').trim();
 
     if (!reason) {
-      throw Object.assign(new Error('A reason is required for wallet adjustments — it is recorded in the audit trail.'), {
-        statusCode: 400,
-        code: 'WALLET_ADJUST_REASON_REQUIRED',
-      });
+      throw Object.assign(
+        new Error('A reason is required for wallet adjustments — it is recorded in the audit trail.'),
+        {
+          statusCode: 400,
+          code: 'WALLET_ADJUST_REASON_REQUIRED',
+        },
+      );
     }
 
     const { entry, balanceCents } = await store.recordCreditEntry({
@@ -23262,11 +23378,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/admin/checkpoints/storage', async (request) => {
     await requirePlatformAdmin(request);
 
-    const query = parse(z.object({ olderThanDays: z.coerce.number().int().positive().optional() }), request.query ?? {});
+    const query = parse(
+      z.object({ olderThanDays: z.coerce.number().int().positive().optional() }),
+      request.query ?? {},
+    );
+
     const settings = await store.listSystemSettings();
     const settingDays = Number(settings.find((setting) => setting.key === 'checkpoints.retentionDays')?.value);
-    const retentionDays =
-      query.olderThanDays ?? (Number.isFinite(settingDays) && settingDays > 0 ? settingDays : 90);
+
+    const retentionDays = query.olderThanDays ?? (Number.isFinite(settingDays) && settingDays > 0 ? settingDays : 90);
+
     const cutoff = new Date(Date.now() - retentionDays * 86_400_000).toISOString();
 
     const byOrg = await store.summarizeAgentCheckpoints();
@@ -23372,9 +23493,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (/lockout|locked|breach|compromise|suspend|revoke|disable/i.test(action)) {
         return 'high';
       }
+
       if (/fail|invalid|denied|mfa|reauth|reset|expired/i.test(action)) {
         return 'medium';
       }
+
       return 'low';
     };
 
@@ -23403,6 +23526,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const { id: auditLogId } = parse(z.object({ id: z.string().min(1) }), request.params);
     const body = parse(z.object({ note: z.string().max(2000).optional() }), request.body ?? {});
+
     const resolution = await store.resolveSecurityEvent({
       auditLogId,
       note: body.note,
@@ -23567,19 +23691,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const dayMs = 86_400_000;
     const nowMs = Date.now();
     const days: string[] = [];
+
     for (let offset = DAYS - 1; offset >= 0; offset -= 1) {
       days.push(new Date(nowMs - offset * dayMs).toISOString().slice(0, 10));
     }
+
     const dayIndex = new Map(days.map((day, index) => [day, index]));
     const providers = Array.from(new Set(aiCosts.map((cost) => cost.provider))).sort();
     const series: Record<string, number[]> = {};
+
     for (const provider of providers) {
       series[provider] = new Array<number>(DAYS).fill(0);
     }
 
     let windowTotalCents = 0;
+
     for (const cost of aiCosts) {
       const index = dayIndex.get(cost.createdAt.slice(0, 10));
+
       if (index != null) {
         series[cost.provider][index] += cost.costCents;
         windowTotalCents += cost.costCents;
@@ -23587,12 +23716,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const monthPrefix = new Date(nowMs).toISOString().slice(0, 7);
+
     const monthToDateCents = aiCosts
       .filter((cost) => cost.createdAt.slice(0, 7) === monthPrefix)
       .reduce((sum, cost) => sum + cost.costCents, 0);
 
-    const budgetUsedPct =
-      monthlyBudgetCents != null ? Math.round((monthToDateCents / monthlyBudgetCents) * 100) : null;
+    const budgetUsedPct = monthlyBudgetCents != null ? Math.round((monthToDateCents / monthlyBudgetCents) * 100) : null;
+
     const alertLevel =
       budgetUsedPct == null ? null : budgetUsedPct >= 100 ? 'over' : budgetUsedPct >= 80 ? 'warn' : 'ok';
 
@@ -24814,8 +24944,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       response: body.response,
     });
 
-    // I25: an admin response is now a real thread message (not just an overwritten
-    // metadata field), so the user sees the full conversation on support.$id.
+    /*
+     * I25: an admin response is now a real thread message (not just an overwritten
+     * metadata field), so the user sees the full conversation on support.$id.
+     */
     if (body.response) {
       await store.addTicketMessage({
         ticketId,
@@ -26449,13 +26581,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   }): Promise<DeploymentRecord> => {
     const { request, project, queued, body, secondaryWorkspaceId } = params;
 
-    // Incremental log/phase flush (coalesced ~1/s) so the UI streams progress
-    // instead of showing a frozen screen while the pod builds. Flushing also keeps
-    // the row's updatedAt fresh, which is what the reaper uses to tell a live build
-    // apart from an orphaned one.
+    /*
+     * Incremental log/phase flush (coalesced ~1/s) so the UI streams progress
+     * instead of showing a frozen screen while the pod builds. Flushing also keeps
+     * the row's updatedAt fresh, which is what the reaper uses to tell a live build
+     * apart from an orphaned one.
+     */
     const liveLog: StaticBuildLog[] = [];
+
     let livePhase = 'queued';
     let flushScheduled = false;
+
     const scheduleLogFlush = () => {
       if (flushScheduled) {
         return;
@@ -26582,8 +26718,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         staticBuildFailed = true;
       }
 
-      // The workspace-pod build materializes the artifact into a temp dir that
-      // snapshotStaticBuild has now copied out of — remove it either way.
+      /*
+       * The workspace-pod build materializes the artifact into a temp dir that
+       * snapshotStaticBuild has now copied out of — remove it either way.
+       */
       if (workspaceBuildTempDir) {
         await rm(workspaceBuildTempDir, { recursive: true, force: true }).catch(() => undefined);
       }
@@ -26687,8 +26825,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { deploymentId: ready.id, provider: ready.provider, environment: ready.environment, url: ready.url },
     });
 
-    // P11: refresh the project thumbnail from the freshly deployed URL (auto,
-    // debounced, inert unless the screenshotter is configured).
+    /*
+     * P11: refresh the project thumbnail from the freshly deployed URL (auto,
+     * debounced, inert unless the screenshotter is configured).
+     */
     if (ready.url) {
       thumbnailCapturer.schedule(project.id, ready.url);
     }
@@ -26878,8 +27018,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(202).send({ deployment: queued });
     }
 
-    // Synchronous path (injected runner / tests): build inline and return the
-    // final row. Errors surface normally (no response sent yet).
+    /*
+     * Synchronous path (injected runner / tests): build inline and return the
+     * final row. Errors surface normally (no response sent yet).
+     */
     const ready = await runDeploymentBuildFlow({ request, project, queued, body, secondaryWorkspaceId });
 
     return reply.code(201).send({ deployment: ready });
@@ -26909,9 +27051,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
-    // Idempotent: only drive a deployment that is still pending. A terminal row
-    // (READY/FAILED/CANCELED) — e.g. reaped, canceled, or a duplicate job — is a
-    // no-op returned as-is.
+    /*
+     * Idempotent: only drive a deployment that is still pending. A terminal row
+     * (READY/FAILED/CANCELED) — e.g. reaped, canceled, or a duplicate job — is a
+     * no-op returned as-is.
+     */
     if (deployment.status !== 'QUEUED' && deployment.status !== 'BUILDING') {
       return { deployment };
     }
@@ -26938,8 +27082,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request: syntheticRequest,
       project,
       queued: deployment,
-      // parse() has applied every schema default, so the required fields are all
-      // present at runtime; the cast just reconciles zod's input/output typing.
+
+      /*
+       * parse() has applied every schema default, so the required fields are all
+       * present at runtime; the cast just reconciles zod's input/output typing.
+       */
       body: data.buildInput as CreateDeploymentRequest,
       secondaryWorkspaceId: data.buildInput.secondaryWorkspaceId,
     });
@@ -26968,6 +27115,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { logs: deployment.logs.map((log) => ({ ...log, message: redactDeploymentLog(log.message) })) };
   });
+
   /*
    * P2: live build-log + status stream (SSE). Tails the deployment record — which
    * the async build flushes to incrementally — and pushes new log lines + status
@@ -26989,12 +27137,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
+
       // Defeat proxy buffering (nginx) so events arrive as they're written.
       'X-Accel-Buffering': 'no',
     });
     reply.hijack();
 
     const terminalStatuses = new Set(['READY', 'FAILED', 'CANCELED']);
+
     let sentLogCount = 0;
     let lastStatus = '';
     let lastPhase = '';
@@ -27058,9 +27208,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const logs = Array.isArray(dep.logs) ? dep.logs : [];
 
       if (logs.length > sentLogCount) {
-        const delta = logs
-          .slice(sentLogCount)
-          .map((log) => ({ ...log, message: redactDeploymentLog(log.message) }));
+        const delta = logs.slice(sentLogCount).map((log) => ({ ...log, message: redactDeploymentLog(log.message) }));
         sentLogCount = logs.length;
         send('logs', delta);
       }
@@ -27385,8 +27533,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const rebuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
 
     if (source.provider === 'static') {
-      // P1: build in the workspace pod (see create handler); fall back to the
-      // in-process API-pod build only when the pod is unreachable.
+      /*
+       * P1: build in the workspace pod (see create handler); fall back to the
+       * in-process API-pod build only when the pod is unreachable.
+       */
       const redeployBody = {
         buildCommand: source.buildCommand ?? 'npm run build',
         outputDirectory: source.outputDirectory ?? 'dist',
@@ -27533,8 +27683,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { sourceDeploymentId: source.id },
     });
 
-    // P11: refresh the thumbnail from the redeployed URL (auto, debounced, inert
-    // unless the screenshotter is configured).
+    /*
+     * P11: refresh the thumbnail from the redeployed URL (auto, debounced, inert
+     * unless the screenshotter is configured).
+     */
     if (ready.url) {
       thumbnailCapturer.schedule(project.id, ready.url);
     }
@@ -27702,8 +27854,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { tickets: await store.listSupportTickets(orgId) };
   });
 
-  // I25: real ticket detail — the ticket plus its conversation thread. Org-scoped
-  // (getSupportTicket returns null if the ticket isn't in this org → 404).
+  /*
+   * I25: real ticket detail — the ticket plus its conversation thread. Org-scoped
+   * (getSupportTicket returns null if the ticket isn't in this org → 404).
+   */
   app.get('/support/:orgId/tickets/:ticketId', async (request, reply) => {
     const { orgId, ticketId } = parse(orgTicketParams, request.params);
     await requireOrg(request, store, orgId, 'support:write');
@@ -27717,8 +27871,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { ticket, messages: await store.listTicketMessages(ticketId) };
   });
 
-  // I25: post a user reply into the thread. Verifies the ticket belongs to the org
-  // before writing so a member can't append to another org's ticket.
+  /*
+   * I25: post a user reply into the thread. Verifies the ticket belongs to the org
+   * before writing so a member can't append to another org's ticket.
+   */
   app.post('/orgs/:orgId/support/tickets/:ticketId/messages', async (request, reply) => {
     const { orgId, ticketId } = parse(orgTicketParams, request.params);
     const body = parse(createTicketMessageSchema, request.body);

@@ -886,6 +886,9 @@ importers:
       '@vibecore/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@vibecore/k8s-client':
+        specifier: workspace:*
+        version: link:../../packages/k8s-client
       '@vibecore/observability':
         specifier: workspace:*
         version: link:../../packages/observability
