@@ -50,7 +50,10 @@ export const MODEL_PRICING: Readonly<Record<string, ModelPricing>> = {
   o1: { inputPer1MUsd: 15, outputPer1MUsd: 60 },
   'o1-mini': { inputPer1MUsd: 3, outputPer1MUsd: 12 },
 
-  // Google Gemini.
+  // Google Gemini. 1.5/2.0 kept for back-compat cost lookups on historical usage.
+  'gemini-2.5-pro': { inputPer1MUsd: 1.25, outputPer1MUsd: 10 },
+  'gemini-2.5-flash': { inputPer1MUsd: 0.3, outputPer1MUsd: 2.5 },
+  'gemini-3.5-flash': { inputPer1MUsd: 0.3, outputPer1MUsd: 2.5 },
   'gemini-1.5-pro': { inputPer1MUsd: 1.25, outputPer1MUsd: 5 },
   'gemini-1.5-flash': { inputPer1MUsd: 0.075, outputPer1MUsd: 0.3 },
   'gemini-2.0-flash': { inputPer1MUsd: 0.075, outputPer1MUsd: 0.3 },
@@ -71,6 +74,9 @@ const PRICING_LOOKUP_PREFIXES: Readonly<Array<{ prefix: string; key: keyof typeo
   { prefix: 'gpt-4-turbo', key: 'gpt-4-turbo' },
   { prefix: 'o1-mini', key: 'o1-mini' },
   { prefix: 'o1', key: 'o1' },
+  { prefix: 'gemini-2.5-pro', key: 'gemini-2.5-pro' },
+  { prefix: 'gemini-2.5-flash', key: 'gemini-2.5-flash' },
+  { prefix: 'gemini-3.5-flash', key: 'gemini-3.5-flash' },
   { prefix: 'gemini-1.5-pro', key: 'gemini-1.5-pro' },
   { prefix: 'gemini-1.5-flash', key: 'gemini-1.5-flash' },
   { prefix: 'gemini-2.0-flash', key: 'gemini-2.0-flash' },

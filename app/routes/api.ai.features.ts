@@ -98,7 +98,7 @@ export async function loader() {
       },
       {
         name: 'Google Gemini',
-        models: ['Gemini 2.5 Flash', 'Gemini 2.0 Flash', 'Gemini 1.5 Pro'],
+        models: ['Gemini 3.5 Flash', 'Gemini 2.5 Pro', 'Gemini 2.5 Flash'],
         available: true,
       },
       { name: 'xAI', models: ['Grok 2'], available: true },

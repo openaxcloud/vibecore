@@ -22,7 +22,7 @@ export const PROVIDER_COMPLETION_LIMITS: Record<string, number> = {
   OpenAI: 16384,
   Github: 16384, // GitHub Models are OpenAI-compatible
   Anthropic: 64000, // Conservative limit for Claude 4 models (Opus: 32k, Sonnet: 64k)
-  Google: 8192, // Gemini 1.5 Pro/Flash standard limit
+  Google: 8192, // Fallback only for Gemini models that don't declare maxCompletionTokens; 2.5/3.x declare 65536 and win via getCompletionTokenLimit()
   Cohere: 4000,
   DeepSeek: 8192,
   Groq: 8192,

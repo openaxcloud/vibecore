@@ -12663,7 +12663,12 @@ function ProjectSettingsPanel({
       secretKey: 'ANTHROPIC_API_KEY',
       models: ['claude-sonnet-4.5', 'claude-opus-4.1'],
     },
-    { id: 'google', label: 'Google', secretKey: 'GOOGLE_API_KEY', models: ['gemini-2.5-pro', 'gemini-2.5-flash'] },
+    {
+      id: 'google',
+      label: 'Google',
+      secretKey: 'GOOGLE_API_KEY',
+      models: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-3.5-flash'],
+    },
     {
       id: 'openrouter',
       label: 'OpenRouter',
