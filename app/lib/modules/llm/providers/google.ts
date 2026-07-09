@@ -14,24 +14,38 @@ export default class GoogleProvider extends BaseProvider {
 
   staticModels: ModelInfo[] = [
     /*
-     * Essential fallback models - only the most reliable/stable ones
-     * Gemini 1.5 Pro: 2M context, 8K output limit (verified from API docs)
+     * Essential fallback models - only GA/stable ids (Gemini 1.5 aliases were
+     * removed by Google and 404 under v1beta generateContent; 2.0 is deprecated).
+     * Index 0 (gemini-2.5-flash) is the universal fallback: cheap, fast, always available.
+     * 2.5/3.x: 1M input context, 64K output limit.
      */
     {
-      name: 'gemini-1.5-pro',
-      label: 'Gemini 1.5 Pro',
+      name: 'gemini-2.5-flash',
+      label: 'Gemini 2.5 Flash',
       provider: 'Google',
-      maxTokenAllowed: 2000000,
-      maxCompletionTokens: 8192,
+      maxTokenAllowed: 1048576,
+      maxCompletionTokens: 65536,
     },
-
-    // Gemini 1.5 Flash: 1M context, 8K output limit, fast and cost-effective
     {
-      name: 'gemini-1.5-flash',
-      label: 'Gemini 1.5 Flash',
+      name: 'gemini-2.5-pro',
+      label: 'Gemini 2.5 Pro',
       provider: 'Google',
-      maxTokenAllowed: 1000000,
-      maxCompletionTokens: 8192,
+      maxTokenAllowed: 1048576,
+      maxCompletionTokens: 65536,
+    },
+    {
+      name: 'gemini-3.5-flash',
+      label: 'Gemini 3.5 Flash',
+      provider: 'Google',
+      maxTokenAllowed: 1048576,
+      maxCompletionTokens: 65536,
+    },
+    {
+      name: 'gemini-2.5-flash-lite',
+      label: 'Gemini 2.5 Flash Lite',
+      provider: 'Google',
+      maxTokenAllowed: 1048576,
+      maxCompletionTokens: 65536,
     },
   ];
 
@@ -90,6 +104,8 @@ export default class GoogleProvider extends BaseProvider {
       if (m.inputTokenLimit && m.outputTokenLimit) {
         // Use the input limit as the primary context window (typically larger)
         contextWindow = m.inputTokenLimit;
+      } else if (modelName.includes('gemini-2.5') || modelName.includes('gemini-3')) {
+        contextWindow = 1048576; // Gemini 2.5/3.x have 1M context
       } else if (modelName.includes('gemini-1.5-pro')) {
         contextWindow = 2000000; // Gemini 1.5 Pro has 2M context
       } else if (modelName.includes('gemini-1.5-flash')) {
