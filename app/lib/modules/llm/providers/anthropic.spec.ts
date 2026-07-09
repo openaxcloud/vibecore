@@ -11,6 +11,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('../manager', () => ({ LLMManager: class {} }));
 
 const { buildAnthropicModelLabel, createAnthropicCachingFetch } = await import('./anthropic');
+const { ANTHROPIC_CACHE_BREAKPOINT } = await import('~/lib/modules/llm/cache-breakpoint');
 
 describe('createAnthropicCachingFetch', () => {
   const parseBody = (init: RequestInit | undefined) => JSON.parse((init?.body as string) ?? '{}');
@@ -29,6 +30,44 @@ describe('createAnthropicCachingFetch', () => {
 
     // The rest of the body is untouched.
     expect(sent.messages).toEqual([{ role: 'user', content: 'hi' }]);
+  });
+
+  it('splits a sentinel-marked system into a 1h-cached head and an ephemeral tail, stripping the sentinel', async () => {
+    const base = vi.fn(async () => new Response('ok'));
+    const wrapped = createAnthropicCachingFetch(base as unknown as typeof fetch);
+
+    await wrapped('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        system: `STABLE HEAD${ANTHROPIC_CACHE_BREAKPOINT}VARIABLE TAIL`,
+        messages: [{ role: 'user', content: 'hi' }],
+      }),
+    });
+
+    const sent = parseBody(base.mock.calls[0][1] as RequestInit);
+    expect(sent.system).toEqual([
+      { type: 'text', text: 'STABLE HEAD', cache_control: { type: 'ephemeral', ttl: '1h' } },
+      { type: 'text', text: 'VARIABLE TAIL', cache_control: { type: 'ephemeral' } },
+    ]);
+
+    // The sentinel must never reach the wire.
+    expect(JSON.stringify(sent)).not.toContain('__ECODE_CACHE_BP__');
+    expect(sent.messages).toEqual([{ role: 'user', content: 'hi' }]);
+  });
+
+  it('emits a single head block when the sentinel leaves an empty tail', async () => {
+    const base = vi.fn(async () => new Response('ok'));
+    const wrapped = createAnthropicCachingFetch(base as unknown as typeof fetch);
+
+    await wrapped('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      body: JSON.stringify({ system: `STABLE HEAD${ANTHROPIC_CACHE_BREAKPOINT}`, messages: [] }),
+    });
+
+    const sent = parseBody(base.mock.calls[0][1] as RequestInit);
+    expect(sent.system).toEqual([
+      { type: 'text', text: 'STABLE HEAD', cache_control: { type: 'ephemeral', ttl: '1h' } },
+    ]);
   });
 
   it('leaves a body without a system field unchanged', async () => {
