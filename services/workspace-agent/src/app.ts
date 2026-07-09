@@ -25,6 +25,12 @@ export interface WorkspaceAgentOptions {
   maxOutputBytes?: number;
   commandTimeoutMs?: number;
   maxProcesses?: number;
+  /*
+   * Running-process registry. Defaults to a fresh Map; injectable so tests can
+   * seed process records and assert the /busy classification deterministically
+   * without spawning real children.
+   */
+  processes?: Map<string, ProcessRecord>;
 }
 
 export interface ProcessRecord {
@@ -111,6 +117,41 @@ const AGENT_PRIVATE_ENV_KEYS = ['WORKSPACE_AGENT_TOKEN_SECRET'];
  */
 export function isProductionBuildCommand(command: string, args: readonly string[] = []): boolean {
   return /\bbuild\b/.test([command, ...args].join(' ').toLowerCase());
+}
+
+/*
+ * Classify a TRANSIENT package-manager install/add/ci as a "busy" command, used
+ * by the /busy endpoint so the workspace GC never stops a pod mid-`npm install`.
+ * Conservative on purpose: only a KNOWN package manager (npm/pnpm/yarn/bun)
+ * followed by an install/add/ci subcommand — plus a bare `yarn`, which installs.
+ * A dev server or REPL (`vite`, `npm run dev`, `pnpm start`, `next dev`,
+ * `npm run preview`) has no install subcommand and is NOT matched, so a
+ * long-lived dev server never keeps a workspace pinned as busy. The receiver
+ * passes the full recorded command string (executable + args joined), so the
+ * package-manager token is the first token and the subcommand the second.
+ */
+export function isTransientPackageCommand(command: string): boolean {
+  const tokens = command.toLowerCase().trim().split(/\s+/).filter(Boolean);
+
+  if (tokens.length === 0) {
+    return false;
+  }
+
+  // Strip any leading path (e.g. /usr/local/bin/npm) so `pnpm`, `yarn`, … match.
+  const manager = (tokens[0].split('/').pop() ?? tokens[0]).replace(/\.(cmd|exe)$/, '');
+  const subcommand = tokens[1];
+
+  // A bare `yarn` (no subcommand) runs an install; every other manager needs an
+  // explicit install/add/ci subcommand to touch node_modules.
+  if (manager === 'yarn' && subcommand === undefined) {
+    return true;
+  }
+
+  if (manager !== 'npm' && manager !== 'pnpm' && manager !== 'yarn' && manager !== 'bun') {
+    return false;
+  }
+
+  return subcommand === 'install' || subcommand === 'i' || subcommand === 'ci' || subcommand === 'add';
 }
 
 export function sanitizedChildEnv(
@@ -414,7 +455,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
    */
   const streamTimeoutMs = numericEnv(process.env.WORKSPACE_STREAM_TIMEOUT_MS, 30 * 60_000);
   const maxProcesses = options.maxProcesses ?? numericEnv(process.env.WORKSPACE_MAX_PROCESSES, 8);
-  const processes = new Map<string, ProcessRecord>();
+  const processes = options.processes ?? new Map<string, ProcessRecord>();
   const metrics = createPrometheusRegistry();
 
   const terminalManager = new TerminalSessionManager({
@@ -454,7 +495,13 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   });
 
   app.addHook('onRequest', async (request, reply) => {
-    if (request.url === '/health') {
+    /*
+     * /health and /busy are unauthenticated, cluster-internal liveness/activity
+     * probes for the workspace-manager (start-gate + GC busy guard). Both are
+     * reached over the per-workspace k8s Service before any agent token is
+     * minted and expose no tenant data (/busy returns only counts + a boolean).
+     */
+    if (request.url === '/health' || request.url === '/busy') {
       return;
     }
 
@@ -677,6 +724,28 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       pid: record.process.pid,
     })),
   }));
+
+  /*
+   * Busy signal for the workspace garbage-collector. The manager probes this
+   * before stopping an idle RUNNING pod so it never tears one down mid-build /
+   * mid-install / mid-deploy (which would corrupt node_modules or a partial
+   * dist/). "Busy" is a running child whose command is a TRANSIENT production
+   * build or a package install/add/ci — NOT a long-lived dev server (a vite dev
+   * process lives in `processes` for the whole session and must never block a
+   * stop). Returns only counts + a boolean, never the command strings, so a
+   * cluster-internal probe can't leak tenant command lines.
+   */
+  app.get('/busy', async () => {
+    let buildCount = 0;
+
+    for (const record of processes.values()) {
+      if (isProductionBuildCommand(record.command) || isTransientPackageCommand(record.command)) {
+        buildCount += 1;
+      }
+    }
+
+    return { busy: buildCount > 0, buildCount };
+  });
 
   app.post('/processes/:id/kill', async (request) => {
     const id = (request.params as { id: string }).id;

@@ -28,6 +28,24 @@ function runtimeNamespace() {
   return process.env.WORKSPACE_RUNTIME_NAMESPACE ?? 'workspaces';
 }
 
+/*
+ * Default GC windows for the /workspaces/gc route when the caller omits them.
+ * Read the SAME env vars the worker uses (WORKSPACE_IDLE_STOP_MINUTES /
+ * WORKSPACE_DELETE_STOPPED_HOURS) with the same 30m / 24h built-in fallback,
+ * so the manager and worker agree on the tuned window regardless of which side
+ * supplies it. Parsed defensively: a malformed or non-positive override falls
+ * back to the built-in rather than yielding a bogus (NaN / 0 / negative) window.
+ */
+function defaultIdleStopMs(): number {
+  const parsed = Number(process.env.WORKSPACE_IDLE_STOP_MINUTES);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed * 60_000 : 30 * 60_000;
+}
+
+function defaultDeleteStoppedMs(): number {
+  const parsed = Number(process.env.WORKSPACE_DELETE_STOPPED_HOURS);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed * 60 * 60_000 : 24 * 60 * 60_000;
+}
+
 function agentBaseUrl(workspaceId: string) {
   const template = process.env.WORKSPACE_AGENT_URL_TEMPLATE ?? process.env.WORKSPACE_AGENT_BASE_URL;
 
@@ -222,8 +240,8 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     const body = z
       .object({
         namespace: z.string().default('workspaces'),
-        inactiveMs: z.number().default(30 * 60_000),
-        deleteMs: z.number().default(24 * 60 * 60_000),
+        inactiveMs: z.number().positive().default(defaultIdleStopMs()),
+        deleteMs: z.number().positive().default(defaultDeleteStoppedMs()),
       })
       .parse(request.body ?? {});
 

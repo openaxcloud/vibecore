@@ -8,6 +8,10 @@ export default defineConfig({
     // startWorkspace() would block on a real fetch that can only time out.
     env: {
       WORKSPACE_AGENT_REACHABLE_TIMEOUT_MS: '0',
+      // Likewise disable the GC busy-probe's real fetch (manager.isAgentBusy):
+      // there is no agent Service in unit tests, so <=0 short-circuits it to
+      // "not busy". Tests that exercise the busy gate spy isAgentBusy directly.
+      WORKSPACE_AGENT_BUSY_PROBE_TIMEOUT_MS: '0',
     },
   },
 });

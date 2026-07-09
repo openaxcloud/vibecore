@@ -12,9 +12,14 @@ import {
   injectPreviewHmrShim,
   injectViteDevArgs,
   isProductionBuildCommand,
+  isTransientPackageCommand,
   sanitizedChildEnv,
   type ProcessRecord,
 } from './app.js';
+
+function fakeProcess(id: string, command: string): ProcessRecord {
+  return { id, command, startedAt: new Date().toISOString(), process: { pid: 1234 } } as unknown as ProcessRecord;
+}
 
 const tokenSecret = 'test-secret';
 const workspaceId = 'workspace_1';
@@ -34,6 +39,84 @@ describe('isProductionBuildCommand', () => {
     expect(isProductionBuildCommand('next', ['dev'])).toBe(false);
     expect(isProductionBuildCommand('npm', ['install'])).toBe(false);
     expect(isProductionBuildCommand('node', ['server.js'])).toBe(false);
+  });
+});
+
+describe('isTransientPackageCommand', () => {
+  it('flags package installs / adds / ci for every known manager', () => {
+    expect(isTransientPackageCommand('npm install')).toBe(true);
+    expect(isTransientPackageCommand('npm install express')).toBe(true);
+    expect(isTransientPackageCommand('npm ci')).toBe(true);
+    expect(isTransientPackageCommand('npm i')).toBe(true);
+    expect(isTransientPackageCommand('pnpm install')).toBe(true);
+    expect(isTransientPackageCommand('pnpm i')).toBe(true);
+    expect(isTransientPackageCommand('pnpm add react')).toBe(true);
+    expect(isTransientPackageCommand('yarn')).toBe(true);
+    expect(isTransientPackageCommand('yarn install')).toBe(true);
+    expect(isTransientPackageCommand('yarn add lodash')).toBe(true);
+    expect(isTransientPackageCommand('bun install')).toBe(true);
+    // Tolerates an absolute path to the manager binary.
+    expect(isTransientPackageCommand('/usr/local/bin/pnpm install')).toBe(true);
+  });
+
+  it('does NOT flag dev servers, scripts, or REPLs', () => {
+    expect(isTransientPackageCommand('npm run dev')).toBe(false);
+    expect(isTransientPackageCommand('pnpm dev')).toBe(false);
+    expect(isTransientPackageCommand('pnpm start')).toBe(false);
+    expect(isTransientPackageCommand('npm run preview')).toBe(false);
+    expect(isTransientPackageCommand('vite')).toBe(false);
+    expect(isTransientPackageCommand('next dev')).toBe(false);
+    expect(isTransientPackageCommand('node server.js')).toBe(false);
+    expect(isTransientPackageCommand('yarn dev')).toBe(false);
+    expect(isTransientPackageCommand('')).toBe(false);
+  });
+});
+
+describe('GET /busy', () => {
+  it('reports busy when a transient install or a production build is running', async () => {
+    const install = buildWorkspaceAgentApp({
+      tokenSecret,
+      workspaceId,
+      processes: new Map([['p1', fakeProcess('p1', 'npm install')]]),
+    });
+    const installBody = (await install.inject({ method: 'GET', url: '/busy' })).json();
+    expect(installBody).toEqual({ busy: true, buildCount: 1 });
+
+    const build = buildWorkspaceAgentApp({
+      tokenSecret,
+      workspaceId,
+      processes: new Map([['p1', fakeProcess('p1', 'vite build')]]),
+    });
+    expect((await build.inject({ method: 'GET', url: '/busy' })).json()).toEqual({ busy: true, buildCount: 1 });
+  });
+
+  it('is NOT busy for a long-lived dev server or when nothing is running', async () => {
+    const devServer = buildWorkspaceAgentApp({
+      tokenSecret,
+      workspaceId,
+      processes: new Map([['p1', fakeProcess('p1', 'vite')]]),
+    });
+    expect((await devServer.inject({ method: 'GET', url: '/busy' })).json()).toEqual({ busy: false, buildCount: 0 });
+
+    const idle = buildWorkspaceAgentApp({ tokenSecret, workspaceId, processes: new Map() });
+    expect((await idle.inject({ method: 'GET', url: '/busy' })).json()).toEqual({ busy: false, buildCount: 0 });
+  });
+
+  it('counts multiple concurrent build/install processes and never leaks command strings', async () => {
+    const app = buildWorkspaceAgentApp({
+      tokenSecret,
+      workspaceId,
+      processes: new Map([
+        ['p1', fakeProcess('p1', 'npm install')],
+        ['p2', fakeProcess('p2', 'vite build')],
+        ['p3', fakeProcess('p3', 'vite')], // dev server — not counted
+      ]),
+    });
+
+    const body = (await app.inject({ method: 'GET', url: '/busy' })).json();
+    expect(body).toEqual({ busy: true, buildCount: 2 });
+    // Response exposes only counts + a boolean, never the tenant command lines.
+    expect(JSON.stringify(body)).not.toContain('npm');
   });
 });
 
