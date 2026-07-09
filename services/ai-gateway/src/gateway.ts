@@ -1,3 +1,5 @@
+import { clampGatewayOutputBudget, estimateGatewayOutputBudget } from './gateway-output-budget.js';
+
 export type AiProviderId =
   | 'openai'
   | 'anthropic'
@@ -546,9 +548,9 @@ function extractContent(payload: any) {
 /*
  * Bound the output tokens. Without a cap, an unset maxTokens lets the provider
  * run to its (often very large) model default on every call — unbounded cost and
- * latency. Default to a sane size and hard-clamp any caller-supplied value.
+ * latency. An unset maxTokens is now sized adaptively (estimateGatewayOutputBudget,
+ * P1-a) instead of a flat default; every value is still hard-clamped to this cap.
  */
-const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
 const HARD_MAX_OUTPUT_TOKENS = 32768;
 
 /*
@@ -627,13 +629,29 @@ export function maxCompletionTokensForModel(modelId: string | undefined): number
   return HARD_MAX_OUTPUT_TOKENS;
 }
 
-function resolveMaxOutputTokens(request: AiChatRequest, model: string): number {
-  const requested =
-    typeof request.maxTokens === 'number' && request.maxTokens > 0 ? request.maxTokens : DEFAULT_MAX_OUTPUT_TOKENS;
-
+export function resolveMaxOutputTokens(request: AiChatRequest, model: string): number {
   const modelCeiling = Math.min(maxCompletionTokensForModel(model), HARD_MAX_OUTPUT_TOKENS);
 
-  return Math.min(requested, modelCeiling);
+  /*
+   * Explicit caller value wins (multi-agent lanes pin maxTokens): honour it,
+   * clamped to the ceiling — byte-identical to the previous behaviour, zero
+   * regression.
+   */
+  if (typeof request.maxTokens === 'number' && request.maxTokens > 0) {
+    return Math.min(request.maxTokens, modelCeiling);
+  }
+
+  /*
+   * P1-a: no explicit maxTokens → size the budget to the task instead of the old
+   * flat DEFAULT_MAX_OUTPUT_TOKENS (4096). The gateway has NO auto-continuation,
+   * so the classifier is biased UP (smallest class == the old 4096); a big task
+   * now gets 8k–16k instead of being truncated at 4k, and a short discuss turn
+   * stays at ~4k. Always clamped to the model ceiling.
+   */
+  const lastUserMessage = [...request.messages].reverse().find((message) => message.role === 'user')?.content;
+  const estimate = estimateGatewayOutputBudget({ lastUserMessage });
+
+  return clampGatewayOutputBudget(estimate, modelCeiling);
 }
 
 function openAiPayload(request: AiChatRequest, model: string, stream: boolean) {
