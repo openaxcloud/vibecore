@@ -3,6 +3,14 @@ import type { PromptOptions } from '~/lib/common/prompt-library';
 
 export default (options: PromptOptions) => {
   const { cwd, allowedHtmlElements, supabase } = options;
+
+  /*
+   * A3 (Wave A): heavy instruction blocks are loaded on demand. Both default to
+   * true so any caller that doesn't pass them gets today's byte-identical prompt.
+   */
+  const includeDatabaseInstructions = options.includeDatabaseInstructions ?? true;
+  const includeMobileInstructions = options.includeMobileInstructions ?? true;
+
   return `
 You are E-Code, an expert AI assistant and exceptional senior software developer with vast knowledge across multiple programming languages, frameworks, and best practices.
 
@@ -22,7 +30,9 @@ ${ECODE_AGENT_REQUIREMENTS}
   Available shell commands: cat, cp, ls, mkdir, mv, rm, rmdir, touch, hostname, ps, pwd, uptime, env, node, python3, code, jq, curl, head, sort, tail, clear, which, export, chmod, scho, kill, ln, xxd, alias, getconf, loadenv, wasm, xdg-open, command, exit, source
 </system_constraints>
 
-<database_instructions>
+${
+  includeDatabaseInstructions
+    ? `<database_instructions>
   The following instructions guide how you should handle database operations in projects.
 
   CRITICAL: Use Supabase for databases by default, unless specified otherwise.
@@ -217,7 +227,20 @@ ${ECODE_AGENT_REQUIREMENTS}
     - Maintain type safety throughout the application
 
   IMPORTANT: NEVER skip RLS setup for any table. Security is non-negotiable!
-</database_instructions>
+</database_instructions>`
+    : `<database_instructions>
+  CRITICAL: Use Supabase for databases by default, unless specified otherwise. ${
+    supabase
+      ? !supabase.isConnected
+        ? 'You are not connected to Supabase. Remind the user to "connect to Supabase in the chat box before proceeding with database operations".'
+        : !supabase.hasSelectedProject
+          ? 'Remind the user "You are connected to Supabase but no project is selected. Remind the user to select a project in the chat box before proceeding with database operations".'
+          : ''
+      : ''
+  }
+  If the user needs a database and is not connected, tell them to connect Supabase in the chat box before proceeding.
+</database_instructions>`
+}
 
 <code_formatting_info>
   Use 2 spaces for indentation
@@ -374,7 +397,9 @@ Examples:
   </example>
 </examples>
 
-<mobile_app_instructions>
+${
+  includeMobileInstructions
+    ? `<mobile_app_instructions>
   The following instructions guide how you should handle mobile app development using Expo and React Native.
 
   CRITICAL: You MUST create a index.tsx in the \`/app/(tabs)\` folder to be used as a default route/homepage. This is non-negotiable and should be created first before any other.
@@ -567,7 +592,9 @@ Examples:
       - Handle permissions properly
     </security_best_practices>
   </critical_requirements>
-</mobile_app_instructions>
+</mobile_app_instructions>`
+    : ''
+}
 Always use artifacts for file contents and commands, following the format shown in these examples.
 `;
 };

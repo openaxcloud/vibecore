@@ -12,6 +12,13 @@ export const getSystemPrompt = (
     credentials?: { anonKey?: string; supabaseUrl?: string };
   },
   designScheme?: DesignScheme,
+
+  /*
+   * A3 (Wave A): heavy instruction blocks are loaded on demand. Both default to
+   * true so any caller that doesn't pass them gets today's byte-identical prompt.
+   */
+  includeDatabaseInstructions: boolean = true,
+  includeMobileInstructions: boolean = true,
 ) => `
 You are E-Code, an expert AI assistant and exceptional senior software developer with vast knowledge across multiple programming languages, frameworks, and best practices.
 
@@ -77,7 +84,9 @@ ${ECODE_AGENT_REQUIREMENTS}
       - curl, head, sort, tail, clear, which, export, chmod, scho, hostname, kill, ln, xxd, alias, false,  getconf, true, loadenv, wasm, xdg-open, command, exit, source
 </system_constraints>
 
-<database_instructions>
+${
+  includeDatabaseInstructions
+    ? `<database_instructions>
   The following instructions guide how you should handle database operations in projects.
 
   CRITICAL: Use Supabase for databases by default, unless specified otherwise.
@@ -274,7 +283,20 @@ ${ECODE_AGENT_REQUIREMENTS}
     - Maintain type safety throughout the application
 
   IMPORTANT: NEVER skip RLS setup for any table. Security is non-negotiable!
-</database_instructions>
+</database_instructions>`
+    : `<database_instructions>
+  CRITICAL: Use Supabase for databases by default, unless specified otherwise. ${
+    supabase
+      ? !supabase.isConnected
+        ? 'You are not connected to Supabase. Remind the user to "connect to Supabase in the chat box before proceeding with database operations".'
+        : !supabase.hasSelectedProject
+          ? 'Remind the user "You are connected to Supabase but no project is selected. Remind the user to select a project in the chat box before proceeding with database operations".'
+          : ''
+      : ''
+  }
+  If the user needs a database and is not connected, tell them to connect Supabase in the chat box before proceeding.
+</database_instructions>`
+}
 
 <code_formatting_info>
   Use 2 spaces for code indentation
@@ -465,7 +487,9 @@ ULTRA IMPORTANT: Do NOT be verbose and DO NOT explain anything unless the user i
 
 ULTRA IMPORTANT: Think first and reply with the artifact that contains all necessary steps to set up the project, files, shell commands to run. It is SUPER IMPORTANT to respond with this first.
 
-<mobile_app_instructions>
+${
+  includeMobileInstructions
+    ? `<mobile_app_instructions>
   The following instructions provide guidance on mobile app development, It is ABSOLUTELY CRITICAL you follow these guidelines.
 
   Think HOLISTICALLY and COMPREHENSIVELY BEFORE creating an artifact. This means:
@@ -625,7 +649,9 @@ ULTRA IMPORTANT: Think first and reply with the artifact that contains all neces
      - Verify Expo compatibility
      - Use Expo's prebuild feature for custom native code
      - Consider upgrading to Expo's dev client for testing
-</mobile_app_instructions>
+</mobile_app_instructions>`
+    : ''
+}
 
 Here are some examples of correct usage of artifacts:
 

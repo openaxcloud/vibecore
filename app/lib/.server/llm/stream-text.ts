@@ -263,6 +263,45 @@ export async function streamText(props: {
   // Model completion ceiling — the hard upper bound for the adaptive budget computed below.
   const dynamicMaxTokens = modelDetails ? getCompletionTokenLimit(modelDetails) : Math.min(MAX_TOKENS, 16384);
 
+  /*
+   * A3 (Wave A): load the heavy <database_instructions> / <mobile_app_instructions>
+   * blocks only when this turn plausibly needs them. Err toward INCLUDING the DB
+   * block when ambiguous, and toward INCLUDING the mobile block whenever the
+   * project already looks like a React-Native/Expo app, so the DB and mobile build
+   * paths are never silently stripped. A plain web build (no DB/mobile signal)
+   * drops both — that (intended) reduction is the whole saving. Every other caller
+   * of the prompt builders passes no flags → today's byte-identical prompt.
+   */
+  const lastUserSignalText = (() => {
+    const lastUser = [...processedMessages].reverse().find((message) => message.role === 'user');
+    return typeof lastUser?.content === 'string' ? lastUser.content : '';
+  })();
+
+  const projectFilePaths = files ? Object.keys(files) : [];
+
+  const packageJsonEntry = files?.['/home/project/package.json'] ?? files?.['package.json'];
+
+  const packageJsonContent =
+    packageJsonEntry && packageJsonEntry.type === 'file' ? String(packageJsonEntry.content ?? '') : '';
+
+  const contextSignalHaystack = [
+    lastUserSignalText,
+    summary ?? '',
+    ...projectFilePaths,
+    ...(contextFiles ? Object.keys(contextFiles) : []),
+    packageJsonContent,
+  ].join('\n');
+
+  const includeDatabaseInstructions =
+    Boolean(options?.supabaseConnection?.isConnected) ||
+    /supabase|database|postgres|prisma|drizzle|migration|\bsql\b|\bdb\b/i.test(contextSignalHaystack);
+
+  const looksLikeExpoProject = projectFilePaths.some((path) =>
+    /app\.json$|\/app\/\(tabs\)\/|metro\.config|expo/i.test(path),
+  );
+  const includeMobileInstructions =
+    /expo|react[ -]?native|mobile app|\bios\b|\bandroid\b/i.test(contextSignalHaystack) || looksLikeExpoProject;
+
   let systemPrompt =
     PromptLibrary.getPropmtFromLibrary(promptId || 'default', {
       cwd: WORK_DIR,
@@ -274,6 +313,8 @@ export async function streamText(props: {
         hasSelectedProject: options?.supabaseConnection?.hasSelectedProject || false,
         credentials: options?.supabaseConnection?.credentials || undefined,
       },
+      includeDatabaseInstructions,
+      includeMobileInstructions,
     }) ?? getSystemPrompt();
 
   /*

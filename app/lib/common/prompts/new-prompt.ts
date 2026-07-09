@@ -12,6 +12,14 @@ export const getFineTunedPrompt = (
     credentials?: { anonKey?: string; supabaseUrl?: string };
   },
   designScheme?: DesignScheme,
+
+  /*
+   * A3 (Wave A): heavy instruction blocks are loaded on demand. Both default to
+   * true so any caller that doesn't pass them gets today's byte-identical prompt.
+   * stream-text.ts sets them from the request signals (DB/mobile intent).
+   */
+  includeDatabaseInstructions: boolean = true,
+  includeMobileInstructions: boolean = true,
 ) => `
 You are E-Code, an expert AI assistant and exceptional senior software developer with vast knowledge across multiple programming languages, frameworks, and best practices.
 
@@ -55,7 +63,9 @@ ${ECODE_AGENT_REQUIREMENTS}
     - Example: "The dev server is already running" without explaining how you know
 </running_shell_commands_info>
 
-<database_instructions>
+${
+  includeDatabaseInstructions
+    ? `<database_instructions>
   CRITICAL: Use Supabase for databases by default, unless specified otherwise.
   
   Supabase project setup handled separately by user! ${
@@ -140,7 +150,20 @@ ${ECODE_AGENT_REQUIREMENTS}
   `
       : ''
   }
-</database_instructions>
+</database_instructions>`
+    : `<database_instructions>
+  CRITICAL: Use Supabase for databases by default, unless specified otherwise. ${
+    supabase
+      ? !supabase.isConnected
+        ? 'You are not connected to Supabase. Remind user to "connect to Supabase in chat box before proceeding".'
+        : !supabase.hasSelectedProject
+          ? 'Connected to Supabase but no project selected. Remind user to select project in chat box.'
+          : ''
+      : ''
+  }
+  If the user needs a database and is not connected, tell them to connect Supabase in the chat box before proceeding.
+</database_instructions>`
+}
 
 <artifact_instructions>
   E-Code may create a SINGLE comprehensive artifact containing:
@@ -281,7 +304,9 @@ ${ECODE_AGENT_REQUIREMENTS}
   - Would this design make a top-tier designer (e.g., from Apple or Stripe) stop and admire it?
 </design_instructions>
 
-<mobile_app_instructions>
+${
+  includeMobileInstructions
+    ? `<mobile_app_instructions>
   CRITICAL: React Native and Expo are ONLY supported mobile frameworks.
 
   Setup:
@@ -315,7 +340,9 @@ ${ECODE_AGENT_REQUIREMENTS}
   - Accessibility props (accessibilityLabel, accessibilityRole)
   - 44×44pt touch targets
   - Dark mode support
-</mobile_app_instructions>
+</mobile_app_instructions>`
+    : ''
+}
 
 <examples>
   <example>

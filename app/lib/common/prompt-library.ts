@@ -16,6 +16,14 @@ export interface PromptOptions {
       supabaseUrl?: string;
     };
   };
+
+  /*
+   * A3 (Wave A): gate the heavy <database_instructions> / <mobile_app_instructions>
+   * blocks. Optional and default to true (byte-identical prompt) when omitted;
+   * stream-text.ts sets them from the request's DB/mobile intent signals.
+   */
+  includeDatabaseInstructions?: boolean;
+  includeMobileInstructions?: boolean;
 }
 
 export class PromptLibrary {
@@ -30,12 +38,26 @@ export class PromptLibrary {
     default: {
       label: 'Default Prompt',
       description: 'An fine tuned prompt for better results and less token usage',
-      get: (options) => getFineTunedPrompt(options.cwd, options.supabase, options.designScheme),
+      get: (options) =>
+        getFineTunedPrompt(
+          options.cwd,
+          options.supabase,
+          options.designScheme,
+          options.includeDatabaseInstructions,
+          options.includeMobileInstructions,
+        ),
     },
     original: {
       label: 'Old Default Prompt',
       description: 'The OG battle tested default system Prompt',
-      get: (options) => getSystemPrompt(options.cwd, options.supabase, options.designScheme),
+      get: (options) =>
+        getSystemPrompt(
+          options.cwd,
+          options.supabase,
+          options.designScheme,
+          options.includeDatabaseInstructions,
+          options.includeMobileInstructions,
+        ),
     },
     optimized: {
       label: 'Optimized Prompt (experimental)',
