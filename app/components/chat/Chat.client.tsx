@@ -1227,6 +1227,39 @@ export const ChatImpl = memo(
         return;
       }
 
+      /*
+       * Same hydration gate as the sibling pendingPrompt effect (above): on reopen
+       * the file map starts EMPTY and fills asynchronously, so deciding off a
+       * not-yet-hydrated snapshot regenerates over an app that already exists the
+       * instant its files load (clobbering files + double-charging tokens).
+       *
+       *   - 'defer'  : files not confirmed hydrated yet — do nothing (no generate,
+       *                no clear); the effect re-runs when `filesHydrated` flips.
+       *   - 'skip'   : hydration revealed a real app — clear the ?prompt= param so
+       *                it doesn't linger, WITHOUT regenerating.
+       *   - 'replay' : hydration revealed an empty/scaffold project — generate once.
+       */
+      const replayDecision = decidePendingPromptReplay(workbenchStore.files.get(), filesHydrated);
+
+      if (replayDecision === 'defer') {
+        return;
+      }
+
+      const clearPromptParams = () => {
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete('prompt');
+        nextParams.delete('model');
+        nextParams.delete('provider');
+        setSearchParams(nextParams, { replace: true });
+      };
+
+      if (replayDecision === 'skip') {
+        submittedProjectPromptRef.current = promptKey;
+        clearPromptParams();
+
+        return;
+      }
+
       submittedProjectPromptRef.current = promptKey;
 
       const selectedModel = requestedSelection?.model ?? model;
@@ -1245,12 +1278,18 @@ export const ChatImpl = memo(
         content: `[Model: ${selectedModel}]\n\n[Provider: ${selectedProvider.name}]\n\n${prompt}`,
       });
 
-      const nextParams = new URLSearchParams(searchParams);
-      nextParams.delete('prompt');
-      nextParams.delete('model');
-      nextParams.delete('provider');
-      setSearchParams(nextParams, { replace: true });
-    }, [append, model, projectId, projectIdeMode, provider.name, runAnimation, searchParams, setSearchParams]);
+      clearPromptParams();
+    }, [
+      append,
+      model,
+      projectId,
+      projectIdeMode,
+      provider.name,
+      runAnimation,
+      searchParams,
+      setSearchParams,
+      filesHydrated,
+    ]);
 
     useEffect(() => {
       const requestedSelection = projectModelSelectionFromParams(searchParams);
