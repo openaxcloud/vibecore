@@ -4,6 +4,7 @@ import { triggerDeployBuild, triggerDeployReap } from './deploy-jobs.js';
 const ENV_KEYS = [
   'API_INTERNAL_URL',
   'API_URL',
+  'SAAS_API_URL',
   'API_BASE_URL',
   'INTERNAL_API_SHARED_SECRET',
   'WORKSPACE_MANAGER_SHARED_SECRET',
@@ -36,8 +37,8 @@ describe('triggerDeployBuild', () => {
     await expect(triggerDeployBuild({})).rejects.toThrowError(/API_INTERNAL_URL.* is required/);
   });
 
-  it('falls back to API_BASE_URL (the var the prod configmap actually sets)', async () => {
-    process.env.API_BASE_URL = 'http://api.svc:80';
+  it('uses SAAS_API_URL (the reachable :3001 internal Service URL) in prod', async () => {
+    process.env.SAAS_API_URL = 'http://api.svc.cluster.local:3001';
     process.env.WORKSPACE_MANAGER_SHARED_SECRET = 'wms';
 
     const fetchSpy = vi.fn(
@@ -48,8 +49,22 @@ describe('triggerDeployBuild', () => {
     await triggerDeployBuild({ deploymentId: 'd1' });
 
     const call = fetchSpy.mock.calls[0] as unknown as [string, RequestInit];
-    expect(call[0]).toBe('http://api.svc:80/internal/deployments/build');
+    expect(call[0]).toBe('http://api.svc.cluster.local:3001/internal/deployments/build');
     expect((call[1].headers as Record<string, string>).authorization).toBe('Bearer wms');
+  });
+
+  it('prefers SAAS_API_URL over the dead API_BASE_URL (:80 has no api listener in prod)', async () => {
+    process.env.SAAS_API_URL = 'http://api.svc.cluster.local:3001';
+    process.env.API_BASE_URL = 'http://api.svc:80';
+
+    const fetchSpy = vi.fn(async () => new Response('{}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await triggerDeployBuild({ deploymentId: 'd1' });
+
+    expect((fetchSpy.mock.calls[0] as unknown as [string])[0]).toBe(
+      'http://api.svc.cluster.local:3001/internal/deployments/build',
+    );
   });
 
   it('POSTs the job payload to /internal/deployments/build with the internal secret', async () => {

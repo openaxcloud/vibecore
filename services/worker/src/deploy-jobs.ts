@@ -17,16 +17,19 @@
 function apiBaseUrl(): string {
   /*
    * Resolve the in-cluster api base URL. Prefer the deploy-specific overrides
-   * (API_INTERNAL_URL / API_URL) when set, but fall back to API_BASE_URL — the
-   * canonical internal api Service URL the platform configmap already exposes to
-   * every service (http://…-api.<ns>.svc:80). Without this fallback the worker
-   * throws in prod (where only API_BASE_URL is set), so the durable deploy
-   * build/reap jobs could never reach `/internal/deployments/build`.
+   * (API_INTERNAL_URL / API_URL), then SAAS_API_URL — the platform configmap's
+   * internal api Service URL that actually works in prod
+   * (http://…-api.<ns>.svc.cluster.local:3001; the api Service listens on 3001).
+   *
+   * API_BASE_URL is kept only as a last resort: in prod it points at
+   * `http://…-api.<ns>.svc:80`, but the api Service exposes NO port 80, so a
+   * request to it times out ("fetch failed"). SAAS_API_URL must therefore win.
    */
-  const baseUrl = process.env.API_INTERNAL_URL ?? process.env.API_URL ?? process.env.API_BASE_URL;
+  const baseUrl =
+    process.env.API_INTERNAL_URL ?? process.env.API_URL ?? process.env.SAAS_API_URL ?? process.env.API_BASE_URL;
 
   if (!baseUrl) {
-    throw new Error('API_INTERNAL_URL, API_URL or API_BASE_URL is required to trigger deploy jobs');
+    throw new Error('API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required to trigger deploy jobs');
   }
 
   return baseUrl.replace(/\/+$/, '');
