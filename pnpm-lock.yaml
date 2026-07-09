@@ -846,6 +846,9 @@ importers:
       '@vibecore/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@vibecore/security':
+        specifier: workspace:*
+        version: link:../../packages/security
       fastify:
         specifier: ^5.8.5
         version: 5.8.5

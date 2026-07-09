@@ -4,6 +4,7 @@
   "type": "module",
   "dependencies": {
     "@vibecore/database": "workspace:*",
+    "@vibecore/security": "workspace:*",
     "fastify": "^5.8.5",
     "gpt-tokenizer": "^3.4.0",
     "ioredis": "^5.10.1",
