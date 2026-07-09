@@ -1,8 +1,80 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import type { LanguageModelV1 } from 'ai';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
+import { ANTHROPIC_CACHE_BREAKPOINT } from '~/lib/modules/llm/cache-breakpoint';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
+
+/**
+ * Wrap `fetch` so OpenRouter requests for Anthropic-backed models pass a
+ * `cache_control` breakpoint through to the underlying Anthropic API.
+ *
+ * OpenRouter speaks the OpenAI chat-completions shape (`messages: [{ role, content }]`).
+ * For an Anthropic-backed model it forwards Anthropic's prompt-caching if the
+ * breakpoint is expressed inside the message CONTENT blocks. `stream-text`
+ * inserts the {@link ANTHROPIC_CACHE_BREAKPOINT} sentinel into the system for
+ * OpenRouter+anthropic/claude models (P0-a), so here we split the `system`
+ * message's string content on the sentinel into content-array form — a head block
+ * carrying `cache_control: { type: 'ephemeral' }` and a plain tail block — and
+ * strip the sentinel. Only Anthropic-backed models (`/anthropic|claude/i`) are
+ * touched; everything else passes through byte-identical. Any parse/shape issue
+ * falls through to the original request (never throws).
+ */
+export function createOpenRouterCachingFetch(baseFetch: typeof fetch): typeof fetch {
+  return async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+    try {
+      if (init && typeof init.body === 'string' && init.body.includes(ANTHROPIC_CACHE_BREAKPOINT)) {
+        const parsed = JSON.parse(init.body);
+        const modelId = typeof parsed?.model === 'string' ? parsed.model : '';
+
+        if (/anthropic|claude/i.test(modelId) && Array.isArray(parsed.messages)) {
+          let rewrote = false;
+
+          parsed.messages = parsed.messages.map((message: any) => {
+            if (
+              message &&
+              message.role === 'system' &&
+              typeof message.content === 'string' &&
+              message.content.includes(ANTHROPIC_CACHE_BREAKPOINT)
+            ) {
+              const [rawHead, ...rawTailParts] = message.content.split(ANTHROPIC_CACHE_BREAKPOINT);
+              const head = rawHead.trim();
+              const tail = rawTailParts.join(ANTHROPIC_CACHE_BREAKPOINT).trim();
+
+              const content: Array<Record<string, unknown>> = [];
+
+              if (head.length > 0) {
+                content.push({ type: 'text', text: head, cache_control: { type: 'ephemeral' } });
+              }
+
+              if (tail.length > 0) {
+                content.push({ type: 'text', text: tail });
+              }
+
+              if (content.length > 0) {
+                rewrote = true;
+                return { ...message, content };
+              }
+            }
+
+            return message;
+          });
+
+          if (rewrote) {
+            init = { ...init, body: JSON.stringify(parsed) };
+          }
+        }
+      }
+    } catch {
+      /*
+       * Never let a body rewrite break the generation: on any JSON/shape issue,
+       * send the request exactly as the SDK built it (no caching, but no failure).
+       */
+    }
+
+    return baseFetch(input as any, init);
+  };
+}
 
 interface OpenRouterModel {
   name: string;
@@ -114,6 +186,13 @@ export default class OpenRouterProvider extends BaseProvider {
 
     const openRouter = createOpenRouter({
       apiKey,
+
+      /*
+       * Pass the P0-a cache breakpoint through to Anthropic-backed models. For
+       * every other model the sentinel is never inserted (stream-text only marks
+       * OpenRouter+anthropic/claude), so this fetch is a transparent passthrough.
+       */
+      fetch: createOpenRouterCachingFetch(globalThis.fetch),
     });
 
     const instance = openRouter.chat(model) as LanguageModelV1;
