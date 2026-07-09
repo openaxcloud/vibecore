@@ -244,6 +244,16 @@ export class WorkbenchStore {
   workspaceLogs: WritableAtom<string[]> = hotData.workspaceLogs ?? atom<string[]>([]);
   previewServerState: WritableAtom<PreviewServerState> =
     hotData.previewServerState ?? atom<PreviewServerState>({ status: 'idle' });
+
+  /**
+   * True once the file map has been CONFIRMED hydrated (loaded from the runtime
+   * or project storage at least once) for the currently-configured project.
+   * Reset to false on every project switch and flipped back to true when a load
+   * settles. The pending-prompt replay gate keys off this so a not-yet-loaded
+   * empty snapshot is never mistaken for an ungenerated project (which would
+   * regenerate over an existing app on reopen).
+   */
+  filesHydrated: WritableAtom<boolean> = hotData.filesHydrated ?? atom(false);
   projectFilesPanelOpen: WritableAtom<boolean> = hotData.projectFilesPanelOpen ?? atom(true);
   projectFilesPanelRequest: WritableAtom<ProjectFilesPanelRequest | undefined> =
     hotData.projectFilesPanelRequest ?? atom<ProjectFilesPanelRequest | undefined>(undefined);
@@ -295,6 +305,7 @@ export class WorkbenchStore {
       writableHotData.workspaceError = this.workspaceError;
       writableHotData.workspaceLogs = this.workspaceLogs;
       writableHotData.previewServerState = this.previewServerState;
+      writableHotData.filesHydrated = this.filesHydrated;
       writableHotData.projectFilesPanelOpen = this.projectFilesPanelOpen;
       writableHotData.projectFilesPanelRequest = this.projectFilesPanelRequest;
       writableHotData.quotaWarning = this.quotaWarning;
@@ -371,6 +382,7 @@ export class WorkbenchStore {
 
     if (changed) {
       this.#runtimeFilesLoadedProjectId = undefined;
+      this.filesHydrated.set(false);
 
       /*
        * Clear per-project state before (re)hydrating. The workbench is a module
@@ -505,6 +517,7 @@ export class WorkbenchStore {
 
     this.setDocuments(this.files.get());
     this.#runtimeFilesLoadedProjectId = this.#projectId;
+    this.#markFilesHydrated(this.#projectId);
     this.#dropResolvedMissingImportFailures();
   }
 
@@ -549,9 +562,27 @@ export class WorkbenchStore {
     this.#filesStore.replaceWithProjectStorageFiles(files);
     this.setDocuments(this.files.get());
     this.#runtimeFilesLoadedProjectId = projectId;
+    this.#markFilesHydrated(projectId);
     this.#dropResolvedMissingImportFailures();
 
     return true;
+  }
+
+  /**
+   * Flip the reactive `filesHydrated` flag once a load has settled for the given
+   * project — but only if it's still the active project (a slow load that
+   * resolves after the user switched projects must not mark the NEW project as
+   * hydrated with the OLD project's data). The pending-prompt replay gate reads
+   * this to know the empty→populated transition is complete.
+   */
+  #markFilesHydrated(projectId: string | undefined) {
+    if (!projectId || this.#projectId !== projectId) {
+      return;
+    }
+
+    if (!this.filesHydrated.get()) {
+      this.filesHydrated.set(true);
+    }
   }
 
   async #projectStorageFilesFromArchive(archiveBase64: string): Promise<ProjectStorageFile[]> {

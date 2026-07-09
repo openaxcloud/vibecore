@@ -19,7 +19,7 @@ import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { countWorkspaceFiles, resolvePendingPrompt, shouldReplayPendingPrompt } from '~/lib/runtime/pending-generation';
+import { countWorkspaceFiles, decidePendingPromptReplay, resolvePendingPrompt } from '~/lib/runtime/pending-generation';
 import { computeRewindTruncation } from '~/utils/chat-rewind';
 import {
   DEFAULT_MODEL,
@@ -201,6 +201,7 @@ export const ChatImpl = memo(
     const [searchParams, setSearchParams] = useSearchParams();
     const [fakeLoading, setFakeLoading] = useState(false);
     const files = useStore(workbenchStore.files);
+    const filesHydrated = useStore(workbenchStore.filesHydrated);
     const [designScheme, setDesignScheme] = useState<DesignScheme>(defaultDesignScheme);
     const actionAlert = useStore(workbenchStore.alert);
     const deployAlert = useStore(workbenchStore.deployAlert);
@@ -1139,11 +1140,22 @@ export const ChatImpl = memo(
           /*
            * The pendingPrompt clear is best-effort (a delayed onFinish timer that can
            * be lost if the tab closes right after files were written, or if the save
-           * fails). If the workspace already holds a real generated app, re-appending
-           * the prompt would regenerate over it — clobbering files and double-charging
-           * tokens. Skip + clear the stale prompt instead of replaying it.
+           * fails). On reopen the file map starts EMPTY and is filled asynchronously,
+           * so we must not decide off a not-yet-hydrated snapshot: a 0-file map then
+           * looks "ungenerated" and would regenerate over the existing app.
+           *
+           *   - 'defer'  : files not confirmed hydrated yet — do nothing (no replay,
+           *                no clear). The effect re-runs when `filesHydrated` flips.
+           *   - 'skip'   : hydration revealed a real app — clear the stale prompt.
+           *   - 'replay' : hydration revealed an empty/scaffold project — generate.
            */
-          if (!shouldReplayPendingPrompt(workbenchStore.files.get())) {
+          const replayDecision = decidePendingPromptReplay(workbenchStore.files.get(), filesHydrated);
+
+          if (replayDecision === 'defer') {
+            return;
+          }
+
+          if (replayDecision === 'skip') {
             submittedProjectPromptRef.current = promptKey;
             void saveProjectIdeMemory(projectId, { chat: { pendingPrompt: null } }).catch((error) => {
               logger.warn('failed to clear stale pending prompt', { projectId, error });
@@ -1199,7 +1211,7 @@ export const ChatImpl = memo(
       return () => {
         cancelled = true;
       };
-    }, [append, model, projectId, projectIdeMode, provider, runAnimation]);
+    }, [append, model, projectId, projectIdeMode, provider, runAnimation, filesHydrated]);
 
     useEffect(() => {
       const prompt = searchParams.get('prompt')?.trim();
