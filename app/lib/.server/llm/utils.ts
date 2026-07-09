@@ -61,7 +61,15 @@ export function simplifyBoltActions(input: string): string {
 export function createFilesContext(files: FileMap, useRelativePath?: boolean) {
   const ig = ignore().add(IGNORE_PATTERNS);
 
-  let filePaths = Object.keys(files);
+  /*
+   * Sort the paths deterministically (P0-b). `selectContext` emits files in a
+   * relevance/insertion order that varies run-to-run, so an identical file set
+   * produced a DIFFERENT byte string each turn — busting the automatic prefix
+   * cache of every auto-cacher (OpenAI/Gemini/DeepSeek) AND Anthropic. Sorting by
+   * path makes the CONTEXT BUFFER byte-identical whenever the file set is, so the
+   * cacheable prefix is stable. Content is unchanged — only ordering.
+   */
+  let filePaths = Object.keys(files).sort((a, b) => a.localeCompare(b));
   filePaths = filePaths.filter((x) => {
     /*
      * Strip the workspace-root prefix with OR without the trailing slash (the
