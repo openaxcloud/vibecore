@@ -316,6 +316,21 @@ exports.Prisma.ProjectSkillScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.InstalledSkillScalarFieldEnum = {
+  id: 'id',
+  scope: 'scope',
+  scopeId: 'scopeId',
+  ownerRepo: 'ownerRepo',
+  name: 'name',
+  description: 'description',
+  instructions: 'instructions',
+  homepageUrl: 'homepageUrl',
+  enabled: 'enabled',
+  installedByUserId: 'installedByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.ProjectEnvironmentScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
@@ -1470,6 +1485,7 @@ exports.Prisma.ModelName = {
   AgentPatchProposal: 'AgentPatchProposal',
   AgentRepairEvent: 'AgentRepairEvent',
   ProjectSkill: 'ProjectSkill',
+  InstalledSkill: 'InstalledSkill',
   ProjectEnvironment: 'ProjectEnvironment',
   ProjectSecret: 'ProjectSecret',
   ProjectEnvVar: 'ProjectEnvVar',

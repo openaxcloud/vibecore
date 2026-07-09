@@ -14587,12 +14587,43 @@ interface ProjectSkill {
   updatedAt?: string | null;
 }
 
+/** A curated community catalog entry (F#27). */
+interface SkillCatalogEntry {
+  ownerRepo: string;
+  name: string;
+  description: string;
+  category: string;
+  homepageUrl: string;
+  installCount: number;
+  installedInProject: boolean;
+  installedInWorkspace: boolean;
+}
+
+/** An installed GitHub-repo skill row (F#27). */
+interface InstalledSkill {
+  id: string;
+  ownerRepo: string;
+  name: string;
+  description: string;
+  instructions: string;
+  homepageUrl?: string | null;
+  enabled: boolean;
+  scope: string;
+}
+
 /*
- * Per-project agent Skills registry. Reads the resolved catalog from the loader
- * (data.skills) and toggles each skill via the ide-panel proxy (enable/disable
- * intents → /projects/:id/skills/:skillId/enable|disable). Real, additive,
- * unflagged backend (ProjectSkill override table + builtin catalog).
+ * Per-project agent Skills registry (F#27). Three tabs:
+ *  - Project   — builtin catalog toggles (ProjectSkill overrides) + project-scoped
+ *                installed GitHub-repo skills.
+ *  - Workspace — installed GitHub-repo skills scoped to the project's workspace.
+ *  - Community — the curated public skill-repo catalog: browse, search, install,
+ *                and open a chevron detail with the fetched instructions.
+ * Every write goes through the ide-panel proxy (/projects/:id/ide-panel/skills)
+ * which relays to the real, additive, unflagged backend.
  */
+type SkillsTab = 'project' | 'workspace' | 'community';
+type SkillInstallScope = 'project' | 'workspace';
+
 function ProjectSkillsPanel({
   projectId,
   data,
@@ -14605,37 +14636,55 @@ function ProjectSkillsPanel({
   reload?: () => void | Promise<void>;
 }) {
   const skills = (data?.skills ?? []) as ProjectSkill[];
+  const catalog = (data?.catalog ?? []) as SkillCatalogEntry[];
+  const installedProject = (data?.installedProject ?? []) as InstalledSkill[];
+  const installedWorkspace = (data?.installedWorkspace ?? []) as InstalledSkill[];
+  const hasWorkspace = Boolean(data?.hasWorkspace);
+
+  const [tab, setTab] = useState<SkillsTab>('project');
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [communityScope, setCommunityScope] = useState<SkillInstallScope>('project');
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
 
-  const toggle = useCallback(
-    async (skill: ProjectSkill) => {
+  const submit = useCallback(
+    async (fields: Record<string, string>, key: string) => {
       if (!projectId) {
-        return;
+        return false;
       }
 
-      setPending(skill.id);
+      setPending(key);
       setError(null);
+      setNote(null);
 
       try {
         const form = new FormData();
-        form.append('intent', skill.enabled ? 'disable' : 'enable');
-        form.append('skillId', skill.id);
 
-        const response = await fetch(`/api/projects/${projectId}/ide-panel/skills`, {
-          method: 'POST',
-          body: form,
-        });
+        for (const [name, value] of Object.entries(fields)) {
+          form.append(name, value);
+        }
 
-        const result = (await response.json().catch(() => ({}))) as { error?: string };
+        const response = await fetch(`/api/projects/${projectId}/ide-panel/skills`, { method: 'POST', body: form });
+        const result = (await response.json().catch(() => ({}))) as { error?: string; note?: string };
 
         if (!response.ok) {
-          throw new Error(result.error ?? 'Unable to update this skill.');
+          throw new Error(result.error ?? 'Unable to update skills.');
+        }
+
+        if (result.note) {
+          setNote(result.note);
         }
 
         await reload?.();
-      } catch (toggleError) {
-        setError(toggleError instanceof Error ? toggleError.message : 'Unable to update this skill.');
+
+        return true;
+      } catch (actionError) {
+        setError(actionError instanceof Error ? actionError.message : 'Unable to update skills.');
+
+        return false;
       } finally {
         setPending(null);
       }
@@ -14643,62 +14692,416 @@ function ProjectSkillsPanel({
     [projectId, reload],
   );
 
-  const categories = Array.from(new Set(skills.map((skill) => skill.category || 'general')));
+  const toggleBuiltin = useCallback(
+    (skill: ProjectSkill) =>
+      submit({ intent: skill.enabled ? 'disable' : 'enable', skillId: skill.id }, `b:${skill.id}`),
+    [submit],
+  );
+
+  const installFromCatalog = useCallback(
+    (ownerRepo: string, scope: SkillInstallScope) => submit({ intent: 'install', ownerRepo, scope }, `i:${ownerRepo}`),
+    [submit],
+  );
+
+  const uninstall = useCallback(
+    async (ownerRepo: string, scope: SkillInstallScope) => {
+      const ok = await submit({ intent: 'uninstall', ownerRepo, scope }, `u:${scope}:${ownerRepo}`);
+
+      if (ok) {
+        setConfirming(null);
+      }
+    },
+    [submit],
+  );
+
+  const toggleInstalled = useCallback(
+    (skill: InstalledSkill, scope: SkillInstallScope) =>
+      submit(
+        { intent: skill.enabled ? 'disable-installed' : 'enable-installed', ownerRepo: skill.ownerRepo, scope },
+        `t:${scope}:${skill.ownerRepo}`,
+      ),
+    [submit],
+  );
+
+  const needle = query.trim().toLowerCase();
+
+  const filteredCatalog = needle
+    ? catalog.filter(
+        (entry) =>
+          entry.name.toLowerCase().includes(needle) ||
+          entry.description.toLowerCase().includes(needle) ||
+          entry.ownerRepo.toLowerCase().includes(needle) ||
+          entry.category.toLowerCase().includes(needle),
+      )
+    : catalog;
+
+  const tabs: Array<{ id: SkillsTab; label: string; count: number }> = [
+    { id: 'project', label: 'Project', count: skills.filter((s) => s.enabled).length + installedProject.length },
+    { id: 'workspace', label: 'Workspace', count: installedWorkspace.length },
+    { id: 'community', label: 'Community', count: catalog.length },
+  ];
+
+  const tabButtonClass = (active: boolean) =>
+    `rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+      active
+        ? 'bg-[var(--vc-ide-accent-action)] text-white'
+        : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3'
+    }`;
 
   return (
     <div className="bolt-project-managed-panel bolt-project-skills-panel">
-      <section className="grid gap-3">
-        <p className="text-xs text-bolt-elements-textSecondary">
-          Enable agent skills for this project. Toggles are stored per project over a builtin catalog; the agent uses
-          enabled skills as additional capabilities.
-        </p>
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-bolt-elements-borderColor pb-3">
+        {tabs.map((entry) => (
+          <button
+            key={entry.id}
+            type="button"
+            onClick={() => setTab(entry.id)}
+            className={tabButtonClass(tab === entry.id)}
+            aria-pressed={tab === entry.id}
+          >
+            {entry.label}
+            <span className="ml-1.5 opacity-70">{entry.count}</span>
+          </button>
+        ))}
+      </div>
 
-        {skills.length ? (
-          categories.map((category) => (
-            <div key={category} className="grid gap-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                {category}
-              </h4>
-              {skills
-                .filter((skill) => (skill.category || 'general') === category)
-                .map((skill) => (
-                  <div
-                    key={skill.id}
-                    className="flex items-center justify-between gap-3 rounded-md border border-bolt-elements-borderColor px-3 py-2"
+      {error ? (
+        <p
+          className="mt-3 rounded-md border border-[var(--vc-ide-accent-error)]/40 px-3 py-2 text-xs text-[var(--status-error-text)]"
+          role="status"
+        >
+          {error}
+        </p>
+      ) : null}
+      {note ? (
+        <p className="mt-3 text-xs text-bolt-elements-textSecondary" role="status">
+          {note}
+        </p>
+      ) : null}
+
+      {tab === 'project' ? (
+        <section className="mt-3 grid gap-4">
+          <div className="grid gap-2">
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+              Builtin skills
+            </h4>
+            <p className="text-xs text-bolt-elements-textSecondary">
+              Toggles are stored per project over a builtin catalog; the agent applies enabled skills as capabilities.
+            </p>
+            {skills.length ? (
+              skills.map((skill) => (
+                <div
+                  key={skill.id}
+                  className="flex items-center justify-between gap-3 rounded-md border border-bolt-elements-borderColor px-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <strong className="block truncate text-sm text-bolt-elements-textPrimary">{skill.name}</strong>
+                    {skill.description ? (
+                      <span className="block text-xs text-bolt-elements-textSecondary">{skill.description}</span>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void toggleBuiltin(skill)}
+                    disabled={busy || pending === `b:${skill.id}`}
+                    className={`shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 ${
+                      skill.enabled
+                        ? 'border-bolt-elements-focus bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
+                        : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3'
+                    }`}
+                    aria-pressed={Boolean(skill.enabled)}
                   >
-                    <div className="min-w-0">
-                      <strong className="block truncate text-sm text-bolt-elements-textPrimary">{skill.name}</strong>
-                      {skill.description ? (
-                        <span className="block text-xs text-bolt-elements-textSecondary">{skill.description}</span>
-                      ) : null}
-                    </div>
+                    {pending === `b:${skill.id}` ? '…' : skill.enabled ? 'Enabled' : 'Disabled'}
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="bolt-project-empty-panel">No builtin skills are available.</div>
+            )}
+          </div>
+
+          <InstalledSkillsList
+            title="Installed from GitHub (project)"
+            emptyLabel="No project-scoped skills installed yet. Browse the Community tab to add some."
+            skills={installedProject}
+            scope="project"
+            busy={busy}
+            pending={pending}
+            expanded={expanded}
+            confirming={confirming}
+            onExpand={setExpanded}
+            onConfirm={setConfirming}
+            onToggle={toggleInstalled}
+            onUninstall={uninstall}
+          />
+        </section>
+      ) : null}
+
+      {tab === 'workspace' ? (
+        <section className="mt-3 grid gap-4">
+          {!hasWorkspace ? (
+            <div className="bolt-project-empty-panel">
+              This project has no workspace yet. Open the project once, then install workspace-scoped skills.
+            </div>
+          ) : (
+            <InstalledSkillsList
+              title="Installed from GitHub (workspace)"
+              emptyLabel="No workspace-scoped skills installed yet."
+              skills={installedWorkspace}
+              scope="workspace"
+              busy={busy}
+              pending={pending}
+              expanded={expanded}
+              confirming={confirming}
+              onExpand={setExpanded}
+              onConfirm={setConfirming}
+              onToggle={toggleInstalled}
+              onUninstall={uninstall}
+            />
+          )}
+        </section>
+      ) : null}
+
+      {tab === 'community' ? (
+        <section className="mt-3 grid gap-3">
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search skills by name, repo, or category"
+            className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary focus:border-bolt-elements-focus focus:outline-none"
+          />
+
+          <div className="flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textSecondary">
+            <span>Install to:</span>
+            {(['project', 'workspace'] as SkillInstallScope[]).map((scope) => (
+              <button
+                key={scope}
+                type="button"
+                onClick={() => setCommunityScope(scope)}
+                disabled={scope === 'workspace' && !hasWorkspace}
+                className={`rounded-md border px-2.5 py-1 font-medium capitalize transition-colors disabled:opacity-50 ${
+                  communityScope === scope
+                    ? 'border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action)]'
+                    : 'border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3'
+                }`}
+              >
+                {scope}
+              </button>
+            ))}
+          </div>
+
+          {filteredCatalog.length ? (
+            filteredCatalog.map((entry) => {
+              const installed = communityScope === 'project' ? entry.installedInProject : entry.installedInWorkspace;
+
+              const isExpanded = expanded === `c:${entry.ownerRepo}`;
+
+              return (
+                <div key={entry.ownerRepo} className="rounded-md border border-bolt-elements-borderColor px-3 py-2.5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
                     <button
                       type="button"
-                      onClick={() => void toggle(skill)}
-                      disabled={busy || pending === skill.id}
-                      className={`shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 ${
-                        skill.enabled
-                          ? 'border-bolt-elements-focus bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
-                          : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3'
-                      }`}
-                      aria-pressed={Boolean(skill.enabled)}
+                      onClick={() => setExpanded(isExpanded ? null : `c:${entry.ownerRepo}`)}
+                      className="flex min-w-0 flex-1 items-start gap-2 text-left"
+                      aria-expanded={isExpanded}
                     >
-                      {pending === skill.id ? '…' : skill.enabled ? 'Enabled' : 'Disabled'}
+                      <span
+                        className={`i-ph:caret-right mt-0.5 shrink-0 text-bolt-elements-textSecondary transition-transform ${
+                          isExpanded ? 'rotate-90' : ''
+                        }`}
+                      />
+                      <span className="min-w-0">
+                        <strong className="block truncate text-sm text-bolt-elements-textPrimary">{entry.name}</strong>
+                        <span className="block truncate text-xs text-bolt-elements-textTertiary">
+                          {entry.ownerRepo}
+                        </span>
+                        <span className="mt-0.5 block text-xs text-bolt-elements-textSecondary">
+                          {entry.description}
+                        </span>
+                        <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-bolt-elements-textTertiary">
+                          <span className="rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 capitalize">
+                            {entry.category}
+                          </span>
+                          <span>
+                            {entry.installCount} install{entry.installCount === 1 ? '' : 's'}
+                          </span>
+                        </span>
+                      </span>
                     </button>
-                  </div>
-                ))}
-            </div>
-          ))
-        ) : (
-          <div className="bolt-project-empty-panel">No skills are available for this project.</div>
-        )}
 
-        {error ? (
-          <p className="text-xs text-bolt-elements-item-contentDanger" role="status">
-            {error}
-          </p>
-        ) : null}
-      </section>
+                    {installed ? (
+                      <button
+                        type="button"
+                        onClick={() => void uninstall(entry.ownerRepo, communityScope)}
+                        disabled={busy || pending === `u:${communityScope}:${entry.ownerRepo}`}
+                        className="shrink-0 rounded-md border border-[var(--vc-ide-accent-error)]/50 px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[var(--vc-ide-accent-error)]/10 disabled:opacity-60"
+                      >
+                        {pending === `u:${communityScope}:${entry.ownerRepo}` ? '…' : 'Uninstall'}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => void installFromCatalog(entry.ownerRepo, communityScope)}
+                        disabled={busy || pending === `i:${entry.ownerRepo}`}
+                        className="shrink-0 rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                      >
+                        {pending === `i:${entry.ownerRepo}` ? 'Installing…' : 'Install'}
+                      </button>
+                    )}
+                  </div>
+
+                  {isExpanded ? (
+                    <div className="mt-2 border-t border-bolt-elements-borderColor pt-2 text-xs text-bolt-elements-textSecondary">
+                      <a
+                        href={entry.homepageUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[var(--vc-ide-accent-action)] hover:underline"
+                      >
+                        <span className="i-ph:github-logo" />
+                        {entry.homepageUrl.replace(/^https?:\/\//, '')}
+                      </a>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })
+          ) : (
+            <div className="bolt-project-empty-panel">No community skills match “{query}”.</div>
+          )}
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+/** Shared list of installed GitHub-repo skills with toggle + confirm-uninstall + chevron detail. */
+function InstalledSkillsList({
+  title,
+  emptyLabel,
+  skills,
+  scope,
+  busy,
+  pending,
+  expanded,
+  confirming,
+  onExpand,
+  onConfirm,
+  onToggle,
+  onUninstall,
+}: {
+  title: string;
+  emptyLabel: string;
+  skills: InstalledSkill[];
+  scope: SkillInstallScope;
+  busy: boolean;
+  pending: string | null;
+  expanded: string | null;
+  confirming: string | null;
+  onExpand: (key: string | null) => void;
+  onConfirm: (key: string | null) => void;
+  onToggle: (skill: InstalledSkill, scope: SkillInstallScope) => void | Promise<unknown>;
+  onUninstall: (ownerRepo: string, scope: SkillInstallScope) => void | Promise<unknown>;
+}) {
+  return (
+    <div className="grid gap-2">
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">{title}</h4>
+      {skills.length ? (
+        skills.map((skill) => {
+          const rowKey = `${scope}:${skill.ownerRepo}`;
+          const isExpanded = expanded === `s:${rowKey}`;
+          const isConfirming = confirming === rowKey;
+
+          return (
+            <div key={skill.id} className="rounded-md border border-bolt-elements-borderColor px-3 py-2.5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => onExpand(isExpanded ? null : `s:${rowKey}`)}
+                  className="flex min-w-0 flex-1 items-start gap-2 text-left"
+                  aria-expanded={isExpanded}
+                >
+                  <span
+                    className={`i-ph:caret-right mt-0.5 shrink-0 text-bolt-elements-textSecondary transition-transform ${
+                      isExpanded ? 'rotate-90' : ''
+                    }`}
+                  />
+                  <span className="min-w-0">
+                    <strong className="block truncate text-sm text-bolt-elements-textPrimary">{skill.name}</strong>
+                    <span className="block truncate text-xs text-bolt-elements-textTertiary">{skill.ownerRepo}</span>
+                  </span>
+                </button>
+
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => void onToggle(skill, scope)}
+                    disabled={busy || pending === `t:${rowKey}`}
+                    className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 ${
+                      skill.enabled
+                        ? 'border-bolt-elements-focus bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
+                        : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3'
+                    }`}
+                    aria-pressed={skill.enabled}
+                  >
+                    {pending === `t:${rowKey}` ? '…' : skill.enabled ? 'Enabled' : 'Disabled'}
+                  </button>
+
+                  {isConfirming ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => void onUninstall(skill.ownerRepo, scope)}
+                        disabled={busy || pending === `u:${rowKey}`}
+                        className="rounded-md bg-[var(--vc-ide-accent-error)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                      >
+                        {pending === `u:${rowKey}` ? '…' : 'Confirm'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onConfirm(null)}
+                        className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onConfirm(rowKey)}
+                      className="rounded-md border border-[var(--vc-ide-accent-error)]/50 px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[var(--vc-ide-accent-error)]/10"
+                    >
+                      Uninstall
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {isExpanded ? (
+                <div className="mt-2 border-t border-bolt-elements-borderColor pt-2">
+                  {skill.homepageUrl ? (
+                    <a
+                      href={skill.homepageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mb-1 inline-flex items-center gap-1 text-xs text-[var(--vc-ide-accent-action)] hover:underline"
+                    >
+                      <span className="i-ph:github-logo" />
+                      {skill.homepageUrl.replace(/^https?:\/\//, '')}
+                    </a>
+                  ) : null}
+                  <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-bolt-elements-background-depth-2 p-2 text-xs text-bolt-elements-textSecondary">
+                    {skill.instructions}
+                  </pre>
+                </div>
+              ) : null}
+            </div>
+          );
+        })
+      ) : (
+        <div className="bolt-project-empty-panel">{emptyLabel}</div>
+      )}
     </div>
   );
 }

@@ -427,6 +427,31 @@ model ProjectSkill {
   @@index([projectId])
 }
 
+// Installable GitHub-repo skills (F#27). A row records a PUBLIC GitHub skill repo
+// that a project or its workspace has installed, plus the instructions fetched
+// from the repo at install time. Polymorphic scope: scope='project' => scopeId is
+// a projectId; scope='workspace' => scopeId is a workspaceId. No FK (polymorphic),
+// so orphan cleanup is by the owning route. Layered ON TOP of the builtin catalog
+// (ProjectSkill) — that table is untouched. Unique per (scope, scopeId, ownerRepo).
+model InstalledSkill {
+  id                String   @id @default(cuid())
+  scope             String
+  scopeId           String
+  ownerRepo         String
+  name              String
+  description       String
+  instructions      String
+  homepageUrl       String?
+  enabled           Boolean  @default(true)
+  installedByUserId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([scope, scopeId, ownerRepo])
+  @@index([scope, scopeId])
+  @@index([ownerRepo])
+}
+
 model ProjectEnvironment {
   id        String   @id @default(cuid())
   projectId String

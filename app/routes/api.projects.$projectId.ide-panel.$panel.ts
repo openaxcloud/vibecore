@@ -1095,6 +1095,39 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     }
   }
 
+  if (panel === 'skills') {
+    /*
+     * Skills panel (F#27): builtin catalog toggles PLUS the installable
+     * GitHub-repo catalog and the project- and workspace-scoped installed skills.
+     * Each source fails open so one 5xx never blanks the whole panel. The
+     * workspace-scoped installed list 409s (SKILL_NO_WORKSPACE) until the project
+     * has a workspace — degrade that to an empty list.
+     */
+    try {
+      const [skillsResp, catalogResp, installedProjectResp, installedWorkspaceResp] = await Promise.all([
+        apiRequest(request, `/projects/${projectId}/skills`).catch(() => ({ skills: [] })),
+        apiRequest(request, `/projects/${projectId}/skills/catalog`).catch(() => ({
+          entries: [],
+          hasWorkspace: false,
+        })),
+        apiRequest(request, `/projects/${projectId}/skills/installed?scope=project`).catch(() => ({ skills: [] })),
+        apiRequest(request, `/projects/${projectId}/skills/installed?scope=workspace`).catch(() => ({ skills: [] })),
+      ]);
+
+      return json(
+        panelEnvelope(panel, project.project, {
+          skills: (skillsResp as any)?.skills ?? [],
+          catalog: (catalogResp as any)?.entries ?? [],
+          hasWorkspace: Boolean((catalogResp as any)?.hasWorkspace),
+          installedProject: (installedProjectResp as any)?.skills ?? [],
+          installedWorkspace: (installedWorkspaceResp as any)?.skills ?? [],
+        }),
+      );
+    } catch (error) {
+      return json(panelEnvelopeError(panel, project.project, error));
+    }
+  }
+
   const endpoint = panelEndpoints[panel];
 
   if (!endpoint) {
@@ -1825,6 +1858,47 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       });
     }
   } else if (panel === 'skills') {
+    /*
+     * F#27: installable GitHub-repo skills. `install`/`uninstall`/
+     * `enable-installed`/`disable-installed` operate on the InstalledSkill store
+     * (project- or workspace-scoped); the legacy `enable`/`disable` intents still
+     * toggle the builtin catalog. Errors bubble as the API's status/code so the
+     * panel can surface a clear message (e.g. SKILL_REPO_PRIVATE, SKILL_NO_WORKSPACE).
+     */
+    if (['install', 'uninstall', 'enable-installed', 'disable-installed'].includes(intent)) {
+      const ownerRepo = (body.ownerRepo ?? '').trim();
+      const scope = body.scope === 'workspace' ? 'workspace' : 'project';
+
+      if (!ownerRepo) {
+        throw json({ error: 'ownerRepo is required' }, { status: 400 });
+      }
+
+      if (intent === 'install') {
+        const result = await apiRequest(request, `/projects/${projectId}/skills/install`, {
+          method: 'POST',
+          body: JSON.stringify({ ownerRepo, scope }),
+        });
+
+        return json({ ok: true, ...(result as any) });
+      }
+
+      if (intent === 'uninstall') {
+        const result = await apiRequest(request, `/projects/${projectId}/skills/installed`, {
+          method: 'DELETE',
+          body: JSON.stringify({ ownerRepo, scope }),
+        });
+
+        return json({ ok: true, ...(result as any) });
+      }
+
+      const result = await apiRequest(request, `/projects/${projectId}/skills/installed`, {
+        method: 'PATCH',
+        body: JSON.stringify({ ownerRepo, scope, enabled: intent === 'enable-installed' }),
+      });
+
+      return json({ ok: true, ...(result as any) });
+    }
+
     // Per-project skills registry: enable/disable toggles over the builtin catalog.
     const skillId = (body.skillId ?? '').trim();
 
