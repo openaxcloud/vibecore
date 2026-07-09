@@ -2549,6 +2549,10 @@ export class PrismaApiStore implements ApiStore {
           requireMfaForAdmins: input.requireMfaForAdmins ?? false,
           dataRetentionDays: input.dataRetentionDays ?? 365,
           legalHoldEnabled: input.legalHoldEnabled ?? false,
+          ssoEnforced: input.ssoEnforced ?? false,
+          // undefined on the record means "not provided"; null/ISO both map to a concrete value.
+          ssoEnforcedAt:
+            input.ssoEnforcedAt === undefined ? undefined : input.ssoEnforcedAt ? new Date(input.ssoEnforcedAt) : null,
         },
         update: {
           ipAllowlist: input.ipAllowlist,
@@ -2556,6 +2560,10 @@ export class PrismaApiStore implements ApiStore {
           requireMfaForAdmins: input.requireMfaForAdmins,
           dataRetentionDays: input.dataRetentionDays,
           legalHoldEnabled: input.legalHoldEnabled,
+          ssoEnforced: input.ssoEnforced,
+          // Passing `null` clears the clock (enforcement turned off); `undefined` leaves it untouched.
+          ssoEnforcedAt:
+            input.ssoEnforcedAt === undefined ? undefined : input.ssoEnforcedAt ? new Date(input.ssoEnforcedAt) : null,
         },
       }),
     );
@@ -5374,6 +5382,8 @@ function mapEnterpriseSettings(settings: any): EnterpriseSettingsRecord {
     requireMfaForAdmins: settings.requireMfaForAdmins,
     dataRetentionDays: settings.dataRetentionDays,
     legalHoldEnabled: settings.legalHoldEnabled,
+    ssoEnforced: settings.ssoEnforced ?? false,
+    ssoEnforcedAt: toIso(settings.ssoEnforcedAt) ?? null,
     updatedAt: toIso(settings.updatedAt)!,
   };
 }

@@ -807,6 +807,8 @@ exports.Prisma.EnterpriseOrganizationSettingsScalarFieldEnum = {
   requireMfaForAdmins: 'requireMfaForAdmins',
   dataRetentionDays: 'dataRetentionDays',
   legalHoldEnabled: 'legalHoldEnabled',
+  ssoEnforced: 'ssoEnforced',
+  ssoEnforcedAt: 'ssoEnforcedAt',
   updatedAt: 'updatedAt'
 };
 

@@ -424,6 +424,10 @@ export interface EnterpriseSettingsRecord {
   requireMfaForAdmins: boolean;
   dataRetentionDays: number;
   legalHoldEnabled: boolean;
+  /** When true, non-owner members must sign in via SSO once the grace window elapses. */
+  ssoEnforced: boolean;
+  /** ISO timestamp the enforcement clock started; the 7-day grace is measured from here. Null when not enforced. */
+  ssoEnforcedAt?: string | null;
   updatedAt: string;
 }
 
