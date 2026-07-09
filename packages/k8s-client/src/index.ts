@@ -211,15 +211,192 @@ export function assertWorkspaceImageAllowed(image: string, production = process.
   }
 }
 
-const planResources: Record<
-  WorkspacePlan,
-  { cpuRequest: string; memoryRequest: string; cpuLimit: string; memoryLimit: string; storageRequest: string }
-> = {
+export interface PlanResources {
+  cpuRequest: string;
+  memoryRequest: string;
+  cpuLimit: string;
+  memoryLimit: string;
+  storageRequest: string;
+}
+
+/*
+ * Built-in fallback table used when a plan carries no CUSTOM entitlement
+ * (`resourceLimits`). These are the scheduler *requests* and *limits* the
+ * per-workspace pod is created with. Requests drive node packing; limits let a
+ * build burst. team/enterprise deliberately request only 500m (down from 750m/1
+ * core) so mostly-idle workspaces pack far denser onto a sandbox node while the
+ * 4-core limit still lets a build burst. free/pro already sit in the 250-500m
+ * request / 1-2 core burst band, so they are left as-is.
+ *
+ * Operators can override any field per plan WITHOUT a code change via the
+ * `WORKSPACE_PLAN_RESOURCES_JSON` env (wired through Helm on the
+ * workspace-manager Deployment). Shape — a partial map, unknown plans/fields
+ * ignored, each field validated and falling back to the default below on
+ * garbage:
+ *
+ *   {"team":{"cpuRequest":"400m"},"enterprise":{"cpuRequest":"600m","cpuLimit":"4"}}
+ *
+ * Invariants enforced at parse time (see resolvePlanResourcesTable): a bad value
+ * NEVER yields an invalid pod spec — request can never exceed limit, and limits
+ * are clamped to the namespace LimitRange max, so a typo cannot brick admission.
+ */
+const PLAN_RESOURCE_DEFAULTS: Record<WorkspacePlan, PlanResources> = {
   free: { cpuRequest: '250m', memoryRequest: '512Mi', cpuLimit: '1', memoryLimit: '1Gi', storageRequest: '10Gi' },
   pro: { cpuRequest: '500m', memoryRequest: '1Gi', cpuLimit: '2', memoryLimit: '4Gi', storageRequest: '20Gi' },
-  team: { cpuRequest: '750m', memoryRequest: '1.5Gi', cpuLimit: '4', memoryLimit: '8Gi', storageRequest: '50Gi' },
-  enterprise: { cpuRequest: '1', memoryRequest: '2Gi', cpuLimit: '4', memoryLimit: '8Gi', storageRequest: '100Gi' },
+  team: { cpuRequest: '500m', memoryRequest: '1.5Gi', cpuLimit: '4', memoryLimit: '8Gi', storageRequest: '50Gi' },
+  enterprise: { cpuRequest: '500m', memoryRequest: '2Gi', cpuLimit: '4', memoryLimit: '8Gi', storageRequest: '100Gi' },
 };
+
+const PLAN_KEYS: WorkspacePlan[] = ['free', 'pro', 'team', 'enterprise'];
+
+/** Parse a Kubernetes CPU quantity (`"250m"`, `"1"`, `"1.5"`) to millicores; undefined if malformed. */
+function parseCpuMillicores(value: unknown): number | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+
+  if (/^\d+m$/.test(trimmed)) {
+    const n = Number(trimmed.slice(0, -1));
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  }
+
+  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+    const n = Number(trimmed) * 1000;
+    return Number.isFinite(n) && n > 0 ? Math.round(n) : undefined;
+  }
+
+  return undefined;
+}
+
+const MEMORY_SUFFIX_FACTORS: Record<string, number> = {
+  '': 1,
+  Ki: 1024,
+  Mi: 1024 ** 2,
+  Gi: 1024 ** 3,
+  Ti: 1024 ** 4,
+  Pi: 1024 ** 5,
+  K: 1e3,
+  M: 1e6,
+  G: 1e9,
+  T: 1e12,
+  P: 1e15,
+};
+
+/** Parse a Kubernetes memory/storage quantity (`"512Mi"`, `"1Gi"`, `"1.5Gi"`) to bytes; undefined if malformed. */
+function parseMemoryBytes(value: unknown): number | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const match = value.trim().match(/^(\d+(?:\.\d+)?)(Ki|Mi|Gi|Ti|Pi|K|M|G|T|P)?$/);
+
+  if (!match) {
+    return undefined;
+  }
+
+  const num = Number(match[1]);
+  const factor = MEMORY_SUFFIX_FACTORS[match[2] ?? ''];
+
+  if (!Number.isFinite(num) || num <= 0 || factor === undefined) {
+    return undefined;
+  }
+
+  return num * factor;
+}
+
+/*
+ * Merge one plan's operator overrides onto its built-in defaults. Each field is
+ * accepted only if it parses as a valid quantity, otherwise the default is kept
+ * (per-field fallback). Limits are then clamped to the LimitRange max, and if a
+ * resulting request would exceed its limit the whole request/limit pair reverts
+ * to the (known-valid) defaults — so no override can ever produce request>limit
+ * or a limit above namespace admission.
+ */
+function mergePlanResources(base: PlanResources, override: unknown): PlanResources {
+  if (!override || typeof override !== 'object' || Array.isArray(override)) {
+    return { ...base };
+  }
+
+  const o = override as Record<string, unknown>;
+
+  const merged: PlanResources = {
+    cpuRequest: parseCpuMillicores(o.cpuRequest) !== undefined ? String(o.cpuRequest).trim() : base.cpuRequest,
+    cpuLimit: parseCpuMillicores(o.cpuLimit) !== undefined ? String(o.cpuLimit).trim() : base.cpuLimit,
+    memoryRequest: parseMemoryBytes(o.memoryRequest) !== undefined ? String(o.memoryRequest).trim() : base.memoryRequest,
+    memoryLimit: parseMemoryBytes(o.memoryLimit) !== undefined ? String(o.memoryLimit).trim() : base.memoryLimit,
+    storageRequest:
+      parseMemoryBytes(o.storageRequest) !== undefined ? String(o.storageRequest).trim() : base.storageRequest,
+  };
+
+  // Clamp limits to the namespace LimitRange max so an operator typo can never
+  // push a Container above admission (which would strand the workspace FAILED).
+  if ((parseCpuMillicores(merged.cpuLimit) ?? 0) > WORKSPACE_CONTAINER_MAX_CPU_MILLICORES) {
+    merged.cpuLimit = formatCpuMillicores(WORKSPACE_CONTAINER_MAX_CPU_MILLICORES);
+  }
+
+  const maxRamBytes = WORKSPACE_CONTAINER_MAX_RAM_MB * 1024 * 1024;
+  if ((parseMemoryBytes(merged.memoryLimit) ?? 0) > maxRamBytes) {
+    merged.memoryLimit = formatMemoryMb(WORKSPACE_CONTAINER_MAX_RAM_MB);
+  }
+
+  // request must never exceed limit (an invalid pod spec fails provisioning
+  // outright). On violation, revert both fields of the pair to the safe defaults.
+  if ((parseCpuMillicores(merged.cpuRequest) ?? 0) > (parseCpuMillicores(merged.cpuLimit) ?? 0)) {
+    merged.cpuRequest = base.cpuRequest;
+    merged.cpuLimit = base.cpuLimit;
+  }
+
+  if ((parseMemoryBytes(merged.memoryRequest) ?? 0) > (parseMemoryBytes(merged.memoryLimit) ?? 0)) {
+    merged.memoryRequest = base.memoryRequest;
+    merged.memoryLimit = base.memoryLimit;
+  }
+
+  return merged;
+}
+
+/**
+ * Build the per-plan fallback resource table, applying operator overrides from a
+ * `WORKSPACE_PLAN_RESOURCES_JSON`-shaped string. Invalid JSON, missing keys, or
+ * malformed values fall back to the built-in defaults per field — never throws.
+ */
+export function resolvePlanResourcesTable(raw?: string): Record<WorkspacePlan, PlanResources> {
+  let overrides: Record<string, unknown> = {};
+
+  if (raw && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        overrides = parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Invalid JSON → keep built-in defaults for every plan.
+    }
+  }
+
+  const table = {} as Record<WorkspacePlan, PlanResources>;
+  for (const plan of PLAN_KEYS) {
+    table[plan] = mergePlanResources(PLAN_RESOURCE_DEFAULTS[plan], overrides[plan]);
+  }
+
+  return table;
+}
+
+let cachedPlanResources: Record<WorkspacePlan, PlanResources> | undefined;
+
+/**
+ * Memoized fallback table. Parsed once from `WORKSPACE_PLAN_RESOURCES_JSON` on
+ * first use (deferred to call time so the LimitRange-max constants are already
+ * initialized), then reused for the process lifetime.
+ */
+function getPlanResources(): Record<WorkspacePlan, PlanResources> {
+  if (!cachedPlanResources) {
+    cachedPlanResources = resolvePlanResourcesTable(process.env.WORKSPACE_PLAN_RESOURCES_JSON);
+  }
+
+  return cachedPlanResources;
+}
 
 function labels(input: Pick<WorkspaceRuntimeInput, 'orgId' | 'projectId' | 'workspaceId'>) {
   return {
@@ -491,7 +668,7 @@ export const WORKSPACE_CONTAINER_MAX_RAM_MB = 8192;
 export const WORKSPACE_CONTAINER_MAX_DISK_GB = 100;
 
 function resolveWorkspaceResources(input: WorkspaceRuntimeInput) {
-  const plan = planResources[input.plan];
+  const plan = getPlanResources()[input.plan];
 
   const cpuMillicores = clampPositive(
     positiveInteger(input.resourceLimits?.cpuMillicores),
