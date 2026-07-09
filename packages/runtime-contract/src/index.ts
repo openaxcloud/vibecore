@@ -21,6 +21,15 @@ export interface WorkspaceSession {
   createdAt: string;
   updatedAt: string;
   metadata?: Record<string, unknown>;
+
+  /**
+   * True when `startWorkspace` adopted a pod that the manager reported as ALREADY
+   * running (a warm/reused pod) rather than one it had to cold-provision and poll
+   * to readiness. Lets the IDE reattach to a still-serving workspace on reopen
+   * instead of wiping + reseeding it. Undefined when the runtime cannot tell warm
+   * from cold (treated as NOT reused — the safe, reseed default).
+   */
+  reused?: boolean;
 }
 
 export interface FileNode {
