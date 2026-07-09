@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  PREFERRED_AI_MODEL_PROVIDER_STORAGE_KEY,
   PREFERRED_AI_MODEL_STORAGE_KEY,
+  persistPreferredModel,
   readPersistedModelId,
+  readPersistedProvider,
   resolvePreferredModelId,
 } from './resolve-preferred-model';
 
@@ -66,5 +69,53 @@ describe('readPersistedModelId', () => {
     });
 
     expect(readPersistedModelId()).toBe('');
+  });
+});
+
+describe('persistPreferredModel / readPersistedProvider', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function stubLocalStorage(initial: Record<string, string> = {}) {
+    const store: Record<string, string> = { ...initial };
+
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (key: string) => (key in store ? store[key] : null),
+        setItem: (key: string, value: string) => {
+          store[key] = value;
+        },
+        removeItem: (key: string) => {
+          delete store[key];
+        },
+      },
+    });
+
+    return store;
+  }
+
+  it('persists the model id and provider together', () => {
+    const store = stubLocalStorage();
+
+    persistPreferredModel('gpt-5', 'OpenAI');
+
+    expect(store[PREFERRED_AI_MODEL_STORAGE_KEY]).toBe('gpt-5');
+    expect(store[PREFERRED_AI_MODEL_PROVIDER_STORAGE_KEY]).toBe('OpenAI');
+    expect(readPersistedProvider()).toBe('OpenAI');
+  });
+
+  it('drops a stale provider when none is supplied', () => {
+    const store = stubLocalStorage({ [PREFERRED_AI_MODEL_PROVIDER_STORAGE_KEY]: 'stale' });
+
+    persistPreferredModel('gpt-5');
+
+    expect(store[PREFERRED_AI_MODEL_STORAGE_KEY]).toBe('gpt-5');
+    expect(PREFERRED_AI_MODEL_PROVIDER_STORAGE_KEY in store).toBe(false);
+    expect(readPersistedProvider()).toBe('');
+  });
+
+  it('reads an empty provider on the server / when nothing saved', () => {
+    expect(readPersistedProvider()).toBe('');
   });
 });

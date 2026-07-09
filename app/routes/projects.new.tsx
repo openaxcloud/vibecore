@@ -29,6 +29,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useLoaderData, useNavigation, useRouteError, useSubmit } from 'react-router';
 import { AppShell, TemplateGallery } from '~/components/dashboard/SaaSLayout';
+import { readPersistedModelId } from '~/components/marketing/ecode-exact/resolve-preferred-model';
 import {
   Select,
   SelectContent,
@@ -58,6 +59,7 @@ import { detectApplePlatform, submitShortcutLabel as resolveSubmitShortcutLabel 
 import { providersStore } from '~/lib/stores/settings';
 import type { ProviderInfo } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
+import { clearModelHandoff, readModelHandoff, resolveHandoffModelSelection } from '~/utils/model-handoff';
 import { projectIdePath } from '~/utils/project-url';
 import { categorizeProjectsNewError, type ProjectsNewErrorDescriptor } from '~/utils/projects-new-error';
 import {
@@ -923,6 +925,26 @@ export default function NewProjectPage() {
 
     composerAutoSubmittedRef.current = true;
 
+    /*
+     * Resolve the visitor's chosen model from the same hand-off BEFORE clearing
+     * it. The landing composer stashes `pendingModelId`/`pendingProvider`; if the
+     * id maps to a model the loaded catalog actually offers we forward it in the
+     * submit so generation uses the chosen model instead of DEFAULT_MODEL. This
+     * MUST ride on the submit payload directly — the auto-submit posts a synthetic
+     * body ({ prompt }) and never sees the form's hidden model/provider inputs, so
+     * seeding React state alone would be dropped. A stale/unknown id resolves to
+     * null and we simply omit it, preserving the old default behaviour.
+     */
+    const handoff = readModelHandoff();
+    const candidateModelId = handoff.modelId || readPersistedModelId();
+
+    const resolvedModel = candidateModelId
+      ? resolveHandoffModelSelection(
+          { modelId: candidateModelId, provider: handoff.provider },
+          initialModelsPayload.modelList,
+        )
+      : null;
+
     try {
       sessionStorage.removeItem('composerBuildIntent');
       sessionStorage.removeItem('pendingAppDescription');
@@ -932,10 +954,69 @@ export default function NewProjectPage() {
       // best-effort cleanup; the ref above already prevents a re-submit
     }
 
+    clearModelHandoff();
+
     const handoffPrompt = stashedPrompt.trim().slice(0, PROMPT_MAX_CHARS);
     setPrompt(handoffPrompt);
-    submit({ prompt: handoffPrompt }, { method: 'post' });
-  }, [initialModelsPayload.initialPrompt, submit]);
+
+    const submitBody: Record<string, string> = { prompt: handoffPrompt };
+
+    if (resolvedModel) {
+      submitBody.model = resolvedModel.model;
+      submitBody.provider = resolvedModel.provider;
+
+      // Keep the visible dropdowns in sync in case navigation is slow.
+      setSelectedProvider(resolvedModel.provider);
+      setSelectedModel(resolvedModel.model);
+    }
+
+    submit(submitBody, { method: 'post' });
+  }, [initialModelsPayload.initialPrompt, initialModelsPayload.modelList, submit]);
+
+  /*
+   * Seed the provider/model dropdowns from the landing hand-off (or a returning
+   * visitor's saved preference) so the form's hidden model/provider inputs carry
+   * the chosen model when the visitor reviews before submitting — the path the
+   * auto-submit effect above does NOT cover. Runs once. Skipped when a `?model=`
+   * override is present in the URL, and a no-op when the id isn't offered by the
+   * loaded catalog (falls back to the default selection, never crashes).
+   */
+  const modelHandoffSeededRef = useRef(false);
+
+  useEffect(() => {
+    if (modelHandoffSeededRef.current || typeof window === 'undefined') {
+      return;
+    }
+
+    modelHandoffSeededRef.current = true;
+
+    try {
+      if (new URLSearchParams(window.location.search).get('model')) {
+        return;
+      }
+    } catch {
+      // Malformed URL — fall through to the storage-based seed.
+    }
+
+    const handoff = readModelHandoff();
+    const candidateModelId = handoff.modelId || readPersistedModelId();
+
+    clearModelHandoff();
+
+    if (!candidateModelId) {
+      return;
+    }
+
+    const resolved = resolveHandoffModelSelection(
+      { modelId: candidateModelId, provider: handoff.provider },
+      initialModelsPayload.modelList,
+    );
+
+    if (resolved) {
+      setSelectedProvider(resolved.provider);
+      setSelectedModel(resolved.model);
+    }
+  }, [initialModelsPayload.modelList]);
 
   const activeCategory =
     artifactCategories.find((category) => category.id === selectedCategory) ?? artifactCategories[0];

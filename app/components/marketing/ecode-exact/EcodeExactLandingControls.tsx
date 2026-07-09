@@ -5,7 +5,7 @@ import { SiGoogle, SiOpenai } from 'react-icons/si';
 import { toast as toastify } from 'react-toastify';
 import { Badge, Button, Card, CardContent, cn, Skeleton } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import {
-  PREFERRED_AI_MODEL_STORAGE_KEY,
+  persistPreferredModel,
   readPersistedModelId,
   resolvePreferredModelId,
 } from '~/components/marketing/ecode-exact/resolve-preferred-model';
@@ -237,9 +237,15 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
     setSelectedModel(modelId);
     onModelChange?.(modelId);
 
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(PREFERRED_AI_MODEL_STORAGE_KEY, modelId);
-    }
+    /*
+     * Persist the model id AND its provider together so the landing "Build Now"
+     * hand-off can forward the provider to /projects/new without re-deriving it.
+     * The provider comes straight from the chosen model option's `provider`
+     * field; if the option isn't in the current list (shouldn't happen) we still
+     * persist the id and let the consumer resolve the provider from its catalog.
+     */
+    const chosen = models.find((model) => model.id === modelId);
+    persistPreferredModel(modelId, chosen?.provider);
   };
 
   useEffect(() => {

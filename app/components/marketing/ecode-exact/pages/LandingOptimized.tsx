@@ -38,7 +38,12 @@ import {
   useWouterLocation,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { DeferredSections } from '~/components/marketing/ecode-exact/landing/DeferredSections';
+import {
+  readPersistedModelId,
+  readPersistedProvider,
+} from '~/components/marketing/ecode-exact/resolve-preferred-model';
 import { scrollToElement, scrollWindowBy } from '~/lib/scroll-to';
+import { stashModelHandoff } from '~/utils/model-handoff';
 
 /*
  * Number of reveal-and-retry attempts the "Watch Demo" CTA makes while the lazy
@@ -142,6 +147,19 @@ export default function LandingOptimized() {
       sessionStorage.setItem('pendingBuildMode', mode);
       sessionStorage.setItem('composerBuildIntent', '1');
       sessionStorage.removeItem('triggerBuildOnLanding');
+
+      /*
+       * Forward the visitor's chosen AI model into the same hand-off so
+       * /projects/new generates with it instead of the platform default. The
+       * model selector persists the chosen id + provider to localStorage; a
+       * non-empty id means the visitor actually made a selection (the default
+       * placeholder never writes storage), so we only stash a real choice.
+       */
+      const chosenModelId = readPersistedModelId();
+
+      if (chosenModelId) {
+        stashModelHandoff(chosenModelId, readPersistedProvider());
+      }
     } catch {
       /*
        * sessionStorage blocked (private mode) — /projects/new still renders; the
