@@ -391,6 +391,7 @@ interface ProviderKeyOverride {
 }
 
 const providerKeyOverrides = new Map<AiProviderId, ProviderKeyOverride>();
+
 let providerKeyOverridesExpiry = 0;
 
 /*
@@ -400,6 +401,7 @@ let providerKeyOverridesExpiry = 0;
  */
 export type ProviderKeyRow = { provider: string; apiKeyEnc?: string | null; baseUrl?: string | null };
 type ProviderKeyLoader = () => Promise<ProviderKeyRow[]>;
+
 let providerKeyLoaderForTest: ProviderKeyLoader | undefined;
 
 export function __setProviderKeyLoaderForTest(loader: ProviderKeyLoader | undefined) {
@@ -1270,9 +1272,11 @@ export class AiGateway {
     const providers = [...new Set(providerIds)]
       .map((providerId) => providerConfigs().find((config) => config.id === providerId))
       .filter((config): config is ProviderConfig => Boolean(config))
-      // Apply any admin-set DB key/baseUrl (populated by an awaited hydrate in
-      // complete()/stream()) BEFORE the `configured` filter, so a DB-only key
-      // (no env var) still counts the provider as usable.
+      /*
+       * Apply any admin-set DB key/baseUrl (populated by an awaited hydrate in
+       * complete()/stream()) BEFORE the `configured` filter, so a DB-only key
+       * (no env var) still counts the provider as usable.
+       */
       .map(withProviderKeyOverride)
       .filter(configured);
 
@@ -1331,8 +1335,10 @@ export class AiGateway {
   async complete(request: AiChatRequest, signal?: AbortSignal) {
     await ensureGptTokenizer();
 
-    // DB-first key resolution: refresh the decrypted-key cache (TTL-guarded)
-    // before routing so route() enriches configs with any admin-set key.
+    /*
+     * DB-first key resolution: refresh the decrypted-key cache (TTL-guarded)
+     * before routing so route() enriches configs with any admin-set key.
+     */
     await hydrateProviderKeyOverrides();
 
     const routed = this.route(request);
