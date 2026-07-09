@@ -692,6 +692,23 @@ export class WorkbenchStore {
       });
     }
 
+    /*
+     * Reattach fast-path (reopen of a still-running workspace). If the pod is
+     * already serving a genuinely-ready port with its dependencies installed,
+     * adopt that dev server AS-IS instead of cold-rebuilding it: skip the
+     * manifest sync / install / dev-server relaunch below, which would needlessly
+     * stop and restart an app that is already up (the "from-scratch rebuild on
+     * reopen" the resume path exists to avoid). A manual Reinstall (forceInstall)
+     * always bypasses this. Evaluating it BEFORE the manifest sync is what
+     * prevents a spurious dependenciesChanged from tearing down the live server.
+     */
+    if (!forceInstall && (await this.#canShortCircuitToExistingPreview())) {
+      this.previewServerState.set({ status: 'running' });
+      this.appendWorkspaceLog('Reattached to the already-running dev server.');
+
+      return 'reattached preview server';
+    }
+
     let dependenciesChanged = false;
 
     dependenciesChanged = await this.#syncPreviewManifestFromRuntime().catch((error) => {

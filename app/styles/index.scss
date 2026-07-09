@@ -11091,6 +11091,121 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--vc-ide-accent-action);
 }
 
+.bolt-preview-resume-overlay {
+  position: absolute;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-app), transparent 12%), var(--vc-ide-bg-app)),
+    color-mix(in srgb, var(--vc-ide-bg-panel), transparent 6%);
+  color: var(--vc-ide-text-primary);
+  inset: 0;
+  padding: 20px;
+  backdrop-filter: blur(6px);
+}
+
+.bolt-preview-resume-card {
+  display: grid;
+  width: min(380px, 100%);
+  gap: 14px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--vc-ide-bg-card) 96%, transparent);
+  box-shadow: var(--vc-ui-shadow-xl);
+  padding: 22px;
+  text-align: center;
+}
+
+.bolt-preview-resume-spinner {
+  display: inline-grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  justify-self: center;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 42%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%);
+  color: var(--vc-ide-accent-action);
+  font-size: 20px;
+}
+
+.bolt-preview-resume-copy {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+
+.bolt-preview-resume-copy > span {
+  color: var(--vc-ide-accent-action);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.bolt-preview-resume-copy h3 {
+  margin: 0;
+  color: var(--vc-ide-text-primary);
+  font-size: 17px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.bolt-preview-resume-copy p {
+  max-width: 320px;
+  margin: 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.bolt-preview-resume-skeleton-lines {
+  display: grid;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.bolt-preview-resume-skeleton-lines span {
+  height: 9px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--vc-ide-bg-panel), transparent 20%) 25%,
+    color-mix(in srgb, var(--vc-ide-accent-action), transparent 82%) 50%,
+    color-mix(in srgb, var(--vc-ide-bg-panel), transparent 20%) 75%
+  );
+  background-size: 200% 100%;
+  animation: bolt-preview-resume-shimmer 1.4s ease-in-out infinite;
+}
+
+.bolt-preview-resume-skeleton-lines span:nth-child(2) {
+  width: 82%;
+  justify-self: center;
+}
+
+.bolt-preview-resume-skeleton-lines span:nth-child(3) {
+  width: 64%;
+  justify-self: center;
+}
+
+@keyframes bolt-preview-resume-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bolt-preview-resume-skeleton-lines span {
+    animation: none;
+  }
+}
+
 .bolt-preview-loading-overlay {
   position: absolute;
   z-index: 8;

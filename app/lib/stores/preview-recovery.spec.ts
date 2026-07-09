@@ -5,8 +5,10 @@ import {
   decodeArchiveEntry,
   isTransientCommandFailure,
   isTransientFailureMessage,
+  resolvePreviewBootOverlay,
   shouldKickReopenPreview,
   shouldLatchPreviewStartFailure,
+  shouldReattachRunningPreview,
   shouldUseExistingPreviewServer,
   workspaceNeedsReprovision,
 } from './preview-recovery';
@@ -40,6 +42,47 @@ describe('shouldUseExistingPreviewServer', () => {
 
   it('does not short-circuit with no previews', () => {
     expect(shouldUseExistingPreviewServer([], true)).toBe(false);
+  });
+});
+
+describe('shouldReattachRunningPreview', () => {
+  it('REATTACHES when the workspace is running and a port is already serving (reopen of a live pod)', () => {
+    expect(shouldReattachRunningPreview(session('running'), [{ port: 5173, ready: true }])).toBe(true);
+
+    // The previews store forwards the URL as baseUrl.
+    expect(shouldReattachRunningPreview(session('running'), [{ port: 5173, baseUrl: 'https://x.preview' }])).toBe(true);
+
+    // A live serving port makes even a status still lagging at STARTING a reattach.
+    expect(shouldReattachRunningPreview(session('starting'), [{ port: 5173, ready: true }])).toBe(true);
+  });
+
+  it('COLD-BOOTS (no reattach) when nothing is actually serving', () => {
+    // Running status but only a detected (not-serving) port → nothing to attach to.
+    expect(shouldReattachRunningPreview(session('running'), [{ port: 5173 }])).toBe(false);
+    expect(shouldReattachRunningPreview(session('running'), [])).toBe(false);
+    expect(shouldReattachRunningPreview(session('stopped'), [{ port: 5173 }])).toBe(false);
+    expect(shouldReattachRunningPreview(undefined, [{ port: 5173 }])).toBe(false);
+    expect(shouldReattachRunningPreview(undefined, undefined)).toBe(false);
+  });
+
+  it('a genuinely-live serving port is ground truth even if the status field lags/conflicts', () => {
+    // The live port is the reattach signal: if the pod is actually answering, adopt it.
+    expect(shouldReattachRunningPreview(session('stopped'), [{ port: 5173, ready: true }])).toBe(true);
+  });
+});
+
+describe('resolvePreviewBootOverlay (resume skeleton vs rebuild)', () => {
+  it('shows nothing when the overlay is not visible', () => {
+    expect(resolvePreviewBootOverlay({ overlayVisible: false, reattaching: true })).toBe('none');
+    expect(resolvePreviewBootOverlay({ overlayVisible: false, reattaching: false })).toBe('none');
+  });
+
+  it('shows the lightweight resume skeleton when reattaching to a live workspace', () => {
+    expect(resolvePreviewBootOverlay({ overlayVisible: true, reattaching: true })).toBe('resume');
+  });
+
+  it('shows the full rebuild overlay for a genuine cold boot', () => {
+    expect(resolvePreviewBootOverlay({ overlayVisible: true, reattaching: false })).toBe('rebuild');
   });
 });
 
