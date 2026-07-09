@@ -77,7 +77,7 @@ export interface ProviderConfig {
   healthPath?: string;
 }
 
-function providerConfigs(): ProviderConfig[] {
+export function providerConfigs(): ProviderConfig[] {
   return [
     {
       id: 'openai',
@@ -98,7 +98,7 @@ function providerConfigs(): ProviderConfig[] {
       kind: 'gemini',
       baseUrl: process.env.GOOGLE_GEMINI_BASE_URL ?? 'https://generativelanguage.googleapis.com/v1beta',
       apiKeyEnv: 'GOOGLE_GEMINI_API_KEY',
-      defaultModel: 'gemini-1.5-pro',
+      defaultModel: 'gemini-2.5-flash',
     },
     {
       id: 'openrouter',
@@ -169,14 +169,34 @@ export const modelCatalog: AiModel[] = [
     maxCompletionTokens: 8192,
   },
   {
-    id: 'gemini-1.5-pro',
+    id: 'gemini-2.5-pro',
     provider: 'google-gemini',
-    displayName: 'Gemini 1.5 Pro',
+    displayName: 'Gemini 2.5 Pro',
     plans: ['pro', 'business', 'enterprise'],
-    inputCentsPerMillion: 125,
-    outputCentsPerMillion: 500,
-    contextWindow: 1_000_000,
-    maxCompletionTokens: 8192,
+    inputCentsPerMillion: 125, // pricing approximate, verify
+    outputCentsPerMillion: 1000, // pricing approximate, verify
+    contextWindow: 1_048_576,
+    maxCompletionTokens: 65536,
+  },
+  {
+    id: 'gemini-2.5-flash',
+    provider: 'google-gemini',
+    displayName: 'Gemini 2.5 Flash',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 30, // pricing approximate, verify
+    outputCentsPerMillion: 250, // pricing approximate, verify
+    contextWindow: 1_048_576,
+    maxCompletionTokens: 65536,
+  },
+  {
+    id: 'gemini-3.5-flash',
+    provider: 'google-gemini',
+    displayName: 'Gemini 3.5 Flash',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 30, // pricing approximate, verify
+    outputCentsPerMillion: 250, // pricing approximate, verify
+    contextWindow: 1_048_576,
+    maxCompletionTokens: 65536,
   },
   {
     id: 'openai/gpt-4.1',

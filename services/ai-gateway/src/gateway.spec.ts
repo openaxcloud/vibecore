@@ -7,7 +7,9 @@ import {
   extractProviderErrorMessage,
   isProviderAccountLimit,
   maxCompletionTokensForModel,
+  modelCatalog,
   modelDisallowsTemperature,
+  providerConfigs,
 } from './gateway.js';
 
 /*
@@ -327,10 +329,32 @@ describe('AiGateway', () => {
     expect(maxCompletionTokensForModel('gemini-2.0-flash')).toBe(8192);
     // Newer premium families keep the hard cap (not over-clamped).
     expect(maxCompletionTokensForModel('claude-sonnet-4-5')).toBe(32768);
-    expect(maxCompletionTokensForModel('gemini-2.5-pro')).toBe(32768);
+    // Gemini 2.5 Pro is now a catalog entry declaring 65536; catalog value wins.
+    expect(maxCompletionTokensForModel('gemini-2.5-pro')).toBe(65536);
+    // A 2.5 id NOT in the catalog still falls through past the legacy 1.x/2.0 branch to the hard cap.
+    expect(maxCompletionTokensForModel('gemini-2.5-flash-lite')).toBe(32768);
     // Unknown ids keep the global hard cap — never over-clamp a large-output model.
     expect(maxCompletionTokensForModel('some-unknown-model')).toBe(32768);
     expect(maxCompletionTokensForModel(undefined)).toBe(32768);
+  });
+
+  it('uses a GA/stable Gemini default model (no removed gemini-1.5 alias)', () => {
+    const gemini = providerConfigs().find((config) => config.id === 'google-gemini');
+    expect(gemini).toBeDefined();
+    // gemini-1.5-* aliases were removed by Google and 404 under v1beta generateContent.
+    expect(gemini!.defaultModel).not.toMatch(/gemini-1\.5/);
+    expect(gemini!.defaultModel).toBe('gemini-2.5-flash');
+  });
+
+  it('exposes GA Gemini catalog entries and no bare gemini-1.5 ids', () => {
+    const geminiModels = modelCatalog.filter((model) => model.provider === 'google-gemini');
+    expect(geminiModels.length).toBeGreaterThan(0);
+    expect(geminiModels.some((model) => /^gemini-1\.5/.test(model.id))).toBe(false);
+    // The canonical GA set is present.
+    const ids = geminiModels.map((model) => model.id);
+    expect(ids).toContain('gemini-2.5-pro');
+    expect(ids).toContain('gemini-2.5-flash');
+    expect(ids).toContain('gemini-3.5-flash');
   });
 
   it('clamps the outgoing max_tokens to the model ceiling even when a larger value is requested', async () => {
