@@ -195,12 +195,44 @@ async function enforceDataRetention() {
   }
 }
 
+/*
+ * Built-in fallbacks (kept in sync with the manager's /workspaces/gc route
+ * default in services/workspace-manager/src/app.ts): stop an idle RUNNING
+ * workspace after 30 min, delete a STOPPED one after 24 h.
+ */
+const DEFAULT_IDLE_STOP_MS = 30 * 60_000;
+const DEFAULT_DELETE_STOPPED_MS = 24 * 60 * 60_000;
+
+/*
+ * Resolve a GC window with precedence jobData > env > built-in default. A
+ * per-job value (from BullMQ job data) always wins; otherwise fall back to the
+ * env override, then the built-in. Env/job values are parsed defensively so a
+ * malformed or non-positive value (NaN / 0 / negative) silently falls through
+ * to the next source rather than passing a bogus window to the manager.
+ */
+function resolveGcWindowMs(jobValue: unknown, envValue: string | undefined, envUnitMs: number, fallbackMs: number): number {
+  const fromJob = Number(jobValue);
+  if (Number.isFinite(fromJob) && fromJob > 0) {
+    return fromJob;
+  }
+
+  const fromEnv = Number(envValue);
+  if (Number.isFinite(fromEnv) && fromEnv > 0) {
+    return fromEnv * envUnitMs;
+  }
+
+  return fallbackMs;
+}
+
 /**
  * GC trigger — POSTs to workspace-manager's /workspaces/gc which iterates
  * the WorkspaceRuntime table and stops/deletes pods past their inactivity
- * thresholds. Inactivity + deletion windows can be overridden per-job via
- * the BullMQ job data, otherwise we default to 30m / 24h which the manager
- * itself uses as the route default.
+ * thresholds. Inactivity + deletion windows follow the precedence
+ * jobData > env > built-in default: a per-job override wins, otherwise the
+ * cluster operator can tune them via WORKSPACE_IDLE_STOP_MINUTES (minutes →
+ * idle-stop window, default 30m) and WORKSPACE_DELETE_STOPPED_HOURS (hours →
+ * STOPPED-delete window, default 24h). The manager's route default reads the
+ * same two env vars so both agree when the worker omits a value.
  */
 export async function triggerWorkspaceGarbageCollect(jobData: Record<string, unknown> = {}) {
   const baseUrl = process.env.WORKSPACE_MANAGER_URL;
@@ -210,8 +242,8 @@ export async function triggerWorkspaceGarbageCollect(jobData: Record<string, unk
 
   const body = {
     namespace: (jobData.namespace as string | undefined) ?? process.env.WORKSPACE_RUNTIME_NAMESPACE ?? 'workspaces',
-    inactiveMs: (jobData.inactiveMs as number | undefined) ?? 30 * 60_000,
-    deleteMs: (jobData.deleteMs as number | undefined) ?? 24 * 60 * 60_000,
+    inactiveMs: resolveGcWindowMs(jobData.inactiveMs, process.env.WORKSPACE_IDLE_STOP_MINUTES, 60_000, DEFAULT_IDLE_STOP_MS),
+    deleteMs: resolveGcWindowMs(jobData.deleteMs, process.env.WORKSPACE_DELETE_STOPPED_HOURS, 60 * 60_000, DEFAULT_DELETE_STOPPED_MS),
   };
 
   // The manager gates its control-plane routes (including /workspaces/gc) behind
