@@ -138,6 +138,7 @@ import {
   deploymentProviders,
   detectFramework,
   redactDeploymentLog,
+  type CreateDeploymentRequest,
   type RunStaticBuildResult,
   type StaticBuildLog,
 } from './deployments.js';
@@ -147,6 +148,8 @@ import {
   type WorkspaceStaticBuildResult,
 } from './deploy-workspace-build.js';
 import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
+import { enqueueDeployBuildJob } from './deploy-queue.js';
+import { reapStaleDeployments, resolveDeployBuildTimeoutMs } from './deploy-reaper.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
 import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
 import {
@@ -282,6 +285,14 @@ export interface ApiAppOptions {
    * build command on the host. Tests inject a deterministic implementation.
    */
   staticBuildRunner?: typeof runStaticBuild;
+
+  /**
+   * Override the durable deploy-build enqueue path. Production uses the default
+   * BullMQ enqueue exported from `./deploy-queue`; tests can inject a spy (the
+   * sync/injected-runner path never enqueues, so this is only exercised by the
+   * async workspace-pod path).
+   */
+  enqueueDeployJob?: typeof enqueueDeployBuildJob;
 
   /**
    * Override the platform Prometheus registry. Production/dev create a fresh one;
@@ -6905,6 +6916,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * nothing, so the workspace-pod build (P1) is the real default.
    */
   const useWorkspacePodBuild = !options.staticBuildRunner;
+  const enqueueDeployJob = options.enqueueDeployJob ?? enqueueDeployBuildJob;
   const emailProvider = options.emailProvider ?? createEmailProvider();
   const isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
 
@@ -25955,6 +25967,253 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.code(202).send({ scheduled: true, enabled: true });
   });
 
+  /*
+   * The build "drive" extracted from the deploy POST so it can run in TWO places
+   * with identical semantics (#26):
+   *  - the synchronous path (tests / injected staticBuildRunner), inline in POST;
+   *  - the worker-triggered path, from POST /internal/deployments/build.
+   * It runs the provider hook + the static build (in the workspace pod, or via the
+   * injected runner), snapshots the artifact, then transitions the row to
+   * READY/FAILED — flushing incremental logs/phase to the deployment record the
+   * whole time so the existing SSE log stream keeps working. Returns the final row.
+   *
+   * `request` is the real Fastify request on the sync path, or a synthetic
+   * `{ currentUser, ip, raw }` on the worker path — the only fields the drive
+   * touches (workspace reach / usage / audit / activity).
+   */
+  const runDeploymentBuildFlow = async (params: {
+    request: any;
+    project: ProjectRecord;
+    queued: DeploymentRecord;
+    body: CreateDeploymentRequest;
+    secondaryWorkspaceId?: string;
+  }): Promise<DeploymentRecord> => {
+    const { request, project, queued, body, secondaryWorkspaceId } = params;
+
+    // Incremental log/phase flush (coalesced ~1/s) so the UI streams progress
+    // instead of showing a frozen screen while the pod builds. Flushing also keeps
+    // the row's updatedAt fresh, which is what the reaper uses to tell a live build
+    // apart from an orphaned one.
+    const liveLog: StaticBuildLog[] = [];
+    let livePhase = 'queued';
+    let flushScheduled = false;
+    const scheduleLogFlush = () => {
+      if (flushScheduled) {
+        return;
+      }
+
+      flushScheduled = true;
+      setTimeout(() => {
+        flushScheduled = false;
+        void store
+          .updateDeployment(project.id, queued.id, {
+            status: 'BUILDING',
+            logs: liveLog.slice(),
+            metadata: { ...(queued.metadata as Record<string, unknown>), phase: livePhase },
+          })
+          .catch(() => undefined);
+      }, 1000);
+    };
+    const buildProgress = {
+      onLog: (entry: StaticBuildLog) => {
+        liveLog.push(entry);
+        scheduleLogFlush();
+      },
+      onPhase: (phase: string) => {
+        livePhase = phase;
+        scheduleLogFlush();
+      },
+    };
+
+    const hookResult = await triggerProviderDeployHook(body.provider);
+
+    let staticBuildFailed = false;
+    let staticBuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
+    let workspaceBuildTempDir: string | undefined;
+
+    if (body.provider === 'static') {
+      /*
+       * Build in the project's workspace pod (real toolchain + local disk). The
+       * in-api-pod fallback was removed (#26 sub-part 2): if the pod can't be
+       * reached the build fails cleanly rather than OOMing the api pod.
+       */
+      const workspaceAttempt = useWorkspacePodBuild
+        ? await buildStaticInWorkspacePod(request, project, body, queued.id, buildProgress)
+        : { handled: false as const };
+      workspaceBuildTempDir = workspaceAttempt.handled ? workspaceAttempt.tempDir : undefined;
+
+      const staticBuild = workspaceAttempt.handled
+        ? workspaceAttempt.result
+        : await staticBuildRunner({
+            projectId: project.id,
+            workspaceId: secondaryWorkspaceId,
+            buildCommand: body.buildCommand,
+            outputDirectory: body.outputDirectory,
+            envVars: body.envVars,
+            timeoutSeconds: body.timeoutSeconds,
+            artifactSizeLimitMb: body.artifactSizeLimitMb,
+          });
+
+      staticBuildLogs = staticBuild.logs;
+
+      if (staticBuild.ok && staticBuild.outputDir) {
+        try {
+          await snapshotStaticBuild(queued.id, staticBuild.outputDir);
+          staticBuildLogs.push({
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            message: `Static deploy: snapshot stored at ${staticDeploymentSnapshotDir(queued.id)}`,
+          });
+
+          /*
+           * The static build runs outside any lock, so a concurrent
+           * POST /deployments/:id/cancel can flip this deploy to CANCELED while
+           * it ran. The serve path already 404s a canceled deploy, but the
+           * snapshot we just wrote would otherwise linger on disk forever —
+           * discard it when the deploy was canceled mid-build.
+           */
+          const ownerStatus = await store.getDeploymentOwnerStatus(queued.id).catch(() => undefined);
+
+          if (ownerStatus?.status === 'CANCELED') {
+            await removeStaticDeploymentSnapshot(queued.id).catch(() => undefined);
+            staticBuildLogs.push({
+              timestamp: new Date().toISOString(),
+              level: 'info',
+              message: 'Static deploy: deployment was canceled mid-build; snapshot discarded.',
+            });
+          }
+        } catch (error) {
+          staticBuildFailed = true;
+
+          /*
+           * A snapshot that throws mid-copy leaves a partial artifact directory
+           * behind; remove it so failed deploys don't slowly accumulate on disk.
+           */
+          await removeStaticDeploymentSnapshot(queued.id).catch(() => undefined);
+          staticBuildLogs.push({
+            timestamp: new Date().toISOString(),
+            level: 'error',
+            message: `Static deploy: snapshot failed (${(error as Error).message ?? 'unknown error'}).`,
+          });
+        }
+      } else {
+        staticBuildFailed = true;
+      }
+
+      // The workspace-pod build materializes the artifact into a temp dir that
+      // snapshotStaticBuild has now copied out of — remove it either way.
+      if (workspaceBuildTempDir) {
+        await rm(workspaceBuildTempDir, { recursive: true, force: true }).catch(() => undefined);
+      }
+    }
+
+    const url = hookResult?.url ?? buildDeploymentUrl(project, queued);
+    const baseLogs = createDeploymentLogs(body, { ...queued, url }, project);
+
+    const augmentedLogs = [
+      ...baseLogs,
+      ...staticBuildLogs,
+      ...(hookResult
+        ? [
+            {
+              timestamp: new Date().toISOString(),
+              level: hookResult.status === 'failed' ? ('error' as const) : ('info' as const),
+              message: hookResult.log,
+            },
+          ]
+        : []),
+    ];
+
+    const failed = hookResult?.status === 'failed' || staticBuildFailed;
+
+    /*
+     * For non-static providers the deploy hook only QUEUES a build at the
+     * provider — the build hasn't finished yet. When we can poll that
+     * provider's status API (credentials present), keep the deployment in
+     * BUILDING and let the real provider status drive READY/FAILED via
+     * reconcileDeploymentStatus (on read + polling). Only when we cannot poll
+     * do we report the hook's result directly (best available signal).
+     */
+    const pollable =
+      !failed &&
+      body.provider !== 'static' &&
+      hookResult?.status === 'queued' &&
+      canPollDeploymentStatus(body.provider, hookResult?.buildId);
+
+    const hasRealHookUrl = Boolean(hookResult?.url);
+
+    /*
+     * A non-static deploy hook only QUEUES a build at the provider. If we can
+     * neither poll its status nor got a real URL back from the hook, we must
+     * NOT mark it READY with the synthesized *.vibecore.local host (which
+     * serves nothing) — keep it BUILDING (queued externally) instead.
+     */
+    const queuedExternalNoUrl =
+      !failed && body.provider !== 'static' && hookResult?.status === 'queued' && !pollable && !hasRealHookUrl;
+
+    const status = failed ? 'FAILED' : pollable || queuedExternalNoUrl ? 'BUILDING' : 'READY';
+    const isReady = status === 'READY';
+
+    /*
+     * Only persist a usable URL: a real hook URL, or the static path-based URL.
+     * Never the synthesized fallback for a non-static build that has no real URL.
+     */
+    const resolvedUrl = failed
+      ? undefined
+      : hasRealHookUrl
+        ? hookResult?.url
+        : body.provider === 'static'
+          ? url
+          : undefined;
+
+    const ready = await store.updateDeployment(project.id, queued.id, {
+      status,
+      url: resolvedUrl,
+      previewUrl: isReady && body.environment !== 'production' ? resolvedUrl : undefined,
+      productionUrl: isReady && body.environment === 'production' ? resolvedUrl : undefined,
+      metadata: {
+        ...(queued.metadata as Record<string, unknown>),
+        providerBuildId: hookResult?.buildId,
+        hookStatus: hookResult?.status,
+        staticBuildOk: body.provider === 'static' ? !staticBuildFailed : undefined,
+      },
+      logs: augmentedLogs,
+      finishedAt: status === 'BUILDING' ? undefined : new Date().toISOString(),
+    });
+
+    /*
+     * Bill against the PERSISTED status, not the locally-computed `status`. The
+     * static build runs outside the org lock, so a concurrent cancel can flip
+     * the row to CANCELED while the build ran; the final updateDeployment then
+     * no-ops (monotonic guard keeps it CANCELED). Don't bill FAILED either.
+     */
+    if (shouldRecordDeploymentUsage(ready.status)) {
+      await recordUsage(request, project.organizationId, 'deployments.count');
+    }
+
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'deployment.create',
+      resourceType: 'deployment',
+      resourceId: ready.id,
+      metadata: { provider: ready.provider, environment: ready.environment, framework: ready.framework },
+    });
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser?.id,
+      action: 'deployment.create',
+      metadata: { deploymentId: ready.id, provider: ready.provider, environment: ready.environment, url: ready.url },
+    });
+
+    // P11: refresh the project thumbnail from the freshly deployed URL (auto,
+    // debounced, inert unless the screenshotter is configured).
+    if (ready.url) {
+      thumbnailCapturer.schedule(project.id, ready.url);
+    }
+
+    return ready;
+  };
+
   app.post('/projects/:projectId/deployments', async (request, reply) => {
     const project = await requireProject(
       request,
@@ -26086,277 +26345,135 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const queued = createResult.queued;
 
     /*
-     * P2: static deploys build in the workspace pod, which can take minutes —
-     * longer than the ingress idle timeout that would 504 a blocking POST. When
-     * we build in the pod, respond immediately with the QUEUED deployment and
-     * finish the build in the background, persisting status + build logs to the
-     * deployment record so the client tails them over SSE (see .../logs/stream).
-     * Test / injected-runner builds stay synchronous so their response carries
-     * the final status (and the existing deploy tests keep asserting on it).
+     * Durable path (#26). Static deploys build in the workspace pod, which can
+     * take minutes — longer than the ingress idle timeout that would 504 a
+     * blocking POST. Instead of awaiting the build in THIS request handler (which
+     * orphaned the build the moment the api pod restarted, leaving the row stuck
+     * QUEUED forever), we ENQUEUE a durable BullMQ job and return 202 at once. A
+     * worker consumes the job and drives the build via POST /internal/deployments/build
+     * (running runDeploymentBuildFlow), flushing logs/phase to the row so the SSE
+     * log stream keeps working; the reaper fails anything that ever stalls.
+     *
+     * Test / injected-runner builds (useWorkspacePodBuild=false) stay synchronous
+     * so their response carries the final status (the existing deploy tests keep
+     * asserting on it), and they never touch Redis.
      */
     const asyncBuild = useWorkspacePodBuild && body.provider === 'static';
 
-    // Incremental log/phase flush (coalesced ~1/s) so the UI streams progress
-    // instead of showing a frozen screen while the pod builds.
-    const liveLog: StaticBuildLog[] = [];
-    let livePhase = 'queued';
-    let flushScheduled = false;
-    const scheduleLogFlush = () => {
-      if (flushScheduled) {
-        return;
-      }
-
-      flushScheduled = true;
-      setTimeout(() => {
-        flushScheduled = false;
-        void store
-          .updateDeployment(project.id, queued.id, {
-            status: 'BUILDING',
-            logs: liveLog.slice(),
-            metadata: { ...(queued.metadata as Record<string, unknown>), phase: livePhase },
-          })
-          .catch(() => undefined);
-      }, 1000);
-    };
-    const buildProgress = {
-      onLog: (entry: StaticBuildLog) => {
-        liveLog.push(entry);
-        scheduleLogFlush();
-      },
-      onPhase: (phase: string) => {
-        livePhase = phase;
-        scheduleLogFlush();
-      },
-    };
-
     if (asyncBuild) {
-      reply.code(202).send({ deployment: queued });
-    }
+      try {
+        await enqueueDeployJob({
+          projectId: project.id,
+          deploymentId: queued.id,
+          userId: request.currentUser?.id,
+          buildInput: { ...body, secondaryWorkspaceId },
+        });
+      } catch (error) {
+        /*
+         * Could not reach Redis to enqueue. Don't leave the row stuck at QUEUED —
+         * fail it immediately with a retryable message (the reaper would also
+         * catch it later, but failing now is better UX). Still 202 so the client
+         * tails the SSE log stream and sees the failure.
+         */
+        const failedRow = await store
+          .updateDeployment(project.id, queued.id, {
+            status: 'FAILED',
+            finishedAt: new Date().toISOString(),
+            logs: [
+              ...queued.logs,
+              {
+                timestamp: new Date().toISOString(),
+                level: 'error' as const,
+                message: `Could not queue the build — please retry. (${(error as Error).message ?? 'queue unavailable'})`,
+              },
+            ],
+          })
+          .catch(() => ({ ...queued, status: 'FAILED' as const }));
 
-    try {
-      const hookResult = await triggerProviderDeployHook(body.provider);
-
-      let staticBuildFailed = false;
-      let staticBuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
-      let workspaceBuildTempDir: string | undefined;
-
-    if (body.provider === 'static') {
-      /*
-       * P1: build in the project's workspace pod (real toolchain + local disk);
-       * only fall back to the legacy in-process API-pod build when the pod can't
-       * be reached (no user context / agent unreachable).
-       */
-      const workspaceAttempt = useWorkspacePodBuild
-        ? await buildStaticInWorkspacePod(request, project, body, queued.id, buildProgress)
-        : { handled: false as const };
-      workspaceBuildTempDir = workspaceAttempt.handled ? workspaceAttempt.tempDir : undefined;
-
-      const staticBuild = workspaceAttempt.handled
-        ? workspaceAttempt.result
-        : await staticBuildRunner({
-            projectId: project.id,
-            workspaceId: secondaryWorkspaceId,
-            buildCommand: body.buildCommand,
-            outputDirectory: body.outputDirectory,
-            envVars: body.envVars,
-            timeoutSeconds: body.timeoutSeconds,
-            artifactSizeLimitMb: body.artifactSizeLimitMb,
-          });
-
-      staticBuildLogs = staticBuild.logs;
-
-      if (staticBuild.ok && staticBuild.outputDir) {
-        try {
-          await snapshotStaticBuild(queued.id, staticBuild.outputDir);
-          staticBuildLogs.push({
-            timestamp: new Date().toISOString(),
-            level: 'info',
-            message: `Static deploy: snapshot stored at ${staticDeploymentSnapshotDir(queued.id)}`,
-          });
-
-          /*
-           * The static build runs outside any lock, so a concurrent
-           * POST /deployments/:id/cancel can flip this deploy to CANCELED while
-           * it ran. The serve path already 404s a canceled deploy, but the
-           * snapshot we just wrote would otherwise linger on disk forever —
-           * discard it when the deploy was canceled mid-build.
-           */
-          const ownerStatus = await store.getDeploymentOwnerStatus(queued.id).catch(() => undefined);
-
-          if (ownerStatus?.status === 'CANCELED') {
-            await removeStaticDeploymentSnapshot(queued.id).catch(() => undefined);
-            staticBuildLogs.push({
-              timestamp: new Date().toISOString(),
-              level: 'info',
-              message: 'Static deploy: deployment was canceled mid-build; snapshot discarded.',
-            });
-          }
-        } catch (error) {
-          staticBuildFailed = true;
-
-          /*
-           * A snapshot that throws mid-copy leaves a partial artifact directory
-           * behind; remove it so failed deploys don't slowly accumulate on disk.
-           */
-          await removeStaticDeploymentSnapshot(queued.id).catch(() => undefined);
-          staticBuildLogs.push({
-            timestamp: new Date().toISOString(),
-            level: 'error',
-            message: `Static deploy: snapshot failed (${(error as Error).message ?? 'unknown error'}).`,
-          });
-        }
-      } else {
-        staticBuildFailed = true;
+        return reply.code(202).send({ deployment: failedRow });
       }
 
-      // The workspace-pod build materializes the artifact into a temp dir that
-      // snapshotStaticBuild has now copied out of — remove it either way.
-      if (workspaceBuildTempDir) {
-        await rm(workspaceBuildTempDir, { recursive: true, force: true }).catch(() => undefined);
-      }
+      return reply.code(202).send({ deployment: queued });
     }
 
-    const url = hookResult?.url ?? buildDeploymentUrl(project, queued);
-    const baseLogs = createDeploymentLogs(body, { ...queued, url }, project);
+    // Synchronous path (injected runner / tests): build inline and return the
+    // final row. Errors surface normally (no response sent yet).
+    const ready = await runDeploymentBuildFlow({ request, project, queued, body, secondaryWorkspaceId });
 
-    const augmentedLogs = [
-      ...baseLogs,
-      ...staticBuildLogs,
-      ...(hookResult
-        ? [
-            {
-              timestamp: new Date().toISOString(),
-              level: hookResult.status === 'failed' ? ('error' as const) : ('info' as const),
-              message: hookResult.log,
-            },
-          ]
-        : []),
-    ];
+    return reply.code(201).send({ deployment: ready });
+  });
 
-    const failed = hookResult?.status === 'failed' || staticBuildFailed;
+  /*
+   * Worker-triggered build (#26): the deploy worker POSTs here to drive a QUEUED
+   * deployment to READY/FAILED off the original request handler. The build spec +
+   * owner id ride on the job payload (carried through from the POST), so the drive
+   * reproduces exactly what the request handler would have run. Idempotent: a
+   * deployment already terminal is a no-op, so a BullMQ retry can't rebuild it.
+   */
+  const internalDeployBuildSchema = z.object({
+    projectId: z.string().min(1),
+    deploymentId: z.string().min(1),
+    userId: z.string().min(1).optional(),
+    buildInput: createDeploymentSchema.extend({ secondaryWorkspaceId: z.string().min(1).optional() }),
+  });
 
-    /*
-     * For non-static providers the deploy hook only QUEUES a build at the
-     * provider — the build hasn't finished yet. When we can poll that
-     * provider's status API (credentials present), keep the deployment in
-     * BUILDING and let the real provider status drive READY/FAILED via
-     * reconcileDeploymentStatus (on read + polling). Only when we cannot poll
-     * do we report the hook's result directly (best available signal).
-     */
-    const pollable =
-      !failed &&
-      body.provider !== 'static' &&
-      hookResult?.status === 'queued' &&
-      canPollDeploymentStatus(body.provider, hookResult?.buildId);
+  app.post('/internal/deployments/build', async (request, reply) => {
+    requireInternalSecret(request);
 
-    const hasRealHookUrl = Boolean(hookResult?.url);
+    const data = parse(internalDeployBuildSchema, request.body ?? {});
+    const deployment = await store.getDeployment(data.projectId, data.deploymentId);
 
-    /*
-     * A non-static deploy hook only QUEUES a build at the provider. If we can
-     * neither poll its status nor got a real URL back from the hook, we must
-     * NOT mark it READY with the synthesized *.vibecore.local host (which
-     * serves nothing) — keep it BUILDING (queued externally) instead. This was
-     * regressing the earlier fake-READY-URL fix whenever the deploy hook is
-     * configured without the matching status-API token.
-     */
-    const queuedExternalNoUrl =
-      !failed && body.provider !== 'static' && hookResult?.status === 'queued' && !pollable && !hasRealHookUrl;
+    if (!deployment) {
+      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+    }
 
-    const status = failed ? 'FAILED' : pollable || queuedExternalNoUrl ? 'BUILDING' : 'READY';
-    const isReady = status === 'READY';
+    // Idempotent: only drive a deployment that is still pending. A terminal row
+    // (READY/FAILED/CANCELED) — e.g. reaped, canceled, or a duplicate job — is a
+    // no-op returned as-is.
+    if (deployment.status !== 'QUEUED' && deployment.status !== 'BUILDING') {
+      return { deployment };
+    }
+
+    const project = await store.getProject(data.projectId);
+
+    if (!project) {
+      return reply.code(404).send({ error: 'Project not found', code: 'PROJECT_NOT_FOUND' });
+    }
 
     /*
-     * Only persist a usable URL: a real hook URL, or the static path-based URL.
-     * Never the synthesized fallback for a non-static build that has no real URL.
+     * Synthetic request carrying only the fields the drive touches off the hot
+     * path: the owner id (workspace reach + usage/audit/activity actor) and a
+     * non-aborted raw. There is no live client here — the client already got its
+     * 202 and tails the row over SSE.
      */
-    const resolvedUrl = failed
-      ? undefined
-      : hasRealHookUrl
-        ? hookResult?.url
-        : body.provider === 'static'
-          ? url
-          : undefined;
+    const syntheticRequest = {
+      currentUser: data.userId ? { id: data.userId } : undefined,
+      ip: '127.0.0.1',
+      raw: { aborted: false },
+    };
 
-    const ready = await store.updateDeployment(project.id, queued.id, {
-      status,
-      url: resolvedUrl,
-      previewUrl: isReady && body.environment !== 'production' ? resolvedUrl : undefined,
-      productionUrl: isReady && body.environment === 'production' ? resolvedUrl : undefined,
-      metadata: {
-        ...(queued.metadata as Record<string, unknown>),
-        providerBuildId: hookResult?.buildId,
-        hookStatus: hookResult?.status,
-        staticBuildOk: body.provider === 'static' ? !staticBuildFailed : undefined,
-      },
-      logs: augmentedLogs,
-      finishedAt: status === 'BUILDING' ? undefined : new Date().toISOString(),
+    const ready = await runDeploymentBuildFlow({
+      request: syntheticRequest,
+      project,
+      queued: deployment,
+      // parse() has applied every schema default, so the required fields are all
+      // present at runtime; the cast just reconciles zod's input/output typing.
+      body: data.buildInput as CreateDeploymentRequest,
+      secondaryWorkspaceId: data.buildInput.secondaryWorkspaceId,
     });
 
-    /*
-     * Bill against the PERSISTED status, not the locally-computed `status`. The
-     * static build runs outside the org lock, so a concurrent cancel can flip
-     * the row to CANCELED while the build ran; the final updateDeployment then
-     * no-ops (monotonic guard keeps it CANCELED). Keying on the local 'READY'
-     * here would consume deployment quota for a build that serves nothing.
-     * Don't bill FAILED either (repeated failures would exhaust a plan).
-     */
-    if (shouldRecordDeploymentUsage(ready.status)) {
-      await recordUsage(request, project.organizationId, 'deployments.count');
-    }
+    return { deployment: ready };
+  });
 
-    await audit(request, store, {
-      organizationId: project.organizationId,
-      action: 'deployment.create',
-      resourceType: 'deployment',
-      resourceId: ready.id,
-      metadata: { provider: ready.provider, environment: ready.environment, framework: ready.framework },
-    });
-    await store.recordProjectActivity({
-      projectId: project.id,
-      actorUserId: request.currentUser!.id,
-      action: 'deployment.create',
-      metadata: { deploymentId: ready.id, provider: ready.provider, environment: ready.environment, url: ready.url },
-    });
+  /*
+   * Stale-build reaper (#26): a periodic worker job POSTs here to fail every
+   * deployment stuck non-terminal past DEPLOY_BUILD_TIMEOUT_MS, so a build
+   * orphaned by an api/worker crash never hangs at QUEUED/BUILDING forever.
+   */
+  app.post('/internal/deployments/reap', async (request) => {
+    requireInternalSecret(request);
 
-    // P11: refresh the project thumbnail from the freshly deployed URL (auto,
-    // debounced, inert unless the screenshotter is configured).
-      if (ready.url) {
-        thumbnailCapturer.schedule(project.id, ready.url);
-      }
-
-      if (!asyncBuild) {
-        return reply.code(201).send({ deployment: ready });
-      }
-
-      return undefined;
-    } catch (error) {
-      if (!asyncBuild) {
-        // Synchronous path: surface the error normally (no response sent yet).
-        throw error;
-      }
-
-      /*
-       * The 202 already went out, so we can't reply — finalize the row as FAILED
-       * (with whatever build output we streamed) so the UI + SSE stop at a clear
-       * error instead of a deployment stuck in BUILDING.
-       */
-      await store
-        .updateDeployment(project.id, queued.id, {
-          status: 'FAILED',
-          finishedAt: new Date().toISOString(),
-          logs: [
-            ...liveLog,
-            {
-              timestamp: new Date().toISOString(),
-              level: 'error' as const,
-              message: `Deploy failed: ${(error as Error).message ?? 'unknown error'}`,
-            },
-          ],
-        })
-        .catch(() => undefined);
-
-      return undefined;
-    }
+    return reapStaleDeployments(store, { timeoutMs: resolveDeployBuildTimeoutMs() });
   });
   app.get('/projects/:projectId/deployments/:deploymentId/logs', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
