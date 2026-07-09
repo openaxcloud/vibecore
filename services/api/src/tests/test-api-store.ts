@@ -1791,6 +1791,16 @@ export class TestApiStore implements ApiStore {
     return [...this.deployments.values()].filter((deployment) => deployment.projectId === projectId);
   }
 
+  async listStaleDeployments(cutoffIso: string) {
+    const cutoff = new Date(cutoffIso).getTime();
+
+    return [...this.deployments.values()].filter(
+      (deployment) =>
+        (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') &&
+        new Date(deployment.updatedAt ?? deployment.createdAt).getTime() < cutoff,
+    );
+  }
+
   async createSupportTicket(input: { organizationId: string; userId: string; subject: string; category?: string }) {
     const ticket: SupportTicketRecord = { id: id('ticket'), ...input, status: 'OPEN', createdAt: now() };
     this.supportTickets.set(ticket.id, ticket);

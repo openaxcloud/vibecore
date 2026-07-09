@@ -14,7 +14,7 @@
 import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
 
-const KNOWN_QUEUES = new Set(['workspace-jobs', 'enterprise-jobs']);
+const KNOWN_QUEUES = new Set(['workspace-jobs', 'enterprise-jobs', 'deploy-jobs']);
 
 interface Parsed {
   queue: string;

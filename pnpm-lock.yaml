@@ -901,6 +901,9 @@ importers:
       '@xmldom/xmldom':
         specifier: ^0.9.10
         version: 0.9.10
+      bullmq:
+        specifier: ^5.76.2
+        version: 5.76.2
       gpt-tokenizer:
         specifier: ^3.4.0
         version: 3.4.0

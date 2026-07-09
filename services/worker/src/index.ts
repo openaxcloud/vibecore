@@ -5,6 +5,7 @@ import { writeFileSync } from 'node:fs';
 import { createDatabaseClient } from '@vibecore/database';
 import { decryptJson } from '@vibecore/security';
 import { runConnectorReconnectionNotifier, runConnectorTokenHealthCheck } from './connector-jobs.js';
+import { triggerDeployBuild, triggerDeployReap } from './deploy-jobs.js';
 
 /*
  * Worker runtime (Redis connection, BullMQ Queues + Workers) is created lazily
@@ -471,6 +472,36 @@ export function startWorkers() {
     { connection },
   );
 
+  /*
+   * Deploy durability (#26): consumes the durable `deploy.build` jobs the api
+   * enqueues (driving each build off the request handler via the internal
+   * endpoint) and the periodic `deploy.reap` job that fails stalled builds. Its
+   * own queue so a long build (up to ~30 min per job) can't head-of-line-block
+   * the fast enterprise/workspace crons.
+   */
+  const deployWorker = new Worker(
+    'deploy-jobs',
+    async (job) => {
+      void job.log(`processing ${job.name}`).catch(() => {});
+
+      if (job.name === 'deploy.build') {
+        return await triggerDeployBuild((job.data ?? {}) as Record<string, unknown>);
+      }
+
+      if (job.name === 'deploy.reap') {
+        return await triggerDeployReap((job.data ?? {}) as Record<string, unknown>);
+      }
+
+      throw new Error(`Unsupported deploy job: ${job.name}`);
+    },
+    {
+      connection,
+      // A build holds the job active for its whole duration; keep concurrency
+      // modest so many parallel deploys don't stampede the api all at once.
+      concurrency: Number(process.env.DEPLOY_WORKER_CONCURRENCY ?? 4),
+    },
+  );
+
   worker.on('failed', (job, error) => {
     console.error(JSON.stringify({ level: 'error', service: 'worker', jobId: job?.id, error: error?.message }));
   });
@@ -479,6 +510,10 @@ export function startWorkers() {
     console.error(
       JSON.stringify({ level: 'error', service: 'enterprise-worker', jobId: job?.id, error: error?.message }),
     );
+  });
+
+  deployWorker.on('failed', (job, error) => {
+    console.error(JSON.stringify({ level: 'error', service: 'deploy-worker', jobId: job?.id, error: error?.message }));
   });
 
   /*
@@ -503,7 +538,13 @@ export function startWorkers() {
     );
   });
 
-  return { worker, enterpriseWorker, connection };
+  deployWorker.on('error', (error) => {
+    console.error(
+      JSON.stringify({ level: 'error', service: 'deploy-worker', component: 'bullmq', error: error?.message }),
+    );
+  });
+
+  return { worker, enterpriseWorker, deployWorker, connection };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -531,8 +572,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     deadline.unref();
 
     try {
-      const { worker, enterpriseWorker, connection } = await started;
-      await Promise.allSettled([worker.close(), enterpriseWorker.close()]);
+      const { worker, enterpriseWorker, deployWorker, connection } = await started;
+      await Promise.allSettled([worker.close(), enterpriseWorker.close(), deployWorker.close()]);
       await Promise.allSettled([connection.quit(), getPrisma().$disconnect()]);
     } catch {
       // best-effort shutdown; never block exit on a cleanup error

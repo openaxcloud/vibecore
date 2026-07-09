@@ -1551,6 +1551,12 @@ export interface ApiStore {
     input: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>,
   ): Promise<DeploymentRecord>;
   listDeployments(projectId: string, options?: { take?: number }): Promise<DeploymentRecord[]>;
+  /**
+   * Deployments still in a non-terminal build state (QUEUED / BUILDING) whose
+   * `updatedAt` is older than the given ISO cutoff. Drives the deploy reaper,
+   * which fails builds orphaned by an api/worker crash so they never hang.
+   */
+  listStaleDeployments(cutoffIso: string): Promise<DeploymentRecord[]>;
   createSupportTicket(input: {
     organizationId: string;
     userId: string;

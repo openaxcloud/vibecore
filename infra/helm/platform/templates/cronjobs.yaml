@@ -59,6 +59,11 @@
       "schedule" "30 2 * * *"
       "queue" "enterprise-jobs"
       "job" "database.maintenance")
+    "deployReap" (dict
+      "enabled" true
+      "schedule" "*/5 * * * *"
+      "queue" "deploy-jobs"
+      "job" "deploy.reap")
 -}}
 {{- $merged := mustMergeOverwrite (deepCopy $defaults) $cronjobs -}}
 {{- $workerImageTag := default .Values.global.imageTag .Values.services.worker.imageTag -}}

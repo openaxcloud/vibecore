@@ -683,6 +683,34 @@ export class LocalProjectStorage implements ProjectStorage {
   }
 }
 
+/**
+ * `rm -rf` that survives a concurrent-writer race. When another process — e.g. a
+ * deploy build populating `.vibecore-deploy-home/.npm-cache/_cacache/tmp` — writes
+ * INTO a directory being deleted, `fs.rm` can throw ENOTEMPTY in the window between
+ * its internal readdir and rmdir, even with `force: true` (force only suppresses
+ * ENOENT). That intermittently 500'd `POST /files/import/zip` (whose
+ * replaceExisting clears the tree on every autosave).
+ *
+ * We ask fs.rm to retry — it backs off and retries on ENOTEMPTY / EBUSY / EPERM /
+ * EMFILE / ENFILE — and if it still can't finish we swallow ENOTEMPTY / ENOENT /
+ * EBUSY so a transient cache write never crashes the import. Any leftover transient
+ * cache dir is harmless (and re-cleared next time). Idempotent: a missing path is a
+ * no-op (force), and a second call after a partial delete is safe.
+ */
+export async function resilientRm(target: string) {
+  try {
+    await rm(target, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+
+    if (code === 'ENOTEMPTY' || code === 'ENOENT' || code === 'EBUSY') {
+      return;
+    }
+
+    throw error;
+  }
+}
+
 async function clearTreePreservingSecondaryWorkspaces(target: string) {
   const entries = await readdir(target, { withFileTypes: true }).catch((error: NodeJS.ErrnoException) => {
     if (error.code === 'ENOENT') {
@@ -704,7 +732,9 @@ async function clearTreePreservingSecondaryWorkspaces(target: string) {
       continue;
     }
 
-    await rm(join(target, entry.name), { recursive: true, force: true });
+    // Resilient rm: a concurrent cache write (deploy build home) must not 500 the
+    // zip import with ENOTEMPTY. See resilientRm.
+    await resilientRm(join(target, entry.name));
   }
 }
 

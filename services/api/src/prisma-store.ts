@@ -2334,6 +2334,21 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapDeployment);
   }
 
+  async listStaleDeployments(cutoffIso: string) {
+    return (
+      await this.prisma.deployment.findMany({
+        where: {
+          status: { in: ['QUEUED', 'BUILDING'] as any },
+          updatedAt: { lt: new Date(cutoffIso) },
+        },
+        orderBy: { updatedAt: 'asc' },
+        // Bound the sweep so a large backlog can't exceed a single reaper tick's
+        // budget; the unswept tail is picked up on the next run.
+        take: 200,
+      })
+    ).map(mapDeployment);
+  }
+
   async createSupportTicket(input: { organizationId: string; userId: string; subject: string; category?: string }) {
     const ticket = await this.prisma.supportTicket.create({
       data: {
