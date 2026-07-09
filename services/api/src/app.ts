@@ -261,6 +261,20 @@ declare module 'fastify' {
   }
 }
 
+/**
+ * The workspace-pod static-build seam (#26 sub-part 2). Returns `{ handled: false }`
+ * only when the project's workspace pod could not be reached even after a
+ * provision + health-poll — in which case the deploy fails cleanly; the build is
+ * NEVER retried in-process on the api pod.
+ */
+export type WorkspacePodStaticBuild = (
+  request: any,
+  project: { id: string; organizationId: string },
+  body: { buildCommand: string; outputDirectory: string; timeoutSeconds: number; artifactSizeLimitMb?: number },
+  deploymentId: string,
+  progress?: { onLog?: (log: StaticBuildLog) => void; onPhase?: (phase: string) => void },
+) => Promise<{ handled: false } | { handled: true; result: RunStaticBuildResult; tempDir: string }>;
+
 export interface ApiAppOptions {
   store?: ApiStore;
   agentMemory?: AgentMemoryService;
@@ -293,6 +307,22 @@ export interface ApiAppOptions {
    * async workspace-pod path).
    */
   enqueueDeployJob?: typeof enqueueDeployBuildJob;
+
+  /**
+   * Force the workspace-pod build on/off, decoupled from `staticBuildRunner`
+   * injection. Production leaves this undefined (workspace-pod build is the
+   * default whenever no runner is injected). Tests set it `true` to exercise the
+   * real "build only in the workspace pod, never in the api pod" path while still
+   * injecting a `staticBuildRunner` spy to PROVE the in-api build is never called.
+   */
+  useWorkspacePodBuild?: boolean;
+
+  /**
+   * Override the workspace-pod build seam. Production uses the real closure that
+   * streams the build over the workspace-agent WS; tests inject a deterministic
+   * implementation so the deploy flow can be driven without a live pod.
+   */
+  buildStaticInWorkspacePod?: WorkspacePodStaticBuild;
 
   /**
    * Override the platform Prometheus registry. Production/dev create a fresh one;
@@ -6915,7 +6945,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * tests don't block on ensureWorkspaceReachable's cold-start poll. Prod injects
    * nothing, so the workspace-pod build (P1) is the real default.
    */
-  const useWorkspacePodBuild = !options.staticBuildRunner;
+  const useWorkspacePodBuild = options.useWorkspacePodBuild ?? !options.staticBuildRunner;
   const enqueueDeployJob = options.enqueueDeployJob ?? enqueueDeployBuildJob;
   const emailProvider = options.emailProvider ?? createEmailProvider();
   const isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
@@ -11974,13 +12004,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const DEPLOY_MAX_PULL_FILE_BYTES = 2 * 1024 * 1024; // matches the agent's default WORKSPACE_MAX_FILE_BYTES
 
-  const buildStaticInWorkspacePod = async (
-    request: any,
-    project: { id: string; organizationId: string },
-    body: { buildCommand: string; outputDirectory: string; timeoutSeconds: number; artifactSizeLimitMb?: number },
-    deploymentId: string,
-    progress?: { onLog?: (log: StaticBuildLog) => void; onPhase?: (phase: string) => void },
-  ): Promise<{ handled: false } | { handled: true; result: RunStaticBuildResult; tempDir: string }> => {
+  const realBuildStaticInWorkspacePod: WorkspacePodStaticBuild = async (
+    request,
+    project,
+    body,
+    deploymentId,
+    progress,
+  ) => {
     const userId = request.currentUser?.id;
 
     if (!userId) {
@@ -12055,7 +12085,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { handled: false };
     }
 
-    // Couldn't reach the pod to run the build → fall back to the API-pod build.
+    /*
+     * Couldn't reach the pod to run the build. Signal "not handled" so the caller
+     * FAILS the deploy cleanly — there is NO in-api-pod build fallback anymore
+     * (#26 sub-part 2): running `npm install` + the build in the api pod (500m/1Gi,
+     * NFS node_modules) OOM'd the pod systematically. The pod is where builds run.
+     */
     if (!result.ok && result.error === 'AGENT_UNREACHABLE') {
       await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
       return { handled: false };
@@ -12067,6 +12102,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       tempDir,
     };
   };
+
+  const buildStaticInWorkspacePod = options.buildStaticInWorkspacePod ?? realBuildStaticInWorkspacePod;
 
   /*
    * A dev server binds (LISTEN) its port BEFORE it can serve HTTP, so a port the
@@ -26033,26 +26070,49 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (body.provider === 'static') {
       /*
-       * Build in the project's workspace pod (real toolchain + local disk). The
-       * in-api-pod fallback was removed (#26 sub-part 2): if the pod can't be
-       * reached the build fails cleanly rather than OOMing the api pod.
+       * The build runs ONLY in the project's workspace pod (real toolchain, fast
+       * local disk, its own CPU/RAM). buildStaticInWorkspacePod already provisions
+       * + health-polls the pod (agentMutateEnsuring style) before building.
+       *
+       * (#26 sub-part 2) There is NO in-api-pod build fallback: running `npm install`
+       * + the build in-process on the api pod (500m/1Gi, NFS node_modules) OOM'd the
+       * pod systematically. When the pod can't be reached even after provisioning,
+       * we FAIL the deploy cleanly with a retryable message — we never build here.
+       *
+       * `staticBuildRunner` is invoked ONLY when a runner was explicitly injected
+       * AND the workspace-pod build is disabled (test path). It is never the
+       * production default (runStaticBuild) reached via a fallback.
        */
-      const workspaceAttempt = useWorkspacePodBuild
-        ? await buildStaticInWorkspacePod(request, project, body, queued.id, buildProgress)
-        : { handled: false as const };
-      workspaceBuildTempDir = workspaceAttempt.handled ? workspaceAttempt.tempDir : undefined;
+      let staticBuild: RunStaticBuildResult;
 
-      const staticBuild = workspaceAttempt.handled
-        ? workspaceAttempt.result
-        : await staticBuildRunner({
-            projectId: project.id,
-            workspaceId: secondaryWorkspaceId,
-            buildCommand: body.buildCommand,
-            outputDirectory: body.outputDirectory,
-            envVars: body.envVars,
-            timeoutSeconds: body.timeoutSeconds,
-            artifactSizeLimitMb: body.artifactSizeLimitMb,
-          });
+      if (useWorkspacePodBuild) {
+        const workspaceAttempt = await buildStaticInWorkspacePod(request, project, body, queued.id, buildProgress);
+
+        if (workspaceAttempt.handled) {
+          workspaceBuildTempDir = workspaceAttempt.tempDir;
+          staticBuild = workspaceAttempt.result;
+        } else {
+          // Pod unreachable after provision + health-poll → clean failure, no api-pod build.
+          const message =
+            'Workspace is starting — please retry. The build runs in your project workspace, which could not be reached in time.';
+          buildProgress.onLog({ timestamp: new Date().toISOString(), level: 'error', message });
+          staticBuild = {
+            ok: false,
+            error: 'WORKSPACE_UNREACHABLE',
+            logs: [{ timestamp: new Date().toISOString(), level: 'error', message }],
+          };
+        }
+      } else {
+        staticBuild = await staticBuildRunner({
+          projectId: project.id,
+          workspaceId: secondaryWorkspaceId,
+          buildCommand: body.buildCommand,
+          outputDirectory: body.outputDirectory,
+          envVars: body.envVars,
+          timeoutSeconds: body.timeoutSeconds,
+          artifactSizeLimitMb: body.artifactSizeLimitMb,
+        });
+      }
 
       staticBuildLogs = staticBuild.logs;
 
