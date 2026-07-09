@@ -136,6 +136,12 @@ export async function streamText(props: {
   agentMemoryContext?: string;
   skillsContext?: string;
   projectRulesContext?: string;
+
+  /*
+   * A7 (Wave A): stable per-conversation id threaded from the chat route. Used
+   * only as a provider cache-affinity hint (never in the prompt bytes).
+   */
+  chatId?: string;
 }) {
   const {
     messages,
@@ -156,6 +162,7 @@ export async function streamText(props: {
     agentMemoryContext,
     skillsContext,
     projectRulesContext,
+    chatId,
   } = props;
 
   /*
@@ -512,6 +519,7 @@ ${projectRulesContext}`;
     serverEnv: effectiveServerEnv,
     apiKeys,
     providerSettings,
+    cacheAffinityKey: chatId,
   });
 
   /*

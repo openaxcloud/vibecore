@@ -258,8 +258,9 @@ export default class OpenAIProvider extends BaseProvider {
     serverEnv: Env;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
+    cacheAffinityKey?: string;
   }): LanguageModelV1 {
-    const { model, serverEnv, apiKeys, providerSettings } = options;
+    const { model, serverEnv, apiKeys, providerSettings, cacheAffinityKey } = options;
 
     const { apiKey } = this.getProviderBaseUrlAndKey({
       apiKeys,
@@ -277,6 +278,14 @@ export default class OpenAIProvider extends BaseProvider {
       apiKey,
     });
 
-    return openai(model);
+    /*
+     * A7 (Wave A): pass the stable per-conversation id as OpenAI's top-level `user`
+     * field. This is a separate API parameter (used by OpenAI for cache affinity /
+     * abuse monitoring) and does NOT alter the system/messages prompt bytes. Omitted
+     * when absent → byte-identical to today. `prompt_cache_key` is intentionally not
+     * set: the installed @ai-sdk/openai@1.1.2 does not expose it (deferred, needs an
+     * SDK bump).
+     */
+    return cacheAffinityKey ? openai(model, { user: cacheAffinityKey }) : openai(model);
   }
 }

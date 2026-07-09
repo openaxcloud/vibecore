@@ -1349,6 +1349,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   agentMemoryContext: agentMemory?.context,
                   projectRulesContext: projectRules?.context,
                   skillsContext: projectSkills?.context,
+                  chatId: conversationId,
                 });
 
                 result.mergeIntoDataStream(dataStream);
@@ -1420,6 +1421,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           agentOrchestrationContext,
           agentMemoryContext: agentMemory?.context,
           skillsContext: projectSkills?.context,
+          chatId: conversationId,
         });
 
         result.mergeIntoDataStream(dataStream);

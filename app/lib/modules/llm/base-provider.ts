@@ -207,6 +207,12 @@ export abstract class BaseProvider implements ProviderInfo {
     serverEnv?: Env;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
+
+    /*
+     * A7 (Wave A): optional stable per-conversation cache-affinity key. Additive;
+     * providers that don't support it ignore it. Never affects the prompt bytes.
+     */
+    cacheAffinityKey?: string;
   }): LanguageModelV1;
 }
 

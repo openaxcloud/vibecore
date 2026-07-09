@@ -56,8 +56,9 @@ export default class XAIProvider extends BaseProvider {
     serverEnv: Env;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
+    cacheAffinityKey?: string;
   }): LanguageModelV1 {
-    const { model, serverEnv, apiKeys, providerSettings } = options;
+    const { model, serverEnv, apiKeys, providerSettings, cacheAffinityKey } = options;
 
     const { apiKey } = this.getProviderBaseUrlAndKey({
       apiKeys,
@@ -71,9 +72,15 @@ export default class XAIProvider extends BaseProvider {
       throw new Error(`Missing API key for ${this.name} provider`);
     }
 
+    /*
+     * A7 (Wave A): pass a stable per-conversation id as a request header so xAI can
+     * key its prompt cache to this conversation. This is a transport header only —
+     * it never changes the system/messages bytes. Omitted entirely when absent.
+     */
     const openai = createOpenAI({
       baseURL: 'https://api.x.ai/v1',
       apiKey,
+      headers: cacheAffinityKey ? { 'x-grok-conv-id': cacheAffinityKey } : undefined,
     });
 
     return openai(model);

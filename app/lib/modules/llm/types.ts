@@ -26,6 +26,14 @@ export interface ProviderInfo {
     serverEnv: Env;
     apiKeys?: Record<string, string>;
     providerSettings?: Record<string, IProviderSetting>;
+
+    /*
+     * A7 (Wave A): optional stable per-conversation id used purely as a
+     * cache-affinity hint (OpenAI `user` field / xAI `x-grok-conv-id` header).
+     * Additive — providers that don't use it ignore it, and the prompt bytes
+     * are never affected.
+     */
+    cacheAffinityKey?: string;
   }) => LanguageModelV1;
   getApiKeyLink?: string;
   labelForGetApiKey?: string;
