@@ -17,9 +17,11 @@
     "@vibecore/security": "workspace:*",
     "@vibecore/workspace-sdk": "workspace:*",
     "fastify": "^5.8.5",
+    "ws": "^8.18.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/ws": "^8.18.1",
     "tsx": "^4.21.0",
     "vitest": "^3.2.6"
   },

@@ -14,6 +14,7 @@ import { verifyAgentToken } from '@vibecore/workspace-sdk';
 import Fastify, { type FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { isBinaryBuffer } from './binary-detection.js';
+import { createPreviewWsBridgeHandler } from './preview-ws-proxy.js';
 import { TerminalSessionManager, type TerminalSession } from './terminal-session.js';
 
 export interface WorkspaceAgentOptions {
@@ -73,6 +74,7 @@ const renameSchema = z.object({ from: safePathString, to: safePathString });
 const commandSchema = z.object({
   command: z.string().min(1),
   args: z.array(z.string()).default([]),
+
   /*
    * Optional working directory RELATIVE to the workspace root. The client sends
    * this for projects whose package.json lives in a subdirectory (monorepo /
@@ -208,6 +210,7 @@ function commandBaseName(command: string): string {
 // Drop leading npx/bunx flags to reach the executed package name (`npx --yes vite` → `vite`).
 function skipNpxFlags(args: readonly string[]): string[] {
   const valueFlags = new Set(['-p', '--package', '-c', '--call']);
+
   let index = 0;
 
   while (index < args.length && args[index].startsWith('-')) {
@@ -293,6 +296,7 @@ function analyzeViteDevCommand(
   // Package-manager run: `npm run dev`, `pnpm dev`, `yarn dev`, `bun run dev`.
   if (PACKAGE_MANAGER_BINS.has(bin)) {
     const positionals = rest.filter((arg) => !arg.startsWith('-'));
+
     let scriptName: string | undefined;
 
     if (positionals[0] === 'run') {
@@ -341,9 +345,7 @@ export function injectViteDevArgs(
 
   if (analysis.kind === 'script') {
     // `--` forwards flags to the underlying script; if one is already present, append after it.
-    return original.includes('--')
-      ? [...original, ...VITE_DEV_PIN_ARGS]
-      : [...original, '--', ...VITE_DEV_PIN_ARGS];
+    return original.includes('--') ? [...original, ...VITE_DEV_PIN_ARGS] : [...original, '--', ...VITE_DEV_PIN_ARGS];
   }
 
   return original;
@@ -652,9 +654,13 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
   app.post('/commands/run', async (request) => {
     const body = commandSchema.parse(request.body);
-    // Run in the requested subdirectory (validated to stay within root) so a
-    // subfolder project's install/build resolves its own package.json.
+
+    /*
+     * Run in the requested subdirectory (validated to stay within root) so a
+     * subfolder project's install/build resolves its own package.json.
+     */
     const commandCwd = body.cwd ? resolveWorkspacePath(root, body.cwd) : root;
+
     return runCommand(commandCwd, body.command, body.args, {
       timeoutMs: Math.min(body.timeoutMs ?? commandTimeoutMs, commandTimeoutMs),
       maxOutputBytes,
@@ -1275,6 +1281,22 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
         terminalSessions = Math.max(0, terminalSessions - 1);
       });
     });
+
+    /*
+     * Vite HMR WebSocket bridge. The preview-proxy forwards the browser's HMR
+     * upgrade here at /preview/<port>/*; bridge it to the dev server's own ws on
+     * localhost:<port> so HMR stays connected (no "server connection lost" loop).
+     * Registered inside the @fastify/websocket scope so it coexists with the
+     * terminal ws instead of fighting a raw server 'upgrade' handler.
+     */
+    terminalApp.get(
+      '/preview-hmr/:port/*',
+      { websocket: true },
+      createPreviewWsBridgeHandler({
+        selfPort: numericEnv(process.env.PORT, 8080),
+        logger: { warn: (message) => app.log.warn(message) },
+      }),
+    );
 
     terminalApp.addHook('onClose', async () => {
       terminalManager.disposeAll();
@@ -2250,6 +2272,7 @@ async function detectPorts(processes: Map<string, ProcessRecord>): Promise<Detec
       }
 
       const detected: DetectedPort[] = [];
+
       // The agent's own control port (mirrors the createApp numericEnv default).
       const selfPort = Number(process.env.PORT) || 8080;
 

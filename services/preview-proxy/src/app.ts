@@ -1,7 +1,9 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Readable } from 'node:stream';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
+
 import { INSPECTOR_SCRIPT } from './inspector-script.js';
+import { attachPreviewWebSocketProxy } from './preview-ws-proxy.js';
 import { REPORTER_SCRIPT } from './reporter-script.js';
 
 /*
@@ -651,10 +653,8 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           lower === 'transfer-encoding' ||
           lower === 'connection' ||
           lower === 'keep-alive' ||
-
           // length no longer matches the decoded body
           (upstreamWasEncoded && lower === 'content-length') ||
-
           // recomputed after a possible body rewrite below
           (isHtml && injectInspector && lower === 'content-length')
         ) {
@@ -879,6 +879,19 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       await handlePreviewRequest(request as FastifyRequest<{ Params: PreviewRouteParams }>, reply);
     });
   }
+
+  /*
+   * Proxy the Vite HMR WebSocket. The HTTP path above renders the app; without
+   * this the HMR ws never upgrades through the proxy and Vite loops "server
+   * connection lost. Polling for restart…" (white flicker). Attaches a raw
+   * upgrade handler to the underlying server (this proxy has no other ws surface)
+   * that pipes the upgrade to the agent's /preview/<port>/ endpoint.
+   */
+  attachPreviewWebSocketProxy(app.server, {
+    previewDomain,
+    resolveAgent,
+    logger: { warn: (message) => app.log.warn(message) },
+  });
 
   return app;
 }
