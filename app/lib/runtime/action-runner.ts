@@ -1,5 +1,6 @@
 import type { RuntimeAdapter } from '@vibecore/runtime-contract';
 import { atom, map, type MapStore } from 'nanostores';
+import { applyEntryExportReconcile } from './entry-export-reconcile';
 import { buildSelfRepairPrompt, validateAndFormatHunk, type HunkValidationError } from './hunk-validate';
 import type { ActionCallbackData } from './message-parser';
 import { workspaceEvents } from './workspace-events';
@@ -696,6 +697,36 @@ export class ActionRunner {
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
       throw error;
+    }
+
+    /*
+     * Post-write consistency pass: fix the recurring "blank app" defect where the
+     * Vite entry default-imports a component (`import App from './App'`) that only
+     * exports it as a named binding (`export function App`) — the browser then
+     * throws "does not provide an export named 'default'" and nothing mounts.
+     * Only the authoritative non-streaming write reconciles (partial streamed
+     * content would misparse); best-effort so it never blocks or breaks the write.
+     */
+    if (!isStreaming && !action.abortSignal.aborted) {
+      try {
+        /*
+         * Adapt the RuntimeAdapter (readFile → { content }) to the reconcile's
+         * string-based surface.
+         */
+        const fixed = await applyEntryExportReconcile(
+          {
+            readFile: async (p) => (await this.#runtime.readFile(p)).content,
+            writeFile: (p, content) => this.#runtime.writeFile(p, content),
+          },
+          relativePath,
+        );
+
+        for (const fixedPath of fixed) {
+          logger.debug(`Reconciled missing default export in ${fixedPath}`);
+        }
+      } catch (error) {
+        logger.warn('Entry export/import reconcile skipped', error);
+      }
     }
   }
 
