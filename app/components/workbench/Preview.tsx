@@ -34,7 +34,12 @@ import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { FileMap } from '~/lib/stores/files';
-import { shouldKickReopenPreview, shouldLatchPreviewStartFailure } from '~/lib/stores/preview-recovery';
+import {
+  resolvePreviewBootOverlay,
+  shouldKickReopenPreview,
+  shouldLatchPreviewStartFailure,
+  shouldReattachRunningPreview,
+} from '~/lib/stores/preview-recovery';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { captureAndUploadThumbnail } from '~/lib/thumbnail-capture';
@@ -712,6 +717,20 @@ export const Preview = memo(
         iframeUrl &&
         (activePreview.ready === false || !previewFrameLoaded || loadedPreviewUrl !== iframeUrl),
     );
+
+    /*
+     * Reopen resume vs cold rebuild. When the workspace pod is genuinely running
+     * and a port is already serving, the iframe is only waiting to re-adopt a live
+     * app — show the lightweight "Reattaching…" skeleton, NOT the from-scratch
+     * install/boot progress. A cold boot (isStartingPreview / no live port) keeps
+     * the full rebuild overlay.
+     */
+    const reattachingRunningPreview =
+      shouldReattachRunningPreview(workspaceStatus, previews) && !isStartingPreview && !previewRunFailed;
+    const previewLoadingOverlayMode = resolvePreviewBootOverlay({
+      overlayVisible: shouldShowPreviewLoadingOverlay,
+      reattaching: reattachingRunningPreview,
+    });
     const shouldShowPreviewStartupOverlay = shouldShowStartupOverlay({
       hasActivePreview: Boolean(activePreview),
       hasStaticPreview,
@@ -2597,7 +2616,15 @@ export const Preview = memo(
                     data-testid="preview-iframe"
                   />
                 )}
-                {shouldShowPreviewLoadingOverlay ? (
+                {previewLoadingOverlayMode === 'resume' ? (
+                  <PreviewResumeSkeleton
+                    currentTask={
+                      activePreview?.ready === false
+                        ? 'Reconnecting to your running app…'
+                        : 'Reattaching to your running app…'
+                    }
+                  />
+                ) : previewLoadingOverlayMode === 'rebuild' ? (
                   <PreviewLoadingOverlay
                     activeStep={previewBootProgress.activeStep}
                     currentTask={
@@ -3066,6 +3093,32 @@ function PreviewSplashSequence({
           {appName ? <p>Preparing: {appName}</p> : null}
         </div>
         {logs?.length ? <pre className="bolt-preview-splash-log">{logs.join('\n')}</pre> : null}
+      </div>
+    </div>
+  );
+}
+
+/*
+ * Lightweight resume skeleton shown while re-adopting an already-running
+ * workspace on reopen. Deliberately NOT the install/boot progress overlay — the
+ * pod is up and serving, so the user is only reconnecting, not rebuilding from
+ * scratch. Uses E-Code IDE tokens (accent-action) so it matches the shell.
+ */
+function PreviewResumeSkeleton({ currentTask }: { currentTask: string }) {
+  return (
+    <div className="bolt-preview-resume-overlay" data-testid="preview-resume-skeleton" role="status" aria-live="polite">
+      <div className="bolt-preview-resume-card">
+        <span className="bolt-preview-resume-spinner i-ph:circle-notch animate-spin" aria-hidden />
+        <div className="bolt-preview-resume-copy">
+          <span>Resuming session</span>
+          <h3>Reattaching to your running app</h3>
+          <p>{currentTask}</p>
+        </div>
+        <div className="bolt-preview-resume-skeleton-lines" aria-hidden>
+          <span />
+          <span />
+          <span />
+        </div>
       </div>
     </div>
   );

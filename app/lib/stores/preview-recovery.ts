@@ -1,4 +1,10 @@
 import type { WorkspaceSession, WorkspaceStatus } from '@vibecore/runtime-contract';
+import {
+  hasLivePreviewPort,
+  isWorkspaceReallyRunning,
+  type WorkspacePortLike,
+  type WorkspaceStatusLike,
+} from '~/lib/runtime/workspace-status';
 
 /**
  * Pure decision helpers for the preview start / recovery path in WorkbenchStore.
@@ -6,6 +12,49 @@ import type { WorkspaceSession, WorkspaceStatus } from '@vibecore/runtime-contra
  * These exist so the tricky branch conditions (which the editor's core journey
  * depends on) can be unit-tested without standing up a full runtime adapter.
  */
+
+/**
+ * Whether reopening a project should REATTACH to the already-running dev server
+ * instead of cold-booting one.
+ *
+ * On reopen the workspace pod is often still up and already serving its
+ * forwarded port (the inactivity GC hasn't reaped it). Cold-booting then —
+ * re-running `npm install` / `npm run dev` — needlessly tears down a live app
+ * and shows a from-scratch rebuild. When the workspace is genuinely running AND
+ * a port is actively serving, there is a live server to adopt: reattach. With no
+ * live serving port there is nothing to attach to, so a real (cold) boot is
+ * required.
+ */
+export function shouldReattachRunningPreview(
+  workspace: WorkspaceStatusLike | undefined,
+  ports?: readonly WorkspacePortLike[] | null,
+): boolean {
+  return isWorkspaceReallyRunning(workspace, ports) && hasLivePreviewPort(ports);
+}
+
+export type PreviewBootOverlayMode = 'resume' | 'rebuild' | 'none';
+
+/**
+ * Pick the boot overlay to show while the preview iframe has not yet rendered.
+ *
+ *   - 'none'    : no overlay needed.
+ *   - 'resume'  : a lightweight "Reattaching to your running app…" skeleton —
+ *                 the pod is up and serving, we are only re-adopting it.
+ *   - 'rebuild' : the heavy install/boot progress overlay — a genuine cold start.
+ *
+ * Reattaching to a live workspace must never show the from-scratch rebuild
+ * progress; it makes a resume look like a full regeneration.
+ */
+export function resolvePreviewBootOverlay(input: {
+  overlayVisible: boolean;
+  reattaching: boolean;
+}): PreviewBootOverlayMode {
+  if (!input.overlayVisible) {
+    return 'none';
+  }
+
+  return input.reattaching ? 'resume' : 'rebuild';
+}
 
 export interface PreviewReadiness {
   ready: boolean;

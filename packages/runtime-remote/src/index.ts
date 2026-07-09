@@ -155,7 +155,12 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       this.#session = payload;
 
       if (payload.status === 'running') {
-        return payload;
+        /*
+         * The manager returned a pod that was ALREADY running — a warm/reused
+         * workspace (reopen of a not-yet-reaped pod), not a cold provision. Mark
+         * it so the IDE can reattach to the live app instead of wiping+reseeding.
+         */
+        return { ...payload, reused: true };
       }
     }
 
@@ -167,7 +172,12 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       });
     }
 
-    return this.#waitForWorkspaceRunning(pollId);
+    /*
+     * We had to poll a not-yet-running workspace to readiness: this is a cold
+     * (freshly provisioned / STARTING) pod, not a warm reuse. Mark reused:false
+     * so the IDE cold-seeds it rather than reattaching to a possibly-empty tree.
+     */
+    return { ...(await this.#waitForWorkspaceRunning(pollId)), reused: false };
   }
 
   #isTransientStartError(error: unknown): boolean {

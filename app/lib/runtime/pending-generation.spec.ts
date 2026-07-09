@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   countWorkspaceFiles,
+  decidePendingPromptReplay,
   extractGenerationPrompt,
   isUngeneratedProject,
   resolvePendingPrompt,
@@ -107,6 +108,49 @@ describe('shouldReplayPendingPrompt', () => {
       '/home/project/main.ts': { type: 'file', content: '', isBinary: false },
     };
     expect(shouldReplayPendingPrompt(files)).toBe(false);
+  });
+});
+
+describe('decidePendingPromptReplay (hydration gate)', () => {
+  const realApp: FileMap = {
+    '/home/project/README.md': { type: 'file', content: '', isBinary: false },
+    '/home/project/package.json': { type: 'file', content: '', isBinary: false },
+    '/home/project/src/App.tsx': { type: 'file', content: '', isBinary: false },
+  };
+
+  const scaffoldOnly: FileMap = {
+    '/home/project/README.md': { type: 'file', content: '', isBinary: false },
+    '/home/project/.gitignore': { type: 'file', content: '', isBinary: false },
+  };
+
+  it('DEFERS while the file map is not yet hydrated, even for an empty snapshot', () => {
+    /*
+     * The reopen race: an existing app whose files have not loaded yet reads as
+     * 0-files. Must NOT be treated as "ungenerated → replay".
+     */
+    expect(decidePendingPromptReplay({}, false)).toBe('defer');
+    expect(decidePendingPromptReplay(undefined, false)).toBe('defer');
+
+    // Even if some files are already present, an unconfirmed snapshot defers.
+    expect(decidePendingPromptReplay(realApp, false)).toBe('defer');
+    expect(decidePendingPromptReplay(scaffoldOnly, false)).toBe('defer');
+  });
+
+  it('SKIPS (clears) once hydration reveals a real generated app — no regeneration', () => {
+    expect(decidePendingPromptReplay(realApp, true)).toBe('skip');
+  });
+
+  it('REPLAYS exactly once for a genuinely empty/scaffold-only project after hydration', () => {
+    expect(decidePendingPromptReplay(scaffoldOnly, true)).toBe('replay');
+    expect(decidePendingPromptReplay({}, true)).toBe('replay');
+    expect(decidePendingPromptReplay(undefined, true)).toBe('replay');
+  });
+
+  it('agrees with shouldReplayPendingPrompt once hydrated', () => {
+    for (const files of [realApp, scaffoldOnly, {}]) {
+      const expected = shouldReplayPendingPrompt(files) ? 'replay' : 'skip';
+      expect(decidePendingPromptReplay(files, true)).toBe(expected);
+    }
   });
 });
 

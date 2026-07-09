@@ -86,6 +86,14 @@ type GitPanelData = GitData & {
   workspaces?: GitWorkspaceSummary[];
   activeWorkspaceId?: string;
   primaryWorkspaceId?: string;
+
+  /*
+   * Soft-degraded marker: set by the ide-panel loader when the git status call
+   * transiently 5xx/locks (the response still renders with an empty status). Its
+   * presence means the accompanying `status`/`changedFiles` are a placeholder, not
+   * a real empty tree — the UI must not treat it as "no changes".
+   */
+  gitLoadError?: string;
 };
 
 type Envelope = {
@@ -447,6 +455,14 @@ export function GitTab({ projectId }: GitTabProps) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
+
+  /*
+   * Soft, non-destructive notice for a transiently-degraded git status (the loader
+   * returned an empty status + gitLoadError marker). Unlike `error` (red banner)
+   * this does NOT blank the working-tree list — it tells the user the shown list
+   * may be momentarily stale while the git backend recovers.
+   */
+  const [degradedNotice, setDegradedNotice] = useState<string | undefined>();
   const [staged, setStaged] = useState<Set<string>>(new Set());
   const [inspectFile, setInspectFile] = useState('');
 
@@ -590,24 +606,32 @@ export function GitTab({ projectId }: GitTabProps) {
         const isErrorEnvelope = payload.status === 'error' && Boolean(payload.error);
 
         /*
-         * Only replace the visible envelope when it carries real data. An error
-         * envelope typically has no `data`, so applying it during a silent
-         * refresh would collapse `changedFiles` to [] and re-render "No changed
-         * files", wiping the live working-tree list.
+         * Soft-degraded marker: the loader swallowed a transient git-status 5xx
+         * into an OK envelope with an EMPTY status + a `gitLoadError` note. That
+         * envelope has `status:'ok'`, so without the degraded guard a silent
+         * refresh would apply it and collapse the live "N changed files" list to
+         * zero mid-generation. Retain the last known good list instead.
          */
-        if (shouldApplyEnvelopeForLoad(options?.silent, isErrorEnvelope)) {
+        const degraded = Boolean(payload.data?.gitLoadError);
+
+        /*
+         * Only replace the visible envelope when it carries real data. An error
+         * envelope typically has no `data`, and a degraded envelope carries a
+         * placeholder empty status, so applying either during a silent refresh
+         * would collapse `changedFiles` to [] and re-render "No changed files",
+         * wiping the live working-tree list.
+         */
+        if (shouldApplyEnvelopeForLoad(options?.silent, isErrorEnvelope, degraded)) {
           setEnvelope(payload);
         }
 
         /*
          * Only advance the "last fetched" timestamp when the response carried
-         * real data. A silent background refresh that receives an error
-         * envelope intentionally keeps the previous state (see
-         * shouldApplyEnvelopeForLoad); bumping the timestamp anyway would tell
-         * the user the stale working-tree list is fresh ("just now") while it
-         * has not actually been replaced.
+         * real data. An error/degraded envelope keeps (or blanks-to-placeholder)
+         * the working tree without a genuine status; bumping the timestamp anyway
+         * would tell the user a stale/placeholder list is fresh ("just now").
          */
-        if (shouldAdvanceLastFetched(isErrorEnvelope)) {
+        if (shouldAdvanceLastFetched(isErrorEnvelope, degraded)) {
           setLastLoadedAt(new Date().toISOString());
         }
 
@@ -617,6 +641,19 @@ export function GitTab({ projectId }: GitTabProps) {
           }
         } else {
           setError(undefined);
+        }
+
+        /*
+         * Surface a transient degrade non-destructively: keep the working-tree
+         * list on screen and show a soft inline notice. Clear it once a healthy
+         * (non-degraded) status loads.
+         */
+        if (degraded) {
+          setDegradedNotice(
+            payload.data?.gitLoadError || 'Git status is temporarily unavailable; showing the last known changes.',
+          );
+        } else if (!isErrorEnvelope) {
+          setDegradedNotice(undefined);
         }
       } catch (requestError) {
         if (requestId !== loadRequestRef.current) {
@@ -1448,6 +1485,15 @@ export function GitTab({ projectId }: GitTabProps) {
                 </div>
               ) : null}
             </div>
+            {degradedNotice ? (
+              <div
+                role="status"
+                data-testid="git-degraded-notice"
+                className="mb-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-xs text-bolt-elements-textSecondary"
+              >
+                {degradedNotice}
+              </div>
+            ) : null}
             {changedFiles.length ? (
               changedFiles.map((file) => {
                 const path = String(file.path ?? file);

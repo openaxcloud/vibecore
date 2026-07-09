@@ -4,7 +4,19 @@ import { useEffect, useMemo, type PropsWithChildren } from 'react';
 import { createRuntimeAdapter, getRuntimeMode, RuntimeAdapterProvider } from '~/lib/runtime/RuntimeAdapterProvider';
 import { isTransientRuntimeError, withRuntimeRetry } from '~/lib/runtime/retry';
 import { workspaceQuotaPrompt } from '~/lib/runtime/workspace-quota';
+import { shouldReattachWarmWorkspace } from '~/lib/runtime/workspace-reattach';
+import { hasLivePreviewPort } from '~/lib/runtime/workspace-status';
 import { workbenchStore } from '~/lib/stores/workbench';
+
+/**
+ * Workspace ids (sessionId = workspaceId ?? projectId) this client page-session
+ * has already cold-seeded. A remount (StrictMode double-mount, route-return) finds
+ * its id here and reattaches to the still-running pod instead of wiping+reseeding;
+ * a genuinely new page-session (fresh load, possibly with cross-device edits) has
+ * no entry and cold-seeds. Module scope so it survives provider remounts within
+ * the same page load, and is naturally empty on a full reload.
+ */
+const seededWorkspaceSessions = new Set<string>();
 
 export interface ProjectWorkspaceProviderProps extends PropsWithChildren {
   projectId: string;
@@ -91,60 +103,111 @@ export function ProjectWorkspaceProvider({
         }
 
         workbenchStore.workspaceStatus.set(session);
-        await workbenchStore.stopPreviewServer().catch((error) => {
-          workbenchStore.appendWorkspaceLog(
-            error instanceof Error
-              ? `Previous preview cleanup skipped: ${error.message}`
-              : 'Previous preview cleanup skipped',
-          );
-        });
-        await clearRuntimeProjectTree(runtime).catch((error) => {
-          workbenchStore.appendWorkspaceLog(
-            error instanceof Error
-              ? `Project workspace cleanup skipped: ${error.message}`
-              : 'Project workspace cleanup skipped',
-          );
-        });
 
-        try {
-          await persistedFilesHydration;
+        /*
+         * Reattach fast-path (#1). On a warm reopen the pod is often still up and
+         * serving (the inactivity GC hasn't reaped it). The previous EVERY-mount
+         * behaviour — stop preview → delete the WHOLE tree (incl. node_modules) →
+         * reseed from storage → cold dev-server start — wiped the exact state the
+         * (d) preview short-circuit needs and killed the live app on every reopen /
+         * route-return / StrictMode remount. When the pod is warm AND this page-
+         * session already seeded it AND a port is genuinely serving, adopt it AS-IS:
+         * skip stop+wipe+reseed and only re-wire below (loadRuntimeFiles +
+         * startPreviewServer, which then short-circuits to the live preview). If ANY
+         * signal is unknown/false we fall through to the safe cold wipe+reseed.
+         *
+         * Probe the runtime's live ports first so hasLivePreviewPort sees the warm
+         * pod's forwarded dev-server port (listPorts repopulates the previews store).
+         */
+        const sessionAlreadySeeded = seededWorkspaceSessions.has(sessionId);
+        await workbenchStore.refreshRuntimePorts().catch(() => undefined);
+
+        if (cancelled) {
+          await stopRemoteWorkspace(runtime, activeWorkspaceId ?? session.id);
+          return;
+        }
+
+        const reattachWarmWorkspace = shouldReattachWarmWorkspace({
+          reused: session.reused === true,
+          seededThisSession: sessionAlreadySeeded,
+          hasLivePort: hasLivePreviewPort(workbenchStore.previews.get()),
 
           /*
-           * The agent can be briefly unreachable right after a (re)provision —
-           * slow gVisor startup under node CPU contention, or Service Endpoints
-           * lag — so the first seed call often hits a transient 502/agent-not-
-           * reachable. Retry through that window instead of failing on the first
-           * error (which previously tore the pod down).
+           * Storage-freshness (cross-device staleness) is NOT cheaply knowable
+           * here: the project-storage export endpoint exposes no reliable updatedAt
+           * and the pod's last-seed time isn't tracked. We therefore rely on the
+           * same-page-session marker, which is correct for the dominant StrictMode/
+           * route-return remount case; a genuinely new page-session (a fresh load,
+           * possibly with cross-device edits) has no marker and reseeds. Left
+           * undefined (treated as "not newer") rather than invented.
            */
-          await withRuntimeRetry(() => seedRuntimeFromProjectStorage(projectId, runtime), {
-            attempts: 5,
-            baseDelayMs: 1500,
+        });
+
+        if (reattachWarmWorkspace) {
+          workbenchStore.appendWorkspaceLog('Reattached warm workspace (skipped reseed)');
+        } else {
+          await workbenchStore.stopPreviewServer().catch((error) => {
+            workbenchStore.appendWorkspaceLog(
+              error instanceof Error
+                ? `Previous preview cleanup skipped: ${error.message}`
+                : 'Previous preview cleanup skipped',
+            );
           });
-        } catch (error) {
-          if (cancelled) {
+          await clearRuntimeProjectTree(runtime).catch((error) => {
+            workbenchStore.appendWorkspaceLog(
+              error instanceof Error
+                ? `Project workspace cleanup skipped: ${error.message}`
+                : 'Project workspace cleanup skipped',
+            );
+          });
+
+          try {
+            await persistedFilesHydration;
+
+            /*
+             * The agent can be briefly unreachable right after a (re)provision —
+             * slow gVisor startup under node CPU contention, or Service Endpoints
+             * lag — so the first seed call often hits a transient 502/agent-not-
+             * reachable. Retry through that window instead of failing on the first
+             * error (which previously tore the pod down).
+             */
+            await withRuntimeRetry(() => seedRuntimeFromProjectStorage(projectId, runtime), {
+              attempts: 5,
+              baseDelayMs: 1500,
+            });
+          } catch (error) {
+            if (cancelled) {
+              return;
+            }
+
+            const message = normalizeProjectFileSyncError(error);
+
+            workbenchStore.workspaceError.set(message);
+            workbenchStore.appendWorkspaceLog(message);
+
+            /*
+             * Only tear the pod down on a NON-transient failure. A transient
+             * agent-unreachable that survived the retries is most likely a slow
+             * startup that will still come good; killing the pod turns it into a
+             * permanent "Crashed runtime" and forces a ~50s cold re-provision.
+             * Leave it RUNNING so the keepalive heartbeat holds it and the user can
+             * retry without a cold start — genuine orphans are still reaped by the
+             * inactivity GC.
+             */
+            if (activeWorkspaceId && !isTransientRuntimeError(error)) {
+              await stopRemoteWorkspace(runtime, activeWorkspaceId).catch(() => undefined);
+              activeWorkspaceId = undefined;
+            }
+
             return;
           }
 
-          const message = normalizeProjectFileSyncError(error);
-
-          workbenchStore.workspaceError.set(message);
-          workbenchStore.appendWorkspaceLog(message);
-
           /*
-           * Only tear the pod down on a NON-transient failure. A transient
-           * agent-unreachable that survived the retries is most likely a slow
-           * startup that will still come good; killing the pod turns it into a
-           * permanent "Crashed runtime" and forces a ~50s cold re-provision.
-           * Leave it RUNNING so the keepalive heartbeat holds it and the user can
-           * retry without a cold start — genuine orphans are still reaped by the
-           * inactivity GC.
+           * Mark seeded only AFTER a successful cold seed (a failed seed returns
+           * above, so a retry still reseeds), so a later remount within this page-
+           * session reattaches to a genuinely-seeded, warm pod.
            */
-          if (activeWorkspaceId && !isTransientRuntimeError(error)) {
-            await stopRemoteWorkspace(runtime, activeWorkspaceId).catch(() => undefined);
-            activeWorkspaceId = undefined;
-          }
-
-          return;
+          seededWorkspaceSessions.add(sessionId);
         }
 
         /*

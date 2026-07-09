@@ -81,6 +81,41 @@ export function shouldReplayPendingPrompt(files: FileMap | undefined): boolean {
   return countWorkspaceFiles(files) <= 1;
 }
 
+export type PendingPromptReplayDecision = 'defer' | 'replay' | 'skip';
+
+/**
+ * Gate the pending-prompt replay on the workspace file map being CONFIRMED
+ * hydrated (loaded from the runtime or project storage at least once for THIS
+ * project).
+ *
+ * The race this closes: on reopen the file map starts empty and is filled
+ * asynchronously (runtime reload / project-storage archive). If the replay
+ * effect evaluates `shouldReplayPendingPrompt` against that not-yet-hydrated
+ * empty snapshot, `countWorkspaceFiles === 0` reads as "ungenerated" and the
+ * queued prompt is re-appended — regenerating over an app that already exists
+ * the instant its files finish loading (clobbering files + double-charging
+ * tokens). A `0-files` snapshot that merely means "not loaded yet" must NEVER
+ * be treated as "ungenerated → replay".
+ *
+ *   - not hydrated yet          -> 'defer'  (do NOT replay, do NOT clear; re-check after hydration)
+ *   - hydrated + empty/scaffold -> 'replay' (genuinely needs first generation)
+ *   - hydrated + real app       -> 'skip'   (app already exists; clear the stale prompt)
+ *
+ * The legitimate first-generation path is preserved: a truly new project whose
+ * hydration reveals only an empty/scaffold (README/.gitignore) workspace still
+ * replays its queued prompt exactly once.
+ */
+export function decidePendingPromptReplay(
+  files: FileMap | undefined,
+  filesHydrated: boolean,
+): PendingPromptReplayDecision {
+  if (!filesHydrated) {
+    return 'defer';
+  }
+
+  return shouldReplayPendingPrompt(files) ? 'replay' : 'skip';
+}
+
 /**
  * Recover the original generation prompt from a seeded README so the "Generate
  * app" CTA can re-run generation for a stranded project (one whose one-shot

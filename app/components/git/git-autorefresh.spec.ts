@@ -98,6 +98,24 @@ describe('shouldApplyEnvelopeForLoad', () => {
      */
     expect(shouldApplyEnvelopeForLoad(true, true)).toBe(false);
   });
+
+  it('does NOT apply a soft-degraded (gitLoadError) envelope on a silent refresh — retains the last known list', () => {
+    /*
+     * The degraded envelope is `status:'ok'` with an EMPTY status + gitLoadError
+     * marker; without the degraded guard the silent refresh would apply it and
+     * collapse the live "N changed files" list to zero mid-generation.
+     */
+    expect(shouldApplyEnvelopeForLoad(true, false, true)).toBe(false);
+  });
+
+  it('still applies a soft-degraded envelope on a foreground (user-initiated) refresh', () => {
+    expect(shouldApplyEnvelopeForLoad(false, false, true)).toBe(true);
+    expect(shouldApplyEnvelopeForLoad(undefined, false, true)).toBe(true);
+  });
+
+  it('still applies a healthy (non-degraded) envelope on a silent refresh', () => {
+    expect(shouldApplyEnvelopeForLoad(true, false, false)).toBe(true);
+  });
 });
 
 describe('shouldAdvanceLastFetched', () => {
@@ -111,5 +129,9 @@ describe('shouldAdvanceLastFetched', () => {
      * screen; advancing "last fetched" would falsely report stale data as fresh.
      */
     expect(shouldAdvanceLastFetched(true)).toBe(false);
+  });
+
+  it('does not advance the timestamp for a soft-degraded envelope (no real git status)', () => {
+    expect(shouldAdvanceLastFetched(false, true)).toBe(false);
   });
 });
