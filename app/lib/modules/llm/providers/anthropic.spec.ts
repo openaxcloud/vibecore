@@ -10,7 +10,57 @@ import { describe, expect, it, vi } from 'vitest';
  */
 vi.mock('../manager', () => ({ LLMManager: class {} }));
 
-const { buildAnthropicModelLabel } = await import('./anthropic');
+const { buildAnthropicModelLabel, createAnthropicCachingFetch } = await import('./anthropic');
+
+describe('createAnthropicCachingFetch', () => {
+  const parseBody = (init: RequestInit | undefined) => JSON.parse((init?.body as string) ?? '{}');
+
+  it('rewrites a string system into a cache_control ephemeral block', async () => {
+    const base = vi.fn(async () => new Response('ok'));
+    const wrapped = createAnthropicCachingFetch(base as unknown as typeof fetch);
+
+    await wrapped('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      body: JSON.stringify({ system: 'STABLE PREFIX', messages: [{ role: 'user', content: 'hi' }] }),
+    });
+
+    const sent = parseBody(base.mock.calls[0][1] as RequestInit);
+    expect(sent.system).toEqual([{ type: 'text', text: 'STABLE PREFIX', cache_control: { type: 'ephemeral' } }]);
+
+    // The rest of the body is untouched.
+    expect(sent.messages).toEqual([{ role: 'user', content: 'hi' }]);
+  });
+
+  it('leaves a body without a system field unchanged', async () => {
+    const base = vi.fn(async () => new Response('ok'));
+    const wrapped = createAnthropicCachingFetch(base as unknown as typeof fetch);
+    const body = JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] });
+
+    await wrapped('https://api.anthropic.com/v1/messages', { method: 'POST', body });
+
+    expect((base.mock.calls[0][1] as RequestInit).body).toBe(body);
+  });
+
+  it('does not throw and passes the request through on a non-JSON body', async () => {
+    const base = vi.fn(async () => new Response('ok'));
+    const wrapped = createAnthropicCachingFetch(base as unknown as typeof fetch);
+
+    await expect(
+      wrapped('https://api.anthropic.com/v1/messages', { method: 'POST', body: 'not json but "system" appears' }),
+    ).resolves.toBeInstanceOf(Response);
+    expect(base).toHaveBeenCalledOnce();
+  });
+
+  it('ignores an empty/whitespace system (nothing worth caching)', async () => {
+    const base = vi.fn(async () => new Response('ok'));
+    const wrapped = createAnthropicCachingFetch(base as unknown as typeof fetch);
+    const body = JSON.stringify({ system: '   ', messages: [] });
+
+    await wrapped('https://api.anthropic.com/v1/messages', { method: 'POST', body });
+
+    expect((base.mock.calls[0][1] as RequestInit).body).toBe(body);
+  });
+});
 
 describe('buildAnthropicModelLabel', () => {
   it('uses display_name when present', () => {

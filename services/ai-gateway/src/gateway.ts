@@ -23,6 +23,7 @@ export interface AiModel {
   inputCentsPerMillion: number;
   outputCentsPerMillion: number;
   contextWindow: number;
+
   /*
    * Max COMPLETION (output) tokens the model accepts in a single response — the
    * ceiling `max_tokens` must never exceed or the provider hard-rejects the
@@ -298,6 +299,38 @@ function estimateCost(model: AiModel, inputTokens: number, outputTokens: number)
   return Math.ceil((inputTokens * model.inputCentsPerMillion + outputTokens * model.outputCentsPerMillion) / 1_000_000);
 }
 
+/**
+ * Log Anthropic's real prompt-cache accounting from a `/v1/messages` response so
+ * the cache hit-rate is observable (the gateway otherwise estimates usage
+ * locally and never reads the provider body). `cache_read_input_tokens` are
+ * input tokens served from cache; `cache_creation_input_tokens` is the one-time
+ * write. Best-effort — any missing/malformed field is skipped, never thrown.
+ */
+function logAnthropicCacheUsage(json: unknown): void {
+  try {
+    const usage = (json as { usage?: Record<string, unknown> } | null)?.usage;
+
+    if (!usage || typeof usage !== 'object') {
+      return;
+    }
+
+    const read = typeof usage.cache_read_input_tokens === 'number' ? usage.cache_read_input_tokens : 0;
+    const write = typeof usage.cache_creation_input_tokens === 'number' ? usage.cache_creation_input_tokens : 0;
+
+    if (read > 0 || write > 0) {
+      console.info(
+        JSON.stringify({
+          event: 'ai-gateway.anthropic.cache',
+          cacheReadInputTokens: read,
+          cacheCreationInputTokens: write,
+        }),
+      );
+    }
+  } catch {
+    // Never let cache logging affect the completion path.
+  }
+}
+
 function configured(config: ProviderConfig) {
   return config.kind === 'ollama' || Boolean(config.apiKeyEnv && process.env[config.apiKeyEnv]);
 }
@@ -325,6 +358,14 @@ export function headers(config: ProviderConfig) {
   if (config.kind === 'anthropic') {
     headers['x-api-key'] = token ?? '';
     headers['anthropic-version'] = '2023-06-01';
+
+    /*
+     * Enable the `cache_control` breakpoint set on the system block in
+     * anthropicPayload. The N specialist lanes re-send an IDENTICAL system prefix
+     * (shared preamble + shared context), so caching it collapses the duplicated
+     * input cost from N× to ~1× + N×10%.
+     */
+    headers['anthropic-beta'] = 'prompt-caching-2024-07-31';
   }
 
   return headers;
@@ -558,8 +599,10 @@ export function maxCompletionTokensForModel(modelId: string | undefined): number
     return 4096;
   }
 
-  // Anthropic — 3.5 / 3.7 cap completion at 8192; 3.x / 2.x at 4096. Newer
-  // families (Claude 4/5 …) support far more, so they keep the global hard cap.
+  /*
+   * Anthropic — 3.5 / 3.7 cap completion at 8192; 3.x / 2.x at 4096. Newer
+   * families (Claude 4/5 …) support far more, so they keep the global hard cap.
+   */
   if (
     id.includes('claude-3-5') ||
     id.includes('claude-3.5') ||
@@ -611,7 +654,15 @@ function anthropicPayload(request: AiChatRequest, model: string, stream: boolean
 
   return {
     model,
-    system: system || undefined,
+
+    /*
+     * Mark the system prefix as a cache breakpoint (ephemeral). It is identical
+     * across every lane of a multi-agent run and re-sent each turn, so Anthropic
+     * serves it from cache (~10% input price) instead of re-billing it in full.
+     * A string system stays a plain string when there's nothing to cache. Below
+     * Anthropic's ~1024-token minimum this is a silent no-op, never an error.
+     */
+    system: system ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }] : undefined,
     messages,
     stream,
     max_tokens: resolveMaxOutputTokens(request, model),
@@ -658,16 +709,17 @@ async function providerCompletion(config: ProviderConfig, request: AiChatRequest
   }
 
   if (config.kind === 'anthropic') {
-    return extractContent(
-      await readJson(
-        await fetch(`${config.baseUrl.replace(/\/+$/, '')}/v1/messages`, {
-          method: 'POST',
-          headers: headers(config),
-          body: JSON.stringify(anthropicPayload(request, model, false)),
-          signal: reqSignal,
-        }),
-      ),
+    const json = await readJson(
+      await fetch(`${config.baseUrl.replace(/\/+$/, '')}/v1/messages`, {
+        method: 'POST',
+        headers: headers(config),
+        body: JSON.stringify(anthropicPayload(request, model, false)),
+        signal: reqSignal,
+      }),
     );
+    logAnthropicCacheUsage(json);
+
+    return extractContent(json);
   }
 
   if (config.kind === 'gemini') {
@@ -1063,7 +1115,7 @@ export class AiGateway {
    * the selected model; a fallback provider gets a catalog model that belongs to
    * IT and is allowed on the plan, falling back to the provider's defaultModel.
    */
-  private resolveModelForProvider(
+  private _resolveModelForProvider(
     provider: ProviderConfig,
     request: AiChatRequest,
     selectedModel: AiModel,
@@ -1113,7 +1165,7 @@ export class AiGateway {
           throw new Error('aborted');
         }
 
-        const resolved = this.resolveModelForProvider(provider, request, routed.model, plan, primaryProviderId);
+        const resolved = this._resolveModelForProvider(provider, request, routed.model, plan, primaryProviderId);
 
         if (!resolved) {
           lastError = new Error(`Provider ${provider.id} has no model available on plan '${plan}'`);
@@ -1166,7 +1218,7 @@ export class AiGateway {
        * verbatim to every fallback provider, so cross-provider fallback always
        * failed with an unknown-model error instead of recovering.
        */
-      const resolved = this.resolveModelForProvider(provider, request, routed.model, plan, primaryProviderId);
+      const resolved = this._resolveModelForProvider(provider, request, routed.model, plan, primaryProviderId);
 
       if (!resolved) {
         lastError = new Error(`Provider ${provider.id} has no model available on plan '${plan}'`);

@@ -15,6 +15,46 @@ export function buildAnthropicModelLabel(model: { display_name?: string | null; 
   return `${model.display_name || model.id} (${Math.floor(contextWindow / 1000)}k context)`;
 }
 
+/**
+ * Wrap `fetch` so every Anthropic `/v1/messages` call caches its stable prefix.
+ *
+ * The installed `@ai-sdk/anthropic@0.0.39` predates the SDK's `cacheControl`
+ * plumbing (it flattens `system` to a plain string and exposes no way to mark a
+ * cache breakpoint), so we inject the breakpoint at the wire level instead of
+ * upgrading the provider SDK (which would touch the certified OpenAI path).
+ *
+ * The request body's `system` — the large, turn-stable prefix (Bolt system
+ * prompt + CONTEXT BUFFER + orchestration/memory blocks appended by
+ * stream-text) — is rewritten from a string into a single text block carrying
+ * `cache_control: { type: 'ephemeral' }`. Anthropic then serves that prefix from
+ * cache on the next turn / each of the 8 auto-continuation segments at ~10% of
+ * the input price, instead of re-billing it in full every time. Below Anthropic's
+ * ~1024-token cache minimum this is a silent no-op (no error), and the response
+ * stream is never touched, so generation output is byte-for-byte unchanged.
+ * Any parse/shape surprise falls through to the original request untouched.
+ */
+export function createAnthropicCachingFetch(baseFetch: typeof fetch): typeof fetch {
+  return async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+    try {
+      if (init && typeof init.body === 'string' && init.body.includes('"system"')) {
+        const parsed = JSON.parse(init.body);
+
+        if (parsed && typeof parsed.system === 'string' && parsed.system.trim().length > 0) {
+          parsed.system = [{ type: 'text', text: parsed.system, cache_control: { type: 'ephemeral' } }];
+          init = { ...init, body: JSON.stringify(parsed) };
+        }
+      }
+    } catch {
+      /*
+       * Never let a body rewrite break the generation: on any JSON/shape issue,
+       * send the request exactly as the SDK built it (no caching, but no failure).
+       */
+    }
+
+    return baseFetch(input as any, init);
+  };
+}
+
 export default class AnthropicProvider extends BaseProvider {
   name = 'Anthropic';
   getApiKeyLink = 'https://console.anthropic.com/settings/keys';
@@ -156,7 +196,14 @@ export default class AnthropicProvider extends BaseProvider {
     });
     const anthropic = createAnthropic({
       apiKey,
-      headers: { 'anthropic-beta': 'output-128k-2025-02-19' },
+
+      /*
+       * `prompt-caching-2024-07-31` enables the `cache_control` breakpoint that
+       * createAnthropicCachingFetch injects into the request body; kept alongside
+       * the existing 128k-output beta (comma-separated, both honoured).
+       */
+      headers: { 'anthropic-beta': 'output-128k-2025-02-19,prompt-caching-2024-07-31' },
+      fetch: createAnthropicCachingFetch(globalThis.fetch),
     });
 
     return anthropic(model);
