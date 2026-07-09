@@ -17,6 +17,7 @@ import {
   requirePlatformAdmin,
   sessionCookie,
 } from '~/lib/enterprise-api.server';
+import { rowsToCsv } from '~/utils/admin-csv';
 import { errorRateTone, moveItem } from '~/utils/admin-provider-metrics';
 
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
@@ -314,6 +315,28 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       headers: {
         'content-type': format === 'csv' ? 'text/csv; charset=utf-8' : 'application/json; charset=utf-8',
         'content-disposition': `attachment; filename="${section}-${stamp}.${format}"`,
+        'cache-control': 'no-store',
+      },
+    });
+  }
+
+  /*
+   * F24: account-deletions export. The purge queue is a small, self-contained set
+   * of rows (userId / email / status / requestedAt / purgeDueAt) — stream it as a
+   * CSV/JSON download over the session cookie, same pattern as the audit exports.
+   */
+  if (exportFormat && section === 'account-deletions') {
+    const format = exportFormat === 'csv' ? 'csv' : 'json';
+    const result = (await apiRequest<Record<string, JsonValue>>(request, '/admin/account-deletions')) ?? {};
+    const rows = (Array.isArray(result.requests) ? result.requests : []) as Array<Record<string, JsonValue>>;
+    const columns = ['userId', 'email', 'status', 'requestedAt', 'purgeDueAt'];
+    const body = format === 'csv' ? rowsToCsv(rows, columns) : JSON.stringify(rows, null, 2);
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+
+    return new Response(body, {
+      headers: {
+        'content-type': format === 'csv' ? 'text/csv; charset=utf-8' : 'application/json; charset=utf-8',
+        'content-disposition': `attachment; filename="account-deletions-${stamp}.${format}"`,
         'cache-control': 'no-store',
       },
     });
@@ -842,6 +865,23 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json({ ok: true, rowId: securityEventId, message: 'Security event resolved.' });
     }
 
+    // F24: admin cancels a user's pending account deletion during the grace window.
+    if (intent === 'account-deletion-cancel') {
+      const deletionUserId = String(form.get('deletionUserId') ?? '');
+
+      if (!deletionUserId) {
+        return json({ ok: false, error: 'Missing user.' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/admin/account-deletions/${deletionUserId}/cancel`, {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({}),
+      });
+
+      return json({ ok: true, rowId: deletionUserId, message: 'Deletion cancelled.' });
+    }
+
     // Organization suspend. (No unsuspend endpoint exists server-side today.)
     if (intent === 'org-suspend') {
       const organizationId = String(form.get('organizationId') ?? '');
@@ -1160,6 +1200,7 @@ export default function AdminSectionPage() {
           {section === 'abuse-events' ? <AbuseEventsPanel payload={payload} /> : null}
           {section === 'security-events' ? <SecurityEventsPanel payload={payload} /> : null}
           {section === 'organizations' ? <OrganizationsPanel payload={payload} /> : null}
+          {section === 'account-deletions' ? <AccountDeletionsPanel payload={payload} /> : null}
           {section === 'support-tickets' ? <SupportTicketsPanel payload={payload} /> : null}
           {section === 'audit-logs' || section === 'admin-audit-logs' ? (
             <AuditLogsPanel payload={payload} section={section} />
@@ -1180,6 +1221,7 @@ export default function AdminSectionPage() {
             'abuse-events',
             'security-events',
             'organizations',
+            'account-deletions',
             'support-tickets',
             'developer-tools',
             'ops-controls',
@@ -4974,6 +5016,164 @@ function SecurityEventItem({ event, password }: { event: AdminSecurityEvent; pas
       ) : null}
       <RowFeedback data={fetcher.data} />
     </li>
+  );
+}
+
+type AdminDeletionRequest = {
+  userId: string;
+  email?: string | null;
+  status?: string;
+  requestedAt?: string | null;
+  purgeDueAt?: string | null;
+};
+
+/* F24: purge-queue status → labelled tone. */
+function deletionStatusTone(status?: string): { label: string; tone: 'ok' | 'danger' | 'warn' | 'muted' } {
+  if (status === 'ready_to_purge') {
+    return { label: 'ready to purge', tone: 'danger' };
+  }
+
+  if (status === 'grace_period') {
+    return { label: 'grace period', tone: 'warn' };
+  }
+
+  if (status === 'purged') {
+    return { label: 'purged', tone: 'muted' };
+  }
+
+  return { label: status ?? 'unknown', tone: 'muted' };
+}
+
+/*
+ * F24: account-deletions admin panel. Completes the previously read-only section:
+ * the J+14 purge queue (status + purge-due date), a per-row « Cancel deletion »
+ * (POST /admin/account-deletions/:userId/cancel — clears the user's pending
+ * deletion + drops them from the purge index, gated + reauth + audited) and a
+ * CSV/JSON export served by the loader (?export=). Step-up protected.
+ */
+function AccountDeletionsPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const requests = (Array.isArray(payload.requests) ? payload.requests : []) as AdminDeletionRequest[];
+  const gracePeriodDays = typeof payload.gracePeriodDays === 'number' ? payload.gracePeriodDays : 14;
+  const readyToPurge = typeof payload.readyToPurge === 'number' ? payload.readyToPurge : 0;
+  const [password, setPassword] = useState('');
+  const [searchParams] = useSearchParams();
+
+  const exportHref = (format: 'csv' | 'json') => {
+    const params = new URLSearchParams(searchParams);
+    params.set('export', format);
+
+    return `/admin/account-deletions?${params.toString()}`;
+  };
+
+  return (
+    <div className="grid gap-4">
+      <ReauthHeader
+        password={password}
+        onChange={setPassword}
+        hint={`Cancelling a deletion is step-up protected. Enter your password once, then Cancel a user's pending deletion during the ${gracePeriodDays}-day grace window. Cancel clears their scheduled purge immediately.`}
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-xs shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-semibold text-bolt-elements-textPrimary">Purge queue</span>
+          <StatusPill tone={readyToPurge > 0 ? 'danger' : 'ok'}>{readyToPurge} ready to purge</StatusPill>
+          <span className="text-bolt-elements-textTertiary">
+            {requests.length} pending · grace {gracePeriodDays}d
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <a className={ROW_BTN} href={exportHref('csv')} download data-testid="account-deletions-export-csv">
+            Export CSV
+          </a>
+          <a className={ROW_BTN} href={exportHref('json')} download data-testid="account-deletions-export-json">
+            Export JSON
+          </a>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
+        <table className="w-full min-w-[760px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
+              <th className="px-4 py-3 font-medium">User</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Requested</th>
+              <th className="px-4 py-3 font-medium">Purge due</th>
+              <th className="px-4 py-3 font-medium">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {requests.length === 0 ? (
+              <tr>
+                <td className="px-4 py-3 text-bolt-elements-textSecondary" colSpan={5}>
+                  No pending account deletions.
+                </td>
+              </tr>
+            ) : (
+              requests.map((request) => <DeletionRow key={request.userId} request={request} password={password} />)
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function DeletionRow({ request, password }: { request: AdminDeletionRequest; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+  const status = deletionStatusTone(request.status);
+  const cancelled = fetcher.data?.ok === true;
+  const purged = request.status === 'purged';
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  return (
+    <tr className="border-b border-bolt-elements-borderColor align-top last:border-b-0">
+      <td className="px-4 py-3">
+        <div className="font-medium text-bolt-elements-textPrimary">{request.email ?? request.userId}</div>
+        <div className="text-xs text-bolt-elements-textSecondary">{request.userId}</div>
+      </td>
+      <td className="px-4 py-3">
+        <StatusPill tone={cancelled ? 'ok' : status.tone}>{cancelled ? 'cancelled' : status.label}</StatusPill>
+      </td>
+      <td className="px-4 py-3 text-bolt-elements-textSecondary">{request.requestedAt ?? '—'}</td>
+      <td className="px-4 py-3 text-bolt-elements-textSecondary">{request.purgeDueAt ?? '—'}</td>
+      <td className="px-4 py-3">
+        {purged || cancelled ? (
+          <span className="text-xs text-bolt-elements-textTertiary">{cancelled ? 'Cancelled.' : 'Purged.'}</span>
+        ) : (
+          <>
+            <button
+              type="button"
+              className={ROW_BTN}
+              disabled={busy || !password}
+              data-testid={`deletion-cancel-${request.userId}`}
+              onClick={() => setConfirmOpen(true)}
+            >
+              {busy ? 'Cancelling…' : 'Cancel deletion'}
+            </button>
+            {!password && !busy ? (
+              <p className="mt-1.5 text-xs text-bolt-elements-textTertiary">Enter your password above first.</p>
+            ) : null}
+          </>
+        )}
+        <RowFeedback data={fetcher.data} />
+        <ConfirmationDialog
+          isOpen={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={() => {
+            setConfirmOpen(false);
+            fetcher.submit(
+              { intent: 'account-deletion-cancel', deletionUserId: request.userId, password },
+              { method: 'post' },
+            );
+          }}
+          title={`Cancel deletion for ${request.email ?? request.userId}?`}
+          description="The user's scheduled account purge is cleared and they are removed from the queue. This is audited."
+          confirmLabel="Cancel deletion"
+        />
+      </td>
+    </tr>
   );
 }
 
