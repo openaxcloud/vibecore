@@ -31,6 +31,7 @@ import { foldCommandExitCode } from '~/lib/runtime/command-exit';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import { hasInstalledPreviewDependencies, type PreviewPackageManifest } from '~/lib/runtime/preview-dependencies';
 import { buildPreviewManifestRepair } from '~/lib/runtime/preview-manifest';
+import { runProjectDoctor } from '~/lib/runtime/project-doctor';
 import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
 import { withRuntimeRetry } from '~/lib/runtime/retry';
 import { writeAcceptedAgentFile } from '~/lib/runtime/agent-file-write';
@@ -3007,9 +3008,35 @@ export class WorkbenchStore {
       excludeFile: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_FILES.has(name),
     });
 
+    /*
+     * Project Doctor (holistic, pre-"Done"): reconcile default-import ↔
+     * named-export mismatches across the WHOLE graph (not just the App entry the
+     * per-file pass covers) and audit import resolution. This is where the
+     * parallel role-lanes' inter-file inconsistencies get healed before the
+     * manifest repair (package.json / vite / barrels) runs on the fixed files.
+     */
+    const doctor = runProjectDoctor(files);
+
+    for (const [doctorPath, doctorContent] of Object.entries(doctor.fixups)) {
+      await this.#runtime.writeFile(doctorPath, doctorContent);
+      files[doctorPath] = doctorContent;
+    }
+
+    if (Object.keys(doctor.fixups).length) {
+      this.appendWorkspaceLog(
+        `Project doctor: added missing default export(s) to ${Object.keys(doctor.fixups).join(', ')}`,
+      );
+    }
+
+    for (const item of doctor.unresolved) {
+      this.appendWorkspaceLog(
+        `Project doctor: "${item.specifier}" imported by ${item.importer} resolves to no file — the app may not mount until it exists.`,
+      );
+    }
+
     const repair = buildPreviewManifestRepair(files);
 
-    let changed = false;
+    let changed = Object.keys(doctor.fixups).length > 0;
 
     if (repair.packageJson && (repair.packageJson.created || repair.packageJson.changed)) {
       await this.#runtime.writeFile(repair.packageJson.path, repair.packageJson.content);
