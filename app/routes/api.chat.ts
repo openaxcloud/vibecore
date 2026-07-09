@@ -26,6 +26,13 @@ import { ChatQuotaError, serializeChatStreamError } from './api.chat.quota-error
 import { apiRequest } from '~/lib/enterprise-api.server';
 import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
+import {
+  computeSelectionCacheKey,
+  estimateMessagesTokens,
+  getMemoizedSelection,
+  setMemoizedSelection,
+  shouldGenerateSummary,
+} from '~/lib/.server/llm/context-optimization';
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
@@ -556,6 +563,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         let messageSliceId = 0;
 
         const processedMessages = await mcpService.processToolInvocations(messages, dataStream);
+
+        /*
+         * Stable per-conversation id: the project id when present, else the first
+         * message id (unchanged across a conversation). Drives A1's context-selection
+         * memo and A7's provider cache-affinity key. Falls back to undefined when
+         * neither exists (memo/affinity simply disabled — no regression).
+         */
+        const conversationId = projectId || processedMessages[0]?.id;
+
         const agentMemory = await retrieveMemoryForAgentContext(request, { messages: processedMessages, projectId });
 
         if (agentMemory?.memories.length) {
@@ -920,45 +936,68 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         if (filePaths.length > 0 && contextOptimization) {
           try {
-            logger.debug('Generating Chat Summary');
-            dataStream.writeData({
-              type: 'progress',
-              label: 'summary',
-              status: 'in-progress',
-              order: progressCounter++,
-              message: 'Analysing Request',
-            } satisfies ProgressAnnotation);
+            /*
+             * A1 (Wave A): only summarise when the history is actually large
+             * enough that the recent-message window can't carry it losslessly.
+             * Below the threshold the last RECENT_HISTORY_MESSAGES are still sent
+             * in full, so the summary is redundant — skipping it drops one LLM
+             * call/turn with zero information loss. When skipped, `summary` stays
+             * undefined and the main call simply omits the (already conditional)
+             * CHAT SUMMARY block.
+             */
+            const estimatedHistoryTokens = estimateMessagesTokens(processedMessages);
 
-            summary = await createSummary({
-              messages: [...processedMessages],
-              env: context.cloudflare?.env,
-              apiKeys,
-              providerSettings,
-              promptId,
-              contextOptimization,
-              abortSignal: request.signal,
-              onFinish(resp) {
-                if (resp.usage) {
-                  logger.debug('createSummary token usage', JSON.stringify(resp.usage));
-                  cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
-                  cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
-                  cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
-                }
-              },
+            const needsSummary = shouldGenerateSummary({
+              messageCount: processedMessages.length,
+              recentWindow: RECENT_HISTORY_MESSAGES,
+              estimatedTokens: estimatedHistoryTokens,
             });
-            dataStream.writeData({
-              type: 'progress',
-              label: 'summary',
-              status: 'complete',
-              order: progressCounter++,
-              message: 'Analysis Complete',
-            } satisfies ProgressAnnotation);
 
-            dataStream.writeMessageAnnotation({
-              type: 'chatSummary',
-              summary,
-              chatId: processedMessages.slice(-1)?.[0]?.id,
-            } as ContextAnnotation);
+            if (needsSummary) {
+              logger.debug('Generating Chat Summary');
+              dataStream.writeData({
+                type: 'progress',
+                label: 'summary',
+                status: 'in-progress',
+                order: progressCounter++,
+                message: 'Analysing Request',
+              } satisfies ProgressAnnotation);
+
+              summary = await createSummary({
+                messages: [...processedMessages],
+                env: context.cloudflare?.env,
+                apiKeys,
+                providerSettings,
+                promptId,
+                contextOptimization,
+                abortSignal: request.signal,
+                onFinish(resp) {
+                  if (resp.usage) {
+                    logger.debug('createSummary token usage', JSON.stringify(resp.usage));
+                    cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
+                    cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
+                    cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
+                  }
+                },
+              });
+              dataStream.writeData({
+                type: 'progress',
+                label: 'summary',
+                status: 'complete',
+                order: progressCounter++,
+                message: 'Analysis Complete',
+              } satisfies ProgressAnnotation);
+
+              dataStream.writeMessageAnnotation({
+                type: 'chatSummary',
+                summary,
+                chatId: processedMessages.slice(-1)?.[0]?.id,
+              } as ContextAnnotation);
+            } else {
+              logger.debug(
+                `Skipping chat summary: history within recent window (${processedMessages.length} msgs, ~${estimatedHistoryTokens} tokens)`,
+              );
+            }
 
             logger.debug('Updating Context Buffer');
             dataStream.writeData({
@@ -969,25 +1008,50 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               message: 'Determining Files to Read',
             } satisfies ProgressAnnotation);
 
-            filteredFiles = await selectContext({
-              messages: [...processedMessages],
-              env: context.cloudflare?.env,
-              apiKeys,
-              files,
-              providerSettings,
-              promptId,
-              contextOptimization,
+            /*
+             * A1 (Wave A): memoise the context-selection LLM call per conversation.
+             * When the selection INPUTS (sorted file paths + the message history +
+             * the summary) are byte-for-byte identical to the previous turn, reuse
+             * the previously-selected FileMap and skip the round-trip entirely — the
+             * main call still receives the exact same files. Any change → recompute.
+             * The memo is in-process, so a cold pod just recomputes (no regression).
+             */
+            const selectionKey = computeSelectionCacheKey({
+              filePaths,
+              messages: processedMessages,
               summary,
-              abortSignal: request.signal,
-              onFinish(resp) {
-                if (resp.usage) {
-                  logger.debug('selectContext token usage', JSON.stringify(resp.usage));
-                  cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
-                  cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
-                  cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
-                }
-              },
             });
+
+            const memoizedSelection = conversationId ? getMemoizedSelection(conversationId, selectionKey) : undefined;
+
+            if (memoizedSelection) {
+              logger.debug('Reusing memoized context selection (inputs unchanged); skipping selectContext call');
+              filteredFiles = memoizedSelection;
+            } else {
+              filteredFiles = await selectContext({
+                messages: [...processedMessages],
+                env: context.cloudflare?.env,
+                apiKeys,
+                files,
+                providerSettings,
+                promptId,
+                contextOptimization,
+                summary: summary ?? '',
+                abortSignal: request.signal,
+                onFinish(resp) {
+                  if (resp.usage) {
+                    logger.debug('selectContext token usage', JSON.stringify(resp.usage));
+                    cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
+                    cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
+                    cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
+                  }
+                },
+              });
+
+              if (conversationId && filteredFiles) {
+                setMemoizedSelection(conversationId, selectionKey, filteredFiles);
+              }
+            }
 
             if (filteredFiles) {
               logger.debug(`files in context : ${JSON.stringify(Object.keys(filteredFiles))}`);
