@@ -69,18 +69,34 @@ export function shouldSurfaceLoadError(silent: boolean | undefined): boolean {
 /*
  * Whether a load response's envelope should replace the visible state.
  *
- * - A successful (non-error) envelope always replaces the view.
- * - An error envelope replaces the view only for a foreground load (so the
- *   user sees the failure). During a silent refresh an error envelope carries
- *   no `data`, so applying it would blank the live working-tree list; we keep
- *   the previously loaded data instead.
+ * - A successful (non-error) envelope replaces the view...
+ * - ...UNLESS it is a soft-DEGRADED envelope on a SILENT refresh. When the git
+ *   status call transiently 5xx/locks mid-generation the loader degrades it into
+ *   an OK envelope carrying an empty `status` (changedFiles: []) plus a
+ *   `gitLoadError` marker. That envelope has `status:'ok'`, so without this guard
+ *   the silent refresh would apply it and collapse the live "N changed files"
+ *   list to zero. On a silent refresh we retain the last known good list instead;
+ *   a foreground (user-initiated) refresh still applies + surfaces the degraded
+ *   state so the user sees the current condition.
+ * - An error envelope replaces the view only for a foreground load (so the user
+ *   sees the failure). During a silent refresh an error envelope carries no
+ *   `data`, so applying it would blank the live working-tree list; we keep the
+ *   previously loaded data instead.
  */
-export function shouldApplyEnvelopeForLoad(silent: boolean | undefined, isErrorEnvelope: boolean): boolean {
-  if (!isErrorEnvelope) {
-    return true;
+export function shouldApplyEnvelopeForLoad(
+  silent: boolean | undefined,
+  isErrorEnvelope: boolean,
+  degraded: boolean = false,
+): boolean {
+  if (isErrorEnvelope) {
+    return !silent;
   }
 
-  return !silent;
+  if (degraded && silent) {
+    return false;
+  }
+
+  return true;
 }
 
 /*
@@ -93,7 +109,11 @@ export function shouldApplyEnvelopeForLoad(silent: boolean | undefined, isErrorE
  * the timestamp in that case would falsely report the stale list as just
  * fetched, which is especially misleading during an active agent generation
  * when the git endpoint transiently 5xx/locks.
+ *
+ * A soft-DEGRADED envelope (empty status + gitLoadError marker) carries no real
+ * git status either — whether it was retained (silent) or applied-as-empty
+ * (foreground), it is not "fresh good data", so the timestamp is not advanced.
  */
-export function shouldAdvanceLastFetched(isErrorEnvelope: boolean): boolean {
-  return !isErrorEnvelope;
+export function shouldAdvanceLastFetched(isErrorEnvelope: boolean, degraded: boolean = false): boolean {
+  return !isErrorEnvelope && !degraded;
 }
