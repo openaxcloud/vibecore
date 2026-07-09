@@ -88,6 +88,73 @@ export function describeAutoApplyFailure(filePath: string, error?: unknown): str
   return `Couldn't apply ${name} — review the change`;
 }
 
+export interface AutoApplyProposalSnapshot {
+  id: string;
+  relativePath: string;
+  status: string;
+  updatedAt: string;
+  proposedContent: string;
+}
+
+export interface SupersededAutoApplyInput {
+  /** The proposal id whose apply just failed. */
+  proposalId: string;
+
+  /** Relative path of the failed proposal. */
+  filePath: string;
+
+  /** `updatedAt` of the exact proposal version that was attempted. */
+  attemptedUpdatedAt: string;
+
+  /** Content length of the exact proposal version that was attempted. */
+  attemptedContentLength: number;
+
+  /** Live snapshot of all current proposals (read AFTER the apply resolved). */
+  proposals: readonly AutoApplyProposalSnapshot[];
+}
+
+/**
+ * Decide whether an auto-apply failure toast should be SUPPRESSED because the
+ * failed attempt is a transient intermediate that a newer version supersedes.
+ *
+ * During streaming the same proposal id is rewritten with growing content, and a
+ * separate boltAction can queue another proposal for the same file. Early chunks
+ * often fail validation (truncated) before the final complete chunk applies —
+ * without this guard each intermediate flashes a red "Couldn't apply …" error.
+ *
+ * Suppress when, for the SAME file:
+ * - the same-id proposal now carries a newer version (newer `updatedAt` or a
+ *   different content length) than the one we attempted — the auto-apply effect
+ *   will re-fire on it, so only that later attempt should decide; or
+ * - a DIFFERENT proposal is still `pending`/`applying` — its outcome supersedes.
+ *
+ * Only the FINAL attempt (no newer version, nothing else pending) toasts.
+ */
+export function shouldSuppressAutoApplyFailureToast(input: SupersededAutoApplyInput): boolean {
+  for (const proposal of input.proposals) {
+    if (proposal.relativePath !== input.filePath) {
+      continue;
+    }
+
+    if (proposal.id === input.proposalId) {
+      if (
+        proposal.updatedAt > input.attemptedUpdatedAt ||
+        proposal.proposedContent.length !== input.attemptedContentLength
+      ) {
+        return true;
+      }
+
+      continue;
+    }
+
+    if (proposal.status === 'pending' || proposal.status === 'applying') {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 /**
  * The Database Explorer must auto-load the first connection's schema on open when
  * connections exist but no schema was hydrated by the initial panel fetch.

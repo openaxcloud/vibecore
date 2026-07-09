@@ -37,6 +37,7 @@ import {
   describeSnapshotRestoreFailure,
   isPanelAuthError,
   panelAuthRedirectTarget,
+  shouldSuppressAutoApplyFailureToast,
 } from './base-chat-panels';
 
 import { getApiKeysFromCookies } from './APIKeyManager';
@@ -3111,6 +3112,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         const filePath = proposal.relativePath;
         const proposalId = proposal.id;
+        const attemptedUpdatedAt = proposal.updatedAt;
+        const attemptedContentLength = proposal.proposedContent.length;
+
+        /*
+         * A failure toast is only meaningful for the FINAL attempt on a file. An
+         * intermediate streaming chunk (truncated → invalid) is superseded by a
+         * newer version of the same proposal or by another still-pending proposal
+         * for the same path; the auto-apply effect re-fires on those, so flashing
+         * a red "Couldn't apply …" now would just churn. Re-read the LIVE store at
+         * toast time (the chained apply may have run long after this closure was
+         * captured) to decide whether this failure has been superseded.
+         */
+        const failureIsSuperseded = () =>
+          shouldSuppressAutoApplyFailureToast({
+            proposalId,
+            filePath,
+            attemptedUpdatedAt,
+            attemptedContentLength,
+            proposals: Object.values(workbenchStore.agentPatchProposals.get()),
+          });
+
         autoApplyChainRef.current = autoApplyChainRef.current
           .then(() => workbenchStore.acceptAgentPatchProposal(proposalId))
           .then((result) => {
@@ -3128,9 +3150,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
              * several package.json proposals during streaming) collapse into ONE
              * toast instead of stacking 3-4 identical ones.
              */
+            if (failureIsSuperseded()) {
+              return;
+            }
+
             toast.error(describeAutoApplyFailure(filePath), { toastId: `auto-apply-error-${filePath}` });
           })
           .catch((error) => {
+            if (failureIsSuperseded()) {
+              return;
+            }
+
             toast.error(describeAutoApplyFailure(filePath, error), { toastId: `auto-apply-error-${filePath}` });
           });
       }

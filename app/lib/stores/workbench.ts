@@ -55,6 +55,7 @@ import {
   isResolvedMissingImportPatchFailure,
 } from '~/utils/agent-patch-logs';
 import { mergeJsonContent } from '~/lib/chat/merge-json-content';
+import { resolveFailedAgentPatchContent } from '~/lib/stores/agent-patch-fallback';
 import { reconcileRemoteWrite } from '~/lib/stores/reconcile-remote-write';
 import { KeyedMutex } from '~/lib/common/keyed-mutex';
 import { createSampler } from '~/utils/sampler';
@@ -2039,41 +2040,32 @@ export class WorkbenchStore {
           await this.#validateAgentPatchProposal(proposal, acceptedContent);
         } catch (validationError) {
           /*
-           * JSON files (package.json, tsconfig.json, …) frequently fail to apply
-           * cleanly during generation: the template writes the file AFTER the
-           * proposal's base was captured, or the proposed content is truncated
-           * mid-stream → invalid JSON. Rather than hard-fail (and repeatedly toast
-           * "Couldn't apply package.json"), MERGE the agent's intent onto the CURRENT
-           * file — never overwriting a valid file with garbage nor dropping template
-           * keys. Re-throw only if a valid merge is impossible.
+           * The hunk-applied content failed validation. Recover where possible
+           * instead of hard-failing (and repeatedly toasting "Couldn't apply …"):
+           * JSON files MERGE the agent's intent onto the current file (bug #21),
+           * and non-JSON files fall back to the complete emitted file when the
+           * whole proposal was accepted and that full content validates on its
+           * own. resolveFailedAgentPatchContent re-throws when no VALID fallback
+           * exists, so truncated/invalid streams still fail loudly.
            */
-          if (!proposal.relativePath.endsWith('.json')) {
-            throw validationError;
-          }
-
-          const currentContent = this.#filesStore.getFile(proposal.filePath)?.content ?? proposal.originalContent;
-
-          let merged = mergeJsonContent(currentContent, proposal.proposedContent);
-
-          /*
-           * Nothing recoverable from either side (both truncated/empty). For
-           * package.json specifically, a hard-fail here strands `npm install` and
-           * the preview with no manifest and stacks an identical "AI patch failed"
-           * on every retry. Scaffold a minimal VALID manifest instead — the preview
-           * repair (buildPreviewManifestRepair) then infers the real dependencies
-           * from the emitted imports. Other .json files keep the strict behaviour.
-           */
-          if (merged === undefined && proposal.relativePath.split('/').pop() === 'package.json') {
-            merged = `${JSON.stringify({ name: 'app', private: true, version: '0.0.0', type: 'module' }, null, 2)}\n`;
-          }
-
-          if (merged === undefined) {
-            throw validationError;
-          }
-
-          acceptedContent = merged;
-          await this.#validateAgentPatchProposal(proposal, acceptedContent);
-          this.appendWorkspaceLog(`AI patch for ${proposal.relativePath} applied via tolerant JSON merge`);
+          acceptedContent = await resolveFailedAgentPatchContent(
+            {
+              relativePath: proposal.relativePath,
+              acceptedContent,
+              proposedContent: proposal.proposedContent,
+              acceptedEveryHunk:
+                proposal.hunks.length > 0 && proposal.hunks.every((hunk) => acceptedIds.includes(hunk.id)),
+              currentContent: this.#filesStore.getFile(proposal.filePath)?.content ?? proposal.originalContent,
+              validationError,
+            },
+            {
+              validate: (content) => this.#validateAgentPatchProposal(proposal, content),
+              mergeJson: mergeJsonContent,
+              scaffoldPackageJson: () =>
+                `${JSON.stringify({ name: 'app', private: true, version: '0.0.0', type: 'module' }, null, 2)}\n`,
+              onLog: (message) => this.appendWorkspaceLog(message),
+            },
+          );
         }
 
         /*

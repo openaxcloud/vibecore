@@ -5,6 +5,8 @@ import {
   isPanelAuthError,
   panelAuthRedirectTarget,
   shouldAutoLoadDatabaseSchema,
+  shouldSuppressAutoApplyFailureToast,
+  type AutoApplyProposalSnapshot,
 } from './base-chat-panels';
 
 describe('isPanelAuthError', () => {
@@ -88,5 +90,86 @@ describe('shouldAutoLoadDatabaseSchema', () => {
   it('does not load with no connections', () => {
     expect(shouldAutoLoadDatabaseSchema({ connectionKey: undefined, schema: undefined })).toBe(false);
     expect(shouldAutoLoadDatabaseSchema({ connectionKey: '', schema: undefined })).toBe(false);
+  });
+});
+
+describe('shouldSuppressAutoApplyFailureToast', () => {
+  const filePath = 'src/components/TodoInput.tsx';
+
+  function proposal(overrides: Partial<AutoApplyProposalSnapshot>): AutoApplyProposalSnapshot {
+    return {
+      id: 'artifact:action-1',
+      relativePath: filePath,
+      status: 'failed',
+      updatedAt: '2026-07-09T00:00:00.000Z',
+      proposedContent: 'export function TodoInput() { return <in',
+      ...overrides,
+    };
+  }
+
+  const attempted = {
+    proposalId: 'artifact:action-1',
+    filePath,
+    attemptedUpdatedAt: '2026-07-09T00:00:00.000Z',
+    attemptedContentLength: 'export function TodoInput() { return <in'.length,
+  };
+
+  it('toasts the FINAL failed attempt (same version, nothing else pending)', () => {
+    expect(
+      shouldSuppressAutoApplyFailureToast({
+        ...attempted,
+        proposals: [proposal({})],
+      }),
+    ).toBe(false);
+  });
+
+  it('suppresses when a newer version of the same proposal is now present (longer content)', () => {
+    expect(
+      shouldSuppressAutoApplyFailureToast({
+        ...attempted,
+        proposals: [
+          proposal({
+            proposedContent: 'export function TodoInput() { return <input placeholder="Add" />; }\n',
+            status: 'pending',
+          }),
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('suppresses when the same proposal now carries a newer updatedAt', () => {
+    expect(
+      shouldSuppressAutoApplyFailureToast({
+        ...attempted,
+        proposals: [proposal({ updatedAt: '2026-07-09T00:00:05.000Z' })],
+      }),
+    ).toBe(true);
+  });
+
+  it('suppresses when a DIFFERENT proposal for the same file is still streaming', () => {
+    expect(
+      shouldSuppressAutoApplyFailureToast({
+        ...attempted,
+        proposals: [proposal({}), proposal({ id: 'artifact:action-2', status: 'pending' })],
+      }),
+    ).toBe(true);
+  });
+
+  it('does not suppress because of a pending proposal for a DIFFERENT file', () => {
+    expect(
+      shouldSuppressAutoApplyFailureToast({
+        ...attempted,
+        proposals: [proposal({}), proposal({ id: 'artifact:other', relativePath: 'src/App.tsx', status: 'pending' })],
+      }),
+    ).toBe(false);
+  });
+
+  it('does not suppress when the superseding same-file proposal has already failed too', () => {
+    expect(
+      shouldSuppressAutoApplyFailureToast({
+        ...attempted,
+        proposals: [proposal({}), proposal({ id: 'artifact:action-2', status: 'failed' })],
+      }),
+    ).toBe(false);
   });
 });
