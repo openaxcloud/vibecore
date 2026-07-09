@@ -994,8 +994,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 chatId: processedMessages.slice(-1)?.[0]?.id,
               } as ContextAnnotation);
             } else {
-              logger.debug(
-                `Skipping chat summary: history within recent window (${processedMessages.length} msgs, ~${estimatedHistoryTokens} tokens)`,
+              /*
+               * INFO (not debug): prod drops debug/trace logs (see app/utils/logger.ts),
+               * so this skip decision must be INFO to be countable in prod logs. Emitted
+               * as a structured event so the saved createSummary LLM call is greppable.
+               */
+              logger.info(
+                JSON.stringify({
+                  event: 'chat.summary.skipped',
+                  projectId,
+                  reason: 'history-within-recent-window',
+                  messages: processedMessages.length,
+                  estimatedHistoryTokens,
+                }),
               );
             }
 
@@ -1025,7 +1036,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             const memoizedSelection = conversationId ? getMemoizedSelection(conversationId, selectionKey) : undefined;
 
             if (memoizedSelection) {
-              logger.debug('Reusing memoized context selection (inputs unchanged); skipping selectContext call');
+              // INFO (not debug): prod drops debug logs, so this reuse must be INFO to be countable.
+              logger.info(
+                JSON.stringify({ event: 'chat.contextSelection.reused', projectId, reason: 'inputs-unchanged' }),
+              );
               filteredFiles = memoizedSelection;
             } else {
               filteredFiles = await selectContext({
