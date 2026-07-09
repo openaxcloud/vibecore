@@ -230,6 +230,7 @@ import {
   type DeploymentRecord,
   type ProjectIdeStateRecord,
   type ProjectRecord,
+  type ProviderConfigRecord,
   type SessionRecord,
   type SnapshotRecord,
   type WorkspaceRecord,
@@ -2007,6 +2008,49 @@ function isSafeWebhookUrl(value: string): boolean {
 
   // Only https to a public host — block loopback/private/link-local/metadata/CGNAT/ULA.
   return parsed.protocol === 'https:' && Boolean(parsed.hostname) && !isBlockedGitHost(parsed.hostname);
+}
+
+/*
+ * SSRF guard for an ADMIN-supplied LLM provider base URL (e.g. an OpenAI-compatible
+ * gateway). Mirrors the web's isBlockedProviderBaseUrl semantics with the API's
+ * canonical host blocklist: http(s) only; loopback/private/link-local/metadata are
+ * rejected by default so a stored base URL can't redirect server-side provider
+ * calls into the cluster. A self-host deployment that legitimately runs a model
+ * server on a private IP can opt out with ALLOW_PRIVATE_PROVIDER_BASE_URLS=true —
+ * but cloud metadata / link-local (169.254/fe80/.internal) is ALWAYS blocked.
+ */
+function isSafeProviderBaseUrl(rawUrl: string): boolean {
+  let parsed: URL;
+
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return false;
+  }
+
+  if ((parsed.protocol !== 'https:' && parsed.protocol !== 'http:') || !parsed.hostname) {
+    return false;
+  }
+
+  const allowPrivate = process.env.ALLOW_PRIVATE_PROVIDER_BASE_URLS === 'true';
+  const host = canonicalizeHostForBlocklist(
+    parsed.hostname
+      .toLowerCase()
+      .replace(/^\[/, '')
+      .replace(/\]$/, '')
+      .replace(/\.+$/, ''),
+  );
+
+  // Cloud metadata / link-local / *.internal is never a valid provider endpoint.
+  if (/^169\.254\./.test(host) || /^fe[89ab][0-9a-f]:/.test(host) || host.endsWith('.internal')) {
+    return false;
+  }
+
+  if (allowPrivate) {
+    return true;
+  }
+
+  return !isBlockedGitHost(parsed.hostname);
 }
 
 /*
@@ -4447,6 +4491,13 @@ type ProviderHealthRow = {
   enabled: boolean;
   keyConfigured: boolean;
 
+  /*
+   * Where the platform key comes from: `db` = an admin-set encrypted key
+   * (ProviderConfig.apiKeyEnc), `env` = the *_API_KEY env var, `none` = neither
+   * (keyless providers report `none`). DB always beats env.
+   */
+  keySource: 'db' | 'env' | 'none';
+
   /** Set when the row's status was confirmed by a real live probe (gateway overlay or direct). */
   liveChecked?: boolean;
 
@@ -4520,10 +4571,12 @@ async function providerHealth(
     const enabled = config?.enabled ?? false;
     const envKey = PROVIDER_KEY_ENV[name];
 
-    const keyConfigured =
-      KEYLESS_LLM_PROVIDERS.has(name) ||
-      Boolean(config?.apiKeySecret) ||
-      (Boolean(envKey) && Boolean(process.env[envKey]?.trim()));
+    // DB-first: an admin-set encrypted key beats env; env is the fallback source.
+    const hasDbKey = Boolean(config?.apiKeyEnc);
+    const hasEnvKey = Boolean(envKey) && Boolean(process.env[envKey]?.trim());
+
+    const keyConfigured = KEYLESS_LLM_PROVIDERS.has(name) || hasDbKey || hasEnvKey;
+    const keySource: ProviderHealthRow['keySource'] = hasDbKey ? 'db' : hasEnvKey ? 'env' : 'none';
 
     let status: ProviderHealthRow['status'];
 
@@ -4535,7 +4588,7 @@ async function providerHealth(
       status = 'ready';
     }
 
-    rows.set(name, { provider: name, status, enabled, keyConfigured });
+    rows.set(name, { provider: name, status, enabled, keyConfigured, keySource });
   }
 
   // 2. Overlay live liveness from the ai-gateway's existing per-provider probe.
@@ -7087,6 +7140,31 @@ const KNOWN_LLM_PROVIDERS = [
 ];
 
 const KNOWN_LLM_PROVIDER_SET = new Set(KNOWN_LLM_PROVIDERS);
+
+/*
+ * Browser-safe, WRITE-ONLY view of a provider registry row. NEVER serializes the
+ * encrypted key (apiKeyEnc) — only `hasKey` + the resolution `source` (db beats
+ * env), plus the non-secret baseUrl / byokAllowed. Shared by every admin route
+ * that echoes a provider so a stored ciphertext can't leak through any of them.
+ */
+function providerAdminView(p: ProviderConfigRecord) {
+  const envKey = PROVIDER_KEY_ENV[p.provider];
+  const hasDbKey = Boolean(p.apiKeyEnc);
+  const hasEnvKey = Boolean(envKey) && Boolean(process.env[envKey]?.trim());
+
+  return {
+    id: p.id,
+    provider: p.provider,
+    displayName: p.displayName,
+    enabled: p.enabled,
+    hasKey: hasDbKey,
+    source: hasDbKey ? ('db' as const) : hasEnvKey ? ('env' as const) : ('none' as const),
+    baseUrl: p.baseUrl ?? null,
+    byokAllowed: p.byokAllowed,
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
+  };
+}
 
 /** Map the ai-pricing plan key onto the Replit-parity credit plan key. */
 function aiPlanToCreditPlan(plan: AiPlanKey): CreditPlanKey {
@@ -22695,10 +22773,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     /*
      * Show only the canonical user-facing providers (by display name) as toggles,
      * not the legacy lowercase catalog rows that back the dormant model registry.
+     *
+     * WRITE-ONLY key surface: never serialize the encrypted key (apiKeyEnc). We
+     * expose only `hasKey` + the resolution `source` (db beats env), plus the
+     * non-secret baseUrl / byokAllowed. `source`: db if an admin key is stored,
+     * else env if the provider's *_API_KEY env var is set, else none. Skip
+     * keyLast4 here to avoid decrypting on the list.
      */
     const all = await store.listProviderConfigs();
 
-    return { providers: all.filter((p) => KNOWN_LLM_PROVIDER_SET.has(p.provider)) };
+    return { providers: all.filter((p) => KNOWN_LLM_PROVIDER_SET.has(p.provider)).map(providerAdminView) };
   });
 
   /*
@@ -22866,7 +22950,127 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { enabled: body.enabled },
     });
 
-    return { provider: updated };
+    return { provider: providerAdminView(updated) };
+  });
+
+  /*
+   * Admin-managed platform API KEY for an LLM provider (OpenAI/Anthropic/...).
+   * WRITE-ONLY: the submitted key is encrypted with encryptJson and stored in
+   * ProviderConfig.apiKeyEnc; it is NEVER returned. The response carries only
+   * `hasKey`, a `keyLast4` derived SOLELY from the just-submitted key (we never
+   * decrypt a stored key to build it), and the non-secret baseUrl/byokAllowed.
+   * The runtime (ai-gateway + web LLM) reads this DB-first and falls back to the
+   * *_API_KEY env vars, so an absent key keeps env behaviour with zero regression.
+   * Platform-admin + recent step-up gated, matching the login-provider routes.
+   */
+  const providerCredentialsParams = z.object({ provider: z.string().min(1) });
+
+  // Reject absurd inputs early: real provider keys are well under this.
+  const MAX_PROVIDER_KEY_LENGTH = 8192;
+
+  app.post('/admin/providers/:provider/credentials', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { provider } = parse(providerCredentialsParams, request.params);
+
+    if (!KNOWN_LLM_PROVIDER_SET.has(provider)) {
+      throw Object.assign(new Error('Unknown provider'), { statusCode: 404, code: 'PROVIDER_NOT_FOUND' });
+    }
+
+    const body = parse(
+      z.object({
+        apiKey: z.string().min(1).max(MAX_PROVIDER_KEY_LENGTH).optional(),
+        baseUrl: z.string().max(2048).nullable().optional(),
+        byokAllowed: z.boolean().optional(),
+      }),
+      request.body ?? {},
+    );
+
+    const trimmedKey = typeof body.apiKey === 'string' ? body.apiKey.trim() : undefined;
+    const hasNewKey = Boolean(trimmedKey);
+
+    /*
+     * baseUrl: undefined = leave unchanged; '' or null = clear; a non-empty value
+     * is SSRF-validated (loopback/private/metadata blocked unless the self-host
+     * allow-flag) before being stored.
+     */
+    let baseUrlUpdate: string | null | undefined;
+
+    if (body.baseUrl !== undefined) {
+      const candidate = typeof body.baseUrl === 'string' ? body.baseUrl.trim() : '';
+
+      if (candidate.length === 0) {
+        baseUrlUpdate = null;
+      } else if (!isSafeProviderBaseUrl(candidate)) {
+        throw Object.assign(new Error('Base URL is not allowed'), {
+          statusCode: 400,
+          code: 'PROVIDER_BASE_URL_BLOCKED',
+        });
+      } else {
+        baseUrlUpdate = candidate;
+      }
+    }
+
+    const existing = (await store.listProviderConfigs()).find((p) => p.provider === provider);
+
+    const updated = await store.upsertProviderConfig({
+      provider,
+      displayName: existing?.displayName ?? provider,
+      ...(hasNewKey ? { apiKeyEnc: encryptJson({ value: trimmedKey }) } : {}),
+      ...(baseUrlUpdate !== undefined ? { baseUrl: baseUrlUpdate } : {}),
+      ...(body.byokAllowed !== undefined ? { byokAllowed: body.byokAllowed } : {}),
+    });
+
+    await audit(request, store, {
+      action: 'admin.provider.credentials.configure',
+      resourceType: 'provider',
+      resourceId: provider,
+      metadata: {
+        keyUpdated: hasNewKey,
+        baseUrlUpdated: baseUrlUpdate !== undefined,
+        byokAllowed: updated.byokAllowed,
+      },
+    });
+
+    /*
+     * keyLast4 comes ONLY from the key the admin just submitted — we never
+     * decrypt the stored ciphertext to reveal an existing key. Null on a save
+     * that didn't include a new key (e.g. a baseUrl-only edit).
+     */
+    return {
+      ...providerAdminView(updated),
+      keyLast4: hasNewKey && trimmedKey ? trimmedKey.slice(-4) : null,
+    };
+  });
+
+  app.delete('/admin/providers/:provider/credentials', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { provider } = parse(providerCredentialsParams, request.params);
+
+    if (!KNOWN_LLM_PROVIDER_SET.has(provider)) {
+      throw Object.assign(new Error('Unknown provider'), { statusCode: 404, code: 'PROVIDER_NOT_FOUND' });
+    }
+
+    const existing = (await store.listProviderConfigs()).find((p) => p.provider === provider);
+
+    // Clear the stored key (rotate/remove) — env fallback resumes automatically.
+    await store.upsertProviderConfig({
+      provider,
+      displayName: existing?.displayName ?? provider,
+      apiKeyEnc: null,
+    });
+
+    await audit(request, store, {
+      action: 'admin.provider.credentials.remove',
+      resourceType: 'provider',
+      resourceId: provider,
+      metadata: {},
+    });
+
+    return { provider, hasKey: false };
   });
 
   /*
