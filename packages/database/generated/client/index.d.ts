@@ -122896,6 +122896,7 @@ export namespace Prisma {
     displayName: string | null
     enabled: boolean | null
     apiKeySecret: string | null
+    apiKeyEnc: string | null
     baseUrl: string | null
     byokAllowed: boolean | null
     createdAt: Date | null
@@ -122908,6 +122909,7 @@ export namespace Prisma {
     displayName: string | null
     enabled: boolean | null
     apiKeySecret: string | null
+    apiKeyEnc: string | null
     baseUrl: string | null
     byokAllowed: boolean | null
     createdAt: Date | null
@@ -122920,6 +122922,7 @@ export namespace Prisma {
     displayName: number
     enabled: number
     apiKeySecret: number
+    apiKeyEnc: number
     baseUrl: number
     byokAllowed: number
     createdAt: number
@@ -122934,6 +122937,7 @@ export namespace Prisma {
     displayName?: true
     enabled?: true
     apiKeySecret?: true
+    apiKeyEnc?: true
     baseUrl?: true
     byokAllowed?: true
     createdAt?: true
@@ -122946,6 +122950,7 @@ export namespace Prisma {
     displayName?: true
     enabled?: true
     apiKeySecret?: true
+    apiKeyEnc?: true
     baseUrl?: true
     byokAllowed?: true
     createdAt?: true
@@ -122958,6 +122963,7 @@ export namespace Prisma {
     displayName?: true
     enabled?: true
     apiKeySecret?: true
+    apiKeyEnc?: true
     baseUrl?: true
     byokAllowed?: true
     createdAt?: true
@@ -123043,6 +123049,7 @@ export namespace Prisma {
     displayName: string
     enabled: boolean
     apiKeySecret: string | null
+    apiKeyEnc: string | null
     baseUrl: string | null
     byokAllowed: boolean
     createdAt: Date
@@ -123072,6 +123079,7 @@ export namespace Prisma {
     displayName?: boolean
     enabled?: boolean
     apiKeySecret?: boolean
+    apiKeyEnc?: boolean
     baseUrl?: boolean
     byokAllowed?: boolean
     createdAt?: boolean
@@ -123086,6 +123094,7 @@ export namespace Prisma {
     displayName?: boolean
     enabled?: boolean
     apiKeySecret?: boolean
+    apiKeyEnc?: boolean
     baseUrl?: boolean
     byokAllowed?: boolean
     createdAt?: boolean
@@ -123098,6 +123107,7 @@ export namespace Prisma {
     displayName?: boolean
     enabled?: boolean
     apiKeySecret?: boolean
+    apiKeyEnc?: boolean
     baseUrl?: boolean
     byokAllowed?: boolean
     createdAt?: boolean
@@ -123110,13 +123120,14 @@ export namespace Prisma {
     displayName?: boolean
     enabled?: boolean
     apiKeySecret?: boolean
+    apiKeyEnc?: boolean
     baseUrl?: boolean
     byokAllowed?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type ProviderConfigOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "provider" | "displayName" | "enabled" | "apiKeySecret" | "baseUrl" | "byokAllowed" | "createdAt" | "updatedAt", ExtArgs["result"]["providerConfig"]>
+  export type ProviderConfigOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "provider" | "displayName" | "enabled" | "apiKeySecret" | "apiKeyEnc" | "baseUrl" | "byokAllowed" | "createdAt" | "updatedAt", ExtArgs["result"]["providerConfig"]>
   export type ProviderConfigInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     models?: boolean | ProviderConfig$modelsArgs<ExtArgs>
     _count?: boolean | ProviderConfigCountOutputTypeDefaultArgs<ExtArgs>
@@ -123135,6 +123146,12 @@ export namespace Prisma {
       displayName: string
       enabled: boolean
       apiKeySecret: string | null
+      /**
+       * Admin-set platform API key for this provider, encrypted with encryptJson
+       * (write-only, never returned). Distinct from `apiKeySecret`, which holds only
+       * the NAME of a secret. Runtime resolves DB-first → *_API_KEY env fallback.
+       */
+      apiKeyEnc: string | null
       baseUrl: string | null
       byokAllowed: boolean
       createdAt: Date
@@ -123568,6 +123585,7 @@ export namespace Prisma {
     readonly displayName: FieldRef<"ProviderConfig", 'String'>
     readonly enabled: FieldRef<"ProviderConfig", 'Boolean'>
     readonly apiKeySecret: FieldRef<"ProviderConfig", 'String'>
+    readonly apiKeyEnc: FieldRef<"ProviderConfig", 'String'>
     readonly baseUrl: FieldRef<"ProviderConfig", 'String'>
     readonly byokAllowed: FieldRef<"ProviderConfig", 'Boolean'>
     readonly createdAt: FieldRef<"ProviderConfig", 'DateTime'>
@@ -130196,6 +130214,7 @@ export namespace Prisma {
     displayName: 'displayName',
     enabled: 'enabled',
     apiKeySecret: 'apiKeySecret',
+    apiKeyEnc: 'apiKeyEnc',
     baseUrl: 'baseUrl',
     byokAllowed: 'byokAllowed',
     createdAt: 'createdAt',
@@ -138210,6 +138229,7 @@ export namespace Prisma {
     displayName?: StringFilter<"ProviderConfig"> | string
     enabled?: BoolFilter<"ProviderConfig"> | boolean
     apiKeySecret?: StringNullableFilter<"ProviderConfig"> | string | null
+    apiKeyEnc?: StringNullableFilter<"ProviderConfig"> | string | null
     baseUrl?: StringNullableFilter<"ProviderConfig"> | string | null
     byokAllowed?: BoolFilter<"ProviderConfig"> | boolean
     createdAt?: DateTimeFilter<"ProviderConfig"> | Date | string
@@ -138223,6 +138243,7 @@ export namespace Prisma {
     displayName?: SortOrder
     enabled?: SortOrder
     apiKeySecret?: SortOrderInput | SortOrder
+    apiKeyEnc?: SortOrderInput | SortOrder
     baseUrl?: SortOrderInput | SortOrder
     byokAllowed?: SortOrder
     createdAt?: SortOrder
@@ -138239,6 +138260,7 @@ export namespace Prisma {
     displayName?: StringFilter<"ProviderConfig"> | string
     enabled?: BoolFilter<"ProviderConfig"> | boolean
     apiKeySecret?: StringNullableFilter<"ProviderConfig"> | string | null
+    apiKeyEnc?: StringNullableFilter<"ProviderConfig"> | string | null
     baseUrl?: StringNullableFilter<"ProviderConfig"> | string | null
     byokAllowed?: BoolFilter<"ProviderConfig"> | boolean
     createdAt?: DateTimeFilter<"ProviderConfig"> | Date | string
@@ -138252,6 +138274,7 @@ export namespace Prisma {
     displayName?: SortOrder
     enabled?: SortOrder
     apiKeySecret?: SortOrderInput | SortOrder
+    apiKeyEnc?: SortOrderInput | SortOrder
     baseUrl?: SortOrderInput | SortOrder
     byokAllowed?: SortOrder
     createdAt?: SortOrder
@@ -138270,6 +138293,7 @@ export namespace Prisma {
     displayName?: StringWithAggregatesFilter<"ProviderConfig"> | string
     enabled?: BoolWithAggregatesFilter<"ProviderConfig"> | boolean
     apiKeySecret?: StringNullableWithAggregatesFilter<"ProviderConfig"> | string | null
+    apiKeyEnc?: StringNullableWithAggregatesFilter<"ProviderConfig"> | string | null
     baseUrl?: StringNullableWithAggregatesFilter<"ProviderConfig"> | string | null
     byokAllowed?: BoolWithAggregatesFilter<"ProviderConfig"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"ProviderConfig"> | Date | string
@@ -146829,6 +146853,7 @@ export namespace Prisma {
     displayName: string
     enabled?: boolean
     apiKeySecret?: string | null
+    apiKeyEnc?: string | null
     baseUrl?: string | null
     byokAllowed?: boolean
     createdAt?: Date | string
@@ -146842,6 +146867,7 @@ export namespace Prisma {
     displayName: string
     enabled?: boolean
     apiKeySecret?: string | null
+    apiKeyEnc?: string | null
     baseUrl?: string | null
     byokAllowed?: boolean
     createdAt?: Date | string
@@ -146855,6 +146881,7 @@ export namespace Prisma {
     displayName?: StringFieldUpdateOperationsInput | string
     enabled?: BoolFieldUpdateOperationsInput | boolean
     apiKeySecret?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyEnc?: NullableStringFieldUpdateOperationsInput | string | null
     baseUrl?: NullableStringFieldUpdateOperationsInput | string | null
     byokAllowed?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -146868,6 +146895,7 @@ export namespace Prisma {
     displayName?: StringFieldUpdateOperationsInput | string
     enabled?: BoolFieldUpdateOperationsInput | boolean
     apiKeySecret?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyEnc?: NullableStringFieldUpdateOperationsInput | string | null
     baseUrl?: NullableStringFieldUpdateOperationsInput | string | null
     byokAllowed?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -146881,6 +146909,7 @@ export namespace Prisma {
     displayName: string
     enabled?: boolean
     apiKeySecret?: string | null
+    apiKeyEnc?: string | null
     baseUrl?: string | null
     byokAllowed?: boolean
     createdAt?: Date | string
@@ -146893,6 +146922,7 @@ export namespace Prisma {
     displayName?: StringFieldUpdateOperationsInput | string
     enabled?: BoolFieldUpdateOperationsInput | boolean
     apiKeySecret?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyEnc?: NullableStringFieldUpdateOperationsInput | string | null
     baseUrl?: NullableStringFieldUpdateOperationsInput | string | null
     byokAllowed?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -146905,6 +146935,7 @@ export namespace Prisma {
     displayName?: StringFieldUpdateOperationsInput | string
     enabled?: BoolFieldUpdateOperationsInput | boolean
     apiKeySecret?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyEnc?: NullableStringFieldUpdateOperationsInput | string | null
     baseUrl?: NullableStringFieldUpdateOperationsInput | string | null
     byokAllowed?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -152410,6 +152441,7 @@ export namespace Prisma {
     displayName?: SortOrder
     enabled?: SortOrder
     apiKeySecret?: SortOrder
+    apiKeyEnc?: SortOrder
     baseUrl?: SortOrder
     byokAllowed?: SortOrder
     createdAt?: SortOrder
@@ -152422,6 +152454,7 @@ export namespace Prisma {
     displayName?: SortOrder
     enabled?: SortOrder
     apiKeySecret?: SortOrder
+    apiKeyEnc?: SortOrder
     baseUrl?: SortOrder
     byokAllowed?: SortOrder
     createdAt?: SortOrder
@@ -152434,6 +152467,7 @@ export namespace Prisma {
     displayName?: SortOrder
     enabled?: SortOrder
     apiKeySecret?: SortOrder
+    apiKeyEnc?: SortOrder
     baseUrl?: SortOrder
     byokAllowed?: SortOrder
     createdAt?: SortOrder
@@ -184281,6 +184315,7 @@ export namespace Prisma {
     displayName: string
     enabled?: boolean
     apiKeySecret?: string | null
+    apiKeyEnc?: string | null
     baseUrl?: string | null
     byokAllowed?: boolean
     createdAt?: Date | string
@@ -184293,6 +184328,7 @@ export namespace Prisma {
     displayName: string
     enabled?: boolean
     apiKeySecret?: string | null
+    apiKeyEnc?: string | null
     baseUrl?: string | null
     byokAllowed?: boolean
     createdAt?: Date | string
@@ -184321,6 +184357,7 @@ export namespace Prisma {
     displayName?: StringFieldUpdateOperationsInput | string
     enabled?: BoolFieldUpdateOperationsInput | boolean
     apiKeySecret?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyEnc?: NullableStringFieldUpdateOperationsInput | string | null
     baseUrl?: NullableStringFieldUpdateOperationsInput | string | null
     byokAllowed?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -184333,6 +184370,7 @@ export namespace Prisma {
     displayName?: StringFieldUpdateOperationsInput | string
     enabled?: BoolFieldUpdateOperationsInput | boolean
     apiKeySecret?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyEnc?: NullableStringFieldUpdateOperationsInput | string | null
     baseUrl?: NullableStringFieldUpdateOperationsInput | string | null
     byokAllowed?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string

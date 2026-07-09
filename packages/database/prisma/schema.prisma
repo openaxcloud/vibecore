@@ -1961,6 +1961,10 @@ model ProviderConfig {
   displayName  String
   enabled      Boolean        @default(false)
   apiKeySecret String?
+  /// Admin-set platform API key for this provider, encrypted with encryptJson
+  /// (write-only, never returned). Distinct from `apiKeySecret`, which holds only
+  /// the NAME of a secret. Runtime resolves DB-first → *_API_KEY env fallback.
+  apiKeyEnc    String?
   baseUrl      String?
   byokAllowed  Boolean        @default(false)
   createdAt    DateTime       @default(now())

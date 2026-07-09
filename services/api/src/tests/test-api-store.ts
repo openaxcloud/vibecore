@@ -3142,19 +3142,27 @@ export class TestApiStore implements ApiStore {
     displayName: string;
     enabled?: boolean;
     apiKeySecret?: string;
-    baseUrl?: string;
+    apiKeyEnc?: string | null;
+    baseUrl?: string | null;
     byokAllowed?: boolean;
   }) {
     const existing = this.providerConfigs.get(input.provider);
     const ts = now();
 
+    /*
+     * Mirror the Prisma conditional-spread contract: `undefined` = leave the
+     * stored value unchanged; explicit `null` = clear it. `?? existing` would
+     * wrongly resurrect the old value on an intentional clear, so branch on
+     * `undefined` and coerce `null` → undefined (the record's "absent" shape).
+     */
     const config: ProviderConfigRecord = {
       id: existing?.id ?? id('provider'),
       provider: input.provider,
       displayName: input.displayName,
       enabled: input.enabled ?? existing?.enabled ?? false,
       apiKeySecret: input.apiKeySecret ?? existing?.apiKeySecret,
-      baseUrl: input.baseUrl ?? existing?.baseUrl,
+      apiKeyEnc: input.apiKeyEnc !== undefined ? (input.apiKeyEnc ?? undefined) : existing?.apiKeyEnc,
+      baseUrl: input.baseUrl !== undefined ? (input.baseUrl ?? undefined) : existing?.baseUrl,
       byokAllowed: input.byokAllowed ?? existing?.byokAllowed ?? false,
       createdAt: existing?.createdAt ?? ts,
       updatedAt: ts,

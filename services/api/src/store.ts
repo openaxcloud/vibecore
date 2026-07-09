@@ -721,6 +721,14 @@ export interface ProviderConfigRecord {
   displayName: string;
   enabled: boolean;
   apiKeySecret?: string;
+
+  /*
+   * Encrypted (encryptJson) platform API key for this provider, or undefined when
+   * none is set. WRITE-ONLY at the API boundary: never returned to the browser —
+   * only decrypted server-side by the runtime resolver. Distinct from
+   * `apiKeySecret` (which holds only the NAME of a secret).
+   */
+  apiKeyEnc?: string;
   baseUrl?: string;
   byokAllowed: boolean;
   createdAt: string;
@@ -1911,7 +1919,13 @@ export interface ApiStore {
     displayName: string;
     enabled?: boolean;
     apiKeySecret?: string;
-    baseUrl?: string;
+
+    /*
+     * Encrypted platform API key. Conditional-spread semantics: omit (undefined)
+     * = leave the stored key unchanged; explicit `null` = clear it (rotate off).
+     */
+    apiKeyEnc?: string | null;
+    baseUrl?: string | null;
     byokAllowed?: boolean;
   }): Promise<ProviderConfigRecord>;
   getConnectorOAuthCatalog(provider: string): Promise<{
