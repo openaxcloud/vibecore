@@ -2,6 +2,7 @@ import { ECODE_AGENT_REQUIREMENTS } from './ecode-requirements';
 import type { DesignScheme } from '~/types/design-scheme';
 import { WORK_DIR } from '~/utils/constants';
 import { allowedHTMLElements } from '~/utils/markdown';
+import { DIFF_EDIT_MIN_LINES } from '~/utils/search-replace';
 import { stripIndents } from '~/utils/stripIndent';
 
 export const getFineTunedPrompt = (
@@ -202,8 +203,8 @@ ${
     - FORBIDDEN: Binary files, base64 assets
 
   File edits — HYBRID policy (default is full file):
-    - type="file" (DEFAULT): write the ENTIRE file content. Use for: every NEW file, any file up to ~500 lines, SQL migrations, package.json / lockfiles / config files, and any edit that is large or structural relative to the file. When in doubt, use full file. A from-scratch build therefore ALWAYS uses type="file" — never a diff.
-    - type="diff" (anchored search/replace): use ONLY when editing an EXISTING file LARGER than ~500 lines where the change touches only a small region — emit one or more search/replace blocks that change ONLY the affected lines (this drastically cuts output size). Format:
+    - type="file" (DEFAULT): write the ENTIRE file content. Use for: every NEW file, any file up to ~${DIFF_EDIT_MIN_LINES} lines, SQL migrations, package.json / lockfiles / config files, and any edit that is large or structural relative to the file. When in doubt, use full file. A from-scratch build therefore ALWAYS uses type="file" — never a diff.
+    - type="diff" (anchored search/replace): use ONLY when editing an EXISTING file LARGER than ~${DIFF_EDIT_MIN_LINES} lines where the change touches only a small region — emit one or more search/replace blocks that change ONLY the affected lines (this drastically cuts output size). Format:
       <boltAction type="diff" filePath="src/BigComponent.tsx">
       <<<<<<< SEARCH
       (exact contiguous lines copied verbatim from the current file)

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { computed, map } from 'nanostores';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { createHighlighter, type BundledLanguage, type BundledTheme, type HighlighterGeneric } from 'shiki';
+import { DiffActionRow } from './DiffActionRow';
 import {
   type BundledArtifactState,
   deriveBundledArtifactState,
@@ -344,7 +345,7 @@ const ActionList = memo(({ actions }: ActionListProps) => {
 
           return (
             <motion.li
-              key={(type === 'file' ? action.filePath : undefined) ?? `${type}-${index}`}
+              key={(type === 'file' || type === 'diff' ? action.filePath : undefined) ?? `${type}-${index}`}
               variants={actionVariants}
               initial="hidden"
               animate="visible"
@@ -388,6 +389,12 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                         {action.filePath}
                       </code>
                     </div>
+                  ) : type === 'diff' ? (
+                    <DiffActionRow
+                      filePath={action.filePath}
+                      diffApply={action.diffApply}
+                      onOpenFile={openArtifactInWorkbench}
+                    />
                   ) : type === 'shell' ? (
                     <span className="flex-1 min-h-[28px] flex items-center">Run command</span>
                   ) : type === 'start' ? (

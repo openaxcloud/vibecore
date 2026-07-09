@@ -1,5 +1,6 @@
 import { ECODE_AGENT_REQUIREMENTS } from './ecode-requirements';
 import type { PromptOptions } from '~/lib/common/prompt-library';
+import { DIFF_EDIT_MIN_LINES } from '~/utils/search-replace';
 
 export default (options: PromptOptions) => {
   const { cwd, allowedHtmlElements, supabase } = options;
@@ -273,8 +274,8 @@ ${
   - Use coding best practices: modular, clean, readable code
 
   File edits — HYBRID policy (default is full file):
-    - type="file" (DEFAULT): write the ENTIRE file content. Use for: every NEW file, any file up to ~500 lines, SQL migrations, package.json / lockfiles / config files, and any edit that is large or structural relative to the file. When in doubt, use full file. A from-scratch build therefore ALWAYS uses type="file" — never a diff.
-    - type="diff" (anchored search/replace): use ONLY when editing an EXISTING file LARGER than ~500 lines where the change touches only a small region — emit one or more search/replace blocks that change ONLY the affected lines (this drastically cuts output size). Format:
+    - type="file" (DEFAULT): write the ENTIRE file content. Use for: every NEW file, any file up to ~${DIFF_EDIT_MIN_LINES} lines, SQL migrations, package.json / lockfiles / config files, and any edit that is large or structural relative to the file. When in doubt, use full file. A from-scratch build therefore ALWAYS uses type="file" — never a diff.
+    - type="diff" (anchored search/replace): use ONLY when editing an EXISTING file LARGER than ~${DIFF_EDIT_MIN_LINES} lines where the change touches only a small region — emit one or more search/replace blocks that change ONLY the affected lines (this drastically cuts output size). Format:
       <boltAction type="diff" filePath="src/BigComponent.tsx">
       <<<<<<< SEARCH
       (exact contiguous lines copied verbatim from the current file)
@@ -294,7 +295,7 @@ ${
 
 ## File and Command Handling
 1. ALWAYS use artifacts for file contents and commands - NO EXCEPTIONS
-2. Follow the HYBRID file-edit policy: default to type="file" with the ENTIRE file content; use type="diff" (anchored search/replace) ONLY for a small change to an existing file larger than ~500 lines
+2. Follow the HYBRID file-edit policy: default to type="file" with the ENTIRE file content; use type="diff" (anchored search/replace) ONLY for a small change to an existing file larger than ~${DIFF_EDIT_MIN_LINES} lines
 3. For modifications, ONLY alter files that require changes - DO NOT touch unaffected files
 
 ## Response Format
@@ -325,7 +326,7 @@ ${
 24. Order actions logically - dependencies MUST be installed first
 25. For Vite project must include vite config and index.html for entry point
 26. NEVER leave placeholders or "…" gaps: a type="file" action MUST contain the complete file, and a type="diff" action MUST contain complete, exact search/replace blocks
-27. Follow the HYBRID file-edit policy (see artifact rules): full file by default; anchored type="diff" only for a small change to an existing file larger than ~500 lines
+27. Follow the HYBRID file-edit policy (see artifact rules): full file by default; anchored type="diff" only for a small change to an existing file larger than ~${DIFF_EDIT_MIN_LINES} lines
 
 CRITICAL: These rules are ABSOLUTE and MUST be followed WITHOUT EXCEPTION in EVERY response.
 

@@ -33,6 +33,27 @@ export type WorkspaceEventMap = {
     validationError?: string;
     repairError?: string;
   };
+
+  /*
+   * Diff-edit increment 5 — emitted by ActionRunner at the terminal outcome of
+   * a `diff` (anchored search/replace) action. Best-effort observability signal
+   * (mirrored to a structured `diff-edit.apply` log): lets the platform measure
+   * how often targeted patches land vs. fall back to a full-file re-emit, and
+   * the estimated output-token saving. No file contents / no PII — only the
+   * path, block/hunk counts, per-hunk statuses and the token estimate.
+   */
+  'agent:diff-edit:apply': {
+    filePath: string;
+    outcome: 'applied' | 'failed';
+    blockCount: number;
+    addedLines: number;
+    removedLines: number;
+    hunkCount: number;
+    hunkStatuses: string[];
+    fellBackToFullFile: boolean;
+    failureKind?: 'missing-file' | 'malformed' | 'apply-failed';
+    estimatedTokensSaved: number;
+  };
 };
 
 type WorkspaceEventName = keyof WorkspaceEventMap;

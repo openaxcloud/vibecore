@@ -9,14 +9,21 @@ import type {
   BoltAction,
   DeployAlert,
   DiffAction,
+  DiffApplyMeta,
   FileHistory,
   SupabaseAction,
   SupabaseAlert,
 } from '~/types/actions';
+import { buildReviewableDiffHunks, summarizeReviewableDiffHunks } from '~/utils/diff';
 import { createScopedLogger } from '~/utils/logger';
 import { path as nodePath } from '~/utils/path';
 import { JsonValidationError, sanitizeFileContent } from '~/utils/sanitize-file-content';
-import { applySearchReplace, parseSearchReplaceBlocks, type HunkResult } from '~/utils/search-replace';
+import {
+  applySearchReplace,
+  estimateDiffTokenSaving,
+  parseSearchReplaceBlocks,
+  type HunkResult,
+} from '~/utils/search-replace';
 import type { BoltShell } from '~/utils/shell';
 import { unreachable } from '~/utils/unreachable';
 
@@ -136,6 +143,14 @@ export type BaseActionState = BoltAction & {
   abortSignal: AbortSignal;
   startedAt?: number;
   finishedAt?: number;
+
+  /**
+   * Diff-edit render metadata — populated once a `diff` action resolves so the
+   * artifact ActionList can render its +N/−M pill (applied) or a compact
+   * "could not apply" marker (fail-safe). Undefined for non-diff actions and
+   * while a diff is still streaming.
+   */
+  diffApply?: DiffApplyMeta;
 };
 
 export type FailedActionState = BoltAction &
@@ -160,7 +175,9 @@ export type DiffResolution =
   | { ok: true; content: string; originalContent: string; hunks: HunkResult[] }
   | { ok: false; kind: 'missing-file' | 'malformed' | 'apply-failed'; message: string; hunks?: HunkResult[] };
 
-type BaseActionUpdate = Partial<Pick<BaseActionState, 'status' | 'abort' | 'executed' | 'startedAt' | 'finishedAt'>>;
+type BaseActionUpdate = Partial<
+  Pick<BaseActionState, 'status' | 'abort' | 'executed' | 'startedAt' | 'finishedAt' | 'diffApply'>
+>;
 
 export type ActionStateUpdate =
   | BaseActionUpdate
@@ -372,7 +389,7 @@ export class ActionRunner {
             break;
           }
           case 'diff': {
-            await this.#runDiffAction(action, isStreaming);
+            await this.#runDiffAction(action, isStreaming, actionId);
             break;
           }
           case 'supabase': {
@@ -851,7 +868,7 @@ export class ActionRunner {
    * resolution failure writes NOTHING and surfaces a clear alert asking for a
    * full-file re-emission — the old file is left byte-unchanged.
    */
-  async #runDiffAction(action: ActionState, isStreaming: boolean = false) {
+  async #runDiffAction(action: ActionState, isStreaming: boolean = false, actionId?: string) {
     if (action.type !== 'diff') {
       unreachable('Expected diff action');
     }
@@ -870,6 +887,22 @@ export class ActionRunner {
 
     if (!resolution.ok) {
       logger.warn(`[diff]: ${resolution.message}`);
+
+      const failedMeta: DiffApplyMeta = {
+        status: 'failed',
+        blockCount: 0,
+        addedLines: 0,
+        removedLines: 0,
+        hunkCount: 0,
+        failureKind: resolution.kind,
+      };
+
+      if (actionId) {
+        this.#updateAction(actionId, { diffApply: failedMeta });
+      }
+
+      this.#emitDiffTelemetry(action, resolution.hunks ?? [], failedMeta);
+
       this.onAlert?.({
         type: 'warning',
         title: 'Diff could not be applied',
@@ -888,6 +921,20 @@ export class ActionRunner {
     }
 
     /*
+     * Render metadata: compute the +N/−M hunk summary from the SAME reviewable
+     * diff the file-proposal UI uses (buildReviewableDiffHunks) so the artifact
+     * ActionList shows an accurate targeted-patch pill. Best-effort — a summary
+     * failure must never block the write.
+     */
+    const appliedMeta = this.#buildDiffApplyMeta(action, resolution.originalContent, resolution.content);
+
+    if (actionId) {
+      this.#updateAction(actionId, { diffApply: appliedMeta });
+    }
+
+    this.#emitDiffTelemetry(action, resolution.hunks, appliedMeta, resolution.content);
+
+    /*
      * Substitute the exact equivalent of a file action carrying the APPLIED FULL
      * content and reuse the whole file pipeline (sanitize / self-repair / write /
      * project-doctor reconcile). Keep the diff action's abortSignal so Stop still
@@ -895,6 +942,87 @@ export class ActionRunner {
      */
     const fileAction = { ...action, type: 'file' as const, content: resolution.content } as ActionState;
     await this.#runFileAction(fileAction, isStreaming);
+  }
+
+  /**
+   * Build the render metadata for a successfully applied diff. Pure/best-effort:
+   * on any failure computing the reviewable hunks it degrades to a zeroed
+   * summary rather than throwing into the apply path.
+   */
+  #buildDiffApplyMeta(action: DiffAction, originalContent: string, appliedContent: string): DiffApplyMeta {
+    let addedLines = 0;
+    let removedLines = 0;
+    let hunkCount = 0;
+    let blockCount = 0;
+
+    try {
+      const parsed = parseSearchReplaceBlocks(action.content);
+      blockCount = parsed.blocks.length;
+
+      const hunks = buildReviewableDiffHunks(action.filePath, originalContent, appliedContent);
+      const summary = summarizeReviewableDiffHunks(hunks);
+      addedLines = summary.addedLines;
+      removedLines = summary.removedLines;
+      hunkCount = summary.hunkCount;
+    } catch (error) {
+      logger.debug('diff-edit: reviewable summary computation failed (non-fatal)', error);
+    }
+
+    return { status: 'applied', blockCount, addedLines, removedLines, hunkCount };
+  }
+
+  /**
+   * Best-effort, never-throwing diff-edit telemetry. Emits a structured
+   * `diff-edit.apply` INFO log plus an `agent:diff-edit:apply` workspace event
+   * so the win is measurable live: filePath, per-hunk statuses, whether it fell
+   * back to a full-file re-emit, and an estimated OUTPUT-token saving (full-file
+   * chars/4 vs diff-payload chars/4). No file contents / no PII in the payload.
+   */
+  #emitDiffTelemetry(action: DiffAction, hunks: HunkResult[], meta: DiffApplyMeta, appliedContent?: string) {
+    try {
+      const hunkStatuses = hunks.map((hunk) => hunk.status);
+      const fellBackToFullFile = meta.status === 'failed';
+
+      /*
+       * Only a successful apply carries the applied full content; that is the
+       * size a full-file rewrite would have output. On failure there is no
+       * saving to claim (the model must re-emit the full file).
+       */
+      const estimatedTokensSaved =
+        meta.status === 'applied' && typeof appliedContent === 'string'
+          ? estimateDiffTokenSaving(appliedContent, action.content).savedTokens
+          : 0;
+
+      logger.info('diff-edit.apply', {
+        event: 'diff-edit.apply',
+        filePath: action.filePath,
+        outcome: meta.status,
+        blockCount: meta.blockCount,
+        addedLines: meta.addedLines,
+        removedLines: meta.removedLines,
+        hunkCount: meta.hunkCount,
+        hunkStatuses,
+        fellBackToFullFile,
+        failureKind: meta.failureKind,
+        estimatedTokensSaved,
+      });
+
+      workspaceEvents.emit('agent:diff-edit:apply', {
+        filePath: action.filePath,
+        outcome: meta.status,
+        blockCount: meta.blockCount,
+        addedLines: meta.addedLines,
+        removedLines: meta.removedLines,
+        hunkCount: meta.hunkCount,
+        hunkStatuses,
+        fellBackToFullFile,
+        failureKind: meta.failureKind,
+        estimatedTokensSaved,
+      });
+    } catch (error) {
+      // Telemetry must never affect the apply path.
+      logger.debug('diff-edit: telemetry emit failed (non-fatal)', error);
+    }
   }
 
   async #repairWithSelfRepairLoop(relativePath: string, initialPayload: string, signal?: AbortSignal): Promise<string> {

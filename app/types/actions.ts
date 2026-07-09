@@ -24,6 +24,35 @@ export interface DiffAction extends BaseAction {
   filePath: string;
 }
 
+/**
+ * Outcome metadata for a resolved `diff` action, attached to the runner's
+ * action state so the chat-UI render surface (the artifact ActionList) can
+ * show a labelled "Edit <path> (targeted patch)" row with a +N/−M hunk pill
+ * on success, or a compact "could not apply" marker on a fail-safe fallback.
+ *
+ * Populated by the action runner AFTER `resolveDiffAction`; absent while the
+ * action is still streaming (nothing has been applied yet).
+ */
+export interface DiffApplyMeta {
+  /** `applied` = patch landed on the file; `failed` = fail-safe, nothing written. */
+  status: 'applied' | 'failed';
+
+  /** Number of SEARCH/REPLACE blocks parsed from the payload (0 when malformed). */
+  blockCount: number;
+
+  /** `+` lines across every applied hunk (0 on failure). */
+  addedLines: number;
+
+  /** `−` lines across every applied hunk (0 on failure). */
+  removedLines: number;
+
+  /** Number of unified-diff hunks the apply produced (0 on failure). */
+  hunkCount: number;
+
+  /** Why the apply failed, when `status === 'failed'`. */
+  failureKind?: 'missing-file' | 'malformed' | 'apply-failed';
+}
+
 export interface ShellAction extends BaseAction {
   type: 'shell';
 }

@@ -104,6 +104,37 @@ export const DIFF_EDIT_MIN_LINES = resolveDiffMinLines();
 
 /*
  * ---------------------------------------------------------------------------
+ * Observability helper
+ * ---------------------------------------------------------------------------
+ */
+
+export interface DiffTokenSaving {
+  /** Approx output tokens a full-file rewrite would have cost. */
+  fullFileTokens: number;
+
+  /** Approx output tokens the diff payload actually cost. */
+  diffTokens: number;
+
+  /** `fullFileTokens - diffTokens`, floored at 0. */
+  savedTokens: number;
+}
+
+/**
+ * Rough OUTPUT-token saving of a diff edit vs. re-emitting the whole file,
+ * using the common ~4-chars-per-token heuristic. `fullContent` is the file the
+ * model would otherwise have written in full (the applied result); `diffPayload`
+ * is the raw search/replace text it emitted instead. Pure and never negative —
+ * used only for best-effort telemetry, never to gate the apply path.
+ */
+export function estimateDiffTokenSaving(fullContent: string, diffPayload: string): DiffTokenSaving {
+  const fullFileTokens = Math.ceil(fullContent.length / 4);
+  const diffTokens = Math.ceil(diffPayload.length / 4);
+
+  return { fullFileTokens, diffTokens, savedTokens: Math.max(0, fullFileTokens - diffTokens) };
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * Parser
  * ---------------------------------------------------------------------------
  */
