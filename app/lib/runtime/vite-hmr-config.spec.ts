@@ -101,9 +101,66 @@ describe('ensureViteHmrConfig', () => {
     expect(ensureViteHmrConfig(out)).toBe(out);
   });
 
-  it('leaves a config without an ESM default export untouched (CJS safety)', () => {
-    const cjs = "const react = require('@vitejs/plugin-react');\nmodule.exports = { plugins: [react()] };\n";
-    expect(ensureViteHmrConfig(cjs)).toBe(cjs);
+  it('pins 5173 for a CommonJS module.exports config (no more silent no-op)', () => {
+    const cjs = [
+      "const { defineConfig } = require('vite');",
+      "const react = require('@vitejs/plugin-react');",
+      '',
+      'module.exports = defineConfig({',
+      '  plugins: [react()],',
+      '  server: { port: 3000 },',
+      '});',
+      '',
+    ].join('\n');
+
+    const out = ensureViteHmrConfig(cjs);
+
+    // Wrapped as CJS (require + module.exports), NOT ESM import/export default.
+    expect(out).toContain("const { mergeConfig: __ecodeMergeConfig } = require('vite')");
+    expect(out).toContain('const __ecodeUserConfig = defineConfig({');
+    expect(out).toContain('module.exports = typeof __ecodeUserConfig');
+    expect(out).not.toContain('import { mergeConfig');
+    expect(out).not.toContain('export default');
+
+    // The model's original plugins + port are preserved…
+    expect(out).toContain('plugins: [react()]');
+    expect(out).toContain('server: { port: 3000 }');
+
+    // …and the env-gated 5173 pin is now present (mergeConfig makes it win).
+    expect(out).toContain('port: 5173');
+    expect(out).toContain('strictPort: true');
+    expect(out).toContain('VITE_HMR_CLIENT_PORT');
+
+    // Idempotent: a second pass (pin already present) is a no-op.
+    expect(ensureViteHmrConfig(out)).toBe(out);
+  });
+
+  it('pins 5173 for a CommonJS function config too', () => {
+    const cjs = 'module.exports = () => ({ server: { port: 4000 } });\n';
+    const out = ensureViteHmrConfig(cjs);
+
+    expect(out).toContain('const __ecodeUserConfig = () => ({ server: { port: 4000 } })');
+    expect(out).toContain('(env) => __ecodeMergeConfig(__ecodeUserConfig(env), __ecodeHmrOverride)');
+    expect(out).toContain('port: 5173');
+  });
+
+  it('falls back to a minimal pinned config for an unusual shape (no default/module.exports)', () => {
+    /*
+     * No ESM `export default`, no `module.exports =` assignment — a shape we can't
+     * merge onto. Before the fix this silently no-op'd and the port stayed unpinned;
+     * now a deterministic minimal config guarantees the 5173 pin still exists.
+     */
+    const weird = 'const config = { server: { port: 8080 } };\nexport { config };\n';
+    const out = ensureViteHmrConfig(weird);
+
+    expect(out).not.toBe(weird);
+    expect(out).toContain('port: 5173');
+    expect(out).toContain('strictPort: true');
+    expect(out).toContain('VITE_HMR_CLIENT_PORT');
+    expect(out).toContain('export default defineConfig(__ecodeHmrOverride)');
+
+    // Idempotent — the fallback already carries the marker + pin.
+    expect(ensureViteHmrConfig(out)).toBe(out);
   });
 
   it('returns empty/whitespace input unchanged', () => {

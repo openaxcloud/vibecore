@@ -1,9 +1,9 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { createReadStream } from 'node:fs';
+import { createReadStream, readFileSync } from 'node:fs';
 import { lstat, mkdir, readdir, readFile, readlink, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { networkInterfaces, type NetworkInterfaceInfo } from 'node:os';
-import { basename, dirname, relative, resolve, sep } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { Readable } from 'node:stream';
 import { StringDecoder } from 'node:string_decoder';
 import websocket from '@fastify/websocket';
@@ -143,6 +143,246 @@ export function sanitizedChildEnv(
   }
 
   return env;
+}
+
+/*
+ * Layer B of the "generated project must serve Vite on 5173" guarantee (Layer A is
+ * the vite.config port pin in app/lib/runtime/vite-hmr-config.ts). A Vite CLI
+ * `--port`/`--strictPort`/`--host` flag OVERRIDES `server.port` in the config, so
+ * forcing it AT LAUNCH pins 5173 regardless of what the config ended up saying —
+ * covering the cases Layer A can't (a config it couldn't safely wrap, or a dev
+ * command whose config was never processed). Without this, a model config binding
+ * its own port (e.g. 3000) leaves Vite listening where the preview proxy never
+ * polls → endless `preview.proxy.unreachable port:5173`.
+ *
+ * SCOPED so it never disturbs a non-Vite runtime: only the preview env
+ * (VITE_HMR_CLIENT_PORT set) and only a recognized Vite DEV invocation get the
+ * flags. `next dev`, `astro dev`, `remix dev`, webpack, etc. — whose proxies target
+ * their own ports and which would choke on `--strictPort` — are left untouched, as
+ * are `vite build`/`vite preview` and any command already carrying an explicit port.
+ */
+export const VITE_DEV_PIN_ARGS = ['--port', '5173', '--strictPort', '--host'] as const;
+
+const PACKAGE_MANAGER_BINS = new Set(['npm', 'pnpm', 'yarn', 'bun']);
+const RUNNER_SUBCOMMANDS = new Set(['exec', 'dlx', 'x']);
+const VITE_NON_DEV_SUBCOMMANDS = new Set(['build', 'preview', 'optimize']);
+
+/*
+ * Package-manager positionals that are NOT a runnable script name (so `pnpm dev`
+ * resolves to the "dev" script but `pnpm install` / `yarn add` are ignored).
+ */
+const PM_NON_SCRIPT_POSITIONALS = new Set([
+  'install',
+  'i',
+  'add',
+  'remove',
+  'rm',
+  'uninstall',
+  'update',
+  'up',
+  'upgrade',
+  'ci',
+  'run',
+  'exec',
+  'dlx',
+  'x',
+  'create',
+  'init',
+  'link',
+  'unlink',
+  'audit',
+  'why',
+  'list',
+  'ls',
+  'outdated',
+  'store',
+  'dedupe',
+  'import',
+  'prune',
+]);
+
+function commandBaseName(command: string): string {
+  return command.split(/[\\/]/).pop()?.toLowerCase() ?? command.toLowerCase();
+}
+
+// Drop leading npx/bunx flags to reach the executed package name (`npx --yes vite` → `vite`).
+function skipNpxFlags(args: readonly string[]): string[] {
+  const valueFlags = new Set(['-p', '--package', '-c', '--call']);
+  let index = 0;
+
+  while (index < args.length && args[index].startsWith('-')) {
+    const flag = args[index];
+    index += 1;
+
+    if (valueFlags.has(flag) && index < args.length && !args[index].startsWith('-')) {
+      index += 1; // consume the flag's separate value (e.g. `--package vite`)
+    }
+  }
+
+  return args.slice(index);
+}
+
+/*
+ * Is a package.json `scripts` body a PLAIN Vite dev server (`vite`, `vite --host`,
+ * `npx vite`, `cross-env FOO=bar vite`), as opposed to `vite build`, a non-Vite
+ * runtime (`next dev`), or a composite (`concurrently "vite" ...`) where a
+ * passed-through `--` flag would land on the wrong process? Mirrors the client's
+ * workbench `#isSimpleViteDevScript` so both layers agree on what counts as Vite.
+ */
+function isSimpleViteDevScript(script: string): boolean {
+  const trimmed = script.trim();
+
+  // Any shell metacharacter means the flag can't be safely passed through to vite.
+  if (!trimmed || /[;&|<>$`]/.test(trimmed)) {
+    return false;
+  }
+
+  const tokens = trimmed.split(/\s+/);
+  const viteIndex = tokens.findIndex((token) => token === 'vite' || token.endsWith('/vite'));
+
+  if (viteIndex < 0) {
+    return false;
+  }
+
+  // Everything before `vite` must be a harmless runner prefix or an ENV=value setter.
+  const prefixOk = tokens
+    .slice(0, viteIndex)
+    .every(
+      (token) =>
+        ['npx', 'pnpm', 'yarn', 'bun', 'exec', 'dlx', 'x', 'cross-env', '--yes', '-y'].includes(token) ||
+        /^[A-Za-z_][A-Za-z0-9_]*=/.test(token),
+    );
+
+  if (!prefixOk) {
+    return false;
+  }
+
+  const sub = tokens[viteIndex + 1];
+
+  return !(sub && VITE_NON_DEV_SUBCOMMANDS.has(sub));
+}
+
+type ViteDevAnalysis = { kind: 'direct' } | { kind: 'script' } | { kind: 'none' };
+
+// Classify a (command, args) as a direct Vite dev binary, a package-manager script that runs Vite dev, or neither.
+function analyzeViteDevCommand(
+  command: string,
+  args: readonly string[],
+  readScript?: (name: string) => string | undefined,
+): ViteDevAnalysis {
+  let bin = commandBaseName(command);
+  let rest: string[] = [...args];
+
+  // Unwrap runners so `npx vite` / `pnpm exec vite` are seen as the `vite` binary.
+  if (bin === 'npx' || bin === 'bunx') {
+    rest = skipNpxFlags(rest);
+    bin = commandBaseName(rest[0] ?? '');
+    rest = rest.slice(1);
+  } else if (PACKAGE_MANAGER_BINS.has(bin) && rest.length > 0 && RUNNER_SUBCOMMANDS.has(rest[0])) {
+    bin = commandBaseName(rest[1] ?? '');
+    rest = rest.slice(2);
+  }
+
+  // Direct Vite binary → dev, unless it's a `build`/`preview`/`optimize` subcommand.
+  if (bin === 'vite') {
+    const sub = rest.find((arg) => !arg.startsWith('-'))?.toLowerCase();
+
+    return sub && VITE_NON_DEV_SUBCOMMANDS.has(sub) ? { kind: 'none' } : { kind: 'direct' };
+  }
+
+  // Package-manager run: `npm run dev`, `pnpm dev`, `yarn dev`, `bun run dev`.
+  if (PACKAGE_MANAGER_BINS.has(bin)) {
+    const positionals = rest.filter((arg) => !arg.startsWith('-'));
+    let scriptName: string | undefined;
+
+    if (positionals[0] === 'run') {
+      scriptName = positionals[1];
+    } else if (bin !== 'npm' && positionals[0] && !PM_NON_SCRIPT_POSITIONALS.has(positionals[0])) {
+      // pnpm/yarn/bun allow the `pnpm dev` shorthand; npm requires an explicit `run`.
+      scriptName = positionals[0];
+    }
+
+    if (scriptName && readScript && isSimpleViteDevScript(readScript(scriptName) ?? '')) {
+      return { kind: 'script' };
+    }
+  }
+
+  return { kind: 'none' };
+}
+
+/*
+ * Return `args` with the Vite 5173 pin appended when — and only when — this is a
+ * Vite dev launch in the preview env. Idempotent (a command already carrying an
+ * explicit `--port` is returned unchanged) and a no-op for every non-Vite runtime.
+ * For a package-manager `run` the flags are passed through to the script via `--`
+ * (reusing an existing `--` rather than adding a second one).
+ */
+export function injectViteDevArgs(
+  command: string,
+  args: readonly string[],
+  options: { previewEnv: boolean; readScript?: (name: string) => string | undefined },
+): string[] {
+  const original = [...args];
+
+  if (!options.previewEnv) {
+    return original;
+  }
+
+  // Respect an explicit port already on the command (user intent + injection idempotency).
+  if (original.some((arg) => arg === '--port' || arg.startsWith('--port='))) {
+    return original;
+  }
+
+  const analysis = analyzeViteDevCommand(command, original, options.readScript);
+
+  if (analysis.kind === 'direct') {
+    return [...original, ...VITE_DEV_PIN_ARGS];
+  }
+
+  if (analysis.kind === 'script') {
+    // `--` forwards flags to the underlying script; if one is already present, append after it.
+    return original.includes('--')
+      ? [...original, ...VITE_DEV_PIN_ARGS]
+      : [...original, '--', ...VITE_DEV_PIN_ARGS];
+  }
+
+  return original;
+}
+
+/*
+ * Read a package.json `scripts` map at `cwd` for the dev-launch pin, so `npm run
+ * dev` can be resolved to its real script body (only vite dev scripts get the
+ * flag). Best-effort and synchronous: a missing/invalid manifest yields no scripts
+ * → injectViteDevArgs treats the command as non-Vite and leaves it untouched.
+ */
+function readPackageScripts(cwd: string): Record<string, string> {
+  try {
+    const parsed = JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')) as {
+      scripts?: Record<string, string>;
+    };
+
+    return parsed && typeof parsed.scripts === 'object' && parsed.scripts ? parsed.scripts : {};
+  } catch {
+    return {};
+  }
+}
+
+/*
+ * Apply the Vite 5173 launch pin to a spawn's args, reading package.json scripts
+ * only in the preview env (VITE_HMR_CLIENT_PORT set) so non-preview runs pay
+ * nothing and are never altered. Shared by runCommand + runCommandStream.
+ */
+function pinViteDevArgs(cwd: string, command: string, args: string[]): string[] {
+  if (!process.env.VITE_HMR_CLIENT_PORT) {
+    return args;
+  }
+
+  const scripts = readPackageScripts(cwd);
+
+  return injectViteDevArgs(command, args, {
+    previewEnv: true,
+    readScript: (name) => scripts[name],
+  });
 }
 
 export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
@@ -1501,12 +1741,15 @@ async function runCommand(
     });
   }
 
+  // Force a Vite dev server onto 5173 in the preview env (no-op otherwise). See injectViteDevArgs.
+  const spawnArgs = pinViteDevArgs(cwd, command, normalizedArgs);
+
   const id = createHash('sha256')
     /*
      * randomUUID() (not just Date.now()) so two identical commands started within
      * the same millisecond can't collide and corrupt the process-map accounting.
      */
-    .update(`${command}:${normalizedArgs.join('\0')}:${Date.now()}:${randomUUID()}`)
+    .update(`${command}:${spawnArgs.join('\0')}:${Date.now()}:${randomUUID()}`)
     .digest('hex')
     .slice(0, 12);
 
@@ -1516,10 +1759,10 @@ async function runCommand(
    * child's grandchildren (e.g. a shell launching a server) orphaned, leaking
    * processes that hold a maxProcesses slot. Mirrors runCommandStream.
    */
-  const child = spawn(command, normalizedArgs, {
+  const child = spawn(command, spawnArgs, {
     cwd,
     shell: false,
-    env: sanitizedChildEnv(process.env, { command, args: normalizedArgs }),
+    env: sanitizedChildEnv(process.env, { command, args: spawnArgs }),
     detached: true,
   });
 
@@ -1541,7 +1784,7 @@ async function runCommand(
 
   const record = {
     id,
-    command: [command, ...normalizedArgs].join(' '),
+    command: [command, ...spawnArgs].join(' '),
     startedAt: new Date().toISOString(),
     process: child,
     output: '',
@@ -1687,9 +1930,17 @@ async function runCommandStream(
     });
   }
 
+  /*
+   * Force a Vite dev server onto 5173 in the preview env (no-op otherwise). This is
+   * the hot path: streamed commands ARE the dev servers, so the launch pin
+   * guarantees the port the preview proxy polls even when the config pin (Layer A)
+   * couldn't apply. See injectViteDevArgs.
+   */
+  const spawnArgs = pinViteDevArgs(cwd, command, normalizedArgs);
+
   const id = createHash('sha256')
     // randomUUID() guards against same-millisecond id collisions (see runCommand).
-    .update(`stream:${command}:${normalizedArgs.join('\0')}:${Date.now()}:${randomUUID()}`)
+    .update(`stream:${command}:${spawnArgs.join('\0')}:${Date.now()}:${randomUUID()}`)
     .digest('hex')
     .slice(0, 12);
 
@@ -1698,10 +1949,10 @@ async function runCommandStream(
    * commands are dev servers etc. that spawn children; killing only the direct
    * child orphaned those grandchildren (leaked processes + held ports).
    */
-  const child = spawn(command, normalizedArgs, {
+  const child = spawn(command, spawnArgs, {
     cwd,
     shell: false,
-    env: sanitizedChildEnv(process.env, { command, args: normalizedArgs }),
+    env: sanitizedChildEnv(process.env, { command, args: spawnArgs }),
     detached: true,
   });
 
@@ -1727,7 +1978,7 @@ async function runCommandStream(
 
   const record: ProcessRecord = {
     id,
-    command: [command, ...normalizedArgs].join(' '),
+    command: [command, ...spawnArgs].join(' '),
     startedAt: new Date().toISOString(),
     process: child,
     output: '',

@@ -27,8 +27,6 @@ const MARKER = '__ecodeHmrOverride';
  */
 const PIN_MARKER = 'port: 5173';
 
-const INJECTED_HEADER = `import { mergeConfig as __ecodeMergeConfig } from 'vite';
-
 /*
  * E-Code: force Vite HMR through the preview proxy (TLS/wss) so the client does
  * not build "wss://localhost:undefined" and break the app mount, and PIN the dev
@@ -40,7 +38,7 @@ const INJECTED_HEADER = `import { mergeConfig as __ecodeMergeConfig } from 'vite
  * VITE_HMR_CLIENT_PORT is unset (local dev) only host:true is applied, keeping the
  * user's own port + default HMR. Mirrors preview-manifest's scaffold config.
  */
-const ${MARKER} = {
+const OVERRIDE_BLOCK = `const ${MARKER} = {
   server: {
     host: true,
     ...(process.env.VITE_HMR_CLIENT_PORT
@@ -58,16 +56,59 @@ const ${MARKER} = {
 };
 `;
 
+const INJECTED_HEADER = `import { mergeConfig as __ecodeMergeConfig } from 'vite';
+
+${OVERRIDE_BLOCK}`;
+
 const INJECTED_FOOTER = `
 export default typeof __ecodeUserConfig === 'function'
   ? (env) => __ecodeMergeConfig(__ecodeUserConfig(env), ${MARKER})
   : __ecodeMergeConfig(__ecodeUserConfig, ${MARKER});
 `;
 
+/*
+ * CommonJS twin of INJECTED_HEADER/FOOTER. A model sometimes writes its vite
+ * config as `module.exports = defineConfig(...)` (CJS) — the ESM `export default`
+ * transform below can't touch that, so before this fix `ensureViteHmrConfig`
+ * silently no-op'd and the model's own port survived. `require('vite')` +
+ * `module.exports =` wrap it equivalently, preserving the model's plugins/require
+ * calls while layering the same env-gated 5173 pin on top.
+ */
+const INJECTED_CJS_HEADER = `const { mergeConfig: __ecodeMergeConfig } = require('vite');
+
+${OVERRIDE_BLOCK}`;
+
+const INJECTED_CJS_FOOTER = `
+module.exports = typeof __ecodeUserConfig === 'function'
+  ? (env) => __ecodeMergeConfig(__ecodeUserConfig(env), ${MARKER})
+  : __ecodeMergeConfig(__ecodeUserConfig, ${MARKER});
+`;
+
+/*
+ * Last-resort deterministic preview config, emitted ONLY when the source exports
+ * through neither `export default` nor `module.exports =` (a shape we can't safely
+ * merge onto). Rather than no-op and let the model's port stand, replace the config
+ * with a minimal one that still carries the env-gated 5173 pin — a pin ALWAYS
+ * exists so the preview proxy's target port is guaranteed. Contains MARKER +
+ * PIN_MARKER so a re-run is idempotent.
+ */
+const FALLBACK_CONFIG = `import { defineConfig } from 'vite';
+
+/* E-Code: original vite.config had no recognizable default/module.exports export;
+ * emitting a minimal preview config so the dev server is pinned to 5173 (the port
+ * the preview proxy targets) rather than leaving the model's port unpinned. */
+${OVERRIDE_BLOCK}
+export default defineConfig(${MARKER});
+`;
+
 /**
- * Return the config source with the HMR override guaranteed. Idempotent, and a
- * no-op (returns the input unchanged) when the source can't be safely wrapped
- * (no ESM `export default`, e.g. a CommonJS `module.exports` config).
+ * Return the config source with the HMR override + 5173 pin GUARANTEED. Idempotent.
+ * Handles three shapes so the pin is never silently skipped:
+ *   1. ESM `export default <expr>`      → mergeConfig wrap (import + export default).
+ *   2. CJS `module.exports = <expr>`     → mergeConfig wrap (require + module.exports).
+ *   3. anything else (unusual/unparseable) → replace with a minimal pinned config.
+ * Before this fix (2) and (3) hit a no-op branch, so a model's own server.port
+ * (e.g. 3000) survived while the preview proxy polled 5173 forever.
  */
 export function ensureViteHmrConfig(source: string): string {
   if (!source) {
@@ -97,16 +138,36 @@ export function ensureViteHmrConfig(source: string): string {
   /*
    * Replace ONLY the first `export default ` — a config file has exactly one —
    * turning `export default <expr>` into `const __ecodeUserConfig = <expr>` so
-   * the appended footer can merge it. If there's no ESM default export we can't
-   * safely transform (CJS / unusual shape); leave the file untouched.
+   * the appended footer can merge it.
    */
   const exportDefault = /(^|\n)\s*export\s+default\s+/;
 
-  if (!exportDefault.test(source)) {
-    return source;
+  if (exportDefault.test(source)) {
+    const rewritten = source.replace(exportDefault, (_match, prefix) => `${prefix}const __ecodeUserConfig = `);
+
+    return `${INJECTED_HEADER}\n${rewritten.trimEnd()}\n${INJECTED_FOOTER}`;
   }
 
-  const rewritten = source.replace(exportDefault, (match, prefix) => `${prefix}const __ecodeUserConfig = `);
+  /*
+   * CommonJS: `module.exports = <expr>`. Same idea, but the wrapper uses
+   * require()/module.exports so it stays valid CJS (mixing ESM `import` into a CJS
+   * file would break the config load). Replace only the first `module.exports =`
+   * assignment; a `module.exports.foo =` property write is intentionally NOT
+   * matched (the `=` immediately after `module.exports`).
+   */
+  const moduleExports = /(^|\n)\s*module\.exports\s*=\s*/;
 
-  return `${INJECTED_HEADER}\n${rewritten.trimEnd()}\n${INJECTED_FOOTER}`;
+  if (moduleExports.test(source)) {
+    const rewritten = source.replace(moduleExports, (_match, prefix) => `${prefix}const __ecodeUserConfig = `);
+
+    return `${INJECTED_CJS_HEADER}\n${rewritten.trimEnd()}\n${INJECTED_CJS_FOOTER}`;
+  }
+
+  /*
+   * Unusual/unparseable shape (no default export, no module.exports assignment).
+   * We can't merge onto it, but silently returning it lets the model's port stand
+   * and the preview loops on unreachable 5173. Emit a deterministic minimal config
+   * that carries the pin so 5173 is ALWAYS guaranteed.
+   */
+  return FALLBACK_CONFIG;
 }

@@ -10,6 +10,7 @@ import {
   classifyListeningPort,
   detectPortsFromOutput,
   injectPreviewHmrShim,
+  injectViteDevArgs,
   isProductionBuildCommand,
   sanitizedChildEnv,
   type ProcessRecord,
@@ -33,6 +34,93 @@ describe('isProductionBuildCommand', () => {
     expect(isProductionBuildCommand('next', ['dev'])).toBe(false);
     expect(isProductionBuildCommand('npm', ['install'])).toBe(false);
     expect(isProductionBuildCommand('node', ['server.js'])).toBe(false);
+  });
+});
+
+describe('injectViteDevArgs', () => {
+  const preview = { previewEnv: true } as const;
+  const viteDev = { previewEnv: true, readScript: (name: string) => (name === 'dev' ? 'vite' : undefined) };
+  const nextDev = { previewEnv: true, readScript: (name: string) => (name === 'dev' ? 'next dev' : undefined) };
+
+  it('pins 5173 for a DIRECT vite dev command in the preview env', () => {
+    expect(injectViteDevArgs('vite', [], preview)).toEqual(['--port', '5173', '--strictPort', '--host']);
+    expect(injectViteDevArgs('npx', ['--yes', 'vite'], preview)).toEqual([
+      '--yes',
+      'vite',
+      '--port',
+      '5173',
+      '--strictPort',
+      '--host',
+    ]);
+    expect(injectViteDevArgs('pnpm', ['exec', 'vite'], preview)).toEqual([
+      'exec',
+      'vite',
+      '--port',
+      '5173',
+      '--strictPort',
+      '--host',
+    ]);
+  });
+
+  it('pins 5173 for `npm run dev` when the dev script is a vite dev server (flags passed via `--`)', () => {
+    expect(injectViteDevArgs('npm', ['run', 'dev'], viteDev)).toEqual([
+      'run',
+      'dev',
+      '--',
+      '--port',
+      '5173',
+      '--strictPort',
+      '--host',
+    ]);
+    // `pnpm dev` shorthand resolves the same script.
+    expect(injectViteDevArgs('pnpm', ['dev'], viteDev)).toEqual([
+      'dev',
+      '--',
+      '--port',
+      '5173',
+      '--strictPort',
+      '--host',
+    ]);
+    // An existing `--` passthrough is reused rather than doubled.
+    expect(injectViteDevArgs('npm', ['run', 'dev', '--', '--host', '0.0.0.0'], viteDev)).toEqual([
+      'run',
+      'dev',
+      '--',
+      '--host',
+      '0.0.0.0',
+      '--port',
+      '5173',
+      '--strictPort',
+      '--host',
+    ]);
+  });
+
+  it('does NOT touch a `next dev` app (proxy targets 3000, would choke on --strictPort)', () => {
+    expect(injectViteDevArgs('next', ['dev'], preview)).toEqual(['dev']);
+    // `npm run dev` whose script is `next dev` is left alone.
+    expect(injectViteDevArgs('npm', ['run', 'dev'], nextDev)).toEqual(['run', 'dev']);
+  });
+
+  it('does NOT touch other non-Vite runtimes or a vite BUILD', () => {
+    expect(injectViteDevArgs('astro', ['dev'], preview)).toEqual(['dev']);
+    expect(injectViteDevArgs('remix', ['dev'], preview)).toEqual(['dev']);
+    expect(injectViteDevArgs('node', ['server.js'], preview)).toEqual(['server.js']);
+    expect(injectViteDevArgs('vite', ['build'], preview)).toEqual(['build']);
+    expect(injectViteDevArgs('vite', ['preview'], preview)).toEqual(['preview']);
+    // An unknown `dev` script (not vite) is not assumed to be vite.
+    expect(injectViteDevArgs('npm', ['run', 'dev'], preview)).toEqual(['run', 'dev']);
+  });
+
+  it('is a no-op outside the preview env, and idempotent when a port is already set', () => {
+    expect(injectViteDevArgs('vite', [], { previewEnv: false })).toEqual([]);
+    expect(injectViteDevArgs('vite', ['--port', '5173', '--strictPort', '--host'], preview)).toEqual([
+      '--port',
+      '5173',
+      '--strictPort',
+      '--host',
+    ]);
+    // A user-chosen explicit port is respected.
+    expect(injectViteDevArgs('vite', ['--port', '4321'], preview)).toEqual(['--port', '4321']);
   });
 });
 
