@@ -89,6 +89,49 @@ describe('F22 admin abuse events — dismiss / warn / status', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('suspend blocks the offending user, resolves the event, and requires a reason', async () => {
+    const { app, store, offender } = await setup();
+    const event = await store.createAbuseEvent({ userId: offender.id, type: 'fraud', severity: 'high' });
+
+    // A reason is mandatory.
+    const noReason = await app.inject({
+      method: 'POST',
+      url: `/admin/abuse-events/${event.id}/suspend`,
+      headers: auth('admin-token'),
+      payload: {},
+    });
+    expect(noReason.statusCode).toBe(400);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/admin/abuse-events/${event.id}/suspend`,
+      headers: auth('admin-token'),
+      payload: { reason: 'Confirmed fraudulent activity' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ suspended: true });
+    expect(res.json().abuseEvent).toMatchObject({ resolved: true, disposition: 'suspended' });
+
+    // The offender is now in the suspended set + the action is audited.
+    const suspendedSetting = (await store.listSystemSettings()).find((s) => s.key === 'admin.suspendedUserIds');
+    expect(Array.isArray(suspendedSetting?.value) ? (suspendedSetting!.value as string[]) : []).toContain(offender.id);
+    const adminLog = await store.listAdminAuditLogs();
+    expect(adminLog.some((entry) => entry.action === 'admin.abuse_event.suspend')).toBe(true);
+  });
+
+  it('suspend without an associated user is a 400', async () => {
+    const { app, store } = await setup();
+    const event = await store.createAbuseEvent({ type: 'anomaly', severity: 'low' });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/admin/abuse-events/${event.id}/suspend`,
+      headers: auth('admin-token'),
+      payload: { reason: 'no user attached' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
   it('forbids non-admins', async () => {
     const { app, store, offender } = await setup();
     await store.createSession({ userId: offender.id, token: 'user-token', expiresAt: new Date(Date.now() + 3600_000) });

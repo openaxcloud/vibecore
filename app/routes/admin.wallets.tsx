@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFetcher, useLoaderData } from 'react-router';
 import { toast } from 'react-toastify';
 import { EnterpriseFormPage, TextField, SelectField, PrimaryButton } from '~/components/enterprise/EnterpriseFormPage';
+import { FieldError, fieldErrorProps } from '~/components/ui/FieldError';
 import {
   apiRequest,
   formObject,
@@ -176,6 +177,17 @@ export default function AdminWalletsPage() {
   const formRef = useRef<HTMLFormElement>(null);
   const handled = useRef<unknown>(null);
 
+  /*
+   * F20: the reason is mandatory. We control it so the Apply button can be
+   * disabled while it is empty/whitespace and an inline error can surface (after
+   * the field is touched) — the backend enforces the same rule (400
+   * WALLET_ADJUST_REASON_REQUIRED), this is the client-side guard.
+   */
+  const [reason, setReason] = useState('');
+  const [reasonTouched, setReasonTouched] = useState(false);
+  const reasonEmpty = reason.trim().length === 0;
+  const reasonError = reasonTouched && reasonEmpty ? 'Enter a reason — it is recorded in the audit trail.' : null;
+
   const actionData = fetcher.data as { status?: string; error?: string } | undefined;
 
   useEffect(() => {
@@ -192,6 +204,8 @@ export default function AdminWalletsPage() {
 
       // Clear amount / reason / password after a successful adjustment.
       formRef.current?.reset();
+      setReason('');
+      setReasonTouched(false);
     } else if (result.error) {
       toast.error(result.error);
     }
@@ -244,6 +258,13 @@ export default function AdminWalletsPage() {
           ref={formRef}
           method="post"
           className="space-y-4 rounded-lg border border-bolt-elements-borderColor p-4"
+          onSubmit={(event) => {
+            // Block submit on an empty/whitespace reason and surface the inline error.
+            if (reasonEmpty) {
+              event.preventDefault();
+              setReasonTouched(true);
+            }
+          }}
         >
           <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-bolt-elements-textSecondary">
             Adjust a balance
@@ -278,12 +299,23 @@ export default function AdminWalletsPage() {
             <TextField label="Amount (USD)" name="amount" type="number" placeholder="10.00" />
           </div>
 
-          <TextField
-            label="Reason (recorded in the audit trail)"
-            name="reason"
-            placeholder="e.g. goodwill credit / manual correction"
-            required
-          />
+          <label className="block text-sm font-medium">
+            Reason (recorded in the audit trail)
+            <input
+              id="wallet-reason"
+              className={`mt-2 w-full rounded-md border ${
+                reasonError ? 'border-[var(--vc-ide-accent-error)]' : 'border-bolt-elements-borderColor'
+              } bg-bolt-elements-background-depth-1 px-3 py-2 text-sm outline-none focus:border-bolt-elements-focus`}
+              name="reason"
+              placeholder="e.g. goodwill credit / manual correction"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              onBlur={() => setReasonTouched(true)}
+              required
+              {...fieldErrorProps('wallet-reason', reasonError)}
+            />
+            <FieldError fieldId="wallet-reason" error={reasonError} />
+          </label>
 
           <TextField
             label="Confirm with your password"
@@ -293,7 +325,7 @@ export default function AdminWalletsPage() {
             required
           />
 
-          <PrimaryButton type="submit" disabled={busy}>
+          <PrimaryButton type="submit" disabled={busy || reasonEmpty}>
             {busy ? 'Applying…' : 'Apply adjustment'}
           </PrimaryButton>
         </fetcher.Form>

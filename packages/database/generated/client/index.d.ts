@@ -85273,6 +85273,8 @@ export namespace Prisma {
     requireMfaForAdmins: boolean | null
     dataRetentionDays: number | null
     legalHoldEnabled: boolean | null
+    ssoEnforced: boolean | null
+    ssoEnforcedAt: Date | null
     updatedAt: Date | null
   }
 
@@ -85282,6 +85284,8 @@ export namespace Prisma {
     requireMfaForAdmins: boolean | null
     dataRetentionDays: number | null
     legalHoldEnabled: boolean | null
+    ssoEnforced: boolean | null
+    ssoEnforcedAt: Date | null
     updatedAt: Date | null
   }
 
@@ -85292,6 +85296,8 @@ export namespace Prisma {
     requireMfaForAdmins: number
     dataRetentionDays: number
     legalHoldEnabled: number
+    ssoEnforced: number
+    ssoEnforcedAt: number
     updatedAt: number
     _all: number
   }
@@ -85313,6 +85319,8 @@ export namespace Prisma {
     requireMfaForAdmins?: true
     dataRetentionDays?: true
     legalHoldEnabled?: true
+    ssoEnforced?: true
+    ssoEnforcedAt?: true
     updatedAt?: true
   }
 
@@ -85322,6 +85330,8 @@ export namespace Prisma {
     requireMfaForAdmins?: true
     dataRetentionDays?: true
     legalHoldEnabled?: true
+    ssoEnforced?: true
+    ssoEnforcedAt?: true
     updatedAt?: true
   }
 
@@ -85332,6 +85342,8 @@ export namespace Prisma {
     requireMfaForAdmins?: true
     dataRetentionDays?: true
     legalHoldEnabled?: true
+    ssoEnforced?: true
+    ssoEnforcedAt?: true
     updatedAt?: true
     _all?: true
   }
@@ -85429,6 +85441,8 @@ export namespace Prisma {
     requireMfaForAdmins: boolean
     dataRetentionDays: number
     legalHoldEnabled: boolean
+    ssoEnforced: boolean
+    ssoEnforcedAt: Date | null
     updatedAt: Date
     _count: EnterpriseOrganizationSettingsCountAggregateOutputType | null
     _avg: EnterpriseOrganizationSettingsAvgAggregateOutputType | null
@@ -85458,6 +85472,8 @@ export namespace Prisma {
     requireMfaForAdmins?: boolean
     dataRetentionDays?: boolean
     legalHoldEnabled?: boolean
+    ssoEnforced?: boolean
+    ssoEnforcedAt?: boolean
     updatedAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["enterpriseOrganizationSettings"]>
@@ -85469,6 +85485,8 @@ export namespace Prisma {
     requireMfaForAdmins?: boolean
     dataRetentionDays?: boolean
     legalHoldEnabled?: boolean
+    ssoEnforced?: boolean
+    ssoEnforcedAt?: boolean
     updatedAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["enterpriseOrganizationSettings"]>
@@ -85480,6 +85498,8 @@ export namespace Prisma {
     requireMfaForAdmins?: boolean
     dataRetentionDays?: boolean
     legalHoldEnabled?: boolean
+    ssoEnforced?: boolean
+    ssoEnforcedAt?: boolean
     updatedAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["enterpriseOrganizationSettings"]>
@@ -85491,10 +85511,12 @@ export namespace Prisma {
     requireMfaForAdmins?: boolean
     dataRetentionDays?: boolean
     legalHoldEnabled?: boolean
+    ssoEnforced?: boolean
+    ssoEnforcedAt?: boolean
     updatedAt?: boolean
   }
 
-  export type EnterpriseOrganizationSettingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"organizationId" | "ipAllowlist" | "sessionDurationMinutes" | "requireMfaForAdmins" | "dataRetentionDays" | "legalHoldEnabled" | "updatedAt", ExtArgs["result"]["enterpriseOrganizationSettings"]>
+  export type EnterpriseOrganizationSettingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"organizationId" | "ipAllowlist" | "sessionDurationMinutes" | "requireMfaForAdmins" | "dataRetentionDays" | "legalHoldEnabled" | "ssoEnforced" | "ssoEnforcedAt" | "updatedAt", ExtArgs["result"]["enterpriseOrganizationSettings"]>
   export type EnterpriseOrganizationSettingsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }
@@ -85517,6 +85539,8 @@ export namespace Prisma {
       requireMfaForAdmins: boolean
       dataRetentionDays: number
       legalHoldEnabled: boolean
+      ssoEnforced: boolean
+      ssoEnforcedAt: Date | null
       updatedAt: Date
     }, ExtArgs["result"]["enterpriseOrganizationSettings"]>
     composites: {}
@@ -85948,6 +85972,8 @@ export namespace Prisma {
     readonly requireMfaForAdmins: FieldRef<"EnterpriseOrganizationSettings", 'Boolean'>
     readonly dataRetentionDays: FieldRef<"EnterpriseOrganizationSettings", 'Int'>
     readonly legalHoldEnabled: FieldRef<"EnterpriseOrganizationSettings", 'Boolean'>
+    readonly ssoEnforced: FieldRef<"EnterpriseOrganizationSettings", 'Boolean'>
+    readonly ssoEnforcedAt: FieldRef<"EnterpriseOrganizationSettings", 'DateTime'>
     readonly updatedAt: FieldRef<"EnterpriseOrganizationSettings", 'DateTime'>
   }
     
@@ -129634,6 +129660,8 @@ export namespace Prisma {
     requireMfaForAdmins: 'requireMfaForAdmins',
     dataRetentionDays: 'dataRetentionDays',
     legalHoldEnabled: 'legalHoldEnabled',
+    ssoEnforced: 'ssoEnforced',
+    ssoEnforcedAt: 'ssoEnforcedAt',
     updatedAt: 'updatedAt'
   };
 
@@ -135434,6 +135462,8 @@ export namespace Prisma {
     requireMfaForAdmins?: BoolFilter<"EnterpriseOrganizationSettings"> | boolean
     dataRetentionDays?: IntFilter<"EnterpriseOrganizationSettings"> | number
     legalHoldEnabled?: BoolFilter<"EnterpriseOrganizationSettings"> | boolean
+    ssoEnforced?: BoolFilter<"EnterpriseOrganizationSettings"> | boolean
+    ssoEnforcedAt?: DateTimeNullableFilter<"EnterpriseOrganizationSettings"> | Date | string | null
     updatedAt?: DateTimeFilter<"EnterpriseOrganizationSettings"> | Date | string
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
   }
@@ -135445,6 +135475,8 @@ export namespace Prisma {
     requireMfaForAdmins?: SortOrder
     dataRetentionDays?: SortOrder
     legalHoldEnabled?: SortOrder
+    ssoEnforced?: SortOrder
+    ssoEnforcedAt?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
     organization?: OrganizationOrderByWithRelationInput
   }
@@ -135459,6 +135491,8 @@ export namespace Prisma {
     requireMfaForAdmins?: BoolFilter<"EnterpriseOrganizationSettings"> | boolean
     dataRetentionDays?: IntFilter<"EnterpriseOrganizationSettings"> | number
     legalHoldEnabled?: BoolFilter<"EnterpriseOrganizationSettings"> | boolean
+    ssoEnforced?: BoolFilter<"EnterpriseOrganizationSettings"> | boolean
+    ssoEnforcedAt?: DateTimeNullableFilter<"EnterpriseOrganizationSettings"> | Date | string | null
     updatedAt?: DateTimeFilter<"EnterpriseOrganizationSettings"> | Date | string
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
   }, "organizationId">
@@ -135470,6 +135504,8 @@ export namespace Prisma {
     requireMfaForAdmins?: SortOrder
     dataRetentionDays?: SortOrder
     legalHoldEnabled?: SortOrder
+    ssoEnforced?: SortOrder
+    ssoEnforcedAt?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
     _count?: EnterpriseOrganizationSettingsCountOrderByAggregateInput
     _avg?: EnterpriseOrganizationSettingsAvgOrderByAggregateInput
@@ -135488,6 +135524,8 @@ export namespace Prisma {
     requireMfaForAdmins?: BoolWithAggregatesFilter<"EnterpriseOrganizationSettings"> | boolean
     dataRetentionDays?: IntWithAggregatesFilter<"EnterpriseOrganizationSettings"> | number
     legalHoldEnabled?: BoolWithAggregatesFilter<"EnterpriseOrganizationSettings"> | boolean
+    ssoEnforced?: BoolWithAggregatesFilter<"EnterpriseOrganizationSettings"> | boolean
+    ssoEnforcedAt?: DateTimeNullableWithAggregatesFilter<"EnterpriseOrganizationSettings"> | Date | string | null
     updatedAt?: DateTimeWithAggregatesFilter<"EnterpriseOrganizationSettings"> | Date | string
   }
 
@@ -143733,6 +143771,8 @@ export namespace Prisma {
     requireMfaForAdmins?: boolean
     dataRetentionDays?: number
     legalHoldEnabled?: boolean
+    ssoEnforced?: boolean
+    ssoEnforcedAt?: Date | string | null
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutEnterpriseSettingsInput
   }
@@ -143744,6 +143784,8 @@ export namespace Prisma {
     requireMfaForAdmins?: boolean
     dataRetentionDays?: number
     legalHoldEnabled?: boolean
+    ssoEnforced?: boolean
+    ssoEnforcedAt?: Date | string | null
     updatedAt?: Date | string
   }
 
@@ -143753,6 +143795,8 @@ export namespace Prisma {
     requireMfaForAdmins?: BoolFieldUpdateOperationsInput | boolean
     dataRetentionDays?: IntFieldUpdateOperationsInput | number
     legalHoldEnabled?: BoolFieldUpdateOperationsInput | boolean
+    ssoEnforced?: BoolFieldUpdateOperationsInput | boolean
+    ssoEnforcedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutEnterpriseSettingsNestedInput
   }
@@ -143764,6 +143808,8 @@ export namespace Prisma {
     requireMfaForAdmins?: BoolFieldUpdateOperationsInput | boolean
     dataRetentionDays?: IntFieldUpdateOperationsInput | number
     legalHoldEnabled?: BoolFieldUpdateOperationsInput | boolean
+    ssoEnforced?: BoolFieldUpdateOperationsInput | boolean
+    ssoEnforcedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -143774,6 +143820,8 @@ export namespace Prisma {
     requireMfaForAdmins?: boolean
     dataRetentionDays?: number
     legalHoldEnabled?: boolean
+    ssoEnforced?: boolean
+    ssoEnforcedAt?: Date | string | null
     updatedAt?: Date | string
   }
 
@@ -143783,6 +143831,8 @@ export namespace Prisma {
     requireMfaForAdmins?: BoolFieldUpdateOperationsInput | boolean
     dataRetentionDays?: IntFieldUpdateOperationsInput | number
     legalHoldEnabled?: BoolFieldUpdateOperationsInput | boolean
+    ssoEnforced?: BoolFieldUpdateOperationsInput | boolean
+    ssoEnforcedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -143793,6 +143843,8 @@ export namespace Prisma {
     requireMfaForAdmins?: BoolFieldUpdateOperationsInput | boolean
     dataRetentionDays?: IntFieldUpdateOperationsInput | number
     legalHoldEnabled?: BoolFieldUpdateOperationsInput | boolean
+    ssoEnforced?: BoolFieldUpdateOperationsInput | boolean
+    ssoEnforcedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -150732,6 +150784,8 @@ export namespace Prisma {
     requireMfaForAdmins?: SortOrder
     dataRetentionDays?: SortOrder
     legalHoldEnabled?: SortOrder
+    ssoEnforced?: SortOrder
+    ssoEnforcedAt?: SortOrder
     updatedAt?: SortOrder
   }
 
@@ -150746,6 +150800,8 @@ export namespace Prisma {
     requireMfaForAdmins?: SortOrder
     dataRetentionDays?: SortOrder
     legalHoldEnabled?: SortOrder
+    ssoEnforced?: SortOrder
+    ssoEnforcedAt?: SortOrder
     updatedAt?: SortOrder
   }
 
@@ -150755,6 +150811,8 @@ export namespace Prisma {
     requireMfaForAdmins?: SortOrder
     dataRetentionDays?: SortOrder
     legalHoldEnabled?: SortOrder
+    ssoEnforced?: SortOrder
+    ssoEnforcedAt?: SortOrder
     updatedAt?: SortOrder
   }
 
@@ -162467,6 +162525,8 @@ export namespace Prisma {
     requireMfaForAdmins?: boolean
     dataRetentionDays?: number
     legalHoldEnabled?: boolean
+    ssoEnforced?: boolean
+    ssoEnforcedAt?: Date | string | null
     updatedAt?: Date | string
   }
 
@@ -162476,6 +162536,8 @@ export namespace Prisma {
     requireMfaForAdmins?: boolean
     dataRetentionDays?: number
     legalHoldEnabled?: boolean
+    ssoEnforced?: boolean
+    ssoEnforcedAt?: Date | string | null
     updatedAt?: Date | string
   }
 
@@ -163441,6 +163503,8 @@ export namespace Prisma {
     requireMfaForAdmins?: BoolFieldUpdateOperationsInput | boolean
     dataRetentionDays?: IntFieldUpdateOperationsInput | number
     legalHoldEnabled?: BoolFieldUpdateOperationsInput | boolean
+    ssoEnforced?: BoolFieldUpdateOperationsInput | boolean
+    ssoEnforcedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -163450,6 +163514,8 @@ export namespace Prisma {
     requireMfaForAdmins?: BoolFieldUpdateOperationsInput | boolean
     dataRetentionDays?: IntFieldUpdateOperationsInput | number
     legalHoldEnabled?: BoolFieldUpdateOperationsInput | boolean
+    ssoEnforced?: BoolFieldUpdateOperationsInput | boolean
+    ssoEnforcedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

@@ -17785,19 +17785,43 @@ button.bolt-project-statusbar-pill:focus-visible,
 }
 
 .bolt-project-workflow-run-steps span[data-status='succeeded'] {
-  color: var(--vc-ide-success, var(--vc-ide-text-primary));
+  color: var(--status-success-text);
+  background: var(--status-success-bg);
+  border: 1px solid var(--status-success-border);
 }
 
 .bolt-project-workflow-run-steps span[data-status='failed'] {
-  color: var(--vc-ide-danger, var(--vc-ide-text-primary));
+  color: var(--status-error-text);
+  background: var(--status-error-bg);
+  border: 1px solid var(--status-error-border);
 }
 
 .bolt-project-workflow-run-steps span[data-status='skipped'] {
-  color: var(--vc-ide-text-secondary);
+  color: var(--status-warning-text);
+  background: var(--status-warning-bg);
+  border: 1px solid var(--status-warning-border);
 }
 
 .bolt-project-workflow-run-steps pre {
   max-height: 200px;
+}
+
+/* F9: the per-workflow "Run now" trigger uses the IDE accent-action token. */
+.bolt-project-workflow-run-now {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.bolt-project-workflow-run-now button {
+  color: var(--vc-ide-text-on-accent, #fff);
+  background: var(--vc-ide-accent-action);
+  border: 1px solid var(--vc-ide-accent-action);
+}
+
+.bolt-project-workflow-run-now button:hover:not(:disabled),
+.bolt-project-workflow-run-now button:focus-visible {
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 86%, var(--vc-ide-text-primary));
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 86%, var(--vc-ide-text-primary));
 }
 
 .bolt-project-workflow-schedule {

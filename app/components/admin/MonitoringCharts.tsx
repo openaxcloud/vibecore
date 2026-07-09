@@ -255,20 +255,36 @@ export function CategoryBarChart({
 
 type Dataset = { label: string; values: number[]; colorIndex: number };
 
-/** Multi-series grouped bar — e.g. workspace starts vs failures per label bucket. */
-export function GroupedBarChart({ labels, datasets }: { labels: string[]; datasets: Dataset[] }) {
+/**
+ * Multi-series bar — grouped by default, or stacked when `stacked` is set (e.g.
+ * F26 cost/day per provider over 30 days). An optional `valueFormat` tailors the
+ * tooltip (e.g. USD); it defaults to a locale integer string.
+ */
+export function GroupedBarChart({
+  labels,
+  datasets,
+  stacked = false,
+  valueFormat,
+}: {
+  labels: string[];
+  datasets: Dataset[];
+  stacked?: boolean;
+  valueFormat?: (value: number) => string;
+}) {
   const t = useChartTheme();
+
+  const format = valueFormat ?? ((value: number) => Number(value).toLocaleString());
 
   const options: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: { position: 'bottom', labels: { color: t.text, boxWidth: 12, padding: 12 } },
-      tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${Number(c.parsed.y).toLocaleString()}` } },
+      tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${format(Number(c.parsed.y))}` } },
     },
     scales: {
-      x: { ticks: { color: t.text, autoSkip: false, maxRotation: 30 }, grid: { color: t.grid } },
-      y: { ticks: { color: t.text, precision: 0 }, grid: { color: t.grid }, beginAtZero: true },
+      x: { stacked, ticks: { color: t.text, autoSkip: true, maxRotation: 30 }, grid: { color: t.grid } },
+      y: { stacked, ticks: { color: t.text }, grid: { color: t.grid }, beginAtZero: true },
     },
   };
 

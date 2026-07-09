@@ -17,6 +17,9 @@ import {
   requirePlatformAdmin,
   sessionCookie,
 } from '~/lib/enterprise-api.server';
+import { budgetTone, centsToUsd } from '~/utils/admin-cost-budget';
+import { rowsToCsv } from '~/utils/admin-csv';
+import { errorRateTone, moveItem } from '~/utils/admin-provider-metrics';
 
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
@@ -319,6 +322,42 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
   }
 
   /*
+   * F24: account-deletions export. The purge queue is a small, self-contained set
+   * of rows (userId / email / status / requestedAt / purgeDueAt) — stream it as a
+   * CSV/JSON download over the session cookie, same pattern as the audit exports.
+   */
+  if (exportFormat && section === 'account-deletions') {
+    const format = exportFormat === 'csv' ? 'csv' : 'json';
+    const result = (await apiRequest<Record<string, JsonValue>>(request, '/admin/account-deletions')) ?? {};
+    const rows = (Array.isArray(result.requests) ? result.requests : []) as Array<Record<string, JsonValue>>;
+    const columns = ['userId', 'email', 'status', 'requestedAt', 'purgeDueAt'];
+    const body = format === 'csv' ? rowsToCsv(rows, columns) : JSON.stringify(rows, null, 2);
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+
+    return new Response(body, {
+      headers: {
+        'content-type': format === 'csv' ? 'text/csv; charset=utf-8' : 'application/json; charset=utf-8',
+        'content-disposition': `attachment; filename="account-deletions-${stamp}.${format}"`,
+        'cache-control': 'no-store',
+      },
+    });
+  }
+
+  /*
+   * F23: the count of unresolved security events powers a badge on the admin
+   * sidebar's Security-events nav item — so it shows on every admin page, not
+   * only that section. Fetched in parallel with the section payload and guarded
+   * (never blocks/breaks the page). When we're already on the security-events
+   * page we derive it from that section's payload instead of fetching twice.
+   */
+  const securityOpenCountPromise: Promise<number | undefined> =
+    section === 'security-events'
+      ? Promise.resolve(undefined)
+      : apiRequest<{ openCount?: number }>(request, '/admin/security-events')
+          .then((result) => (typeof result?.openCount === 'number' ? result.openCount : undefined))
+          .catch(() => undefined);
+
+  /*
    * Monitoring is a read-only dashboard that VISUALIZES several existing admin
    * JSON endpoints. The web's API base URL is server-only, so a client panel
    * can't hit /admin/* directly — instead we fan out the reads here (over the
@@ -353,7 +392,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       liveProbe,
     };
 
-    return { section, config, payload };
+    return { section, config, payload, securityOpenCount: await securityOpenCountPromise };
   }
 
   /*
@@ -374,7 +413,27 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     const qs = passthrough.toString();
     const payload = await apiRequest<Record<string, JsonValue>>(request, `/admin/users${qs ? `?${qs}` : ''}`);
 
-    return { section, config, payload };
+    return { section, config, payload, securityOpenCount: await securityOpenCountPromise };
+  }
+
+  /*
+   * F18 providers: the panel is an ordered, actionable list, so it reads the
+   * fallback-order endpoint (saved order first + per-provider enabled state +
+   * p95/error thresholds) instead of the flat /admin/providers toggle list.
+   */
+  if (section === 'providers') {
+    const payload = await apiRequest<Record<string, JsonValue>>(request, '/admin/providers/fallback-order');
+    return { section, config, payload, securityOpenCount: await securityOpenCountPromise };
+  }
+
+  /*
+   * F26 costs: the panel needs the 30-day-per-provider series + monthly budget
+   * gauge, so it reads /admin/costs/summary (days × provider series, month-to-date
+   * spend, budget + 80/100% alert level) rather than the raw /admin/costs ledger.
+   */
+  if (section === 'costs') {
+    const payload = await apiRequest<Record<string, JsonValue>>(request, '/admin/costs/summary');
+    return { section, config, payload, securityOpenCount: await securityOpenCountPromise };
   }
 
   // Sections without an endpoint (developer-tools) render self-fetching panels.
@@ -382,7 +441,13 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     ? await apiRequest<Record<string, JsonValue>>(request, config.endpoint)
     : ({} as Record<string, JsonValue>);
 
-  return { section, config, payload };
+  // On the security-events page itself the count is in the payload (no 2nd fetch).
+  const securityOpenCount =
+    section === 'security-events' && typeof payload.openCount === 'number'
+      ? payload.openCount
+      : await securityOpenCountPromise;
+
+  return { section, config, payload, securityOpenCount };
 }
 
 /*
@@ -482,6 +547,30 @@ export async function action({ request }: EnterpriseActionArgs) {
       });
 
       return json({ ok: true, rowId: provider, message: `Provider ${enabled ? 'enabled' : 'disabled'}.` });
+    }
+
+    // F18: persist a new provider fallback order (the full reordered name list).
+    if (intent === 'provider-reorder') {
+      let order: string[];
+
+      try {
+        const parsed = JSON.parse(String(form.get('order') ?? '[]'));
+        order = Array.isArray(parsed) ? parsed.map(String) : [];
+      } catch {
+        return json({ ok: false, rowId: 'fallback-order', error: 'Invalid order.' }, { status: 400 });
+      }
+
+      if (order.length === 0) {
+        return json({ ok: false, rowId: 'fallback-order', error: 'Order is empty.' }, { status: 400 });
+      }
+
+      await apiRequest(request, '/admin/providers/fallback-order', {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({ order }),
+      });
+
+      return json({ ok: true, rowId: 'fallback-order', message: 'Fallback order updated.' });
     }
 
     if (intent === 'model-toggle') {
@@ -723,6 +812,85 @@ export async function action({ request }: EnterpriseActionArgs) {
       });
 
       return json({ ok: true, rowId: abuseEventId, message: 'Abuse event resolved.' });
+    }
+
+    // F22: abuse event Dismiss / Warn / Suspend.
+    if (intent === 'abuse-dismiss' || intent === 'abuse-warn' || intent === 'abuse-suspend') {
+      const abuseEventId = String(form.get('abuseEventId') ?? '');
+
+      if (!abuseEventId) {
+        return json({ ok: false, error: 'Missing abuse event.' }, { status: 400 });
+      }
+
+      if (intent === 'abuse-dismiss') {
+        await apiRequest(request, `/admin/abuse-events/${abuseEventId}/dismiss`, {
+          method: 'POST',
+          redirectOn401: false,
+          body: JSON.stringify({}),
+        });
+
+        return json({ ok: true, rowId: abuseEventId, message: 'Event dismissed.' });
+      }
+
+      if (intent === 'abuse-warn') {
+        await apiRequest(request, `/admin/abuse-events/${abuseEventId}/warn`, {
+          method: 'POST',
+          redirectOn401: false,
+          body: JSON.stringify({}),
+        });
+
+        return json({ ok: true, rowId: abuseEventId, message: 'Warning emailed to the user.' });
+      }
+
+      // abuse-suspend — mandatory reason, persisted in the admin audit log.
+      const reason = String(form.get('reason') ?? '').trim();
+
+      if (!reason) {
+        return json({ ok: false, rowId: abuseEventId, error: 'A reason is required to suspend.' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/admin/abuse-events/${abuseEventId}/suspend`, {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({ reason }),
+      });
+
+      return json({ ok: true, rowId: abuseEventId, message: 'User suspended.' });
+    }
+
+    // F23: mark a security event resolved with an optional operator note.
+    if (intent === 'security-event-resolve') {
+      const securityEventId = String(form.get('securityEventId') ?? '');
+      const note = String(form.get('note') ?? '').trim();
+
+      if (!securityEventId) {
+        return json({ ok: false, error: 'Missing security event.' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/admin/security-events/${securityEventId}/resolve`, {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify(note ? { note } : {}),
+      });
+
+      return json({ ok: true, rowId: securityEventId, message: 'Security event resolved.' });
+    }
+
+    // F24: admin cancels a user's pending account deletion during the grace window.
+    if (intent === 'account-deletion-cancel') {
+      const deletionUserId = String(form.get('deletionUserId') ?? '');
+
+      if (!deletionUserId) {
+        return json({ ok: false, error: 'Missing user.' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/admin/account-deletions/${deletionUserId}/cancel`, {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({}),
+      });
+
+      return json({ ok: true, rowId: deletionUserId, message: 'Deletion cancelled.' });
     }
 
     // Organization suspend. (No unsuspend endpoint exists server-side today.)
@@ -1016,6 +1184,7 @@ export default function AdminSectionPage() {
   }
 
   const { section, config, payload } = data;
+  const securityOpenCount = 'securityOpenCount' in data ? data.securityOpenCount : undefined;
 
   return (
     <AppShell
@@ -1024,13 +1193,13 @@ export default function AdminSectionPage() {
       actions={<LinkButton to="/admin/billing">Billing admin</LinkButton>}
     >
       <div className="grid items-start gap-6 lg:grid-cols-[232px_1fr]">
-        <AdminNav active={section} />
+        <AdminNav active={section} securityOpenCount={securityOpenCount} />
         <div className="grid gap-6">
           {section === 'overview' ? <OverviewPanel payload={payload} /> : null}
           {section === 'health' ? <HealthPanel payload={payload} /> : null}
           {section === 'monitoring' ? <MonitoringPanel payload={payload} /> : null}
           {section === 'users' ? <UsersPanel payload={payload} /> : null}
-          {section === 'providers' ? <ToggleListPanel payload={payload} kind="providers" /> : null}
+          {section === 'providers' ? <ProvidersPanel payload={payload} /> : null}
           {section === 'models' ? <ToggleListPanel payload={payload} kind="models" /> : null}
           {section === 'feature-flags' ? <ToggleListPanel payload={payload} kind="feature-flags" /> : null}
           {section === 'oauth-providers' ? <OauthProvidersPanel payload={payload} /> : null}
@@ -1040,7 +1209,10 @@ export default function AdminSectionPage() {
           {section === 'workspaces' ? <WorkspacesPanel payload={payload} /> : null}
           {section === 'previews' ? <PreviewsPanel payload={payload} /> : null}
           {section === 'abuse-events' ? <AbuseEventsPanel payload={payload} /> : null}
+          {section === 'security-events' ? <SecurityEventsPanel payload={payload} /> : null}
           {section === 'organizations' ? <OrganizationsPanel payload={payload} /> : null}
+          {section === 'account-deletions' ? <AccountDeletionsPanel payload={payload} /> : null}
+          {section === 'costs' ? <CostsPanel payload={payload} /> : null}
           {section === 'support-tickets' ? <SupportTicketsPanel payload={payload} /> : null}
           {section === 'audit-logs' || section === 'admin-audit-logs' ? (
             <AuditLogsPanel payload={payload} section={section} />
@@ -1059,7 +1231,10 @@ export default function AdminSectionPage() {
             'workspaces',
             'previews',
             'abuse-events',
+            'security-events',
             'organizations',
+            'account-deletions',
+            'costs',
             'support-tickets',
             'developer-tools',
             'ops-controls',
@@ -1164,8 +1339,14 @@ function DeveloperToolsPanel() {
   );
 }
 
-function AdminNav({ active }: { active: string }) {
+function AdminNav({ active, securityOpenCount }: { active: string; securityOpenCount?: number }) {
   const navigate = useNavigate();
+
+  // F23: badge count per nav item (today only unresolved security events).
+  const badgeFor = (item: string): number | undefined =>
+    item === 'security-events' && typeof securityOpenCount === 'number' && securityOpenCount > 0
+      ? securityOpenCount
+      : undefined;
 
   return (
     <>
@@ -1207,20 +1388,33 @@ function AdminNav({ active }: { active: string }) {
             <p className="vc-sidebar-group-label px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
               {group.label}
             </p>
-            {group.items.map((item) => (
-              <Link
-                key={item}
-                to={`/admin/${item}`}
-                className={[
-                  'flex min-h-8 items-center rounded-md px-2 text-sm transition-colors',
-                  active === item
-                    ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
-                    : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
-                ].join(' ')}
-              >
-                {adminSections[item].title}
-              </Link>
-            ))}
+            {group.items.map((item) => {
+              const badge = badgeFor(item);
+
+              return (
+                <Link
+                  key={item}
+                  to={`/admin/${item}`}
+                  className={[
+                    'flex min-h-8 items-center justify-between gap-2 rounded-md px-2 text-sm transition-colors',
+                    active === item
+                      ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
+                      : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
+                  ].join(' ')}
+                >
+                  <span className="truncate">{adminSections[item].title}</span>
+                  {badge !== undefined ? (
+                    <span
+                      data-testid={`admin-nav-badge-${item}`}
+                      aria-label={`${badge} unresolved`}
+                      className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[var(--status-error-text)] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white"
+                    >
+                      {badge > 99 ? '99+' : badge}
+                    </span>
+                  ) : null}
+                </Link>
+              );
+            })}
           </div>
         ))}
       </nav>
@@ -2477,6 +2671,219 @@ function StatusPill({
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${tones[tone]}`}>
       {children}
     </span>
+  );
+}
+
+type AdminProviderRow = {
+  provider: string;
+  displayName: string;
+  enabled: boolean;
+  p95Ms?: number;
+  errorPct?: number;
+};
+
+type ProviderThresholds = { warnErrorPct: number; errorErrorPct: number };
+
+/*
+ * F18: AI providers panel. Replaces the flat provider toggle with an ordered,
+ * actionable list. Each row can be enabled/disabled (real /admin/providers/toggle)
+ * and reordered ↑/↓ — the reorder persists the whole name list to the
+ * `providers.fallbackOrder` system setting (POST /admin/providers/fallback-order),
+ * which the gateway's enabled-provider resolution (/providers/enabled) honors.
+ * p95 latency and 24h error-rate render with warn (≥2%) / error (≥5%) thresholds;
+ * they show “no data” until per-request provider instrumentation lands (the API
+ * reports metricsAvailable:false rather than fabricating numbers). Step-up
+ * protected like the other operational panels.
+ */
+function ProvidersPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const providers = (Array.isArray(payload.providers) ? payload.providers : []) as AdminProviderRow[];
+  const metricsAvailable = payload.metricsAvailable === true;
+
+  const thresholds: ProviderThresholds =
+    payload.thresholds && typeof payload.thresholds === 'object' && !Array.isArray(payload.thresholds)
+      ? {
+          warnErrorPct: Number((payload.thresholds as Record<string, JsonValue>).warnErrorPct) || 2,
+          errorErrorPct: Number((payload.thresholds as Record<string, JsonValue>).errorErrorPct) || 5,
+        }
+      : { warnErrorPct: 2, errorErrorPct: 5 };
+
+  const [password, setPassword] = useState('');
+  const reorder = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const reordering = reorder.state !== 'idle';
+
+  const order = providers.map((provider) => provider.provider);
+
+  const move = (index: number, dir: -1 | 1) => {
+    const next = moveItem(order, index, dir);
+
+    if (next === order) {
+      return;
+    }
+
+    reorder.submit({ intent: 'provider-reorder', order: JSON.stringify(next), password }, { method: 'post' });
+  };
+
+  return (
+    <div className="grid gap-4">
+      <ReauthHeader
+        password={password}
+        onChange={setPassword}
+        hint="Provider changes are step-up protected. Enter your password once, then enable/disable a provider or reorder the fallback priority below. The gateway tries enabled providers top-to-bottom."
+      />
+
+      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="font-semibold text-bolt-elements-textPrimary">24h error-rate thresholds</span>
+          <StatusPill tone="warn">warn ≥ {thresholds.warnErrorPct}%</StatusPill>
+          <StatusPill tone="danger">error ≥ {thresholds.errorErrorPct}%</StatusPill>
+        </div>
+        {!metricsAvailable ? (
+          <p className="mt-2 text-xs text-bolt-elements-textTertiary">
+            Per-request provider metrics are not recorded yet, so p95 latency and 24h error-rate show “no data”.
+            Fallback order below is fully live.
+          </p>
+        ) : null}
+        <RowFeedback data={reorder.data} />
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
+        <table className="w-full min-w-[760px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
+              <th className="px-4 py-3 font-medium">Priority</th>
+              <th className="px-4 py-3 font-medium">Provider</th>
+              <th className="px-4 py-3 font-medium">State</th>
+              <th className="px-4 py-3 font-medium">p95 latency</th>
+              <th className="px-4 py-3 font-medium">24h errors</th>
+            </tr>
+          </thead>
+          <tbody>
+            {providers.length === 0 ? (
+              <tr>
+                <td className="px-4 py-3 text-bolt-elements-textSecondary" colSpan={5}>
+                  No providers found.
+                </td>
+              </tr>
+            ) : (
+              providers.map((row, index) => (
+                <ProviderRow
+                  key={row.provider}
+                  row={row}
+                  index={index}
+                  count={providers.length}
+                  password={password}
+                  metricsAvailable={metricsAvailable}
+                  thresholds={thresholds}
+                  reordering={reordering}
+                  onMove={move}
+                />
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ProviderRow({
+  row,
+  index,
+  count,
+  password,
+  metricsAvailable,
+  thresholds,
+  reordering,
+  onMove,
+}: {
+  row: AdminProviderRow;
+  index: number;
+  count: number;
+  password: string;
+  metricsAvailable: boolean;
+  thresholds: ProviderThresholds;
+  reordering: boolean;
+  onMove: (index: number, dir: -1 | 1) => void;
+}) {
+  const toggle = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const toggling = toggle.state !== 'idle';
+  const enabled = row.enabled;
+
+  const p95Label = metricsAvailable && typeof row.p95Ms === 'number' ? `${row.p95Ms} ms` : '—';
+  const errPct = metricsAvailable && typeof row.errorPct === 'number' ? row.errorPct : undefined;
+  const errTone = errPct === undefined ? 'muted' : errorRateTone(errPct, thresholds);
+
+  return (
+    <tr className="border-b border-bolt-elements-borderColor align-top last:border-b-0">
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="w-5 text-xs font-medium text-bolt-elements-textSecondary">{index + 1}</span>
+          <div className="flex flex-col gap-0.5">
+            <button
+              type="button"
+              className={ROW_BTN}
+              disabled={reordering || !password || index === 0}
+              aria-label={`Move ${row.displayName} up`}
+              data-testid={`provider-up-${row.provider}`}
+              onClick={() => onMove(index, -1)}
+            >
+              <span className="i-ph:arrow-up" aria-hidden />
+            </button>
+            <button
+              type="button"
+              className={ROW_BTN}
+              disabled={reordering || !password || index === count - 1}
+              aria-label={`Move ${row.displayName} down`}
+              data-testid={`provider-down-${row.provider}`}
+              onClick={() => onMove(index, 1)}
+            >
+              <span className="i-ph:arrow-down" aria-hidden />
+            </button>
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <div className="font-medium text-bolt-elements-textPrimary">{row.displayName}</div>
+        <div className="text-xs text-bolt-elements-textSecondary">{row.provider}</div>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusPill tone={enabled ? 'ok' : 'muted'}>{enabled ? 'enabled' : 'disabled'}</StatusPill>
+          <button
+            type="button"
+            className={ROW_BTN}
+            disabled={toggling || !password}
+            data-testid={`provider-toggle-${row.provider}`}
+            onClick={() =>
+              toggle.submit(
+                {
+                  intent: 'provider-toggle',
+                  provider: row.provider,
+                  displayName: row.displayName,
+                  value: String(!enabled),
+                  password,
+                },
+                { method: 'post' },
+              )
+            }
+          >
+            {toggling ? '…' : enabled ? 'Disable' : 'Enable'}
+          </button>
+        </div>
+        {!password ? (
+          <p className="mt-1.5 text-xs text-bolt-elements-textTertiary">Enter your password above first.</p>
+        ) : null}
+        <RowFeedback data={toggle.data} />
+      </td>
+      <td className="px-4 py-3 text-bolt-elements-textSecondary">{p95Label}</td>
+      <td className="px-4 py-3">
+        {errPct === undefined ? (
+          <span className="text-bolt-elements-textTertiary">—</span>
+        ) : (
+          <StatusPill tone={errTone}>{errPct.toFixed(1)}%</StatusPill>
+        )}
+      </td>
+    </tr>
   );
 }
 
@@ -4275,15 +4682,39 @@ type AdminAbuseEvent = {
   type?: string;
   severity?: string;
   resolved?: boolean;
+  disposition?: string;
   createdAt?: string;
 };
 
 /*
- * Abuse-event review panel: per-row Resolve wired to POST
- * /admin/abuse-events/:id/resolve. The Resolve button hides once the row is
- * resolved (the loader payload may omit `resolved`; we hide on the fetcher's
- * success too, so a just-resolved row stops offering the action).
+ * F22: abuse-event review panel. Each row shows a status badge (open / warned /
+ * dismissed / suspended / resolved) and offers Dismiss, Warn and Suspend actions
+ * on top of the legacy Resolve — all wired to the real backend:
+ *   Dismiss  → POST /admin/abuse-events/:id/dismiss  (resolves, no user action)
+ *   Warn     → POST /admin/abuse-events/:id/warn      (emails the user, stays open)
+ *   Suspend  → POST /admin/abuse-events/:id/suspend   (blocks the user, reason req.)
+ * Step-up protected (password header). Suspend is destructive → a reason dialog.
  */
+function abuseStatus(event: AdminAbuseEvent): { label: string; tone: 'ok' | 'danger' | 'warn' | 'muted' } {
+  if (event.disposition === 'suspended') {
+    return { label: 'suspended', tone: 'danger' };
+  }
+
+  if (event.disposition === 'warned') {
+    return { label: 'warned', tone: 'warn' };
+  }
+
+  if (event.disposition === 'dismissed') {
+    return { label: 'dismissed', tone: 'muted' };
+  }
+
+  if (event.resolved === true) {
+    return { label: 'resolved', tone: 'ok' };
+  }
+
+  return { label: 'open', tone: 'warn' };
+}
+
 function AbuseEventsPanel({ payload }: { payload: Record<string, JsonValue> }) {
   const events = (Array.isArray(payload.abuseEvents) ? payload.abuseEvents : []) as AdminAbuseEvent[];
   const [password, setPassword] = useState('');
@@ -4293,22 +4724,23 @@ function AbuseEventsPanel({ payload }: { payload: Record<string, JsonValue> }) {
       <ReauthHeader
         password={password}
         onChange={setPassword}
-        hint="Resolving an abuse event is step-up protected. Enter your password once, then Resolve events below."
+        hint="Abuse actions are step-up protected. Enter your password once, then Dismiss, Warn (emails the user) or Suspend the offender. Suspend blocks the account and requires a reason."
       />
 
       <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
-        <table className="w-full min-w-[680px] border-collapse text-sm">
+        <table className="w-full min-w-[760px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
               <th className="px-4 py-3 font-medium">Event</th>
               <th className="px-4 py-3 font-medium">Severity</th>
-              <th className="px-4 py-3 font-medium">Action</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {events.length === 0 ? (
               <tr>
-                <td className="px-4 py-3 text-bolt-elements-textSecondary" colSpan={3}>
+                <td className="px-4 py-3 text-bolt-elements-textSecondary" colSpan={4}>
                   No abuse events found.
                 </td>
               </tr>
@@ -4325,9 +4757,22 @@ function AbuseEventsPanel({ payload }: { payload: Record<string, JsonValue> }) {
 function AbuseEventRow({ event, password }: { event: AdminAbuseEvent; password: string }) {
   const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
   const busy = fetcher.state !== 'idle';
-  const resolved = event.resolved === true || fetcher.data?.ok === true;
   const severity = String(event.severity ?? 'unknown');
-  const tone = severity === 'critical' || severity === 'high' ? 'danger' : 'muted';
+  const severityTone = severity === 'critical' || severity === 'high' ? 'danger' : 'muted';
+
+  const [suspendOpen, setSuspendOpen] = useState(false);
+  const [reason, setReason] = useState('');
+
+  /*
+   * The loader payload reflects the persisted disposition; after a successful
+   * fetcher action the row shows the just-applied status until revalidation lands.
+   */
+  const optimistic = fetcher.data?.ok ? fetcher.data.message : undefined;
+  const status = abuseStatus(event);
+  const terminal = event.disposition === 'suspended' || event.disposition === 'dismissed' || event.resolved === true;
+
+  const run = (intent: string, extra?: Record<string, string>) =>
+    fetcher.submit({ intent, abuseEventId: event.id, password, ...extra }, { method: 'post' });
 
   return (
     <tr className="border-b border-bolt-elements-borderColor align-top last:border-b-0">
@@ -4341,23 +4786,384 @@ function AbuseEventRow({ event, password }: { event: AdminAbuseEvent; password: 
         {event.createdAt ? <div className="text-xs text-bolt-elements-textTertiary">{event.createdAt}</div> : null}
       </td>
       <td className="px-4 py-3">
-        <StatusPill tone={tone}>{severity}</StatusPill>
+        <StatusPill tone={severityTone}>{severity}</StatusPill>
       </td>
       <td className="px-4 py-3">
-        {resolved ? (
-          <StatusPill tone="ok">resolved</StatusPill>
+        <StatusPill tone={status.tone}>{status.label}</StatusPill>
+      </td>
+      <td className="px-4 py-3">
+        {terminal ? (
+          <span className="text-xs text-bolt-elements-textTertiary">{optimistic ?? 'No further action.'}</span>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              className={ROW_BTN}
+              disabled={busy || !password}
+              data-testid={`abuse-dismiss-${event.id}`}
+              onClick={() => run('abuse-dismiss')}
+            >
+              Dismiss
+            </button>
+            <button
+              type="button"
+              className={ROW_BTN}
+              disabled={busy || !password || !event.userId}
+              title={event.userId ? undefined : 'No user attached to this event.'}
+              data-testid={`abuse-warn-${event.id}`}
+              onClick={() => run('abuse-warn')}
+            >
+              Warn
+            </button>
+            <button
+              type="button"
+              className={ROW_DANGER}
+              disabled={busy || !password || !event.userId}
+              title={event.userId ? undefined : 'No user attached to this event.'}
+              data-testid={`abuse-suspend-${event.id}`}
+              onClick={() => setSuspendOpen(true)}
+            >
+              Suspend
+            </button>
+          </div>
+        )}
+        {!password && !busy && !terminal ? (
+          <p className="mt-1.5 text-xs text-bolt-elements-textTertiary">Enter your password above first.</p>
+        ) : null}
+        <RowFeedback data={fetcher.data} />
+
+        <DialogRoot open={suspendOpen} onOpenChange={(next) => (next ? null : setSuspendOpen(false))}>
+          <Dialog showCloseButton={false} onBackdrop={() => setSuspendOpen(false)}>
+            <div className="p-6">
+              <DialogTitle>Suspend the offending user?</DialogTitle>
+              <DialogDescription>
+                The user is signed out everywhere and blocked from signing in until reactivated. This event is marked
+                “suspended”. The reason below is written to the admin audit log.
+              </DialogDescription>
+              <label
+                htmlFor={`abuse-suspend-reason-${event.id}`}
+                className="mt-4 block text-xs font-medium text-bolt-elements-textSecondary"
+              >
+                Reason{' '}
+                <span aria-hidden className="text-[var(--status-error-text)]">
+                  *
+                </span>
+              </label>
+              <textarea
+                id={`abuse-suspend-reason-${event.id}`}
+                value={reason}
+                onChange={(inputEvent) => setReason(inputEvent.target.value)}
+                rows={3}
+                required
+                data-testid={`abuse-suspend-reason-${event.id}`}
+                className="mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
+              />
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSuspendOpen(false)}
+                  className="inline-flex h-8 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={busy || reason.trim().length === 0}
+                  data-testid={`abuse-suspend-confirm-${event.id}`}
+                  onClick={() => {
+                    setSuspendOpen(false);
+                    run('abuse-suspend', { reason: reason.trim() });
+                    setReason('');
+                  }}
+                  className="inline-flex h-8 items-center justify-center rounded-md bg-[var(--status-error-text)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Suspend user
+                </button>
+              </div>
+            </div>
+          </Dialog>
+        </DialogRoot>
+      </td>
+    </tr>
+  );
+}
+
+type AdminSecurityEvent = {
+  id: string;
+  action: string;
+  severity?: string;
+  resolved?: boolean;
+  note?: string;
+  resolvedAt?: string;
+  actorUserId?: string;
+  organizationId?: string;
+  resourceType?: string;
+  resourceId?: string;
+  ipAddress?: string;
+  createdAt?: string;
+};
+
+/* F23: map the API's derived severity (low/medium/high) to a labelled tone. */
+function securitySeverity(severity?: string): { label: string; tone: 'danger' | 'warn' | 'muted' } {
+  if (severity === 'high') {
+    return { label: 'critical', tone: 'danger' };
+  }
+
+  if (severity === 'medium') {
+    return { label: 'warning', tone: 'warn' };
+  }
+
+  return { label: 'info', tone: 'muted' };
+}
+
+/*
+ * F23: security-events panel. Renders the derived-severity audit stream as a
+ * chronological timeline, shows the unresolved open count, and lets an admin
+ * « Mark resolved » with an optional note (persisted via the SecurityEventResolution
+ * overlay from migration 0062 — the immutable audit row is never mutated). The
+ * sidebar badge (see AdminNav) mirrors the same open count. Step-up protected.
+ */
+function SecurityEventsPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const events = (Array.isArray(payload.events) ? payload.events : []) as AdminSecurityEvent[];
+
+  const openCount =
+    typeof payload.openCount === 'number' ? payload.openCount : events.filter((e) => !e.resolved).length;
+
+  const [password, setPassword] = useState('');
+
+  return (
+    <div className="grid gap-4">
+      <ReauthHeader
+        password={password}
+        onChange={setPassword}
+        hint="Resolving a security event is step-up protected. Enter your password once, then Mark resolved (with an optional note) below. Resolutions are recorded separately — the audit trail itself is never changed."
+      />
+
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-xs shadow-sm">
+        <span className="font-semibold text-bolt-elements-textPrimary">Unresolved</span>
+        <StatusPill tone={openCount > 0 ? 'danger' : 'ok'}>{openCount} open</StatusPill>
+        <span className="text-bolt-elements-textTertiary">of {events.length} recent security events</span>
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+        {events.length === 0 ? (
+          <p className="text-sm text-bolt-elements-textSecondary">No security events found.</p>
+        ) : (
+          <ol className="relative ml-2 min-w-[520px] border-l border-bolt-elements-borderColor pl-5">
+            {events.map((event) => (
+              <SecurityEventItem key={event.id} event={event} password={password} />
+            ))}
+          </ol>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SecurityEventItem({ event, password }: { event: AdminSecurityEvent; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+  const resolved = event.resolved === true || fetcher.data?.ok === true;
+  const severity = securitySeverity(event.severity);
+  const [note, setNote] = useState('');
+
+  const meta = [
+    event.actorUserId ? `actor ${event.actorUserId}` : null,
+    event.organizationId ? `org ${event.organizationId}` : null,
+    event.ipAddress ? `ip ${event.ipAddress}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  return (
+    <li className="relative pb-6 last:pb-0">
+      {/* timeline dot */}
+      <span
+        aria-hidden
+        className="absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-bolt-elements-background-depth-2 bg-[var(--vc-ide-accent-action)]"
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-medium text-bolt-elements-textPrimary">{event.action}</span>
+        <StatusPill tone={severity.tone}>{severity.label}</StatusPill>
+        {resolved ? <StatusPill tone="ok">resolved</StatusPill> : <StatusPill tone="warn">open</StatusPill>}
+      </div>
+      {event.createdAt ? <div className="mt-0.5 text-xs text-bolt-elements-textTertiary">{event.createdAt}</div> : null}
+      {meta ? <div className="mt-0.5 text-xs text-bolt-elements-textSecondary">{meta}</div> : null}
+
+      {resolved ? (
+        event.note ? (
+          <p className="mt-1.5 text-xs text-bolt-elements-textSecondary">
+            <span className="font-medium">Note:</span> {event.note}
+          </p>
+        ) : null
+      ) : (
+        <div className="mt-2 flex flex-wrap items-end gap-2">
+          <label className="block text-xs text-bolt-elements-textSecondary">
+            Resolution note (optional)
+            <input
+              value={note}
+              onChange={(inputEvent) => setNote(inputEvent.target.value)}
+              placeholder="e.g. investigated — false positive"
+              data-testid={`security-note-${event.id}`}
+              className="mt-1 w-72 max-w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
+            />
+          </label>
+          <button
+            type="button"
+            className={ROW_BTN}
+            disabled={busy || !password}
+            data-testid={`security-resolve-${event.id}`}
+            onClick={() =>
+              fetcher.submit(
+                { intent: 'security-event-resolve', securityEventId: event.id, note, password },
+                { method: 'post' },
+              )
+            }
+          >
+            {busy ? 'Resolving…' : 'Mark resolved'}
+          </button>
+        </div>
+      )}
+      {!password && !resolved ? (
+        <p className="mt-1.5 text-xs text-bolt-elements-textTertiary">Enter your password above first.</p>
+      ) : null}
+      <RowFeedback data={fetcher.data} />
+    </li>
+  );
+}
+
+type AdminDeletionRequest = {
+  userId: string;
+  email?: string | null;
+  status?: string;
+  requestedAt?: string | null;
+  purgeDueAt?: string | null;
+};
+
+/* F24: purge-queue status → labelled tone. */
+function deletionStatusTone(status?: string): { label: string; tone: 'ok' | 'danger' | 'warn' | 'muted' } {
+  if (status === 'ready_to_purge') {
+    return { label: 'ready to purge', tone: 'danger' };
+  }
+
+  if (status === 'grace_period') {
+    return { label: 'grace period', tone: 'warn' };
+  }
+
+  if (status === 'purged') {
+    return { label: 'purged', tone: 'muted' };
+  }
+
+  return { label: status ?? 'unknown', tone: 'muted' };
+}
+
+/*
+ * F24: account-deletions admin panel. Completes the previously read-only section:
+ * the J+14 purge queue (status + purge-due date), a per-row « Cancel deletion »
+ * (POST /admin/account-deletions/:userId/cancel — clears the user's pending
+ * deletion + drops them from the purge index, gated + reauth + audited) and a
+ * CSV/JSON export served by the loader (?export=). Step-up protected.
+ */
+function AccountDeletionsPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const requests = (Array.isArray(payload.requests) ? payload.requests : []) as AdminDeletionRequest[];
+  const gracePeriodDays = typeof payload.gracePeriodDays === 'number' ? payload.gracePeriodDays : 14;
+  const readyToPurge = typeof payload.readyToPurge === 'number' ? payload.readyToPurge : 0;
+  const [password, setPassword] = useState('');
+  const [searchParams] = useSearchParams();
+
+  const exportHref = (format: 'csv' | 'json') => {
+    const params = new URLSearchParams(searchParams);
+    params.set('export', format);
+
+    return `/admin/account-deletions?${params.toString()}`;
+  };
+
+  return (
+    <div className="grid gap-4">
+      <ReauthHeader
+        password={password}
+        onChange={setPassword}
+        hint={`Cancelling a deletion is step-up protected. Enter your password once, then Cancel a user's pending deletion during the ${gracePeriodDays}-day grace window. Cancel clears their scheduled purge immediately.`}
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-xs shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-semibold text-bolt-elements-textPrimary">Purge queue</span>
+          <StatusPill tone={readyToPurge > 0 ? 'danger' : 'ok'}>{readyToPurge} ready to purge</StatusPill>
+          <span className="text-bolt-elements-textTertiary">
+            {requests.length} pending · grace {gracePeriodDays}d
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <a className={ROW_BTN} href={exportHref('csv')} download data-testid="account-deletions-export-csv">
+            Export CSV
+          </a>
+          <a className={ROW_BTN} href={exportHref('json')} download data-testid="account-deletions-export-json">
+            Export JSON
+          </a>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
+        <table className="w-full min-w-[760px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
+              <th className="px-4 py-3 font-medium">User</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Requested</th>
+              <th className="px-4 py-3 font-medium">Purge due</th>
+              <th className="px-4 py-3 font-medium">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {requests.length === 0 ? (
+              <tr>
+                <td className="px-4 py-3 text-bolt-elements-textSecondary" colSpan={5}>
+                  No pending account deletions.
+                </td>
+              </tr>
+            ) : (
+              requests.map((request) => <DeletionRow key={request.userId} request={request} password={password} />)
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function DeletionRow({ request, password }: { request: AdminDeletionRequest; password: string }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+  const status = deletionStatusTone(request.status);
+  const cancelled = fetcher.data?.ok === true;
+  const purged = request.status === 'purged';
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  return (
+    <tr className="border-b border-bolt-elements-borderColor align-top last:border-b-0">
+      <td className="px-4 py-3">
+        <div className="font-medium text-bolt-elements-textPrimary">{request.email ?? request.userId}</div>
+        <div className="text-xs text-bolt-elements-textSecondary">{request.userId}</div>
+      </td>
+      <td className="px-4 py-3">
+        <StatusPill tone={cancelled ? 'ok' : status.tone}>{cancelled ? 'cancelled' : status.label}</StatusPill>
+      </td>
+      <td className="px-4 py-3 text-bolt-elements-textSecondary">{request.requestedAt ?? '—'}</td>
+      <td className="px-4 py-3 text-bolt-elements-textSecondary">{request.purgeDueAt ?? '—'}</td>
+      <td className="px-4 py-3">
+        {purged || cancelled ? (
+          <span className="text-xs text-bolt-elements-textTertiary">{cancelled ? 'Cancelled.' : 'Purged.'}</span>
         ) : (
           <>
             <button
               type="button"
               className={ROW_BTN}
               disabled={busy || !password}
-              data-testid={`abuse-resolve-${event.id}`}
-              onClick={() =>
-                fetcher.submit({ intent: 'abuse-resolve', abuseEventId: event.id, password }, { method: 'post' })
-              }
+              data-testid={`deletion-cancel-${request.userId}`}
+              onClick={() => setConfirmOpen(true)}
             >
-              {busy ? 'Resolving…' : 'Resolve'}
+              {busy ? 'Cancelling…' : 'Cancel deletion'}
             </button>
             {!password && !busy ? (
               <p className="mt-1.5 text-xs text-bolt-elements-textTertiary">Enter your password above first.</p>
@@ -4365,8 +5171,203 @@ function AbuseEventRow({ event, password }: { event: AdminAbuseEvent; password: 
           </>
         )}
         <RowFeedback data={fetcher.data} />
+        <ConfirmationDialog
+          isOpen={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={() => {
+            setConfirmOpen(false);
+            fetcher.submit(
+              { intent: 'account-deletion-cancel', deletionUserId: request.userId, password },
+              { method: 'post' },
+            );
+          }}
+          title={`Cancel deletion for ${request.email ?? request.userId}?`}
+          description="The user's scheduled account purge is cleared and they are removed from the queue. This is audited."
+          confirmLabel="Cancel deletion"
+        />
       </td>
     </tr>
+  );
+}
+
+/*
+ * F26: costs panel. Renders cost/day per provider over the last 30 days as a
+ * stacked bar (from /admin/costs/summary — grouped server-side by day × provider)
+ * and a monthly-budget gauge with 80% (warn) / 100% (over) alert thresholds vs
+ * month-to-date spend. The budget is a platform system setting
+ * (costs.monthlyBudgetCents) editable inline via the shared system-setting upsert
+ * (step-up protected). Read-only charts; only the budget write mutates state.
+ */
+function CostsPanel({ payload }: { payload: Record<string, JsonValue> }) {
+  const days = (Array.isArray(payload.days) ? payload.days : []) as string[];
+  const providers = (Array.isArray(payload.providers) ? payload.providers : []) as string[];
+
+  const series = (payload.series && typeof payload.series === 'object' ? payload.series : {}) as Record<
+    string,
+    number[]
+  >;
+
+  const monthToDateCents = typeof payload.monthToDateCents === 'number' ? payload.monthToDateCents : 0;
+  const windowTotalCents = typeof payload.windowTotalCents === 'number' ? payload.windowTotalCents : 0;
+  const monthlyBudgetCents = typeof payload.monthlyBudgetCents === 'number' ? payload.monthlyBudgetCents : null;
+  const budgetUsedPct = typeof payload.budgetUsedPct === 'number' ? payload.budgetUsedPct : null;
+
+  const tone = budgetTone(budgetUsedPct);
+
+  const toneVar =
+    tone === 'over'
+      ? 'var(--status-error-text)'
+      : tone === 'warn'
+        ? 'var(--status-warning-text)'
+        : 'var(--status-success-text)';
+
+  // Chart wants dollars; the summary series is in cents.
+  const datasets = providers.map((provider, index) => ({
+    label: provider,
+    values: (series[provider] ?? []).map((cents) => cents / 100),
+    colorIndex: index,
+  }));
+
+  const chartFallback = (
+    <div className="flex h-full items-center justify-center text-sm text-bolt-elements-textTertiary">
+      Loading chart…
+    </div>
+  );
+
+  return (
+    <div className="grid gap-6">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <MetricCard label="Month to date" value={centsToUsd(monthToDateCents)} />
+        <MetricCard label="Last 30 days" value={centsToUsd(windowTotalCents)} />
+        <MetricCard
+          label="Monthly budget"
+          value={monthlyBudgetCents != null ? centsToUsd(monthlyBudgetCents) : 'Not set'}
+        />
+      </div>
+
+      {/* Budget gauge */}
+      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Monthly budget</h3>
+          {budgetUsedPct != null ? (
+            <StatusPill tone={tone === 'over' ? 'danger' : tone === 'warn' ? 'warn' : 'ok'}>
+              {budgetUsedPct}% used{tone === 'over' ? ' — over budget' : tone === 'warn' ? ' — nearing limit' : ''}
+            </StatusPill>
+          ) : (
+            <span className="text-xs text-bolt-elements-textTertiary">Set a budget to enable 80% / 100% alerts.</span>
+          )}
+        </div>
+
+        {budgetUsedPct != null ? (
+          <div className="relative mt-3 h-3 w-full overflow-hidden rounded-full bg-bolt-elements-background-depth-3">
+            <div
+              className="h-full rounded-full transition-[width]"
+              style={{ width: `${Math.min(budgetUsedPct, 100)}%`, backgroundColor: toneVar }}
+            />
+            {/* 80% threshold marker */}
+            <span
+              aria-hidden
+              className="absolute top-0 h-full w-px bg-[var(--status-warning-text)]"
+              style={{ left: '80%' }}
+            />
+          </div>
+        ) : null}
+        {budgetUsedPct != null ? (
+          <p className="mt-2 text-xs text-bolt-elements-textSecondary">
+            {centsToUsd(monthToDateCents)} of {monthlyBudgetCents != null ? centsToUsd(monthlyBudgetCents) : '—'} this
+            month. Alerts: warn ≥ 80%, over ≥ 100%.
+          </p>
+        ) : null}
+
+        <MonthlyBudgetEditor currentBudgetCents={monthlyBudgetCents} />
+      </div>
+
+      {/* Cost/day per provider over 30 days */}
+      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
+        <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Cost per day by provider (30 days)</h3>
+        {providers.length === 0 ? (
+          <p className="mt-2 text-sm text-bolt-elements-textSecondary">No AI cost recorded in the last 30 days.</p>
+        ) : (
+          <div className="mt-3 h-80">
+            <React.Suspense fallback={chartFallback}>
+              <MonitoringCharts.GroupedBarChart
+                labels={days.map((day) => day.slice(5))}
+                datasets={datasets}
+                stacked
+                valueFormat={(value) => `$${value.toFixed(2)}`}
+              />
+            </React.Suspense>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MonthlyBudgetEditor({ currentBudgetCents }: { currentBudgetCents: number | null }) {
+  const fetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const busy = fetcher.state !== 'idle';
+  const [usd, setUsd] = useState(currentBudgetCents != null ? String(currentBudgetCents / 100) : '');
+  const [password, setPassword] = useState('');
+
+  const save = () => {
+    const dollars = Number(usd);
+
+    if (!Number.isFinite(dollars) || dollars < 0) {
+      return;
+    }
+
+    const cents = Math.round(dollars * 100);
+    fetcher.submit(
+      { intent: 'system-setting', key: 'costs.monthlyBudgetCents', value: String(cents), password },
+      { method: 'post' },
+    );
+    setPassword('');
+  };
+
+  const inputClass =
+    'mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive';
+
+  return (
+    <div className="mt-4 border-t border-bolt-elements-borderColor pt-4">
+      <p className="text-xs text-bolt-elements-textSecondary">
+        Set the platform monthly budget (USD). Stored as <code>costs.monthlyBudgetCents</code>. Step-up protected — your
+        password is sent only with the change.
+      </p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        <label className="block text-xs text-bolt-elements-textSecondary">
+          Monthly budget (USD)
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={usd}
+            onChange={(event) => setUsd(event.target.value)}
+            placeholder="e.g. 5000"
+            data-testid="cost-budget-usd"
+            className={inputClass}
+          />
+        </label>
+        <label className="block text-xs text-bolt-elements-textSecondary sm:col-span-2">
+          Confirm with your password
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            placeholder="Your password"
+            data-testid="cost-budget-password"
+            className={inputClass}
+          />
+        </label>
+      </div>
+      <div className="mt-3 flex items-center gap-3">
+        <button type="button" disabled={busy || !usd || !password} onClick={save} className={ROW_BTN}>
+          {busy ? 'Saving…' : 'Save budget'}
+        </button>
+        <RowFeedback data={fetcher.data} />
+      </div>
+    </div>
   );
 }
 

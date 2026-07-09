@@ -1171,6 +1171,8 @@ const samlConfigSchema = z.object({
   x509Certificate: z.string().min(32),
   enabled: z.boolean().default(true),
 });
+const ssoTestParams = z.object({ orgId: z.string().min(1), type: z.enum(['oidc', 'saml']) });
+const ssoEnforcementSchema = z.object({ enforced: z.boolean() });
 
 const scimTokenSchema = z.object({ name: z.string().min(1) });
 
@@ -1947,6 +1949,223 @@ function isSafeWebhookUrl(value: string): boolean {
 
   // Only https to a public host — block loopback/private/link-local/metadata/CGNAT/ULA.
   return parsed.protocol === 'https:' && Boolean(parsed.hostname) && !isBlockedGitHost(parsed.hostname);
+}
+
+/*
+ * SSO enforcement (F15): once an org turns on `ssoEnforced`, non-owner members
+ * must sign in through SSO after a fixed grace window measured from
+ * `ssoEnforcedAt`. Owners are always exempt so a mis-configured IdP can never
+ * lock the org out of its own admin. The grace gives members time to migrate.
+ */
+const SSO_ENFORCEMENT_GRACE_DAYS = 7;
+const SSO_ENFORCEMENT_GRACE_MS = SSO_ENFORCEMENT_GRACE_DAYS * 24 * 60 * 60 * 1000;
+
+type SsoEnforcementSettings = { ssoEnforced?: boolean; ssoEnforcedAt?: string | null };
+
+/** Grace deadline (ISO) after which enforcement is active, or null when not enforced. */
+function ssoEnforcementDeadline(settings: SsoEnforcementSettings): string | null {
+  if (!settings.ssoEnforced || !settings.ssoEnforcedAt) {
+    return null;
+  }
+
+  const startedAt = new Date(settings.ssoEnforcedAt).getTime();
+
+  if (!Number.isFinite(startedAt)) {
+    return null;
+  }
+
+  return new Date(startedAt + SSO_ENFORCEMENT_GRACE_MS).toISOString();
+}
+
+/** UI/API-facing view of the enforcement state, including the computed grace deadline. */
+function buildSsoEnforcementView(settings: SsoEnforcementSettings, now = Date.now()) {
+  const graceDeadline = ssoEnforcementDeadline(settings);
+
+  return {
+    enforced: settings.ssoEnforced ?? false,
+    enforcedAt: settings.ssoEnforcedAt ?? null,
+    graceDays: SSO_ENFORCEMENT_GRACE_DAYS,
+    graceDeadline,
+    // `active` = enforcement is on AND the grace window has elapsed (login-blocking is live).
+    active: Boolean(graceDeadline && now >= new Date(graceDeadline).getTime()),
+  };
+}
+
+/*
+ * Validate a stored SSO config server-side WITHOUT ever returning any secret.
+ * `detail` strings are hand-written and never interpolate clientSecret / the
+ * X.509 certificate. Reachability checks are SSRF-guarded (https + public host
+ * via isSafeWebhookUrl) and never follow redirects, so a config that once
+ * passed validation can't be used to pivot to an internal target.
+ */
+type SsoCheck = { name: string; ok: boolean; detail: string };
+
+async function reachUrl(
+  url: string,
+  timeoutMs = 5000,
+): Promise<{ ok: boolean; status?: number; error?: string; discovery?: Record<string, unknown> }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      // GET (not HEAD) — some discovery/SSO endpoints reject HEAD. redirect:'manual'
+      // so a 3xx cannot bounce this in-cluster pod to an internal target.
+      method: 'GET',
+      redirect: 'manual',
+      headers: { accept: 'application/json' },
+      signal: controller.signal,
+    });
+
+    return { ok: true, status: response.status, ...(await parseDiscovery(response)) };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.name : 'fetch_failed' };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// Attempt to parse a discovery JSON body; returns {} on any failure so callers stay secret-free.
+async function parseDiscovery(response: Response): Promise<{ discovery?: Record<string, unknown> }> {
+  try {
+    const clone = response.clone();
+    const body = (await clone.json()) as Record<string, unknown>;
+
+    return { discovery: body };
+  } catch {
+    return {};
+  }
+}
+
+async function runOidcConnectionChecks(config: {
+  issuer?: string;
+  clientId?: string;
+  authorizationUrl?: string;
+  tokenUrl?: string;
+  jwksUrl?: string;
+}): Promise<SsoCheck[]> {
+  const checks: SsoCheck[] = [];
+
+  checks.push({
+    name: 'Client ID stored',
+    ok: Boolean(config.clientId && config.clientId.trim()),
+    detail: config.clientId && config.clientId.trim() ? 'A client ID is stored.' : 'No client ID is stored.',
+  });
+
+  const issuer = (config.issuer ?? '').trim();
+  const issuerSafe = Boolean(issuer) && isSafeWebhookUrl(issuer);
+  checks.push({
+    name: 'Issuer URL',
+    ok: issuerSafe,
+    detail: issuerSafe
+      ? 'Issuer is a valid HTTPS URL to a public host.'
+      : 'Issuer must be an HTTPS URL to a public host.',
+  });
+
+  if (!issuerSafe) {
+    checks.push({
+      name: 'Discovery document',
+      ok: false,
+      detail: 'Skipped — the issuer URL is not a reachable HTTPS endpoint.',
+    });
+
+    return checks;
+  }
+
+  const discoveryUrl = `${issuer.replace(/\/+$/, '')}/.well-known/openid-configuration`;
+  const result = await reachUrl(discoveryUrl);
+
+  if (!result.ok) {
+    checks.push({ name: 'Discovery document', ok: false, detail: 'The discovery endpoint could not be reached.' });
+
+    return checks;
+  }
+
+  if (typeof result.status === 'number' && (result.status < 200 || result.status >= 300)) {
+    checks.push({
+      name: 'Discovery document',
+      ok: false,
+      detail: `The discovery endpoint returned HTTP ${result.status}.`,
+    });
+
+    return checks;
+  }
+
+  const required = ['issuer', 'authorization_endpoint', 'token_endpoint', 'jwks_uri'];
+  const missing = required.filter((field) => !result.discovery || !result.discovery[field]);
+  checks.push({
+    name: 'Discovery document',
+    ok: missing.length === 0,
+    detail:
+      missing.length === 0
+        ? 'Discovery document is reachable and advertises the required OIDC endpoints.'
+        : `Discovery document is missing required fields: ${missing.join(', ')}.`,
+  });
+
+  return checks;
+}
+
+async function runSamlConnectionChecks(config: {
+  entityId?: string;
+  ssoUrl?: string;
+  x509Certificate?: string;
+}): Promise<SsoCheck[]> {
+  const checks: SsoCheck[] = [];
+
+  checks.push({
+    name: 'Entity ID',
+    ok: Boolean(config.entityId && config.entityId.trim()),
+    detail: config.entityId && config.entityId.trim() ? 'An entity ID is stored.' : 'No entity ID is stored.',
+  });
+
+  // Well-formed PEM check only — the certificate body is NEVER echoed back.
+  const cert = config.x509Certificate ?? '';
+  const certBody = cert
+    .replace(/-----BEGIN CERTIFICATE-----/g, '')
+    .replace(/-----END CERTIFICATE-----/g, '')
+    .replace(/\s+/g, '');
+  const certOk =
+    /-----BEGIN CERTIFICATE-----/.test(cert) &&
+    /-----END CERTIFICATE-----/.test(cert) &&
+    certBody.length >= 40 &&
+    /^[A-Za-z0-9+/=]+$/.test(certBody);
+  checks.push({
+    name: 'Signing certificate',
+    ok: certOk,
+    detail: certOk
+      ? 'A well-formed X.509 certificate is stored.'
+      : 'The stored certificate is not a well-formed PEM block.',
+  });
+
+  const ssoUrl = (config.ssoUrl ?? '').trim();
+  const ssoSafe = Boolean(ssoUrl) && isSafeWebhookUrl(ssoUrl);
+  checks.push({
+    name: 'SSO URL',
+    ok: ssoSafe,
+    detail: ssoSafe ? 'SSO URL is a valid HTTPS URL to a public host.' : 'SSO URL must be an HTTPS URL to a public host.',
+  });
+
+  if (!ssoSafe) {
+    checks.push({
+      name: 'SSO endpoint reachable',
+      ok: false,
+      detail: 'Skipped — the SSO URL is not a reachable HTTPS endpoint.',
+    });
+
+    return checks;
+  }
+
+  const result = await reachUrl(ssoUrl);
+  checks.push({
+    name: 'SSO endpoint reachable',
+    // Any HTTP response (incl. 3xx/4xx) proves reachability; only a network error/timeout fails.
+    ok: result.ok,
+    detail: result.ok
+      ? `The SSO endpoint responded (HTTP ${result.status ?? 'redirect'}).`
+      : 'The SSO endpoint could not be reached.',
+  });
+
+  return checks;
 }
 
 function isSafeGitRemoteUrl(value: string) {
@@ -3898,6 +4117,37 @@ async function sessionExpiresAtForUser(store: ApiStore, userId: string) {
   }
 
   return new Date(Date.now() + strictestMinutes * 60_000);
+}
+
+/*
+ * SSO enforcement gate for interactive password login (F15). Returns the first
+ * org whose SSO enforcement has passed its grace window AND in which the user is
+ * NOT an owner — such a user must sign in through SSO, so password login is
+ * rejected. Owners are always exempt (anti-lockout). Orgs still inside the grace
+ * window never block. Returns undefined when password login is allowed.
+ */
+async function ssoEnforcedOrgBlockingPasswordLogin(store: ApiStore, userId: string) {
+  const organizations = await store.listOrganizations(userId);
+  const now = Date.now();
+
+  for (const organization of organizations) {
+    const settings = await store.getEnterpriseSettings(organization.id);
+    const deadline = ssoEnforcementDeadline(settings);
+
+    if (!deadline || now < new Date(deadline).getTime()) {
+      continue;
+    }
+
+    const membership = await store.getMembership(userId, organization.id);
+
+    if (membership?.roleKey === 'owner') {
+      continue;
+    }
+
+    return organization;
+  }
+
+  return undefined;
 }
 
 /*
@@ -7748,6 +7998,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (await isUserSuspended(store, user.id)) {
         metrics.increment('auth_failures_total', { reason: 'suspended' });
         return reply.code(403).send({ error: 'User is suspended', code: 'USER_SUSPENDED' });
+      }
+
+      /*
+       * SSO enforcement (F15): if any of the user's orgs enforces SSO past its
+       * grace window and the user is a non-owner member there, password login is
+       * refused — they must authenticate through their identity provider. Checked
+       * after full credential + MFA verification so it can't be used to probe org
+       * policy without valid credentials.
+       */
+      const ssoBlockingOrg = await ssoEnforcedOrgBlockingPasswordLogin(store, user.id);
+
+      if (ssoBlockingOrg) {
+        metrics.increment('auth_failures_total', { reason: 'sso_enforced' });
+        return reply.code(403).send({
+          error: 'Your organization requires single sign-on. Please sign in through your identity provider.',
+          code: 'SSO_ENFORCED',
+        });
       }
 
       const token = createOpaqueToken('session');
@@ -16414,6 +16681,97 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { config: { id: config.id, type: config.type, enabled: config.enabled, updatedAt: config.updatedAt } };
   });
+  app.post('/orgs/:orgId/sso/:type/test', async (request, reply) => {
+    const { orgId, type } = parse(ssoTestParams, request.params);
+    await requireOrg(request, store, orgId, 'security:manage');
+    await requireRecentAdminReauth(request);
+
+    const config = await store.getSsoConfig(orgId, type);
+
+    if (!config) {
+      return reply.code(404).send({
+        error: `No ${type.toUpperCase()} provider is configured for this organization.`,
+        code: 'SSO_NOT_CONFIGURED',
+      });
+    }
+
+    /*
+     * Decrypt server-side only. The decrypted config (which includes the OIDC
+     * clientSecret / SAML certificate) NEVER leaves this handler — only the
+     * hand-written `checks` below are returned, and none of them interpolate a
+     * secret value.
+     */
+    let checks: SsoCheck[];
+
+    if (type === 'oidc') {
+      const decrypted = decryptJson<{
+        issuer?: string;
+        clientId?: string;
+        clientSecret?: string;
+        authorizationUrl?: string;
+        tokenUrl?: string;
+        jwksUrl?: string;
+      }>(config.encryptedConfig);
+      checks = await runOidcConnectionChecks(decrypted);
+    } else {
+      const decrypted = decryptJson<{ entityId?: string; ssoUrl?: string; x509Certificate?: string }>(
+        config.encryptedConfig,
+      );
+      checks = await runSamlConnectionChecks(decrypted);
+    }
+
+    await audit(request, store, {
+      organizationId: orgId,
+      action: `sso.${type}.test`,
+      resourceType: 'ssoConfig',
+      resourceId: config.id,
+    });
+
+    return { ok: checks.every((check) => check.ok), checks };
+  });
+  app.get('/orgs/:orgId/sso/enforcement', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'security:manage');
+
+    const settings = await store.getEnterpriseSettings(orgId);
+
+    return { enforcement: buildSsoEnforcementView(settings) };
+  });
+  app.put('/orgs/:orgId/sso/enforcement', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    const body = parse(ssoEnforcementSchema, request.body);
+    await requireOrg(request, store, orgId, 'security:manage');
+    await requireRecentAdminReauth(request);
+
+    const current = await store.getEnterpriseSettings(orgId);
+
+    /*
+     * Only (re)start the grace clock when turning enforcement ON from an OFF
+     * state — re-saving while already enforced must not reset an in-flight grace
+     * window. Turning it off clears the timestamp (null).
+     */
+    let ssoEnforcedAt: string | null;
+
+    if (body.enforced) {
+      ssoEnforcedAt = current.ssoEnforced && current.ssoEnforcedAt ? current.ssoEnforcedAt : new Date().toISOString();
+    } else {
+      ssoEnforcedAt = null;
+    }
+
+    const settings = await store.updateEnterpriseSettings({
+      organizationId: orgId,
+      ssoEnforced: body.enforced,
+      ssoEnforcedAt,
+    });
+    await audit(request, store, {
+      organizationId: orgId,
+      action: 'sso.enforcement.update',
+      resourceType: 'enterpriseSettings',
+      resourceId: orgId,
+    });
+
+    return { enforcement: buildSsoEnforcementView(settings) };
+  });
   app.post('/orgs/:orgId/scim/tokens', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     const body = parse(scimTokenSchema, request.body);
@@ -22242,10 +22600,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /*
-   * The set of provider DISPLAY NAMES enabled for the user model selector. Read
-   * server-side by the web (/api/models + /projects/new loader) to hide providers
-   * an admin disabled. Any authenticated user; returns no secrets. A known provider
-   * with no row yet is treated as enabled (fail-open).
+   * The set of provider DISPLAY NAMES enabled for the user model selector, in the
+   * admin-configured fallback order (F18). Read server-side by the web (/api/models
+   * + /projects/new loader) to hide providers an admin disabled and to try them in
+   * the operator's preferred priority. Any authenticated user; returns no secrets.
+   * A known provider with no row yet is treated as enabled (fail-open). The order
+   * mirrors GET /admin/providers/fallback-order: saved order first, then any known
+   * provider not yet placed — so resolution honors the same order the admin sees.
    */
   app.get('/providers/enabled', async (request: any) => {
     if (!request.currentUser) {
@@ -22253,8 +22614,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const byName = new Map((await store.listProviderConfigs()).map((p) => [p.provider, p.enabled] as const));
+    const saved = (await store.listSystemSettings()).find((s) => s.key === 'providers.fallbackOrder')?.value;
+    const savedOrder = Array.isArray(saved)
+      ? saved.filter((value): value is string => typeof value === 'string' && KNOWN_LLM_PROVIDER_SET.has(value))
+      : [];
+    const order = [...savedOrder, ...KNOWN_LLM_PROVIDERS.filter((name) => !savedOrder.includes(name))];
 
-    return { providers: KNOWN_LLM_PROVIDERS.filter((name) => byName.get(name) !== false) };
+    return { providers: order.filter((name) => byName.get(name) !== false) };
   });
 
   app.get('/admin/models', async (request) => {
@@ -22793,16 +23159,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           .number()
           .int()
           .refine((value) => value !== 0, { message: 'deltaCents must be a non-zero integer' }),
-        reason: z.string().min(1).max(500),
+        // Optional at the schema layer so both a missing AND a whitespace-only
+        // reason fall through to the explicit check below, which rejects with the
+        // specific WALLET_ADJUST_REASON_REQUIRED code (not the generic zod 400).
+        reason: z.string().max(500).optional(),
       }),
       request.body ?? {},
     );
+
+    /*
+     * F20: a reason is MANDATORY on every wallet adjustment — it is the human
+     * "why" persisted alongside the signed ADJUSTMENT ledger entry (the audit
+     * trail the movement-history table renders). Trim first so a whitespace-only
+     * reason ("   ") is rejected too, and store the trimmed value.
+     */
+    const reason = (body.reason ?? '').trim();
+
+    if (!reason) {
+      throw Object.assign(new Error('A reason is required for wallet adjustments — it is recorded in the audit trail.'), {
+        statusCode: 400,
+        code: 'WALLET_ADJUST_REASON_REQUIRED',
+      });
+    }
 
     const { entry, balanceCents } = await store.recordCreditEntry({
       organizationId,
       deltaCents: body.deltaCents,
       kind: 'ADJUSTMENT',
-      reason: body.reason,
+      reason,
     });
 
     await audit(request, store, {
@@ -22810,7 +23194,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       action: 'admin.wallet.adjust',
       resourceType: 'wallet',
       resourceId: organizationId,
-      metadata: { deltaCents: body.deltaCents, reason: body.reason, balanceCents },
+      metadata: { deltaCents: body.deltaCents, reason, balanceCents },
     });
 
     return { wallet: { organizationId, balanceCents }, entry };
@@ -24328,6 +24712,44 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { abuseEvent, warned: true };
+  });
+
+  /*
+   * F22: suspend the offending user from an abuse event. Reuses the exact suspend
+   * mechanics as POST /admin/users/:id/suspend (last-admin guard, session revoke,
+   * audit) and marks the event 'suspended' + resolved. A reason is mandatory and
+   * persisted in the admin audit event. Audited under both actions.
+   */
+  app.post('/admin/abuse-events/:abuseEventId/suspend', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { abuseEventId } = parse(adminAbuseParams, request.params);
+    const { reason } = parse(adminSuspendReasonBody, request.body ?? {});
+    const event = (await store.listAbuseEvents()).find((candidate) => candidate.id === abuseEventId);
+
+    if (!event) {
+      return reply.code(404).send({ error: 'abuse_event_not_found' });
+    }
+
+    if (!event.userId) {
+      return reply.code(400).send({ error: 'no_user_to_suspend' });
+    }
+
+    const userId = event.userId;
+    await store.withSerializedMutation('platform-admin', async () => {
+      await assertNotLastPlatformAdmin(store, userId);
+      await store.mutateSystemSettingIds('admin.suspendedUserIds', { add: userId });
+    });
+    await store.revokeAllSessions(userId);
+
+    const abuseEvent = await store.updateAbuseEvent({ abuseEventId, resolved: true, disposition: 'suspended' });
+    await recordAdminAction(request, store, {
+      action: 'admin.abuse_event.suspend',
+      metadata: { abuseEventId, userId, reason },
+    });
+
+    return { abuseEvent, suspended: true };
   });
 
   app.post('/admin/support-tickets/:ticketId/respond', async (request) => {
@@ -27172,6 +27594,45 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return { auditLogs };
+  });
+
+  /*
+   * F17: Team access log. Teams have no distinct model in this platform — a
+   * "team" IS an organization (teams.new → create-organization flow, the team
+   * surface routes key off the org id). So the team access log REUSES the
+   * immutable AuditLog trail scoped to that team/org's id, no new table. The
+   * `:teamId` path param is the organization id; membership + permission are
+   * enforced exactly like the org audit-log endpoints above (`org:read` to view,
+   * the stronger `audit:export` to download). A non-member gets 404 from
+   * requireOrg (no org disclosure), a member without export gets 403.
+   */
+  const teamParams = z.object({ teamId: z.string().min(1) });
+
+  app.get('/teams/:teamId/access-log', async (request) => {
+    const { teamId } = parse(teamParams, request.params);
+    await requireOrg(request, store, teamId, 'org:read');
+
+    return { accessLog: await store.listAuditLogs(teamId) };
+  });
+  app.get('/teams/:teamId/access-log/export', async (request, reply) => {
+    const { teamId } = parse(teamParams, request.params);
+    const { format } = parse(z.object({ format: z.enum(['json', 'csv']).default('json') }), request.query ?? {});
+    await requireOrg(request, store, teamId, 'audit:export');
+
+    const accessLog = await store.listAuditLogs(teamId);
+    await audit(request, store, {
+      organizationId: teamId,
+      action: 'team.access-log.export',
+      resourceType: 'auditLog',
+      metadata: { format },
+    });
+
+    if (format === 'csv') {
+      reply.header('content-type', 'text/csv');
+      return auditEventsToCsv(accessLog);
+    }
+
+    return { accessLog };
   });
 
   app.get('/scim/v2/:orgId/Users', async (request, reply) => {
