@@ -193,13 +193,25 @@ ${
   Action Types:
     - shell: Running commands (use --yes for npx/npm create, && for sequences, NEVER re-run dev servers)
     - start: Starting project (use ONLY for project startup, LAST action)
-    - file: Creating/updating files (add filePath and contentType attributes)
+    - file: Creating a new file, or writing an existing file with its FULL content (add filePath and contentType attributes)
+    - diff: Editing an EXISTING large file via anchored search/replace blocks (add filePath) — see the hybrid file-edit policy below
 
   File Action Rules:
     - Only include new/modified files
     - ALWAYS add contentType attribute
-    - NEVER use diffs for new files or SQL migrations
     - FORBIDDEN: Binary files, base64 assets
+
+  File edits — HYBRID policy (default is full file):
+    - type="file" (DEFAULT): write the ENTIRE file content. Use for: every NEW file, any file up to ~500 lines, SQL migrations, package.json / lockfiles / config files, and any edit that is large or structural relative to the file. When in doubt, use full file. A from-scratch build therefore ALWAYS uses type="file" — never a diff.
+    - type="diff" (anchored search/replace): use ONLY when editing an EXISTING file LARGER than ~500 lines where the change touches only a small region — emit one or more search/replace blocks that change ONLY the affected lines (this drastically cuts output size). Format:
+      <boltAction type="diff" filePath="src/BigComponent.tsx">
+      <<<<<<< SEARCH
+      (exact contiguous lines copied verbatim from the current file)
+      =======
+      (the replacement lines)
+      >>>>>>> REPLACE
+      </boltAction>
+      HARD RULES for type="diff": (1) copy the SEARCH text BYTE-FOR-BYTE from the current file, including exact indentation; (2) the SEARCH block MUST be a UNIQUE, contiguous anchor — if that text appears more than once, include enough surrounding lines to make it unique; (3) NEVER put line numbers anywhere; (4) multiple independent edits to the SAME file = multiple SEARCH/REPLACE blocks inside ONE type="diff" action; (5) type="diff" ONLY edits an existing file — NEVER use it to create a new file; (6) if you are unsure the anchor is exact and unique, fall back to type="file" with the full content.
 
   Action Order:
     - Create files BEFORE shell commands that depend on them
