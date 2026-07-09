@@ -23074,6 +23074,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /*
+   * Service-to-service: the web LLM path (app/lib/.server/llm/stream-text.ts) has
+   * NO Prisma, so it fetches admin-set provider keys here to inject into the
+   * per-request serverEnv it hands to base-provider. Returns DECRYPTED keys for
+   * ENABLED providers that have a DB key — gated by the internal shared secret
+   * (the web pod carries WORKSPACE_MANAGER_SHARED_SECRET, which requireInternalSecret
+   * accepts). Never exposed to the browser. Keyed by provider DISPLAY NAME so the
+   * web maps each to its own apiTokenKey/baseUrlKey.
+   */
+  app.get('/internal/providers/credentials', async (request) => {
+    requireInternalSecret(request);
+
+    const configs = (await store.listProviderConfigs()).filter(
+      (p) => KNOWN_LLM_PROVIDER_SET.has(p.provider) && p.enabled && p.apiKeyEnc,
+    );
+
+    const providers: Array<{ provider: string; apiKey: string; baseUrl: string | null }> = [];
+
+    for (const p of configs) {
+      let apiKey: string | undefined;
+
+      try {
+        apiKey = decryptJson<{ value: string }>(p.apiKeyEnc as string).value;
+      } catch {
+        // Undecryptable row → skip; the web keeps its env fallback for this provider.
+        continue;
+      }
+
+      if (apiKey && apiKey.trim().length > 0) {
+        providers.push({ provider: p.provider, apiKey, baseUrl: p.baseUrl ?? null });
+      }
+    }
+
+    return { providers };
+  });
+
+  /*
    * Admin self-service OAuth provider config (GitHub/GitLab/Bitbucket). Lets an
    * operator wire the OAuth apps' client_id/secret from the admin UI instead of
    * env vars; the connect flow reads these via connectorCredentialsFor (DB-first).

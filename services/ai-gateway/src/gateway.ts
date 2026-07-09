@@ -76,6 +76,13 @@ export interface ProviderConfig {
   apiKeyEnv?: string;
   defaultModel: string;
   healthPath?: string;
+
+  /*
+   * DB-resolved platform API key (admin-set, decrypted from
+   * ProviderConfig.apiKeyEnc). When present it takes precedence over
+   * process.env[apiKeyEnv]; see resolveProviderKey / withProviderKeyOverride.
+   */
+  apiKey?: string;
 }
 
 export function providerConfigs(): ProviderConfig[] {
@@ -331,12 +338,175 @@ function logAnthropicCacheUsage(json: unknown): void {
   }
 }
 
-function configured(config: ProviderConfig) {
-  return config.kind === 'ollama' || Boolean(config.apiKeyEnv && process.env[config.apiKeyEnv]);
+export function configured(config: ProviderConfig) {
+  return config.kind === 'ollama' || Boolean(bearer(config));
 }
 
-function bearer(config: ProviderConfig) {
+/*
+ * Resolve the auth token for a provider DB-first → env-fallback. A DB-resolved
+ * key (config.apiKey, set by withProviderKeyOverride from ProviderConfig.apiKeyEnc)
+ * wins; otherwise fall back to process.env[apiKeyEnv]. With no DB key this is
+ * byte-identical to the previous env-only behaviour (zero regression).
+ */
+export function bearer(config: ProviderConfig): string | undefined {
+  if (config.apiKey && config.apiKey.trim().length > 0) {
+    return config.apiKey;
+  }
+
   return config.apiKeyEnv ? process.env[config.apiKeyEnv] : undefined;
+}
+
+/*
+ * --- DB-first provider key resolution -------------------------------------
+ *
+ * An admin can set a platform API key per provider in /admin (stored encrypted
+ * as ProviderConfig.apiKeyEnc). The gateway resolves DB-first, falling back to
+ * the *_API_KEY env var. Decrypted keys are cached in-process for a short TTL so
+ * a burst of requests doesn't hit Postgres per call; the TTL is enough
+ * (invalidation is intentionally skipped — a rotated key takes effect within
+ * PROVIDER_KEY_TTL_MS). The pod already carries CONFIG_ENCRYPTION_KEY (mounted on
+ * every pod via the shared platform secret), so decryptJson resolves the same key
+ * the API used to encrypt.
+ */
+const PROVIDER_KEY_TTL_MS = 60_000;
+
+/** Gateway provider id → the ProviderConfig row's display-name key. Keyless (ollama) omitted. */
+const PROVIDER_ID_TO_DB_NAME: Partial<Record<AiProviderId, string>> = {
+  openai: 'OpenAI',
+  anthropic: 'Anthropic',
+  'google-gemini': 'Google',
+  openrouter: 'OpenRouter',
+  mistral: 'Mistral',
+  groq: 'Groq',
+  xai: 'xAI',
+};
+
+const DB_NAME_TO_PROVIDER_ID = new Map(
+  Object.entries(PROVIDER_ID_TO_DB_NAME).map(([id, name]) => [name, id as AiProviderId]),
+);
+
+interface ProviderKeyOverride {
+  apiKey?: string;
+  baseUrl?: string;
+}
+
+const providerKeyOverrides = new Map<AiProviderId, ProviderKeyOverride>();
+let providerKeyOverridesExpiry = 0;
+
+/*
+ * Test seam: inject a loader that returns the raw provider rows (as the DB
+ * findMany would) so the DB-first resolution can be exercised without a live
+ * Postgres. Setting/clearing it also resets the TTL so the next hydrate reloads.
+ */
+export type ProviderKeyRow = { provider: string; apiKeyEnc?: string | null; baseUrl?: string | null };
+type ProviderKeyLoader = () => Promise<ProviderKeyRow[]>;
+let providerKeyLoaderForTest: ProviderKeyLoader | undefined;
+
+export function __setProviderKeyLoaderForTest(loader: ProviderKeyLoader | undefined) {
+  providerKeyLoaderForTest = loader;
+  providerKeyOverridesExpiry = 0;
+  providerKeyOverrides.clear();
+}
+
+let sharedGatewayDbClient: import('@vibecore/database').DatabaseClient | undefined;
+
+async function loadProviderKeyRows(): Promise<ProviderKeyRow[]> {
+  if (providerKeyLoaderForTest) {
+    return providerKeyLoaderForTest();
+  }
+
+  if (!process.env.DATABASE_URL) {
+    return [];
+  }
+
+  if (!sharedGatewayDbClient) {
+    const { createDatabaseClient } = await import('@vibecore/database');
+    sharedGatewayDbClient = createDatabaseClient();
+  }
+
+  return sharedGatewayDbClient.providerConfig.findMany({
+    where: { provider: { in: Object.values(PROVIDER_ID_TO_DB_NAME) } },
+    select: { provider: true, apiKeyEnc: true, baseUrl: true },
+  });
+}
+
+/*
+ * Refresh the decrypted-key cache when the TTL has elapsed. Never throws — on any
+ * failure (DB down, undecryptable row) the previous overrides are kept and env
+ * fallback still works, so a DB hiccup can never take generation down. Call this
+ * before route()/health() so the sync enrichment below sees fresh values.
+ */
+export async function hydrateProviderKeyOverrides(force = false): Promise<void> {
+  if (!force && Date.now() < providerKeyOverridesExpiry) {
+    return;
+  }
+
+  // Advance the TTL up-front so concurrent requests don't all stampede the DB.
+  providerKeyOverridesExpiry = Date.now() + PROVIDER_KEY_TTL_MS;
+
+  try {
+    const rows = await loadProviderKeyRows();
+    const { decryptJson } = await import('@vibecore/security');
+
+    const next = new Map<AiProviderId, ProviderKeyOverride>();
+
+    for (const row of rows) {
+      const id = DB_NAME_TO_PROVIDER_ID.get(row.provider);
+
+      if (!id) {
+        continue;
+      }
+
+      const override: ProviderKeyOverride = {};
+
+      if (row.apiKeyEnc) {
+        try {
+          const value = decryptJson<{ value: string }>(row.apiKeyEnc).value;
+
+          if (value && value.trim().length > 0) {
+            override.apiKey = value;
+          }
+        } catch {
+          // Undecryptable row → leave the env fallback in place for this provider.
+        }
+      }
+
+      if (row.baseUrl && row.baseUrl.trim().length > 0) {
+        override.baseUrl = row.baseUrl;
+      }
+
+      if (override.apiKey || override.baseUrl) {
+        next.set(id, override);
+      }
+    }
+
+    providerKeyOverrides.clear();
+
+    for (const [id, override] of next) {
+      providerKeyOverrides.set(id, override);
+    }
+  } catch {
+    // Keep whatever we had; env fallback covers the gap.
+  }
+}
+
+/*
+ * Return a config enriched with any DB override (decrypted key + optional
+ * baseUrl). Pure + sync so route()/health() can map over configs after an
+ * awaited hydrate. No override → the config is returned unchanged.
+ */
+export function withProviderKeyOverride(config: ProviderConfig): ProviderConfig {
+  const override = providerKeyOverrides.get(config.id);
+
+  if (!override) {
+    return config;
+  }
+
+  return {
+    ...config,
+    ...(override.apiKey ? { apiKey: override.apiKey } : {}),
+    ...(override.baseUrl ? { baseUrl: override.baseUrl } : {}),
+  };
 }
 
 export function headers(config: ProviderConfig) {
@@ -950,35 +1120,40 @@ export class AiGateway {
   }
 
   async health() {
+    // Reflect admin-set DB keys in the health/configured flags too.
+    await hydrateProviderKeyOverrides();
+
     return Promise.all(
-      providerConfigs().map(async (config) => {
-        if (!configured(config)) {
-          return { provider: config.id, healthy: false, configured: false };
-        }
+      providerConfigs()
+        .map(withProviderKeyOverride)
+        .map(async (config) => {
+          if (!configured(config)) {
+            return { provider: config.id, healthy: false, configured: false };
+          }
 
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 1500);
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 1500);
 
-        try {
-          const response = await fetch(
-            config.kind === 'ollama' ? `${config.baseUrl.replace(/\/+$/, '')}/api/tags` : config.baseUrl,
-            { method: 'GET', signal: controller.signal },
-          );
+          try {
+            const response = await fetch(
+              config.kind === 'ollama' ? `${config.baseUrl.replace(/\/+$/, '')}/api/tags` : config.baseUrl,
+              { method: 'GET', signal: controller.signal },
+            );
 
-          // Release the probe connection — the body is never read.
-          await response.body?.cancel().catch(() => {});
+            // Release the probe connection — the body is never read.
+            await response.body?.cancel().catch(() => {});
 
-          return { provider: config.id, healthy: response.status < 500, configured: true };
-        } catch {
-          return { provider: config.id, healthy: false, configured: true };
-        } finally {
-          /*
-           * Clear the abort timer on EVERY path (the catch branch previously left
-           * a dangling timer to fire against an already-settled controller).
-           */
-          clearTimeout(timer);
-        }
-      }),
+            return { provider: config.id, healthy: response.status < 500, configured: true };
+          } catch {
+            return { provider: config.id, healthy: false, configured: true };
+          } finally {
+            /*
+             * Clear the abort timer on EVERY path (the catch branch previously left
+             * a dangling timer to fire against an already-settled controller).
+             */
+            clearTimeout(timer);
+          }
+        }),
     );
   }
 
@@ -1095,6 +1270,10 @@ export class AiGateway {
     const providers = [...new Set(providerIds)]
       .map((providerId) => providerConfigs().find((config) => config.id === providerId))
       .filter((config): config is ProviderConfig => Boolean(config))
+      // Apply any admin-set DB key/baseUrl (populated by an awaited hydrate in
+      // complete()/stream()) BEFORE the `configured` filter, so a DB-only key
+      // (no env var) still counts the provider as usable.
+      .map(withProviderKeyOverride)
       .filter(configured);
 
     if (providers.length === 0) {
@@ -1152,6 +1331,10 @@ export class AiGateway {
   async complete(request: AiChatRequest, signal?: AbortSignal) {
     await ensureGptTokenizer();
 
+    // DB-first key resolution: refresh the decrypted-key cache (TTL-guarded)
+    // before routing so route() enriches configs with any admin-set key.
+    await hydrateProviderKeyOverrides();
+
     const routed = this.route(request);
     const plan = request.plan ?? 'free';
     const primaryProviderId = request.provider ?? routed.model.provider;
@@ -1195,6 +1378,9 @@ export class AiGateway {
 
   async *stream(request: AiChatRequest, signal?: AbortSignal): AsyncGenerator<AiChatChunk> {
     await ensureGptTokenizer();
+
+    // DB-first key resolution (see complete()).
+    await hydrateProviderKeyOverrides();
 
     const routed = this.route(request);
     const plan = request.plan ?? 'free';

@@ -226,6 +226,52 @@ describe('provider credentials admin (write-only key)', () => {
     await app.close();
   });
 
+  it('GET /internal/providers/credentials requires the internal shared secret', async () => {
+    const { app } = await setup();
+
+    // No bearer → 401.
+    const unauth = await app.inject({ method: 'GET', url: '/internal/providers/credentials' });
+    expect(unauth.statusCode).toBe(401);
+
+    await app.close();
+  });
+
+  it('GET /internal/providers/credentials returns the decrypted key for an enabled provider', async () => {
+    const prevSecret = process.env.INTERNAL_API_SHARED_SECRET;
+    process.env.INTERNAL_API_SHARED_SECRET = 'internal-secret';
+
+    try {
+      const { app, store } = await setup();
+
+      await store.upsertProviderConfig({ provider: 'OpenAI', displayName: 'OpenAI', enabled: true });
+      await app.inject({
+        method: 'POST',
+        url: '/admin/providers/OpenAI/credentials',
+        headers: auth('admin-token'),
+        payload: { apiKey: 'sk-internal-secret-value' },
+      });
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/internal/providers/credentials',
+        headers: { authorization: 'Bearer internal-secret' },
+      });
+      expect(res.statusCode).toBe(200);
+
+      const providers = res.json().providers as Array<{ provider: string; apiKey: string; baseUrl: string | null }>;
+      const openai = providers.find((p) => p.provider === 'OpenAI');
+      expect(openai?.apiKey).toBe('sk-internal-secret-value');
+
+      await app.close();
+    } finally {
+      if (prevSecret === undefined) {
+        delete process.env.INTERNAL_API_SHARED_SECRET;
+      } else {
+        process.env.INTERNAL_API_SHARED_SECRET = prevSecret;
+      }
+    }
+  });
+
   it('provider health flips to ready/source=db when a DB key is set', async () => {
     const { app, store } = await setup();
 

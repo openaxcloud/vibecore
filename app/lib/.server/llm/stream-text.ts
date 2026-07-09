@@ -13,6 +13,7 @@ import {
   temperatureOptionsForModel,
   type FileMap,
 } from './constants';
+import { applyManagedProviderKeys } from './managed-provider-keys';
 import { removeUnsupportedModelSettings } from './model-compat';
 import { estimateOutputBudget, clampOutputBudget } from './output-budget';
 import { resolveUsableProvider } from './provider-credentials';
@@ -156,6 +157,20 @@ export async function streamText(props: {
     projectRulesContext,
   } = props;
 
+  /*
+   * DB-first managed keys: overlay any admin-set platform provider key/baseUrl
+   * (fetched from the API's internal endpoint, cached ~60s) onto a per-request
+   * copy of serverEnv, keyed by each provider's apiTokenKey/baseUrlKey. This makes
+   * base-provider's `managedApiKey` (which reads serverEnv first) resolve DB-first
+   * while: a user BYOK cookie still wins (apiKeys is checked before managedApiKey),
+   * the anti-exfil guard still applies (managed keys are never sent to a
+   * user-supplied baseUrl), and env stays the fallback when no DB key. A no-op
+   * (env-identical) when no managed keys are configured; never throws.
+   */
+  const effectiveServerEnv = (await applyManagedProviderKeys(
+    serverEnv as Record<string, string> | undefined,
+  )) as typeof serverEnv;
+
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
 
@@ -209,7 +224,7 @@ export async function streamText(props: {
     requestedProvider: currentProvider,
     requestedModel: currentModel,
     apiKeys,
-    serverEnv: serverEnv as Record<string, string> | undefined,
+    serverEnv: effectiveServerEnv as Record<string, string> | undefined,
   });
 
   const provider = resolved.provider;
@@ -225,7 +240,7 @@ export async function streamText(props: {
       ...(await LLMManager.getInstance().getModelListFromProvider(provider, {
         apiKeys,
         providerSettings,
-        serverEnv: serverEnv as any,
+        serverEnv: effectiveServerEnv as any,
       })),
     ];
 
@@ -265,7 +280,9 @@ export async function streamText(props: {
     buildAgentOrchestrationPlan({
       messages: processedMessages,
       chatMode,
-      subagentsAvailable: areParallelSubagentsAvailable(serverEnv as Record<string, string | undefined> | undefined),
+      subagentsAvailable: areParallelSubagentsAvailable(
+        effectiveServerEnv as Record<string, string | undefined> | undefined,
+      ),
     });
 
   /*
@@ -432,7 +449,7 @@ ${projectRulesContext}`;
 
   const modelInstance = provider.getModelInstance({
     model: modelDetails.name,
-    serverEnv,
+    serverEnv: effectiveServerEnv,
     apiKeys,
     providerSettings,
   });
@@ -460,7 +477,7 @@ ${projectRulesContext}`;
      * retry re-issues the request before any output is committed to the stream,
      * so already-written files are never duplicated. Default 4, env-overridable.
      */
-    maxRetries: resolveStreamMaxRetries(serverEnv as Record<string, string | undefined> | undefined),
+    maxRetries: resolveStreamMaxRetries(effectiveServerEnv as Record<string, string | undefined> | undefined),
     ...tokenParams,
     messages: convertToCoreMessages(processedMessages as any),
     ...filteredOptions,
