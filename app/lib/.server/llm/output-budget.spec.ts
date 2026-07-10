@@ -1,5 +1,55 @@
 import { describe, expect, it } from 'vitest';
-import { OUTPUT_BUDGET, clampOutputBudget, estimateOutputBudget, stripFileArtifacts } from './output-budget';
+import { OUTPUT_BUDGET, classifyTask, clampOutputBudget, estimateOutputBudget, stripFileArtifacts } from './output-budget';
+
+describe('classifyTask', () => {
+  it('classifies discuss/ask/plan (non-build chat mode) as discuss', () => {
+    expect(classifyTask({ chatMode: 'discuss', lastUserMessage: 'why did the build fail?' })).toBe('discuss');
+  });
+
+  it('classifies a reasoning model as scaffold even in build mode', () => {
+    expect(classifyTask({ chatMode: 'build', lastUserMessage: 'fix typo', isReasoningModel: true })).toBe('scaffold');
+  });
+
+  it('classifies a from-scratch build by signal phrase as scaffold', () => {
+    expect(classifyTask({ chatMode: 'build', lastUserMessage: 'Build a todo app with auth' })).toBe('scaffold');
+  });
+
+  it('classifies a long prompt as scaffold', () => {
+    expect(classifyTask({ chatMode: 'build', lastUserMessage: 'x'.repeat(400) })).toBe('scaffold');
+  });
+
+  it('classifies the plan toggle as scaffold', () => {
+    expect(classifyTask({ chatMode: 'build', lastUserMessage: 'go', planFirst: true })).toBe('scaffold');
+  });
+
+  it('classifies a short, scoped edit as smallEdit', () => {
+    expect(classifyTask({ chatMode: 'build', lastUserMessage: 'rename the header', contextFileCount: 12 })).toBe(
+      'smallEdit',
+    );
+  });
+
+  it('classifies a vague, non-edit build prompt as build', () => {
+    expect(classifyTask({ chatMode: 'build', lastUserMessage: 'make it responsive', contextFileCount: 8 })).toBe(
+      'build',
+    );
+  });
+
+  it('maps every class 1:1 onto its OUTPUT_BUDGET ceiling (estimate === budget[class])', () => {
+    const cases: Array<{ input: Parameters<typeof classifyTask>[0]; cls: ReturnType<typeof classifyTask> }> = [
+      { input: { chatMode: 'discuss', lastUserMessage: 'hi' }, cls: 'discuss' },
+      { input: { chatMode: 'build', lastUserMessage: 'rename the header', contextFileCount: 1 }, cls: 'smallEdit' },
+      { input: { chatMode: 'build', lastUserMessage: 'make it responsive' }, cls: 'build' },
+      { input: { chatMode: 'build', lastUserMessage: 'build a todo app' }, cls: 'scaffold' },
+    ];
+
+    for (const { input, cls } of cases) {
+      expect(classifyTask(input)).toBe(cls);
+
+      // Regression: estimateOutputBudget stayed numerically identical (budget = ceiling for the class).
+      expect(estimateOutputBudget(input)).toBe(OUTPUT_BUDGET[cls]);
+    }
+  });
+});
 
 describe('estimateOutputBudget', () => {
   it('sizes discuss/ask/plan to the smallest budget', () => {

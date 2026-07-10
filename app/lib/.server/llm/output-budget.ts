@@ -146,21 +146,29 @@ export interface OutputBudgetInput {
 }
 
 /**
- * Estimate the output-token ceiling for a turn from its task class. Pure and
- * exported for unit testing; the caller clamps the result to the model ceiling.
+ * The four task classes a turn can fall into. Each maps 1:1 onto an
+ * `OUTPUT_BUDGET` ceiling, and (increment 2) drives model routing by complexity.
  */
-export function estimateOutputBudget(input: OutputBudgetInput): number {
+export type TaskClass = 'discuss' | 'smallEdit' | 'build' | 'scaffold';
+
+/**
+ * Classify a turn into its task class. This is the EXACT class-decision logic
+ * that used to live inline in `estimateOutputBudget` — extracted verbatim so the
+ * same signals can drive both the output budget AND model routing. Pure and
+ * deterministic; no thresholds or signal lists changed.
+ */
+export function classifyTask(input: OutputBudgetInput): TaskClass {
   /*
    * Reasoning models spend hidden thinking tokens against the same ceiling —
    * never shrink them, keep the generous budget so reasoning isn't cut off.
    */
   if (input.isReasoningModel) {
-    return OUTPUT_BUDGET.scaffold;
+    return 'scaffold';
   }
 
   // Discuss / Ask / Plan is a prose answer — the smallest class.
   if (input.chatMode !== 'build') {
-    return OUTPUT_BUDGET.discuss;
+    return 'discuss';
   }
 
   // Classify on the real instruction, not the prepended file-artifact bytes.
@@ -177,7 +185,7 @@ export function estimateOutputBudget(input: OutputBudgetInput): number {
     input.planFirst === true || text.length >= 400 || SCAFFOLD_SIGNALS.some((signal) => text.includes(signal));
 
   if (looksLikeScaffold) {
-    return OUTPUT_BUDGET.scaffold;
+    return 'scaffold';
   }
 
   /*
@@ -190,11 +198,21 @@ export function estimateOutputBudget(input: OutputBudgetInput): number {
     text.length > 0 && text.length <= SMALL_EDIT_MAX_LEN && SMALL_EDIT_SIGNALS.some((signal) => text.includes(signal));
 
   if (looksLikeTargetedEdit) {
-    return OUTPUT_BUDGET.smallEdit;
+    return 'smallEdit';
   }
 
   // Anything else (a feature-sized change, or a vague prompt) is a normal build turn.
-  return OUTPUT_BUDGET.build;
+  return 'build';
+}
+
+/**
+ * Estimate the output-token ceiling for a turn from its task class. Pure and
+ * exported for unit testing; the caller clamps the result to the model ceiling.
+ * Byte-for-byte equivalent to the previous inline logic: it now delegates the
+ * class decision to `classifyTask` and looks the ceiling up in `OUTPUT_BUDGET`.
+ */
+export function estimateOutputBudget(input: OutputBudgetInput): number {
+  return OUTPUT_BUDGET[classifyTask(input)];
 }
 
 /**
