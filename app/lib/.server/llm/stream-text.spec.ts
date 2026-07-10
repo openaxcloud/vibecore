@@ -2,9 +2,22 @@ import { describe, expect, it } from 'vitest';
 import {
   applyContextOptimizedHistoryWindow,
   DEFAULT_STREAM_MAX_RETRIES,
+  fingerprintPrompt,
   getCompletionTokenLimit,
   resolveStreamMaxRetries,
 } from './stream-text';
+
+describe('fingerprintPrompt', () => {
+  it('is deterministic for identical strings (byte-stable head → same fingerprint)', () => {
+    const head = 'You are E-Code, a senior engineer. '.repeat(50);
+    expect(fingerprintPrompt(head)).toBe(fingerprintPrompt(head));
+  });
+
+  it('changes when a single byte of the head changes', () => {
+    const head = 'You are E-Code, a senior engineer. '.repeat(50);
+    expect(fingerprintPrompt(head)).not.toBe(fingerprintPrompt(head + 'x'));
+  });
+});
 
 describe('resolveStreamMaxRetries', () => {
   it('auto-retries transient provider failures by default (more than the SDK default of 2)', () => {

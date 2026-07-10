@@ -63,6 +63,21 @@ export interface StreamingOptions extends Omit<Parameters<typeof _streamText>[0]
 
 const logger = createScopedLogger('stream-text');
 
+/**
+ * Cheap, deterministic (djb2) fingerprint of a string — used only to compare
+ * whether the stable prompt head is byte-identical across turns in the logs. Not
+ * cryptographic; collisions are irrelevant for equality-across-turns comparison.
+ */
+export function fingerprintPrompt(text: string): string {
+  let hash = 5381;
+
+  for (let i = 0; i < text.length; i++) {
+    hash = ((hash << 5) + hash + text.charCodeAt(i)) | 0;
+  }
+
+  return (hash >>> 0).toString(16);
+}
+
 export function getCompletionTokenLimit(modelDetails: any): number {
   // 1. If model specifies completion tokens, use that
   if (modelDetails.maxCompletionTokens && modelDetails.maxCompletionTokens > 0) {
@@ -325,6 +340,18 @@ export async function streamText(props: {
     }) ?? getSystemPrompt();
 
   /*
+   * Cache-prefix diagnostics: the stable HEAD is exactly the assembled base
+   * prompt captured HERE, before any per-turn-variable block (orchestration,
+   * agent memory, CONTEXT BUFFER, summary) is appended below. Logging its real
+   * char length + a cheap deterministic fingerprint lets us prove, from PROD
+   * turns (not a static render), (1) whether the head clears OpenAI's ~1024-token
+   * cache minimum and (2) whether it is byte-identical across two consecutive
+   * turns of the same conversation — i.e. whether the auto-cache prefix is stable.
+   */
+  const stableHeadChars = systemPrompt.length;
+  const stableHeadFingerprint = fingerprintPrompt(systemPrompt);
+
+  /*
    * Cross-turn cache breakpoint (P0-a): everything appended below this line —
    * orchestration exec-context, agent memory/skills, the CONTEXT BUFFER of
    * project files, the chat summary, locked-file lists — is the VARIABLE tail
@@ -572,6 +599,26 @@ ${projectRulesContext}`;
       null,
       2,
     ),
+  );
+
+  /*
+   * Greppable as `prompt.fingerprint`. Two consecutive turns of the same chat
+   * with an IDENTICAL `stableHeadFingerprint` prove the auto-cache prefix is
+   * byte-stable; `stableHeadChars` (÷~3.5 ≈ tokens) shows whether it clears the
+   * ~1024-token OpenAI/Gemini/DeepSeek cache minimum — measured from real prod
+   * turns instead of a static render.
+   */
+  logger.info(
+    JSON.stringify({
+      event: 'prompt.fingerprint',
+      provider: provider.name,
+      model: modelDetails.name,
+      stableHeadChars,
+      stableHeadFingerprint,
+      fullSystemChars: systemPrompt.length,
+      contextFiles: contextFiles ? Object.keys(contextFiles).length : 0,
+      cacheBreakpoint: insertCacheBreakpoint,
+    }),
   );
 
   return await _streamText(streamParams);
