@@ -24,12 +24,6 @@ describe('estimateOutputBudget', () => {
     expect(estimateOutputBudget({ chatMode: 'build', lastUserMessage: 'x'.repeat(400) })).toBe(OUTPUT_BUDGET.scaffold);
   });
 
-  it('classifies a many-file turn as a scaffold', () => {
-    expect(estimateOutputBudget({ chatMode: 'build', lastUserMessage: 'update these', contextFileCount: 6 })).toBe(
-      OUTPUT_BUDGET.scaffold,
-    );
-  });
-
   it('honors the plan toggle as a scaffold signal', () => {
     expect(estimateOutputBudget({ chatMode: 'build', lastUserMessage: 'go', planFirst: true })).toBe(
       OUTPUT_BUDGET.scaffold,
@@ -42,9 +36,43 @@ describe('estimateOutputBudget', () => {
     );
   });
 
-  it('falls back to a normal build budget for an ambiguous build turn', () => {
+  /*
+   * Regression (measured live): a targeted edit on a project that already has many
+   * files must classify as `smallEdit`, NOT `scaffold`. Context file count no
+   * longer forces `scaffold` — only the edit intent + prompt shape decide.
+   */
+  it('classifies "add a footer" as a small edit even with a large context', () => {
+    expect(estimateOutputBudget({ chatMode: 'build', lastUserMessage: 'add a footer', contextFileCount: 12 })).toBe(
+      OUTPUT_BUDGET.smallEdit,
+    );
+  });
+
+  it('classifies "change the color of the header" as a small edit with a large context', () => {
     expect(
-      estimateOutputBudget({ chatMode: 'build', lastUserMessage: 'add a settings section', contextFileCount: 3 }),
+      estimateOutputBudget({
+        chatMode: 'build',
+        lastUserMessage: 'change the color of the header',
+        contextFileCount: 20,
+      }),
+    ).toBe(OUTPUT_BUDGET.smallEdit);
+  });
+
+  it('classifies "rename Foo to Bar" as a small edit with a large context', () => {
+    expect(estimateOutputBudget({ chatMode: 'build', lastUserMessage: 'rename Foo to Bar', contextFileCount: 9 })).toBe(
+      OUTPUT_BUDGET.smallEdit,
+    );
+  });
+
+  it('still scaffolds a genuine from-scratch build regardless of edit-ish words', () => {
+    // "create a" wins over the edit signals → real scaffolds are never under-sized.
+    expect(
+      estimateOutputBudget({ chatMode: 'build', lastUserMessage: 'create a dashboard with a header and footer' }),
+    ).toBe(OUTPUT_BUDGET.scaffold);
+  });
+
+  it('falls back to a normal build budget for a vague, non-edit prompt', () => {
+    expect(
+      estimateOutputBudget({ chatMode: 'build', lastUserMessage: 'make it responsive', contextFileCount: 8 }),
     ).toBe(OUTPUT_BUDGET.build);
   });
 });

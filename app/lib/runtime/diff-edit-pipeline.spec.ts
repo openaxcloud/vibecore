@@ -277,6 +277,51 @@ describe('diff-edit e2e pipeline — BASE-DRIFT FALLBACK (anchor not present)', 
       estimatedTokensSaved: 0,
     });
   });
+
+  /*
+   * Measured live: a diff whose TARGET FILE DOES NOT EXIST ("diff target … does
+   * not exist — full file required") must still emit the fallback telemetry, so
+   * the most interesting cases (fail-safes) are countable and never silent. This
+   * is the `missing-file` sibling of the `apply-failed` test above.
+   */
+  it('emits fallback telemetry when the diff target file does not exist (missing-file)', async () => {
+    // No src/App.tsx in the runtime — the diff has no base to patch.
+    const { runtime, files, writeFile } = createStatefulRuntime({ 'src/other.ts': 'export const x = 1;\n' });
+
+    const onAlert = vi.fn();
+    const runner = new ActionRunner(runtime, () => createShell() as any, onAlert);
+
+    const telemetry: WorkspaceEventMap['agent:diff-edit:apply'][] = [];
+    const unsubscribe = workspaceEvents.on('agent:diff-edit:apply', (payload) => telemetry.push(payload));
+
+    const message = [
+      '<boltArtifact id="patch-missing" title="Patch">',
+      '<boltAction type="diff" filePath="src/App.tsx">',
+      '<<<<<<< SEARCH',
+      '<footer />',
+      '=======',
+      '<footer>© 2026</footer>',
+      '>>>>>>> REPLACE',
+      '</boltAction>',
+      '</boltArtifact>',
+    ].join('\n');
+
+    await driveAssistantMessage(runner, 'msg-missing', message);
+    unsubscribe();
+
+    // Strict fail-safe: nothing written, no new file created from a diff.
+    expect(writeFile).not.toHaveBeenCalled();
+    expect(files.has('src/App.tsx')).toBe(false);
+
+    // The fallback IS observable — one telemetry event with the missing-file kind.
+    expect(telemetry).toHaveLength(1);
+    expect(telemetry[0]).toMatchObject({
+      outcome: 'failed',
+      fellBackToFullFile: true,
+      failureKind: 'missing-file',
+      estimatedTokensSaved: 0,
+    });
+  });
 });
 
 describe('diff-edit e2e pipeline — MIXED MESSAGE (file + diff in one message)', () => {

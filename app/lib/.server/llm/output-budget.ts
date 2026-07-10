@@ -57,20 +57,59 @@ const SCAFFOLD_SIGNALS = [
   'multiple files',
 ];
 
-/** Phrases that reliably indicate a small, localized change. */
+/**
+ * Phrases that indicate a targeted, localized change (an edit to an existing
+ * project), as opposed to a from-scratch build. Broad on purpose: an edit intent
+ * classifies as `smallEdit` REGARDLESS of how many files are already in context
+ * — a big project doesn't make "add a footer" a large generation. Under-sizing is
+ * safe (auto-continuation finishes anything longer), so we bias small edits down.
+ */
 const SMALL_EDIT_SIGNALS = [
-  'fix ',
+  // edit verbs
+  'add ',
+  'insert ',
+  'change ',
+  'update ',
+  'remove ',
+  'delete ',
   'rename',
-  'typo',
+  'fix ',
   'tweak',
   'adjust',
-  'change the color',
-  'change the colour',
-  'update the text',
-  'update the copy',
+  'edit ',
+  'replace ',
+  'move ',
+  'wrap ',
+  'restyle',
+  'style ',
+
+  // common small-change UI targets
+  'footer',
+  'header',
+  'navbar',
+  'nav bar',
+  'button',
+  'label',
+  'title',
+  'heading',
+  'link',
+  'icon',
+  'color',
+  'colour',
+  'padding',
+  'margin',
+  'font',
+  'border',
+  'background',
+  'placeholder',
+  'tooltip',
+  'typo',
   'one line',
   'small change',
 ];
+
+/** Max prompt length (chars) still treated as a targeted edit. Longer → a broader change. */
+const SMALL_EDIT_MAX_LEN = 220;
 
 export interface OutputBudgetInput {
   chatMode?: string;
@@ -107,29 +146,35 @@ export function estimateOutputBudget(input: OutputBudgetInput): number {
   }
 
   const text = (input.lastUserMessage ?? '').toLowerCase();
-  const fileCount = input.contextFileCount ?? 0;
 
+  /*
+   * A genuine from-scratch build: the composer's Plan toggle, an explicit
+   * "build/create a …" phrase, or a long, detailed brief. This is checked FIRST
+   * so a scaffold is never mis-sized down. Deliberately NOT keyed on the context
+   * file count — the number of files ALREADY in the project says nothing about
+   * whether THIS turn is a from-scratch build or a one-line edit.
+   */
   const looksLikeScaffold =
-    input.planFirst === true ||
-    text.length >= 400 ||
-    fileCount >= 6 ||
-    SCAFFOLD_SIGNALS.some((signal) => text.includes(signal));
+    input.planFirst === true || text.length >= 400 || SCAFFOLD_SIGNALS.some((signal) => text.includes(signal));
 
   if (looksLikeScaffold) {
     return OUTPUT_BUDGET.scaffold;
   }
 
-  const looksLikeSmallEdit =
-    text.length > 0 &&
-    text.length < 160 &&
-    fileCount <= 2 &&
-    SMALL_EDIT_SIGNALS.some((signal) => text.includes(signal));
+  /*
+   * A targeted edit intent — sized small REGARDLESS of context file count (the
+   * bug this fixes: "add a footer" on a 6-file project was mis-classed as a
+   * scaffold). Short prompt + an edit signal ⇒ smallEdit; auto-continuation
+   * finishes the rare edit that needs more, so under-sizing never truncates.
+   */
+  const looksLikeTargetedEdit =
+    text.length > 0 && text.length <= SMALL_EDIT_MAX_LEN && SMALL_EDIT_SIGNALS.some((signal) => text.includes(signal));
 
-  if (looksLikeSmallEdit) {
+  if (looksLikeTargetedEdit) {
     return OUTPUT_BUDGET.smallEdit;
   }
 
-  // Anything else is a normal build turn.
+  // Anything else (a feature-sized change, or a vague prompt) is a normal build turn.
   return OUTPUT_BUDGET.build;
 }
 
