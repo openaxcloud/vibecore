@@ -128,6 +128,37 @@ export function inferOpenAIMaxCompletionTokens(id: string | undefined): number {
   return 4096; // default for most models
 }
 
+/**
+ * Alias → dated-snapshot pins for the real OpenAI path.
+ *
+ * OpenAI's floating aliases (e.g. `gpt-4o`) silently re-point to a newer dated
+ * snapshot every few weeks. Each re-point changes the model's tokenizer/behaviour
+ * AND resets the automatic prompt-cache prefix, so cache hit-rate and the wire
+ * diagnostics drift for reasons unrelated to our prompt. Pinning the alias to a
+ * dated snapshot removes that drift and makes cache behaviour reproducible.
+ *
+ * Conservative on purpose: only `gpt-4o` (which has a well-known stable snapshot)
+ * is pinned. Every other id — including `gpt-4o-mini`, the 4.1 family, o-series,
+ * and any already-dated id — passes through untouched.
+ */
+export const OPENAI_SNAPSHOT_PINS: Readonly<Record<string, string>> = Object.freeze({
+  'gpt-4o': 'gpt-4o-2024-08-06',
+});
+
+/**
+ * Map a floating OpenAI alias to its pinned dated snapshot. Unknown or
+ * already-dated ids are returned unchanged. `overrides` lets a caller (or a
+ * future env-driven config) replace/extend the default pins without touching
+ * this module. Pure + total: never throws.
+ */
+export function pinOpenAiSnapshot(model: string, overrides?: Record<string, string>): string {
+  if (overrides && Object.prototype.hasOwnProperty.call(overrides, model)) {
+    return overrides[model];
+  }
+
+  return OPENAI_SNAPSHOT_PINS[model] ?? model;
+}
+
 export default class OpenAIProvider extends BaseProvider {
   name = 'OpenAI';
   getApiKeyLink = 'https://platform.openai.com/api-keys';
@@ -282,6 +313,19 @@ export default class OpenAIProvider extends BaseProvider {
       apiKey,
 
       /*
+       * `compatibility: 'strict'` is required on the REAL OpenAI endpoint so the
+       * SDK sends `stream_options: { include_usage: true }` on streaming
+       * requests. Without it the SDK defaults to `'compatible'` (for third-party
+       * OpenAI-shaped servers), OMITS `stream_options`, and OpenAI never returns
+       * the final usage chunk — so `prompt_tokens_details.cached_tokens` (the
+       * SDK's `providerMetadata.openai.cachedPromptTokens`) never populates and
+       * the completion log always reports 0 cached tokens. Safe here because this
+       * provider only ever targets api.openai.com; DO NOT copy this to xAI /
+       * openai-like / any non-OpenAI baseURL (strict breaks those servers).
+       */
+      compatibility: 'strict',
+
+      /*
        * Log-only wire diagnostics: emit a `wire.payload` line with the REAL size
        * of the system/messages sent to OpenAI, to reconcile it against
        * prompt.fingerprint's measured chars. Never alters the request.
@@ -290,13 +334,20 @@ export default class OpenAIProvider extends BaseProvider {
     });
 
     /*
+     * Pin floating aliases (currently only `gpt-4o`) to a dated snapshot so the
+     * automatic prompt-cache prefix and wire diagnostics don't drift when OpenAI
+     * silently re-points the alias. Everything else passes through unchanged.
+     */
+    const pinnedModel = pinOpenAiSnapshot(model);
+
+    /*
      * A7 (Wave A): pass the stable per-conversation id as OpenAI's top-level `user`
      * field. This is a separate API parameter (used by OpenAI for cache affinity /
      * abuse monitoring) and does NOT alter the system/messages prompt bytes. Omitted
      * when absent → byte-identical to today. `prompt_cache_key` is intentionally not
-     * set: the installed @ai-sdk/openai@1.1.2 does not expose it (deferred, needs an
-     * SDK bump).
+     * set here: the installed @ai-sdk/openai@1.1.2 does not serialize it (injected
+     * separately by the fetch hook in a later step).
      */
-    return cacheAffinityKey ? openai(model, { user: cacheAffinityKey }) : openai(model);
+    return cacheAffinityKey ? openai(pinnedModel, { user: cacheAffinityKey }) : openai(pinnedModel);
   }
 }

@@ -10,9 +10,8 @@ import { describe, expect, it, vi } from 'vitest';
  */
 vi.mock('../manager', () => ({ LLMManager: class {} }));
 
-const { inferOpenAIContextWindow, inferOpenAIMaxCompletionTokens, isSelectableOpenAIChatModel } = await import(
-  './openai'
-);
+const { inferOpenAIContextWindow, inferOpenAIMaxCompletionTokens, isSelectableOpenAIChatModel, pinOpenAiSnapshot } =
+  await import('./openai');
 
 describe('isSelectableOpenAIChatModel', () => {
   it('accepts gpt- and chatgpt- chat models', () => {
@@ -135,5 +134,23 @@ describe('inferOpenAIMaxCompletionTokens', () => {
   it('assigns gpt-5 a 128k budget instead of the 4096 default (bug 1)', () => {
     expect(inferOpenAIMaxCompletionTokens('gpt-5')).toBe(128000);
     expect(inferOpenAIMaxCompletionTokens('gpt-5-mini')).toBe(128000);
+  });
+});
+
+describe('pinOpenAiSnapshot', () => {
+  it('pins the floating gpt-4o alias to its dated snapshot', () => {
+    expect(pinOpenAiSnapshot('gpt-4o')).toBe('gpt-4o-2024-08-06');
+  });
+
+  it('passes every other id through unchanged (conservative — gpt-4o only)', () => {
+    for (const id of ['gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini', 'o3-mini', 'gpt-4o-2024-08-06', 'chatgpt-4o-latest']) {
+      expect(pinOpenAiSnapshot(id)).toBe(id);
+    }
+  });
+
+  it('honours an explicit overrides map without mutating the default pins', () => {
+    expect(pinOpenAiSnapshot('gpt-4.1', { 'gpt-4.1': 'gpt-4.1-2025-04-14' })).toBe('gpt-4.1-2025-04-14');
+    // Default behaviour intact for a non-overridden id.
+    expect(pinOpenAiSnapshot('gpt-4o')).toBe('gpt-4o-2024-08-06');
   });
 });
