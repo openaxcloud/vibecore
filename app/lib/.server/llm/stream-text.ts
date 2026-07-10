@@ -15,7 +15,8 @@ import {
 } from './constants';
 import { applyManagedProviderKeys } from './managed-provider-keys';
 import { removeUnsupportedModelSettings } from './model-compat';
-import { estimateOutputBudget, clampOutputBudget } from './output-budget';
+import { AUTO_MODEL, decideRoute, resolveRouteTable, type RouteDecision } from './model-routing';
+import { estimateOutputBudget, clampOutputBudget, type OutputBudgetInput } from './output-budget';
 import { resolveUsableProvider } from './provider-credentials';
 import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { PromptLibrary } from '~/lib/common/prompt-library';
@@ -131,6 +132,116 @@ export function applyContextOptimizedHistoryWindow<T>(messages: T[], recentMessa
   return messages;
 }
 
+/**
+ * The `MODEL_ROUTING_DISABLED` kill-switch. Truthy (`1`/`true`/`yes`/`on`,
+ * case-insensitive) → complexity routing is globally OFF and every request keeps
+ * the model it selected. Read defensively from the request env first, then the
+ * genuine Node runtime env (Vite shims `process.env` to `{}` in client bundles).
+ * Never throws.
+ */
+export function isModelRoutingDisabled(env?: Record<string, string | undefined>): boolean {
+  const raw =
+    env?.MODEL_ROUTING_DISABLED ?? (typeof process !== 'undefined' ? process.env?.MODEL_ROUTING_DISABLED : undefined);
+
+  if (raw == null) {
+    return false;
+  }
+
+  const normalized = String(raw).trim().toLowerCase();
+
+  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
+}
+
+/** The outcome of {@link resolveTurnModel}: a CONCRETE model id + the raw decision. */
+export interface TurnModelResolution {
+  /** The concrete model id to actually use this turn. NEVER the `'auto'` sentinel. */
+  model: string;
+
+  /** The full routing decision (telemetry / assertions). */
+  decision: RouteDecision;
+
+  /** The frontier model that was considered (provider frontier or DEFAULT_MODEL). */
+  frontierModel: string;
+
+  /** Whether the kill-switch was active. */
+  routingDisabled: boolean;
+}
+
+/**
+ * Wire the pure {@link decideRoute} into a single turn. This is the ONE model
+ * decision point: it resolves the provider frontier, reads the kill-switch,
+ * classifies the task, asks `decideRoute`, and guarantees a CONCRETE model id
+ * comes out (the `'auto'` sentinel is replaced with the frontier as a safety net
+ * so it can never reach `getModelInstance`).
+ *
+ * Telemetry (`opt.routing`) is emitted ONLY for opt-in Auto requests — an
+ * explicit model selection routes nothing, so there is nothing to log. Emission
+ * is best-effort and never throws. Extracted and exported so the exact wiring
+ * (frontier resolution, usability probe, kill-switch, `'auto'`-never-escapes,
+ * telemetry gating) is unit-testable without booting the whole LLM stack.
+ */
+export function resolveTurnModel(
+  input: {
+    /** The model the request selected (post `resolveUsableProvider`); `AUTO_MODEL` opts in. */
+    selectedModel: string;
+
+    /** The resolved provider name (a routing-table key). */
+    providerName: string;
+
+    /** The classifier signals for this turn (same ones `estimateOutputBudget` uses). */
+    task: OutputBudgetInput;
+
+    /** Probe: is this small-model id usable on the resolved (already-credentialed) provider? */
+    isModelUsable: (modelId: string) => boolean;
+
+    /** Request env for the routing table + kill-switch (defaults to the runtime env). */
+    env?: Record<string, string | undefined>;
+  },
+  emit: (event: string, meta: Record<string, unknown>) => void = (event, meta) => logger.info(event, meta),
+): TurnModelResolution {
+  const table = resolveRouteTable(input.env);
+
+  /*
+   * For Auto, the frontier is the resolved provider's frontier; a provider with
+   * no table entry (xAI, …) falls back to DEFAULT_MODEL. On the default provider
+   * this equals DEFAULT_MODEL, so Auto's hard-task path is byte-identical to
+   * today's default.
+   */
+  const frontierModel = table[input.providerName]?.frontier ?? DEFAULT_MODEL;
+  const routingDisabled = isModelRoutingDisabled(input.env);
+
+  const decision = decideRoute({
+    selectedModel: input.selectedModel,
+    provider: input.providerName,
+    frontierModel,
+    task: input.task,
+    isProviderModelUsable: input.isModelUsable,
+    routingDisabled,
+    table,
+  });
+
+  // Safety net: a concrete id MUST come out; never let the `'auto'` sentinel escape.
+  const model = decision.model === AUTO_MODEL ? frontierModel : decision.model;
+
+  // Telemetry — opt-in Auto only, best-effort, never throws.
+  if (input.selectedModel === AUTO_MODEL) {
+    try {
+      emit('opt.routing', {
+        from: decision.from,
+        to: decision.to,
+        reason: decision.reason,
+        taskClass: decision.taskClass,
+        routed: decision.routed,
+        provider: input.providerName,
+      });
+    } catch {
+      // Telemetry must never break a generation.
+    }
+  }
+
+  return { model, decision, frontierModel, routingDisabled };
+}
+
 export async function streamText(props: {
   messages: Omit<Message, 'id'>[];
   env?: Env;
@@ -157,6 +268,15 @@ export async function streamText(props: {
    * only as a provider cache-affinity hint (never in the prompt bytes).
    */
   chatId?: string;
+
+  /*
+   * Model routing (Vague C): fired once with the CONCRETE model this turn
+   * resolved to (after any Auto downgrade). The chat route captures it so the
+   * auto-continuation segments reuse the SAME concrete id — keeping the model
+   * stable across a generation (correctness + prompt cache) instead of
+   * re-classifying the CONTINUE_PROMPT and risking a mid-stream flip.
+   */
+  onModelDecision?: (decidedModel: string, decidedProvider: string) => void;
 }) {
   const {
     messages,
@@ -254,6 +374,63 @@ export async function streamText(props: {
   currentModel = resolved.model;
 
   const staticModels = LLMManager.getInstance().getStaticModelListFromProvider(provider);
+
+  /*
+   * Model routing by complexity (Vague C, increment 2). This is the SINGLE model
+   * decision point. It runs AFTER `resolveUsableProvider` fixed the provider and
+   * model, and BEFORE the `modelDetails` lookup / `getModelInstance`, so whatever
+   * it decides is a CONCRETE id downstream. Opt-in only: unless the request
+   * selected AUTO_MODEL ('auto'), `decideRoute` returns the explicit model
+   * unchanged — this whole block is byte-identical to before for every existing
+   * (non-Auto) request. `orchestrationPlan` and `lastUserText` are hoisted here so
+   * the routing classifier and the (unchanged) output-budget estimate below share
+   * the exact same task signals.
+   */
+  const orchestrationPlan =
+    agentOrchestrationPlan ??
+    buildAgentOrchestrationPlan({
+      messages: processedMessages,
+      chatMode,
+      subagentsAvailable: areParallelSubagentsAvailable(
+        effectiveServerEnv as Record<string, string | undefined> | undefined,
+      ),
+    });
+
+  const lastUserText = (() => {
+    const lastUser = [...processedMessages].reverse().find((message) => message.role === 'user');
+    return typeof lastUser?.content === 'string' ? lastUser.content : '';
+  })();
+
+  const routingSelectedModel = currentModel;
+
+  const turnModelResolution = resolveTurnModel({
+    selectedModel: routingSelectedModel,
+    providerName: provider.name,
+    task: {
+      chatMode,
+      lastUserMessage: lastUserText,
+      contextFileCount: contextFiles ? Object.keys(contextFiles).length : 0,
+      planFirst: orchestrationPlan.enabled,
+      isReasoningModel: isReasoningModel(routingSelectedModel),
+    },
+
+    /*
+     * Small model of the SAME resolved provider: the provider already passed
+     * resolveUsableProvider (credentialed), so "usable" reduces to "the id exists
+     * in the provider's static model list" — a cheap, allocation-free probe.
+     */
+    isModelUsable: (modelId) => staticModels.some((m) => m.name === modelId),
+    env: effectiveServerEnv as Record<string, string | undefined> | undefined,
+  });
+
+  /*
+   * Replace `currentModel` with the concrete decided id BEFORE the modelDetails
+   * lookup — `'auto'` must never reach getStaticModelList / getModelInstance.
+   */
+  currentModel = turnModelResolution.model;
+
+  // Let the chat route capture the concrete model so continuations reuse it.
+  props.onModelDecision?.(currentModel, provider.name);
 
   let modelDetails = staticModels.find((m) => m.name === currentModel);
 
@@ -369,16 +546,6 @@ export async function streamText(props: {
     systemPrompt = `${systemPrompt}${ANTHROPIC_CACHE_BREAKPOINT}`;
   }
 
-  const orchestrationPlan =
-    agentOrchestrationPlan ??
-    buildAgentOrchestrationPlan({
-      messages: processedMessages,
-      chatMode,
-      subagentsAvailable: areParallelSubagentsAvailable(
-        effectiveServerEnv as Record<string, string | undefined> | undefined,
-      ),
-    });
-
   /*
    * Adaptive output ceiling (É1): size max_tokens to the task class instead of
    * always requesting the model's full completion limit. The model ceiling stays
@@ -389,10 +556,6 @@ export async function streamText(props: {
    * lands in the `scaffold` class whose budget equals the OpenAI ceiling, so the
    * certified OpenAI build path is unchanged.
    */
-  const lastUserText = (() => {
-    const lastUser = [...processedMessages].reverse().find((message) => message.role === 'user');
-    return typeof lastUser?.content === 'string' ? lastUser.content : '';
-  })();
   const outputBudgetEstimate = estimateOutputBudget({
     chatMode,
     lastUserMessage: lastUserText,

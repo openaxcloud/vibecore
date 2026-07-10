@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import type { KeyboardEvent } from 'react';
+import { AUTO_MODEL_OPTION, isAutoModel } from './modelList';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 import type { ProviderInfo } from '~/types/model';
 import { classNames } from '~/utils/classNames';
+import { DEFAULT_PROVIDER } from '~/utils/constants';
 
 // Fuzzy search utilities
 const levenshteinDistance = (str1: string, str2: string): number => {
@@ -211,7 +213,7 @@ export const ModelSelector = ({
   const filteredModels = useMemo(() => {
     const baseModels = [...modelList].filter((e) => e.provider === provider?.name && e.name);
 
-    return baseModels
+    const realModels = baseModels
       .filter((model) => {
         // Apply free models filter
         if (showFreeModelsOnly && !isModelLikelyFree(model, provider?.name)) {
@@ -246,6 +248,30 @@ export const ModelSelector = ({
 
         return a.label.localeCompare(b.label);
       });
+
+    /*
+     * The provider-agnostic "Auto" (opt-in complexity routing) entry is always
+     * pinned to the very top of the list, independent of the selected provider.
+     * It participates in the search (matches on its label/name) but never gets
+     * sorted below the real models.
+     */
+    const autoLabelMatch = fuzzyMatch(debouncedModelSearchQuery, AUTO_MODEL_OPTION.label);
+    const autoNameMatch = fuzzyMatch(debouncedModelSearchQuery, AUTO_MODEL_OPTION.name);
+    const autoMatches = autoLabelMatch.matches || autoNameMatch.matches || !debouncedModelSearchQuery;
+
+    const autoEntry = autoMatches
+      ? [
+          {
+            ...AUTO_MODEL_OPTION,
+            searchScore: 1000,
+            searchMatches: true,
+            highlightedLabel: highlightText(AUTO_MODEL_OPTION.label, debouncedModelSearchQuery),
+            highlightedName: highlightText(AUTO_MODEL_OPTION.name, debouncedModelSearchQuery),
+          },
+        ]
+      : [];
+
+    return [...autoEntry, ...realModels];
   }, [modelList, provider?.name, showFreeModelsOnly, debouncedModelSearchQuery]);
 
   const filteredProviders = useMemo(() => {
@@ -311,6 +337,26 @@ export const ModelSelector = ({
     }
   }, [isProviderDropdownOpen]);
 
+  /*
+   * Select a model option. The provider-agnostic "Auto" entry additionally pins
+   * the provider to the DEFAULT_PROVIDER (Auto always routes against the default
+   * provider's frontier/small pair); every other model keeps the current provider.
+   */
+  const handleSelectModel = useCallback(
+    (modelName: string) => {
+      if (isAutoModel(modelName) && setProvider) {
+        const defaultProviderOption = providerList.find((p) => p.name === DEFAULT_PROVIDER.name);
+
+        if (defaultProviderOption) {
+          setProvider(defaultProviderOption);
+        }
+      }
+
+      setModel?.(modelName);
+    },
+    [providerList, setModel, setProvider],
+  );
+
   const handleModelKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (!isModelDropdownOpen) {
       return;
@@ -330,7 +376,7 @@ export const ModelSelector = ({
 
         if (focusedModelIndex >= 0 && focusedModelIndex < filteredModels.length) {
           const selectedModel = filteredModels[focusedModelIndex];
-          setModel?.(selectedModel.name);
+          handleSelectModel(selectedModel.name);
           setIsModelDropdownOpen(false);
           setModelSearchQuery('');
           setDebouncedModelSearchQuery('');
@@ -692,7 +738,9 @@ export const ModelSelector = ({
         >
           <div className="flex min-w-0 items-center justify-between gap-2">
             <div className="bolt-model-selector-trigger-label">
-              {modelList.find((m) => m.name === model)?.label || 'Select model'}
+              {isAutoModel(model)
+                ? AUTO_MODEL_OPTION.label
+                : modelList.find((m) => m.name === model)?.label || 'Select model'}
             </div>
             <div
               className={classNames(
@@ -871,7 +919,7 @@ export const ModelSelector = ({
                     )}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setModel?.(modelOption.name);
+                      handleSelectModel(modelOption.name);
                       setIsModelDropdownOpen(false);
                       setModelSearchQuery('');
                       setDebouncedModelSearchQuery('');
@@ -889,7 +937,9 @@ export const ModelSelector = ({
                         </div>
                         <div className="bolt-model-selector-option-meta mt-0.5 flex items-center gap-2">
                           <span className="text-xs text-bolt-elements-textTertiary">
-                            {formatContextSize(modelOption.maxTokenAllowed)} tokens
+                            {isAutoModel(modelOption.name)
+                              ? 'Fast model for simple turns, frontier for builds'
+                              : `${formatContextSize(modelOption.maxTokenAllowed)} tokens`}
                           </span>
                           {debouncedModelSearchQuery && (modelOption as any).searchScore > 70 && (
                             <span className="text-xs text-[var(--status-success-text)] font-medium">
