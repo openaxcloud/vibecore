@@ -1565,7 +1565,29 @@ export const ChatImpl = memo(
 
       runAnimation();
 
-      if (!chatStarted) {
+      /*
+       * A reopened project hydrates its transcript ASYNCHRONOUSLY (backend fetch
+       * → setMessages + setChatStarted, see the hydrateBackendTranscript effect).
+       * If the user sends during/just-after hydration while the `chatStarted`
+       * flag is transiently still false, the old `!chatStarted` guard routed the
+       * send into the homepage starter-template / new-chat branch — which
+       * OVERWRITES the live transcript with synthetic messages and finishes via
+       * reload() instead of append(). Post-reload that path produced ZERO
+       * `POST /api/chat` (deterministic repro), silently losing the edit: the
+       * "reopened project won't accept edits" bug. Key the branch off LIVE state
+       * (any hydrated message, or any project-IDE session) so a reopened
+       * conversation always append()s to `/api/chat`.
+       */
+      const conversationStarted = chatStarted || messages.length > 0 || projectIdeMode;
+
+      // Fail-loud: one line per submit so the exact branch + state is visible in the console.
+      console.info(
+        `[send] projectIdeMode=${projectIdeMode} chatStarted=${chatStarted} conversationStarted=${conversationStarted} ` +
+          `messages=${messages.length} initial=${initialMessages.length} isLoading=${isLoading} decision=${sendDecision}`,
+      );
+
+      if (!conversationStarted) {
+        console.info('[send] branch=starter-template/new-chat (reload, no append)');
         setFakeLoading(true);
 
         /*
@@ -1702,6 +1724,9 @@ export const ChatImpl = memo(
         const attachmentOptions =
           uploadedFiles.length > 0 ? { experimental_attachments: await filesToAttachments(uploadedFiles) } : undefined;
 
+        console.info(
+          `[send] branch=append (with modified-files artifact) → POST /api/chat, messages=${messages.length}`,
+        );
         append(
           {
             role: 'user',
@@ -1718,6 +1743,7 @@ export const ChatImpl = memo(
         const attachmentOptions =
           uploadedFiles.length > 0 ? { experimental_attachments: await filesToAttachments(uploadedFiles) } : undefined;
 
+        console.info(`[send] branch=append (plain) → POST /api/chat, messages=${messages.length}`);
         append(
           {
             role: 'user',
