@@ -150,6 +150,7 @@ describe('pinOpenAiSnapshot', () => {
 
   it('honours an explicit overrides map without mutating the default pins', () => {
     expect(pinOpenAiSnapshot('gpt-4.1', { 'gpt-4.1': 'gpt-4.1-2025-04-14' })).toBe('gpt-4.1-2025-04-14');
+
     // Default behaviour intact for a non-overridden id.
     expect(pinOpenAiSnapshot('gpt-4o')).toBe('gpt-4o-2024-08-06');
   });

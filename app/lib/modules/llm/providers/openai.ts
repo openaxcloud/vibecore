@@ -2,7 +2,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import type { LanguageModelV1 } from 'ai';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
-import { createOpenAiWireDiagnosticFetch } from '~/lib/modules/llm/wire-diagnostics';
+import { createOpenAiCacheFetch } from '~/lib/modules/llm/wire-diagnostics';
 import type { IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -326,13 +326,14 @@ export default class OpenAIProvider extends BaseProvider {
       compatibility: 'strict',
 
       /*
-       * Log-only wire diagnostics: emit a `wire.payload` line with the REAL size
-       * of the system/messages sent to OpenAI plus a `prefix.fingerprint` line
-       * with per-segment hashes (tools/system/messages/response_format) of the
-       * effective cached prefix, to reconcile them against prompt.fingerprint's
-       * measured chars and pinpoint cache drift. Never alters the request.
+       * Single wrapped fetch that (1) injects OpenAI's top-level
+       * `prompt_cache_key` (which @ai-sdk/openai@1.1.2 does not serialize) into
+       * the /chat/completions body, and (2) runs the log-only wire/prefix
+       * diagnostics (`wire.payload` + `prefix.fingerprint`) on the final body.
+       * Injection is try/catch-guarded → on any issue the request is forwarded
+       * UNCHANGED; the system/messages/tools prompt bytes are never altered.
        */
-      fetch: createOpenAiWireDiagnosticFetch(globalThis.fetch, wireLogger, { cacheAffinityKey }),
+      fetch: createOpenAiCacheFetch(globalThis.fetch, wireLogger, { cacheAffinityKey }),
     });
 
     /*
@@ -346,9 +347,9 @@ export default class OpenAIProvider extends BaseProvider {
      * A7 (Wave A): pass the stable per-conversation id as OpenAI's top-level `user`
      * field. This is a separate API parameter (used by OpenAI for cache affinity /
      * abuse monitoring) and does NOT alter the system/messages prompt bytes. Omitted
-     * when absent → byte-identical to today. `prompt_cache_key` is intentionally not
-     * set here: the installed @ai-sdk/openai@1.1.2 does not serialize it (injected
-     * separately by the fetch hook in a later step).
+     * when absent → byte-identical to today. The stronger `prompt_cache_key` field
+     * (which @ai-sdk/openai@1.1.2 does not serialize) is injected separately by the
+     * createOpenAiCacheFetch hook above.
      */
     return cacheAffinityKey ? openai(pinnedModel, { user: cacheAffinityKey }) : openai(pinnedModel);
   }
