@@ -6,7 +6,7 @@ import {
   providerByName,
   providerForModel,
 } from './projectModelSelection';
-import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
+import { AUTO_MODEL, DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
 
 describe('project model selection', () => {
   it('restores a valid persisted project provider/model pair', () => {
@@ -76,6 +76,27 @@ describe('project model selection', () => {
 
     expect(selection?.model).toBe('gpt-4o');
     expect(selection?.provider.name).toBe('OpenAI');
+  });
+
+  it('accepts "auto" as a valid selection mapped to the default provider (opt-in)', () => {
+    const selection = projectModelSelectionFromValues(AUTO_MODEL);
+
+    expect(selection?.model).toBe(AUTO_MODEL);
+    expect(selection?.model).toBe('auto');
+    expect(selection?.provider.name).toBe(DEFAULT_PROVIDER.name);
+
+    // Opt-in: Auto is NOT the default model — a blank selection never yields 'auto'.
+    expect(AUTO_MODEL).not.toBe(DEFAULT_MODEL);
+    expect(projectModelSelectionFromValues(undefined)).toBeNull();
+    expect(projectModelSelectionFromValues('')).toBeNull();
+  });
+
+  it('restores "auto" from persisted project metadata', () => {
+    const selection = projectModelSelectionFromMetadata({ selectedModel: 'auto', selectedProvider: 'OpenAI' });
+
+    // Even if a stale provider was persisted, Auto always resolves to the default provider.
+    expect(selection?.model).toBe('auto');
+    expect(selection?.provider.name).toBe(DEFAULT_PROVIDER.name);
   });
 
   it('maps known model prefixes to providers', () => {

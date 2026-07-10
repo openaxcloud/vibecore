@@ -83,4 +83,53 @@ describe('<ModelSelector />', () => {
 
     expect(await screen.findByTestId('agent-model-listbox')).toBeTruthy();
   });
+
+  it('surfaces "Auto" as a recommended, selectable option at the top of the model list', async () => {
+    const setModel = vi.fn();
+    const setProvider = vi.fn();
+
+    render(
+      <ModelSelector
+        apiKeys={{}}
+        model="gpt-4.1"
+        modelList={models}
+        provider={providers[0]}
+        providerList={providers}
+        setModel={setModel}
+        setProvider={setProvider}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('agent-model-combobox'));
+
+    const options = await screen.findAllByTestId('agent-model-option');
+
+    // Auto is pinned to the very top, labeled as recommended.
+    expect(options[0].textContent?.toLowerCase()).toContain('recommended');
+    expect(options[0].getAttribute('aria-label')?.toLowerCase()).toContain('auto');
+
+    // Selecting Auto sets the 'auto' sentinel and pins the default provider.
+    fireEvent.click(options[0]);
+    expect(setModel).toHaveBeenCalledWith('auto');
+    expect(setProvider).toHaveBeenCalled();
+  });
+
+  it('does NOT select Auto by default (opt-in)', () => {
+    render(
+      <ModelSelector
+        apiKeys={{}}
+        model="gpt-4.1"
+        modelList={models}
+        provider={providers[0]}
+        providerList={providers}
+        setModel={vi.fn()}
+        setProvider={vi.fn()}
+      />,
+    );
+
+    // The trigger reflects the concrete selected model, not Auto.
+    const trigger = screen.getByTestId('agent-model-combobox');
+    expect(trigger.textContent).toContain('GPT 4.1');
+    expect(trigger.textContent?.toLowerCase()).not.toContain('recommended');
+  });
 });

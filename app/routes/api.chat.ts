@@ -265,6 +265,18 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   let continuationSegments = 0;
 
   /*
+   * Model routing (Vague C) continuation consistency. When the request opted into
+   * Auto, the first segment's `streamText` resolves 'auto' to a CONCRETE model and
+   * reports it here via `onModelDecision`. Every auto-continuation segment then
+   * reuses this exact id in its `[Model: …]` prefix instead of re-sending 'auto'
+   * — so the model can never flip mid-generation (the CONTINUE_PROMPT classifies
+   * differently from the original turn) and the prompt cache stays warm. For an
+   * explicit (non-Auto) selection this stays the selected id, a no-op.
+   */
+  let routedTurnModel: string | undefined;
+  let routedTurnProvider: string | undefined;
+
+  /*
    * Whether ANY segment of this build produced a `<boltAction type="file">` —
    * i.e. the model actually emitted files, not just prose. A weak model
    * (gpt-3.5) often narrates the plan and emits nothing applicable; without this
@@ -1329,11 +1341,20 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
               const lastUserMessage = processedMessages.filter((x) => x.role == 'user').slice(-1)[0];
               const { model, provider } = extractPropertiesFromMessage(lastUserMessage);
+
+              /*
+               * Prefer the CONCRETE model the first segment resolved to (Auto is
+               * downgraded to a concrete id before the provider call). Reusing it
+               * keeps the model stable across every continuation segment; falls
+               * back to the message-prefix model for explicit (non-Auto) turns.
+               */
+              const continuationModel = routedTurnModel ?? model;
+              const continuationProvider = routedTurnProvider ?? provider;
               processedMessages.push({ id: generateId(), role: 'assistant', content });
               processedMessages.push({
                 id: generateId(),
                 role: 'user',
-                content: `[Model: ${model}]\n\n[Provider: ${provider}]\n\n${CONTINUE_PROMPT}`,
+                content: `[Model: ${continuationModel}]\n\n[Provider: ${continuationProvider}]\n\n${CONTINUE_PROMPT}`,
               });
 
               /*
@@ -1364,6 +1385,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   projectRulesContext: projectRules?.context,
                   skillsContext: projectSkills?.context,
                   chatId: conversationId,
+                  onModelDecision: (decidedModel, decidedProvider) => {
+                    routedTurnModel = decidedModel;
+                    routedTurnProvider = decidedProvider;
+                  },
                 });
 
                 result.mergeIntoDataStream(dataStream);
@@ -1436,6 +1461,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           agentMemoryContext: agentMemory?.context,
           skillsContext: projectSkills?.context,
           chatId: conversationId,
+          onModelDecision: (decidedModel, decidedProvider) => {
+            routedTurnModel = decidedModel;
+            routedTurnProvider = decidedProvider;
+          },
         });
 
         result.mergeIntoDataStream(dataStream);

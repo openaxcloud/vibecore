@@ -23,13 +23,17 @@
  */
 
 import { classifyTask, type OutputBudgetInput, type TaskClass } from './output-budget';
+import { AUTO_MODEL } from '~/utils/constants';
 
 /**
  * The sentinel model id that opts a request into complexity routing. When the
  * selected model equals this, `decideRoute` is free to downgrade; any concrete
  * model id is treated as an explicit, non-routable choice.
+ *
+ * Re-exported from `~/utils/constants` (the single, client-safe source of truth)
+ * so the selector UI and this server-side router can never drift on the literal.
  */
-export const AUTO_MODEL = 'auto';
+export { AUTO_MODEL };
 
 /** A provider's frontier (hard-task) and small (simple-task) model ids. */
 export interface ProviderRoute {

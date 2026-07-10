@@ -1,6 +1,6 @@
 import type { IChatMetadata } from '~/lib/persistence/db';
 import type { ProviderInfo } from '~/types/model';
-import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
+import { AUTO_MODEL, DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
 
 export type ProjectModelSelection = {
   model: string;
@@ -60,6 +60,16 @@ export function projectModelSelectionFromValues(
 
   if (!requestedModel) {
     return null;
+  }
+
+  /*
+   * "Auto" (opt-in complexity routing) is provider-agnostic and always resolves
+   * against the DEFAULT_PROVIDER — the server's router maps the AUTO_MODEL
+   * sentinel to that provider's frontier/small pair. Handle it before the normal
+   * provider lookup (no provider lists 'auto' in staticModels).
+   */
+  if (requestedModel === AUTO_MODEL) {
+    return { model: AUTO_MODEL, provider: DEFAULT_PROVIDER as ProviderInfo };
   }
 
   const requestedProvider = providerByName(requestedProviderValue?.trim()) ?? providerForModel(requestedModel);
