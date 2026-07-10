@@ -37,6 +37,7 @@ import { withRuntimeRetry } from '~/lib/runtime/retry';
 import { writeAcceptedAgentFile } from '~/lib/runtime/agent-file-write';
 import { topologicallySortFileActions } from '~/lib/runtime/topological-apply';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
+import { reportOptTelemetry } from '~/lib/telemetry/report-opt-telemetry';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
 import { validateGeneratedFile, validateGeneratedFiles, type GeneratedFile } from '~/services/agent/post-validate';
 import type { ITerminal } from '~/types/terminal';
@@ -355,6 +356,28 @@ export class WorkbenchStore {
         attempt,
         validationError,
         repairError,
+      });
+    });
+
+    /*
+     * Forward each diff-edit apply outcome to the server telemetry sink so the
+     * estimatedTokensSaved is greppable in prod pod logs (`opt.telemetry`), not
+     * just the browser console. Fire-and-forget + best-effort — the helper never
+     * throws and never blocks the apply path; `hunkStatuses` is dropped server-side.
+     */
+    workspaceEvents.on('agent:diff-edit:apply', (payload) => {
+      reportOptTelemetry({
+        type: 'diff-edit-apply',
+        chatId: this.#projectId ?? undefined,
+        outcome: payload.outcome,
+        filePath: payload.filePath,
+        blockCount: payload.blockCount,
+        addedLines: payload.addedLines,
+        removedLines: payload.removedLines,
+        hunkCount: payload.hunkCount,
+        fellBackToFullFile: payload.fellBackToFullFile,
+        failureKind: payload.failureKind,
+        estimatedTokensSaved: payload.estimatedTokensSaved,
       });
     });
   }
