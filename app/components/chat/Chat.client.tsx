@@ -8,6 +8,7 @@ import { useAnimate } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { classifySend, isStreamStalled } from '~/lib/chat/composer-send-guard';
 import { BaseChat } from './BaseChat';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
@@ -344,6 +345,15 @@ export const ChatImpl = memo(
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
     const mcpSettings = useMCPStore((state) => state.settings);
     const latestMessagesRef = useRef<Message[]>(initialMessages);
+
+    /*
+     * Composer send-stall guard: `lastStreamActivityRef` records the last time a
+     * chat stream delta arrived. A watchdog resets a stuck `isLoading` after a
+     * stall, and `sendMessage` uses it to avoid silently swallowing a send when
+     * the stream is dead. See app/lib/chat/composer-send-guard.ts.
+     */
+    const lastStreamActivityRef = useRef<number>(0);
+    const stallWatchdogRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const pendingPersistRef = useRef<Message[] | null>(null);
     const persistInFlightRef = useRef<Promise<void> | null>(null);
 
@@ -632,6 +642,51 @@ export const ChatImpl = memo(
       initialMessages,
       initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',
     });
+
+    /*
+     * Record a stream heartbeat whenever `messages` change while loading: each
+     * throttled delta frame updates `messages`, so this timestamps the last real
+     * stream activity. Used by the stall watchdog + the send guard below.
+     */
+    useEffect(() => {
+      if (isLoading) {
+        lastStreamActivityRef.current = Date.now();
+      }
+    }, [messages, isLoading]);
+
+    /*
+     * Stall watchdog: while `isLoading`, poll for a dead stream (no delta for
+     * STREAM_STALL_MS). A dropped LB/idle connection can leave `isLoading` stuck
+     * true with no error/finish; force-stop so the composer is released and the
+     * next send is not silently swallowed. Voluntary Stop is unaffected (it goes
+     * through abort() directly, not this timer).
+     */
+    useEffect(() => {
+      if (isLoading) {
+        lastStreamActivityRef.current = Date.now();
+
+        stallWatchdogRef.current = setInterval(() => {
+          if (isStreamStalled(lastStreamActivityRef.current, Date.now())) {
+            if (stallWatchdogRef.current) {
+              clearInterval(stallWatchdogRef.current);
+              stallWatchdogRef.current = null;
+            }
+
+            stop();
+            setFakeLoading(false);
+            workbenchStore.abortAllActions();
+            toast.warning('The generation stalled and was stopped — you can send your message again.');
+          }
+        }, 10_000);
+      }
+
+      return () => {
+        if (stallWatchdogRef.current) {
+          clearInterval(stallWatchdogRef.current);
+          stallWatchdogRef.current = null;
+        }
+      };
+    }, [isLoading, stop]);
 
     const submittedProjectPromptRef = useRef<string | undefined>(undefined);
 
@@ -1420,9 +1475,27 @@ export const ChatImpl = memo(
         return;
       }
 
-      if (isLoading) {
+      /*
+       * Never silently swallow a send. If a stream is genuinely ACTIVE, stop it
+       * and tell the user to resend (recoverable, not a muted loss). If `isLoading`
+       * is stuck on a STALLED stream (dropped LB/idle, no delta for the stall
+       * window), reset and fall through to actually send the new message.
+       */
+      const sendDecision = classifySend(isLoading, lastStreamActivityRef.current, Date.now());
+
+      if (sendDecision === 'stop-active') {
         abort();
+        toast.info('Stopped the current generation — send your message again.');
+
         return;
+      }
+
+      if (sendDecision === 'reset-and-send') {
+        stop();
+        setFakeLoading(false);
+        chatStore.setKey('aborted', false);
+
+        // fall through — post the new message instead of losing it to a stuck flag.
       }
 
       let finalMessageContent = messageContent;
