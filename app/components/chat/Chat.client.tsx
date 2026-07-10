@@ -8,7 +8,12 @@ import { useAnimate } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
-import { classifySend, isStreamStalled } from '~/lib/chat/composer-send-guard';
+import {
+  classifySend,
+  countResponseCompletions,
+  isStreamStalled,
+  RESPONSE_COMPLETE_GRACE_MS,
+} from '~/lib/chat/composer-send-guard';
 import { BaseChat } from './BaseChat';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
@@ -354,6 +359,16 @@ export const ChatImpl = memo(
      */
     const lastStreamActivityRef = useRef<number>(0);
     const stallWatchdogRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    /*
+     * Fast-recovery for a stuck stream: `isLoadingRef` mirrors the latest
+     * `isLoading` so a deferred timer reads the CURRENT value (not a stale
+     * closure), and `handledCompletionsRef` tracks how many authoritative
+     * terminal completions we've already acted on so we only react to a FRESH
+     * one (a new completion this turn), never a stale one from a prior turn.
+     */
+    const isLoadingRef = useRef(false);
+    const handledCompletionsRef = useRef(0);
     const pendingPersistRef = useRef<Message[] | null>(null);
     const persistInFlightRef = useRef<Promise<void> | null>(null);
 
@@ -687,6 +702,47 @@ export const ChatImpl = memo(
         }
       };
     }, [isLoading, stop]);
+
+    // Mirror isLoading into a ref so the completion timer below reads the live value.
+    useEffect(() => {
+      isLoadingRef.current = isLoading;
+    }, [isLoading]);
+
+    /*
+     * Fast recovery from a dropped terminal close. The server writes an
+     * authoritative `progress{label:'response',status:'complete'}` annotation
+     * just before it closes a normal-finish stream. If that annotation arrives
+     * but the terminal `finish_message`/close is then dropped by the LB, useChat
+     * keeps `isLoading` true and the "Stop running" chip hangs for the full 50s
+     * stall window — blocking the next send. When we see a FRESH completion (the
+     * count rose since the last one handled), give a healthy stream a short grace
+     * to close on its own, then force-release if it's still stuck. This never
+     * truncates a healthy finish (isLoading flips false within the grace) and,
+     * unlike lowering the stall watchdog, cannot false-positive on a slow stream
+     * because it only arms after an explicit server completion signal.
+     */
+    useEffect(() => {
+      const completions = countResponseCompletions(chatData);
+
+      if (completions <= handledCompletionsRef.current) {
+        return undefined;
+      }
+
+      handledCompletionsRef.current = completions;
+
+      if (!isLoading) {
+        return undefined;
+      }
+
+      const timer = setTimeout(() => {
+        if (isLoadingRef.current) {
+          stop();
+          setFakeLoading(false);
+        }
+      }, RESPONSE_COMPLETE_GRACE_MS);
+
+      return () => clearTimeout(timer);
+    }, [chatData, isLoading, stop]);
 
     const submittedProjectPromptRef = useRef<string | undefined>(undefined);
 

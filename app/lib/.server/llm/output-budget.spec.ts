@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { OUTPUT_BUDGET, classifyTask, clampOutputBudget, estimateOutputBudget, stripFileArtifacts } from './output-budget';
+import {
+  OUTPUT_BUDGET,
+  classifyTask,
+  clampOutputBudget,
+  estimateOutputBudget,
+  stripFileArtifacts,
+} from './output-budget';
 
 describe('classifyTask', () => {
   it('classifies discuss/ask/plan (non-build chat mode) as discuss', () => {

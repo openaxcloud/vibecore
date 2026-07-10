@@ -89,6 +89,32 @@ export function extractSelfRepairContent(raw: string): string {
   return raw;
 }
 
+/**
+ * Prompt for the full-file re-emit fallback when an anchored diff fails to apply
+ * (the file drifted from the SEARCH anchors) or is malformed. Gives the model the
+ * REAL current file plus the intended SEARCH/REPLACE blocks and asks it to output
+ * the COMPLETE corrected file — matching the same single-`boltAction` contract
+ * `extractSelfRepairContent` parses. Exported for unit testing.
+ */
+export function buildDiffFullFileReemitPrompt(filePath: string, currentFile: string, diffPayload: string): string {
+  return [
+    `An anchored SEARCH/REPLACE diff for \`${filePath}\` failed to apply because the`,
+    'file drifted from the anchors. Re-emit the COMPLETE file with the intended',
+    'change applied. Do not omit any lines. Keep the same path. Output only the',
+    'full corrected file as a single boltAction.',
+    '',
+    'Current file content:',
+    '```',
+    currentFile,
+    '```',
+    '',
+    'Intended change (SEARCH/REPLACE blocks that did not anchor):',
+    '```',
+    diffPayload,
+    '```',
+  ].join('\n');
+}
+
 /*
  * Heuristic: does this shell command install dependencies (or otherwise run
  * long enough that the generic 60s tool budget would cut it off)? Matches the
@@ -173,7 +199,20 @@ export type ActionState = BaseActionState | FailedActionState;
  */
 export type DiffResolution =
   | { ok: true; content: string; originalContent: string; hunks: HunkResult[] }
-  | { ok: false; kind: 'missing-file' | 'malformed' | 'apply-failed'; message: string; hunks?: HunkResult[] };
+  | {
+      ok: false;
+      kind: 'missing-file' | 'malformed' | 'apply-failed';
+      message: string;
+      hunks?: HunkResult[];
+
+      /*
+       * The freshly-read current file content, present whenever a base file
+       * exists (malformed / apply-failed). Lets the caller drive an automatic
+       * full-file re-emit (self-repair) instead of losing the edit. Absent for
+       * `missing-file` (there is no base to repair against).
+       */
+      original?: string;
+    };
 
 type BaseActionUpdate = Partial<
   Pick<BaseActionState, 'status' | 'abort' | 'executed' | 'startedAt' | 'finishedAt' | 'diffApply'>
@@ -828,6 +867,7 @@ export class ActionRunner {
         ok: false,
         kind: 'malformed',
         message: `diff for ${action.filePath} could not be parsed (${detail}) — re-emit the full file`,
+        original,
       };
     }
 
@@ -848,6 +888,7 @@ export class ActionRunner {
           (anchors ? ` (${anchors})` : '') +
           ' — the file drifted from the anchor; re-emit the full file',
         hunks: result.hunks,
+        original,
       };
     }
 
@@ -902,6 +943,45 @@ export class ActionRunner {
       }
 
       this.#emitDiffTelemetry(action, resolution.hunks ?? [], failedMeta);
+
+      /*
+       * Auto full-file re-emit BEFORE surfacing a user-facing error. An anchored
+       * search/replace that fails `apply-failed` (the file drifted from the
+       * anchor) or `malformed` is recoverable: ask the model to re-emit the
+       * COMPLETE file with the intended change applied, then run it through the
+       * normal file pipeline (sanitize / AST self-repair / write). Only when a
+       * base file exists (`resolution.original`); `missing-file` has nothing to
+       * repair against. This is purely additive on an ALREADY-failing branch —
+       * the worst case is the same `onAlert` as before, so it cannot regress a
+       * working apply. Stop still cancels via the action's abortSignal.
+       */
+      if (
+        (resolution.kind === 'apply-failed' || resolution.kind === 'malformed') &&
+        typeof resolution.original === 'string' &&
+        !action.abortSignal.aborted
+      ) {
+        try {
+          const repairPrompt = buildDiffFullFileReemitPrompt(action.filePath, resolution.original, action.content);
+          const fullFile = await callSelfRepairEndpoint(repairPrompt, action.abortSignal);
+
+          if (fullFile && fullFile.trim().length > 0 && !action.abortSignal.aborted) {
+            logger.info(`[diff]: recovered ${action.filePath} via full-file re-emit after ${resolution.kind}`);
+
+            const fileAction = { ...action, type: 'file' as const, content: fullFile } as ActionState;
+            await this.#runFileAction(fileAction, isStreaming);
+
+            return;
+          }
+        } catch (error) {
+          logger.warn(
+            `[diff]: full-file re-emit fallback failed for ${action.filePath}: ${
+              error instanceof Error ? error.message : error
+            }`,
+          );
+
+          // fall through to the strict user-facing alert below.
+        }
+      }
 
       this.onAlert?.({
         type: 'warning',

@@ -53,3 +53,50 @@ export function classifySend(
 
   return isStreamStalled(lastActivityMs, now, stallMs) ? 'reset-and-send' : 'stop-active';
 }
+
+/**
+ * Grace period after an AUTHORITATIVE terminal completion signal before the
+ * client force-closes a stream that `isLoading` still reports as active.
+ *
+ * The server writes a `progress { label:'response', status:'complete' }`
+ * annotation right before it closes the stream on a normal (`finishReason !==
+ * 'length'`) finish. If the transport's terminal `finish_message`/close is then
+ * dropped (LB idle-drop after the last byte — a documented infra failure mode),
+ * `useChat().isLoading` sticks true and the "Stop running" chip hangs for the
+ * full 50s stall window, blocking the next send. Since the completion annotation
+ * itself DID reach the client, we can treat it as authoritative and release the
+ * stream far sooner. The short grace lets a healthy stream close on its own first
+ * (so we never truncate a normal finish).
+ */
+export const RESPONSE_COMPLETE_GRACE_MS = 3_000;
+
+/**
+ * Count the AUTHORITATIVE terminal completion annotations in a `useChat().data`
+ * array — the `progress { label:'response', status:'complete' }` payloads the
+ * server writes on a clean finish. Pure + exported so the "fresh completion"
+ * detection (a NEW completion since the last one handled) is unit-testable.
+ *
+ * Only the terminal (non-`length`) finish writes this annotation, so a rising
+ * count is an unambiguous "this turn is done" signal — never a mid-stream event.
+ */
+export function countResponseCompletions(chatData: unknown): number {
+  if (!Array.isArray(chatData)) {
+    return 0;
+  }
+
+  let count = 0;
+
+  for (const item of chatData) {
+    if (
+      item !== null &&
+      typeof item === 'object' &&
+      (item as { type?: unknown }).type === 'progress' &&
+      (item as { label?: unknown }).label === 'response' &&
+      (item as { status?: unknown }).status === 'complete'
+    ) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
