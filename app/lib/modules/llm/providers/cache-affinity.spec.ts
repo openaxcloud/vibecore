@@ -40,16 +40,46 @@ beforeEach(() => {
 });
 
 describe('A7 OpenAI cache-affinity (user field)', () => {
-  it('passes the cacheAffinityKey as the OpenAI `user` model setting', () => {
+  it('passes the cacheAffinityKey as the OpenAI `user` model setting (with the pinned gpt-4o snapshot)', () => {
     new OpenAIProvider().getModelInstance({ model: 'gpt-4o', serverEnv, cacheAffinityKey: 'conv-123' });
     expect(modelCalls).toHaveLength(1);
-    expect(modelCalls[0].model).toBe('gpt-4o');
+    expect(modelCalls[0].model).toBe('gpt-4o-2024-08-06');
     expect(modelCalls[0].settings).toEqual({ user: 'conv-123' });
   });
 
   it('omits the `user` setting entirely when no key (byte-identical to today)', () => {
     new OpenAIProvider().getModelInstance({ model: 'gpt-4o', serverEnv });
     expect(modelCalls[0].settings).toBeUndefined();
+  });
+});
+
+describe('OpenAI cache-v2 wire config (compatibility + snapshot pin)', () => {
+  it("instantiates the real OpenAI client with compatibility: 'strict' so streaming usage (cached tokens) is reported", () => {
+    new OpenAIProvider().getModelInstance({ model: 'gpt-4o', serverEnv });
+    expect(createOpenAICalls).toHaveLength(1);
+    expect(createOpenAICalls[0].compatibility).toBe('strict');
+  });
+
+  it('pins the floating gpt-4o alias to a dated snapshot and passes other ids through untouched', () => {
+    new OpenAIProvider().getModelInstance({ model: 'gpt-4o', serverEnv });
+    new OpenAIProvider().getModelInstance({ model: 'gpt-4o-mini', serverEnv });
+    new OpenAIProvider().getModelInstance({ model: 'gpt-4.1', serverEnv });
+    new OpenAIProvider().getModelInstance({ model: 'o3-mini', serverEnv });
+    expect(modelCalls.map((c) => c.model)).toEqual(['gpt-4o-2024-08-06', 'gpt-4o-mini', 'gpt-4.1', 'o3-mini']);
+  });
+});
+
+describe('NON-REGRESSION: strict/pin stay on the real OpenAI provider only', () => {
+  it('xAI createOpenAI config carries NO compatibility flag (would break the non-OpenAI baseURL)', () => {
+    new XAIProvider().getModelInstance({ model: 'grok-4', serverEnv });
+    expect(createOpenAICalls).toHaveLength(1);
+    expect(createOpenAICalls[0].baseURL).toBe('https://api.x.ai/v1');
+    expect('compatibility' in createOpenAICalls[0]).toBe(false);
+  });
+
+  it('xAI never pins the model id', () => {
+    new XAIProvider().getModelInstance({ model: 'grok-4', serverEnv });
+    expect(modelCalls[0].model).toBe('grok-4');
   });
 });
 
