@@ -213,3 +213,123 @@ export function createOpenAiWireDiagnosticFetch(
     return baseFetch(input as any, init);
   };
 }
+
+/**
+ * Build the value for OpenAI's top-level `prompt_cache_key` from a parsed
+ * chat/completions body. Shape:
+ *
+ *   `${projectId}:${systemPromptVersion}:${toolsSchemaVersion}`
+ *
+ * where `systemPromptVersion` = hash of the system string and
+ * `toolsSchemaVersion` = hash of the `tools` array as-sent. The key is therefore
+ * STABLE while the effective prefix is stable and CHANGES when the system or
+ * tools genuinely change (correct cache separation).
+ *
+ * When `cacheAffinityKey` is absent we still return a two-part
+ * `${systemPromptVersion}:${toolsSchemaVersion}` key (we always have system +
+ * tools from the body), so unrelated conversations sharing the same prefix can
+ * still land on the same cache bucket. Returns null only if the body is not a
+ * usable chat/completions payload.
+ */
+export function buildPromptCacheKey(bodyText: string, cacheAffinityKey?: string): string | null {
+  let parsed: { messages?: Array<{ role?: string; content?: unknown }>; tools?: unknown[] };
+
+  try {
+    parsed = JSON.parse(bodyText);
+  } catch {
+    return null;
+  }
+
+  if (!parsed || !Array.isArray(parsed.messages)) {
+    return null;
+  }
+
+  const asText = (content: unknown): string => {
+    if (typeof content === 'string') {
+      return content;
+    }
+
+    if (Array.isArray(content)) {
+      return content.map((part: any) => (typeof part?.text === 'string' ? part.text : '')).join('');
+    }
+
+    return '';
+  };
+
+  const systemMsg = parsed.messages.find((m) => m.role === 'system');
+  const systemPromptVersion = hashString(asText(systemMsg?.content));
+  const toolsSchemaVersion = hashString(JSON.stringify(Array.isArray(parsed.tools) ? parsed.tools : []));
+  const suffix = `${systemPromptVersion}:${toolsSchemaVersion}`;
+
+  return cacheAffinityKey ? `${cacheAffinityKey}:${suffix}` : suffix;
+}
+
+/**
+ * Return an `init` whose JSON body has `prompt_cache_key` injected as a top-level
+ * field. `@ai-sdk/openai@1.1.2` does not serialize `prompt_cache_key`, so we set
+ * it here on the raw wire body. It is a SEPARATE top-level field — the
+ * system/messages/tools prompt bytes are untouched. Any parse/shape issue → the
+ * original `init` is returned UNCHANGED so generation can never break.
+ */
+function injectPromptCacheKey(
+  init: Parameters<typeof fetch>[1],
+  cacheAffinityKey?: string,
+): Parameters<typeof fetch>[1] {
+  try {
+    if (!init || typeof init.body !== 'string') {
+      return init;
+    }
+
+    const key = buildPromptCacheKey(init.body, cacheAffinityKey);
+
+    if (!key) {
+      return init;
+    }
+
+    const parsed = JSON.parse(init.body);
+
+    if (!parsed || typeof parsed !== 'object') {
+      return init;
+    }
+
+    parsed.prompt_cache_key = key;
+
+    return { ...init, body: JSON.stringify(parsed) };
+  } catch {
+    return init;
+  }
+}
+
+/**
+ * OpenAI fetch middleware that BOTH injects `prompt_cache_key` into the
+ * /chat/completions body AND runs the log-only wire/prefix diagnostics on the
+ * final body. A single wrapped fetch so the provider passes one `fetch`.
+ *
+ * Injection is best-effort and try/catch-guarded end to end: on any problem the
+ * request is forwarded UNCHANGED (mirrors createAnthropicCachingFetch). Non-chat
+ * URLs pass straight through untouched.
+ */
+export function createOpenAiCacheFetch(
+  baseFetch: typeof fetch,
+  logger: Logger,
+  options: OpenAiWireDiagnosticOptions = {},
+): typeof fetch {
+  const diagnosticFetch = createOpenAiWireDiagnosticFetch(baseFetch, logger, options);
+
+  return async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+    let nextInit = init;
+
+    try {
+      const url = typeof input === 'string' ? input : ((input as Request)?.url ?? String(input));
+
+      if (init && typeof init.body === 'string' && url.includes('/chat/completions')) {
+        nextInit = injectPromptCacheKey(init, options.cacheAffinityKey);
+      }
+    } catch {
+      // Never let cache-key injection break the request.
+      nextInit = init;
+    }
+
+    return diagnosticFetch(input, nextInit);
+  };
+}
