@@ -35,6 +35,7 @@ async function startProvider(responder: (body: string, response: import('node:ht
   });
 
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+
   const address = server.address();
 
   if (!address || typeof address === 'string') {
@@ -66,6 +67,7 @@ describe('AiGateway', () => {
 
   it('hard-blocks a plan-forbidden model by default, but planFallback swaps in a plan-allowed model', () => {
     process.env.OPENAI_API_KEY = 'k';
+
     const gateway = new AiGateway();
 
     // Default (main chat): a premium model on Free is rejected.
@@ -103,6 +105,7 @@ describe('AiGateway', () => {
     process.env.AI_FALLBACK_PROVIDERS = 'openrouter';
 
     const gateway = new AiGateway();
+
     const result = await gateway.complete({
       plan: 'business',
       provider: 'openai',
@@ -166,6 +169,7 @@ describe('AiGateway', () => {
     process.env.OPENAI_BASE_URL = provider.url;
 
     const gateway = new AiGateway();
+
     const result = await gateway.complete({
       plan: 'pro',
       provider: 'openai',
@@ -175,6 +179,49 @@ describe('AiGateway', () => {
     });
 
     expect(result.content).toBe('temperature omitted');
+  });
+
+  it('sets the OpenAI `user` field to the org for cache-affinity when an org is bound', async () => {
+    const provider = await startProvider((body, response) => {
+      const payload = JSON.parse(body);
+      expect(payload.user).toBe('org-cache-1');
+      response
+        .writeHead(200, { 'content-type': 'application/json' })
+        .end(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }));
+    });
+    servers.push(provider.server);
+    process.env.OPENAI_API_KEY = 'openai-key';
+    process.env.OPENAI_BASE_URL = provider.url;
+
+    const gateway = new AiGateway();
+    await gateway.complete({
+      plan: 'pro',
+      provider: 'openai',
+      model: 'gpt-4.1',
+      organizationId: 'org-cache-1',
+      messages: [{ role: 'user', content: 'hello' }],
+    });
+  });
+
+  it('omits the `user` field entirely when no org is bound (byte-identical to today)', async () => {
+    const provider = await startProvider((body, response) => {
+      const payload = JSON.parse(body);
+      expect(payload).not.toHaveProperty('user');
+      response
+        .writeHead(200, { 'content-type': 'application/json' })
+        .end(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }));
+    });
+    servers.push(provider.server);
+    process.env.OPENAI_API_KEY = 'openai-key';
+    process.env.OPENAI_BASE_URL = provider.url;
+
+    const gateway = new AiGateway();
+    await gateway.complete({
+      plan: 'pro',
+      provider: 'openai',
+      model: 'gpt-4.1',
+      messages: [{ role: 'user', content: 'hello' }],
+    });
   });
 
   it('does not send deprecated temperature to Claude Opus 4.7', async () => {
@@ -193,6 +240,7 @@ describe('AiGateway', () => {
     process.env.ANTHROPIC_BASE_URL = provider.url.replace(/\/v1$/, '');
 
     const gateway = new AiGateway();
+
     const result = await gateway.complete({
       plan: 'enterprise',
       provider: 'anthropic',
@@ -225,10 +273,12 @@ describe('AiGateway', () => {
    */
   it('classifies an Anthropic account usage-limit body but not a transient rate limit', () => {
     expect(isProviderAccountLimit(429, ANTHROPIC_ACCOUNT_LIMIT_BODY)).toBe(true);
+
     // A per-minute rate limit clears on its own — it is NOT an account cap.
     expect(
       isProviderAccountLimit(429, JSON.stringify({ error: { message: 'Rate limit exceeded, retry soon.' } })),
     ).toBe(false);
+
     // A non-429 (or empty body) is never an account cap.
     expect(isProviderAccountLimit(500, ANTHROPIC_ACCOUNT_LIMIT_BODY)).toBe(false);
     expect(isProviderAccountLimit(429, '')).toBe(false);
@@ -264,6 +314,7 @@ describe('AiGateway', () => {
 
     const errorChunk = chunks.find((chunk) => chunk.type === 'error');
     expect(errorChunk).toBeDefined();
+
     // The real provider reason is preserved, not swallowed into "Provider stream failed: 429".
     expect(errorChunk?.error).toContain('specified API usage limits');
     expect(chunks.some((chunk) => chunk.type === 'delta')).toBe(false);
@@ -315,24 +366,32 @@ describe('AiGateway', () => {
     expect(maxCompletionTokensForModel('gpt-4-turbo-2024-04-09')).toBe(4096);
     expect(maxCompletionTokensForModel('gpt-4-1106-preview')).toBe(4096);
     expect(maxCompletionTokensForModel('gpt-3.5-turbo')).toBe(4096);
+
     // Standard gpt-4 / gpt-4o keep their higher ceilings.
     expect(maxCompletionTokensForModel('gpt-4-0613')).toBe(8192);
     expect(maxCompletionTokensForModel('gpt-4o')).toBe(16384);
+
     // Catalog-declared values win (Claude 3.5 Sonnet = 8192).
     expect(maxCompletionTokensForModel('claude-3-5-sonnet-latest')).toBe(8192);
+
     // Anthropic (not just OpenAI): 3.5/3.7 → 8192, 3.x/2.x → 4096.
     expect(maxCompletionTokensForModel('claude-3-7-sonnet-20250219')).toBe(8192);
     expect(maxCompletionTokensForModel('claude-3-opus-20240229')).toBe(4096);
     expect(maxCompletionTokensForModel('claude-3-haiku-20240307')).toBe(4096);
+
     // Google Gemini: 1.x / 2.0 → 8192.
     expect(maxCompletionTokensForModel('gemini-1.5-flash')).toBe(8192);
     expect(maxCompletionTokensForModel('gemini-2.0-flash')).toBe(8192);
+
     // Newer premium families keep the hard cap (not over-clamped).
     expect(maxCompletionTokensForModel('claude-sonnet-4-5')).toBe(32768);
+
     // Gemini 2.5 Pro is now a catalog entry declaring 65536; catalog value wins.
     expect(maxCompletionTokensForModel('gemini-2.5-pro')).toBe(65536);
+
     // A 2.5 id NOT in the catalog still falls through past the legacy 1.x/2.0 branch to the hard cap.
     expect(maxCompletionTokensForModel('gemini-2.5-flash-lite')).toBe(32768);
+
     // Unknown ids keep the global hard cap — never over-clamp a large-output model.
     expect(maxCompletionTokensForModel('some-unknown-model')).toBe(32768);
     expect(maxCompletionTokensForModel(undefined)).toBe(32768);
@@ -341,6 +400,7 @@ describe('AiGateway', () => {
   it('uses a GA/stable Gemini default model (no removed gemini-1.5 alias)', () => {
     const gemini = providerConfigs().find((config) => config.id === 'google-gemini');
     expect(gemini).toBeDefined();
+
     // gemini-1.5-* aliases were removed by Google and 404 under v1beta generateContent.
     expect(gemini!.defaultModel).not.toMatch(/gemini-1\.5/);
     expect(gemini!.defaultModel).toBe('gemini-2.5-flash');
@@ -350,6 +410,7 @@ describe('AiGateway', () => {
     const geminiModels = modelCatalog.filter((model) => model.provider === 'google-gemini');
     expect(geminiModels.length).toBeGreaterThan(0);
     expect(geminiModels.some((model) => /^gemini-1\.5/.test(model.id))).toBe(false);
+
     // The canonical GA set is present.
     const ids = geminiModels.map((model) => model.id);
     expect(ids).toContain('gemini-2.5-pro');
@@ -359,6 +420,7 @@ describe('AiGateway', () => {
 
   it('clamps the outgoing max_tokens to the model ceiling even when a larger value is requested', async () => {
     let sentMaxTokens = -1;
+
     const provider = await startProvider((body, response) => {
       sentMaxTokens = JSON.parse(body).max_tokens;
       response.writeHead(200, { 'content-type': 'application/json' }).end(
@@ -376,6 +438,7 @@ describe('AiGateway', () => {
       plan: 'enterprise',
       provider: 'anthropic',
       model: 'claude-3-5-sonnet-latest',
+
       // Ask for far more than Claude 3.5 Sonnet's 8192 completion ceiling.
       maxTokens: 32000,
       messages: [{ role: 'user', content: 'build me an app' }],

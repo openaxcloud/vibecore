@@ -832,6 +832,17 @@ function openAiPayload(request: AiChatRequest, model: string, stream: boolean) {
     messages: request.messages,
     stream,
     max_tokens: resolveMaxOutputTokens(request, model),
+
+    /*
+     * Cache-affinity for the gateway OpenAI path (mirrors the main chat's `user`
+     * plumbing): tag the request with the org so OpenAI routes an org's parallel
+     * multi-agent lanes to the same cache shard, improving the hit-rate on the
+     * shared SHARED_AGENT_SYSTEM_PREAMBLE prefix. NOT part of the prompt-cache
+     * prefix (a routing hint only), so it's byte-identical for prompt caching;
+     * omitted entirely when no org is bound, and ignored by non-OpenAI
+     * openai-compatible upstreams (spec-safe `user` field).
+     */
+    ...(request.organizationId ? { user: request.organizationId } : {}),
     ...optionalTemperature(request, model),
   };
 }
