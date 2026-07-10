@@ -327,10 +327,12 @@ export default class OpenAIProvider extends BaseProvider {
 
       /*
        * Log-only wire diagnostics: emit a `wire.payload` line with the REAL size
-       * of the system/messages sent to OpenAI, to reconcile it against
-       * prompt.fingerprint's measured chars. Never alters the request.
+       * of the system/messages sent to OpenAI plus a `prefix.fingerprint` line
+       * with per-segment hashes (tools/system/messages/response_format) of the
+       * effective cached prefix, to reconcile them against prompt.fingerprint's
+       * measured chars and pinpoint cache drift. Never alters the request.
        */
-      fetch: createOpenAiWireDiagnosticFetch(globalThis.fetch, wireLogger),
+      fetch: createOpenAiWireDiagnosticFetch(globalThis.fetch, wireLogger, { cacheAffinityKey }),
     });
 
     /*
