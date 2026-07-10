@@ -2,7 +2,11 @@ import { createOpenAI } from '@ai-sdk/openai';
 import type { LanguageModelV1 } from 'ai';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
+import { createOpenAiWireDiagnosticFetch } from '~/lib/modules/llm/wire-diagnostics';
 import type { IProviderSetting } from '~/types/model';
+import { createScopedLogger } from '~/utils/logger';
+
+const wireLogger = createScopedLogger('wire.payload');
 
 /**
  * True when a model id from OpenAI's /v1/models listing is a chat-completion
@@ -276,6 +280,13 @@ export default class OpenAIProvider extends BaseProvider {
 
     const openai = createOpenAI({
       apiKey,
+
+      /*
+       * Log-only wire diagnostics: emit a `wire.payload` line with the REAL size
+       * of the system/messages sent to OpenAI, to reconcile it against
+       * prompt.fingerprint's measured chars. Never alters the request.
+       */
+      fetch: createOpenAiWireDiagnosticFetch(globalThis.fetch, wireLogger),
     });
 
     /*
