@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OUTPUT_BUDGET, clampOutputBudget, estimateOutputBudget } from './output-budget';
+import { OUTPUT_BUDGET, clampOutputBudget, estimateOutputBudget, stripFileArtifacts } from './output-budget';
 
 describe('estimateOutputBudget', () => {
   it('sizes discuss/ask/plan to the smallest budget', () => {
@@ -74,6 +74,46 @@ describe('estimateOutputBudget', () => {
     expect(
       estimateOutputBudget({ chatMode: 'build', lastUserMessage: 'make it responsive', contextFileCount: 8 }),
     ).toBe(OUTPUT_BUDGET.build);
+  });
+
+  /*
+   * Regression (measured live): an edit turn prepends filesToArtifacts before the
+   * instruction, inflating the message past the 400-char scaffold threshold. The
+   * budget must classify on the real trailing instruction, not the artifact bytes.
+   */
+  it('classifies "change footer color to red" as smallEdit even when a big file artifact is prepended', () => {
+    const artifact =
+      '<boltArtifact id="update-1" title="User Updated Files">' +
+      '<boltAction type="file" filePath="src/App.tsx">' +
+      'x'.repeat(6000) +
+      '</boltAction></boltArtifact>';
+
+    const message = `${artifact}change the footer color to red`;
+    expect(message.length).toBeGreaterThan(400); // inflated by the artifact
+    expect(estimateOutputBudget({ chatMode: 'build', lastUserMessage: message, contextFileCount: 12 })).toBe(
+      OUTPUT_BUDGET.smallEdit,
+    );
+  });
+
+  it('still scaffolds a from-scratch build even if a file artifact is prepended (real long instruction)', () => {
+    const artifact =
+      '<boltArtifact id="u" title="Files"><boltAction type="file" filePath="a">z</boltAction></boltArtifact>';
+
+    // A genuine from-scratch brief after the artifact → the "build a" signal wins.
+    const message = `${artifact}build a full quiz app with scoring, a timer, and a results page`;
+    expect(estimateOutputBudget({ chatMode: 'build', lastUserMessage: message })).toBe(OUTPUT_BUDGET.scaffold);
+  });
+});
+
+describe('stripFileArtifacts', () => {
+  it('removes prepended boltArtifact/boltAction blocks, leaving the instruction', () => {
+    const artifact =
+      '<boltArtifact id="u" title="Files"><boltAction type="file" filePath="a">CODE</boltAction></boltArtifact>';
+    expect(stripFileArtifacts(`${artifact}make footer bold`)).toBe('make footer bold');
+  });
+
+  it('leaves a plain instruction untouched', () => {
+    expect(stripFileArtifacts('rename the header')).toBe('rename the header');
   });
 });
 

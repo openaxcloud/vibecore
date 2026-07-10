@@ -111,6 +111,24 @@ const SMALL_EDIT_SIGNALS = [
 /** Max prompt length (chars) still treated as a targeted edit. Longer → a broader change. */
 const SMALL_EDIT_MAX_LEN = 220;
 
+/**
+ * Strip prepended file artifacts from a user message so the budget is classified
+ * on the REAL instruction, not the bytes of the modified files.
+ *
+ * On an edit turn the composer prepends `filesToArtifacts(...)` — a
+ * `<boltArtifact …>…<boltAction …>file contents…</boltAction>…</boltArtifact>`
+ * block — BEFORE the user's actual instruction. That inflated the measured length
+ * past the 400-char "scaffold" threshold, so "make footer bold" on a project with
+ * modified files was mis-sized as a from-scratch build. Removing the artifact
+ * blocks leaves just the trailing instruction to classify.
+ */
+export function stripFileArtifacts(text: string): string {
+  return text
+    .replace(/<boltArtifact[^>]*>[\s\S]*?<\/boltArtifact>/gi, ' ')
+    .replace(/<boltAction[^>]*>[\s\S]*?<\/boltAction>/gi, ' ')
+    .trim();
+}
+
 export interface OutputBudgetInput {
   chatMode?: string;
 
@@ -145,7 +163,8 @@ export function estimateOutputBudget(input: OutputBudgetInput): number {
     return OUTPUT_BUDGET.discuss;
   }
 
-  const text = (input.lastUserMessage ?? '').toLowerCase();
+  // Classify on the real instruction, not the prepended file-artifact bytes.
+  const text = stripFileArtifacts(input.lastUserMessage ?? '').toLowerCase();
 
   /*
    * A genuine from-scratch build: the composer's Plan toggle, an explicit
