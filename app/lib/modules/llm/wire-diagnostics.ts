@@ -65,13 +65,98 @@ export function describeOpenAiWireBody(bodyText: string): {
   };
 }
 
-type Logger = { info: (...args: unknown[]) => void };
+/**
+ * Fingerprint of the EFFECTIVE OpenAI cached prefix, not just the system string.
+ *
+ * OpenAI's automatic prompt-cache prefix is, in wire order: `tools` (the whole
+ * array, sent BEFORE system on the chat/completions path) → the `system` message
+ * → the leading conversation messages → an optional `response_format`. Any one of
+ * those drifting turn-to-turn silently invalidates the cache. `prompt.fingerprint`
+ * (stream-text) only hashed `system`, so a flip in the tool ordering or a tool
+ * description edit was invisible. This hashes each segment SEPARATELY so a log
+ * diff across two consecutive same-conversation turns pinpoints which segment
+ * moved.
+ *
+ * `firstMessagesHash` is the hash of the canonical JSON of every message EXCEPT
+ * the final one — i.e. the append-only conversation prefix that is expected to be
+ * byte-stable across consecutive turns; the last (current user) message is the
+ * only per-turn-variable message and is deliberately excluded.
+ *
+ * Pure + total: any parse/shape surprise returns null; never throws.
+ */
+export function fingerprintOpenAiPrefix(bodyText: string): {
+  toolsHash: string;
+  toolsCount: number;
+  systemHash: string;
+  firstMessagesHash: string;
+  responseFormatHash: string | null;
+  effectivePrefixHash: string;
+} | null {
+  let parsed: {
+    messages?: Array<{ role?: string; content?: unknown }>;
+    tools?: unknown[];
+    response_format?: unknown;
+  };
+
+  try {
+    parsed = JSON.parse(bodyText);
+  } catch {
+    return null;
+  }
+
+  if (!parsed || !Array.isArray(parsed.messages)) {
+    return null;
+  }
+
+  const tools = Array.isArray(parsed.tools) ? parsed.tools : [];
+
+  // Canonical JSON preserving array + key order exactly as sent (that order IS the cache-sensitive signal).
+  const toolsHash = hashString(JSON.stringify(tools));
+  const toolsCount = tools.length;
+
+  const systemMsg = parsed.messages.find((m) => m.role === 'system');
+  const systemHash = hashString(JSON.stringify(systemMsg ? (systemMsg.content ?? null) : null));
+
+  // Stable prefix = every message except the final (current) turn.
+  const prefixMessages = parsed.messages.length > 1 ? parsed.messages.slice(0, -1) : [];
+  const firstMessagesHash = hashString(JSON.stringify(prefixMessages));
+
+  const responseFormatHash =
+    parsed.response_format === undefined ? null : hashString(JSON.stringify(parsed.response_format));
+
+  const effectivePrefixHash = hashString(
+    `${toolsHash}|${systemHash}|${firstMessagesHash}|${responseFormatHash ?? '∅'}`,
+  );
+
+  return { toolsHash, toolsCount, systemHash, firstMessagesHash, responseFormatHash, effectivePrefixHash };
+}
+
+type Logger = { info: (...args: unknown[]) => void; warn?: (...args: unknown[]) => void };
+
+export interface OpenAiWireDiagnosticOptions {
+  /** Stable per-conversation id (chatId). Enables the consecutive-turn drift warning. */
+  cacheAffinityKey?: string;
+}
+
+/**
+ * Last-seen prefix hashes per conversation, so we can WARN when the cached prefix
+ * (tools order / system) flips between two consecutive turns of the SAME chat —
+ * the smoking gun for a cache invalidation. Module-scoped: persists across turns
+ * within a process, best-effort only.
+ */
+const lastPrefixByConversation = new Map<string, { toolsHash: string; systemHash: string }>();
 
 /**
  * Wrap `fetch` so each OpenAI /chat/completions request emits a `wire.payload`
- * INFO line with the real on-the-wire sizes. Never alters the request.
+ * INFO line with the real on-the-wire sizes AND a `prefix.fingerprint` INFO line
+ * with the per-segment hashes of the effective cached prefix. Log-only: never
+ * alters the request.
  */
-export function createOpenAiWireDiagnosticFetch(baseFetch: typeof fetch, logger: Logger): typeof fetch {
+export function createOpenAiWireDiagnosticFetch(
+  baseFetch: typeof fetch,
+  logger: Logger,
+  options: OpenAiWireDiagnosticOptions = {},
+): typeof fetch {
   return async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
     try {
       const url = typeof input === 'string' ? input : ((input as Request)?.url ?? String(input));
@@ -81,6 +166,44 @@ export function createOpenAiWireDiagnosticFetch(baseFetch: typeof fetch, logger:
 
         if (shape) {
           logger.info(JSON.stringify({ event: 'wire.payload', provider: 'openai', ...shape }));
+        }
+
+        const prefix = fingerprintOpenAiPrefix(init.body);
+
+        if (prefix) {
+          logger.info(
+            JSON.stringify({
+              event: 'prefix.fingerprint',
+              provider: 'openai',
+              conversation: options.cacheAffinityKey ?? null,
+              ...prefix,
+            }),
+          );
+
+          // Consecutive-turn drift detection (log-only), keyed by conversation id.
+          const convId = options.cacheAffinityKey;
+
+          if (convId) {
+            const prev = lastPrefixByConversation.get(convId);
+
+            if (prev && (prev.toolsHash !== prefix.toolsHash || prev.systemHash !== prefix.systemHash)) {
+              (logger.warn ?? logger.info)(
+                JSON.stringify({
+                  event: 'prefix.drift',
+                  provider: 'openai',
+                  conversation: convId,
+                  toolsHashChanged: prev.toolsHash !== prefix.toolsHash,
+                  systemHashChanged: prev.systemHash !== prefix.systemHash,
+                  prevToolsHash: prev.toolsHash,
+                  toolsHash: prefix.toolsHash,
+                  prevSystemHash: prev.systemHash,
+                  systemHash: prefix.systemHash,
+                }),
+              );
+            }
+
+            lastPrefixByConversation.set(convId, { toolsHash: prefix.toolsHash, systemHash: prefix.systemHash });
+          }
         }
       }
     } catch {
