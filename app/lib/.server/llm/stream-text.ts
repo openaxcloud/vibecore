@@ -621,19 +621,19 @@ export async function streamText(props: {
     `Token limits for model ${modelDetails.name}: adaptive maxTokens=${safeMaxTokens} (estimate=${outputBudgetEstimate}, ceiling=${dynamicMaxTokens}, mode=${chatMode}), maxTokenAllowed=${modelDetails.maxTokenAllowed}, maxCompletionTokens=${modelDetails.maxCompletionTokens}`,
   );
 
+  /*
+   * Cache-max (LOT 1, targeted): the orchestration prompt and its exec-context are
+   * DERIVED FROM THE CURRENT TURN (roles/mode/plan are recomputed from the latest
+   * user message), so they are per-turn VOLATILE — measured live drifting turn to
+   * turn (orchestration e317037a→80f5d344, orchestrationCtx 1f503e2f→f36c3786) while
+   * everything else in the tail was byte-stable (skills 4f8abd8d both turns). Left in
+   * the system they rotated the systemHash every turn and capped the cached prefix at
+   * the head. They are therefore carried in the message tail (like the CONTEXT BUFFER)
+   * rather than the cached system — the model still receives them, just lower in the
+   * prompt. memory/skills/rules stay in the system: measured stable across turns.
+   */
   const orchestrationPrompt = createAgentOrchestrationPrompt(orchestrationPlan);
-
-  if (orchestrationPrompt) {
-    systemPrompt = `${systemPrompt}
-
-${orchestrationPrompt}`;
-  }
-
-  if (agentOrchestrationContext) {
-    systemPrompt = `${systemPrompt}
-
-${agentOrchestrationContext}`;
-  }
+  const orchestrationTailBlock = [orchestrationPrompt, agentOrchestrationContext].filter(Boolean).join('\n\n');
 
   if (agentMemoryContext) {
     systemPrompt = `${systemPrompt}
@@ -685,6 +685,9 @@ ${props.summary}
     processedMessages = appendContextToLastUserMessage(processedMessages, contextBufferBlock);
   }
 
+  // Cache-max: carry the per-turn orchestration block in the message tail (see above).
+  processedMessages = appendContextToLastUserMessage(processedMessages, orchestrationTailBlock);
+
   const effectiveLockedFilePaths = new Set<string>();
 
   if (files) {
@@ -712,9 +715,10 @@ ${props.summary}
   /*
    * Cross-turn cache breakpoint (Anthropic-family only) — placed at the END of the
    * system assembly. Now that the volatile CONTEXT BUFFER + CHAT SUMMARY are carried
-   * in the user-message tail (appendContextToLastUserMessage), the ENTIRE system
-   * (base + orchestration + memory + skills + rules + locked list) is stable across
-   * turns of a conversation, so marking the boundary here lets Anthropic cache the
+   * in the user-message tail (appendContextToLastUserMessage) — along with the
+   * per-turn orchestration prompt + exec-context — the ENTIRE system (base + memory +
+   * skills + rules + locked list) is stable across turns of a conversation, so
+   * marking the boundary here lets Anthropic cache the
    * whole system instead of only the head. The sentinel is Anthropic-only and is
    * stripped from the wire body by createAnthropicCachingFetch / the OpenRouter
    * caching fetch, so the model never sees it; every other provider's system stays
