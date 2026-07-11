@@ -846,14 +846,34 @@ ${props.summary}
    * ~1024-token OpenAI/Gemini/DeepSeek cache minimum — measured from real prod
    * turns instead of a static render.
    */
+  const systemTail = systemPrompt.slice(stableHeadChars);
+  const blockFingerprint = (block?: string): [string, number] => [fingerprintPrompt(block ?? ''), (block ?? '').length];
+
   logger.info(
     JSON.stringify({
       event: 'prompt.fingerprint',
       provider: provider.name,
       model: modelDetails.name,
+      conversation: chatId ?? null,
       stableHeadChars,
       stableHeadFingerprint,
       fullSystemChars: systemPrompt.length,
+
+      /*
+       * Tail = everything after the stable head. If tailFingerprint drifts across
+       * two turns of the same conversation, a post-head system block is still
+       * volatile and caps the cached prefix at the head. The per-block prints below
+       * pinpoint WHICH block drifts so it can be moved to the message tail too.
+       */
+      tailChars: systemTail.length,
+      tailFingerprint: fingerprintPrompt(systemTail),
+      blocks: {
+        orchestration: blockFingerprint(orchestrationPrompt),
+        orchestrationCtx: blockFingerprint(agentOrchestrationContext),
+        memory: blockFingerprint(agentMemoryContext),
+        skills: blockFingerprint(skillsContext),
+        rules: blockFingerprint(projectRulesContext),
+      },
       contextFiles: contextFiles ? Object.keys(contextFiles).length : 0,
       cacheBreakpoint: insertCacheBreakpoint,
     }),
