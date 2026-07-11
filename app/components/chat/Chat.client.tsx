@@ -60,6 +60,87 @@ import {
 const logger = createScopedLogger('Chat');
 const MAX_PROJECT_ARCHIVED_CONVERSATIONS = 24;
 
+/**
+ * Deep-clone `value` into a strictly JSON-serializable shape: drop circular
+ * references (tracked via a WeakSet), stringify BigInts, and drop functions /
+ * undefined / symbols. Used only as a fallback when the /api/chat request body
+ * would otherwise make JSON.stringify throw — never on the healthy path.
+ */
+function sanitizeForJson(value: unknown, seen: WeakSet<object> = new WeakSet()): unknown {
+  if (typeof value === 'bigint') {
+    return value.toString();
+  }
+
+  if (value === null || typeof value !== 'object') {
+    // primitives (string/number/boolean) pass through; functions/symbols/undefined drop out via the caller.
+    return typeof value === 'function' || typeof value === 'symbol' ? undefined : value;
+  }
+
+  if (seen.has(value)) {
+    return undefined; // circular reference — the exact thing that makes JSON.stringify throw.
+  }
+
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeForJson(item, seen) ?? null);
+  }
+
+  const out: Record<string, unknown> = {};
+
+  for (const [key, item] of Object.entries(value)) {
+    const cleaned = sanitizeForJson(item, seen);
+
+    if (cleaned !== undefined) {
+      out[key] = cleaned;
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Guard the /api/chat request body against a non-serializable payload.
+ *
+ * The AI SDK dispatches the request as `fetch(api, { body: JSON.stringify(body) })`,
+ * so JSON.stringify runs BEFORE fetch. A circular ref / BigInt anywhere in the
+ * body (which can slip in after a project is reopened and its files/messages are
+ * re-hydrated) makes JSON.stringify throw, fetch is never called (zero network),
+ * and the SDK swallows the throw into onError — the "reopened project won't accept
+ * edits" send-stall. This returns the body UNCHANGED (byte-identical) when it is
+ * already serializable — so the OpenAI-certified request path is untouched — and
+ * only when it would throw does it log the offending top-level key(s) and return a
+ * sanitized clone so the POST still goes out instead of being silently lost.
+ */
+function ensureJsonSafeBody<T>(body: T, label: string): T | unknown {
+  try {
+    JSON.stringify(body);
+
+    return body;
+  } catch (err) {
+    const culprits: string[] = [];
+
+    if (body && typeof body === 'object') {
+      for (const key of Object.keys(body as Record<string, unknown>)) {
+        try {
+          JSON.stringify((body as Record<string, unknown>)[key]);
+        } catch {
+          culprits.push(key);
+        }
+      }
+    }
+
+    console.error(
+      `[send] ${label} request body is NOT JSON-serializable (offending key(s): ${
+        culprits.join(', ') || 'unknown'
+      }) — sanitizing so append() can POST instead of silently dropping the message:`,
+      err,
+    );
+
+    return sanitizeForJson(body);
+  }
+}
+
 function initialProjectModelSelection() {
   const metadataSelection = projectModelSelectionFromMetadata(chatMetadata.get());
 
@@ -513,6 +594,40 @@ export const ChatImpl = memo(
       [storeMessageHistory, syncProjectAiTranscript],
     );
 
+    /*
+     * Single source of truth for the /api/chat request body. Extracted so the
+     * serializability guard in experimental_prepareRequestBody (below) can
+     * reconstruct the EXACT payload the SDK would otherwise build — no drift on
+     * the OpenAI-certified request path.
+     */
+    const chatRequestBodyBase = {
+      apiKeys,
+      files,
+      promptId,
+      contextOptimization: contextOptimizationEnabled,
+      chatMode,
+      projectId,
+      designScheme,
+      supabase: {
+        isConnected: supabaseConn.isConnected,
+        hasSelectedProject: !!selectedProject,
+        credentials: {
+          supabaseUrl: supabaseConn?.credentials?.supabaseUrl,
+          anonKey: supabaseConn?.credentials?.anonKey,
+        },
+      },
+      maxLLMSteps: mcpSettings.maxLLMSteps,
+
+      /*
+       * Power controls + Plan toggle, now actually sent to the server so they
+       * change the generation (parallel-agent count, planner role budget,
+       * agentic depth, and forcing a plan pass). See api.chat.ts.
+       */
+      ...(agentPower ? { agentPower } : {}),
+      planFirstEnabled,
+      ...(enabledMcpServers ? { enabledMcpServers } : {}),
+    };
+
     const {
       messages,
       isLoading,
@@ -529,33 +644,27 @@ export const ChatImpl = memo(
       addToolResult,
     } = useChat({
       api: '/api/chat',
-      body: {
-        apiKeys,
-        files,
-        promptId,
-        contextOptimization: contextOptimizationEnabled,
-        chatMode,
-        projectId,
-        designScheme,
-        supabase: {
-          isConnected: supabaseConn.isConnected,
-          hasSelectedProject: !!selectedProject,
-          credentials: {
-            supabaseUrl: supabaseConn?.credentials?.supabaseUrl,
-            anonKey: supabaseConn?.credentials?.anonKey,
-          },
-        },
-        maxLLMSteps: mcpSettings.maxLLMSteps,
+      body: chatRequestBodyBase,
 
-        /*
-         * Power controls + Plan toggle, now actually sent to the server so they
-         * change the generation (parallel-agent count, planner role budget,
-         * agentic depth, and forcing a plan pass). See api.chat.ts.
-         */
-        ...(agentPower ? { agentPower } : {}),
-        planFirstEnabled,
-        ...(enabledMcpServers ? { enabledMcpServers } : {}),
-      },
+      /*
+       * Serializability guard on the request body — see ensureJsonSafeBody. This
+       * reconstructs the EXACT body the SDK would otherwise build (id + messages +
+       * data + our body base + per-request body) so there is no drift on the
+       * OpenAI-certified path, then guards it: identity when already serializable,
+       * sanitized-with-a-loud-log only when JSON.stringify would throw. This is the
+       * fix for the reopened-project send-stall where append() produced zero POST.
+       */
+      experimental_prepareRequestBody: ({ id, messages: requestMessages, requestData, requestBody }) =>
+        ensureJsonSafeBody(
+          {
+            id,
+            messages: requestMessages,
+            data: requestData,
+            ...chatRequestBodyBase,
+            ...(requestBody ?? {}),
+          },
+          '/api/chat',
+        ),
 
       /*
        * Coalesce token-by-token stream updates into ~40ms frames. Without this
@@ -567,7 +676,26 @@ export const ChatImpl = memo(
        */
       experimental_throttle: 40,
       sendExtraMessageFields: true,
+
+      /*
+       * DIAGNOSTIC (temporary): wrap the transport fetch so every request the AI
+       * SDK actually dispatches to /api/chat is visible in the console. The SDK
+       * builds the request as `fetch(api, { body: JSON.stringify(body), ... })`,
+       * so JSON.stringify evaluates BEFORE fetch is called: a non-serializable
+       * body (circular ref, BigInt, a Blob/File leaked into `files`) throws here,
+       * fetch is never invoked (no network entry at all), and the throw is
+       * swallowed into onError. If `[send] branch=append` logs but no
+       * `[chat-fetch]` line follows, that pre-fetch throw is the cause — surfaced
+       * loudly by the onError + serializability probes.
+       */
+      fetch: ((input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+        console.info(`[chat-fetch] → ${url} method=${init?.method ?? 'GET'} aborted=${init?.signal?.aborted ?? 'n/a'}`);
+
+        return window.fetch(input, init);
+      }) as typeof fetch,
       onError: (e) => {
+        console.error('[chat-onError] /api/chat request failed (may be a pre-fetch throw swallowed by the SDK):', e);
         setFakeLoading(false);
 
         /*
