@@ -1,6 +1,8 @@
+import type { Message } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { AUTO_MODEL } from './model-routing';
 import {
+  appendContextToLastUserMessage,
   applyContextOptimizedHistoryWindow,
   DEFAULT_STREAM_MAX_RETRIES,
   fingerprintPrompt,
@@ -343,5 +345,48 @@ describe('model routing — continuation consistency', () => {
         process.env.MODEL_ROUTING_DISABLED = prev;
       }
     }
+  });
+});
+
+describe('appendContextToLastUserMessage (cache-max: volatile context in the message tail)', () => {
+  const user = (content: string, parts?: Message['parts']): Message =>
+    ({ id: Math.random().toString(36).slice(2), role: 'user', content, ...(parts ? { parts } : {}) }) as Message;
+  const assistant = (content: string): Message =>
+    ({ id: Math.random().toString(36).slice(2), role: 'assistant', content }) as Message;
+
+  it('appends the context block to the LAST user message content', () => {
+    const out = appendContextToLastUserMessage([user('first'), assistant('a'), user('latest ask')], 'CTX');
+    expect(out[2].content).toBe('latest ask\n\nCTX');
+
+    // Earlier user turn is untouched — context lands only on the current turn.
+    expect(out[0].content).toBe('first');
+  });
+
+  it('mirrors the block into parts when the message carries parts (convertToCoreMessages reads parts)', () => {
+    const out = appendContextToLastUserMessage([user('ask', [{ type: 'text', text: 'ask' }])], 'CTX');
+    expect(out[0].content).toBe('ask\n\nCTX');
+    expect(out[0].parts).toEqual([
+      { type: 'text', text: 'ask' },
+      { type: 'text', text: 'CTX' },
+    ]);
+  });
+
+  it('is a no-op for an empty / whitespace-only context block (never mutates the turn)', () => {
+    const input = [user('ask')];
+    expect(appendContextToLastUserMessage(input, '')).toBe(input);
+    expect(appendContextToLastUserMessage(input, '   \n ')).toBe(input);
+  });
+
+  it('is a no-op when there is no user message to attach to', () => {
+    const input = [assistant('only assistant')];
+    expect(appendContextToLastUserMessage(input, 'CTX')).toBe(input);
+  });
+
+  it('does not mutate the input array or the original message object', () => {
+    const original = user('ask');
+    const input = [original];
+    const out = appendContextToLastUserMessage(input, 'CTX');
+    expect(out).not.toBe(input);
+    expect(original.content).toBe('ask');
   });
 });

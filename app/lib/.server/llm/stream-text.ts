@@ -133,6 +133,61 @@ export function applyContextOptimizedHistoryWindow<T>(messages: T[], recentMessa
 }
 
 /**
+ * Cache-max (LOT 1 / Rév.3 "move volatile values after the stable cache
+ * boundary"): move a per-turn-VOLATILE context block — the CONTEXT BUFFER of
+ * project files (+ optional CHAT SUMMARY) — OUT of the cacheable system prefix
+ * and into the TAIL of the current user turn.
+ *
+ * The buffer changes every turn as files are edited, so appending it to the
+ * system prompt rotated the system on every send and defeated prefix caching
+ * (measured live: full systemHash drifted turn-to-turn while the head stayed
+ * c650c276, cachedPromptTokens capped at ~the head). Carried in the last user
+ * message instead — after the stable system + tools + prior history — the whole
+ * prefix becomes byte-stable and auto-caches on every provider, while the model
+ * still receives the exact same context, just lower in the prompt (adjacent to
+ * the request).
+ *
+ * The block is appended to BOTH the message's `content` string and, when
+ * present, its `parts` array, kept in sync (convertToCoreMessages reads whichever
+ * the message carries). No-op when the block is empty or there is no user message
+ * to attach it to.
+ */
+export function appendContextToLastUserMessage<T extends { role: string }>(messages: T[], contextBlock: string): T[] {
+  if (!contextBlock.trim()) {
+    return messages;
+  }
+
+  let lastUserIdx = -1;
+
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'user') {
+      lastUserIdx = i;
+      break;
+    }
+  }
+
+  if (lastUserIdx === -1) {
+    return messages;
+  }
+
+  const next = messages.slice();
+  const target = { ...(next[lastUserIdx] as Record<string, unknown>) };
+  const appended = `\n\n${contextBlock}`;
+
+  if (typeof target.content === 'string') {
+    target.content = `${target.content}${appended}`;
+  }
+
+  if (Array.isArray(target.parts) && target.parts.length > 0) {
+    target.parts = [...target.parts, { type: 'text', text: contextBlock }];
+  }
+
+  next[lastUserIdx] = target as unknown as T;
+
+  return next;
+}
+
+/**
  * The `MODEL_ROUTING_DISABLED` kill-switch. Truthy (`1`/`true`/`yes`/`on`,
  * case-insensitive) → complexity routing is globally OFF and every request keeps
  * the model it selected. Read defensively from the request env first, then the
@@ -542,10 +597,6 @@ export async function streamText(props: {
    */
   const insertCacheBreakpoint = shouldInsertCacheBreakpoint(provider.name, modelDetails.name);
 
-  if (insertCacheBreakpoint) {
-    systemPrompt = `${systemPrompt}${ANTHROPIC_CACHE_BREAKPOINT}`;
-  }
-
   /*
    * Adaptive output ceiling (É1): size max_tokens to the task class instead of
    * always requesting the model's full completion limit. The model ceiling stays
@@ -605,25 +656,33 @@ ${projectRulesContext}`;
   if (chatMode === 'build' && contextFiles && contextOptimization) {
     const codeContext = createFilesContext(contextFiles, true);
 
-    systemPrompt = `${systemPrompt}
-
-    Below is the artifact containing the context loaded into context buffer for you to have knowledge of and might need changes to fullfill current user request.
-    CONTEXT BUFFER:
-    ---
-    ${codeContext}
-    ---
-    `;
+    /*
+     * Cache-max (LOT 1): the CONTEXT BUFFER (full project files) and CHAT SUMMARY
+     * are the per-turn-volatile blocks that used to rotate the system prompt and
+     * defeat prefix caching. Build them here but DO NOT append them to the system
+     * — carry them in the tail of the current user message via
+     * appendContextToLastUserMessage, after the stable cache boundary. The model
+     * still receives the identical context, just lower in the prompt.
+     */
+    let contextBufferBlock = `Below is the artifact containing the context loaded into context buffer for you to have knowledge of and might need changes to fullfill current user request.
+CONTEXT BUFFER:
+---
+${codeContext}
+---
+`;
 
     if (summary) {
-      systemPrompt = `${systemPrompt}
-      below is the summarized chat history before the recent exact messages
-      CHAT SUMMARY:
-      ---
-      ${props.summary}
-      ---
-      `;
+      contextBufferBlock = `${contextBufferBlock}
+below is the summarized chat history before the recent exact messages
+CHAT SUMMARY:
+---
+${props.summary}
+---
+`;
       processedMessages = applyContextOptimizedHistoryWindow(processedMessages, props.messageSliceId);
     }
+
+    processedMessages = appendContextToLastUserMessage(processedMessages, contextBufferBlock);
   }
 
   const effectiveLockedFilePaths = new Set<string>();
@@ -648,6 +707,22 @@ ${projectRulesContext}`;
     `;
   } else {
     console.log('No locked files found from any source for prompt.');
+  }
+
+  /*
+   * Cross-turn cache breakpoint (Anthropic-family only) — placed at the END of the
+   * system assembly. Now that the volatile CONTEXT BUFFER + CHAT SUMMARY are carried
+   * in the user-message tail (appendContextToLastUserMessage), the ENTIRE system
+   * (base + orchestration + memory + skills + rules + locked list) is stable across
+   * turns of a conversation, so marking the boundary here lets Anthropic cache the
+   * whole system instead of only the head. The sentinel is Anthropic-only and is
+   * stripped from the wire body by createAnthropicCachingFetch / the OpenRouter
+   * caching fetch, so the model never sees it; every other provider's system stays
+   * byte-identical and auto-caches the stable prefix with no sentinel. stableHead*
+   * above is still measured on the base head, before this line.
+   */
+  if (insertCacheBreakpoint) {
+    systemPrompt = `${systemPrompt}${ANTHROPIC_CACHE_BREAKPOINT}`;
   }
 
   logger.info(`Sending llm call to ${provider.name} with model ${modelDetails.name}`);
