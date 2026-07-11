@@ -259,6 +259,22 @@ describe('buildPromptCacheKey', () => {
     expect(buildPromptCacheKey('not json', 'c')).toBeNull();
     expect(buildPromptCacheKey(JSON.stringify({ foo: 1 }), 'c')).toBeNull();
   });
+
+  it('keys on the STABLE HEAD: identical first 20000 chars but different tail → SAME key (the cache-hit fix)', () => {
+    // Byte-stable head (>20000 chars) + a per-turn context-buffer tail that changes.
+    const head = 'S'.repeat(20_000);
+    const turnA = body({ messages: [{ role: 'system', content: `${head}CONTEXT_BUFFER_TURN_A` }] });
+    const turnB = body({ messages: [{ role: 'system', content: `${head}CONTEXT_BUFFER_TURN_B_LONGER` }] });
+
+    // Same stable head → same prompt_cache_key → OpenAI keeps the cache bucket → cache hit.
+    expect(buildPromptCacheKey(turnA, 'conv')).toBe(buildPromptCacheKey(turnB, 'conv'));
+  });
+
+  it('still separates buckets when the head itself changes within the first 20000 chars', () => {
+    const a = body({ messages: [{ role: 'system', content: `A${'x'.repeat(19_999)}` }] });
+    const b = body({ messages: [{ role: 'system', content: `B${'x'.repeat(19_999)}` }] });
+    expect(buildPromptCacheKey(a, 'conv')).not.toBe(buildPromptCacheKey(b, 'conv'));
+  });
 });
 
 describe('createOpenAiCacheFetch — prompt_cache_key injection', () => {

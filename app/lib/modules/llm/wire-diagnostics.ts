@@ -220,10 +220,12 @@ export function createOpenAiWireDiagnosticFetch(
  *
  *   `${projectId}:${systemPromptVersion}:${toolsSchemaVersion}`
  *
- * where `systemPromptVersion` = hash of the system string and
- * `toolsSchemaVersion` = hash of the `tools` array as-sent. The key is therefore
- * STABLE while the effective prefix is stable and CHANGES when the system or
- * tools genuinely change (correct cache separation).
+ * where `systemPromptVersion` = hash of the system prompt's STABLE HEAD (not the
+ * full system string — see below) and `toolsSchemaVersion` = hash of the `tools`
+ * array as-sent. The key is therefore STABLE while the cacheable prefix is stable
+ * and CHANGES only when the head or tools genuinely change (correct cache
+ * separation), so it no longer rotates on every turn as the context-buffer tail
+ * moves.
  *
  * When `cacheAffinityKey` is absent we still return a two-part
  * `${systemPromptVersion}:${toolsSchemaVersion}` key (we always have system +
@@ -257,7 +259,25 @@ export function buildPromptCacheKey(bodyText: string, cacheAffinityKey?: string)
   };
 
   const systemMsg = parsed.messages.find((m) => m.role === 'system');
-  const systemPromptVersion = hashString(asText(systemMsg?.content));
+
+  /*
+   * Key on the STABLE HEAD of the system prompt, NOT the full system string.
+   *
+   * The cacheable region is the byte-stable head (~20000 chars, tracked as
+   * stableHeadFingerprint). The system TAIL — the per-turn context buffer
+   * (createFilesContext) — legitimately changes on every send. Hashing the FULL
+   * system therefore rotated prompt_cache_key on EVERY turn, so OpenAI scoped each
+   * request to a different cache bucket and returned cachedPromptTokens=0 even
+   * though the real token prefix (the ~5000-token head) was identical turn-to-turn
+   * (measured live: head c650c276 stable, full systemHash ab661b1 → 8703f1ba,
+   * cached 0 → 0). Hashing only the stable head keeps the key constant while the
+   * head is constant — matching the prefix OpenAI actually caches — so successive
+   * turns land on the same bucket and hit. A looser key never hurts correctness:
+   * prompt_cache_key is only a routing hint; what gets cached is still the real
+   * common token prefix.
+   */
+  const STABLE_HEAD_CHARS = 20_000;
+  const systemPromptVersion = hashString(asText(systemMsg?.content).slice(0, STABLE_HEAD_CHARS));
   const toolsSchemaVersion = hashString(JSON.stringify(Array.isArray(parsed.tools) ? parsed.tools : []));
   const suffix = `${systemPromptVersion}:${toolsSchemaVersion}`;
 
