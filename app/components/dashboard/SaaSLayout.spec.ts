@@ -67,6 +67,32 @@ describe('public marketing brand', () => {
     expect(drawerRule).toContain('overflow: hidden');
   });
 
+  it('keeps user-area navigation labelled, tablet-aware and touch accessible', () => {
+    const layoutSource = readFileSync(join(process.cwd(), 'app/components/dashboard/SaaSLayout.tsx'), 'utf8');
+
+    const projectMenuSource = readFileSync(join(process.cwd(), 'app/components/dashboard/ProjectCardMenu.tsx'), 'utf8');
+
+    const stylesSource = readFileSync(join(process.cwd(), 'app/styles/index.scss'), 'utf8');
+
+    expect(layoutSource).toContain('<span className="text-xs font-medium sm:sr-only">Menu</span>');
+    expect(layoutSource).toContain('min-w-0 flex-1 truncate text-base font-semibold xl:hidden');
+    expect(layoutSource).toContain('inline-flex h-[44px] min-w-[44px]');
+    expect(layoutSource).toContain('vc-sidebar-header group relative flex h-[56px]');
+    expect(layoutSource).toContain('relative inline-flex h-[44px] w-[44px]');
+    expect(layoutSource).toContain("collapsed ? 'h-[44px] w-[44px] justify-center px-0'");
+    expect(layoutSource).toContain('vc-user-area-shell min-h-[100dvh]');
+    expect(layoutSource).toContain('vc-app-shell-title text-[28px] font-semibold leading-[36px]');
+    expect(layoutSource).toContain('md:grid-cols-2 2xl:grid-cols-3');
+    expect(layoutSource).toContain('line-clamp-2 min-h-[56px] text-lg');
+    expect(stylesSource).toContain('.vc-user-area-shell .vc-app-shell-title');
+    expect(stylesSource).toContain('font-size: 28px !important');
+    expect(layoutSource).toContain('vc-keyboard-shortcut vc-sidebar-shortcut');
+    expect(stylesSource).toContain('@media (hover: hover) and (pointer: fine)');
+    expect(extractCssRule(stylesSource, '.vc-keyboard-shortcut')).toContain('display: none');
+    expect(projectMenuSource).toContain('className="flex h-[44px] w-[44px]');
+    expect(projectMenuSource).toContain('className="min-h-[44px]"');
+  });
+
   it('keeps marketing navigation mapped to real application routes and anchors', () => {
     const menuTargets = Object.values(publicMarketingMenus)
       .flat()

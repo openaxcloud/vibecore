@@ -3635,6 +3635,83 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   }
 }
 
+/*
+ * The base IDE typography rules intentionally use compact !important sizes.
+ * Restore the authored utility scale inside the non-IDE user area so headings,
+ * values and supporting copy keep a clear enterprise hierarchy.
+ */
+.vc-user-area-shell :where([class~='text-[10px]']) {
+  font-size: 10px !important;
+  line-height: 14px !important;
+}
+
+.vc-user-area-shell :where([class~='text-[11px]']) {
+  font-size: 11px !important;
+  line-height: 16px !important;
+}
+
+.vc-user-area-shell :where([class~='text-xs']) {
+  font-size: 12px !important;
+  line-height: 16px !important;
+}
+
+.vc-user-area-shell :where([class~='text-[13px]']) {
+  font-size: 13px !important;
+  line-height: 20px !important;
+}
+
+.vc-user-area-shell :where([class~='text-sm']) {
+  font-size: 14px !important;
+  line-height: 20px !important;
+}
+
+.vc-user-area-shell :where([class~='text-[15px]']) {
+  font-size: 15px !important;
+  line-height: 22px !important;
+}
+
+.vc-user-area-shell :where([class~='text-base']) {
+  font-size: 16px !important;
+  line-height: 24px !important;
+}
+
+.vc-user-area-shell :where([class~='text-lg']) {
+  font-size: 18px !important;
+  line-height: 28px !important;
+}
+
+.vc-user-area-shell :where([class~='text-xl']) {
+  font-size: 20px !important;
+  line-height: 28px !important;
+}
+
+.vc-user-area-shell :where([class~='text-2xl']) {
+  font-size: 24px !important;
+  line-height: 32px !important;
+}
+
+.vc-user-area-shell :where([class~='text-3xl']) {
+  font-size: 30px !important;
+  line-height: 36px !important;
+}
+
+.vc-user-area-shell .vc-app-shell-title {
+  font-size: 28px !important;
+  line-height: 36px !important;
+}
+
+@media (min-width: 640px) {
+  .vc-user-area-shell :where([class~='sm:text-3xl']) {
+    font-size: 30px !important;
+    line-height: 36px !important;
+  }
+
+  .vc-user-area-shell .vc-app-shell-title {
+    font-size: 32px !important;
+    line-height: 40px !important;
+  }
+}
+
 .vc-sidebar nav {
   min-height: 0;
   scrollbar-gutter: stable;
@@ -3734,14 +3811,29 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
 }
 
 .vc-sidebar-toggle {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.vc-sidebar-toggle-visual {
   transition:
     background-color 100ms ease-out,
     color 100ms ease-out,
     transform 150ms ease-out;
 }
 
-.vc-sidebar-toggle:hover {
+.vc-sidebar-toggle:hover .vc-sidebar-toggle-visual {
   transform: scale(1.05);
+}
+
+// Keyboard hints are useful only when a precise pointer strongly suggests a hardware keyboard.
+.vc-keyboard-shortcut {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .vc-keyboard-shortcut {
+    display: inline-flex;
+  }
 }
 
 .vc-sidebar-popover {

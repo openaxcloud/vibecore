@@ -622,7 +622,7 @@ export default function BillingPage() {
             </div>
             <Link
               to="/payment-method"
-              className="inline-flex h-11 shrink-0 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+              className="inline-flex h-[44px] shrink-0 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
             >
               Update payment method
             </Link>
@@ -709,7 +709,7 @@ export default function BillingPage() {
                 placeholder="No cap"
                 aria-label="Spend limit in euros"
                 title="Set in €500 increments, or €0.01 to cap spend at your current credits."
-                className="h-11 w-36 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm text-bolt-elements-textPrimary"
+                className="h-[44px] w-36 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm text-bolt-elements-textPrimary"
               />
               <span className="w-full text-[11px] text-bolt-elements-textSecondary sm:w-auto">
                 €500 increments (or €0.01 to cap at credits)
@@ -726,9 +726,9 @@ export default function BillingPage() {
                 placeholder="No hard stop"
                 aria-label="Service shutdown limit in euros"
                 title="Service Shutdown Limit — suspends usage-based services when reached (no grace)."
-                className="h-11 w-36 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm text-bolt-elements-textPrimary"
+                className="h-[44px] w-36 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm text-bolt-elements-textPrimary"
               />
-              <Button type="submit" variant="outline" disabled={submitting} className="h-11">
+              <Button type="submit" variant="outline" disabled={submitting} className="min-h-[44px]">
                 {submitting && navigation.formData?.get('intent') === 'set-limits' ? 'Saving…' : 'Save limit'}
               </Button>
             </Form>
@@ -746,7 +746,7 @@ export default function BillingPage() {
               <Form method="post">
                 <input type="hidden" name="intent" value="ai-policy" />
                 <input type="hidden" name="blockExternalAi" value={credits.blockExternalAi ? 'false' : 'true'} />
-                <Button type="submit" variant="outline" disabled={submitting} className="h-11">
+                <Button type="submit" variant="outline" disabled={submitting} className="min-h-[44px]">
                   {submitting && navigation.formData?.get('intent') === 'ai-policy'
                     ? 'Saving…'
                     : credits.blockExternalAi
@@ -870,7 +870,7 @@ export default function BillingPage() {
                   type="submit"
                   disabled={submitting}
                   aria-busy={submittingPlanKey === plan.planKey}
-                  className="h-11"
+                  className="min-h-[44px]"
                 >
                   {submittingPlanKey === plan.planKey ? 'Redirecting…' : `Upgrade to ${plan.name}`}
                 </Button>
@@ -883,7 +883,7 @@ export default function BillingPage() {
                 variant="outline"
                 disabled={submitting}
                 aria-busy={submittingPortal}
-                className="h-11"
+                className="min-h-[44px]"
               >
                 {submittingPortal ? 'Redirecting…' : 'Open customer portal'}
               </Button>

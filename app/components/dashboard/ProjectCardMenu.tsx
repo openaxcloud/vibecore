@@ -92,34 +92,34 @@ export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; o
           <button
             type="button"
             aria-label={`Project actions for ${project.name}`}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-1 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
+            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-1 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
             onClick={stopCardNavigation}
           >
             <MoreHorizontal className="h-4 w-4" aria-hidden />
           </button>
         }
       >
-        <DropdownItem onSelect={onRename}>
+        <DropdownItem onSelect={onRename} className="min-h-[44px]">
           <Pencil className="h-4 w-4" aria-hidden />
           Rename
         </DropdownItem>
-        <DropdownItem onSelect={() => submit('duplicate')}>
+        <DropdownItem onSelect={() => submit('duplicate')} className="min-h-[44px]">
           <Copy className="h-4 w-4" aria-hidden />
           Duplicate
         </DropdownItem>
         {archived ? (
-          <DropdownItem onSelect={() => submit('unarchive')}>
+          <DropdownItem onSelect={() => submit('unarchive')} className="min-h-[44px]">
             <ArchiveRestore className="h-4 w-4" aria-hidden />
             Restore
           </DropdownItem>
         ) : (
-          <DropdownItem onSelect={() => submit('archive')}>
+          <DropdownItem onSelect={() => submit('archive')} className="min-h-[44px]">
             <Archive className="h-4 w-4" aria-hidden />
             Archive
           </DropdownItem>
         )}
         <DropdownSeparator />
-        <DropdownItem onSelect={() => setConfirmingDelete(true)}>
+        <DropdownItem onSelect={() => setConfirmingDelete(true)} className="min-h-[44px]">
           <span className="flex items-center gap-2" style={destructiveStyle}>
             <Trash2 className="h-4 w-4" aria-hidden />
             Delete
@@ -168,7 +168,7 @@ function UndoArchiveToast({ project, closeToast }: { project: ProjectCard; close
       <button
         type="button"
         disabled={fetcher.state !== 'idle'}
-        className="shrink-0 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs font-medium text-[var(--vc-ide-accent-action)] hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
+        className="min-h-[44px] shrink-0 rounded-md border border-bolt-elements-borderColor px-3 py-1 text-xs font-medium text-[var(--vc-ide-accent-action)] hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
         onClick={() => fetcher.submit({ intent: 'unarchive' }, { method: 'post', action: projectActionPath(project) })}
       >
         Undo
@@ -228,18 +228,18 @@ function DeleteProjectDialog({
                 placeholder={project.name}
                 aria-label={`Type ${project.name} to confirm deletion`}
                 autoFocus
-                className="mb-4"
+                className="mb-4 min-h-[44px]"
               />
             ) : null}
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={onClose} disabled={pending}>
+              <Button variant="outline" onClick={onClose} disabled={pending} className="min-h-[44px]">
                 Cancel
               </Button>
               <Button
                 variant="outline"
                 onClick={onConfirm}
                 disabled={!canConfirm}
-                className="border-[color-mix(in_srgb,var(--status-error-text)_45%,transparent)] text-[var(--status-error-text)] hover:bg-[color-mix(in_srgb,var(--status-error-text)_10%,transparent)] hover:text-[var(--status-error-text)]"
+                className="min-h-[44px] border-[color-mix(in_srgb,var(--status-error-text)_45%,transparent)] text-[var(--status-error-text)] hover:bg-[color-mix(in_srgb,var(--status-error-text)_10%,transparent)] hover:text-[var(--status-error-text)]"
               >
                 Delete project
               </Button>
@@ -309,7 +309,7 @@ export function ProjectRenameForm({
         }
       }}
       onBlur={commit}
-      className={className ?? 'h-8 text-sm font-semibold'}
+      className={className ?? 'h-[44px] text-sm font-semibold'}
     />
   );
 }

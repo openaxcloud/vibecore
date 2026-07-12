@@ -798,7 +798,7 @@ export function AppShell({
   return (
     <main
       className={classNames(
-        'min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary',
+        'vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary',
         mainClassName,
       )}
     >
@@ -817,11 +817,13 @@ export function AppShell({
             {!hideHeader ? (
               <div className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
+                  <div className="min-w-0">
                     <p className="mb-2 text-xs font-medium uppercase text-bolt-elements-textTertiary">
                       Workspace console
                     </p>
-                    <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">{title}</h1>
+                    <h1 className="vc-app-shell-title text-[28px] font-semibold leading-[36px] tracking-normal sm:text-[32px] sm:leading-[40px]">
+                      {title}
+                    </h1>
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-bolt-elements-textSecondary">{description}</p>
                   </div>
                   {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
@@ -859,7 +861,7 @@ function SidebarHeader({ collapsed }: { collapsed: boolean }) {
     <Link
       to="/organization-switcher"
       className={classNames(
-        'vc-sidebar-header group relative flex h-14 shrink-0 items-center border-b border-bolt-elements-borderColor transition-colors hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
+        'vc-sidebar-header group relative flex h-[56px] shrink-0 items-center border-b border-bolt-elements-borderColor transition-colors hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
         collapsed ? 'justify-center px-1.5' : 'gap-2 px-3',
       )}
       aria-label="Organization switcher"
@@ -892,17 +894,19 @@ function SidebarToggle({ collapsed, onToggle }: { collapsed: boolean; onToggle: 
     <button
       type="button"
       onClick={onToggle}
-      className="vc-sidebar-toggle group absolute right-[-12px] top-4 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 text-bolt-elements-textTertiary shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+      className="vc-sidebar-toggle group absolute right-[-22px] top-[6px] z-10 inline-flex h-[44px] w-[44px] items-center justify-center rounded-full text-bolt-elements-textTertiary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
       aria-label={collapsed ? 'Expand navigation menu' : 'Collapse navigation menu'}
       aria-expanded={!collapsed}
       aria-keyshortcuts="Meta+\\ Control+\\"
       title={collapsed ? 'Expand menu (⌘\\)' : 'Collapse menu (⌘\\)'}
     >
-      {collapsed ? (
-        <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-      ) : (
-        <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
-      )}
+      <span className="vc-sidebar-toggle-visual inline-flex h-6 w-6 items-center justify-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 shadow-sm transition-colors group-hover:bg-bolt-elements-background-depth-3 group-hover:text-bolt-elements-textPrimary">
+        {collapsed ? (
+          <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+        ) : (
+          <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
+        )}
+      </span>
     </button>
   );
 }
@@ -955,10 +959,10 @@ function MobileSidebarDrawer({ open, onClose }: { open: boolean; onClose: () => 
         tabIndex={open ? 0 : -1}
       />
       <aside className="vc-sidebar-drawer-panel" role="navigation" aria-label="Main" aria-hidden={!open}>
-        <div className="flex h-14 items-center justify-between border-b border-bolt-elements-borderColor px-3">
+        <div className="flex h-[56px] items-center justify-between border-b border-bolt-elements-borderColor px-3">
           <Link
             to="/organization-switcher"
-            className="flex min-w-0 items-center gap-2"
+            className="flex min-h-[44px] min-w-0 items-center gap-2"
             aria-label="Organization switcher"
             onClick={onClose}
           >
@@ -966,7 +970,7 @@ function MobileSidebarDrawer({ open, onClose }: { open: boolean; onClose: () => 
           </Link>
           <button
             type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+            className="inline-flex h-[44px] w-[44px] items-center justify-center rounded-md text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
             onClick={onClose}
             aria-label="Close navigation"
           >
@@ -1013,7 +1017,7 @@ function SidebarFooter({ collapsed, embedded = false }: { collapsed: boolean; em
             type="button"
             className={classNames(
               'group inline-flex items-center rounded-md text-left text-sm transition-colors hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
-              collapsed ? 'h-9 w-9 justify-center px-0' : 'h-10 w-full gap-2 px-2',
+              collapsed ? 'h-[44px] w-[44px] justify-center px-0' : 'h-[44px] w-full gap-2 px-2',
             )}
             aria-label="Account menu"
             title={collapsed ? 'Account menu' : undefined}
@@ -1057,7 +1061,7 @@ function SidebarFooter({ collapsed, embedded = false }: { collapsed: boolean; em
               <Popover.Close asChild>
                 <Link
                   to="/account-settings"
-                  className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+                  className="flex min-h-[44px] items-center gap-2 rounded-md px-3 py-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
                 >
                   <Settings className="h-4 w-4" aria-hidden />
                   Account settings
@@ -1066,7 +1070,7 @@ function SidebarFooter({ collapsed, embedded = false }: { collapsed: boolean; em
               <button
                 type="button"
                 onClick={() => toggleTheme()}
-                className="flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+                className="flex min-h-[44px] items-center justify-between gap-2 rounded-md px-3 py-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
               >
                 <span className="flex items-center gap-2">
                   {theme === 'dark' ? (
@@ -1086,7 +1090,7 @@ function SidebarFooter({ collapsed, embedded = false }: { collapsed: boolean; em
                 <Form method="post" action="/logout">
                   <button
                     type="submit"
-                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+                    className="flex min-h-[44px] w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
                   >
                     <LogOut className="h-4 w-4" aria-hidden />
                     Sign out
@@ -1129,7 +1133,7 @@ export function ProjectShell({
                 end={item.suffix === ''}
                 className={({ isActive }) =>
                   classNames(
-                    'inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors',
+                    'inline-flex min-h-[44px] items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors',
                     isActive
                       ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
                       : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3',
@@ -1217,7 +1221,7 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
   }
 
   return (
-    <div className="grid min-w-0 grid-cols-1 gap-4 overflow-x-hidden lg:grid-cols-3">
+    <div className="grid min-w-0 grid-cols-1 gap-4 overflow-x-hidden md:grid-cols-2 2xl:grid-cols-3">
       {projects.map((project) => (
         <ProjectGridCard key={project.id} project={project} />
       ))}
@@ -1237,7 +1241,7 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
             {renaming ? (
               <ProjectRenameForm project={project} onDone={() => setRenaming(false)} />
             ) : (
-              <CardTitle className="truncate text-lg" title={project.name}>
+              <CardTitle className="line-clamp-2 min-h-[56px] text-lg" title={project.name}>
                 {project.name}
               </CardTitle>
             )}
@@ -1251,10 +1255,8 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Cap the thumbnail height on phones/tablets (single-column) so a card
-            stays scannable — tighter on phones (~44/176px) than tablets (~52/208px)
-            so a project card is not dominated by its preview; the aspect ratio
-            governs again once the 3-column grid kicks in at lg. */}
+        {/* Cap the thumbnail height while cards are wide enough to scan; the
+            aspect ratio governs again in the large multi-column layout. */}
         <div className="vc-project-preview relative aspect-[16/10] max-h-44 w-full overflow-hidden rounded-md sm:max-h-52 lg:aspect-[16/9] lg:max-h-none">
           <ProjectPreviewFallback project={project} />
           {project.previewImageUrl ? (
@@ -1289,7 +1291,7 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
           )}
           <Link
             to={project.ideUrl ?? `/projects/${project.id}/ide`}
-            className="rounded-md px-2 py-1 font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
+            className="inline-flex min-h-[44px] items-center rounded-md px-2 py-1 font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
           >
             Open IDE
           </Link>
@@ -1378,7 +1380,7 @@ export function TemplateGallery({
               <Form method="post" action="/dashboard/templates">
                 <input type="hidden" name="templateName" value={template.id} />
                 <input type="hidden" name="name" value={template.name} />
-                <Button type="submit" variant="outline">
+                <Button type="submit" variant="outline" className="min-h-[44px]">
                   Use template
                 </Button>
               </Form>
@@ -1503,7 +1505,7 @@ export function OnboardingChecklistCard({ steps }: { steps: OnboardingStep[] }) 
                 <Link
                   to={step.to}
                   className={classNames(
-                    'inline-flex h-8 shrink-0 items-center justify-center rounded-md px-3 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
+                    'inline-flex h-[44px] shrink-0 items-center justify-center rounded-md px-3 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
                     isCurrent
                       ? 'bg-[var(--vc-ide-accent-action)] text-white transition-opacity hover:opacity-90'
                       : 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
@@ -1533,7 +1535,7 @@ export function SettingsForm({
         <label key={field.name} className="grid gap-2 text-sm font-medium">
           {field.label}
           <input
-            className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
+            className="h-[44px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
             name={field.name}
             type={field.type ?? 'text'}
             placeholder={field.placeholder}
@@ -1542,7 +1544,9 @@ export function SettingsForm({
         </label>
       ))}
       <div>
-        <Button type="submit">{submitLabel}</Button>
+        <Button type="submit" className="min-h-[44px]">
+          {submitLabel}
+        </Button>
       </div>
     </form>
   );
@@ -1656,17 +1660,17 @@ export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCar
 
   return (
     <div className="min-w-0 max-w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 shadow-sm">
-      <label className="flex items-center gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm">
+      <label className="flex h-[44px] items-center gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm">
         <Command className="h-4 w-4 text-bolt-elements-textTertiary" aria-hidden />
         <input
-          className="min-w-0 flex-1 bg-transparent outline-none"
+          className="h-[44px] min-w-0 flex-1 bg-transparent outline-none"
           placeholder="Type a command or search..."
           aria-label="Command palette search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={handleKeyDown}
         />
-        <kbd className="rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-xs text-bolt-elements-textTertiary">
+        <kbd className="vc-keyboard-shortcut rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-xs text-bolt-elements-textTertiary">
           K
         </kbd>
       </label>
@@ -1681,7 +1685,7 @@ export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCar
                 key={`recent-${command.to}`}
                 to={command.to}
                 onClick={() => rememberCommand(command.to)}
-                className="flex items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-bolt-elements-background-depth-3"
+                className="flex min-h-[44px] items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-bolt-elements-background-depth-3"
               >
                 <span className="flex min-w-0 items-center gap-2">
                   <span className="truncate">{command.label}</span>
@@ -1710,7 +1714,7 @@ export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCar
               onMouseEnter={() => setActiveIndex(index)}
               onClick={() => rememberCommand(command.to)}
               className={classNames(
-                'flex items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-bolt-elements-background-depth-3',
+                'flex min-h-[44px] items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-bolt-elements-background-depth-3',
                 index === activeIndex && 'bg-bolt-elements-background-depth-3',
               )}
             >
@@ -1747,7 +1751,7 @@ export function LinkButton({
   variant?: 'default' | 'outline' | 'ghost';
 }) {
   const className = classNames(
-    'inline-flex h-9 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-bolt-elements-borderColor',
+    'inline-flex h-[44px] items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-bolt-elements-borderColor',
     variant === 'default' && 'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text',
     variant === 'outline' &&
       'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2',
@@ -1772,26 +1776,27 @@ export function LinkButton({
 
 function TopBar({ onOpenDrawer, title }: { onOpenDrawer: () => void; title?: string }) {
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-3 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 px-4 backdrop-blur-xl sm:px-6">
+    <header className="sticky top-0 z-10 flex h-[56px] items-center justify-between gap-3 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 px-4 backdrop-blur-xl sm:px-6">
       <button
         type="button"
         onClick={onOpenDrawer}
-        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] lg:hidden"
+        className="inline-flex h-[44px] min-w-[44px] shrink-0 items-center justify-center gap-2 rounded-md px-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] lg:hidden"
         aria-label="Open navigation menu"
       >
         <Menu className="h-4 w-4" aria-hidden />
+        <span className="text-xs font-medium sm:sr-only">Menu</span>
       </button>
-      {/* Current-page title so the mobile header shows where you are (desktop shows the H1 in the content). */}
-      {title ? <span className="min-w-0 flex-1 truncate text-base font-semibold lg:hidden">{title}</span> : null}
-      <div className="hidden flex-1 lg:block" />
+      {/* The title remains visible beside the tablet rail, where the sidebar only shows icons. */}
+      {title ? <span className="min-w-0 flex-1 truncate text-base font-semibold xl:hidden">{title}</span> : null}
+      <div className="hidden flex-1 xl:block" />
       <Link
         to="/command-palette"
-        className="ml-auto hidden items-center gap-2 rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-sm text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] sm:inline-flex"
+        className="ml-auto hidden min-h-[44px] items-center gap-2 rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-sm text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] sm:inline-flex"
         aria-label="Open command palette"
       >
         <Command className="h-4 w-4" aria-hidden />
         Search
-        <kbd className="rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] text-bolt-elements-textTertiary">
+        <kbd className="vc-keyboard-shortcut rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] text-bolt-elements-textTertiary">
           ⌘K
         </kbd>
       </Link>
@@ -1885,7 +1890,7 @@ function TopBarNotifications() {
       trigger={
         <button
           type="button"
-          className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+          className="relative inline-flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
           aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : 'Notifications'}
         >
           <Bell className="h-4 w-4" aria-hidden />
@@ -1907,7 +1912,7 @@ function TopBarNotifications() {
             <button
               type="submit"
               disabled={markingAll}
-              className="rounded text-xs font-medium text-[var(--vc-ide-accent-action)] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:opacity-60"
+              className="min-h-[44px] rounded px-2 text-xs font-medium text-[var(--vc-ide-accent-action)] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:opacity-60"
             >
               {markingAll ? 'Marking…' : 'Mark all read'}
             </button>
@@ -1951,7 +1956,7 @@ function TopBarNotifications() {
         <Popover.Close asChild>
           <Link
             to="/notifications"
-            className="flex items-center justify-center rounded-md px-3 py-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+            className="flex min-h-[44px] items-center justify-center rounded-md px-3 py-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
           >
             View all notifications
           </Link>
@@ -1975,7 +1980,7 @@ export function SignOutButton({
       <button
         type="submit"
         className={classNames(
-          'group inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary',
+          'group inline-flex h-[44px] items-center gap-2 rounded-md px-3 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary',
           className,
         )}
         aria-label="Sign out"
@@ -2014,7 +2019,7 @@ function CreateProjectCta({ collapsed }: { collapsed: boolean }) {
       className={({ isActive }) =>
         classNames(
           'vc-sidebar-cta group relative inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-[12px] font-semibold transition-[background-color,filter,box-shadow] focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-accent-action)] focus:ring-offset-2 focus:ring-offset-bolt-elements-background-depth-2',
-          collapsed ? 'h-9 w-9' : 'h-10 w-full px-3',
+          collapsed ? 'h-[44px] w-[44px]' : 'h-[44px] w-full px-3',
           isActive && 'vc-sidebar-cta--active',
         )
       }
@@ -2040,7 +2045,7 @@ function NavGroup({ items, collapsed = false }: { items: NavItem[]; collapsed?: 
             className={({ isActive }) =>
               classNames(
                 'vc-sidebar-nav-item group relative flex items-center rounded-md text-[13px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
-                collapsed ? 'h-9 w-9 justify-center px-0' : 'h-9 w-full gap-2 px-3',
+                collapsed ? 'h-[44px] w-[44px] justify-center px-0' : 'h-[44px] w-full gap-2 px-3',
                 isActive
                   ? 'vc-sidebar-nav-item--active text-bolt-elements-textPrimary'
                   : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
@@ -2058,7 +2063,7 @@ function NavGroup({ items, collapsed = false }: { items: NavItem[]; collapsed?: 
             />
             {!collapsed ? <span className="vc-sidebar-fade-label flex-1 truncate">{item.label}</span> : null}
             {!collapsed && item.shortcut ? (
-              <kbd className="vc-sidebar-shortcut ml-auto rounded border border-bolt-elements-borderColor px-1 py-0 text-[10px] font-medium leading-4 text-bolt-elements-textTertiary">
+              <kbd className="vc-keyboard-shortcut vc-sidebar-shortcut ml-auto rounded border border-bolt-elements-borderColor px-1 py-0 text-[10px] font-medium leading-4 text-bolt-elements-textTertiary">
                 {item.shortcut}
               </kbd>
             ) : null}
@@ -2081,7 +2086,7 @@ function NavButton({ to, children }: { to: string; children: React.ReactNode }) 
       to={to}
       className={({ isActive }) =>
         classNames(
-          'rounded-md px-3 py-2 text-sm transition-colors hover:bg-bolt-elements-background-depth-2',
+          'inline-flex min-h-[44px] items-center rounded-md px-3 py-2 text-sm transition-colors hover:bg-bolt-elements-background-depth-2',
           isActive ? 'text-bolt-elements-textPrimary' : 'text-bolt-elements-textSecondary',
         )
       }
@@ -2102,7 +2107,7 @@ export function statsFromUsage(input?: {
     {
       label: 'Projects',
       value: String(input?.projects ?? 0),
-      detail: 'Persistent projects loaded from API',
+      detail: 'Open, manage or resume your work',
       icon: Boxes,
       to: '/projects',
       ariaLabel: 'View projects',
@@ -2110,7 +2115,7 @@ export function statsFromUsage(input?: {
     {
       label: 'Active workspaces',
       value: String(input?.activeWorkspaces ?? 0),
-      detail: 'Runtime sessions recorded in Postgres',
+      detail: 'Project sessions running right now',
       icon: MonitorPlay,
       to: '/usage',
       ariaLabel: 'View workspace usage',
@@ -2118,7 +2123,7 @@ export function statsFromUsage(input?: {
     {
       label: 'Plan',
       value: input?.planName ?? 'Free',
-      detail: 'Billing state loaded from backend',
+      detail: 'Manage your subscription and payment',
       icon: CreditCard,
       to: '/billing',
       ariaLabel: 'View plan and billing',
@@ -2126,7 +2131,7 @@ export function statsFromUsage(input?: {
     {
       label: 'AI cost',
       value: `€${((input?.aiCostCents ?? 0) / 100).toFixed(2)}`,
-      detail: `${input?.usageEvents ?? 0} usage events recorded`,
+      detail: `${input?.usageEvents ?? 0} metered action${input?.usageEvents === 1 ? '' : 's'} this cycle`,
       icon: Sparkles,
       to: '/usage',
       ariaLabel: 'View AI usage and cost',
