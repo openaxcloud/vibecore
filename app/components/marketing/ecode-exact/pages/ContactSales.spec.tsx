@@ -215,11 +215,11 @@ describe('ContactSales submit', () => {
     fireEvent.submit(screen.getByTestId('form-contact-sales'));
 
     await waitFor(() => {
-      expect(screen.getByText('Enter your work email.')).toBeDefined();
+      expect(document.getElementById('contact-email-error')?.textContent).toBe('Enter your work email.');
     });
 
-    expect(screen.getByText('Enter your name.')).toBeDefined();
-    expect(screen.getByText('Enter your company name.')).toBeDefined();
+    expect(document.getElementById('contact-name-error')?.textContent).toBe('Enter your name.');
+    expect(document.getElementById('contact-company-error')?.textContent).toBe('Enter your company name.');
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(hrefAssigned).toBeUndefined();
   });

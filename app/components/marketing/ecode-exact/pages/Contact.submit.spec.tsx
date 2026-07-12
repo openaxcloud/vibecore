@@ -143,11 +143,11 @@ describe('Contact submit', () => {
     fireEvent.submit(screen.getByTestId('form-contact'));
 
     await waitFor(() => {
-      expect(screen.getByText('Enter your email.')).toBeDefined();
+      expect(document.getElementById('contact-email-error')?.textContent).toBe('Enter your email.');
     });
 
-    expect(screen.getByText('Enter your name.')).toBeDefined();
-    expect(screen.getByText('Tell us briefly how we can help.')).toBeDefined();
+    expect(document.getElementById('contact-name-error')?.textContent).toBe('Enter your name.');
+    expect(document.getElementById('contact-message-error')?.textContent).toBe('Tell us briefly how we can help.');
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(hrefAssigned).toBeUndefined();
   });

@@ -84,7 +84,7 @@ describe('support loader re-auth handling', () => {
      * crashed the whole Support page to the root error boundary.
      */
     firstOrganization.mockResolvedValueOnce({ id: 'org-1', name: 'Acme' });
-    apiRequest.mockResolvedValueOnce({});
+    apiRequest.mockResolvedValueOnce({}).mockResolvedValueOnce({ plan: { key: 'pro' } });
 
     const { loader } = await import('./support');
 
@@ -99,7 +99,7 @@ describe('support loader re-auth handling', () => {
 
   it('returns an empty tickets array when tickets is null', async () => {
     firstOrganization.mockResolvedValueOnce({ id: 'org-1', name: 'Acme' });
-    apiRequest.mockResolvedValueOnce({ tickets: null });
+    apiRequest.mockResolvedValueOnce({ tickets: null }).mockResolvedValueOnce({ plan: { key: 'pro' } });
 
     const { loader } = await import('./support');
 
@@ -110,7 +110,9 @@ describe('support loader re-auth handling', () => {
 
   it('returns tickets normally when both calls succeed', async () => {
     firstOrganization.mockResolvedValueOnce({ id: 'org-1', name: 'Acme' });
-    apiRequest.mockResolvedValueOnce({ tickets: [{ id: 't1', subject: 'Runtime down', status: 'open' }] });
+    apiRequest
+      .mockResolvedValueOnce({ tickets: [{ id: 't1', subject: 'Runtime down', status: 'open' }] })
+      .mockResolvedValueOnce({ plan: { key: 'pro' } });
 
     const { loader } = await import('./support');
 

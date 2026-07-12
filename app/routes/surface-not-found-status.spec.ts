@@ -26,13 +26,13 @@ type Loader = (args: {
   request: Request;
   params: Record<string, string | undefined>;
   context: Record<string, never>;
-}) => unknown;
+}) => unknown | Promise<unknown>;
 
-function runLoader(
+async function runLoader(
   loader: Loader,
   params: Record<string, string | undefined>,
   pathname = '/',
-): { response?: Response; threw: boolean; status?: number } {
+): Promise<{ response?: Response; threw: boolean; status?: number }> {
   try {
     /*
      * RR7: loaders that previously returned a Remix `json()` Response now
@@ -40,7 +40,7 @@ function runLoader(
      * back to a real `Response` so the `.status`/`.headers` assertions below
      * keep working. Routes that 404 still `throw new Response(...)`.
      */
-    const raw = loader({
+    const raw = await loader({
       request: new Request(`http://app.e-code.ai${pathname}`),
       params,
       context: {},
@@ -118,29 +118,29 @@ const publicMarketingCases: Array<{
 
 describe('dynamic surface routes return a true HTTP 404 for unknown slugs', () => {
   for (const { name, loader, knownParams, unknownParams } of cases) {
-    it(`${name}: throws a 404 Response for an unknown slug`, () => {
-      const result = runLoader(loader, unknownParams);
+    it(`${name}: throws a 404 Response for an unknown slug`, async () => {
+      const result = await runLoader(loader, unknownParams);
 
       expect(result.threw).toBe(true);
       expect(result.status).toBe(404);
     });
 
-    it(`${name}: does not throw for a known slug`, () => {
-      const result = runLoader(loader, knownParams);
+    it(`${name}: does not throw for a known slug`, async () => {
+      const result = await runLoader(loader, knownParams);
 
       expect(result.threw).toBe(false);
     });
   }
 
-  it('also throws a 404 when the slug param is entirely absent', () => {
-    expect(runLoader(rootSurfaceLoader as Loader, {}).status).toBe(404);
+  it('also throws a 404 when the slug param is entirely absent', async () => {
+    expect((await runLoader(rootSurfaceLoader as Loader, {})).status).toBe(404);
   });
 });
 
 describe('imported E-Code public dynamic routes resolve for public routing', () => {
   for (const { name, loader, params, pathname, servesStaticShell } of publicMarketingCases) {
-    it(`${name}: ${servesStaticShell ? 'returns the static E-Code shell' : 'serves real in-repo SSR'}`, () => {
-      const result = runLoader(loader, params, pathname);
+    it(`${name}: ${servesStaticShell ? 'returns the static E-Code shell' : 'serves real in-repo SSR'}`, async () => {
+      const result = await runLoader(loader, params, pathname);
 
       expect(result.threw).toBe(false);
       expect(result.response?.status).toBe(200);

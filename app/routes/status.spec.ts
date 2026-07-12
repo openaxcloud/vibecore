@@ -16,6 +16,10 @@ describe('status public route', () => {
     expect(metadata).toEqual([
       { title: 'System Status — E-Code' },
       { name: 'description', content: 'E-Code system status and uptime.' },
+      { property: 'og:title', content: 'System Status — E-Code' },
+      { property: 'og:description', content: 'E-Code system status and uptime.' },
+      { property: 'og:image', content: 'https://e-code.ai/social_preview_index.jpg' },
+      { name: 'twitter:card', content: 'summary_large_image' },
     ]);
   });
 });
