@@ -24008,18 +24008,6 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   isolation: isolate;
 }
 
-.vc-new-project-glow {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: radial-gradient(
-    ellipse 80% 55% at 50% 32%,
-    color-mix(in srgb, var(--vc-ide-accent-action) 14%, transparent),
-    transparent 70%
-  );
-}
-
 .vc-new-project-header {
   text-align: center;
   display: flex;
@@ -24029,17 +24017,18 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
 .vc-new-project-title {
   margin: 0;
-  font-size: clamp(34px, 4vw, 48px);
+  font-size: 32px !important;
   font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
+  line-height: 40px !important;
+  letter-spacing: 0;
   color: var(--bolt-elements-textPrimary);
 }
 
 .vc-new-project-subtitle {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 15px !important;
+  line-height: 22px !important;
+  letter-spacing: 0;
   color: var(--bolt-elements-textSecondary);
 }
 
@@ -24049,12 +24038,6 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-@media (max-width: 640px) {
-  .vc-new-project-form {
-    width: 100%;
-  }
 }
 
 .vc-new-project-error {
@@ -24123,8 +24106,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   color: var(--bolt-elements-textTertiary);
   transition:
@@ -24147,6 +24130,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 44px;
   padding: 12px 24px;
   border-radius: 999px;
   background: var(--vc-ide-accent-action);
@@ -24185,7 +24169,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 .vc-new-project-submit-shortcut {
-  display: inline-flex;
+  display: none;
   align-items: center;
   padding: 2px 6px;
   margin-left: 4px;
@@ -24195,7 +24179,21 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   font-family: var(--vc-ide-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
+}
+
+.vc-new-project-keyboard-hint {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .vc-new-project-submit-shortcut {
+    display: inline-flex;
+  }
+
+  .vc-new-project-keyboard-hint {
+    display: inline;
+  }
 }
 
 .vc-new-project-submit:disabled .vc-new-project-submit-shortcut {
@@ -24230,6 +24228,16 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   color: var(--vc-status-warn, #f59e0b);
 }
 
+.vc-new-project-advanced-toggle {
+  display: none;
+}
+
+.vc-new-project-advanced-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .vc-new-project-meta {
   margin-top: 12px;
   display: flex;
@@ -24250,19 +24258,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   align-items: end;
 }
 
-@media (max-width: 640px) {
-  .vc-new-project-meta-row--models {
-    grid-template-columns: 1fr;
-  }
-}
-
 .vc-new-project-meta-label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.4px;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--bolt-elements-textTertiary);
   user-select: none;
@@ -24284,13 +24286,14 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   border: 0;
   background: transparent;
   box-shadow: none;
+  scroll-snap-type: x proximity;
 }
 
 .vc-new-project-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 28px;
+  height: 44px;
   flex-shrink: 0;
   padding: 0 10px;
   border-radius: 999px;
@@ -24300,6 +24303,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
+  scroll-snap-align: start;
   transition:
     background-color 100ms ease-out,
     border-color 100ms ease-out,
@@ -24340,8 +24344,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   color: var(--bolt-elements-textTertiary);
   border: 0;
@@ -24357,6 +24361,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   color: var(--bolt-elements-textPrimary);
 }
 
+.vc-new-project-refresh:focus-visible,
+.vc-new-project-example:focus-visible,
+.vc-new-project-chip:focus-visible {
+  outline: 2px solid var(--vc-ide-accent-action);
+  outline-offset: 2px;
+}
+
 .vc-new-project-example-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -24365,6 +24376,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
 .vc-new-project-example {
   text-align: left;
+  min-height: 44px;
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--bolt-elements-borderColor);
@@ -24409,9 +24421,10 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
 .vc-new-project-templates-title {
   margin: 4px 0 0;
-  font-size: 18px;
+  font-size: 18px !important;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 26px !important;
+  letter-spacing: 0;
   color: var(--bolt-elements-textPrimary);
 }
 
@@ -24421,6 +24434,136 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   font-size: 12px;
   line-height: 1.4;
   color: var(--bolt-elements-textSecondary);
+}
+
+.vc-new-project-templates button {
+  height: 44px !important;
+  min-height: 44px !important;
+}
+
+@media (max-width: 640px) {
+  .vc-new-project-hero {
+    padding: 32px 16px 40px;
+    gap: 16px;
+  }
+
+  .vc-new-project-header {
+    gap: 8px;
+    text-align: left;
+  }
+
+  .vc-new-project-title {
+    font-size: 28px !important;
+    line-height: 36px !important;
+  }
+
+  .vc-new-project-form {
+    width: 100%;
+  }
+
+  .vc-new-project-textarea {
+    min-height: 200px;
+    padding: 16px;
+    font-size: 16px;
+  }
+
+  .vc-new-project-composer-footer {
+    flex-wrap: wrap;
+    padding: 8px;
+  }
+
+  .vc-new-project-word-count {
+    text-align: left;
+  }
+
+  .vc-new-project-advanced-toggle {
+    display: flex;
+    min-height: 44px;
+    width: 100%;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    border: 1px solid var(--bolt-elements-borderColor);
+    border-radius: 8px;
+    background: var(--bolt-elements-background-depth-1);
+    color: var(--bolt-elements-textPrimary);
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .vc-new-project-advanced-toggle:hover {
+    background: var(--bolt-elements-background-depth-2);
+  }
+
+  .vc-new-project-advanced-toggle:focus-visible {
+    outline: 2px solid var(--vc-ide-accent-action);
+    outline-offset: 2px;
+  }
+
+  .vc-new-project-advanced-label {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .vc-new-project-advanced-summary {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    color: var(--bolt-elements-textTertiary);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .vc-new-project-advanced-chevron {
+    flex-shrink: 0;
+    transition: transform 120ms ease-out;
+  }
+
+  .vc-new-project-advanced-toggle[aria-expanded='true'] .vc-new-project-advanced-chevron {
+    transform: rotate(180deg);
+  }
+
+  .vc-new-project-advanced-content {
+    display: none;
+  }
+
+  .vc-new-project-advanced-content[data-open='true'] {
+    display: flex;
+  }
+
+  .vc-new-project-meta {
+    margin-top: 0;
+  }
+
+  .vc-new-project-meta-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .vc-new-project-meta-row--models {
+    grid-template-columns: 1fr;
+  }
+
+  .vc-new-project-chip-group {
+    width: calc(100% + 16px);
+    margin-right: -16px;
+    padding-right: 56px;
+  }
+
+  .vc-new-project-templates {
+    display: none;
+    margin-bottom: 40px;
+    padding: 0 16px;
+  }
+
+  .vc-new-project-templates[data-open='true'] {
+    display: flex;
+  }
 }
 
 .vc-home-showcase-grid article a {

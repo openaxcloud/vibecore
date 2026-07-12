@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react';
 import {
   BarChart3,
+  ChevronDown,
   Code2,
   Cog,
   Gamepad2,
@@ -17,6 +18,7 @@ import {
   RefreshCw,
   Rocket,
   Search,
+  SlidersHorizontal,
   Smartphone,
   Sparkles,
   Star,
@@ -881,6 +883,7 @@ export default function NewProjectPage() {
   const [prompt, setPrompt] = useState(initialModelsPayload.initialPrompt ?? '');
   const [selectedCategory, setSelectedCategory] = useState(artifactCategories[0].id);
   const [promptSeed, setPromptSeed] = useState(0);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [modelsPayload, setModelsPayload] = useState<ModelsPayload>(initialModelsPayload);
   const [modelsLoading, setModelsLoading] = useState(false);
@@ -1242,7 +1245,6 @@ export default function NewProjectPage() {
       contentClassName="vc-new-project-content"
     >
       <div className="vc-new-project-hero">
-        <span className="vc-new-project-glow" aria-hidden />
         <header className="vc-new-project-header">
           <h1 className="vc-new-project-title">What do you want to build?</h1>
           <p className="vc-new-project-subtitle">
@@ -1340,7 +1342,7 @@ export default function NewProjectPage() {
                 className="vc-new-project-submit"
                 aria-label="Create project"
                 aria-keyshortcuts={isAppleHost ? 'Meta+Enter' : 'Control+Enter'}
-                title={`Create project (${submitShortcutLabel})`}
+                title="Create project"
               >
                 {isSubmitting ? (
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -1360,11 +1362,16 @@ export default function NewProjectPage() {
             aria-live="polite"
             data-state={promptHasBlockingError ? 'error' : promptValidation.warnings.length ? 'warn' : 'ok'}
           >
-            {promptWordCount === 0
-              ? `Write a few sentences to unlock Create — press ${submitShortcutLabel} to send.`
-              : promptWordCount < 3
-                ? `${promptWordCount} word${promptWordCount === 1 ? '' : 's'} — keep going.`
-                : `${promptWordCount} words · ${promptCharacterCount.toLocaleString()}/${PROMPT_MAX_CHARS.toLocaleString()} chars`}
+            {promptWordCount === 0 ? (
+              <>
+                Write a few sentences to unlock Create.
+                <span className="vc-new-project-keyboard-hint"> Press {submitShortcutLabel} to send.</span>
+              </>
+            ) : promptWordCount < 3 ? (
+              `${promptWordCount} word${promptWordCount === 1 ? '' : 's'} — keep going.`
+            ) : (
+              `${promptWordCount} words · ${promptCharacterCount.toLocaleString()}/${PROMPT_MAX_CHARS.toLocaleString()} chars`
+            )}
             {promptWordCount >= 3 && promptCostEstimate.tokens > 0 ? (
               <span
                 className="vc-new-project-prompt-estimate"
@@ -1395,114 +1402,145 @@ export default function NewProjectPage() {
             ))}
           </p>
 
-          <section className="vc-new-project-meta" aria-label="Generation context">
-            <div className="vc-new-project-meta-row">
-              <span className="vc-new-project-meta-label">Artifact</span>
-              <ToggleGroup
-                type="single"
-                value={selectedCategory}
-                onValueChange={(value) => {
-                  if (value) {
-                    setSelectedCategory(value);
-                  }
-                }}
-                className="vc-new-project-chip-group"
-                aria-label="Artifact type"
-              >
-                {artifactCategories.map((category) => {
-                  const Icon = category.icon;
+          <button
+            type="button"
+            className="vc-new-project-advanced-toggle"
+            aria-expanded={advancedOpen}
+            aria-controls="vc-new-project-advanced-content vc-new-project-templates"
+            onClick={() => setAdvancedOpen((open) => !open)}
+          >
+            <span className="vc-new-project-advanced-label">
+              <SlidersHorizontal className="h-4 w-4" aria-hidden />
+              Advanced options
+            </span>
+            <span className="vc-new-project-advanced-summary">
+              {activeCategory.label} · {activeModel?.label || activeModel?.name || 'Default model'}
+            </span>
+            <ChevronDown className="vc-new-project-advanced-chevron h-4 w-4" aria-hidden />
+          </button>
 
-                  return (
-                    <ToggleGroupItem
-                      key={category.id}
-                      value={category.id}
-                      type="button"
-                      className="vc-new-project-chip"
-                    >
-                      <Icon className="h-3.5 w-3.5" aria-hidden />
-                      {category.label}
-                    </ToggleGroupItem>
-                  );
-                })}
-              </ToggleGroup>
-            </div>
-
-            <div className="vc-new-project-meta-row vc-new-project-meta-row--models">
-              <label className="vc-new-project-meta-field">
-                <span className="vc-new-project-meta-label">
-                  <ActiveProviderIcon className="h-3.5 w-3.5" aria-hidden />
-                  Provider
-                </span>
-                <CreateDropdown
-                  label="AI provider"
-                  value={activeProvider?.name ?? ''}
-                  options={providerDropdownOptions}
-                  onChange={(nextProvider) => {
-                    setSelectedProvider(nextProvider);
-                    setSelectedModel('');
+          <div
+            id="vc-new-project-advanced-content"
+            className="vc-new-project-advanced-content"
+            data-open={advancedOpen ? 'true' : 'false'}
+          >
+            <section className="vc-new-project-meta" aria-label="Generation context">
+              <div className="vc-new-project-meta-row">
+                <span className="vc-new-project-meta-label">Artifact</span>
+                <ToggleGroup
+                  type="single"
+                  value={selectedCategory}
+                  onValueChange={(value) => {
+                    if (value) {
+                      setSelectedCategory(value);
+                    }
                   }}
-                  disabled={isSubmitting}
-                  loading={modelsLoading}
-                  testId="ai-provider-dropdown"
-                />
-              </label>
-              <label className="vc-new-project-meta-field">
-                <span className="vc-new-project-meta-label">
-                  <ActiveCategoryIcon className="h-3.5 w-3.5" aria-hidden />
-                  Model
-                </span>
-                <CreateDropdown
-                  label="AI model"
-                  value={activeModel?.name ?? ''}
-                  options={modelDropdownOptions}
-                  onChange={setSelectedModel}
-                  disabled={isSubmitting || activeModels.length === 0}
-                  loading={modelsLoading}
-                  testId="ai-model-dropdown"
-                />
-              </label>
-            </div>
+                  className="vc-new-project-chip-group"
+                  aria-label="Artifact type"
+                >
+                  {artifactCategories.map((category) => {
+                    const Icon = category.icon;
 
-            <p className="vc-new-project-meta-hint">
-              {configuredProviderCount > 0
-                ? `${configuredProviderCount} provider${configuredProviderCount === 1 ? '' : 's'} synced from Settings`
-                : 'Using the static provider fallback — connect a provider in Settings for more models'}
-              {modelsError ? ` · ${modelsError}` : ''}
-            </p>
-          </section>
-        </Form>
+                    return (
+                      <ToggleGroupItem
+                        key={category.id}
+                        value={category.id}
+                        type="button"
+                        className="vc-new-project-chip"
+                      >
+                        <Icon className="h-3.5 w-3.5" aria-hidden />
+                        {category.label}
+                      </ToggleGroupItem>
+                    );
+                  })}
+                </ToggleGroup>
+              </div>
 
-        <section className="vc-new-project-examples" aria-label="Example prompts">
-          <header className="vc-new-project-examples-header">
-            <span className="vc-new-project-meta-label">Try an example</span>
-            <button
-              type="button"
-              onClick={() => setPromptSeed((value) => value + 1)}
-              className="vc-new-project-refresh"
-              aria-label="Refresh example prompts"
-            >
-              <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-            </button>
-          </header>
-          <div className="vc-new-project-example-list">
-            {examplePrompts.map((example) => (
-              <button key={example} type="button" onClick={() => setPrompt(example)} className="vc-new-project-example">
-                {example}
-              </button>
-            ))}
+              <div className="vc-new-project-meta-row vc-new-project-meta-row--models">
+                <label className="vc-new-project-meta-field">
+                  <span className="vc-new-project-meta-label">
+                    <ActiveProviderIcon className="h-3.5 w-3.5" aria-hidden />
+                    Provider
+                  </span>
+                  <CreateDropdown
+                    label="AI provider"
+                    value={activeProvider?.name ?? ''}
+                    options={providerDropdownOptions}
+                    onChange={(nextProvider) => {
+                      setSelectedProvider(nextProvider);
+                      setSelectedModel('');
+                    }}
+                    disabled={isSubmitting}
+                    loading={modelsLoading}
+                    testId="ai-provider-dropdown"
+                  />
+                </label>
+                <label className="vc-new-project-meta-field">
+                  <span className="vc-new-project-meta-label">
+                    <ActiveCategoryIcon className="h-3.5 w-3.5" aria-hidden />
+                    Model
+                  </span>
+                  <CreateDropdown
+                    label="AI model"
+                    value={activeModel?.name ?? ''}
+                    options={modelDropdownOptions}
+                    onChange={setSelectedModel}
+                    disabled={isSubmitting || activeModels.length === 0}
+                    loading={modelsLoading}
+                    testId="ai-model-dropdown"
+                  />
+                </label>
+              </div>
+
+              <p className="vc-new-project-meta-hint">
+                {configuredProviderCount > 0
+                  ? `${configuredProviderCount} provider${configuredProviderCount === 1 ? '' : 's'} available`
+                  : 'Default provider available. Add providers in Settings to expand model choices.'}
+                {modelsError ? ` · ${modelsError}` : ''}
+              </p>
+            </section>
+
+            <section className="vc-new-project-examples" aria-label="Example prompts">
+              <header className="vc-new-project-examples-header">
+                <span className="vc-new-project-meta-label">Try an example</span>
+                <button
+                  type="button"
+                  onClick={() => setPromptSeed((value) => value + 1)}
+                  className="vc-new-project-refresh"
+                  aria-label="Refresh example prompts"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+                </button>
+              </header>
+              <div className="vc-new-project-example-list">
+                {examplePrompts.map((example) => (
+                  <button
+                    key={example}
+                    type="button"
+                    onClick={() => setPrompt(example)}
+                    className="vc-new-project-example"
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+            </section>
           </div>
-        </section>
+        </Form>
       </div>
 
-      <section className="vc-new-project-templates" aria-label="Production templates">
+      <section
+        id="vc-new-project-templates"
+        className="vc-new-project-templates"
+        aria-label="Production templates"
+        data-open={advancedOpen ? 'true' : 'false'}
+      >
         <header className="vc-new-project-templates-header">
           <div>
             <p className="vc-new-project-meta-label">Templates</p>
             <h2 className="vc-new-project-templates-title">Start from the existing catalog</h2>
           </div>
-          <p className="vc-new-project-templates-subtitle">
-            Authenticated template flow already wired to project creation.
-          </p>
+          <p className="vc-new-project-templates-subtitle">Choose a curated starter and customize it with the agent.</p>
         </header>
         <TemplateGallery compact mode="authenticated" />
       </section>
@@ -1625,7 +1663,6 @@ export function ErrorBoundary() {
       contentClassName="vc-new-project-content"
     >
       <div className="vc-new-project-hero">
-        <span className="vc-new-project-glow" aria-hidden />
         <header className="vc-new-project-header">
           <h1 className="vc-new-project-title">{descriptor.title}</h1>
           <p className="vc-new-project-subtitle">{descriptor.subtitle}</p>
