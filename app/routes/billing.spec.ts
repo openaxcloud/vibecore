@@ -3,7 +3,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { action, spendUsageState } from './billing';
+import { action, billingDisplayLabel, formatEuro, spendUsageState } from './billing';
 import { toResponse } from '~/lib/test/rr7-data';
 
 const ENV_KEYS = ['SAAS_API_URL', 'API_BASE_URL'] as const;
@@ -49,6 +49,19 @@ describe('spendUsageState — tone derives from the raw ratio, not the rounded p
   it('clamps the displayed pct to 0..100 while keeping the right tone', () => {
     expect(spendUsageState(0, 1000)).toEqual({ tone: 'ok', pct: 0 });
     expect(spendUsageState(2000, 1000)).toEqual({ tone: 'reached', pct: 100 });
+  });
+});
+
+describe('billing display language', () => {
+  it('uses one EUR formatter for every visible amount', () => {
+    expect(formatEuro(0)).toBe('€0.00');
+    expect(formatEuro(123456)).toBe('€1,234.56');
+  });
+
+  it('maps technical usage keys to customer-facing labels', () => {
+    expect(billingDisplayLabel('projects.count')).toBe('Projects');
+    expect(billingDisplayLabel('ai.input_tokens')).toBe('AI input tokens');
+    expect(billingDisplayLabel('CUSTOM_API_CALLS')).toBe('Custom API calls');
   });
 });
 

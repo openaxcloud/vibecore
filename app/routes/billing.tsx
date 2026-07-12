@@ -68,8 +68,96 @@ const EMPTY_CREDITS: CreditsData = {
   packCatalog: [],
 };
 
-// Prices are shown in euros with the same figures as Replit (symbol €, no conversion).
-const dollars = (cents: number) => `€${(cents / 100).toFixed(2)}`;
+const BILLING_LOCALE = 'en-GB';
+const BILLING_TIME_ZONE = 'UTC';
+
+const euroFormatter = new Intl.NumberFormat(BILLING_LOCALE, {
+  style: 'currency',
+  currency: 'EUR',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+const billingDateFormatter = new Intl.DateTimeFormat(BILLING_LOCALE, {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  timeZone: BILLING_TIME_ZONE,
+});
+
+const billingDateTimeFormatter = new Intl.DateTimeFormat(BILLING_LOCALE, {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+  timeZone: BILLING_TIME_ZONE,
+  timeZoneName: 'short',
+});
+
+const BILLING_LABELS: Record<string, string> = {
+  active: 'Active',
+  cancelled: 'Cancelled',
+  canceled: 'Cancelled',
+  incomplete: 'Incomplete',
+  incomplete_expired: 'Incomplete - expired',
+  past_due: 'Past due',
+  paused: 'Paused',
+  trialing: 'Trial',
+  unpaid: 'Unpaid',
+  'projects.count': 'Projects',
+  'project.count': 'Projects',
+  'projects.created': 'Projects created',
+  'project.created': 'Projects created',
+  'agent.requests': 'Agent requests',
+  'agent.checkpoints': 'Agent checkpoints',
+  'workspace.minutes': 'Workspace minutes',
+  'compute.seconds': 'Compute time',
+  'storage.bytes': 'Storage used',
+  'deployments.count': 'Deployments',
+  'ai.input_tokens': 'AI input tokens',
+  'ai.output_tokens': 'AI output tokens',
+};
+
+const BILLING_ACRONYMS: Record<string, string> = {
+  ai: 'AI',
+  api: 'API',
+  cpu: 'CPU',
+  eur: 'EUR',
+  gpu: 'GPU',
+  payg: 'Pay-as-you-go',
+};
+
+export function formatEuro(cents: number): string {
+  return euroFormatter.format(cents / 100);
+}
+
+export function billingDisplayLabel(value: string): string {
+  const normalized = value.trim().toLowerCase();
+
+  if (!normalized) {
+    return 'Recorded activity';
+  }
+
+  const knownLabel = BILLING_LABELS[normalized];
+
+  if (knownLabel) {
+    return knownLabel;
+  }
+
+  return normalized
+    .split(/[._\s-]+/u)
+    .filter(Boolean)
+    .map(
+      (token, index) => BILLING_ACRONYMS[token] ?? (index === 0 ? `${token[0].toUpperCase()}${token.slice(1)}` : token),
+    )
+    .join(' ');
+}
+
+const billingStatusLabel = (status?: string | null) => (status ? billingDisplayLabel(status) : 'No subscription');
+const formatBillingDate = (value: string) => billingDateFormatter.format(new Date(value));
+const formatBillingDateTime = (value: string) => billingDateTimeFormatter.format(new Date(value));
 
 type SpendTone = 'none' | 'ok' | 'warn' | 'critical' | 'reached';
 
@@ -132,11 +220,18 @@ function SpendUsageIndicator({
     <div className="mb-3 flex flex-col gap-1.5">
       <div className="flex items-center justify-between text-xs text-bolt-elements-textSecondary">
         <span>
-          {dollars(spentCents)} of {dollars(capCents ?? 0)} used
+          {formatEuro(spentCents)} of {formatEuro(capCents ?? 0)} used
         </span>
         <span className={tone === 'ok' ? '' : 'text-bolt-elements-textPrimary'}>{pct}%</span>
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-bolt-elements-background-depth-1">
+      <div
+        role="progressbar"
+        aria-label="Pay-as-you-go spend"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={pct}
+        className="h-1.5 w-full overflow-hidden rounded-full bg-bolt-elements-background-depth-1"
+      >
         <div className={`h-full ${SPEND_TONE_BAR[tone]}`} style={{ width: `${pct}%` }} />
       </div>
       <p className="text-[11px] text-bolt-elements-textSecondary">
@@ -225,7 +320,7 @@ export async function action({ request }: EnterpriseActionArgs) {
     const budgetCapCents = raw === '' ? null : Math.round(Number(raw) * 100);
 
     if (budgetCapCents != null && (!Number.isFinite(budgetCapCents) || budgetCapCents < 0)) {
-      return json({ error: 'Enter a valid spend limit in dollars (or leave blank for no cap).' }, { status: 400 });
+      return json({ error: 'Enter a valid spend limit in euros (or leave blank for no cap).' }, { status: 400 });
     }
 
     /*
@@ -251,7 +346,7 @@ export async function action({ request }: EnterpriseActionArgs) {
     const serviceShutdownCents = rawShutdown === '' ? null : Math.round(Number(rawShutdown) * 100);
 
     if (serviceShutdownCents != null && (!Number.isFinite(serviceShutdownCents) || serviceShutdownCents < 0)) {
-      return json({ error: 'Enter a valid service-shutdown limit in dollars (or leave blank).' }, { status: 400 });
+      return json({ error: 'Enter a valid service-shutdown limit in euros (or leave blank).' }, { status: 400 });
     }
 
     try {
@@ -403,15 +498,94 @@ export default function BillingPage() {
   const submittingPackId =
     submitting && navigation.formData?.get('intent') === 'buy-credits' ? navigation.formData?.get('packId') : null;
 
-  // Included-credit burndown ("$X of $Y used this cycle") + the billing-cycle window.
+  // Included-credit burndown and the billing-cycle window.
   const monthlyGrantCents = credits.monthlyGrantCents ?? 0;
 
   const includedUsedCents =
     monthlyGrantCents > 0 ? Math.max(0, Math.min(monthlyGrantCents, monthlyGrantCents - credits.balanceCents)) : 0;
   const cycleLabel =
     credits.periodStart && credits.periodEnd
-      ? `${new Date(credits.periodStart).toLocaleDateString()} – ${new Date(credits.periodEnd).toLocaleDateString()}`
+      ? `${formatBillingDate(credits.periodStart)} - ${formatBillingDate(credits.periodEnd)} (UTC)`
       : null;
+  const overviewStats = [
+    {
+      label: 'Current plan',
+      value: billing.plan.name,
+      detail: `${formatEuro(billing.plan.monthlyCents)} per month`,
+      icon: CreditCard,
+    },
+    {
+      label: 'Billing state',
+      value: billingStatusLabel(billing.subscription?.status),
+      detail: billing.subscription?.currentPeriodEnd
+        ? `Current period ends ${formatBillingDate(billing.subscription.currentPeriodEnd)} (UTC)`
+        : 'Subscription and renewal status',
+      icon: TrendingUp,
+    },
+    {
+      label: 'Usage events',
+      value: String(billing.usage.length),
+      detail: 'Actions counted in this billing period',
+      icon: TrendingUp,
+    },
+    {
+      label: 'Upgrade options',
+      value: String(billing.upgradePrompts.length),
+      detail: billing.upgradePrompts.length ? 'Plans available for your organization' : 'Your current plan fits',
+      icon: FileText,
+    },
+  ];
+  const creditStats = [
+    {
+      label: 'Credit balance',
+      value: formatEuro(credits.balanceCents),
+      detail:
+        monthlyGrantCents > 0
+          ? `${formatEuro(includedUsedCents)} of ${formatEuro(monthlyGrantCents)} included used`
+          : 'Included monthly credits',
+      icon: CreditCard,
+    },
+    {
+      label: 'Credit packs',
+      value: formatEuro(credits.packBalanceCents),
+      detail: 'Purchased, earliest-expiry first',
+      icon: CreditCard,
+    },
+    {
+      label: 'Total available',
+      value: formatEuro(credits.totalAvailableCents),
+      detail: 'Balance + active packs',
+      icon: TrendingUp,
+    },
+    {
+      label: 'Budget cap',
+      value: credits.budgetCapCents != null ? formatEuro(credits.budgetCapCents) : 'None',
+      detail: 'Pay-as-you-go spend limit',
+      icon: FileText,
+    },
+  ];
+  const mobileFinancialSummary = [
+    {
+      label: 'Current plan',
+      value: billing.plan.name,
+      detail: billingStatusLabel(billing.subscription?.status),
+    },
+    {
+      label: 'Monthly price',
+      value: formatEuro(billing.plan.monthlyCents),
+      detail: 'per month',
+    },
+    {
+      label: 'Available balance',
+      value: formatEuro(credits.totalAvailableCents),
+      detail: 'credits and packs',
+    },
+    {
+      label: 'Spend limit',
+      value: credits.budgetCapCents != null ? formatEuro(credits.budgetCapCents) : 'No limit',
+      detail: 'pay as you go',
+    },
+  ];
 
   return (
     <AppShell
@@ -442,13 +616,13 @@ export default function BillingPage() {
               </p>
               {billing.subscription?.currentPeriodEnd ? (
                 <p className="mt-0.5 text-xs">
-                  Services pause on {new Date(billing.subscription.currentPeriodEnd).toLocaleDateString()}.
+                  Services pause on {formatBillingDate(billing.subscription.currentPeriodEnd)} (UTC).
                 </p>
               ) : null}
             </div>
             <Link
               to="/payment-method"
-              className="inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+              className="inline-flex h-11 shrink-0 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
             >
               Update payment method
             </Link>
@@ -459,79 +633,44 @@ export default function BillingPage() {
             {actionData?.error ?? 'Billing is available only to organization owners or billing administrators.'}
           </div>
         ) : null}
-        <StatGrid
-          stats={[
-            {
-              label: 'Current plan',
-              value: billing.plan.name,
-              detail: `€${(billing.plan.monthlyCents / 100).toFixed(0)} per month`,
-              icon: CreditCard,
-            },
-            {
-              label: 'Billing state',
-              value: billing.subscription?.status ?? 'No subscription',
-              detail: 'Loaded from backend billing state',
-              icon: TrendingUp,
-            },
-            {
-              label: 'Usage events',
-              value: String(billing.usage.length),
-              detail: 'Metered usage ledger records actions',
-              icon: TrendingUp,
-            },
-            {
-              label: 'Upgrade options',
-              value: String(billing.upgradePrompts.length),
-              detail: 'Plan access controlled by backend',
-              icon: FileText,
-            },
-          ]}
-        />
+        <dl className="grid grid-cols-2 overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 sm:hidden">
+          {mobileFinancialSummary.map((item, index) => (
+            <div
+              key={item.label}
+              className={`min-w-0 p-4 ${index % 2 === 0 ? 'border-r border-bolt-elements-borderColor' : ''} ${
+                index < 2 ? 'border-b border-bolt-elements-borderColor' : ''
+              }`}
+            >
+              <dt className="text-xs text-bolt-elements-textSecondary">{item.label}</dt>
+              <dd className="mt-1 truncate text-base font-semibold text-bolt-elements-textPrimary" title={item.value}>
+                {item.value}
+              </dd>
+              <dd className="mt-0.5 truncate text-[11px] text-bolt-elements-textSecondary" title={item.detail}>
+                {item.detail}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <div className="hidden sm:block">
+          <StatGrid stats={overviewStats} />
+        </div>
         <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
+          <div className="mb-4 flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
               <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Credits &amp; usage</h2>
               <p className="text-sm text-bolt-elements-textSecondary">
                 Your included credits, purchased packs and effort-based agent usage.
               </p>
             </div>
             {credits.shadow ? (
-              <span className="rounded-full bg-[var(--status-warning-bg)] px-3 py-1 text-xs font-medium text-[var(--status-warning-text)]">
+              <span className="shrink-0 whitespace-nowrap rounded-full bg-[var(--status-warning-bg)] px-3 py-1 text-xs font-medium text-[var(--status-warning-text)]">
                 Preview (not charged)
               </span>
             ) : null}
           </div>
-          <StatGrid
-            stats={[
-              {
-                label: 'Credit balance',
-                value: dollars(credits.balanceCents),
-                detail:
-                  monthlyGrantCents > 0
-                    ? `${dollars(includedUsedCents)} of ${dollars(monthlyGrantCents)} included used`
-                    : 'Included monthly credits',
-                icon: CreditCard,
-              },
-              {
-                label: 'Credit packs',
-                value: dollars(credits.packBalanceCents),
-                detail: 'Purchased, earliest-expiry first',
-                icon: CreditCard,
-              },
-              {
-                label: 'Total available',
-                value: dollars(credits.totalAvailableCents),
-                detail: 'Balance + active packs',
-                icon: TrendingUp,
-              },
-              {
-                label: 'Budget cap',
-                value: credits.budgetCapCents != null ? dollars(credits.budgetCapCents) : 'None',
-                detail: 'Pay-as-you-go spend limit',
-                icon: FileText,
-              },
-            ]}
-          />
+          <div className="hidden sm:block">
+            <StatGrid stats={creditStats} />
+          </div>
           <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
             <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Spend limit (pay-as-you-go)</h3>
@@ -568,9 +707,9 @@ export default function BillingPage() {
                 step="any"
                 defaultValue={credits.budgetCapCents != null ? (credits.budgetCapCents / 100).toString() : ''}
                 placeholder="No cap"
-                aria-label="Spend limit in dollars"
+                aria-label="Spend limit in euros"
                 title="Set in €500 increments, or €0.01 to cap spend at your current credits."
-                className="w-32 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-1.5 text-sm text-bolt-elements-textPrimary"
+                className="h-11 w-36 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm text-bolt-elements-textPrimary"
               />
               <span className="w-full text-[11px] text-bolt-elements-textSecondary sm:w-auto">
                 €500 increments (or €0.01 to cap at credits)
@@ -585,11 +724,11 @@ export default function BillingPage() {
                   credits.serviceShutdownCents != null ? (credits.serviceShutdownCents / 100).toString() : ''
                 }
                 placeholder="No hard stop"
-                aria-label="Service shutdown limit in dollars"
+                aria-label="Service shutdown limit in euros"
                 title="Service Shutdown Limit — suspends usage-based services when reached (no grace)."
-                className="w-32 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-1.5 text-sm text-bolt-elements-textPrimary"
+                className="h-11 w-36 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm text-bolt-elements-textPrimary"
               />
-              <Button type="submit" variant="outline" disabled={submitting}>
+              <Button type="submit" variant="outline" disabled={submitting} className="h-11">
                 {submitting && navigation.formData?.get('intent') === 'set-limits' ? 'Saving…' : 'Save limit'}
               </Button>
             </Form>
@@ -607,7 +746,7 @@ export default function BillingPage() {
               <Form method="post">
                 <input type="hidden" name="intent" value="ai-policy" />
                 <input type="hidden" name="blockExternalAi" value={credits.blockExternalAi ? 'false' : 'true'} />
-                <Button type="submit" variant="outline" disabled={submitting}>
+                <Button type="submit" variant="outline" disabled={submitting} className="h-11">
                   {submitting && navigation.formData?.get('intent') === 'ai-policy'
                     ? 'Saving…'
                     : credits.blockExternalAi
@@ -627,8 +766,8 @@ export default function BillingPage() {
               ) : null}
             </div>
             <p className="mb-3 text-xs text-bolt-elements-textSecondary">
-              Pre-paid credit packs never expire for 6 months and are spent earliest-expiry-first, before your monthly
-              credits run to pay-as-you-go.
+              Pre-paid credit packs remain available for the validity period shown below. Packs with the nearest expiry
+              are used first, before pay-as-you-go charges apply.
             </p>
             {!credits.creditsEnabled ? (
               <p className="mb-3 rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-2 text-xs text-[var(--status-warning-text)]">
@@ -646,21 +785,24 @@ export default function BillingPage() {
                     <button
                       type="submit"
                       disabled={submitting || !credits.creditsEnabled}
-                      aria-label={`Buy ${dollars(pack.creditCents)} credit pack for ${dollars(pack.priceCents)}`}
+                      aria-label={`Buy ${formatEuro(pack.creditCents)} credit pack for ${formatEuro(pack.priceCents)}, valid for ${pack.validityDays} days`}
                       className="flex flex-col items-start gap-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-left transition-colors hover:border-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <span className="text-base font-semibold text-bolt-elements-textPrimary">
-                        {dollars(pack.creditCents)}
+                        {formatEuro(pack.creditCents)}
                       </span>
                       <span className="text-xs text-bolt-elements-textSecondary">
                         {discount > 0 ? (
                           <>
-                            Pay {dollars(pack.priceCents)}{' '}
-                            <span className="text-[var(--status-success-text)]">save {dollars(discount)}</span>
+                            Pay {formatEuro(pack.priceCents)}{' '}
+                            <span className="text-[var(--status-success-text)]">save {formatEuro(discount)}</span>
                           </>
                         ) : (
-                          <>Pay {dollars(pack.priceCents)}</>
+                          <>Pay {formatEuro(pack.priceCents)}</>
                         )}
+                      </span>
+                      <span className="text-[11px] text-bolt-elements-textSecondary">
+                        Valid for {pack.validityDays} days
                       </span>
                       <span className="mt-1 text-[11px] font-medium text-[var(--vc-ide-accent-action)]">
                         {submittingPackId === pack.id ? 'Redirecting…' : 'Buy credits'}
@@ -677,10 +819,8 @@ export default function BillingPage() {
                     key={pack.id}
                     className="flex items-center justify-between text-xs text-bolt-elements-textSecondary"
                   >
-                    <span>{dollars(pack.remainingCents)} remaining</span>
-                    <span>
-                      {pack.expiresAt ? `Expires ${new Date(pack.expiresAt).toLocaleDateString()}` : 'No expiry'}
-                    </span>
+                    <span>{formatEuro(pack.remainingCents)} remaining</span>
+                    <span>{pack.expiresAt ? `Expires ${formatBillingDate(pack.expiresAt)} (UTC)` : 'No expiry'}</span>
                   </li>
                 ))}
               </ul>
@@ -691,8 +831,8 @@ export default function BillingPage() {
               <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Credit history</h3>
               <ActivityList
                 items={credits.ledger.slice(0, 8).map((entry) => ({
-                  title: `${entry.deltaCents >= 0 ? '+' : '-'}${dollars(Math.abs(entry.deltaCents))} — ${entry.kind.toLowerCase()}`,
-                  detail: `${entry.reason ?? ''}${entry.createdAt ? ` · ${new Date(entry.createdAt).toLocaleString()}` : ''}`,
+                  title: `${entry.deltaCents >= 0 ? '+' : '-'}${formatEuro(Math.abs(entry.deltaCents))} - ${billingDisplayLabel(entry.kind)}`,
+                  detail: `${entry.reason ?? ''}${entry.createdAt ? ` · ${formatBillingDateTime(entry.createdAt)}` : ''}`,
                   icon: CreditCard,
                 }))}
               />
@@ -704,10 +844,10 @@ export default function BillingPage() {
               items={
                 credits.checkpoints.length
                   ? credits.checkpoints.slice(0, 8).map((cp) => ({
-                      title: `${dollars(cp.creditCents)} — ${cp.buildTier}${cp.highPowerModel ? ' · high-power' : ''}${
-                        cp.extendedThinking ? ' · extended-thinking' : ''
-                      }${cp.turboMode ? ' · turbo' : ''}`,
-                      detail: `${cp.status} · ${new Date(cp.startedAt).toLocaleString()}`,
+                      title: `${formatEuro(cp.creditCents)} - ${billingDisplayLabel(cp.buildTier)}${cp.highPowerModel ? ' · High-power model' : ''}${
+                        cp.extendedThinking ? ' · Extended thinking' : ''
+                      }${cp.turboMode ? ' · Turbo' : ''}`,
+                      detail: `${billingDisplayLabel(cp.status)} · ${formatBillingDateTime(cp.startedAt)}`,
                       icon: TrendingUp,
                     }))
                   : [
@@ -726,14 +866,25 @@ export default function BillingPage() {
             {billing.upgradePrompts.map((plan) => (
               <Form key={plan.planKey} method="post" reloadDocument>
                 <input type="hidden" name="planKey" value={plan.planKey} />
-                <Button type="submit" disabled={submitting} aria-busy={submittingPlanKey === plan.planKey}>
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  aria-busy={submittingPlanKey === plan.planKey}
+                  className="h-11"
+                >
                   {submittingPlanKey === plan.planKey ? 'Redirecting…' : `Upgrade to ${plan.name}`}
                 </Button>
               </Form>
             ))}
             <Form method="post" reloadDocument>
               <input type="hidden" name="intent" value="portal" />
-              <Button type="submit" variant="outline" disabled={submitting} aria-busy={submittingPortal}>
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={submitting}
+                aria-busy={submittingPortal}
+                className="h-11"
+              >
                 {submittingPortal ? 'Redirecting…' : 'Open customer portal'}
               </Button>
             </Form>
@@ -743,14 +894,16 @@ export default function BillingPage() {
           items={
             billing.usage.length
               ? billing.usage.slice(0, 8).map((event) => ({
-                  title: event.type,
-                  detail: `${event.quantity} - ${event.createdAt ? new Date(event.createdAt).toLocaleString() : 'recorded'}`,
+                  title: billingDisplayLabel(event.type),
+                  detail: `${new Intl.NumberFormat(BILLING_LOCALE).format(event.quantity)} · ${
+                    event.createdAt ? formatBillingDateTime(event.createdAt) : 'Recorded'
+                  }`,
                   icon: TrendingUp,
                 }))
               : [
                   {
                     title: 'No usage events yet',
-                    detail: 'Backend usage events will appear here after quota-protected actions.',
+                    detail: 'Your billable activity will appear here as it is recorded.',
                     icon: TrendingUp,
                   },
                 ]
