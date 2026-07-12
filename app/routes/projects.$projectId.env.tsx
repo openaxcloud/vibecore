@@ -1,7 +1,15 @@
 import { Braces, Trash2 } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
-import { buildEnvVarRows, type EnvVarRecord } from './projects.$projectId.env.helpers';
+import { Form, Link, useActionData, useLoaderData, useNavigation, useSearchParams } from 'react-router';
+import {
+  buildEnvVarDiff,
+  buildEnvVarRows,
+  ENV_VAR_SCOPES,
+  ENV_VAR_SCOPE_LABELS,
+  normalizeEnvVarScope,
+  type EnvVarRecord,
+  type EnvVarScope,
+} from './projects.$projectId.env.helpers';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
@@ -23,10 +31,12 @@ export const loader = (args: EnterpriseLoaderArgs) =>
 export const action = (args: EnterpriseActionArgs) =>
   projectAction(args, {
     default: async ({ request, projectId, body }) => {
+      const scope = normalizeEnvVarScope(typeof body.scope === 'string' ? body.scope : undefined);
+
       try {
         await apiRequest(request, `/projects/${projectId}/env-vars`, {
           method: 'PUT',
-          body: JSON.stringify({ key: body.key, value: body.value ?? '' }),
+          body: JSON.stringify({ key: body.key, value: body.value ?? '', scope }),
         });
       } catch (error) {
         /*
@@ -46,13 +56,16 @@ export const action = (args: EnterpriseActionArgs) =>
 
         return json({ error: await apiErrorMessage(error, 'Failed to save variable') }, { status });
       }
-      return redirect(`/projects/${projectId}/env`);
+
+      return redirect(`/projects/${projectId}/env?scope=${scope}`);
     },
     delete: async ({ request, projectId, body }) => {
+      const scope = normalizeEnvVarScope(typeof body.scope === 'string' ? body.scope : undefined);
+
       try {
         await apiRequest(request, `/projects/${projectId}/env-vars`, {
           method: 'DELETE',
-          body: JSON.stringify({ key: body.key }),
+          body: JSON.stringify({ key: body.key, scope }),
         });
       } catch (error) {
         /*
@@ -74,7 +87,7 @@ export const action = (args: EnterpriseActionArgs) =>
         return json({ error: await apiErrorMessage(error, 'Failed to delete variable') }, { status });
       }
 
-      return redirect(`/projects/${projectId}/env`);
+      return redirect(`/projects/${projectId}/env?scope=${scope}`);
     },
   });
 
@@ -83,14 +96,57 @@ export default function ProjectEnvPage() {
   const navigation = useNavigation();
   const saving = navigation.state === 'submitting';
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
-  const rows = buildEnvVarRows(data.envVars);
+  const [searchParams] = useSearchParams();
+
+  const activeScope = normalizeEnvVarScope(searchParams.get('scope') ?? undefined);
+  const rows = buildEnvVarRows(data.envVars, activeScope);
+  const diffRows = buildEnvVarDiff(data.envVars).filter((row) => row.differs);
+
+  const scopeCounts = ENV_VAR_SCOPES.reduce<Record<EnvVarScope, number>>(
+    (acc, scope) => {
+      acc[scope] = (data.envVars ?? []).filter((item) => normalizeEnvVarScope(item.scope) === scope).length;
+      return acc;
+    },
+    { development: 0, preview: 0, production: 0 },
+  );
 
   return (
     <ProjectShell
       projectId={project.id}
       title="Environment variables"
-      description="Manage non-secret runtime configuration for development, preview and production environments."
+      description="Manage non-secret runtime configuration per environment. Variables are scoped to Development, Preview or Production."
     >
+      {/* Scope tabs — one per environment, active tab drives the list + the add form. */}
+      <div
+        role="tablist"
+        aria-label="Environment scope"
+        className="mb-6 inline-flex flex-wrap gap-1 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-1"
+      >
+        {ENV_VAR_SCOPES.map((scope) => {
+          const active = scope === activeScope;
+          return (
+            <Link
+              key={scope}
+              to={`?scope=${scope}`}
+              preventScrollReset
+              role="tab"
+              aria-selected={active}
+              className={classNames(
+                'inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                active
+                  ? 'bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary shadow-sm'
+                  : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+              )}
+            >
+              {ENV_VAR_SCOPE_LABELS[scope]}
+              <span className="rounded-full bg-bolt-elements-background-depth-3 px-1.5 text-xs tabular-nums text-bolt-elements-textSecondary">
+                {scopeCounts[scope]}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
           {rows.map((row, index) => (
@@ -112,10 +168,11 @@ export default function ProjectEnvPage() {
                 <Form method="post" className="shrink-0">
                   <input type="hidden" name="intent" value="delete" />
                   <input type="hidden" name="key" value={row.key} />
+                  <input type="hidden" name="scope" value={activeScope} />
                   <button
                     type="submit"
                     disabled={saving}
-                    aria-label={`Delete ${row.key}`}
+                    aria-label={`Delete ${row.key} from ${ENV_VAR_SCOPE_LABELS[activeScope]}`}
                     className="rounded-md p-2 text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-[var(--status-error-text)] disabled:opacity-50"
                   >
                     <Trash2 className="h-4 w-4" aria-hidden />
@@ -127,8 +184,13 @@ export default function ProjectEnvPage() {
         </div>
         <Form
           method="post"
-          className="grid gap-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6"
+          className="grid h-fit gap-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6"
         >
+          <input type="hidden" name="scope" value={activeScope} />
+          <p className="text-sm text-bolt-elements-textSecondary">
+            Adding to{' '}
+            <span className="font-medium text-bolt-elements-textPrimary">{ENV_VAR_SCOPE_LABELS[activeScope]}</span>
+          </p>
           <Field
             label="Variable name"
             name="key"
@@ -148,7 +210,67 @@ export default function ProjectEnvPage() {
           </Button>
         </Form>
       </div>
+
+      <EnvDiffSection rows={diffRows} />
     </ProjectShell>
+  );
+}
+
+/**
+ * Cross-environment diff: surfaces only keys whose value is missing or different
+ * across Development / Preview / Production, so a drift between environments is
+ * visible at a glance. Hidden entirely when every key is consistent.
+ */
+function EnvDiffSection({ rows }: { rows: ReturnType<typeof buildEnvVarDiff> }) {
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="mt-8">
+      <h2 className="text-sm font-semibold">Differences across environments</h2>
+      <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+        {rows.length} variable{rows.length === 1 ? '' : 's'} differ between Development, Preview and Production.
+      </p>
+      <div className="mt-4 overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
+        <table className="w-full min-w-[560px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-bolt-elements-borderColor text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
+              <th className="px-4 py-2.5 font-medium">Variable</th>
+              {ENV_VAR_SCOPES.map((scope) => (
+                <th key={scope} className="px-4 py-2.5 font-medium">
+                  {ENV_VAR_SCOPE_LABELS[scope]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.key} className="border-b border-bolt-elements-borderColor last:border-b-0">
+                <td className="px-4 py-2.5 font-mono text-xs font-medium">{row.key}</td>
+                {ENV_VAR_SCOPES.map((scope) => {
+                  const value = row.values[scope];
+                  return (
+                    <td key={scope} className="px-4 py-2.5">
+                      {value === undefined ? (
+                        <span className="text-bolt-elements-textTertiary">— not set</span>
+                      ) : (
+                        <span
+                          className="block max-w-[220px] truncate font-mono text-xs text-bolt-elements-textPrimary"
+                          title={value}
+                        >
+                          {value === '' ? '(empty)' : value}
+                        </span>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
