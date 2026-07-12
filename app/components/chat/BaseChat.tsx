@@ -17866,9 +17866,23 @@ function ProjectDatabasePanel({
    */
   const connections = data.connections ?? [];
 
+  /*
+   * The BYO "Add your first database" onboarding must ONLY show for a genuinely
+   * empty project. Previously it gated on `connections.length === 0` alone, so it
+   * rendered even when a MANAGED database is already connected (DatabaseWorkbench
+   * below shows "Production Database — Connected") — a confusing dead-looking
+   * button (it's a form submit needing a connection string) stacked on top of a
+   * live DB. Also hide it once a managed instance/environment exists (same
+   * connected-signal DatabasePanel uses).
+   */
+  const hasManagedDatabase =
+    Boolean(data?.instance) || (Array.isArray(data?.environments) && data.environments.length > 0);
+
   return (
     <div className="grid gap-4">
-      {connections.length === 0 ? <DatabaseConnectionOnboarding onSubmit={onSubmit} busy={busy} /> : null}
+      {connections.length === 0 && !hasManagedDatabase ? (
+        <DatabaseConnectionOnboarding onSubmit={onSubmit} busy={busy} />
+      ) : null}
       {projectId ? <DatabaseWorkbench projectId={projectId} /> : null}
     </div>
   );
