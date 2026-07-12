@@ -1183,6 +1183,46 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
             accumulateCacheUsage(cumulativeUsage, (rest as Record<string, unknown>).providerMetadata);
 
+            /*
+             * DIAG (cache): dump the SHAPE of the per-segment usage + providerMetadata
+             * (numeric fields + keys only, never content/PII) so we can see, live, the
+             * exact native cache-token fields each provider returns — and disambiguate
+             * "provider isn't caching" from "SDK doesn't surface the cache metadata".
+             * Safe/read-only; never throws out of onFinish.
+             */
+            try {
+              const pm = (rest as Record<string, unknown>).providerMetadata;
+              const shape: Record<string, unknown> = {};
+
+              if (pm && typeof pm === 'object') {
+                for (const [k, v] of Object.entries(pm as Record<string, unknown>)) {
+                  if (v && typeof v === 'object') {
+                    const nums: Record<string, number> = {};
+
+                    for (const [nk, nv] of Object.entries(v as Record<string, unknown>)) {
+                      if (typeof nv === 'number') {
+                        nums[nk] = nv;
+                      }
+                    }
+                    shape[k] = { keys: Object.keys(v as Record<string, unknown>), nums };
+                  }
+                }
+              }
+
+              logger.info(
+                JSON.stringify({
+                  event: 'cache.metadata.shape',
+                  projectId,
+                  usageKeys: usage ? Object.keys(usage as Record<string, unknown>) : [],
+                  usagePrompt: usage?.promptTokens ?? null,
+                  providerMetadataKeys: pm && typeof pm === 'object' ? Object.keys(pm as Record<string, unknown>) : [],
+                  shape,
+                }),
+              );
+            } catch {
+              // diagnostics must never break the stream
+            }
+
             // Latch once any segment emits a real file action (accumulates across continuations).
             emittedFileAction = emittedFileAction || responseEmittedFileAction(content);
 
