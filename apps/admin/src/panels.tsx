@@ -13,6 +13,7 @@ import { apiJson, reauthAdmin } from './api';
 export interface PanelProps {
   /** Re-auth password entered in the top bar; required before mutating actions. */
   reauthPassword: string;
+
   /** Surface a status message in the shared toast. */
   pushToast: (message: string) => void;
 }
@@ -20,6 +21,7 @@ export interface PanelProps {
 export function formatCents(cents: number | null | undefined): string {
   const value = typeof cents === 'number' && Number.isFinite(cents) ? cents : 0;
   const sign = value < 0 ? '-' : '';
+
   return `${sign}$${(Math.abs(value) / 100).toFixed(2)}`;
 }
 
@@ -27,7 +29,9 @@ export function formatDateTime(value: string | null | undefined): string {
   if (!value) {
     return '—';
   }
+
   const date = new Date(value);
+
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
 }
 
@@ -87,12 +91,14 @@ export function usePanelData<T>(path: string): {
           setLoading(false);
         }
       });
+
     return () => {
       cancelled = true;
     };
   }, [path, nonce]);
 
   const reload = useCallback(() => setNonce((value) => value + 1), []);
+
   return { data, loading, error, reload };
 }
 
@@ -100,6 +106,7 @@ export function PanelStates({ loading, error }: { loading: boolean; error?: stri
   if (loading) {
     return <div className="panel skeleton" role="status" aria-label="Loading" />;
   }
+
   if (error) {
     return (
       <div className="panel" role="alert">
@@ -107,12 +114,15 @@ export function PanelStates({ loading, error }: { loading: boolean; error?: stri
       </div>
     );
   }
+
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// F20 — Credit wallets: signed adjustment (mandatory reason → audit) + history
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * F20 — Credit wallets: signed adjustment (mandatory reason → audit) + history
+ * ---------------------------------------------------------------------------
+ */
 
 interface WalletRow {
   organizationId: string;
@@ -142,6 +152,7 @@ function CreditWalletsPanel({ reauthPassword, pushToast }: PanelProps) {
 
   const loadLedger = useCallback(async (organizationId: string) => {
     setLedgerLoading(true);
+
     try {
       const result = await apiJson<{ ledger: LedgerEntry[] }>(`/admin/wallets/${organizationId}/ledger`);
       setLedger(result.ledger);
@@ -157,6 +168,7 @@ function CreditWalletsPanel({ reauthPassword, pushToast }: PanelProps) {
       setOpenOrg(undefined);
       return;
     }
+
     setOpenOrg(organizationId);
     setDelta('');
     setReason('');
@@ -165,15 +177,19 @@ function CreditWalletsPanel({ reauthPassword, pushToast }: PanelProps) {
 
   async function submitAdjust(organizationId: string) {
     const cents = Math.trunc(Number(delta));
+
     if (!Number.isFinite(cents) || cents === 0) {
       pushToast('Enter a non-zero adjustment amount in cents (+credit / −debit).');
       return;
     }
+
     if (!reason.trim()) {
       pushToast('A reason is required for every wallet adjustment.');
       return;
     }
+
     setBusy(true);
+
     const result = await withReauth(reauthPassword, pushToast, () =>
       apiJson<{ wallet: { balanceCents: number } }>(`/admin/wallets/${organizationId}/adjust`, {
         method: 'POST',
@@ -181,6 +197,7 @@ function CreditWalletsPanel({ reauthPassword, pushToast }: PanelProps) {
       }),
     );
     setBusy(false);
+
     if (result) {
       pushToast(`Wallet adjusted — new balance ${formatCents(result.wallet.balanceCents)}. Audited.`);
       setDelta('');
@@ -318,9 +335,11 @@ function CreditWalletsPanel({ reauthPassword, pushToast }: PanelProps) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// F24 — Account deletions: J+14 purge queue (TTL remaining) + Cancel deletion
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * F24 — Account deletions: J+14 purge queue (TTL remaining) + Cancel deletion
+ * ---------------------------------------------------------------------------
+ */
 
 interface DeletionRow {
   userId: string;
@@ -340,10 +359,13 @@ function daysUntil(iso: string | null): number | null {
   if (!iso) {
     return null;
   }
+
   const due = new Date(iso).getTime();
+
   if (Number.isNaN(due)) {
     return null;
   }
+
   return Math.ceil((due - Date.now()) / 86_400_000);
 }
 
@@ -351,15 +373,18 @@ function deletionStatusClass(status: string): string {
   if (status === 'ready_to_purge') {
     return 'ledger-debit';
   }
+
   if (status === 'pending') {
     return 'status-warn-text';
   }
+
   return '';
 }
 
 function AccountDeletionsPanel({ reauthPassword, pushToast }: PanelProps) {
   const { data, loading, error, reload } = usePanelData<DeletionsResponse>('/admin/account-deletions');
   const [busyUser, setBusyUser] = useState<string>();
+  const [exportingUser, setExportingUser] = useState<string>();
 
   if (loading || error) {
     return <PanelStates loading={loading} error={error} />;
@@ -369,13 +394,42 @@ function AccountDeletionsPanel({ reauthPassword, pushToast }: PanelProps) {
 
   async function cancel(userId: string) {
     setBusyUser(userId);
+
     const result = await withReauth(reauthPassword, pushToast, () =>
       apiJson<{ cancelled: boolean }>(`/admin/account-deletions/${userId}/cancel`, { method: 'POST' }),
     );
     setBusyUser(undefined);
+
     if (result) {
       pushToast('Account deletion cancelled — the grace-period purge will not run. Audited.');
       reload();
+    }
+  }
+
+  /*
+   * F24: admin-initiated GDPR export. Fetch the JSON document (reauth-gated,
+   * audited server-side) and trigger a client-side download — no data touches
+   * disk on the server. Secret fields are stripped by the shared builder.
+   */
+  async function exportData(userId: string, email: string | null) {
+    setExportingUser(userId);
+
+    const doc = await withReauth(reauthPassword, pushToast, () =>
+      apiJson<unknown>(`/admin/account-deletions/${userId}/export`),
+    );
+    setExportingUser(undefined);
+
+    if (doc) {
+      const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `ecode-data-export-${email ?? userId}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      pushToast('Account data exported — JSON downloaded. Audited.');
     }
   }
 
@@ -419,14 +473,24 @@ function AccountDeletionsPanel({ reauthPassword, pushToast }: PanelProps) {
                       {ttl == null ? '—' : ttl <= 0 ? 'due now' : `${ttl} day${ttl === 1 ? '' : 's'}`}
                     </td>
                     <td>
-                      <button
-                        className="secondary"
-                        type="button"
-                        disabled={busyUser === row.userId}
-                        onClick={() => void cancel(row.userId)}
-                      >
-                        {busyUser === row.userId ? 'Cancelling…' : 'Cancel deletion'}
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <button
+                          className="secondary"
+                          type="button"
+                          disabled={exportingUser === row.userId}
+                          onClick={() => void exportData(row.userId, row.email)}
+                        >
+                          {exportingUser === row.userId ? 'Exporting…' : 'Export data'}
+                        </button>
+                        <button
+                          className="secondary"
+                          type="button"
+                          disabled={busyUser === row.userId}
+                          onClick={() => void cancel(row.userId)}
+                        >
+                          {busyUser === row.userId ? 'Cancelling…' : 'Cancel deletion'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -439,9 +503,11 @@ function AccountDeletionsPanel({ reauthPassword, pushToast }: PanelProps) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// F19 — AI models: plan × model matrix + cost/1M + guarantee ≥1 active per plan
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * F19 — AI models: plan × model matrix + cost/1M + guarantee ≥1 active per plan
+ * ---------------------------------------------------------------------------
+ */
 
 interface ModelRow {
   provider?: string;
@@ -466,6 +532,7 @@ function AiModelsPanel({ reauthPassword, pushToast }: PanelProps) {
   const models = data?.models ?? [];
   const plans = Array.from(new Set(models.flatMap((model) => model.enabledPlans))).sort();
   const activeByPlan = new Map<string, number>();
+
   for (const plan of plans) {
     activeByPlan.set(plan, models.filter((model) => model.enabled && model.enabledPlans.includes(plan)).length);
   }
@@ -473,6 +540,7 @@ function AiModelsPanel({ reauthPassword, pushToast }: PanelProps) {
   async function toggle(model: ModelRow) {
     const key = `${model.provider}:${model.modelId}`;
     setBusy(key);
+
     const result = await withReauth(reauthPassword, pushToast, () =>
       apiJson(`/admin/models/toggle`, {
         method: 'POST',
@@ -480,6 +548,7 @@ function AiModelsPanel({ reauthPassword, pushToast }: PanelProps) {
       }),
     );
     setBusy(undefined);
+
     if (result) {
       pushToast(`${model.displayName} ${model.enabled ? 'disabled' : 'enabled'}.`);
       reload();
@@ -502,6 +571,7 @@ function AiModelsPanel({ reauthPassword, pushToast }: PanelProps) {
         {plans.map((plan) => {
           const count = activeByPlan.get(plan) ?? 0;
           const tone = count === 0 ? 'ledger-debit' : count === 1 ? 'status-warn-text' : 'ledger-credit';
+
           return (
             <span key={plan} className={`plan-chip ${tone}`}>
               {plan}: {count} active
@@ -568,9 +638,11 @@ function AiModelsPanel({ reauthPassword, pushToast }: PanelProps) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// F25 — Previews: TTL remaining + kill per row + default TTL (System settings)
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * F25 — Previews: TTL remaining + kill per row + default TTL (System settings)
+ * ---------------------------------------------------------------------------
+ */
 
 interface PreviewRow {
   workspaceId: string;
@@ -605,11 +677,14 @@ function PreviewsPanel({ reauthPassword, pushToast }: PanelProps) {
 
   async function saveTtl() {
     const minutes = Math.trunc(Number(ttl));
+
     if (!Number.isFinite(minutes) || minutes <= 0) {
       pushToast('Enter a positive number of minutes for the default preview TTL.');
       return;
     }
+
     setSavingTtl(true);
+
     const result = await withReauth(reauthPassword, pushToast, () =>
       apiJson('/admin/system-settings', {
         method: 'POST',
@@ -617,6 +692,7 @@ function PreviewsPanel({ reauthPassword, pushToast }: PanelProps) {
       }),
     );
     setSavingTtl(false);
+
     if (result) {
       pushToast(`Default preview TTL set to ${minutes} minutes.`);
       reload();
@@ -625,10 +701,12 @@ function PreviewsPanel({ reauthPassword, pushToast }: PanelProps) {
 
   async function kill(workspaceId: string) {
     setBusy(workspaceId);
+
     const result = await withReauth(reauthPassword, pushToast, () =>
       apiJson(`/admin/workspaces/${workspaceId}/stop`, { method: 'POST' }),
     );
     setBusy(undefined);
+
     if (result) {
       pushToast(`Preview killed (workspace ${workspaceId} stopped). Audited.`);
       reload();
@@ -677,12 +755,15 @@ function PreviewsPanel({ reauthPassword, pushToast }: PanelProps) {
               {previews.map((preview) => {
                 const secondsLeft = Math.round((new Date(preview.expiresAt).getTime() - Date.now()) / 1000);
                 const expired = secondsLeft <= 0;
+
                 const ttlLabel = expired
                   ? 'expired'
                   : secondsLeft >= 3600
                     ? `${Math.floor(secondsLeft / 3600)}h ${Math.floor((secondsLeft % 3600) / 60)}m`
                     : `${Math.max(1, Math.floor(secondsLeft / 60))}m`;
+
                 const running = /running|starting/i.test(preview.status);
+
                 return (
                   <tr key={preview.workspaceId}>
                     <td>{preview.workspaceId}</td>
@@ -711,9 +792,11 @@ function PreviewsPanel({ reauthPassword, pushToast }: PanelProps) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// F22 — Abuse events: Dismiss / Warn (email) / Suspend (reuse E26) + status
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * F22 — Abuse events: Dismiss / Warn (email) / Suspend (reuse E26) + status
+ * ---------------------------------------------------------------------------
+ */
 
 interface AbuseRow {
   id: string;
@@ -730,9 +813,11 @@ function abuseStatusLabel(row: AbuseRow): { label: string; className: string } {
   if (row.resolved) {
     return { label: row.disposition ? `resolved · ${row.disposition}` : 'resolved', className: 'ledger-credit' };
   }
+
   if (row.disposition === 'warned') {
     return { label: 'warned (open)', className: 'status-warn-text' };
   }
+
   return { label: 'open', className: 'status-warn-text' };
 }
 
@@ -748,19 +833,23 @@ function AbuseEventsPanel({ reauthPassword, pushToast }: PanelProps) {
 
   async function act(row: AbuseRow, kind: 'dismiss' | 'warn' | 'suspend') {
     setBusy(`${row.id}:${kind}`);
+
     const result = await withReauth(reauthPassword, pushToast, async () => {
       if (kind === 'suspend') {
         if (!row.userId) {
           throw new Error('This event has no associated user to suspend.');
         }
+
         return apiJson(`/admin/users/${row.userId}/suspend`, {
           method: 'POST',
           body: JSON.stringify({ reason: `Abuse: ${row.type} (${row.severity})` }),
         });
       }
+
       return apiJson(`/admin/abuse-events/${row.id}/${kind}`, { method: 'POST' });
     });
     setBusy(undefined);
+
     if (result) {
       const done =
         kind === 'suspend' ? 'User suspended (reason audited).' : kind === 'warn' ? 'Warning emailed.' : 'Dismissed.';
@@ -847,9 +936,11 @@ function AbuseEventsPanel({ reauthPassword, pushToast }: PanelProps) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// F26 — Costs: 30-day cost/day per provider + monthly budget + 80/100% alerts
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * F26 — Costs: 30-day cost/day per provider + monthly budget + 80/100% alerts
+ * ---------------------------------------------------------------------------
+ */
 
 // Non-purple categorical chart palette (blue/emerald/amber/teal/rose/cyan/lime/orange).
 const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#14b8a6', '#f43f5e', '#06b6d4', '#84cc16', '#f97316'];
@@ -882,18 +973,23 @@ function CostsPanel({ reauthPassword, pushToast }: PanelProps) {
   }
 
   const summary = data!;
+
   const dayTotals = summary.days.map((_, index) =>
     summary.providers.reduce((sum, provider) => sum + (summary.series[provider]?.[index] ?? 0), 0),
   );
+
   const maxDay = Math.max(1, ...dayTotals);
 
   async function saveBudget() {
     const dollars = Number(budget);
+
     if (!Number.isFinite(dollars) || dollars < 0) {
       pushToast('Enter a monthly budget in dollars (0 to clear).');
       return;
     }
+
     setSaving(true);
+
     const result = await withReauth(reauthPassword, pushToast, () =>
       apiJson('/admin/system-settings', {
         method: 'POST',
@@ -901,6 +997,7 @@ function CostsPanel({ reauthPassword, pushToast }: PanelProps) {
       }),
     );
     setSaving(false);
+
     if (result) {
       pushToast(`Monthly AI budget set to $${dollars.toFixed(2)}.`);
       reload();
@@ -968,9 +1065,11 @@ function CostsPanel({ reauthPassword, pushToast }: PanelProps) {
                 <div className="cost-bar-stack">
                   {summary.providers.map((provider, providerIndex) => {
                     const cents = summary.series[provider]?.[index] ?? 0;
+
                     if (cents <= 0) {
                       return null;
                     }
+
                     return (
                       <div
                         key={provider}
@@ -1002,9 +1101,11 @@ function CostsPanel({ reauthPassword, pushToast }: PanelProps) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// F21 — Agent checkpoints: storage total/org + retention rule + purge w/ estimate
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * F21 — Agent checkpoints: storage total/org + retention rule + purge w/ estimate
+ * ---------------------------------------------------------------------------
+ */
 
 interface CheckpointOrg {
   organizationId: string;
@@ -1043,11 +1144,14 @@ function CheckpointsPanel({ reauthPassword, pushToast }: PanelProps) {
 
   async function purge() {
     const olderThanDays = Math.trunc(Number(days));
+
     if (!Number.isFinite(olderThanDays) || olderThanDays <= 0) {
       pushToast('Enter a positive number of days.');
       return;
     }
+
     setBusy(true);
+
     const result = await withReauth(reauthPassword, pushToast, () =>
       apiJson<{ deleted: number }>('/admin/checkpoints/purge', {
         method: 'POST',
@@ -1055,6 +1159,7 @@ function CheckpointsPanel({ reauthPassword, pushToast }: PanelProps) {
       }),
     );
     setBusy(false);
+
     if (result) {
       pushToast(`Purged ${result.deleted} checkpoint(s) older than ${olderThanDays} days. Audited.`);
       reload();
@@ -1132,9 +1237,11 @@ function CheckpointsPanel({ reauthPassword, pushToast }: PanelProps) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// F18 — AI providers: fallback order ↑↓ (+ honest note on p95/error metrics)
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * F18 — AI providers: fallback order ↑↓ (+ honest note on p95/error metrics)
+ * ---------------------------------------------------------------------------
+ */
 
 interface ProviderRow {
   provider: string;
@@ -1206,6 +1313,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
   const [byokInput, setByokInput] = useState(false);
   const [keyBusy, setKeyBusy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
+
   // Last-4 of the just-saved key, surfaced from the write-only POST response only.
   const [lastSavedLast4, setLastSavedLast4] = useState<Record<string, string>>({});
 
@@ -1226,9 +1334,11 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
   function move(index: number, delta: number) {
     const next = [...order];
     const target = index + delta;
+
     if (target < 0 || target >= next.length) {
       return;
     }
+
     [next[index], next[target]] = [next[target], next[index]];
     setOrder(next);
     setDirty(true);
@@ -1236,10 +1346,12 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
 
   async function save() {
     setSaving(true);
+
     const result = await withReauth(reauthPassword, pushToast, () =>
       apiJson('/admin/providers/fallback-order', { method: 'POST', body: JSON.stringify({ order }) }),
     );
     setSaving(false);
+
     if (result) {
       pushToast('Provider fallback order saved. Audited.');
       reload();
@@ -1251,6 +1363,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
       setOpenKeys(null);
       return;
     }
+
     const info = keyByName.get(name);
     setOpenKeys(name);
     setKeyInput('');
@@ -1266,12 +1379,15 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
     const nextBaseUrl = baseUrlInput.trim();
 
     const payload: { apiKey?: string; baseUrl?: string; byokAllowed?: boolean } = {};
+
     if (trimmedKey) {
       payload.apiKey = trimmedKey;
     }
+
     if (nextBaseUrl !== currentBaseUrl) {
       payload.baseUrl = nextBaseUrl;
     }
+
     if ((info?.byokAllowed ?? false) !== byokInput) {
       payload.byokAllowed = byokInput;
     }
@@ -1282,6 +1398,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
     }
 
     setKeyBusy(true);
+
     const result = await withReauth(reauthPassword, pushToast, () =>
       apiJson<{ keyLast4: string | null }>(`/admin/providers/${encodeURIComponent(name)}/credentials`, {
         method: 'POST',
@@ -1294,6 +1411,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
       if (result.keyLast4) {
         setLastSavedLast4((prev) => ({ ...prev, [name]: result.keyLast4 as string }));
       }
+
       setKeyInput('');
       pushToast(`Saved ${name} credentials. Audited.`);
       keys.reload();
@@ -1302,6 +1420,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
 
   async function removeKey(name: string) {
     setKeyBusy(true);
+
     const result = await withReauth(reauthPassword, pushToast, () =>
       apiJson(`/admin/providers/${encodeURIComponent(name)}/credentials`, { method: 'DELETE' }),
     );
@@ -1312,6 +1431,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
       setLastSavedLast4((prev) => {
         const next = { ...prev };
         delete next[name];
+
         return next;
       });
       pushToast(`Removed ${name} key. Env fallback resumes. Audited.`);
@@ -1335,9 +1455,9 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
         </button>
       </div>
       <p className="muted">
-        Enable/disable providers, set the fallback order (↑/↓, then Save), and set each provider’s platform API key. Keys
-        are write-only and encrypted; the runtime resolves them DB-first and falls back to the provider’s env var, so a
-        provider with no key here keeps its current env behaviour.
+        Enable/disable providers, set the fallback order (↑/↓, then Save), and set each provider’s platform API key.
+        Keys are write-only and encrypted; the runtime resolves them DB-first and falls back to the provider’s env var,
+        so a provider with no key here keeps its current env behaviour.
       </p>
 
       {!data?.metricsAvailable ? (
@@ -1364,6 +1484,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
               const provider = byName.get(name);
               const info = keyByName.get(name);
               const isOpen = openKeys === name;
+
               return (
                 <React.Fragment key={name}>
                   <tr>
@@ -1424,7 +1545,9 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
                                 autoComplete="off"
                                 value={keyInput}
                                 onChange={(event) => setKeyInput(event.target.value)}
-                                placeholder={info?.hasKey ? '•••• stored — enter to rotate' : 'Paste the platform API key'}
+                                placeholder={
+                                  info?.hasKey ? '•••• stored — enter to rotate' : 'Paste the platform API key'
+                                }
                               />
                             </label>
                             <label>
@@ -1509,9 +1632,11 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// F23 — Security events: severity + timeline + mark resolved (note) + open count
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * F23 — Security events: severity + timeline + mark resolved (note) + open count
+ * ---------------------------------------------------------------------------
+ */
 
 interface SecurityEvent {
   id: string;
@@ -1529,9 +1654,11 @@ function severityClass(severity: string): string {
   if (severity === 'high') {
     return 'sev-high';
   }
+
   if (severity === 'medium') {
     return 'sev-medium';
   }
+
   return 'sev-low';
 }
 
@@ -1539,6 +1666,7 @@ function SecurityEventsPanel({ reauthPassword, pushToast }: PanelProps) {
   const { data, loading, error, reload } = usePanelData<{ events: SecurityEvent[]; openCount: number }>(
     '/admin/security-events',
   );
+
   const [openId, setOpenId] = useState<string>();
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
@@ -1551,6 +1679,7 @@ function SecurityEventsPanel({ reauthPassword, pushToast }: PanelProps) {
 
   async function resolve(id: string) {
     setBusy(true);
+
     const result = await withReauth(reauthPassword, pushToast, () =>
       apiJson(`/admin/security-events/${id}/resolve`, {
         method: 'POST',
@@ -1558,6 +1687,7 @@ function SecurityEventsPanel({ reauthPassword, pushToast }: PanelProps) {
       }),
     );
     setBusy(false);
+
     if (result) {
       pushToast('Security event marked resolved. Audited.');
       setOpenId(undefined);

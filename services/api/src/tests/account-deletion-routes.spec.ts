@@ -26,6 +26,7 @@ async function setup() {
     passwordHash: hashPassword('password123'),
     platformAdmin: true,
   });
+
   // Platform admins must have MFA enabled to reach /admin/* (global gate).
   await store.updateUser({ userId: admin.id, mfaEnabled: true });
   await store.createSession({ userId: admin.id, token: 'admin-token', expiresAt: new Date(Date.now() + 3600_000) });
@@ -40,6 +41,7 @@ describe('self-serve account deletion routes', () => {
     const { app } = await setup();
     const res = await app.inject({ method: 'GET', url: '/account/deletion', headers: auth('user-token') });
     expect(res.statusCode).toBe(200);
+
     const body = res.json();
     expect(body.status).toBe('none');
     expect(body.canCancel).toBe(false);
@@ -52,11 +54,13 @@ describe('self-serve account deletion routes', () => {
     const { app, store, user } = await setup();
     const res = await app.inject({ method: 'POST', url: '/account/deletion', headers: auth('user-token') });
     expect(res.statusCode).toBe(200);
+
     const body = res.json();
     expect(body.status).toBe('grace_period');
     expect(body.canCancel).toBe(true);
     expect(typeof body.requestedAt).toBe('string');
     expect(typeof body.purgeDueAt).toBe('string');
+
     // purge due ~14 days after request
     expect(new Date(body.purgeDueAt).getTime() - new Date(body.requestedAt).getTime()).toBe(14 * 24 * 60 * 60 * 1000);
 
@@ -76,6 +80,7 @@ describe('self-serve account deletion routes', () => {
     const firstAt = first.json().requestedAt;
     const second = await app.inject({ method: 'POST', url: '/account/deletion', headers: auth('user-token') });
     expect(second.statusCode).toBe(200);
+
     // unchanged request timestamp — a second click doesn't reset the clock
     expect(second.json().requestedAt).toBe(firstAt);
   });
@@ -106,6 +111,7 @@ describe('self-serve account deletion routes', () => {
   it('hides the request endpoint when ACCOUNT_SELF_DELETION_ENABLED=false', async () => {
     const previous = process.env.ACCOUNT_SELF_DELETION_ENABLED;
     process.env.ACCOUNT_SELF_DELETION_ENABLED = 'false';
+
     try {
       const { app } = await setup();
       const res = await app.inject({ method: 'POST', url: '/account/deletion', headers: auth('user-token') });
@@ -125,8 +131,10 @@ describe('self-serve account deletion routes', () => {
 
     const list = await app.inject({ method: 'GET', url: '/admin/account-deletions', headers: auth('admin-token') });
     expect(list.statusCode).toBe(200);
+
     const body = list.json();
     expect(body.gracePeriodDays).toBe(14);
+
     const entry = body.requests.find((r: { userId: string }) => r.userId === user.id);
     expect(entry).toBeTruthy();
     expect(entry.email).toBe('deleteme@example.com');
@@ -169,11 +177,70 @@ describe('self-serve account deletion routes', () => {
   it('F24: forbids non-admins from cancelling a deletion', async () => {
     const { app, user } = await setup();
     await app.inject({ method: 'POST', url: '/account/deletion', headers: auth('user-token') });
+
     const denied = await app.inject({
       method: 'POST',
       url: `/admin/account-deletions/${user.id}/cancel`,
       headers: auth('user-token'),
     });
     expect(denied.statusCode).toBe(403);
+  });
+
+  it('F24: admin exports a target user’s GDPR data (reauth-gated, correct shape, attachment, no secrets)', async () => {
+    const { app, user } = await setup();
+    await app.inject({
+      method: 'POST',
+      url: '/auth/reauth',
+      headers: auth('admin-token'),
+      payload: { password: 'password123' },
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/admin/account-deletions/${user.id}/export`,
+      headers: auth('admin-token'),
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-disposition']).toContain('attachment');
+
+    const body = res.json();
+    expect(body.export.kind).toBe('gdpr-data-export');
+    expect(body.export.user.id).toBe(user.id);
+    expect(body.export.user.email).toBe('deleteme@example.com');
+
+    // The shared builder strips every secret-bearing field.
+    const serialized = JSON.stringify(body);
+    expect(serialized).not.toContain('keyHash');
+    expect(serialized).not.toContain('tokenHash');
+    expect(serialized).not.toContain('Encrypted');
+  });
+
+  it('F24: forbids non-admins from exporting account data', async () => {
+    const { app, user } = await setup();
+
+    const denied = await app.inject({
+      method: 'GET',
+      url: `/admin/account-deletions/${user.id}/export`,
+      headers: auth('user-token'),
+    });
+    expect(denied.statusCode).toBe(403);
+  });
+
+  it('F24: returns 404 when exporting an unknown user (reauthed admin)', async () => {
+    const { app } = await setup();
+    await app.inject({
+      method: 'POST',
+      url: '/auth/reauth',
+      headers: auth('admin-token'),
+      payload: { password: 'password123' },
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/admin/account-deletions/nonexistent-user-id/export',
+      headers: auth('admin-token'),
+    });
+    expect(res.statusCode).toBe(404);
   });
 });

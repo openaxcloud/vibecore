@@ -2033,12 +2033,9 @@ function isSafeProviderBaseUrl(rawUrl: string): boolean {
   }
 
   const allowPrivate = process.env.ALLOW_PRIVATE_PROVIDER_BASE_URLS === 'true';
+
   const host = canonicalizeHostForBlocklist(
-    parsed.hostname
-      .toLowerCase()
-      .replace(/^\[/, '')
-      .replace(/\]$/, '')
-      .replace(/\.+$/, ''),
+    parsed.hostname.toLowerCase().replace(/^\[/, '').replace(/\]$/, '').replace(/\.+$/, ''),
   );
 
   // Cloud metadata / link-local / *.internal is never a valid provider endpoint.
@@ -9278,6 +9275,144 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return out;
   }
 
+  /*
+   * Assemble a user's full GDPR data-export document for `userId`. Extracted from
+   * the self-serve route so BOTH the self-serve endpoint (own id) AND the admin
+   * endpoint (F24 — admin-supplied target id) share one builder — the same
+   * secret-stripping rules apply either way (publicApiKey strips keyHash; token/
+   * ciphertext/metadata/ipAddress fields are never included). Returns null when the
+   * user does not exist. Pure of request/reply — the caller does its own audit +
+   * attachment headers so the self-serve vs admin actor is recorded correctly.
+   */
+  async function buildAccountDataExport(userId: string) {
+    const user = await store.findUserById(userId);
+
+    if (!user) {
+      return null;
+    }
+
+    /*
+     * Orgs the user belongs to, then per-org projects (there is no per-user
+     * project list — this mirrors the existing walk-orgs-then-projects pattern)
+     * and the user's own membership within each org.
+     */
+    const organizations = await store.listOrganizations(userId);
+
+    const organizationExports = await Promise.all(
+      organizations.map(async (organization) => {
+        const [projects, members] = await Promise.all([
+          store.listProjects(organization.id),
+          store.listMembers(organization.id),
+        ]);
+
+        const membership = members.find((member) => member.userId === userId);
+
+        return {
+          organization: {
+            id: organization.id,
+            slug: organization.slug,
+            name: organization.name,
+            createdAt: organization.createdAt,
+          },
+          membership: membership ? { roleKey: membership.roleKey } : null,
+          projects: projects.map((project) => ({
+            id: project.id,
+            name: project.name,
+            slug: project.slug,
+            description: project.description ?? null,
+            sourceType: project.sourceType,
+            templateName: project.templateName ?? null,
+            gitRepositoryUrl: project.gitRepositoryUrl ?? null,
+            gitDefaultBranch: project.gitDefaultBranch ?? null,
+            createdAt: project.createdAt,
+            updatedAt: project.updatedAt,
+            deletedAt: project.deletedAt ?? null,
+          })),
+        };
+      }),
+    );
+
+    // API keys — metadata only; publicApiKey() strips the keyHash secret.
+    const apiKeys = (await store.listApiKeys({ userId })).map(publicApiKey);
+
+    /*
+     * Connected accounts — provider + status only; the three *Encrypted token
+     * fields are never spread in (mirrors /api/account/connections).
+     */
+    const connections = (await store.listUserConnectionsByUser(userId)).map((connection) => ({
+      id: connection.id,
+      provider: connection.provider,
+      externalAccountId: connection.externalAccountId,
+      externalAccountLabel: connection.externalAccountLabel,
+      scopes: connection.scopes,
+      status: connection.status,
+      forAgentUse: connection.forAgentUse,
+      oauthAppSource: connection.oauthAppSource,
+      createdAt: connection.createdAt,
+      updatedAt: connection.updatedAt,
+      lastUsedAt: connection.lastUsedAt ?? null,
+      tokenExpiresAt: connection.tokenExpiresAt ?? null,
+      revokedAt: connection.revokedAt ?? null,
+    }));
+
+    // Active sessions — metadata only; tokenHash is deliberately excluded.
+    const sessions = (await store.listSessions(userId)).map((session) => ({
+      id: session.id,
+      createdAt: session.createdAt,
+      expiresAt: session.expiresAt,
+      ipAddress: session.ipAddress ?? null,
+      userAgent: session.userAgent ?? null,
+      revokedAt: session.revokedAt ?? null,
+      lastReauthAt: session.lastReauthAt ?? null,
+    }));
+
+    /*
+     * The user's own recent actions. listAuditLogs() has no per-user query, so
+     * we scope to the user's orgs and filter to actorUserId === userId (never a
+     * global/cross-tenant scan). `metadata` (may embed secrets) and `ipAddress`
+     * are intentionally omitted.
+     */
+    const auditLogRows = (
+      await Promise.all(organizations.map((organization) => store.listAuditLogs(organization.id).catch(() => [])))
+    ).flat();
+
+    const recentActions = auditLogRows
+      .filter((event) => event.actorUserId === userId)
+      .map((event) => ({
+        action: event.action,
+        resourceType: event.resourceType,
+        resourceId: event.resourceId ?? null,
+        organizationId: event.organizationId ?? null,
+        createdAt: (event as { createdAt?: string }).createdAt ?? null,
+      }))
+      .slice(0, 500);
+
+    return {
+      export: {
+        version: 1,
+        kind: 'gdpr-data-export' as const,
+        exportedAt: new Date().toISOString(),
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name ?? null,
+          emailVerifiedAt: user.emailVerifiedAt ?? null,
+          mfaEnabled: user.mfaEnabled ?? false,
+          language: user.language ?? null,
+          timezone: user.timezone ?? null,
+          createdAt: user.createdAt,
+          lastActiveAt: user.lastActiveAt ?? null,
+        },
+        preferences: exportablePreferences(user.preferences),
+        organizations: organizationExports,
+        apiKeys,
+        connectedAccounts: connections,
+        sessions,
+        recentActions,
+      },
+    };
+  }
+
   app.get(
     '/account/data-export',
     {
@@ -9291,139 +9426,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const userId = request.currentUser!.id;
-      const user = await store.findUserById(userId);
+      const document = await buildAccountDataExport(userId);
 
-      if (!user) {
+      if (!document) {
         return reply.code(404).send({ error: 'not_found' });
       }
 
-      /*
-       * Orgs the user belongs to, then per-org projects (there is no per-user
-       * project list — this mirrors the existing walk-orgs-then-projects pattern)
-       * and the user's own membership within each org.
-       */
-      const organizations = await store.listOrganizations(userId);
-
-      const organizationExports = await Promise.all(
-        organizations.map(async (organization) => {
-          const [projects, members] = await Promise.all([
-            store.listProjects(organization.id),
-            store.listMembers(organization.id),
-          ]);
-
-          const membership = members.find((member) => member.userId === userId);
-
-          return {
-            organization: {
-              id: organization.id,
-              slug: organization.slug,
-              name: organization.name,
-              createdAt: organization.createdAt,
-            },
-            membership: membership ? { roleKey: membership.roleKey } : null,
-            projects: projects.map((project) => ({
-              id: project.id,
-              name: project.name,
-              slug: project.slug,
-              description: project.description ?? null,
-              sourceType: project.sourceType,
-              templateName: project.templateName ?? null,
-              gitRepositoryUrl: project.gitRepositoryUrl ?? null,
-              gitDefaultBranch: project.gitDefaultBranch ?? null,
-              createdAt: project.createdAt,
-              updatedAt: project.updatedAt,
-              deletedAt: project.deletedAt ?? null,
-            })),
-          };
-        }),
-      );
-
-      // API keys — metadata only; publicApiKey() strips the keyHash secret.
-      const apiKeys = (await store.listApiKeys({ userId })).map(publicApiKey);
-
-      /*
-       * Connected accounts — provider + status only; the three *Encrypted token
-       * fields are never spread in (mirrors /api/account/connections).
-       */
-      const connections = (await store.listUserConnectionsByUser(userId)).map((connection) => ({
-        id: connection.id,
-        provider: connection.provider,
-        externalAccountId: connection.externalAccountId,
-        externalAccountLabel: connection.externalAccountLabel,
-        scopes: connection.scopes,
-        status: connection.status,
-        forAgentUse: connection.forAgentUse,
-        oauthAppSource: connection.oauthAppSource,
-        createdAt: connection.createdAt,
-        updatedAt: connection.updatedAt,
-        lastUsedAt: connection.lastUsedAt ?? null,
-        tokenExpiresAt: connection.tokenExpiresAt ?? null,
-        revokedAt: connection.revokedAt ?? null,
-      }));
-
-      // Active sessions — metadata only; tokenHash is deliberately excluded.
-      const sessions = (await store.listSessions(userId)).map((session) => ({
-        id: session.id,
-        createdAt: session.createdAt,
-        expiresAt: session.expiresAt,
-        ipAddress: session.ipAddress ?? null,
-        userAgent: session.userAgent ?? null,
-        revokedAt: session.revokedAt ?? null,
-        lastReauthAt: session.lastReauthAt ?? null,
-      }));
-
-      /*
-       * The user's own recent actions. listAuditLogs() has no per-user query, so
-       * we scope to the user's orgs and filter to actorUserId === userId (never a
-       * global/cross-tenant scan). `metadata` (may embed secrets) and `ipAddress`
-       * are intentionally omitted.
-       */
-      const auditLogRows = (
-        await Promise.all(organizations.map((organization) => store.listAuditLogs(organization.id).catch(() => [])))
-      ).flat();
-
-      const recentActions = auditLogRows
-        .filter((event) => event.actorUserId === userId)
-        .map((event) => ({
-          action: event.action,
-          resourceType: event.resourceType,
-          resourceId: event.resourceId ?? null,
-          organizationId: event.organizationId ?? null,
-          createdAt: (event as { createdAt?: string }).createdAt ?? null,
-        }))
-        .slice(0, 500);
-
-      const exportedAt = new Date().toISOString();
-
       await audit(request, store, { action: 'account.data_export', resourceType: 'user', resourceId: userId });
 
-      const document = {
-        export: {
-          version: 1,
-          kind: 'gdpr-data-export' as const,
-          exportedAt,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name ?? null,
-            emailVerifiedAt: user.emailVerifiedAt ?? null,
-            mfaEnabled: user.mfaEnabled ?? false,
-            language: user.language ?? null,
-            timezone: user.timezone ?? null,
-            createdAt: user.createdAt,
-            lastActiveAt: user.lastActiveAt ?? null,
-          },
-          preferences: exportablePreferences(user.preferences),
-          organizations: organizationExports,
-          apiKeys,
-          connectedAccounts: connections,
-          sessions,
-          recentActions,
-        },
-      };
-
       return reply
-        .header('content-disposition', `attachment; filename="ecode-data-export-${exportedAt.slice(0, 10)}.json"`)
+        .header(
+          'content-disposition',
+          `attachment; filename="ecode-data-export-${document.export.exportedAt.slice(0, 10)}.json"`,
+        )
         .header('cache-control', 'no-store')
         .send(document);
     },
@@ -24174,6 +24189,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await recordAdminAction(request, store, { action: 'admin.account_deletion.cancel', metadata: { userId } });
 
     return { cancelled: true, userId };
+  });
+
+  /*
+   * F24: admin-initiated GDPR data export for a target user (e.g. a DSAR the user
+   * cannot self-serve, or a deletion under review). Reuses buildAccountDataExport
+   * — same secret-stripping as the self-serve endpoint — with an admin-supplied
+   * userId. Platform-admin + recent re-auth gated; the admin actor + target are
+   * recorded to AdminAuditLog. Returned as a downloadable JSON attachment.
+   */
+  app.get('/admin/account-deletions/:userId/export', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const { userId } = parse(z.object({ userId: z.string().min(1) }), request.params);
+    const document = await buildAccountDataExport(userId);
+
+    if (!document) {
+      return reply.code(404).send({ error: 'User not found', code: 'USER_NOT_FOUND' });
+    }
+
+    await recordAdminAction(request, store, { action: 'admin.account_data_export', metadata: { userId } });
+
+    return reply
+      .header(
+        'content-disposition',
+        `attachment; filename="ecode-data-export-${userId}-${document.export.exportedAt.slice(0, 10)}.json"`,
+      )
+      .header('cache-control', 'no-store')
+      .send(document);
   });
 
   /*
