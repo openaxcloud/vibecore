@@ -21052,6 +21052,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.log.warn({ err: metricError }, 'provider-request-metric record failed (ignored)');
     }
 
+    /*
+     * Also feed the Prometheus histograms/counters the admin Monitoring dashboard
+     * scrapes — previously these were DEFINED but never observed, so the
+     * `ai_provider_latency_seconds` / `ai_provider_errors_total` cards showed "no
+     * data" while the DB-backed F18 p95 panel had rows. Labelled by provider only
+     * (bounded cardinality; model would explode the series count). Best-effort.
+     */
+    try {
+      metrics.observe('ai_provider_latency_seconds', { provider: body.provider }, body.latencyMs / 1000);
+
+      if (body.errored) {
+        metrics.increment('ai_provider_errors_total', { provider: body.provider });
+      }
+    } catch {
+      // metrics are best-effort; never fail the request on an observe error.
+    }
+
     return reply.send({ recorded: true });
   });
 
