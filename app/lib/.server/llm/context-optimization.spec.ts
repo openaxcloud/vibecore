@@ -2,12 +2,19 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import type { FileMap } from './constants';
 import {
   __clearSelectionCache,
+  __clearSummaryCache,
+  anchoredHistoryDrop,
   computeSelectionCacheKey,
+  computeSummaryCacheKey,
   estimateMessagesTokens,
   getMemoizedSelection,
+  getMemoizedSummary,
   setMemoizedSelection,
+  setMemoizedSummary,
   shouldGenerateSummary,
+  HISTORY_WINDOW_STEP,
   SELECTION_CACHE_MAX,
+  SUMMARY_CACHE_MAX,
   SUMMARY_TOKEN_THRESHOLD,
 } from './context-optimization';
 
@@ -116,5 +123,95 @@ describe('A1 selection memo', () => {
     // The earliest inserted keys were evicted.
     expect(getMemoizedSelection('chat-0', 'k')).toBeUndefined();
     expect(getMemoizedSelection(`chat-${SELECTION_CACHE_MAX + 4}`, 'k')).toBe(files);
+  });
+});
+
+describe('anchoredHistoryDrop (cache-max: append-only history window)', () => {
+  const STEP = 5;
+  const N = 2;
+
+  it('drops nothing while the whole history fits the recent window', () => {
+    expect(anchoredHistoryDrop(0, N, STEP)).toBe(0);
+    expect(anchoredHistoryDrop(N, N, STEP)).toBe(0);
+  });
+
+  it('quantizes the surplus DOWN to a multiple of step (start pinned within a palier)', () => {
+    // total 3..6 → rawDrop 1..4 (< step) → drop 0 (keep all, start unmoved).
+    for (let total = N + 1; total < N + STEP; total++) {
+      expect(anchoredHistoryDrop(total, N, STEP)).toBe(0);
+    }
+
+    // total 7..11 → rawDrop 5..9 → drop exactly one step (5).
+    for (let total = N + STEP; total < N + 2 * STEP; total++) {
+      expect(anchoredHistoryDrop(total, N, STEP)).toBe(STEP);
+    }
+
+    // total 12 → rawDrop 10 → two steps (10).
+    expect(anchoredHistoryDrop(N + 2 * STEP, N, STEP)).toBe(2 * STEP);
+  });
+
+  it('is monotonic non-decreasing and advances by whole steps only', () => {
+    let prev = 0;
+
+    for (let total = 0; total <= 60; total++) {
+      const drop = anchoredHistoryDrop(total, N, STEP);
+      expect(drop % STEP).toBe(0);
+      expect(drop).toBeGreaterThanOrEqual(prev);
+      prev = drop;
+    }
+  });
+
+  it('degenerates to a plain sliding window when step ≤ 1', () => {
+    expect(anchoredHistoryDrop(10, N, 1)).toBe(10 - N);
+    expect(anchoredHistoryDrop(10, N, 0)).toBe(10 - N);
+  });
+
+  it('defaults step to HISTORY_WINDOW_STEP', () => {
+    expect(anchoredHistoryDrop(50, N)).toBe(anchoredHistoryDrop(50, N, HISTORY_WINDOW_STEP));
+  });
+});
+
+describe('summary memo (frozen on the anchored palier)', () => {
+  beforeEach(() => __clearSummaryCache());
+
+  const dropped = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ id: `m${i}`, role: i % 2 ? 'assistant' : 'user', content: `c${i}` }));
+
+  it('key is stable for the same dropped prefix and changes when the prefix grows (palier jump)', () => {
+    const k3 = computeSummaryCacheKey({ droppedMessages: dropped(3) });
+    const k3b = computeSummaryCacheKey({ droppedMessages: dropped(3) });
+    const k8 = computeSummaryCacheKey({ droppedMessages: dropped(8) });
+    expect(k3).toBe(k3b);
+    expect(k3).not.toBe(k8);
+  });
+
+  it('key changes when an older (dropped) message is edited (invalidates a stale summary)', () => {
+    const original = dropped(4);
+    const edited = dropped(4);
+    edited[1] = { ...edited[1], content: 'EDITED' };
+    expect(computeSummaryCacheKey({ droppedMessages: original })).not.toBe(
+      computeSummaryCacheKey({ droppedMessages: edited }),
+    );
+  });
+
+  it('reuses the summary within a palier and misses across a palier jump', () => {
+    const key = computeSummaryCacheKey({ droppedMessages: dropped(5) });
+    expect(getMemoizedSummary('chat-1', key)).toBeUndefined(); // cold miss
+    setMemoizedSummary('chat-1', key, 'SUMMARY-A');
+    expect(getMemoizedSummary('chat-1', key)).toBe('SUMMARY-A'); // palier hit
+
+    const nextKey = computeSummaryCacheKey({ droppedMessages: dropped(10) });
+    expect(getMemoizedSummary('chat-1', nextKey)).toBeUndefined(); // palier jumped → regenerate
+  });
+
+  it('isolates summaries per conversation and evicts LRU beyond the cap', () => {
+    setMemoizedSummary('chat-a', 'k', 'S');
+    expect(getMemoizedSummary('chat-b', 'k')).toBeUndefined();
+
+    for (let i = 0; i < SUMMARY_CACHE_MAX + 5; i++) {
+      setMemoizedSummary(`c-${i}`, 'k', 'S');
+    }
+    expect(getMemoizedSummary('c-0', 'k')).toBeUndefined();
+    expect(getMemoizedSummary(`c-${SUMMARY_CACHE_MAX + 4}`, 'k')).toBe('S');
   });
 });

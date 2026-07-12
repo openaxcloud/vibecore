@@ -73,18 +73,66 @@ describe('resolveStreamMaxRetries', () => {
   });
 });
 
-describe('applyContextOptimizedHistoryWindow', () => {
-  it('keeps the full recent conversation when no slice is needed', () => {
+describe('applyContextOptimizedHistoryWindow (anchored / append-only window)', () => {
+  it('keeps the full recent conversation when no window is requested', () => {
     const messages = ['first user request', 'assistant response', 'follow-up request'];
 
     expect(applyContextOptimizedHistoryWindow(messages, 0)).toEqual(messages);
     expect(applyContextOptimizedHistoryWindow(messages)).toEqual(messages);
   });
 
-  it('keeps the requested recent history window when the conversation is long', () => {
+  it('degenerates to the old sliding window when step ≤ 1 (keeps exactly the last N)', () => {
     const messages = ['m1', 'm2', 'm3', 'm4', 'm5'];
+    expect(applyContextOptimizedHistoryWindow(messages, 2, 1)).toEqual(['m4', 'm5']);
+  });
 
-    expect(applyContextOptimizedHistoryWindow(messages, 2)).toEqual(['m4', 'm5']);
+  it('keeps the WHOLE history until the surplus reaches a full step (drop quantized to 0)', () => {
+    // recentWindow=2, step=5, total=6 → rawDrop=4 < step → drop 0 → keep all.
+    const messages = ['m1', 'm2', 'm3', 'm4', 'm5', 'm6'];
+    expect(applyContextOptimizedHistoryWindow(messages, 2, 5)).toEqual(messages);
+  });
+
+  it('drops exactly one step once the surplus crosses the step boundary', () => {
+    // recentWindow=2, step=5, total=7 → rawDrop=5 → drop 5 → keep last 2.
+    const messages = ['m1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7'];
+    expect(applyContextOptimizedHistoryWindow(messages, 2, 5)).toEqual(['m6', 'm7']);
+  });
+
+  it('keeps message[0] BYTE-IDENTICAL while the conversation grows within a palier (the cache property)', () => {
+    // recentWindow=2, step=5. Append one message per "turn"; the window start must not move.
+    const base = Array.from({ length: 7 }, (_, i) => `m${i + 1}`); // total 7 → drop 5 → start = m6
+    const firsts: string[] = [];
+
+    for (let extra = 0; extra < 4; extra++) {
+      const grown = [...base, ...Array.from({ length: extra }, (_, j) => `x${j + 1}`)]; // total 7..10
+      const windowed = applyContextOptimizedHistoryWindow(grown, 2, 5);
+      firsts.push(windowed[0]);
+    }
+
+    // total 7,8,9,10 → rawDrop 5,6,7,8 → all floor(/5)*5 = 5 → start pinned at m6 the whole palier.
+    expect(firsts).toEqual(['m6', 'm6', 'm6', 'm6']);
+  });
+
+  it('advances the window start by exactly one step when the palier jumps', () => {
+    const eleven = Array.from({ length: 11 }, (_, i) => `m${i + 1}`); // total 11 → rawDrop 9 → floor(9/5)*5=5 → start m6
+    const twelve = Array.from({ length: 12 }, (_, i) => `m${i + 1}`); // total 12 → rawDrop 10 → floor(10/5)*5=10 → start m11
+    expect(applyContextOptimizedHistoryWindow(eleven, 2, 5)[0]).toBe('m6');
+    expect(applyContextOptimizedHistoryWindow(twelve, 2, 5)[0]).toBe('m11');
+  });
+
+  it('bounds the retained count to [recentWindow, recentWindow + step - 1] (budget guardrail)', () => {
+    const step = 5;
+    const recentWindow = 2;
+
+    for (let total = 1; total <= 40; total++) {
+      const messages = Array.from({ length: total }, (_, i) => `m${i + 1}`);
+      const kept = applyContextOptimizedHistoryWindow(messages, recentWindow, step).length;
+      expect(kept).toBeLessThanOrEqual(Math.min(total, recentWindow + step - 1));
+
+      if (total > recentWindow) {
+        expect(kept).toBeGreaterThanOrEqual(recentWindow);
+      }
+    }
   });
 });
 

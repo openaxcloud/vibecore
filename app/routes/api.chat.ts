@@ -27,10 +27,15 @@ import { apiRequest } from '~/lib/enterprise-api.server';
 import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
 import {
+  anchoredHistoryDrop,
   computeSelectionCacheKey,
+  computeSummaryCacheKey,
   estimateMessagesTokens,
   getMemoizedSelection,
+  getMemoizedSummary,
+  HISTORY_WINDOW_STEP,
   setMemoizedSelection,
+  setMemoizedSummary,
   shouldGenerateSummary,
 } from '~/lib/.server/llm/context-optimization';
 import { createSummary } from '~/lib/.server/llm/create-summary';
@@ -966,39 +971,71 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             });
 
             if (needsSummary) {
-              logger.debug('Generating Chat Summary');
-              dataStream.writeData({
-                type: 'progress',
-                label: 'summary',
-                status: 'in-progress',
-                order: progressCounter++,
-                message: 'Analysing Request',
-              } satisfies ProgressAnnotation);
-
-              summary = await createSummary({
-                messages: [...processedMessages],
-                env: context.cloudflare?.env,
-                apiKeys,
-                providerSettings,
-                promptId,
-                contextOptimization,
-                abortSignal: request.signal,
-                onFinish(resp) {
-                  if (resp.usage) {
-                    logger.debug('createSummary token usage', JSON.stringify(resp.usage));
-                    cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
-                    cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
-                    cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
-                  }
-                },
+              /*
+               * Cache-max Rév.5: FREEZE the summary on the anchored-window palier. The
+               * summary covers the messages the anchored window DROPS; within a palier
+               * that dropped prefix is byte-stable, so reuse the previous summary and
+               * skip the LLM call — regenerate ONLY when the window jumps a step (or an
+               * older message is edited). Keyed on the dropped prefix so an edit still
+               * invalidates. In-process memo: a cold pod just recomputes (no regression).
+               * The summary is carried in the trailing ephemeral message, so this never
+               * affects the cacheable prefix — it only saves one LLM call per turn.
+               */
+              const summaryDrop = anchoredHistoryDrop(
+                processedMessages.length,
+                RECENT_HISTORY_MESSAGES,
+                HISTORY_WINDOW_STEP,
+              );
+              const summaryKey = computeSummaryCacheKey({
+                droppedMessages: processedMessages.slice(0, summaryDrop),
               });
-              dataStream.writeData({
-                type: 'progress',
-                label: 'summary',
-                status: 'complete',
-                order: progressCounter++,
-                message: 'Analysis Complete',
-              } satisfies ProgressAnnotation);
+
+              const memoizedSummary = conversationId ? getMemoizedSummary(conversationId, summaryKey) : undefined;
+
+              if (memoizedSummary !== undefined) {
+                // INFO (not debug): prod drops debug logs, so this reuse must be INFO to be countable.
+                logger.info(JSON.stringify({ event: 'chat.summary.reused', projectId, reason: 'palier-unchanged' }));
+                summary = memoizedSummary;
+              } else {
+                logger.debug('Generating Chat Summary');
+                dataStream.writeData({
+                  type: 'progress',
+                  label: 'summary',
+                  status: 'in-progress',
+                  order: progressCounter++,
+                  message: 'Analysing Request',
+                } satisfies ProgressAnnotation);
+
+                summary = await createSummary({
+                  messages: [...processedMessages],
+                  env: context.cloudflare?.env,
+                  apiKeys,
+                  providerSettings,
+                  promptId,
+                  contextOptimization,
+                  abortSignal: request.signal,
+                  onFinish(resp) {
+                    if (resp.usage) {
+                      logger.debug('createSummary token usage', JSON.stringify(resp.usage));
+                      cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
+                      cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
+                      cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
+                    }
+                  },
+                });
+
+                if (conversationId) {
+                  setMemoizedSummary(conversationId, summaryKey, summary);
+                }
+
+                dataStream.writeData({
+                  type: 'progress',
+                  label: 'summary',
+                  status: 'complete',
+                  order: progressCounter++,
+                  message: 'Analysis Complete',
+                } satisfies ProgressAnnotation);
+              }
 
               dataStream.writeMessageAnnotation({
                 type: 'chatSummary',

@@ -13,6 +13,7 @@ import {
   temperatureOptionsForModel,
   type FileMap,
 } from './constants';
+import { anchoredHistoryDrop, HISTORY_WINDOW_STEP } from './context-optimization';
 import { applyManagedProviderKeys } from './managed-provider-keys';
 import { removeUnsupportedModelSettings } from './model-compat';
 import { AUTO_MODEL, decideRoute, resolveRouteTable, type RouteDecision } from './model-routing';
@@ -118,18 +119,29 @@ function sanitizeText(text: string): string {
   return sanitized.trim();
 }
 
-export function applyContextOptimizedHistoryWindow<T>(messages: T[], recentMessageCount?: number) {
+export function applyContextOptimizedHistoryWindow<T>(
+  messages: T[],
+  recentMessageCount?: number,
+  step: number = HISTORY_WINDOW_STEP,
+) {
   /*
-   * Keep the last `recentMessageCount` messages of THIS array. Previously the
-   * caller passed an absolute index computed on a DIFFERENT (unfiltered) array
-   * and we did messages.slice(index) — once the array differed, the window was
-   * wrong (dropped too many or too few). Slicing from the end is array-agnostic.
+   * ANCHORED window (cache-max Rév.5): keep a recent slice whose START only advances
+   * in whole steps of `step` messages. A naive `slice(-recentMessageCount)` slid the
+   * start by one message per turn, so message[0] changed every turn and the cross-turn
+   * cache prefix collapsed to the system head (measured: cachedPromptTokens pinned at
+   * 3968). Dropping `anchoredHistoryDrop` (the surplus quantized DOWN to a multiple of
+   * `step`) instead keeps the first retained message byte-identical for a full step of
+   * growth — so the shared prefix covers system + the whole prior window — then jumps
+   * one step (a single cold miss, then a run of hits). Retained count stays bounded in
+   * [recentMessageCount, recentMessageCount + step - 1]: the built-in budget guardrail.
    */
-  if (typeof recentMessageCount === 'number' && recentMessageCount > 0 && messages.length > recentMessageCount) {
-    return messages.slice(-recentMessageCount);
+  if (typeof recentMessageCount !== 'number' || recentMessageCount <= 0) {
+    return messages;
   }
 
-  return messages;
+  const drop = anchoredHistoryDrop(messages.length, recentMessageCount, step);
+
+  return drop > 0 ? messages.slice(drop) : messages;
 }
 
 /**

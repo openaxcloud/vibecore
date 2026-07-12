@@ -14,6 +14,51 @@ export const SUMMARY_TOKEN_THRESHOLD = 6000;
 /** Bounded number of conversations kept in the selection memo (LRU). */
 export const SELECTION_CACHE_MAX = 200;
 
+/** Bounded number of conversations kept in the summary memo (LRU). */
+export const SUMMARY_CACHE_MAX = 200;
+
+/**
+ * Step (in messages) by which the ANCHORED history window advances its start.
+ *
+ * The window keeps a recent slice of the conversation. A naive `slice(-recentWindow)`
+ * SLIDES its start by one message every turn, so the first retained message changes
+ * each turn and the cross-turn prompt-cache prefix collapses right after the system
+ * (measured live: cachedPromptTokens pinned at the system floor, 3968, turn after
+ * turn). Advancing the start only in whole steps of this size keeps the first
+ * retained message BYTE-IDENTICAL for a full step of growth — a run of cache hits —
+ * then jumps one step (a single cold miss). 10 ≈ 5 exchanges of stability per palier.
+ */
+export const HISTORY_WINDOW_STEP = 10;
+
+/**
+ * Anchored / append-only history window: the number of leading messages to DROP so
+ * the retained window's START stays fixed within a palier.
+ *
+ * `total ≤ recentWindow` → drop 0 (the whole history fits, start already stable at
+ * 0). Otherwise the raw drop (`total - recentWindow`) is quantized DOWN to a multiple
+ * of `step`, so `messages[drop]` (the first retained message) is invariant while
+ * `total` grows through a step, then advances by exactly one step. The retained count
+ * is therefore bounded in `[recentWindow, recentWindow + step - 1]` — the built-in
+ * budget guardrail: the window can never grow past a palier before it jumps. `step ≤
+ * 1` degenerates to the old sliding window (drop every surplus message).
+ *
+ * Pure + deterministic: same inputs → same drop, in every process, so the summary
+ * palier (api.chat) and the window slice (stream-text) agree without shared state.
+ */
+export function anchoredHistoryDrop(total: number, recentWindow: number, step: number = HISTORY_WINDOW_STEP): number {
+  if (!(recentWindow > 0) || total <= recentWindow) {
+    return 0;
+  }
+
+  const rawDrop = total - recentWindow;
+
+  if (!(step > 1)) {
+    return rawDrop;
+  }
+
+  return Math.floor(rawDrop / step) * step;
+}
+
 /**
  * Cheap, deterministic token estimate (≈ chars / 4). Used only to decide whether
  * the history is large enough that a summary is worthwhile — never for billing.
@@ -127,4 +172,72 @@ export function setMemoizedSelection(chatId: string, key: string, filteredFiles:
 /** Test-only: reset the in-process selection memo. */
 export function __clearSelectionCache(): void {
   selectionCache.clear();
+}
+
+/**
+ * Palier key for the CHAT SUMMARY: a stable hash of the messages the anchored
+ * window DROPS (`messages[0..drop)`). Within a palier the window start is fixed, so
+ * the dropped prefix — and therefore this key — is byte-stable; the summary is
+ * regenerated ONLY when the window jumps a step (or the history is edited). Keyed on
+ * the dropped prefix rather than the drop COUNT so an edit to an older message still
+ * invalidates the cached summary.
+ */
+export function computeSummaryCacheKey(input: {
+  droppedMessages: Array<{ id?: string; role?: string; content?: unknown; parts?: unknown }>;
+}): string {
+  const canon = input.droppedMessages
+    .map((message) =>
+      JSON.stringify({ id: message.id, role: message.role, content: message.content, parts: message.parts }),
+    )
+    .join('\n');
+
+  return createHash('sha256').update(`DROPPED\n${canon}`).digest('hex');
+}
+
+/*
+ * Per-conversation LRU of the last chat summary, keyed by the anchored-window
+ * palier. In-process only (mirrors the selection memo): a cold pod recomputes, so a
+ * miss is never a regression. Reusing within a palier only ever serves a summary of
+ * the SAME dropped prefix — the newer messages are carried verbatim in the window —
+ * so there is no information loss, just one fewer LLM call per turn within a palier.
+ */
+const summaryCache = new Map<string, { key: string; summary: string }>();
+
+/** Returns the previously-generated summary for `chatId` iff the palier key is unchanged. */
+export function getMemoizedSummary(chatId: string, key: string): string | undefined {
+  const entry = summaryCache.get(chatId);
+
+  if (entry && entry.key === key) {
+    // Refresh LRU recency.
+    summaryCache.delete(chatId);
+    summaryCache.set(chatId, entry);
+
+    return entry.summary;
+  }
+
+  return undefined;
+}
+
+/** Record the summary for `chatId`, evicting the least-recently-used entries. */
+export function setMemoizedSummary(chatId: string, key: string, summary: string): void {
+  if (summaryCache.has(chatId)) {
+    summaryCache.delete(chatId);
+  }
+
+  summaryCache.set(chatId, { key, summary });
+
+  while (summaryCache.size > SUMMARY_CACHE_MAX) {
+    const oldest = summaryCache.keys().next().value;
+
+    if (oldest === undefined) {
+      break;
+    }
+
+    summaryCache.delete(oldest);
+  }
+}
+
+/** Test-only: reset the in-process summary memo. */
+export function __clearSummaryCache(): void {
+  summaryCache.clear();
 }
