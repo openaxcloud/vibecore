@@ -239,6 +239,7 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
 
   it('retries an idempotent file write through a transient api 5xx so a pod rollout does not silently drop generated files', async () => {
     let writeAttempts = 0;
+
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
 
@@ -260,8 +261,10 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
       if (url.endsWith('/files/write')) {
         writeAttempts += 1;
 
-        // First attempt hits a draining/starting api pod during a rollout → 502.
-        // A single-shot write would drop the generated file here; the retry rides it.
+        /*
+         * First attempt hits a draining/starting api pod during a rollout → 502.
+         * A single-shot write would drop the generated file here; the retry rides it.
+         */
         return writeAttempts === 1 ? new Response('bad gateway', { status: 502 }) : new Response(null, { status: 204 });
       }
 
@@ -280,6 +283,107 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
 
     await expect(adapter.writeFile('src/App.tsx', 'export default null;')).resolves.toBeUndefined();
     expect(writeAttempts).toBe(2); // failed once (502), retried, succeeded — file not lost
+  });
+
+  it('re-provisions a GC-reaped workspace (stale ws-id) on WORKSPACE_AGENT_REQUEST_FAILED, then retries — no ENOTFOUND loop', async () => {
+    let podAlive = true;
+    let provisionCount = 0;
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.endsWith('/runtime/boot')) {
+        return new Response(null, { status: 204 });
+      }
+
+      if (url.endsWith('/workspaces') && init?.method === 'POST') {
+        provisionCount += 1;
+        podAlive = true; // provisioning (re)creates the pod
+
+        return Response.json({
+          id: 'ws-1',
+          runtimeMode: 'remote-kubernetes',
+          status: 'running',
+          workdir: '/workspace',
+          createdAt: '2026-04-28T00:00:00.000Z',
+          updatedAt: '2026-04-28T00:00:00.000Z',
+        });
+      }
+
+      if (url.includes('/files?path=src')) {
+        // A GC'd pod: the api can't reach the agent (ENOTFOUND) and 502s with the code.
+        if (!podAlive) {
+          return Response.json({ code: 'WORKSPACE_AGENT_REQUEST_FAILED', error: 'agent unreachable' }, { status: 502 });
+        }
+
+        return Response.json([{ path: 'src/App.tsx', name: 'App.tsx', type: 'file', content: 'x' }]);
+      }
+
+      return Response.json([]);
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token-123',
+      fetchImpl: fetchMock as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    await adapter.startWorkspace(); // initial provision (#1)
+    podAlive = false; // the inactivity GC reaps the pod while the tab is open
+
+    await expect(adapter.listFiles('src')).resolves.toEqual([
+      { path: 'src/App.tsx', name: 'App.tsx', type: 'file', content: 'x' },
+    ]);
+
+    // Exactly ONE re-provision (initial + heal), not an endless ENOTFOUND loop.
+    expect(provisionCount).toBe(2);
+  });
+
+  it('restartWorkspace re-provisions when the pod is gone (restart 502) instead of no-op', async () => {
+    let provisionCount = 0;
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.endsWith('/runtime/boot')) {
+        return new Response(null, { status: 204 });
+      }
+
+      if (url.endsWith('/workspaces') && init?.method === 'POST') {
+        provisionCount += 1;
+
+        return Response.json({
+          id: 'ws-1',
+          runtimeMode: 'remote-kubernetes',
+          status: 'running',
+          workdir: '/workspace',
+          createdAt: '2026-04-28T00:00:00.000Z',
+          updatedAt: '2026-04-28T00:00:00.000Z',
+        });
+      }
+
+      if (url.endsWith('/restart')) {
+        // Nothing to restart — the pod was reaped.
+        return Response.json({ code: 'WORKSPACE_AGENT_REQUEST_FAILED', error: 'agent unreachable' }, { status: 502 });
+      }
+
+      return Response.json([]);
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token-123',
+      fetchImpl: fetchMock as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    await adapter.startWorkspace(); // #1
+
+    const session = await adapter.restartWorkspace(); // restart 502 → falls back to provision (#2)
+
+    expect(provisionCount).toBe(2);
+    expect(session.status).toBe('running');
   });
 
   it('runs project-wide content search against the runtime files/search endpoint (per-tenant, options + results round-trip)', async () => {

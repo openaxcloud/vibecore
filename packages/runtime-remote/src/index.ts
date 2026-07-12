@@ -79,6 +79,16 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   #socketConnectTimeoutMs = 30_000;
 
   /*
+   * Deduped in-flight re-provision. When a workspace pod has been garbage-collected
+   * (or a stale ws-id is reopened), every agent request 502s with
+   * WORKSPACE_AGENT_REQUEST_FAILED (ENOTFOUND). Rather than hammer /files forever,
+   * the first such failure triggers a single startWorkspace() that re-creates the
+   * pod (PVC reattaches); all concurrent failures await THIS promise, then retry
+   * once. Cleared when it settles so a later GC can heal again.
+   */
+  #reprovisionPromise: Promise<WorkspaceSession> | null = null;
+
+  /*
    * Provisioning a cold workspace (PVC + Pod + image pull + readiness) runs in
    * the manager for up to ~3min. The synchronous api->manager start aborts long
    * before that (proxy + ingress idle caps), so startWorkspace can't rely on a
@@ -102,6 +112,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     this.#workspaceId = options.workspaceId;
     this.#fetch = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
     this.#WebSocket = options.WebSocketImpl ?? (globalThis.WebSocket as WebSocketConstructor | undefined);
+
     /*
      * LOGICAL workdir = the app's canonical project root (WORK_DIR = '/home/project'),
      * matching the WebContainer adapter and the FilesStore/EditorStore key space.
@@ -255,10 +266,35 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async restartWorkspace(workspaceId = this.#requireWorkspaceId()): Promise<WorkspaceSession> {
-    const session = await this.#request<WorkspaceSession>(`/workspaces/${workspaceId}/restart`, { method: 'POST' });
-    this.#session = session;
+    try {
+      const session = await this.#request<WorkspaceSession>(`/workspaces/${workspaceId}/restart`, {
+        method: 'POST',
+      });
+      this.#session = session;
 
-    return session;
+      return session;
+    } catch (error) {
+      /*
+       * "Restart" only has a pod to restart when one EXISTS. After the inactivity
+       * GC reaped the pod (stale ws-id), the restart 502s (agent unreachable) or
+       * 404s (nothing to restart) — which is why the button appeared to do nothing.
+       * Fall back to a full provision that RE-CREATES the pod (the PVC reattaches,
+       * so files + node_modules survive) and waits for RUNNING. Deterministic 4xx
+       * (auth 401/403, quota 402, validation 400/409) are real and must surface.
+       */
+      const status = error instanceof RuntimeError ? error.status : undefined;
+
+      const deterministicClientError = typeof status === 'number' && status >= 400 && status < 500 && status !== 404;
+
+      if (deterministicClientError) {
+        throw error;
+      }
+
+      const session = await this.startWorkspace({ id: workspaceId });
+      this.#session = session;
+
+      return session;
+    }
   }
 
   /*
@@ -298,8 +334,10 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async writeFile(path: string, content: string): Promise<void> {
-    // Overwrite is idempotent — retry through a transient api/agent 5xx so a pod
-    // rollout/restart mid-generation never silently drops a generated file.
+    /*
+     * Overwrite is idempotent — retry through a transient api/agent 5xx so a pod
+     * rollout/restart mid-generation never silently drops a generated file.
+     */
     await this.#request(
       `/workspaces/${this.#requireWorkspaceId()}/files/write`,
       { method: 'PUT', body: JSON.stringify({ path, content }) },
@@ -831,7 +869,70 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     );
   }
 
+  /** True when the api reports the workspace agent unreachable — the pod is gone (GC'd) or never came up. */
+  #isAgentUnavailable(error: unknown): boolean {
+    return (error as { code?: string } | undefined)?.code === 'WORKSPACE_AGENT_REQUEST_FAILED';
+  }
+
+  /**
+   * Re-provision the current workspace's pod ONCE, sharing a single in-flight POST
+   * /workspaces across all concurrent callers (a burst of agent 502s must not fire
+   * dozens of provisions). Resolves when the pod is RUNNING again.
+   */
+  async #ensureWorkspaceReprovisioned(): Promise<void> {
+    if (!this.#workspaceId) {
+      return;
+    }
+
+    if (!this.#reprovisionPromise) {
+      this.#reprovisionPromise = this.startWorkspace({ id: this.#workspaceId }).finally(() => {
+        this.#reprovisionPromise = null;
+      });
+    }
+
+    await this.#reprovisionPromise;
+  }
+
   async #request<T>(
+    path: string,
+    init: RequestInit = {},
+    options: { retryReads?: boolean; retryIdempotentWrite?: boolean; ensureWorkspace?: boolean } = {},
+  ): Promise<T> {
+    /*
+     * Self-healing re-provision. A stale ws-id (its pod GC'd / reaped after the
+     * inactivity window) makes every agent call 502 with
+     * WORKSPACE_AGENT_REQUEST_FAILED (ENOTFOUND) — previously an endless loop that
+     * never re-created the pod, so the reopened project sat on "No backend
+     * workspace" forever. Now: on that error, for an agent sub-route
+     * (/workspaces/<id>/…, never the provision POST itself), re-provision the pod
+     * once (deduped) and retry the request. The provision reattaches the same PVC,
+     * so files + node_modules survive. Opt out with ensureWorkspace:false.
+     */
+    /*
+     * Only AGENT I/O sub-routes self-heal. Exclude the workspace LIFECYCLE routes
+     * (status/restart/stop/touch) — startWorkspace() itself polls /status while
+     * re-provisioning, so letting those reprovision would await the very promise
+     * that is running them (deadlock).
+     */
+    const isAgentSubRoute =
+      /^\/workspaces\/[^/]+\/.+/.test(path) && !/\/workspaces\/[^/]+\/(status|restart|stop|touch)(\?|$)/.test(path);
+
+    const canReprovision = options.ensureWorkspace !== false && isAgentSubRoute;
+
+    try {
+      return await this.#requestOnce<T>(path, init, options);
+    } catch (error) {
+      if (canReprovision && !init.signal?.aborted && this.#isAgentUnavailable(error)) {
+        await this.#ensureWorkspaceReprovisioned();
+
+        return await this.#requestOnce<T>(path, init, options);
+      }
+
+      throw error;
+    }
+  }
+
+  async #requestOnce<T>(
     path: string,
     init: RequestInit = {},
     options: { retryReads?: boolean; retryIdempotentWrite?: boolean } = {},
@@ -902,10 +1003,34 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         continue;
       }
 
+      /*
+       * Preserve the api's own error `code` from the JSON body (e.g.
+       * WORKSPACE_AGENT_REQUEST_FAILED, WORKSPACE_NOT_STARTED) instead of flattening
+       * every failure to a generic code. Downstream self-heal decisions depend on it:
+       * the adapter re-provisions a GC'd pod on WORKSPACE_AGENT_REQUEST_FAILED, and
+       * app/lib/runtime/retry.ts treats those codes as transient. Falls back to the
+       * generic code for a non-JSON/opaque body.
+       */
+      const bodyText = await response.text().catch(() => undefined);
+
+      let apiCode: string | undefined;
+
+      if (bodyText) {
+        try {
+          const parsed = JSON.parse(bodyText) as { code?: unknown };
+
+          if (typeof parsed.code === 'string' && parsed.code.length > 0) {
+            apiCode = parsed.code;
+          }
+        } catch {
+          // non-JSON body — keep the generic code.
+        }
+      }
+
       throw new RuntimeError(`Remote runtime request failed: ${response.status}`, {
-        code: 'REMOTE_RUNTIME_REQUEST_FAILED',
+        code: apiCode ?? 'REMOTE_RUNTIME_REQUEST_FAILED',
         status: response.status,
-        details: await response.text().catch(() => undefined),
+        details: bodyText,
       });
     }
   }
@@ -948,7 +1073,8 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       try {
         return await this.#connectSocket(path, hello);
       } catch (error) {
-        const closeCode = error instanceof RuntimeError ? (error.details as { closeCode?: number })?.closeCode : undefined;
+        const closeCode =
+          error instanceof RuntimeError ? (error.details as { closeCode?: number })?.closeCode : undefined;
 
         if (isAuthSocketClose(closeCode) && shouldRefreshAuthToken(401, attempt, canRefresh)) {
           await this.#invalidateAuthToken!();
