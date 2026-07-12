@@ -9,6 +9,8 @@ import {
   buildWorkspaceAgentApp,
   classifyListeningPort,
   detectPortsFromOutput,
+  ensureViteEntryScript,
+  htmlReferencesAppEntry,
   injectPreviewHmrShim,
   injectViteDevArgs,
   isProductionBuildCommand,
@@ -544,6 +546,53 @@ describe('workspace-agent', () => {
     // No <head> → left untouched (never mangle a non-standard document).
     expect(injectPreviewHmrShim('<html><body>hi</body></html>')).toBe('<html><body>hi</body></html>');
     expect(injectPreviewHmrShim('')).toBe('');
+  });
+
+  it('htmlReferencesAppEntry: true only for a project-source module script, not Vite internals', () => {
+    expect(htmlReferencesAppEntry('<script type="module" src="/src/main.tsx"></script>')).toBe(true);
+    expect(htmlReferencesAppEntry('<script type="module" src="./src/index.jsx"></script>')).toBe(true);
+    expect(htmlReferencesAppEntry('<script type="module" src="src/main.ts"></script>')).toBe(true);
+
+    // Vite's own injected scripts are NOT the app entry.
+    expect(htmlReferencesAppEntry('<script type="module" src="/@vite/client"></script>')).toBe(false);
+    expect(htmlReferencesAppEntry('<script type="module" src="/@react-refresh"></script>')).toBe(false);
+    expect(htmlReferencesAppEntry('<div id="root"></div>')).toBe(false);
+  });
+
+  it('ensureViteEntryScript: repairs a generated index.html that dropped its entry <script>', () => {
+    // The exact broken shape from prod: #root but no app entry.
+    const broken = [
+      '<!DOCTYPE html>',
+      '<html lang="en"><head><title>Unit Converter</title></head>',
+      '<body><div id="root"></div></body></html>',
+    ].join('\n');
+
+    const exists = (p: string) => p.endsWith('/src/main.tsx');
+    const out = ensureViteEntryScript(broken, '/workspace', exists);
+
+    expect(out).toContain('<script type="module" src="/src/main.tsx" data-ecode-entry-shim></script>');
+
+    // Injected before </body>, and the original document is preserved (ADD, not replace).
+    expect(out.indexOf('data-ecode-entry-shim')).toBeLessThan(out.indexOf('</body>'));
+    expect(out).toContain('<div id="root"></div>');
+
+    // Idempotent — a second pass does not double-inject.
+    expect(ensureViteEntryScript(out, '/workspace', exists)).toBe(out);
+  });
+
+  it('ensureViteEntryScript: no-op when an entry is already present, no mount point, or no entry file on disk', () => {
+    const withEntry = '<body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body>';
+    expect(ensureViteEntryScript(withEntry, '/workspace', () => true)).toBe(withEntry);
+
+    // No SPA mount point → leave a static/multi-page document alone.
+    const staticHtml = '<body><h1>Hello</h1></body>';
+    expect(ensureViteEntryScript(staticHtml, '/workspace', () => true)).toBe(staticHtml);
+
+    // Mount point but NO entry file exists on disk → do not fabricate a 404 script.
+    const noEntryFile = '<body><div id="root"></div></body>';
+    expect(ensureViteEntryScript(noEntryFile, '/workspace', () => false)).toBe(noEntryFile);
+
+    expect(ensureViteEntryScript('', '/workspace', () => true)).toBe('');
   });
 
   it('builds preview hosts: loopback first, pod IPv4 next, [::1] last, no internal/IPv6 interface addrs', () => {

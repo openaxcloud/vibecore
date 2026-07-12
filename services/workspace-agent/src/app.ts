@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { createReadStream, readFileSync } from 'node:fs';
+import { createReadStream, existsSync, readFileSync } from 'node:fs';
 import { lstat, mkdir, readdir, readFile, readlink, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { networkInterfaces, type NetworkInterfaceInfo } from 'node:os';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
@@ -967,7 +967,13 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     if (upstreamContentType.includes('text/html')) {
       const html = await response.text();
 
-      return reply.code(response.status).send(injectPreviewHmrShim(html));
+      /*
+       * Repair a generated index.html that dropped its entry script (blank preview
+       * despite a healthy 200 dev server), THEN inject the HMR-safety shim. Both
+       * ADD, never replace. `root` is the workspace/Vite project root the dev server
+       * serves index.html from.
+       */
+      return reply.code(response.status).send(injectPreviewHmrShim(ensureViteEntryScript(html, root)));
     }
 
     /*
@@ -2357,6 +2363,88 @@ const PREVIEW_HMR_SHIM = `<script ${PREVIEW_HMR_SHIM_MARKER}>(function(){if(type
  * scripts. Idempotent, and a no-op when there is no <head> (never risk mangling a
  * non-standard document). Pure/exported for unit testing.
  */
+/** Sentinel on the injected entry script so the repair is idempotent + traceable. */
+const VITE_ENTRY_SHIM_MARKER = 'data-ecode-entry-shim';
+
+/** Vite SPA entry files we know how to point index.html at, most-conventional first. */
+const VITE_ENTRY_CANDIDATES = [
+  'src/main.tsx',
+  'src/main.jsx',
+  'src/main.ts',
+  'src/main.js',
+  'src/index.tsx',
+  'src/index.jsx',
+  'src/index.ts',
+  'src/index.js',
+  'main.tsx',
+  'main.jsx',
+] as const;
+
+/**
+ * Whether the served HTML already loads the APP entry — a module script whose src
+ * points into the project source (`/src/...`, `./src/...`, `src/...`). Vite's own
+ * `/@vite/client` and `/@react-refresh` module scripts are NOT the app entry, so they
+ * must not count.
+ */
+export function htmlReferencesAppEntry(html: string): boolean {
+  const moduleScript = /<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["']([^"']+)["'][^>]*>/gi;
+
+  for (let m = moduleScript.exec(html); m; m = moduleScript.exec(html)) {
+    if (/^(?:\.?\/)?src\//i.test(m[1])) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Repair an AI-generated Vite `index.html` that is MISSING its entry script.
+ *
+ * A Vite dev server serves `index.html` verbatim (plus its own `/@vite/client` +
+ * react-refresh injection) — it never adds the app entry. Several generated projects
+ * ship an `index.html` with only `<div id="root"></div>` and NO
+ * `<script type="module" src="/src/main.tsx">`, so `main.tsx` is never fetched, React
+ * never mounts, and the preview is a permanently blank page even though the dev server
+ * answers 200. When the HTML has an SPA mount point but no app-entry module script and
+ * a conventional entry file exists on disk, inject a `<script type="module">` pointing
+ * at it (before `</body>`) — ADDING, never replacing, so our other injections and any
+ * real entry are preserved. Pure but for an injected `fileExists` probe so it unit-tests
+ * without a filesystem. No-op (unchanged) unless every condition holds.
+ */
+export function ensureViteEntryScript(
+  html: string,
+  projectRoot: string,
+  fileExists: (path: string) => boolean = existsSync,
+): string {
+  if (!html || html.includes(VITE_ENTRY_SHIM_MARKER)) {
+    return html;
+  }
+
+  // Only an SPA mount page (React/Vue/etc. into #root or #app) is a candidate.
+  if (!/<div\b[^>]*\bid=["'](?:root|app)["']/i.test(html)) {
+    return html;
+  }
+
+  if (htmlReferencesAppEntry(html)) {
+    return html;
+  }
+
+  const entry = VITE_ENTRY_CANDIDATES.find((candidate) => fileExists(join(projectRoot, candidate)));
+
+  if (!entry) {
+    return html;
+  }
+
+  const tag = `<script type="module" src="/${entry}" ${VITE_ENTRY_SHIM_MARKER}></script>`;
+
+  if (/<\/body>/i.test(html)) {
+    return html.replace(/<\/body>/i, `${tag}</body>`);
+  }
+
+  return `${html}${tag}`;
+}
+
 export function injectPreviewHmrShim(html: string): string {
   if (!html || html.includes(PREVIEW_HMR_SHIM_MARKER)) {
     return html;
