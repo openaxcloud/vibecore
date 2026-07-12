@@ -5,7 +5,7 @@ import { cleanup, render } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { Link, MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
-import { isExternalDashboardLink, shouldUseSpaNavigation } from './dashboard-nav';
+import { isExternalDashboardLink, resolveDashboardHeaderActions, shouldUseSpaNavigation } from './dashboard-nav';
 import { importOptions } from '~/components/dashboard/SaaSLayout';
 
 afterEach(() => {
@@ -86,5 +86,23 @@ describe('dashboard import options', () => {
 
     /* No react-router interception on a raw <a>, so the default is not prevented. */
     expect(event.defaultPrevented).toBe(false);
+  });
+});
+
+describe('dashboard header actions', () => {
+  it('prioritizes resuming the most recently updated project', () => {
+    expect(
+      resolveDashboardHeaderActions([{ ideUrl: '/acme/project-alpha' }, { ideUrl: '/acme/project-beta' }]),
+    ).toEqual({
+      primary: { label: 'Resume project', to: '/acme/project-alpha' },
+      secondary: { label: 'New project', to: '/projects/new' },
+    });
+  });
+
+  it('starts with the agent when the workspace has no projects', () => {
+    expect(resolveDashboardHeaderActions([])).toEqual({
+      primary: { label: 'Start with the agent', to: '/projects/new' },
+      secondary: { label: 'Browse templates', to: '/dashboard/templates' },
+    });
   });
 });

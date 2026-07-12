@@ -1,7 +1,7 @@
 import { Activity, Boxes, CreditCard, MailPlus, Rocket, Sparkles } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
 import { Link, useLoaderData } from 'react-router';
-import { shouldUseSpaNavigation } from './dashboard-nav';
+import { resolveDashboardHeaderActions, shouldUseSpaNavigation } from './dashboard-nav';
 import {
   ActivityList,
   AppShell,
@@ -57,7 +57,7 @@ async function optionalBillingRequest(request: Request, organizationId: string) 
 /*
  * Aggregated AI spend for the org, summed across the whole ledger. Gated on
  * billing:read like the billing endpoint, so a role without billing access
- * simply reports $0.00 rather than failing the dashboard.
+ * simply reports EUR 0.00 rather than failing the dashboard.
  */
 async function optionalAiCostCents(request: Request, organizationId: string) {
   try {
@@ -209,26 +209,26 @@ export const meta: MetaFunction = () => [{ title: 'Dashboard - E-Code' }];
 
 export default function DashboardPage() {
   const { projects, usageSummary, billingAccessLimited, onboarding } = useLoaderData<typeof loader>();
+  const headerActions = resolveDashboardHeaderActions(projects);
 
   return (
     <AppShell
       title="Dashboard"
-      description="Your production workspace hub for E-Code projects, runtime status, usage, billing and team operations."
+      description="Resume your latest project or start building something new with the E-Code agent."
       actions={
         <>
-          <LinkButton to="/projects/new">New project</LinkButton>
-          <LinkButton to="/command-palette" variant="outline">
-            Command palette
+          <LinkButton to={headerActions.primary.to}>{headerActions.primary.label}</LinkButton>
+          <LinkButton to={headerActions.secondary.to} variant="outline">
+            {headerActions.secondary.label}
           </LinkButton>
         </>
       }
     >
       <div className="grid gap-6 overflow-x-clip">
-        <StatGrid stats={statsFromUsage(usageSummary)} />
         <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
           <div className="min-w-0">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Recent projects</h2>
+              <h2 className="text-lg font-semibold">Continue building</h2>
               <LinkButton to="/recent-projects" variant="ghost">
                 View all
               </LinkButton>
@@ -276,26 +276,40 @@ export default function DashboardPage() {
           </div>
           <div className="min-w-0 space-y-6">
             <CommandPalettePreview projects={projects} />
-            <h2 className="text-lg font-semibold">System status</h2>
+            <h2 className="text-lg font-semibold">Workspace readiness</h2>
             <ActivityList
               items={[
-                { title: 'Usage checked', detail: 'Backend quotas protected project and AI actions.', icon: Activity },
                 {
-                  title: billingAccessLimited ? 'Billing access limited' : 'Billing synced',
+                  title: 'Usage available',
+                  detail: 'Project and AI usage are within your current limits.',
+                  icon: Activity,
+                },
+                {
+                  title: billingAccessLimited ? 'Billing details restricted' : 'Plan up to date',
                   detail: billingAccessLimited
-                    ? 'Your role can open the dashboard without billing metrics.'
-                    : 'Stripe subscription state is current.',
+                    ? 'Organization billing administrators can view plan and payment details.'
+                    : 'Your plan and payment status are up to date.',
                   icon: CreditCard,
                 },
-                { title: 'Workspace ready', detail: 'Runtime quota allows another project session.', icon: Boxes },
                 {
-                  title: 'Deployment available',
-                  detail: 'Production deploy flow is enabled for this plan.',
+                  title: 'Workspace capacity available',
+                  detail: 'You can start another project session.',
+                  icon: Boxes,
+                },
+                {
+                  title: 'Ready to deploy',
+                  detail: 'Your current plan can publish projects to production.',
                   icon: Rocket,
                 },
               ]}
             />
           </div>
+        </section>
+        <section aria-labelledby="workspace-overview-title">
+          <h2 id="workspace-overview-title" className="mb-4 text-lg font-semibold">
+            Workspace overview
+          </h2>
+          <StatGrid stats={statsFromUsage(usageSummary)} />
         </section>
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {importOptions.map((option) => {

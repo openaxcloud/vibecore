@@ -38,3 +38,25 @@ export function isExternalDashboardLink(to: string): boolean {
 export function shouldUseSpaNavigation(to: string): boolean {
   return !isExternalDashboardLink(to);
 }
+
+export type DashboardHeaderActions = {
+  primary: { label: string; to: string };
+  secondary: { label: string; to: string };
+};
+
+/** Keep the most useful next action first, based on whether work already exists. */
+export function resolveDashboardHeaderActions(projects: ReadonlyArray<{ ideUrl?: string }>): DashboardHeaderActions {
+  const mostRecentProject = projects[0];
+
+  if (mostRecentProject) {
+    return {
+      primary: { label: 'Resume project', to: mostRecentProject.ideUrl ?? '/projects' },
+      secondary: { label: 'New project', to: '/projects/new' },
+    };
+  }
+
+  return {
+    primary: { label: 'Start with the agent', to: '/projects/new' },
+    secondary: { label: 'Browse templates', to: '/dashboard/templates' },
+  };
+}
