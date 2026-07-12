@@ -60,7 +60,16 @@ function readEnvironments(data: unknown): DbEnv[] {
     envs.push(env);
   }
 
-  return envs.length ? envs : [{ key: 'DATABASE_URL', name: 'Production Database' }];
+  /*
+   * HONEST empty state. Previously this fabricated a fake
+   * [{ key: 'DATABASE_URL', name: 'Production Database' }] card when the project had
+   * NO real database — so the panel showed "Production Database — Connected" with an
+   * SQL editor for a project with zero databases (data.environments/connections all
+   * empty). A user would write SQL against a database that does not exist. Return the
+   * real (possibly empty) list so the panel reflects THIS project's actual databases
+   * and the "Add your first database" create path shows instead.
+   */
+  return envs;
 }
 
 function formatBytes(bytes?: number): string | null {
