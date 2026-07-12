@@ -43,8 +43,15 @@ function readConnections(data: unknown): Conn[] {
     })
     .filter((c): c is Conn => Boolean(c));
 
-  // Always expose the native connection even if the list is empty.
-  return conns.length ? conns : [{ key: 'DATABASE_URL', label: 'Database (DATABASE_URL)' }];
+  /*
+   * Return the REAL connections only. This used to fabricate a default
+   * [{ key: 'DATABASE_URL' }] when empty ("always expose the native connection"),
+   * so the SQL editor offered a connection — and ran queries — against a
+   * DATABASE_URL that may not exist (same false-state class as the fake
+   * "Production Database" card). The My Data tab is only reachable from a real
+   * database now, so an empty list means "no connection" and must render as such.
+   */
+  return conns;
 }
 
 function readTables(data: unknown): Array<{ name: string; columns: string[] }> {
