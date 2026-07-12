@@ -2,7 +2,7 @@ import type { Message } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { AUTO_MODEL } from './model-routing';
 import {
-  appendContextToLastUserMessage,
+  appendContextAsTrailingUserMessage,
   applyContextOptimizedHistoryWindow,
   DEFAULT_STREAM_MAX_RETRIES,
   fingerprintPrompt,
@@ -348,45 +348,94 @@ describe('model routing — continuation consistency', () => {
   });
 });
 
-describe('appendContextToLastUserMessage (cache-max: volatile context in the message tail)', () => {
+describe('appendContextAsTrailingUserMessage (cache-max: strict append-only history)', () => {
   const user = (content: string, parts?: Message['parts']): Message =>
     ({ id: Math.random().toString(36).slice(2), role: 'user', content, ...(parts ? { parts } : {}) }) as Message;
   const assistant = (content: string): Message =>
     ({ id: Math.random().toString(36).slice(2), role: 'assistant', content }) as Message;
 
-  it('appends the context block to the LAST user message content', () => {
-    const out = appendContextToLastUserMessage([user('first'), assistant('a'), user('latest ask')], 'CTX');
-    expect(out[2].content).toBe('latest ask\n\nCTX');
+  it('carries the context in a SEPARATE trailing user message, leaving every real message byte-identical', () => {
+    const history = [user('first'), assistant('a'), user('latest ask')];
+    const out = appendContextAsTrailingUserMessage(history, 'CTX');
 
-    // Earlier user turn is untouched — context lands only on the current turn.
+    // One extra message appended; the real turns are untouched (append-only).
+    expect(out).toHaveLength(4);
     expect(out[0].content).toBe('first');
+    expect(out[2].content).toBe('latest ask');
+
+    // The volatile block lives ONLY in the throwaway trailing user message.
+    expect(out[3].role).toBe('user');
+    expect(out[3].content).toBe('CTX');
   });
 
-  it('mirrors the block into parts when the message carries parts (convertToCoreMessages reads parts)', () => {
-    const out = appendContextToLastUserMessage([user('ask', [{ type: 'text', text: 'ask' }])], 'CTX');
-    expect(out[0].content).toBe('ask\n\nCTX');
-    expect(out[0].parts).toEqual([
-      { type: 'text', text: 'ask' },
-      { type: 'text', text: 'CTX' },
-    ]);
+  it('sets the block on BOTH content and parts (convertToCoreMessages reads whichever the message carries)', () => {
+    const out = appendContextAsTrailingUserMessage([user('ask')], 'CTX');
+    expect(out[1].content).toBe('CTX');
+    expect(out[1].parts).toEqual([{ type: 'text', text: 'CTX' }]);
   });
 
-  it('is a no-op for an empty / whitespace-only context block (never mutates the turn)', () => {
+  it('the pre-existing messages are the SAME object references (never re-rendered)', () => {
+    const m0 = user('first');
+    const m1 = assistant('a');
+    const m2 = user('latest ask');
+    const out = appendContextAsTrailingUserMessage([m0, m1, m2], 'CTX');
+    expect(out[0]).toBe(m0);
+    expect(out[1]).toBe(m1);
+    expect(out[2]).toBe(m2);
+  });
+
+  it('is a no-op for an empty / whitespace-only context block (never adds a turn)', () => {
     const input = [user('ask')];
-    expect(appendContextToLastUserMessage(input, '')).toBe(input);
-    expect(appendContextToLastUserMessage(input, '   \n ')).toBe(input);
+    expect(appendContextAsTrailingUserMessage(input, '')).toBe(input);
+    expect(appendContextAsTrailingUserMessage(input, '   \n ')).toBe(input);
   });
 
-  it('is a no-op when there is no user message to attach to', () => {
-    const input = [assistant('only assistant')];
-    expect(appendContextToLastUserMessage(input, 'CTX')).toBe(input);
-  });
-
-  it('does not mutate the input array or the original message object', () => {
+  it('does not mutate the input array or the original message objects', () => {
     const original = user('ask');
     const input = [original];
-    const out = appendContextToLastUserMessage(input, 'CTX');
+    const out = appendContextAsTrailingUserMessage(input, 'CTX');
     expect(out).not.toBe(input);
+    expect(input).toHaveLength(1);
     expect(original.content).toBe('ask');
+  });
+
+  it('appends a trailing turn even with no prior user message (context still reaches the model)', () => {
+    const input = [assistant('only assistant')];
+    const out = appendContextAsTrailingUserMessage(input, 'CTX');
+    expect(out).toHaveLength(2);
+    expect(out[1].role).toBe('user');
+    expect(out[1].content).toBe('CTX');
+  });
+
+  /*
+   * The bug this fix targets: with the old append-to-last-user-message, turn 1's
+   * first user message was cached WITH the volatile block, then replayed CLEAN on
+   * turn 2 — so OpenAI's common-prefix cache collapsed to the system head. Here we
+   * simulate two consecutive turns and assert the cacheable prefix (every message
+   * except the throwaway trailing one) is strictly append-only: turn 1's prefix is
+   * a byte-identical FRONT of turn 2's prefix, so the shared prefix grows.
+   */
+  it('keeps the cacheable prefix strictly append-only across two consecutive turns', () => {
+    // Client always replays CLEAN history (the volatile block is server-side only).
+    const u1 = user('In one sentence, which build tool does this project use?');
+    const turn1 = appendContextAsTrailingUserMessage([u1], 'VOLATILE-TURN-1');
+
+    const a1 = assistant('It uses Vite.');
+    const u2 = user('In one sentence, what does the README say?');
+    const turn2 = appendContextAsTrailingUserMessage([u1, a1, u2], 'VOLATILE-TURN-2-DIFFERENT');
+
+    // Cacheable prefix = everything except the last (per-turn-variable) message.
+    const prefix1 = turn1.slice(0, -1);
+    const prefix2 = turn2.slice(0, -1);
+
+    // Turn 1's prefix is a byte-identical front of turn 2's prefix (append-only growth).
+    expect(JSON.stringify(prefix2.slice(0, prefix1.length))).toBe(JSON.stringify(prefix1));
+
+    // Specifically: u1 is IDENTICAL across turns — no volatile ever leaked onto it.
+    expect(prefix1[0].content).toBe('In one sentence, which build tool does this project use?');
+    expect(prefix2[0].content).toBe('In one sentence, which build tool does this project use?');
+
+    // And turn 2's prefix genuinely GREW (system-equivalent + full prior exchange is now cacheable).
+    expect(prefix2.length).toBeGreaterThan(prefix1.length);
   });
 });

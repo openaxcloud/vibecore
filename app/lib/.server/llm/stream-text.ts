@@ -133,58 +133,44 @@ export function applyContextOptimizedHistoryWindow<T>(messages: T[], recentMessa
 }
 
 /**
- * Cache-max (LOT 1 / Rév.3 "move volatile values after the stable cache
- * boundary"): move a per-turn-VOLATILE context block — the CONTEXT BUFFER of
- * project files (+ optional CHAT SUMMARY) — OUT of the cacheable system prefix
- * and into the TAIL of the current user turn.
+ * Cache-max (LOT 1 / Rév.4 "strict append-only history"): carry a per-turn
+ * VOLATILE context block — the CONTEXT BUFFER of project files (+ optional CHAT
+ * SUMMARY) + the orchestration prompt / exec-context — in a SEPARATE trailing
+ * user message of the CURRENT turn, never glued onto a real conversation message.
  *
- * The buffer changes every turn as files are edited, so appending it to the
- * system prompt rotated the system on every send and defeated prefix caching
- * (measured live: full systemHash drifted turn-to-turn while the head stayed
- * c650c276, cachedPromptTokens capped at ~the head). Carried in the last user
- * message instead — after the stable system + tools + prior history — the whole
- * prefix becomes byte-stable and auto-caches on every provider, while the model
- * still receives the exact same context, just lower in the prompt (adjacent to
- * the request).
+ * Why not append to the last user message (Rév.3, the previous approach): on
+ * turn 1 the last user message IS the first message, so the volatile block was
+ * cached AS PART of message[0]. On turn 2 the client replays message[0] CLEAN —
+ * the block is server-side only and never persisted — so OpenAI's automatic
+ * common-prefix cache diverged right at message[0] and collapsed back to the
+ * system head (measured live: cachedPromptTokens stuck at 3968 = system only,
+ * even though the whole system was byte-stable). Isolated in its own throwaway
+ * trailing message, EVERY real conversation message stays byte-identical
+ * turn-to-turn (strict append-only), so the shared prefix grows with the history
+ * and the cache extends to system + tools + the entire prior conversation. The
+ * model still receives the exact same context, just as the last message adjacent
+ * to the request. The trailing message is the ONLY per-turn-variable message and
+ * is deliberately the last one (excluded from every provider's cacheable prefix).
  *
- * The block is appended to BOTH the message's `content` string and, when
- * present, its `parts` array, kept in sync (convertToCoreMessages reads whichever
- * the message carries). No-op when the block is empty or there is no user message
- * to attach it to.
+ * The block is set on BOTH `content` (string) and `parts` (convertToCoreMessages
+ * reads whichever the message carries), kept in sync. No-op when the block is
+ * empty — discuss mode carries no volatile tail, so it stays byte-identical.
  */
-export function appendContextToLastUserMessage<T extends { role: string }>(messages: T[], contextBlock: string): T[] {
+export function appendContextAsTrailingUserMessage<T extends { role: string }>(
+  messages: T[],
+  contextBlock: string,
+): T[] {
   if (!contextBlock.trim()) {
     return messages;
   }
 
-  let lastUserIdx = -1;
+  const trailing = {
+    role: 'user',
+    content: contextBlock,
+    parts: [{ type: 'text', text: contextBlock }],
+  } as unknown as T;
 
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === 'user') {
-      lastUserIdx = i;
-      break;
-    }
-  }
-
-  if (lastUserIdx === -1) {
-    return messages;
-  }
-
-  const next = messages.slice();
-  const target = { ...(next[lastUserIdx] as Record<string, unknown>) };
-  const appended = `\n\n${contextBlock}`;
-
-  if (typeof target.content === 'string') {
-    target.content = `${target.content}${appended}`;
-  }
-
-  if (Array.isArray(target.parts) && target.parts.length > 0) {
-    target.parts = [...target.parts, { type: 'text', text: contextBlock }];
-  }
-
-  next[lastUserIdx] = target as unknown as T;
-
-  return next;
+  return [...messages, trailing];
 }
 
 /**
@@ -628,8 +614,8 @@ export async function streamText(props: {
    * turn (orchestration e317037a→80f5d344, orchestrationCtx 1f503e2f→f36c3786) while
    * everything else in the tail was byte-stable (skills 4f8abd8d both turns). Left in
    * the system they rotated the systemHash every turn and capped the cached prefix at
-   * the head. They are therefore carried in the message tail (like the CONTEXT BUFFER)
-   * rather than the cached system — the model still receives them, just lower in the
+   * the head. They are therefore carried in a throwaway trailing user message (like the
+   * CONTEXT BUFFER) rather than the cached system — the model still receives them, just lower in the
    * prompt. memory/skills/rules stay in the system: measured stable across turns.
    */
   const orchestrationPrompt = createAgentOrchestrationPrompt(orchestrationPlan);
@@ -653,6 +639,16 @@ ${skillsContext}`;
 ${projectRulesContext}`;
   }
 
+  /*
+   * Accumulate ALL per-turn volatile blocks (CONTEXT BUFFER + CHAT SUMMARY,
+   * orchestration prompt + exec-context) and carry them in ONE throwaway trailing
+   * user message, so every real conversation message stays byte-identical
+   * turn-to-turn and the cached prefix grows with the history (see
+   * appendContextAsTrailingUserMessage). Order preserved: context buffer first,
+   * orchestration last, exactly as the model saw them before.
+   */
+  const volatileTailBlocks: string[] = [];
+
   if (chatMode === 'build' && contextFiles && contextOptimization) {
     const codeContext = createFilesContext(contextFiles, true);
 
@@ -660,9 +656,9 @@ ${projectRulesContext}`;
      * Cache-max (LOT 1): the CONTEXT BUFFER (full project files) and CHAT SUMMARY
      * are the per-turn-volatile blocks that used to rotate the system prompt and
      * defeat prefix caching. Build them here but DO NOT append them to the system
-     * — carry them in the tail of the current user message via
-     * appendContextToLastUserMessage, after the stable cache boundary. The model
-     * still receives the identical context, just lower in the prompt.
+     * — carry them in the throwaway trailing user message, after the stable cache
+     * boundary. The model still receives the identical context, just lower in the
+     * prompt.
      */
     let contextBufferBlock = `Below is the artifact containing the context loaded into context buffer for you to have knowledge of and might need changes to fullfill current user request.
 CONTEXT BUFFER:
@@ -682,11 +678,15 @@ ${props.summary}
       processedMessages = applyContextOptimizedHistoryWindow(processedMessages, props.messageSliceId);
     }
 
-    processedMessages = appendContextToLastUserMessage(processedMessages, contextBufferBlock);
+    volatileTailBlocks.push(contextBufferBlock);
   }
 
-  // Cache-max: carry the per-turn orchestration block in the message tail (see above).
-  processedMessages = appendContextToLastUserMessage(processedMessages, orchestrationTailBlock);
+  if (orchestrationTailBlock) {
+    volatileTailBlocks.push(orchestrationTailBlock);
+  }
+
+  // Cache-max: carry all per-turn volatile context in ONE trailing user message (see above).
+  processedMessages = appendContextAsTrailingUserMessage(processedMessages, volatileTailBlocks.join('\n\n'));
 
   const effectiveLockedFilePaths = new Set<string>();
 
@@ -715,8 +715,8 @@ ${props.summary}
   /*
    * Cross-turn cache breakpoint (Anthropic-family only) — placed at the END of the
    * system assembly. Now that the volatile CONTEXT BUFFER + CHAT SUMMARY are carried
-   * in the user-message tail (appendContextToLastUserMessage) — along with the
-   * per-turn orchestration prompt + exec-context — the ENTIRE system (base + memory +
+   * in a throwaway trailing user message (appendContextAsTrailingUserMessage) — along
+   * with the per-turn orchestration prompt + exec-context — the ENTIRE system (base + memory +
    * skills + rules + locked list) is stable across turns of a conversation, so
    * marking the boundary here lets Anthropic cache the
    * whole system instead of only the head. The sentinel is Anthropic-only and is
