@@ -117,6 +117,7 @@ function UsageCard({ env, onOpen }: { env: DbEnv; onOpen: () => void }) {
 export function DatabaseWorkbench({ projectId }: { projectId: string }) {
   const base = `/api/projects/${encodeURIComponent(projectId)}/ide-panel/database`;
   const fetcher = useFetcher();
+  const provisionFetcher = useFetcher<{ ok?: boolean; instance?: unknown; error?: string }>();
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
 
@@ -125,6 +126,15 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
       fetcher.load(base);
     }
   }, [fetcher, base]);
+
+  // After a successful managed provision, reload the panel so the new DB shows.
+  useEffect(() => {
+    if (provisionFetcher.state === 'idle' && provisionFetcher.data?.ok) {
+      fetcher.load(base);
+    }
+  }, [provisionFetcher.state, provisionFetcher.data, fetcher, base]);
+
+  const provisioning = provisionFetcher.state !== 'idle';
 
   const environments = useMemo(() => readEnvironments(fetcher.data), [fetcher.data]);
   const active = environments.find((e) => e.key === openKey) ?? null;
@@ -158,6 +168,29 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
             />
           ))}
         </div>
+
+        {environments.length === 0 ? (
+          <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed border-bolt-elements-borderColor p-4">
+            <div>
+              <p className="text-[13px] font-medium text-bolt-elements-textPrimary">No database yet</p>
+              <p className="text-[12px] text-bolt-elements-textSecondary">
+                Provision a managed Postgres database for this project — schema browser, SQL editor and backups run
+                against it.
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={provisioning}
+              onClick={() => provisionFetcher.submit({ intent: 'provision' }, { method: 'post', action: base })}
+              className="inline-flex items-center gap-1.5 rounded-md bg-bolt-elements-button-primary-background px-3 py-1.5 text-[13px] font-medium text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover disabled:opacity-60"
+            >
+              {provisioning ? 'Creating database…' : 'Create database'}
+            </button>
+            {provisionFetcher.data?.error ? (
+              <p className="text-[12px] text-red-500">{provisionFetcher.data.error}</p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     );
   }

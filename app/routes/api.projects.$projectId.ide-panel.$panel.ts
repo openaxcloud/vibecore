@@ -1694,6 +1694,14 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       });
 
       return json({ ok: true, ...(queryResult as any) });
+    } else if (intent === 'provision') {
+      // Provision a managed CNPG database for this project (the button-wired path).
+      const provisioned = await apiRequest(request, `/projects/${projectId}/database/provision`, {
+        method: 'POST',
+        body: JSON.stringify({ environment: body.environment || undefined }),
+      });
+
+      return json({ ok: true, ...(provisioned as any) });
     } else if (intent === 'upsert-secret') {
       await apiRequest(request, `/projects/${projectId}/secrets`, {
         method: 'PUT',
