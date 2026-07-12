@@ -5,6 +5,7 @@ import {
   decodeArchiveEntry,
   isTransientCommandFailure,
   isTransientFailureMessage,
+  previewPortsToPrune,
   resolvePreviewBootOverlay,
   shouldKickReopenPreview,
   shouldLatchPreviewStartFailure,
@@ -192,6 +193,22 @@ describe('isTransientFailureMessage', () => {
     expect(isTransientFailureMessage('No package.json found in the project')).toBe(false);
     expect(isTransientFailureMessage('project file archive returned 404')).toBe(false);
     expect(isTransientFailureMessage('ERESOLVE unable to resolve dependency tree')).toBe(false);
+  });
+});
+
+describe('previewPortsToPrune', () => {
+  it('prunes a previously-detected port the authoritative poll no longer lists (dev server died)', () => {
+    // vite (5173) crashed; poll only still sees an api on 3001.
+    expect(previewPortsToPrune([{ port: 5173 }, { port: 3001 }], new Set([3001]))).toEqual([5173]);
+  });
+
+  it('prunes everything when a resolved poll returns an EMPTY live set (nothing listening)', () => {
+    expect(previewPortsToPrune([{ port: 5173 }], new Set())).toEqual([5173]);
+  });
+
+  it('keeps ports that are still listening (no spurious teardown of a live preview)', () => {
+    expect(previewPortsToPrune([{ port: 5173 }], new Set([5173]))).toEqual([]);
+    expect(previewPortsToPrune([], new Set([5173]))).toEqual([]);
   });
 });
 

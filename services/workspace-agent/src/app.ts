@@ -25,6 +25,7 @@ export interface WorkspaceAgentOptions {
   maxOutputBytes?: number;
   commandTimeoutMs?: number;
   maxProcesses?: number;
+
   /*
    * Running-process registry. Defaults to a fresh Map; injectable so tests can
    * seed process records and assert the /busy classification deterministically
@@ -141,8 +142,10 @@ export function isTransientPackageCommand(command: string): boolean {
   const manager = (tokens[0].split('/').pop() ?? tokens[0]).replace(/\.(cmd|exe)$/, '');
   const subcommand = tokens[1];
 
-  // A bare `yarn` (no subcommand) runs an install; every other manager needs an
-  // explicit install/add/ci subcommand to touch node_modules.
+  /*
+   * A bare `yarn` (no subcommand) runs an install; every other manager needs an
+   * explicit install/add/ci subcommand to touch node_modules.
+   */
   if (manager === 'yarn' && subcommand === undefined) {
     return true;
   }
@@ -426,6 +429,74 @@ function pinViteDevArgs(cwd: string, command: string, args: string[]): string[] 
     previewEnv: true,
     readScript: (name) => scripts[name],
   });
+}
+
+/**
+ * The pinned port a set of spawn args targets, or null when the args are not a
+ * pinned Vite dev launch (`--port <n> --strictPort`, injected by pinViteDevArgs).
+ * Only a pinned launch can crash on "port already in use", so only those trigger
+ * the conflict-heal below.
+ */
+export function pinnedDevServerPort(spawnArgs: readonly string[]): number | null {
+  if (!spawnArgs.includes('--strictPort')) {
+    return null;
+  }
+
+  const idx = spawnArgs.indexOf('--port');
+
+  if (idx < 0 || idx + 1 >= spawnArgs.length) {
+    return null;
+  }
+
+  const port = Number(spawnArgs[idx + 1]);
+
+  return Number.isInteger(port) && port > 0 && port <= 65535 ? port : null;
+}
+
+/**
+ * Idempotent dev-server (re)start. A Vite dev command is pinned to 5173 with
+ * `--strictPort`, so if a PRIOR dev server still holds the port the new spawn dies
+ * immediately with "Port 5173 already in use" — the exact crash that turned the
+ * IDE's preview retry into an endless reload with a blank app (the dev server
+ * never comes back). Before launching a pinned dev command, SIGKILL any tracked
+ * dev server already pinned to the SAME port (whole process group, so vite's
+ * esbuild children die too) and give the kernel a beat to release the socket, so
+ * the restart always binds cleanly instead of crash-looping.
+ */
+async function killStalePinnedDevServers(processes: Map<string, ProcessRecord>, spawnArgs: readonly string[]) {
+  const port = pinnedDevServerPort(spawnArgs);
+
+  if (port === null) {
+    return;
+  }
+
+  const marker = `--port ${port} --strictPort`;
+  const stale = [...processes.values()].filter((record) => record.command.includes(marker));
+
+  if (stale.length === 0) {
+    return;
+  }
+
+  for (const record of stale) {
+    try {
+      if (record.process.pid) {
+        process.kill(-record.process.pid, 'SIGKILL');
+      } else {
+        record.process.kill('SIGKILL');
+      }
+    } catch {
+      try {
+        record.process.kill('SIGKILL');
+      } catch {
+        // already exited
+      }
+    }
+
+    processes.delete(record.id);
+  }
+
+  // Brief pause so the OS releases the listening socket before the strictPort bind.
+  await new Promise((settle) => setTimeout(settle, 600));
 }
 
 export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
@@ -1835,6 +1906,9 @@ async function runCommand(
   // Force a Vite dev server onto 5173 in the preview env (no-op otherwise). See injectViteDevArgs.
   const spawnArgs = pinViteDevArgs(cwd, command, normalizedArgs);
 
+  // Idempotent restart: free the pinned port from a prior dev server first (see runCommandStream).
+  await killStalePinnedDevServers(options.processes, spawnArgs);
+
   const id = createHash('sha256')
     /*
      * randomUUID() (not just Date.now()) so two identical commands started within
@@ -2028,6 +2102,13 @@ async function runCommandStream(
    * couldn't apply. See injectViteDevArgs.
    */
   const spawnArgs = pinViteDevArgs(cwd, command, normalizedArgs);
+
+  /*
+   * Idempotent restart: tear down any prior dev server still pinned to this port
+   * so the strictPort spawn below never dies on "port already in use" (the crash
+   * that stranded the preview on an endless reload).
+   */
+  await killStalePinnedDevServers(options.processes, spawnArgs);
 
   const id = createHash('sha256')
     // randomUUID() guards against same-millisecond id collisions (see runCommand).

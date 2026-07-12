@@ -189,6 +189,25 @@ export function shouldLatchPreviewStartFailure(input: { manual: boolean; message
   return !isTransientFailureMessage(input.message);
 }
 
+/**
+ * Which previously-detected preview ports a fresh, AUTHORITATIVE port poll no
+ * longer reports listening — i.e. the dev servers that have since crashed/exited.
+ *
+ * `refreshPorts` reads the pod's real /proc listening sockets; a port that drops
+ * out of that set is genuinely gone. `#applyPortEvent` only prunes on an explicit
+ * watch-stream 'close', so a death the watch missed (pod flap / reconnect) left the
+ * dead port in the previews store as ready+baseUrl forever — the preview then
+ * "reattached" to a corpse and never relaunched (endless reload, blank app). The
+ * caller synthesises a 'close' for each returned port so the store converges on the
+ * poll. Pure so the reconciliation is unit-tested without a runtime adapter or DOM.
+ */
+export function previewPortsToPrune(
+  currentPreviews: readonly { port: number }[],
+  livePorts: ReadonlySet<number>,
+): number[] {
+  return currentPreviews.filter((preview) => !livePorts.has(preview.port)).map((preview) => preview.port);
+}
+
 export interface DecodedArchiveEntry {
   content: string;
   isBinary: boolean;

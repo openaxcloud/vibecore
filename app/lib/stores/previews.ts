@@ -1,6 +1,8 @@
 import type { RuntimeAdapter, WorkspacePort } from '@vibecore/runtime-contract';
 import { atom } from 'nanostores';
 
+import { previewPortsToPrune } from './preview-recovery';
+
 // Extend Window interface to include our custom property
 declare global {
   interface Window {
@@ -319,6 +321,27 @@ export class PreviewsStore {
   async refreshPorts() {
     const ports = await this.#runtime.listPorts();
     ports.forEach((port) => this.#applyPortEvent(port));
+
+    /*
+     * Reconcile: the poll is AUTHORITATIVE (listPorts reads the pod's actual
+     * /proc listening sockets). `#applyPortEvent` only ever prunes a port on an
+     * explicit 'close' event from the watch stream — so when a dev server crashes
+     * or exits and the watch missed the close (pod flap, reconnect), the dead port
+     * lingered in `previews` as ready+baseUrl forever. The reopen path then read it
+     * as a live server and "reattached" instead of relaunching → the preview stuck
+     * on an endless reload with a blank app. Prune every preview whose port the
+     * successful poll no longer reports listening. Guarded on a resolved poll only
+     * (listPorts rejecting is handled by the caller's catch), so a transient agent
+     * error never wipes a live preview; a resolved EMPTY set legitimately means
+     * "nothing is listening" and must clear a dead port.
+     */
+    const livePorts = new Set(ports.map((port) => port.port));
+    const previews = this.previews.get();
+
+    for (const deadPort of previewPortsToPrune(previews, livePorts)) {
+      const dead = previews.find((preview) => preview.port === deadPort);
+      this.#applyPortEvent({ port: deadPort, type: 'close', url: dead?.baseUrl, ready: false });
+    }
   }
 
   #applyPortEvent({ port, type, url, ready }: WorkspacePort) {

@@ -13,6 +13,7 @@ import {
   injectViteDevArgs,
   isProductionBuildCommand,
   isTransientPackageCommand,
+  pinnedDevServerPort,
   sanitizedChildEnv,
   type ProcessRecord,
 } from './app.js';
@@ -55,6 +56,7 @@ describe('isTransientPackageCommand', () => {
     expect(isTransientPackageCommand('yarn install')).toBe(true);
     expect(isTransientPackageCommand('yarn add lodash')).toBe(true);
     expect(isTransientPackageCommand('bun install')).toBe(true);
+
     // Tolerates an absolute path to the manager binary.
     expect(isTransientPackageCommand('/usr/local/bin/pnpm install')).toBe(true);
   });
@@ -79,6 +81,7 @@ describe('GET /busy', () => {
       workspaceId,
       processes: new Map([['p1', fakeProcess('p1', 'npm install')]]),
     });
+
     const installBody = (await install.inject({ method: 'GET', url: '/busy' })).json();
     expect(installBody).toEqual({ busy: true, buildCount: 1 });
 
@@ -115,8 +118,29 @@ describe('GET /busy', () => {
 
     const body = (await app.inject({ method: 'GET', url: '/busy' })).json();
     expect(body).toEqual({ busy: true, buildCount: 2 });
+
     // Response exposes only counts + a boolean, never the tenant command lines.
     expect(JSON.stringify(body)).not.toContain('npm');
+  });
+});
+
+describe('pinnedDevServerPort', () => {
+  it('returns the pinned port for a strictPort vite dev launch', () => {
+    expect(pinnedDevServerPort(['--port', '5173', '--strictPort', '--host'])).toBe(5173);
+    expect(pinnedDevServerPort(['vite', '--port', '4321', '--strictPort'])).toBe(4321);
+  });
+
+  it('returns null when not a pinned launch (no strictPort, or no port)', () => {
+    expect(pinnedDevServerPort(['--port', '5173'])).toBeNull(); // no --strictPort
+    expect(pinnedDevServerPort(['--strictPort', '--host'])).toBeNull(); // no --port value
+    expect(pinnedDevServerPort(['build'])).toBeNull();
+    expect(pinnedDevServerPort([])).toBeNull();
+  });
+
+  it('rejects a non-numeric or out-of-range port', () => {
+    expect(pinnedDevServerPort(['--port', 'abc', '--strictPort'])).toBeNull();
+    expect(pinnedDevServerPort(['--port', '99999', '--strictPort'])).toBeNull();
+    expect(pinnedDevServerPort(['--port', '0', '--strictPort'])).toBeNull();
   });
 });
 
@@ -155,6 +179,7 @@ describe('injectViteDevArgs', () => {
       '--strictPort',
       '--host',
     ]);
+
     // `pnpm dev` shorthand resolves the same script.
     expect(injectViteDevArgs('pnpm', ['dev'], viteDev)).toEqual([
       'dev',
@@ -164,6 +189,7 @@ describe('injectViteDevArgs', () => {
       '--strictPort',
       '--host',
     ]);
+
     // An existing `--` passthrough is reused rather than doubled.
     expect(injectViteDevArgs('npm', ['run', 'dev', '--', '--host', '0.0.0.0'], viteDev)).toEqual([
       'run',
@@ -180,6 +206,7 @@ describe('injectViteDevArgs', () => {
 
   it('does NOT touch a `next dev` app (proxy targets 3000, would choke on --strictPort)', () => {
     expect(injectViteDevArgs('next', ['dev'], preview)).toEqual(['dev']);
+
     // `npm run dev` whose script is `next dev` is left alone.
     expect(injectViteDevArgs('npm', ['run', 'dev'], nextDev)).toEqual(['run', 'dev']);
   });
@@ -190,6 +217,7 @@ describe('injectViteDevArgs', () => {
     expect(injectViteDevArgs('node', ['server.js'], preview)).toEqual(['server.js']);
     expect(injectViteDevArgs('vite', ['build'], preview)).toEqual(['build']);
     expect(injectViteDevArgs('vite', ['preview'], preview)).toEqual(['preview']);
+
     // An unknown `dev` script (not vite) is not assumed to be vite.
     expect(injectViteDevArgs('npm', ['run', 'dev'], preview)).toEqual(['run', 'dev']);
   });
@@ -202,6 +230,7 @@ describe('injectViteDevArgs', () => {
       '--strictPort',
       '--host',
     ]);
+
     // A user-chosen explicit port is respected.
     expect(injectViteDevArgs('vite', ['--port', '4321'], preview)).toEqual(['--port', '4321']);
   });
@@ -464,8 +493,10 @@ describe('workspace-agent', () => {
     const selfPort = 8080;
     const agentPid = 1;
 
-    // A dev server on a non-default port whose socket-inode -> pid mapping is missing
-    // (gVisor) must STILL be surfaced — else detection falls back to the 5173 guess.
+    /*
+     * A dev server on a non-default port whose socket-inode -> pid mapping is missing
+     * (gVisor) must STILL be surfaced — else detection falls back to the 5173 guess.
+     */
     expect(classifyListeningPort({ port: 3000, pid: undefined, selfPort, agentPid })).toEqual({
       include: true,
       fallbackId: 'port:3000',
@@ -499,8 +530,10 @@ describe('workspace-agent', () => {
     // The shim is present and runs as a classic (non-module) script…
     expect(out).toContain('data-ecode-hmr-shim');
     expect(out).toContain('window.WebSocket');
+
     // …injected right after <head>, i.e. BEFORE Vite's deferred module scripts.
     expect(out.indexOf('data-ecode-hmr-shim')).toBeLessThan(out.indexOf('/@vite/client'));
+
     // The original document is preserved.
     expect(out).toContain('<div id="root"></div>');
     expect(out).toContain('/src/main.tsx');
@@ -527,10 +560,13 @@ describe('workspace-agent', () => {
 
     // 127.0.0.1 is the fast path and must be tried first.
     expect(hosts[0]).toBe('127.0.0.1');
+
     // The pod's routable IPv4 (Vite's `Network:` addr) reaches a `[::]` bind on gVisor.
     expect(hosts).toContain('10.20.0.10');
+
     // IPv6 loopback is the last resort (no-op on pods without IPv6 loopback).
     expect(hosts[hosts.length - 1]).toBe('[::1]');
+
     // Interface IPv6 addresses and internal loopbacks are never dialed directly.
     expect(hosts).not.toContain('::1');
     expect(hosts).not.toContain('fe80::1');
