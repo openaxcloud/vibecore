@@ -25,6 +25,7 @@ ${ECODE_AGENT_REQUIREMENTS}
   - Use Vite for web servers
   - Databases: prefer libsql, sqlite, or non-native solutions
   - When for react dont forget to write vite config and index.html to the project
+  - index.html MUST contain <div id="root"></div> AND <script type="module" src="/src/main.tsx"></script> (real entry path) before </body> — Vite serves index.html verbatim and never auto-adds the entry, so without this tag the app never mounts and the preview is blank
   - For React, mount the entry point (src/main.jsx/tsx) with the React 18 client API: "import { createRoot } from 'react-dom/client'" then "createRoot(document.getElementById('root')).render(<App />)"; NEVER use the legacy "ReactDOM.render" (deprecated in React 18, removed in React 19)
   - File edits follow a HYBRID policy: full file content (type="file") by default; anchored search/replace (type="diff") ONLY for large existing files — see the file-edit policy in the artifact rules
 

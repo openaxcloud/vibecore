@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildPreviewProxyApp,
   computeHostPreviewSubpath,
+  injectInspectorScript,
   readCookie,
   signPreviewTenantToken,
   verifyPreviewTenantToken,
@@ -270,6 +271,38 @@ describe('preview-proxy', () => {
     // content-length must match the rewritten body, not the upstream length.
     expect(Number(response.headers['content-length'])).toBe(Buffer.byteLength(response.body));
     await app.close();
+  });
+
+  it('records a blank-preview beacon (server-side trace) and returns 204', async () => {
+    const app = await buildPreviewProxyApp({
+      fetchImpl: async () => new Response('', { status: 200 }),
+      resolveAgent: async () => fakeAgent,
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/__vibecore/preview-blank',
+      headers: { 'content-type': 'application/json' },
+      payload: JSON.stringify({ url: 'https://ws-x-5173.preview.e-code.ai/', ts: 1 }),
+    });
+
+    expect(response.statusCode).toBe(204);
+    await app.close();
+  });
+
+  it('REGRESSION: injecting the reporter/inspector NEVER strips the app entry script (blank-preview guard)', () => {
+    const withEntry =
+      '<!doctype html><html><head><title>App</title></head>' +
+      '<body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>';
+
+    const out = injectInspectorScript(withEntry);
+
+    // Our injections landed (before </head>)…
+    expect(out).toContain('src="/__vibecore/preview-reporter.js"');
+    expect(out).toContain('src="/__vibecore/inspector-script.js"');
+    // …and the app entry survives, exactly once (structurally: our tags go in <head>, the entry in <body>).
+    expect((out.match(/src="\/src\/main\.tsx"/g) ?? []).length).toBe(1);
+    expect(out).toContain('<div id="root">');
   });
 
   it('does not double-inject the reporter when the page already self-hosts it', async () => {

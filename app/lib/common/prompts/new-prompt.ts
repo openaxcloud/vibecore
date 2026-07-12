@@ -227,6 +227,7 @@ ${
 
   Preview Readiness:
     - For React/Vite apps, ALWAYS include package.json, index.html, vite.config.ts, src/main.tsx, and a complete src/App.tsx.
+    - index.html MUST contain the module entry script that loads the app: <script type="module" src="/src/main.tsx"></script> just before </body> (use the real entry path, e.g. /src/main.jsx). This is MANDATORY: Vite serves index.html verbatim and does NOT auto-inject the entry, so WITHOUT this exact tag src/main.tsx never loads, React never mounts, and the preview is a permanently blank white page. index.html must also contain the mount node <div id="root"></div>.
     - The React entry (src/main.tsx) MUST mount with the React 18 client API: "import { createRoot } from 'react-dom/client'" then "createRoot(document.getElementById('root')!).render(<App />)". NEVER use the legacy "ReactDOM.render" (deprecated in React 18, removed in React 19).
     - package.json MUST include dev, build, and preview scripts.
     - The final action MUST start the app with the dev script when creating a runnable app.

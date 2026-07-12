@@ -123,6 +123,9 @@ const INSPECTOR_MARKER = 'data-vibecore-inspector';
 const REPORTER_SCRIPT_PATH = '/__vibecore/preview-reporter.js';
 const REPORTER_MARKER = 'data-vibecore-reporter';
 
+/** Beacon endpoint the reporter posts to when a served page never mounts (blank preview). */
+const BLANK_PREVIEW_PATH = '/__vibecore/preview-blank';
+
 type PreviewRouteParams = { workspaceId: string; port: string; '*'?: string };
 
 /*
@@ -434,6 +437,30 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     reply.header('cache-control', 'public, max-age=3600');
 
     return reply.send(REPORTER_SCRIPT);
+  });
+
+  /*
+   * Blank-preview beacon. The injected reporter posts here (navigator.sendBeacon)
+   * when a served page never mounts its SPA root — so a silent white-screen preview
+   * always leaves a server-side trace, independent of the IDE. Body is a tiny
+   * best-effort JSON blob; we log a structured line and 204. Never throws.
+   */
+  app.post(BLANK_PREVIEW_PATH, async (request, reply) => {
+    let url = 'unknown';
+
+    try {
+      const body = typeof request.body === 'string' ? JSON.parse(request.body) : (request.body as { url?: unknown });
+
+      if (body && typeof body.url === 'string') {
+        url = body.url;
+      }
+    } catch {
+      // malformed beacon — still record the event.
+    }
+
+    request.log.warn({ event: 'preview.blank', url }, 'preview served but the app never mounted (#root empty)');
+
+    return reply.code(204).send();
   });
 
   const resolveAgent = options.resolveAgent ?? defaultResolveAgent(options, fetchImpl);
@@ -864,7 +891,12 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
       const path = request.url.split('?')[0].split('#')[0];
 
-      if (path === '/health' || path === INSPECTOR_SCRIPT_PATH || path === REPORTER_SCRIPT_PATH) {
+      if (
+        path === '/health' ||
+        path === INSPECTOR_SCRIPT_PATH ||
+        path === REPORTER_SCRIPT_PATH ||
+        path === BLANK_PREVIEW_PATH
+      ) {
         return; // proxy-served endpoints take precedence over host proxying
       }
 

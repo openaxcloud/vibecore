@@ -45,6 +45,8 @@ ${ECODE_AGENT_REQUIREMENTS}
 
   IMPORTANT: For React apps, the entry point (e.g. src/main.jsx or src/main.tsx) MUST mount with the React 18 client API: "import { createRoot } from 'react-dom/client'" then "createRoot(document.getElementById('root')).render(<App />)". NEVER use the legacy "ReactDOM.render" — it is deprecated in React 18 (logs a console warning) and removed in React 19.
 
+  IMPORTANT: For Vite apps, index.html MUST contain BOTH the mount node <div id="root"></div> AND the module entry script <script type="module" src="/src/main.tsx"></script> (matching the real entry path) just before </body>. Vite serves index.html verbatim and does NOT auto-inject the entry, so without this exact tag the app never loads and the preview stays a blank white page.
+
   IMPORTANT: Git is NOT available.
 
   IMPORTANT: File edits follow a HYBRID policy — write the full file content with a "file" action by default, and use an anchored search/replace "diff" action ONLY for a small change to a large existing file (see the file-edit policy in the artifact instructions)

@@ -595,6 +595,27 @@ describe('workspace-agent', () => {
     expect(ensureViteEntryScript('', '/workspace', () => true)).toBe('');
   });
 
+  it('REGRESSION: the served HTML pipeline always keeps the app entry AND adds our injections (never strips the entry)', () => {
+    const root = '/workspace';
+    const exists = (p: string) => p.endsWith('/src/main.tsx');
+
+    // Case A — generated index.html MISSING the entry: pipeline repairs it AND adds the HMR shim.
+    const broken = '<!DOCTYPE html><html><head><title>App</title></head><body><div id="root"></div></body></html>';
+    const servedA = injectPreviewHmrShim(ensureViteEntryScript(broken, root, exists));
+    expect(servedA).toContain('src="/src/main.tsx"'); // entry present
+    expect(servedA).toContain('data-ecode-hmr-shim'); // our injection present
+    expect(servedA).toContain('<div id="root">'); // mount preserved
+
+    // Case B — index.html that ALREADY has the entry: the entry SURVIVES and is not duplicated.
+    const withEntry =
+      '<!DOCTYPE html><html><head><title>App</title></head>' +
+      '<body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>';
+    const servedB = injectPreviewHmrShim(ensureViteEntryScript(withEntry, root, exists));
+    expect(servedB).toContain('data-ecode-hmr-shim'); // our injection added
+    // Exactly ONE entry script — never stripped, never duplicated.
+    expect(servedB.match(/src="\/src\/main\.tsx"/g)?.length).toBe(1);
+  });
+
   it('builds preview hosts: loopback first, pod IPv4 next, [::1] last, no internal/IPv6 interface addrs', () => {
     const hosts = buildPreviewHosts({
       lo: [

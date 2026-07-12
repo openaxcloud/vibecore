@@ -597,6 +597,9 @@ export const Preview = memo(
   }: PreviewProps) => {
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+
+    // One-shot guard: auto-reload a blank (served-but-never-mounted) preview at most once.
+    const blankRecoveredRef = useRef(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const previewReloadTimer = useRef<number | undefined>();
     const previewLoadRetryRef = useRef(0);
@@ -2020,6 +2023,22 @@ export const Preview = memo(
               ].slice(0, 120),
             );
             workbenchStore.appendWorkspaceLog(String(event.data.stack));
+          }
+        } else if (event.data.type === 'PREVIEW_BLANK') {
+          /*
+           * The injected reporter detected a served page whose SPA root never
+           * mounted (blank white screen). Surface it clearly instead of leaving a
+           * silent blank, and auto-reload the frame ONCE — by then the agent's
+           * serve-time entry repair has re-injected the missing entry script.
+           */
+          const message =
+            'Preview loaded but the app never mounted (blank page). Check the app entry / console. Auto-reloading once…';
+          setPreviewConsoleEvents((events) => [{ level: 'warn', message }, ...events].slice(0, 120));
+          workbenchStore.appendWorkspaceLog(message);
+
+          if (!blankRecoveredRef.current) {
+            blankRecoveredRef.current = true;
+            reloadPreview('blank-preview:auto-recover');
           }
         }
       };

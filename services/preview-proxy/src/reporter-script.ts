@@ -68,6 +68,46 @@ export const REPORTER_SCRIPT = `(function () {
     }
   }
 
+  /*
+   * Blank-preview watchdog. A page that is served (HTTP 200) but never mounts —
+   * a generated index.html missing its entry script, an entry that throws on
+   * mount, etc. — leaves the SPA mount node empty and shows a silent white
+   * screen. Detect it and report ONCE (to the parent IDE for a clear message +
+   * one auto-reload, and to the proxy for a server-side log) so a blank preview
+   * is never invisible. Two-stage (empty at ~10s AND still empty ~8s later) to
+   * avoid false-positives on a slow-but-fine cold boot.
+   */
+  function mountIsEmpty() {
+    var mount = document.getElementById('root') || document.getElementById('app');
+    if (!mount) {
+      return false; // no SPA mount node → a static/multi-page doc, not our case.
+    }
+    var bodyText = ((document.body && document.body.innerText) || '').trim();
+    return mount.children.length === 0 && bodyText.length === 0;
+  }
+
+  var blankReported = false;
+  function reportBlank() {
+    if (blankReported || !mountIsEmpty()) {
+      return;
+    }
+    blankReported = true;
+    var payload = { type: 'PREVIEW_BLANK', message: 'Preview served but the app never mounted', url: location.href, ts: Date.now() };
+    send(payload);
+    try {
+      if (navigator && typeof navigator.sendBeacon === 'function') {
+        navigator.sendBeacon('/__vibecore/preview-blank', JSON.stringify({ url: payload.url, ts: payload.ts }));
+      }
+    } catch (error) {
+      // best-effort server log; never break the page.
+    }
+  }
+  setTimeout(function () {
+    if (mountIsEmpty()) {
+      setTimeout(reportBlank, 8000);
+    }
+  }, 10000);
+
   var levels = ['log', 'info', 'warn', 'error', 'debug'];
   levels.forEach(function (level) {
     var original = console[level];
