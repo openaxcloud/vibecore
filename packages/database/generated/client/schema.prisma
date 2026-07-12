@@ -1034,6 +1034,26 @@ model AiTokenUsage {
   message            AiMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }
 
+// F18 — per-request AI provider outcome, so the admin Providers panel can show a
+// REAL p95 latency + 24h error rate per provider (previously metricsAvailable:false
+// because no per-request provider metric source existed). Written best-effort on
+// BOTH success and failure from the chat completion path; standalone, no FK to a
+// message (an errored request may never create one). Indexed on (provider, createdAt)
+// for the 24h rolling aggregation. Pruned by the usage-retention cron.
+model ProviderRequestMetric {
+  id         String   @id @default(cuid())
+  provider   String
+  model      String?
+  latencyMs  Int
+  errored    Boolean  @default(false)
+  statusCode Int?
+  source     String?
+  createdAt  DateTime @default(now())
+
+  @@index([provider, createdAt])
+  @@index([createdAt])
+}
+
 // 👍/👎 a user left on an assistant chat message (2026-07-03). messageId is
 // the client-side chat message id — standalone chats keep their transcript in
 // browser IndexedDB and never persist an AiMessage row, so this deliberately

@@ -169,6 +169,15 @@ export class TestApiStore implements ApiStore {
   readonly aiMessages = new Map<string, AiMessageRecord>();
   readonly aiToolCalls = new Map<string, AiToolCallRecord>();
   readonly aiTokenUsages = new Map<string, AiTokenUsageRecord>();
+  readonly providerRequestMetrics: Array<{
+    provider: string;
+    model: string | null;
+    latencyMs: number;
+    errored: boolean;
+    statusCode: number | null;
+    source: string | null;
+    createdAt: string;
+  }> = [];
   readonly aiCostLedger = new Map<string, AiCostLedgerRecord>();
   readonly creditWallets = new Map<string, CreditWalletRecord>();
   readonly creditLedger = new Map<string, CreditLedgerRecord>();
@@ -2769,6 +2778,32 @@ export class TestApiStore implements ApiStore {
     return usage;
   }
 
+  async createProviderRequestMetric(input: {
+    provider: string;
+    model?: string | null;
+    latencyMs: number;
+    errored: boolean;
+    statusCode?: number | null;
+    source?: string | null;
+  }) {
+    this.providerRequestMetrics.push({
+      provider: input.provider,
+      model: input.model ?? null,
+      latencyMs: Math.max(0, Math.round(input.latencyMs)),
+      errored: input.errored,
+      statusCode: input.statusCode ?? null,
+      source: input.source ?? null,
+      createdAt: now(),
+    });
+  }
+
+  async listProviderRequestMetricsSince(since: Date, limit = 50_000) {
+    return this.providerRequestMetrics
+      .filter((row) => new Date(row.createdAt).getTime() >= since.getTime())
+      .slice(-limit)
+      .map((row) => ({ provider: row.provider, latencyMs: row.latencyMs, errored: row.errored }));
+  }
+
   async recordAiCost(input: {
     organizationId: string;
     projectId?: string;
@@ -3757,8 +3792,7 @@ export class TestApiStore implements ApiStore {
 
   async listSecurityAuditEvents() {
     return this.auditLogs.filter(
-      (event) =>
-        event.action.startsWith('auth.') || event.action.includes('security') || event.action.includes('mfa'),
+      (event) => event.action.startsWith('auth.') || event.action.includes('security') || event.action.includes('mfa'),
     );
   }
 

@@ -708,6 +708,17 @@ exports.Prisma.AiTokenUsageScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.ProviderRequestMetricScalarFieldEnum = {
+  id: 'id',
+  provider: 'provider',
+  model: 'model',
+  latencyMs: 'latencyMs',
+  errored: 'errored',
+  statusCode: 'statusCode',
+  source: 'source',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.AiMessageFeedbackScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1524,6 +1535,7 @@ exports.Prisma.ModelName = {
   AiMessage: 'AiMessage',
   AiToolCall: 'AiToolCall',
   AiTokenUsage: 'AiTokenUsage',
+  ProviderRequestMetric: 'ProviderRequestMetric',
   AiMessageFeedback: 'AiMessageFeedback',
   AiCostLedger: 'AiCostLedger',
   AbuseEvent: 'AbuseEvent',

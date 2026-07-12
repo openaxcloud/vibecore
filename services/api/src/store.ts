@@ -1808,6 +1808,30 @@ export interface ApiStore {
     outputTokens: number;
     estimatedCostCents: number;
   }): Promise<AiTokenUsageRecord>;
+
+  /**
+   * F18 — record one AI provider request outcome (latency + errored) for the admin
+   * Providers panel's p95/error-rate aggregation. Best-effort: callers ignore
+   * failures so metrics never break a completion.
+   */
+  createProviderRequestMetric(input: {
+    provider: string;
+    model?: string | null;
+    latencyMs: number;
+    errored: boolean;
+    statusCode?: number | null;
+    source?: string | null;
+  }): Promise<void>;
+
+  /**
+   * F18 — the provider-request samples since `since` (latency + errored per provider),
+   * bounded to the most recent `limit` rows so a busy window can't OOM the pod. Fed to
+   * aggregateProviderMetrics.
+   */
+  listProviderRequestMetricsSince(
+    since: Date,
+    limit?: number,
+  ): Promise<Array<{ provider: string; latencyMs: number; errored: boolean }>>;
   recordAiCost(input: {
     organizationId: string;
     projectId?: string;

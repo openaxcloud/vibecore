@@ -114,21 +114,21 @@ model Account {
 }
 
 model Session {
-  id           String    @id @default(cuid())
-  userId       String
-  tokenHash    String    @unique
-  refreshHash  String?   @unique
-  expiresAt    DateTime
-  rotatedAt    DateTime?
-  revokedAt    DateTime?
-  lastReauthAt DateTime?
+  id             String    @id @default(cuid())
+  userId         String
+  tokenHash      String    @unique
+  refreshHash    String?   @unique
+  expiresAt      DateTime
+  rotatedAt      DateTime?
+  revokedAt      DateTime?
+  lastReauthAt   DateTime?
   // When set, this session is an admin impersonating another user; value = the
   // impersonating admin's user id (for audit / UI banner / traceability). P8.
   impersonatedBy String?
-  ipAddress    String?
-  userAgent    String?
-  createdAt    DateTime  @default(now())
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime  @default(now())
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -629,12 +629,12 @@ model Workspace {
 // keeps backward compatibility with workspaces created before this table
 // existed.
 model WorkspaceIdeState {
-  workspaceId     String   @id
+  workspaceId     String    @id
   state           Json
-  version         Int      @default(1)
+  version         Int       @default(1)
   updatedByUserId String?
-  updatedAt       DateTime @updatedAt
-  createdAt       DateTime @default(now())
+  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime  @default(now())
   workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }
 
@@ -721,39 +721,39 @@ model ProjectStorageObject {
 }
 
 model Deployment {
-  id               String                 @id @default(cuid())
-  projectId        String
-  workspaceId      String?
-  environmentId    String?
-  environmentName  String                 @default("preview")
-  status           DeploymentStatus       @default(QUEUED)
-  provider         String
-  url              String?
-  previewUrl       String?
-  productionUrl    String?
-  framework        String?
-  buildCommand     String?
-  outputDirectory  String?
-  branch           String?
-  commitSha        String?
-  customDomain     String?
-  logs             Json                   @default("[]")
-  metadata         Json                   @default("{}")
-  rolledBackFromId String?
+  id                 String                 @id @default(cuid())
+  projectId          String
+  workspaceId        String?
+  environmentId      String?
+  environmentName    String                 @default("preview")
+  status             DeploymentStatus       @default(QUEUED)
+  provider           String
+  url                String?
+  previewUrl         String?
+  productionUrl      String?
+  framework          String?
+  buildCommand       String?
+  outputDirectory    String?
+  branch             String?
+  commitSha          String?
+  customDomain       String?
+  logs               Json                   @default("[]")
+  metadata           Json                   @default("{}")
+  rolledBackFromId   String?
   // P2d dev/prod split: when a preview/staging deployment is published to
   // production, the new production deployment links back to its source here.
   parentDeploymentId String?
   // Replit-parity deploy metering idempotency marker: set once the deployment is
   // metered (mirrors WorkspaceRuntime.lastMeteredAt) so a re-reconcile never
   // double-charges. Dormant/SHADOW until BILLING_CREDITS_ENABLED. See metering-service.ts.
-  lastMeteredAt    DateTime?
-  startedAt        DateTime?
-  finishedAt       DateTime?
-  canceledAt       DateTime?
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
-  project          Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  environment      DeploymentEnvironment? @relation(fields: [environmentId], references: [id])
+  lastMeteredAt      DateTime?
+  startedAt          DateTime?
+  finishedAt         DateTime?
+  canceledAt         DateTime?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  project            Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  environment        DeploymentEnvironment? @relation(fields: [environmentId], references: [id])
 
   @@index([projectId])
   @@index([projectId, workspaceId])
@@ -848,11 +848,11 @@ model Subscription {
 }
 
 model Plan {
-  id              String         @id @default(cuid())
-  key             String         @unique
-  name            String
-  monthlyCents    Int
-  limits          Json
+  id                   String         @id @default(cuid())
+  key                  String         @unique
+  name                 String
+  monthlyCents         Int
+  limits               Json
   // Replit-parity additions (nullable → no behaviour change until populated):
   // annual price (effective discount) and the per-plan monthly credit grant in
   // USD cents. `stripePriceId` stays = the monthly price for backward compat;
@@ -866,7 +866,7 @@ model Plan {
   subscriptions        Subscription[]
 }
 
-/*
+/**
  * Admin-managed Stripe configuration (singleton row, id = "singleton"). Lets a
  * platform admin paste the live secret key + webhook signing secret in the admin
  * console instead of editing values-prod.yaml. Both secrets are encrypted at rest
@@ -884,7 +884,7 @@ model StripeConfig {
   updatedAt        DateTime @updatedAt
 }
 
-/*
+/**
  * Admin-managed social-login provider config (2026-06-30): a platform admin can
  * paste each sign-in provider's (GitHub / Google) OAuth client_id + client_secret
  * in /admin/oauth-providers instead of editing the platform Secret + redeploying.
@@ -959,7 +959,7 @@ model StripeEvent {
   @@index([type])
 }
 
-/*
+/**
  * A Stripe webhook whose side-effect processing threw (E28 admin health).
  * The full event payload is stored so an admin can replay it later — replays
  * re-run the SAME processing path with this stored payload (signature
@@ -1032,6 +1032,26 @@ model AiTokenUsage {
   estimatedCostCents Int       @default(0)
   createdAt          DateTime  @default(now())
   message            AiMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+// F18 — per-request AI provider outcome, so the admin Providers panel can show a
+// REAL p95 latency + 24h error rate per provider (previously metricsAvailable:false
+// because no per-request provider metric source existed). Written best-effort on
+// BOTH success and failure from the chat completion path; standalone, no FK to a
+// message (an errored request may never create one). Indexed on (provider, createdAt)
+// for the 24h rolling aggregation. Pruned by the usage-retention cron.
+model ProviderRequestMetric {
+  id         String   @id @default(cuid())
+  provider   String
+  model      String?
+  latencyMs  Int
+  errored    Boolean  @default(false)
+  statusCode Int?
+  source     String?
+  createdAt  DateTime @default(now())
+
+  @@index([provider, createdAt])
+  @@index([createdAt])
 }
 
 // 👍/👎 a user left on an assistant chat message (2026-07-03). messageId is
@@ -1535,7 +1555,7 @@ model ConsensusRecord {
 /// is effectively the canonical state shared between workspace-manager
 /// replicas — replacing the file-backed JsonWorkspaceStore.
 model WorkspaceRuntime {
-  id                   String   @id
+  id                   String    @id
   orgId                String
   projectId            String
   plan                 Json
@@ -1545,14 +1565,14 @@ model WorkspaceRuntime {
   serviceName          String
   agentTokenSecretName String
   error                String?
-  createdAt            DateTime @default(now())
-  lastActiveAt         DateTime @default(now())
+  createdAt            DateTime  @default(now())
+  lastActiveAt         DateTime  @default(now())
   // Last time this runtime's active compute was metered to the billing usage
   // ledger (P4 metering emitter). The GC meters the window from here (or
   // createdAt) to lastActiveAt on stop, then advances this marker — idempotent
   // across manager restarts. Null until first metered.
   lastMeteredAt        DateTime?
-  updatedAt            DateTime @updatedAt
+  updatedAt            DateTime  @updatedAt
 
   @@index([orgId])
   @@index([projectId])
@@ -1616,14 +1636,14 @@ model UserConnection {
   refreshTokenEncrypted String?
   apiKeyFieldsEncrypted Json?
 
-  scopes         String[]
-  tokenExpiresAt DateTime?
-  status         String    @default("active")
-  lastUsedAt     DateTime?
+  scopes            String[]
+  tokenExpiresAt    DateTime?
+  status            String    @default("active")
+  lastUsedAt        DateTime?
   // Cursor for the background token health-check sweep, kept separate from the
   // user-facing lastUsedAt so the sweep no longer clobbers "last used".
   lastHealthCheckAt DateTime?
-  forAgentUse    Boolean   @default(true)
+  forAgentUse       Boolean   @default(true)
 
   oauthAppSource     String  @default("e_code_default")
   oauthAppOverrideId String?
@@ -1820,39 +1840,39 @@ model EmailDeliveryEvent {
 /// materialized cache of the sum of `CreditLedger.deltaCents`; the ledger is
 /// the source of truth. `budgetCapCents` null = pay-as-you-go disabled.
 model CreditWallet {
-  id             String         @id @default(cuid())
-  organizationId String         @unique
-  balanceCents   Int            @default(0)
-  currency       String         @default("usd")
+  id                        String         @id @default(cuid())
+  organizationId            String         @unique
+  balanceCents              Int            @default(0)
+  currency                  String         @default("usd")
   // Replit "Usage Limit": cap on usage-based spend past included credits.
-  budgetCapCents Int?
+  budgetCapCents            Int?
   // Replit "Service Shutdown Limit": suspend usage-based services when reached.
-  serviceShutdownCents Int?
-  autoTopupCents Int?
+  serviceShutdownCents      Int?
+  autoTopupCents            Int?
   // Replit usage-based spend alerts (50/80/100%). De-dup marker: the highest
   // alert rung sent in the current billing period, and that period's start, so
   // each rung fires once and the ladder resets every period. Dormant until
   // BILLING_CREDITS_ENABLED. See spend-alerts.ts.
   lastSpendAlertPct         Int?
   lastSpendAlertPeriodStart DateTime?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  entries        CreditLedger[]
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+  organization              Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  entries                   CreditLedger[]
 }
 
 /// Purchased credit pack (Replit). Credits expire 6 months after purchase, are
 /// consumed earliest-expiring-first, and do NOT roll over after expiry.
 /// `remainingCents` is decremented as the pack is drawn down.
 model CreditPack {
-  id             String       @id @default(cuid())
-  organizationId String
-  purchasedCents Int
-  remainingCents Int
-  expiresAt      DateTime
+  id                    String       @id @default(cuid())
+  organizationId        String
+  purchasedCents        Int
+  remainingCents        Int
+  expiresAt             DateTime
   stripePaymentIntentId String?
-  createdAt      DateTime     @default(now())
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt             DateTime     @default(now())
+  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, expiresAt])
 }
@@ -1883,6 +1903,10 @@ model CreditLedger {
   createdAt      DateTime        @default(now())
   wallet         CreditWallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
   organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  // NOTE: a PARTIAL UNIQUE index "CreditLedger_org_checkpoint_payg_key" on
+  // (organizationId, checkpointId) WHERE kind='PAYG_CHARGE' is defined in raw SQL
+  // (migration 0045) — Prisma's schema can't express a WHERE-filtered unique index.
+  // It backs recordPaygCharge's atomic create+catch-P2002 dedup. Do not drop it.
 
   @@index([organizationId, createdAt])
   @@index([walletId, createdAt])
@@ -1891,10 +1915,6 @@ model CreditLedger {
   // Org-scoped credit-expiry sweep filters organizationId + kind + expiresAt
   // together; the kind/expiresAt-only index wasn't org-scoped.
   @@index([organizationId, kind, expiresAt])
-  // NOTE: a PARTIAL UNIQUE index "CreditLedger_org_checkpoint_payg_key" on
-  // (organizationId, checkpointId) WHERE kind='PAYG_CHARGE' is defined in raw SQL
-  // (migration 0045) — Prisma's schema can't express a WHERE-filtered unique index.
-  // It backs recordPaygCharge's atomic create+catch-P2002 dedup. Do not drop it.
 }
 
 enum CheckpointStatus {
@@ -1956,19 +1976,19 @@ model UserSpendLimit {
 /// Admin-owned AI provider registry. `apiKeySecret` is the *name* of a secret
 /// in the platform secret manager — never the key material itself.
 model ProviderConfig {
-  id           String         @id @default(cuid())
-  provider     String         @unique
+  id           String        @id @default(cuid())
+  provider     String        @unique
   displayName  String
-  enabled      Boolean        @default(false)
+  enabled      Boolean       @default(false)
   apiKeySecret String?
   /// Admin-set platform API key for this provider, encrypted with encryptJson
   /// (write-only, never returned). Distinct from `apiKeySecret`, which holds only
   /// the NAME of a secret. Runtime resolves DB-first → *_API_KEY env fallback.
   apiKeyEnc    String?
   baseUrl      String?
-  byokAllowed  Boolean        @default(false)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  byokAllowed  Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   models       ModelConfig[]
 }
 
@@ -2069,13 +2089,13 @@ model DatabaseRestore {
   databaseInstanceId String
   snapshotId         String?
   targetTimestamp    DateTime?
-  status             DatabaseRestoreStatus  @default(PENDING)
+  status             DatabaseRestoreStatus @default(PENDING)
   requestedByUserId  String?
   error              String?
-  createdAt          DateTime               @default(now())
+  createdAt          DateTime              @default(now())
   startedAt          DateTime?
   completedAt        DateTime?
-  databaseInstance   DatabaseInstance       @relation(fields: [databaseInstanceId], references: [id], onDelete: Cascade)
+  databaseInstance   DatabaseInstance      @relation(fields: [databaseInstanceId], references: [id], onDelete: Cascade)
 
   @@index([databaseInstanceId, createdAt])
   @@index([status])

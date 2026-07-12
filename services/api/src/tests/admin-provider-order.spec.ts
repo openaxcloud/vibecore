@@ -49,6 +49,42 @@ describe('F18 admin provider fallback order', () => {
     expect(body.thresholds).toEqual({ warnErrorPct: 2, errorErrorPct: 5 });
   });
 
+  it('surfaces REAL p95 latency + 24h error rate once provider metrics are recorded', async () => {
+    const { app, store } = await setup();
+
+    // 20 OpenAI requests, 2 errored, rising latencies 10..200ms.
+    for (let i = 0; i < 20; i++) {
+      await store.createProviderRequestMetric({
+        provider: 'OpenAI',
+        model: 'gpt-4o',
+        latencyMs: (i + 1) * 10,
+        errored: i < 2,
+      });
+    }
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/admin/providers/fallback-order',
+      headers: auth('admin-token'),
+    });
+    expect(res.statusCode).toBe(200);
+
+    const body = res.json();
+    expect(body.metricsAvailable).toBe(true);
+    expect(body.window).toBe('24h');
+
+    const openai = body.providers.find((p: { provider: string }) => p.provider === 'OpenAI');
+    expect(openai.sampleCount).toBe(20);
+    expect(openai.p95LatencyMs).toBe(190); // ceil(0.95*20)=19 → index 18 → 190ms
+    expect(openai.errorRatePct).toBe(10);
+
+    // A provider with no samples stays null — never a fabricated number.
+    const google = body.providers.find((p: { provider: string }) => p.provider === 'Google');
+    expect(google.sampleCount).toBe(0);
+    expect(google.p95LatencyMs).toBeNull();
+    expect(google.errorRatePct).toBeNull();
+  });
+
   it('persists a reordered fallback list (unknown providers dropped)', async () => {
     const { app } = await setup();
 

@@ -3533,6 +3533,37 @@ export class PrismaApiStore implements ApiStore {
     return mapAiTokenUsage(await this.prisma.aiTokenUsage.create({ data: input }));
   }
 
+  async createProviderRequestMetric(input: {
+    provider: string;
+    model?: string | null;
+    latencyMs: number;
+    errored: boolean;
+    statusCode?: number | null;
+    source?: string | null;
+  }) {
+    await this.prisma.providerRequestMetric.create({
+      data: {
+        provider: input.provider,
+        model: input.model ?? null,
+        latencyMs: Math.max(0, Math.round(input.latencyMs)),
+        errored: input.errored,
+        statusCode: input.statusCode ?? null,
+        source: input.source ?? null,
+      },
+    });
+  }
+
+  async listProviderRequestMetricsSince(since: Date, limit = 50_000) {
+    const rows = await this.prisma.providerRequestMetric.findMany({
+      where: { createdAt: { gte: since } },
+      select: { provider: true, latencyMs: true, errored: true },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    return rows;
+  }
+
   async recordAiCost(input: {
     organizationId: string;
     projectId?: string;

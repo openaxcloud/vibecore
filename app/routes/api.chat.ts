@@ -44,7 +44,7 @@ import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import { accumulateCacheUsage } from '~/lib/.server/llm/cache-usage';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
-import { checkChatQuota, recordChatUsage } from '~/lib/.server/ai-usage';
+import { checkChatQuota, recordChatUsage, recordProviderMetric } from '~/lib/.server/ai-usage';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { filterEnabledMcpServers, MCPService } from '~/lib/services/mcpService';
 import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
@@ -280,6 +280,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    */
   let routedTurnModel: string | undefined;
   let routedTurnProvider: string | undefined;
+
+  /*
+   * F18 — provider-request latency anchor. Reset right before each streamText() so
+   * the elapsed time to the terminal finish (or error) is the provider call's
+   * duration, recorded per outcome for the admin p95/error-rate metrics.
+   */
+  let providerCallStartedAt = Date.now();
 
   /*
    * Whether ANY segment of this build produced a `<boltAction type="file">` —
@@ -1259,6 +1266,21 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 } catch (error) {
                   logger.error(`failed to record chat usage: ${error instanceof Error ? error.message : error}`);
                 }
+
+                /*
+                 * F18 — record the provider request outcome (latency + errored) for
+                 * the admin p95/error-rate metrics. A clean terminal finish is a
+                 * success unless the finishReason is itself an error. Fire-and-forget:
+                 * recordProviderMetric never throws.
+                 */
+                void recordProviderMetric({
+                  projectId,
+                  provider: completionProvider,
+                  model: completionModel,
+                  latencyMs: Date.now() - providerCallStartedAt,
+                  errored: terminalFinishReason === 'error',
+                  cookieHeader: request.headers.get('Cookie') ?? undefined,
+                });
               }
 
               try {
@@ -1401,6 +1423,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                * On failure, stop recovery, release MCP, and emit a clean error note.
                */
               try {
+                providerCallStartedAt = Date.now();
+
                 const result = await streamText({
                   messages: [...processedMessages],
                   env: context.cloudflare?.env,
@@ -1471,6 +1495,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           message: 'Generating Response',
         } satisfies ProgressAnnotation);
 
+        providerCallStartedAt = Date.now();
+
         const result = await streamText({
           messages: [...processedMessages],
           env: context.cloudflare?.env,
@@ -1533,6 +1559,25 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         const detail = error?.message ? ` (${error.message})` : '';
 
         logger.info(`stream onError code=${code}${detail}`);
+
+        /*
+         * F18 — count a GENUINE provider/stream error toward the admin 24h error
+         * rate. A client disconnect (STREAM_ABORTED) is the user's doing, not a
+         * provider fault, so it is excluded; quota blocks already returned above.
+         * Fire-and-forget; uses the routed provider/model captured by onModelDecision.
+         * If the error fired before the model resolved, there is nothing to attribute,
+         * so the metric is skipped.
+         */
+        if (projectId && !clientDisconnected && routedTurnProvider) {
+          void recordProviderMetric({
+            projectId,
+            provider: routedTurnProvider,
+            model: routedTurnModel,
+            latencyMs: Date.now() - providerCallStartedAt,
+            errored: true,
+            cookieHeader: request.headers.get('Cookie') ?? undefined,
+          });
+        }
 
         /*
          * Serialise as a JSON error part carrying the REAL error message + code +

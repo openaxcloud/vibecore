@@ -300,6 +300,11 @@ export type AiToolCall = $Result.DefaultSelection<Prisma.$AiToolCallPayload>
  */
 export type AiTokenUsage = $Result.DefaultSelection<Prisma.$AiTokenUsagePayload>
 /**
+ * Model ProviderRequestMetric
+ * 
+ */
+export type ProviderRequestMetric = $Result.DefaultSelection<Prisma.$ProviderRequestMetricPayload>
+/**
  * Model AiMessageFeedback
  * 
  */
@@ -1469,6 +1474,16 @@ export class PrismaClient<
   get aiTokenUsage(): Prisma.AiTokenUsageDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.providerRequestMetric`: Exposes CRUD operations for the **ProviderRequestMetric** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProviderRequestMetrics
+    * const providerRequestMetrics = await prisma.providerRequestMetric.findMany()
+    * ```
+    */
+  get providerRequestMetric(): Prisma.ProviderRequestMetricDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.aiMessageFeedback`: Exposes CRUD operations for the **AiMessageFeedback** model.
     * Example usage:
     * ```ts
@@ -2444,6 +2459,7 @@ export namespace Prisma {
     AiMessage: 'AiMessage',
     AiToolCall: 'AiToolCall',
     AiTokenUsage: 'AiTokenUsage',
+    ProviderRequestMetric: 'ProviderRequestMetric',
     AiMessageFeedback: 'AiMessageFeedback',
     AiCostLedger: 'AiCostLedger',
     AbuseEvent: 'AbuseEvent',
@@ -2508,7 +2524,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -6418,6 +6434,80 @@ export namespace Prisma {
           }
         }
       }
+      ProviderRequestMetric: {
+        payload: Prisma.$ProviderRequestMetricPayload<ExtArgs>
+        fields: Prisma.ProviderRequestMetricFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProviderRequestMetricFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProviderRequestMetricPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProviderRequestMetricFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProviderRequestMetricPayload>
+          }
+          findFirst: {
+            args: Prisma.ProviderRequestMetricFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProviderRequestMetricPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProviderRequestMetricFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProviderRequestMetricPayload>
+          }
+          findMany: {
+            args: Prisma.ProviderRequestMetricFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProviderRequestMetricPayload>[]
+          }
+          create: {
+            args: Prisma.ProviderRequestMetricCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProviderRequestMetricPayload>
+          }
+          createMany: {
+            args: Prisma.ProviderRequestMetricCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProviderRequestMetricCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProviderRequestMetricPayload>[]
+          }
+          delete: {
+            args: Prisma.ProviderRequestMetricDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProviderRequestMetricPayload>
+          }
+          update: {
+            args: Prisma.ProviderRequestMetricUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProviderRequestMetricPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProviderRequestMetricDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProviderRequestMetricUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProviderRequestMetricUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProviderRequestMetricPayload>[]
+          }
+          upsert: {
+            args: Prisma.ProviderRequestMetricUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProviderRequestMetricPayload>
+          }
+          aggregate: {
+            args: Prisma.ProviderRequestMetricAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProviderRequestMetric>
+          }
+          groupBy: {
+            args: Prisma.ProviderRequestMetricGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProviderRequestMetricGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProviderRequestMetricCountArgs<ExtArgs>
+            result: $Utils.Optional<ProviderRequestMetricCountAggregateOutputType> | number
+          }
+        }
+      }
       AiMessageFeedback: {
         payload: Prisma.$AiMessageFeedbackPayload<ExtArgs>
         fields: Prisma.AiMessageFeedbackFieldRefs
@@ -10205,6 +10295,7 @@ export namespace Prisma {
     aiMessage?: AiMessageOmit
     aiToolCall?: AiToolCallOmit
     aiTokenUsage?: AiTokenUsageOmit
+    providerRequestMetric?: ProviderRequestMetricOmit
     aiMessageFeedback?: AiMessageFeedbackOmit
     aiCostLedger?: AiCostLedgerOmit
     abuseEvent?: AbuseEventOmit
@@ -73292,6 +73383,1083 @@ export namespace Prisma {
 
 
   /**
+   * Model ProviderRequestMetric
+   */
+
+  export type AggregateProviderRequestMetric = {
+    _count: ProviderRequestMetricCountAggregateOutputType | null
+    _avg: ProviderRequestMetricAvgAggregateOutputType | null
+    _sum: ProviderRequestMetricSumAggregateOutputType | null
+    _min: ProviderRequestMetricMinAggregateOutputType | null
+    _max: ProviderRequestMetricMaxAggregateOutputType | null
+  }
+
+  export type ProviderRequestMetricAvgAggregateOutputType = {
+    latencyMs: number | null
+    statusCode: number | null
+  }
+
+  export type ProviderRequestMetricSumAggregateOutputType = {
+    latencyMs: number | null
+    statusCode: number | null
+  }
+
+  export type ProviderRequestMetricMinAggregateOutputType = {
+    id: string | null
+    provider: string | null
+    model: string | null
+    latencyMs: number | null
+    errored: boolean | null
+    statusCode: number | null
+    source: string | null
+    createdAt: Date | null
+  }
+
+  export type ProviderRequestMetricMaxAggregateOutputType = {
+    id: string | null
+    provider: string | null
+    model: string | null
+    latencyMs: number | null
+    errored: boolean | null
+    statusCode: number | null
+    source: string | null
+    createdAt: Date | null
+  }
+
+  export type ProviderRequestMetricCountAggregateOutputType = {
+    id: number
+    provider: number
+    model: number
+    latencyMs: number
+    errored: number
+    statusCode: number
+    source: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ProviderRequestMetricAvgAggregateInputType = {
+    latencyMs?: true
+    statusCode?: true
+  }
+
+  export type ProviderRequestMetricSumAggregateInputType = {
+    latencyMs?: true
+    statusCode?: true
+  }
+
+  export type ProviderRequestMetricMinAggregateInputType = {
+    id?: true
+    provider?: true
+    model?: true
+    latencyMs?: true
+    errored?: true
+    statusCode?: true
+    source?: true
+    createdAt?: true
+  }
+
+  export type ProviderRequestMetricMaxAggregateInputType = {
+    id?: true
+    provider?: true
+    model?: true
+    latencyMs?: true
+    errored?: true
+    statusCode?: true
+    source?: true
+    createdAt?: true
+  }
+
+  export type ProviderRequestMetricCountAggregateInputType = {
+    id?: true
+    provider?: true
+    model?: true
+    latencyMs?: true
+    errored?: true
+    statusCode?: true
+    source?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ProviderRequestMetricAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProviderRequestMetric to aggregate.
+     */
+    where?: ProviderRequestMetricWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProviderRequestMetrics to fetch.
+     */
+    orderBy?: ProviderRequestMetricOrderByWithRelationInput | ProviderRequestMetricOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ProviderRequestMetricWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProviderRequestMetrics from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProviderRequestMetrics.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ProviderRequestMetrics
+    **/
+    _count?: true | ProviderRequestMetricCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ProviderRequestMetricAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ProviderRequestMetricSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProviderRequestMetricMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProviderRequestMetricMaxAggregateInputType
+  }
+
+  export type GetProviderRequestMetricAggregateType<T extends ProviderRequestMetricAggregateArgs> = {
+        [P in keyof T & keyof AggregateProviderRequestMetric]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProviderRequestMetric[P]>
+      : GetScalarType<T[P], AggregateProviderRequestMetric[P]>
+  }
+
+
+
+
+  export type ProviderRequestMetricGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProviderRequestMetricWhereInput
+    orderBy?: ProviderRequestMetricOrderByWithAggregationInput | ProviderRequestMetricOrderByWithAggregationInput[]
+    by: ProviderRequestMetricScalarFieldEnum[] | ProviderRequestMetricScalarFieldEnum
+    having?: ProviderRequestMetricScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProviderRequestMetricCountAggregateInputType | true
+    _avg?: ProviderRequestMetricAvgAggregateInputType
+    _sum?: ProviderRequestMetricSumAggregateInputType
+    _min?: ProviderRequestMetricMinAggregateInputType
+    _max?: ProviderRequestMetricMaxAggregateInputType
+  }
+
+  export type ProviderRequestMetricGroupByOutputType = {
+    id: string
+    provider: string
+    model: string | null
+    latencyMs: number
+    errored: boolean
+    statusCode: number | null
+    source: string | null
+    createdAt: Date
+    _count: ProviderRequestMetricCountAggregateOutputType | null
+    _avg: ProviderRequestMetricAvgAggregateOutputType | null
+    _sum: ProviderRequestMetricSumAggregateOutputType | null
+    _min: ProviderRequestMetricMinAggregateOutputType | null
+    _max: ProviderRequestMetricMaxAggregateOutputType | null
+  }
+
+  type GetProviderRequestMetricGroupByPayload<T extends ProviderRequestMetricGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProviderRequestMetricGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProviderRequestMetricGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProviderRequestMetricGroupByOutputType[P]>
+            : GetScalarType<T[P], ProviderRequestMetricGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProviderRequestMetricSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    provider?: boolean
+    model?: boolean
+    latencyMs?: boolean
+    errored?: boolean
+    statusCode?: boolean
+    source?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["providerRequestMetric"]>
+
+  export type ProviderRequestMetricSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    provider?: boolean
+    model?: boolean
+    latencyMs?: boolean
+    errored?: boolean
+    statusCode?: boolean
+    source?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["providerRequestMetric"]>
+
+  export type ProviderRequestMetricSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    provider?: boolean
+    model?: boolean
+    latencyMs?: boolean
+    errored?: boolean
+    statusCode?: boolean
+    source?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["providerRequestMetric"]>
+
+  export type ProviderRequestMetricSelectScalar = {
+    id?: boolean
+    provider?: boolean
+    model?: boolean
+    latencyMs?: boolean
+    errored?: boolean
+    statusCode?: boolean
+    source?: boolean
+    createdAt?: boolean
+  }
+
+  export type ProviderRequestMetricOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "provider" | "model" | "latencyMs" | "errored" | "statusCode" | "source" | "createdAt", ExtArgs["result"]["providerRequestMetric"]>
+
+  export type $ProviderRequestMetricPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProviderRequestMetric"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      provider: string
+      model: string | null
+      latencyMs: number
+      errored: boolean
+      statusCode: number | null
+      source: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["providerRequestMetric"]>
+    composites: {}
+  }
+
+  type ProviderRequestMetricGetPayload<S extends boolean | null | undefined | ProviderRequestMetricDefaultArgs> = $Result.GetResult<Prisma.$ProviderRequestMetricPayload, S>
+
+  type ProviderRequestMetricCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProviderRequestMetricFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProviderRequestMetricCountAggregateInputType | true
+    }
+
+  export interface ProviderRequestMetricDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProviderRequestMetric'], meta: { name: 'ProviderRequestMetric' } }
+    /**
+     * Find zero or one ProviderRequestMetric that matches the filter.
+     * @param {ProviderRequestMetricFindUniqueArgs} args - Arguments to find a ProviderRequestMetric
+     * @example
+     * // Get one ProviderRequestMetric
+     * const providerRequestMetric = await prisma.providerRequestMetric.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProviderRequestMetricFindUniqueArgs>(args: SelectSubset<T, ProviderRequestMetricFindUniqueArgs<ExtArgs>>): Prisma__ProviderRequestMetricClient<$Result.GetResult<Prisma.$ProviderRequestMetricPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProviderRequestMetric that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProviderRequestMetricFindUniqueOrThrowArgs} args - Arguments to find a ProviderRequestMetric
+     * @example
+     * // Get one ProviderRequestMetric
+     * const providerRequestMetric = await prisma.providerRequestMetric.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProviderRequestMetricFindUniqueOrThrowArgs>(args: SelectSubset<T, ProviderRequestMetricFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProviderRequestMetricClient<$Result.GetResult<Prisma.$ProviderRequestMetricPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProviderRequestMetric that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProviderRequestMetricFindFirstArgs} args - Arguments to find a ProviderRequestMetric
+     * @example
+     * // Get one ProviderRequestMetric
+     * const providerRequestMetric = await prisma.providerRequestMetric.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProviderRequestMetricFindFirstArgs>(args?: SelectSubset<T, ProviderRequestMetricFindFirstArgs<ExtArgs>>): Prisma__ProviderRequestMetricClient<$Result.GetResult<Prisma.$ProviderRequestMetricPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProviderRequestMetric that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProviderRequestMetricFindFirstOrThrowArgs} args - Arguments to find a ProviderRequestMetric
+     * @example
+     * // Get one ProviderRequestMetric
+     * const providerRequestMetric = await prisma.providerRequestMetric.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProviderRequestMetricFindFirstOrThrowArgs>(args?: SelectSubset<T, ProviderRequestMetricFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProviderRequestMetricClient<$Result.GetResult<Prisma.$ProviderRequestMetricPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProviderRequestMetrics that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProviderRequestMetricFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProviderRequestMetrics
+     * const providerRequestMetrics = await prisma.providerRequestMetric.findMany()
+     * 
+     * // Get first 10 ProviderRequestMetrics
+     * const providerRequestMetrics = await prisma.providerRequestMetric.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const providerRequestMetricWithIdOnly = await prisma.providerRequestMetric.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ProviderRequestMetricFindManyArgs>(args?: SelectSubset<T, ProviderRequestMetricFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProviderRequestMetricPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProviderRequestMetric.
+     * @param {ProviderRequestMetricCreateArgs} args - Arguments to create a ProviderRequestMetric.
+     * @example
+     * // Create one ProviderRequestMetric
+     * const ProviderRequestMetric = await prisma.providerRequestMetric.create({
+     *   data: {
+     *     // ... data to create a ProviderRequestMetric
+     *   }
+     * })
+     * 
+     */
+    create<T extends ProviderRequestMetricCreateArgs>(args: SelectSubset<T, ProviderRequestMetricCreateArgs<ExtArgs>>): Prisma__ProviderRequestMetricClient<$Result.GetResult<Prisma.$ProviderRequestMetricPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProviderRequestMetrics.
+     * @param {ProviderRequestMetricCreateManyArgs} args - Arguments to create many ProviderRequestMetrics.
+     * @example
+     * // Create many ProviderRequestMetrics
+     * const providerRequestMetric = await prisma.providerRequestMetric.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ProviderRequestMetricCreateManyArgs>(args?: SelectSubset<T, ProviderRequestMetricCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProviderRequestMetrics and returns the data saved in the database.
+     * @param {ProviderRequestMetricCreateManyAndReturnArgs} args - Arguments to create many ProviderRequestMetrics.
+     * @example
+     * // Create many ProviderRequestMetrics
+     * const providerRequestMetric = await prisma.providerRequestMetric.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ProviderRequestMetrics and only return the `id`
+     * const providerRequestMetricWithIdOnly = await prisma.providerRequestMetric.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ProviderRequestMetricCreateManyAndReturnArgs>(args?: SelectSubset<T, ProviderRequestMetricCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProviderRequestMetricPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProviderRequestMetric.
+     * @param {ProviderRequestMetricDeleteArgs} args - Arguments to delete one ProviderRequestMetric.
+     * @example
+     * // Delete one ProviderRequestMetric
+     * const ProviderRequestMetric = await prisma.providerRequestMetric.delete({
+     *   where: {
+     *     // ... filter to delete one ProviderRequestMetric
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ProviderRequestMetricDeleteArgs>(args: SelectSubset<T, ProviderRequestMetricDeleteArgs<ExtArgs>>): Prisma__ProviderRequestMetricClient<$Result.GetResult<Prisma.$ProviderRequestMetricPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProviderRequestMetric.
+     * @param {ProviderRequestMetricUpdateArgs} args - Arguments to update one ProviderRequestMetric.
+     * @example
+     * // Update one ProviderRequestMetric
+     * const providerRequestMetric = await prisma.providerRequestMetric.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ProviderRequestMetricUpdateArgs>(args: SelectSubset<T, ProviderRequestMetricUpdateArgs<ExtArgs>>): Prisma__ProviderRequestMetricClient<$Result.GetResult<Prisma.$ProviderRequestMetricPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProviderRequestMetrics.
+     * @param {ProviderRequestMetricDeleteManyArgs} args - Arguments to filter ProviderRequestMetrics to delete.
+     * @example
+     * // Delete a few ProviderRequestMetrics
+     * const { count } = await prisma.providerRequestMetric.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ProviderRequestMetricDeleteManyArgs>(args?: SelectSubset<T, ProviderRequestMetricDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProviderRequestMetrics.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProviderRequestMetricUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProviderRequestMetrics
+     * const providerRequestMetric = await prisma.providerRequestMetric.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ProviderRequestMetricUpdateManyArgs>(args: SelectSubset<T, ProviderRequestMetricUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProviderRequestMetrics and returns the data updated in the database.
+     * @param {ProviderRequestMetricUpdateManyAndReturnArgs} args - Arguments to update many ProviderRequestMetrics.
+     * @example
+     * // Update many ProviderRequestMetrics
+     * const providerRequestMetric = await prisma.providerRequestMetric.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ProviderRequestMetrics and only return the `id`
+     * const providerRequestMetricWithIdOnly = await prisma.providerRequestMetric.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ProviderRequestMetricUpdateManyAndReturnArgs>(args: SelectSubset<T, ProviderRequestMetricUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProviderRequestMetricPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProviderRequestMetric.
+     * @param {ProviderRequestMetricUpsertArgs} args - Arguments to update or create a ProviderRequestMetric.
+     * @example
+     * // Update or create a ProviderRequestMetric
+     * const providerRequestMetric = await prisma.providerRequestMetric.upsert({
+     *   create: {
+     *     // ... data to create a ProviderRequestMetric
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProviderRequestMetric we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProviderRequestMetricUpsertArgs>(args: SelectSubset<T, ProviderRequestMetricUpsertArgs<ExtArgs>>): Prisma__ProviderRequestMetricClient<$Result.GetResult<Prisma.$ProviderRequestMetricPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProviderRequestMetrics.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProviderRequestMetricCountArgs} args - Arguments to filter ProviderRequestMetrics to count.
+     * @example
+     * // Count the number of ProviderRequestMetrics
+     * const count = await prisma.providerRequestMetric.count({
+     *   where: {
+     *     // ... the filter for the ProviderRequestMetrics we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProviderRequestMetricCountArgs>(
+      args?: Subset<T, ProviderRequestMetricCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProviderRequestMetricCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProviderRequestMetric.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProviderRequestMetricAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProviderRequestMetricAggregateArgs>(args: Subset<T, ProviderRequestMetricAggregateArgs>): Prisma.PrismaPromise<GetProviderRequestMetricAggregateType<T>>
+
+    /**
+     * Group by ProviderRequestMetric.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProviderRequestMetricGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ProviderRequestMetricGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProviderRequestMetricGroupByArgs['orderBy'] }
+        : { orderBy?: ProviderRequestMetricGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProviderRequestMetricGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProviderRequestMetricGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProviderRequestMetric model
+   */
+  readonly fields: ProviderRequestMetricFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProviderRequestMetric.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProviderRequestMetricClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProviderRequestMetric model
+   */
+  interface ProviderRequestMetricFieldRefs {
+    readonly id: FieldRef<"ProviderRequestMetric", 'String'>
+    readonly provider: FieldRef<"ProviderRequestMetric", 'String'>
+    readonly model: FieldRef<"ProviderRequestMetric", 'String'>
+    readonly latencyMs: FieldRef<"ProviderRequestMetric", 'Int'>
+    readonly errored: FieldRef<"ProviderRequestMetric", 'Boolean'>
+    readonly statusCode: FieldRef<"ProviderRequestMetric", 'Int'>
+    readonly source: FieldRef<"ProviderRequestMetric", 'String'>
+    readonly createdAt: FieldRef<"ProviderRequestMetric", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ProviderRequestMetric findUnique
+   */
+  export type ProviderRequestMetricFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProviderRequestMetric
+     */
+    select?: ProviderRequestMetricSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProviderRequestMetric
+     */
+    omit?: ProviderRequestMetricOmit<ExtArgs> | null
+    /**
+     * Filter, which ProviderRequestMetric to fetch.
+     */
+    where: ProviderRequestMetricWhereUniqueInput
+  }
+
+  /**
+   * ProviderRequestMetric findUniqueOrThrow
+   */
+  export type ProviderRequestMetricFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProviderRequestMetric
+     */
+    select?: ProviderRequestMetricSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProviderRequestMetric
+     */
+    omit?: ProviderRequestMetricOmit<ExtArgs> | null
+    /**
+     * Filter, which ProviderRequestMetric to fetch.
+     */
+    where: ProviderRequestMetricWhereUniqueInput
+  }
+
+  /**
+   * ProviderRequestMetric findFirst
+   */
+  export type ProviderRequestMetricFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProviderRequestMetric
+     */
+    select?: ProviderRequestMetricSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProviderRequestMetric
+     */
+    omit?: ProviderRequestMetricOmit<ExtArgs> | null
+    /**
+     * Filter, which ProviderRequestMetric to fetch.
+     */
+    where?: ProviderRequestMetricWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProviderRequestMetrics to fetch.
+     */
+    orderBy?: ProviderRequestMetricOrderByWithRelationInput | ProviderRequestMetricOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProviderRequestMetrics.
+     */
+    cursor?: ProviderRequestMetricWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProviderRequestMetrics from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProviderRequestMetrics.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProviderRequestMetrics.
+     */
+    distinct?: ProviderRequestMetricScalarFieldEnum | ProviderRequestMetricScalarFieldEnum[]
+  }
+
+  /**
+   * ProviderRequestMetric findFirstOrThrow
+   */
+  export type ProviderRequestMetricFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProviderRequestMetric
+     */
+    select?: ProviderRequestMetricSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProviderRequestMetric
+     */
+    omit?: ProviderRequestMetricOmit<ExtArgs> | null
+    /**
+     * Filter, which ProviderRequestMetric to fetch.
+     */
+    where?: ProviderRequestMetricWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProviderRequestMetrics to fetch.
+     */
+    orderBy?: ProviderRequestMetricOrderByWithRelationInput | ProviderRequestMetricOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProviderRequestMetrics.
+     */
+    cursor?: ProviderRequestMetricWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProviderRequestMetrics from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProviderRequestMetrics.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProviderRequestMetrics.
+     */
+    distinct?: ProviderRequestMetricScalarFieldEnum | ProviderRequestMetricScalarFieldEnum[]
+  }
+
+  /**
+   * ProviderRequestMetric findMany
+   */
+  export type ProviderRequestMetricFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProviderRequestMetric
+     */
+    select?: ProviderRequestMetricSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProviderRequestMetric
+     */
+    omit?: ProviderRequestMetricOmit<ExtArgs> | null
+    /**
+     * Filter, which ProviderRequestMetrics to fetch.
+     */
+    where?: ProviderRequestMetricWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProviderRequestMetrics to fetch.
+     */
+    orderBy?: ProviderRequestMetricOrderByWithRelationInput | ProviderRequestMetricOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ProviderRequestMetrics.
+     */
+    cursor?: ProviderRequestMetricWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProviderRequestMetrics from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProviderRequestMetrics.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProviderRequestMetrics.
+     */
+    distinct?: ProviderRequestMetricScalarFieldEnum | ProviderRequestMetricScalarFieldEnum[]
+  }
+
+  /**
+   * ProviderRequestMetric create
+   */
+  export type ProviderRequestMetricCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProviderRequestMetric
+     */
+    select?: ProviderRequestMetricSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProviderRequestMetric
+     */
+    omit?: ProviderRequestMetricOmit<ExtArgs> | null
+    /**
+     * The data needed to create a ProviderRequestMetric.
+     */
+    data: XOR<ProviderRequestMetricCreateInput, ProviderRequestMetricUncheckedCreateInput>
+  }
+
+  /**
+   * ProviderRequestMetric createMany
+   */
+  export type ProviderRequestMetricCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProviderRequestMetrics.
+     */
+    data: ProviderRequestMetricCreateManyInput | ProviderRequestMetricCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProviderRequestMetric createManyAndReturn
+   */
+  export type ProviderRequestMetricCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProviderRequestMetric
+     */
+    select?: ProviderRequestMetricSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProviderRequestMetric
+     */
+    omit?: ProviderRequestMetricOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProviderRequestMetrics.
+     */
+    data: ProviderRequestMetricCreateManyInput | ProviderRequestMetricCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProviderRequestMetric update
+   */
+  export type ProviderRequestMetricUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProviderRequestMetric
+     */
+    select?: ProviderRequestMetricSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProviderRequestMetric
+     */
+    omit?: ProviderRequestMetricOmit<ExtArgs> | null
+    /**
+     * The data needed to update a ProviderRequestMetric.
+     */
+    data: XOR<ProviderRequestMetricUpdateInput, ProviderRequestMetricUncheckedUpdateInput>
+    /**
+     * Choose, which ProviderRequestMetric to update.
+     */
+    where: ProviderRequestMetricWhereUniqueInput
+  }
+
+  /**
+   * ProviderRequestMetric updateMany
+   */
+  export type ProviderRequestMetricUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProviderRequestMetrics.
+     */
+    data: XOR<ProviderRequestMetricUpdateManyMutationInput, ProviderRequestMetricUncheckedUpdateManyInput>
+    /**
+     * Filter which ProviderRequestMetrics to update
+     */
+    where?: ProviderRequestMetricWhereInput
+    /**
+     * Limit how many ProviderRequestMetrics to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProviderRequestMetric updateManyAndReturn
+   */
+  export type ProviderRequestMetricUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProviderRequestMetric
+     */
+    select?: ProviderRequestMetricSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProviderRequestMetric
+     */
+    omit?: ProviderRequestMetricOmit<ExtArgs> | null
+    /**
+     * The data used to update ProviderRequestMetrics.
+     */
+    data: XOR<ProviderRequestMetricUpdateManyMutationInput, ProviderRequestMetricUncheckedUpdateManyInput>
+    /**
+     * Filter which ProviderRequestMetrics to update
+     */
+    where?: ProviderRequestMetricWhereInput
+    /**
+     * Limit how many ProviderRequestMetrics to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProviderRequestMetric upsert
+   */
+  export type ProviderRequestMetricUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProviderRequestMetric
+     */
+    select?: ProviderRequestMetricSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProviderRequestMetric
+     */
+    omit?: ProviderRequestMetricOmit<ExtArgs> | null
+    /**
+     * The filter to search for the ProviderRequestMetric to update in case it exists.
+     */
+    where: ProviderRequestMetricWhereUniqueInput
+    /**
+     * In case the ProviderRequestMetric found by the `where` argument doesn't exist, create a new ProviderRequestMetric with this data.
+     */
+    create: XOR<ProviderRequestMetricCreateInput, ProviderRequestMetricUncheckedCreateInput>
+    /**
+     * In case the ProviderRequestMetric was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProviderRequestMetricUpdateInput, ProviderRequestMetricUncheckedUpdateInput>
+  }
+
+  /**
+   * ProviderRequestMetric delete
+   */
+  export type ProviderRequestMetricDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProviderRequestMetric
+     */
+    select?: ProviderRequestMetricSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProviderRequestMetric
+     */
+    omit?: ProviderRequestMetricOmit<ExtArgs> | null
+    /**
+     * Filter which ProviderRequestMetric to delete.
+     */
+    where: ProviderRequestMetricWhereUniqueInput
+  }
+
+  /**
+   * ProviderRequestMetric deleteMany
+   */
+  export type ProviderRequestMetricDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProviderRequestMetrics to delete
+     */
+    where?: ProviderRequestMetricWhereInput
+    /**
+     * Limit how many ProviderRequestMetrics to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProviderRequestMetric without action
+   */
+  export type ProviderRequestMetricDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProviderRequestMetric
+     */
+    select?: ProviderRequestMetricSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProviderRequestMetric
+     */
+    omit?: ProviderRequestMetricOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Model AiMessageFeedback
    */
 
@@ -129531,6 +130699,20 @@ export namespace Prisma {
   export type AiTokenUsageScalarFieldEnum = (typeof AiTokenUsageScalarFieldEnum)[keyof typeof AiTokenUsageScalarFieldEnum]
 
 
+  export const ProviderRequestMetricScalarFieldEnum: {
+    id: 'id',
+    provider: 'provider',
+    model: 'model',
+    latencyMs: 'latencyMs',
+    errored: 'errored',
+    statusCode: 'statusCode',
+    source: 'source',
+    createdAt: 'createdAt'
+  };
+
+  export type ProviderRequestMetricScalarFieldEnum = (typeof ProviderRequestMetricScalarFieldEnum)[keyof typeof ProviderRequestMetricScalarFieldEnum]
+
+
   export const AiMessageFeedbackScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
@@ -134763,6 +135945,75 @@ export namespace Prisma {
     outputTokens?: IntWithAggregatesFilter<"AiTokenUsage"> | number
     estimatedCostCents?: IntWithAggregatesFilter<"AiTokenUsage"> | number
     createdAt?: DateTimeWithAggregatesFilter<"AiTokenUsage"> | Date | string
+  }
+
+  export type ProviderRequestMetricWhereInput = {
+    AND?: ProviderRequestMetricWhereInput | ProviderRequestMetricWhereInput[]
+    OR?: ProviderRequestMetricWhereInput[]
+    NOT?: ProviderRequestMetricWhereInput | ProviderRequestMetricWhereInput[]
+    id?: StringFilter<"ProviderRequestMetric"> | string
+    provider?: StringFilter<"ProviderRequestMetric"> | string
+    model?: StringNullableFilter<"ProviderRequestMetric"> | string | null
+    latencyMs?: IntFilter<"ProviderRequestMetric"> | number
+    errored?: BoolFilter<"ProviderRequestMetric"> | boolean
+    statusCode?: IntNullableFilter<"ProviderRequestMetric"> | number | null
+    source?: StringNullableFilter<"ProviderRequestMetric"> | string | null
+    createdAt?: DateTimeFilter<"ProviderRequestMetric"> | Date | string
+  }
+
+  export type ProviderRequestMetricOrderByWithRelationInput = {
+    id?: SortOrder
+    provider?: SortOrder
+    model?: SortOrderInput | SortOrder
+    latencyMs?: SortOrder
+    errored?: SortOrder
+    statusCode?: SortOrderInput | SortOrder
+    source?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProviderRequestMetricWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ProviderRequestMetricWhereInput | ProviderRequestMetricWhereInput[]
+    OR?: ProviderRequestMetricWhereInput[]
+    NOT?: ProviderRequestMetricWhereInput | ProviderRequestMetricWhereInput[]
+    provider?: StringFilter<"ProviderRequestMetric"> | string
+    model?: StringNullableFilter<"ProviderRequestMetric"> | string | null
+    latencyMs?: IntFilter<"ProviderRequestMetric"> | number
+    errored?: BoolFilter<"ProviderRequestMetric"> | boolean
+    statusCode?: IntNullableFilter<"ProviderRequestMetric"> | number | null
+    source?: StringNullableFilter<"ProviderRequestMetric"> | string | null
+    createdAt?: DateTimeFilter<"ProviderRequestMetric"> | Date | string
+  }, "id">
+
+  export type ProviderRequestMetricOrderByWithAggregationInput = {
+    id?: SortOrder
+    provider?: SortOrder
+    model?: SortOrderInput | SortOrder
+    latencyMs?: SortOrder
+    errored?: SortOrder
+    statusCode?: SortOrderInput | SortOrder
+    source?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: ProviderRequestMetricCountOrderByAggregateInput
+    _avg?: ProviderRequestMetricAvgOrderByAggregateInput
+    _max?: ProviderRequestMetricMaxOrderByAggregateInput
+    _min?: ProviderRequestMetricMinOrderByAggregateInput
+    _sum?: ProviderRequestMetricSumOrderByAggregateInput
+  }
+
+  export type ProviderRequestMetricScalarWhereWithAggregatesInput = {
+    AND?: ProviderRequestMetricScalarWhereWithAggregatesInput | ProviderRequestMetricScalarWhereWithAggregatesInput[]
+    OR?: ProviderRequestMetricScalarWhereWithAggregatesInput[]
+    NOT?: ProviderRequestMetricScalarWhereWithAggregatesInput | ProviderRequestMetricScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ProviderRequestMetric"> | string
+    provider?: StringWithAggregatesFilter<"ProviderRequestMetric"> | string
+    model?: StringNullableWithAggregatesFilter<"ProviderRequestMetric"> | string | null
+    latencyMs?: IntWithAggregatesFilter<"ProviderRequestMetric"> | number
+    errored?: BoolWithAggregatesFilter<"ProviderRequestMetric"> | boolean
+    statusCode?: IntNullableWithAggregatesFilter<"ProviderRequestMetric"> | number | null
+    source?: StringNullableWithAggregatesFilter<"ProviderRequestMetric"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ProviderRequestMetric"> | Date | string
   }
 
   export type AiMessageFeedbackWhereInput = {
@@ -143046,6 +144297,83 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ProviderRequestMetricCreateInput = {
+    id?: string
+    provider: string
+    model?: string | null
+    latencyMs: number
+    errored?: boolean
+    statusCode?: number | null
+    source?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ProviderRequestMetricUncheckedCreateInput = {
+    id?: string
+    provider: string
+    model?: string | null
+    latencyMs: number
+    errored?: boolean
+    statusCode?: number | null
+    source?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ProviderRequestMetricUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    model?: NullableStringFieldUpdateOperationsInput | string | null
+    latencyMs?: IntFieldUpdateOperationsInput | number
+    errored?: BoolFieldUpdateOperationsInput | boolean
+    statusCode?: NullableIntFieldUpdateOperationsInput | number | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProviderRequestMetricUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    model?: NullableStringFieldUpdateOperationsInput | string | null
+    latencyMs?: IntFieldUpdateOperationsInput | number
+    errored?: BoolFieldUpdateOperationsInput | boolean
+    statusCode?: NullableIntFieldUpdateOperationsInput | number | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProviderRequestMetricCreateManyInput = {
+    id?: string
+    provider: string
+    model?: string | null
+    latencyMs: number
+    errored?: boolean
+    statusCode?: number | null
+    source?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ProviderRequestMetricUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    model?: NullableStringFieldUpdateOperationsInput | string | null
+    latencyMs?: IntFieldUpdateOperationsInput | number
+    errored?: BoolFieldUpdateOperationsInput | boolean
+    statusCode?: NullableIntFieldUpdateOperationsInput | number | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProviderRequestMetricUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    model?: NullableStringFieldUpdateOperationsInput | string | null
+    latencyMs?: IntFieldUpdateOperationsInput | number
+    errored?: BoolFieldUpdateOperationsInput | boolean
+    statusCode?: NullableIntFieldUpdateOperationsInput | number | null
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type AiMessageFeedbackCreateInput = {
     id?: string
     messageId: string
@@ -150412,6 +151740,49 @@ export namespace Prisma {
     inputTokens?: SortOrder
     outputTokens?: SortOrder
     estimatedCostCents?: SortOrder
+  }
+
+  export type ProviderRequestMetricCountOrderByAggregateInput = {
+    id?: SortOrder
+    provider?: SortOrder
+    model?: SortOrder
+    latencyMs?: SortOrder
+    errored?: SortOrder
+    statusCode?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProviderRequestMetricAvgOrderByAggregateInput = {
+    latencyMs?: SortOrder
+    statusCode?: SortOrder
+  }
+
+  export type ProviderRequestMetricMaxOrderByAggregateInput = {
+    id?: SortOrder
+    provider?: SortOrder
+    model?: SortOrder
+    latencyMs?: SortOrder
+    errored?: SortOrder
+    statusCode?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProviderRequestMetricMinOrderByAggregateInput = {
+    id?: SortOrder
+    provider?: SortOrder
+    model?: SortOrder
+    latencyMs?: SortOrder
+    errored?: SortOrder
+    statusCode?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProviderRequestMetricSumOrderByAggregateInput = {
+    latencyMs?: SortOrder
+    statusCode?: SortOrder
   }
 
   export type AiMessageFeedbackUserIdMessageIdCompoundUniqueInput = {

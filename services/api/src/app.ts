@@ -205,6 +205,7 @@ import {
   resolveDefaultObjectStorage,
 } from './object-storage.js';
 import { PrismaApiStore } from './prisma-store.js';
+import { aggregateProviderMetrics } from './provider-metrics.js';
 import {
   decodeFileContent,
   filesFromZip,
@@ -1455,6 +1456,17 @@ const aiTranscriptMessageSchema = z.object({
 const aiTranscriptSchema = z.object({
   messages: z.array(aiTranscriptMessageSchema).min(1).max(200),
 });
+// F18 — a single AI provider request outcome (metric-only, decoupled from billing so
+// errored/zero-token requests are still counted toward the 24h error rate).
+const providerMetricSchema = z.object({
+  provider: z.string().min(1),
+  model: z.string().min(1).optional(),
+  latencyMs: z.number().int().nonnegative(),
+  errored: z.boolean().default(false),
+  statusCode: z.number().int().optional(),
+  source: z.string().min(1).optional(),
+});
+
 const aiRecordUsageSchema = z.object({
   conversationId: z.string().min(1).optional(),
   messageId: z.string().min(1).optional(),
@@ -21014,6 +21026,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * Once C1.b.4 reroutes the stream through ai-gateway, this endpoint
    * becomes redundant and the gateway records usage directly.
    */
+  /*
+   * F18 — record ONE provider request outcome (latency + errored), decoupled from
+   * billing so it fires on BOTH success and failure (an errored request has no tokens
+   * and would be dropped by record-usage's zero-token gate). Best-effort: never throws
+   * back to the caller — a metrics failure must not surface to the chat client.
+   */
+  app.post('/projects/:projectId/ai/provider-metric', async (request, reply) => {
+    const { projectId } = parse(projectParams, request.params);
+    const project = await requireProject(request, store, projectId, 'workspaces:read');
+    await requireOrganizationNotSuspended(store, project.organizationId);
+
+    const body = parse(providerMetricSchema, request.body ?? {});
+
+    try {
+      await store.createProviderRequestMetric({
+        provider: body.provider,
+        model: body.model ?? null,
+        latencyMs: body.latencyMs,
+        errored: body.errored ?? false,
+        statusCode: body.statusCode ?? null,
+        source: body.source ?? null,
+      });
+    } catch (metricError) {
+      request.log.warn({ err: metricError }, 'provider-request-metric record failed (ignored)');
+    }
+
+    return reply.send({ recorded: true });
+  });
+
   app.post('/projects/:projectId/ai/record-usage', async (request) => {
     const { projectId } = parse(projectParams, request.params);
     const project = await requireProject(request, store, projectId, 'workspaces:read');
@@ -22803,13 +22844,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   /*
    * F18: provider fallback order — the priority in which the gateway tries
    * providers. Persisted as the ordered `providers.fallbackOrder` system setting
-   * (saved order first, then any known provider not yet placed). Read-only.
+   * (saved order first, then any known provider not yet placed).
    *
-   * NOTE: p95 latency / 24h error-rate (warn ≥2%, err ≥5%) are intentionally NOT
-   * returned as real numbers — there is no per-request provider metric source in
-   * the schema yet (no ProviderRequestMetric table). `metricsAvailable:false` is
-   * honest; the thresholds are surfaced so the panel can render them once request
-   * instrumentation lands. We do not fabricate latency/error values.
+   * p95 latency + 24h error-rate (warn ≥2%, err ≥5%) are now REAL, aggregated from
+   * ProviderRequestMetric (written per completion on the instrumented chat path).
+   * `metricsAvailable` is true once at least one request has been recorded in the
+   * window; before that the panel shows "no requests recorded yet" — never fabricated
+   * numbers. Provider names are matched case-insensitively (metrics carry the
+   * provider's display name).
    */
   app.get('/admin/providers/fallback-order', async (request) => {
     await requirePlatformAdmin(request);
@@ -22824,14 +22866,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const order = [...savedOrder, ...KNOWN_LLM_PROVIDERS.filter((name) => !savedOrder.includes(name))];
 
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const samples = await store.listProviderRequestMetricsSince(since);
+    const summaries = new Map(aggregateProviderMetrics(samples).map((s) => [s.provider.toLowerCase(), s] as const));
+
     return {
       order,
-      providers: order.map((name) => ({
-        provider: name,
-        displayName: byName.get(name)?.displayName ?? name,
-        enabled: byName.get(name)?.enabled ?? false,
-      })),
-      metricsAvailable: false,
+      providers: order.map((name) => {
+        const metric = summaries.get(name.toLowerCase());
+        return {
+          provider: name,
+          displayName: byName.get(name)?.displayName ?? name,
+          enabled: byName.get(name)?.enabled ?? false,
+          sampleCount: metric?.sampleCount ?? 0,
+          p95LatencyMs: metric?.p95LatencyMs ?? null,
+          errorRatePct: metric?.errorRatePct ?? null,
+        };
+      }),
+      metricsAvailable: samples.length > 0,
+      window: '24h',
       thresholds: { warnErrorPct: 2, errorErrorPct: 5 },
     };
   });

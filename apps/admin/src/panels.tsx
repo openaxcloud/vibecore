@@ -1247,13 +1247,34 @@ interface ProviderRow {
   provider: string;
   displayName: string;
   enabled: boolean;
+  sampleCount?: number;
+  p95LatencyMs?: number | null;
+  errorRatePct?: number | null;
 }
 
 interface FallbackOrder {
   order: string[];
   providers: ProviderRow[];
   metricsAvailable: boolean;
+  window?: string;
   thresholds: { warnErrorPct: number; errorErrorPct: number };
+}
+
+/** F18 — colour the 24h error rate against the warn/error thresholds. */
+function errorRateClass(pct: number | null | undefined, thresholds: { warnErrorPct: number; errorErrorPct: number }) {
+  if (pct == null) {
+    return 'muted';
+  }
+
+  if (pct >= thresholds.errorErrorPct) {
+    return 'ledger-debit';
+  }
+
+  if (pct >= thresholds.warnErrorPct) {
+    return 'status-warn-text';
+  }
+
+  return 'ledger-credit';
 }
 
 /*
@@ -1462,9 +1483,9 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
 
       {!data?.metricsAvailable ? (
         <div className="cost-alert cost-alert-warn" role="note">
-          Per-provider p95 latency and 24h error rate are not recorded yet (no request-metrics source). Alert thresholds
-          — warn ≥{data?.thresholds.warnErrorPct ?? 2}%, error ≥{data?.thresholds.errorErrorPct ?? 5}% — will apply once
-          request instrumentation lands.
+          No AI provider requests recorded in the last {data?.window ?? '24h'} yet — p95 latency and error rate populate
+          as requests flow. Alert thresholds: warn ≥{data?.thresholds.warnErrorPct ?? 2}%, error ≥
+          {data?.thresholds.errorErrorPct ?? 5}%.
         </div>
       ) : null}
 
@@ -1475,6 +1496,8 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
               <th>#</th>
               <th>Provider</th>
               <th>Status</th>
+              <th>p95 latency (24h)</th>
+              <th>Error rate (24h)</th>
               <th>Key</th>
               <th>Actions</th>
             </tr>
@@ -1484,6 +1507,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
               const provider = byName.get(name);
               const info = keyByName.get(name);
               const isOpen = openKeys === name;
+              const thresholds = data?.thresholds ?? { warnErrorPct: 2, errorErrorPct: 5 };
 
               return (
                 <React.Fragment key={name}>
@@ -1492,6 +1516,16 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
                     <td>{provider?.displayName ?? info?.displayName ?? name}</td>
                     <td className={provider?.enabled ? 'ledger-credit' : 'muted'}>
                       {provider?.enabled ? 'enabled' : 'disabled'}
+                    </td>
+                    <td className="ledger-amount">
+                      {provider?.p95LatencyMs == null ? (
+                        <span className="muted">—</span>
+                      ) : (
+                        <span title={`${provider.sampleCount ?? 0} requests sampled`}>{provider.p95LatencyMs} ms</span>
+                      )}
+                    </td>
+                    <td className={errorRateClass(provider?.errorRatePct, thresholds)}>
+                      {provider?.errorRatePct == null ? <span className="muted">—</span> : `${provider.errorRatePct}%`}
                     </td>
                     <td>
                       <KeyBadge info={info} />
@@ -1529,7 +1563,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
                   </tr>
                   {isOpen ? (
                     <tr>
-                      <td colSpan={5}>
+                      <td colSpan={7}>
                         <div className="wallet-detail">
                           <form
                             className="provider-key-form"

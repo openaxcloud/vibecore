@@ -336,3 +336,66 @@ export async function recordChatUsage(input: RecordChatUsageInput): Promise<void
     );
   }
 }
+
+/** Input to {@link recordProviderMetric} (F18 admin p95/error-rate metrics). */
+export interface RecordProviderMetricInput {
+  projectId: string;
+  provider: string;
+  model?: string;
+  latencyMs: number;
+  errored: boolean;
+  source?: string;
+
+  /** Browser cookies forwarded so the api can authenticate the user. */
+  cookieHeader?: string;
+
+  /** Bearer token override (tests / future agent contexts). */
+  bearerToken?: string;
+}
+
+/**
+ * F18 — fire-and-forget POST to services/api `/projects/:id/ai/provider-metric`,
+ * recording ONE provider request outcome (latency + errored). Decoupled from billing
+ * so it fires on BOTH success and failure (an errored turn has no tokens and is
+ * dropped by recordChatUsage's zero-token gate). Never throws — a metrics hiccup must
+ * never disturb the chat stream.
+ */
+export async function recordProviderMetric(input: RecordProviderMetricInput): Promise<void> {
+  if (!input.projectId || !input.provider) {
+    return;
+  }
+
+  const url = `${apiBaseUrl().replace(/\/+$/, '')}/projects/${encodeURIComponent(input.projectId)}/ai/provider-metric`;
+
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+    accept: 'application/json',
+  };
+
+  if (!applyApiAuthHeaders(headers, input)) {
+    return;
+  }
+
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        provider: input.provider,
+        model: input.model,
+        latencyMs: Math.max(0, Math.round(input.latencyMs)),
+        errored: input.errored,
+        source: input.source ?? 'remix-chat',
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch (error) {
+    logger.warn(
+      JSON.stringify({
+        event: 'provider-metric.fetch-failed',
+        error: error instanceof Error ? error.message : String(error),
+        projectId: input.projectId,
+      }),
+    );
+  }
+}
