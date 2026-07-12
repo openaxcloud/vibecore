@@ -14,4 +14,19 @@ describe('React Router document hydration contract', () => {
   it('hydrates the same document root that the server renders', () => {
     expect(clientEntrySource).toContain('hydrateRoot(document, <HydratedRouter />)');
   });
+
+  it('defers persisted document preferences until React has hydrated', () => {
+    const inlineThemeStart = rootSource.indexOf('const inlineThemeCode');
+    const hydrationListenerStart = rootSource.indexOf("window.addEventListener('ecode:hydrated'");
+    const preHydrationBootCode = rootSource.slice(inlineThemeStart, hydrationListenerStart);
+
+    expect(inlineThemeStart).toBeGreaterThan(-1);
+    expect(hydrationListenerStart).toBeGreaterThan(inlineThemeStart);
+    expect(preHydrationBootCode).not.toMatch(
+      /(?:setTutorialKitTheme|markDismissedAnnouncement|markSidebarCollapsed)\(\);/,
+    );
+    expect(rootSource).toMatch(
+      /useEffect\(\(\) => \{\s*window\.dispatchEvent\(new Event\('ecode:hydrated'\)\);\s*\}, \[\]\);/,
+    );
+  });
 });

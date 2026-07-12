@@ -86,14 +86,15 @@ export const links: LinksFunction = () => [
 ];
 
 const inlineThemeCode = stripIndents`
-  setTutorialKitTheme();
-  markDismissedAnnouncement();
-  markSidebarCollapsed();
+  window.addEventListener('ecode:hydrated', function () {
+    setTutorialKitTheme();
+    markDismissedAnnouncement();
+    markSidebarCollapsed();
+  }, { once: true });
 
   /*
    * User-area sidebar (dashboard AppShell): reflect the persisted
-   * collapsed/expanded choice on <html> before first paint so the shell
-   * renders in the right geometry with no flash. Mirrors the precedence in
+   * collapsed/expanded choice on <html> immediately after hydration. Mirrors the precedence in
    * useSidebarController (explicit choice, else auto-collapse on narrow
    * viewports). Kept in sync with app/components/dashboard/sidebar-collapse.ts.
    */
@@ -327,7 +328,7 @@ const inlineThemeCode = stripIndents`
 
     /*
      * Update the EXISTING server-rendered meta IN PLACE — do NOT remove +
-     * re-append. This boot script runs before React hydrates; removing the
+     * re-append. The handler runs immediately after React hydrates; retaining
      * theme-color / status-bar metas and appending fresh ones moves them to the
      * end of <head>, so the pre-hydration meta order no longer matches the
      * server HTML and React aborts hydration with a mismatch (#418/#423) on every
@@ -358,9 +359,9 @@ const inlineThemeCode = stripIndents`
  * renders <ServerRouter /> / <HydratedRouter /> *as* the children of this
  * Layout, so the document shell lives here in one place.
  *
- * data-theme is seeded to "dark" (the app default) on the server; the inline
- * theme script below runs before hydration and reconciles it with
- * localStorage / the public-marketing override, exactly as before.
+ * data-theme is seeded to "dark" (the app default) on the server. The inline
+ * script registers hydration-safe preference reconciliation; App emits its
+ * event after React commits so the document is never mutated during hydration.
  */
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -375,11 +376,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" suppressHydrationWarning />
         <meta name="apple-mobile-web-app-title" content="E-Code" />
-        {/*
-          The theme boot script must run BEFORE any stylesheet (<Links />) so the
-          resolved data-theme/.light/.dark classes are on <html> for the very
-          first paint — no light/dark flash even on slow CSS.
-        */}
+        {/* Register preference reconciliation without mutating the SSR document before hydration. */}
         <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
         <Meta />
         <Links />
@@ -622,6 +619,10 @@ function clearMarketingPageServiceWorkerState() {
 export default function App() {
   const theme = useStore(themeStore);
   const location = useLocation();
+
+  useEffect(() => {
+    window.dispatchEvent(new Event('ecode:hydrated'));
+  }, []);
 
   /*
    * Keep the live <html data-theme> attribute in sync with the theme store.
