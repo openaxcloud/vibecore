@@ -47,17 +47,94 @@ export function buildAnthropicModelLabel(model: { display_name?: string | null; 
  * `ttl: '1h'` requires the `extended-cache-ttl-2025-04-11` beta, added to the
  * `anthropic-beta` header alongside the prompt-caching beta.
  */
+/**
+ * Anthropic minimum cacheable prompt length, in tokens, per model. Below this
+ * Anthropic silently IGNORES `cache_control` (no error, just no cache), so we gate
+ * the message-history breakpoint on it to avoid spending one of the 4 breakpoints on
+ * a too-small conversation prefix. Values from the Anthropic prompt-caching docs
+ * (Rév.3 guide): Haiku = 2048, Sonnet / Opus = 1024. The stable SYSTEM head
+ * (~5k tokens) always clears this, so the system breakpoints are unconditional.
+ */
+const ANTHROPIC_CACHE_MIN_TOKENS: Array<[RegExp, number]> = [
+  [/haiku/i, 2048],
+  [/opus|sonnet/i, 1024],
+];
+
+export function anthropicCacheMinTokens(model: string | undefined): number {
+  if (typeof model === 'string') {
+    for (const [pattern, min] of ANTHROPIC_CACHE_MIN_TOKENS) {
+      if (pattern.test(model)) {
+        return min;
+      }
+    }
+  }
+
+  return 1024;
+}
+
+/** Cheap chars≈tokens/4 estimate (never for billing) — gates the message breakpoint. */
+function estimateBlockTokens(content: unknown): number {
+  if (typeof content === 'string') {
+    return Math.ceil(content.length / 4);
+  }
+
+  if (Array.isArray(content)) {
+    let chars = 0;
+
+    for (const part of content) {
+      if (part && typeof part === 'object' && typeof (part as { text?: unknown }).text === 'string') {
+        chars += (part as { text: string }).text.length;
+      }
+    }
+
+    return Math.ceil(chars / 4);
+  }
+
+  return 0;
+}
+
+/**
+ * Set `cache_control: ephemeral` on the LAST text block of a message, converting a
+ * string content to block form when needed. Returns true if a breakpoint was set.
+ */
+function markMessageCacheBreakpoint(message: Record<string, unknown>): boolean {
+  if (typeof message.content === 'string') {
+    if (message.content.trim().length === 0) {
+      return false;
+    }
+
+    message.content = [{ type: 'text', text: message.content, cache_control: { type: 'ephemeral' } }];
+
+    return true;
+  }
+
+  if (Array.isArray(message.content) && message.content.length > 0) {
+    for (let i = message.content.length - 1; i >= 0; i--) {
+      const block = message.content[i];
+
+      if (block && typeof block === 'object' && (block as { type?: unknown }).type === 'text') {
+        (block as Record<string, unknown>).cache_control = { type: 'ephemeral' };
+
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 export function createAnthropicCachingFetch(baseFetch: typeof fetch): typeof fetch {
   return async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
     try {
       if (init && typeof init.body === 'string' && init.body.includes('"system"')) {
         const parsed = JSON.parse(init.body);
 
+        let mutated = false;
+
         if (parsed && typeof parsed.system === 'string' && parsed.system.includes(ANTHROPIC_CACHE_BREAKPOINT)) {
           /*
-           * Two-breakpoint split: stable head cached 1h (cross-turn), variable
-           * tail cached 5min (across the continuation segments of this turn).
-           * Well under Anthropic's max of 4 cache breakpoints.
+           * System split (2 breakpoints): stable head cached 1h (cross-turn),
+           * variable tail cached 5min (across the continuation segments of this turn).
            */
           const [rawHead, ...rawTailParts] = parsed.system.split(ANTHROPIC_CACHE_BREAKPOINT);
           const head = rawHead.trim();
@@ -75,11 +152,42 @@ export function createAnthropicCachingFetch(baseFetch: typeof fetch): typeof fet
 
           if (blocks.length > 0) {
             parsed.system = blocks;
-            init = { ...init, body: JSON.stringify(parsed) };
+            mutated = true;
           }
         } else if (parsed && typeof parsed.system === 'string' && parsed.system.trim().length > 0) {
           // No sentinel (non-split path, e.g. below the cache minimum): single block, unchanged behaviour.
           parsed.system = [{ type: 'text', text: parsed.system, cache_control: { type: 'ephemeral' } }];
+          mutated = true;
+        }
+
+        /*
+         * MESSAGE-HISTORY breakpoint (up to 2 more, total ≤ Anthropic's max of 4):
+         * the anchored-window design keeps every message except the LAST (the
+         * per-turn volatile trailing block) byte-stable turn-to-turn, so a
+         * cache_control on the last STABLE message (messages[len-2]) caches the whole
+         * conversation prefix cross-turn — the same win the anchored window gives
+         * OpenAI's auto-cache. Gated on the prefix clearing the per-model minimum so a
+         * tiny conversation doesn't waste a breakpoint (Anthropic would ignore it).
+         */
+        if (Array.isArray(parsed.messages) && parsed.messages.length >= 2) {
+          const minTokens = anthropicCacheMinTokens(parsed.model);
+          const prefix = parsed.messages.slice(0, -1);
+
+          const prefixTokens = prefix.reduce(
+            (sum: number, m: unknown) => sum + estimateBlockTokens((m as { content?: unknown })?.content),
+            0,
+          );
+
+          if (prefixTokens >= minTokens) {
+            const boundary = parsed.messages[parsed.messages.length - 2] as Record<string, unknown>;
+
+            if (markMessageCacheBreakpoint(boundary)) {
+              mutated = true;
+            }
+          }
+        }
+
+        if (mutated) {
           init = { ...init, body: JSON.stringify(parsed) };
         }
       }

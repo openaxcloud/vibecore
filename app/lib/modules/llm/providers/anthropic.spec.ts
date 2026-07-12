@@ -10,7 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
  */
 vi.mock('../manager', () => ({ LLMManager: class {} }));
 
-const { buildAnthropicModelLabel, createAnthropicCachingFetch } = await import('./anthropic');
+const { buildAnthropicModelLabel, createAnthropicCachingFetch, anthropicCacheMinTokens } = await import('./anthropic');
 const { ANTHROPIC_CACHE_BREAKPOINT } = await import('~/lib/modules/llm/cache-breakpoint');
 
 describe('createAnthropicCachingFetch', () => {
@@ -98,6 +98,62 @@ describe('createAnthropicCachingFetch', () => {
     await wrapped('https://api.anthropic.com/v1/messages', { method: 'POST', body });
 
     expect((base.mock.calls[0][1] as RequestInit).body).toBe(body);
+  });
+
+  it('caches the conversation prefix: cache_control on the last STABLE message when the prefix clears the model minimum', async () => {
+    const base = vi.fn(async () => new Response('ok'));
+    const wrapped = createAnthropicCachingFetch(base as unknown as typeof fetch);
+
+    // prefix (all but the last) ≈ 5000 chars / 4 ≈ 1250 tok ≥ 1024 (sonnet).
+    await wrapped('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        system: 'S',
+        model: 'claude-sonnet-4-5-20250929',
+        messages: [
+          { role: 'user', content: 'x'.repeat(5000) },
+          { role: 'assistant', content: 'stable answer' },
+          { role: 'user', content: 'latest volatile turn' },
+        ],
+      }),
+    });
+
+    const sent = parseBody(base.mock.calls[0][1] as RequestInit);
+
+    // Breakpoint lands on messages[len-2] (the last stable message), not the volatile last turn.
+    expect(sent.messages[1].content).toEqual([
+      { type: 'text', text: 'stable answer', cache_control: { type: 'ephemeral' } },
+    ]);
+    expect(sent.messages[2].content).toBe('latest volatile turn'); // last message untouched
+  });
+
+  it('does NOT spend a message breakpoint on a conversation below the model minimum', async () => {
+    const base = vi.fn(async () => new Response('ok'));
+    const wrapped = createAnthropicCachingFetch(base as unknown as typeof fetch);
+
+    await wrapped('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        system: 'S',
+        model: 'claude-sonnet-4-5-20250929',
+        messages: [
+          { role: 'user', content: 'tiny' },
+          { role: 'user', content: 'also tiny' },
+        ],
+      }),
+    });
+
+    const sent = parseBody(base.mock.calls[0][1] as RequestInit);
+    expect(sent.messages[0].content).toBe('tiny'); // untouched — below threshold
+  });
+});
+
+describe('anthropicCacheMinTokens (per-model)', () => {
+  it('is 2048 for Haiku, 1024 for Sonnet/Opus, 1024 default', () => {
+    expect(anthropicCacheMinTokens('claude-haiku-4-5-20251001')).toBe(2048);
+    expect(anthropicCacheMinTokens('claude-sonnet-4-5-20250929')).toBe(1024);
+    expect(anthropicCacheMinTokens('claude-opus-4-8')).toBe(1024);
+    expect(anthropicCacheMinTokens(undefined)).toBe(1024);
   });
 });
 
