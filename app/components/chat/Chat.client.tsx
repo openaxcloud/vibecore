@@ -725,12 +725,27 @@ export const ChatImpl = memo(
         setData(undefined);
 
         /*
+         * Fail-safe (LOT A): the stream reached its terminal finish, so the UI
+         * MUST release regardless of what the post-finish workbench cleanup does.
+         * A throw from finalizing a dangling/failed diff action below must never
+         * leave `fakeLoading` (or the derived "Stop running" chip) stuck — reset it
+         * FIRST, then run the cleanup defensively. The SDK already clears isLoading
+         * on a clean finish; this guarantees the local loading flag can't outlive it.
+         */
+        setFakeLoading(false);
+
+        /*
          * If the model finished cleanly mid-artifact (truncated output, hit a
          * stop sequence early), the closing </boltAction> never arrives and the
          * streamed file action is left spinning forever. Finalize only those
-         * dangling file actions — running shell commands are left alone.
+         * dangling file actions — running shell commands are left alone. Guarded:
+         * a failure here cannot abort the rest of onFinish or wedge the release.
          */
-        workbenchStore.abortStreamingFileActions();
+        try {
+          workbenchStore.abortStreamingFileActions();
+        } catch (cleanupError) {
+          console.error('[chat-onFinish] abortStreamingFileActions threw (ignored):', cleanupError);
+        }
         window.setTimeout(() => {
           const snapshot = latestMessagesRef.current;
 

@@ -896,6 +896,50 @@ export class ActionRunner {
   }
 
   /**
+   * Diff apply-fail recovery: ask the self-repair endpoint to re-emit the COMPLETE
+   * file with the intended change applied, so a drifted anchor (`apply-failed`) or a
+   * `malformed` block recovers automatically instead of surfacing a user-facing
+   * error. Returns the full file content on success, or null when recovery is
+   * impossible/failed (the caller then keeps the base file byte-unchanged and
+   * surfaces the strict alert). Only meaningful with an existing base file —
+   * `missing-file` has nothing to repair against. Never throws.
+   *
+   * Public so BOTH apply seams reach it: the runner's own `#runDiffAction` (reload/
+   * replay path) AND the workbench's `_runAction` interception — the PRIMARY
+   * auto-apply/review path, which resolves diffs into file writes before the runner
+   * ever sees them and so would otherwise bypass this fallback entirely.
+   */
+  async recoverDiffViaFullFileReemit(
+    filePath: string,
+    originalFile: string,
+    diffPayload: string,
+    abortSignal: AbortSignal,
+  ): Promise<string | null> {
+    if (abortSignal.aborted) {
+      return null;
+    }
+
+    try {
+      const repairPrompt = buildDiffFullFileReemitPrompt(filePath, originalFile, diffPayload);
+      const fullFile = await callSelfRepairEndpoint(repairPrompt, abortSignal);
+
+      if (fullFile && fullFile.trim().length > 0 && !abortSignal.aborted) {
+        logger.info(`[diff]: recovered ${filePath} via full-file re-emit`);
+
+        return fullFile;
+      }
+
+      return null;
+    } catch (error) {
+      logger.warn(
+        `[diff]: full-file re-emit fallback failed for ${filePath}: ${error instanceof Error ? error.message : error}`,
+      );
+
+      return null;
+    }
+  }
+
+  /**
    * Apply a `diff` action. The apply+write is normalized onto the file pipeline:
    * on success the resolved FULL content is handed to `#runFileAction`, so
    * `sanitizeFileContent` → `#repairWithSelfRepairLoop` → `writeFile` →
@@ -957,29 +1001,20 @@ export class ActionRunner {
        */
       if (
         (resolution.kind === 'apply-failed' || resolution.kind === 'malformed') &&
-        typeof resolution.original === 'string' &&
-        !action.abortSignal.aborted
+        typeof resolution.original === 'string'
       ) {
-        try {
-          const repairPrompt = buildDiffFullFileReemitPrompt(action.filePath, resolution.original, action.content);
-          const fullFile = await callSelfRepairEndpoint(repairPrompt, action.abortSignal);
+        const fullFile = await this.recoverDiffViaFullFileReemit(
+          action.filePath,
+          resolution.original,
+          action.content,
+          action.abortSignal,
+        );
 
-          if (fullFile && fullFile.trim().length > 0 && !action.abortSignal.aborted) {
-            logger.info(`[diff]: recovered ${action.filePath} via full-file re-emit after ${resolution.kind}`);
+        if (fullFile) {
+          const fileAction = { ...action, type: 'file' as const, content: fullFile } as ActionState;
+          await this.#runFileAction(fileAction, isStreaming);
 
-            const fileAction = { ...action, type: 'file' as const, content: fullFile } as ActionState;
-            await this.#runFileAction(fileAction, isStreaming);
-
-            return;
-          }
-        } catch (error) {
-          logger.warn(
-            `[diff]: full-file re-emit fallback failed for ${action.filePath}: ${
-              error instanceof Error ? error.message : error
-            }`,
-          );
-
-          // fall through to the strict user-facing alert below.
+          return;
         }
       }
 

@@ -777,3 +777,75 @@ describe('ActionRunner diff action apply', () => {
     expect(readFile).toHaveBeenCalledWith('src/shared.ts');
   });
 });
+
+describe('ActionRunner.recoverDiffViaFullFileReemit (diff apply-fail full-file fallback)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const freshSignal = () => new AbortController().signal;
+
+  it('returns the re-emitted FULL file (boltAction-unwrapped) when the self-repair endpoint succeeds', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          content: '<boltAction type="file" filePath="src/a.ts">\nconst answer = 42;\n</boltAction>',
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const runner = new ActionRunner(createRuntime(), () => createShell() as any);
+
+    const out = await runner.recoverDiffViaFullFileReemit(
+      'src/a.ts',
+      'const answer = 41;\n',
+      '<<< diff >>>',
+      freshSignal(),
+    );
+
+    // extractSelfRepairContent unwraps the boltAction and trims the trailing newline.
+    expect(out).toBe('const answer = 42;');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/agent/self-repair');
+  });
+
+  it('returns null WITHOUT calling the endpoint when the action is already aborted (Stop honored)', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const controller = new AbortController();
+    controller.abort();
+
+    const runner = new ActionRunner(createRuntime(), () => createShell() as any);
+    const out = await runner.recoverDiffViaFullFileReemit('src/a.ts', 'base\n', 'diff', controller.signal);
+
+    expect(out).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('returns null (never throws) when the self-repair endpoint errors', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('boom', { status: 500 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const runner = new ActionRunner(createRuntime(), () => createShell() as any);
+    const out = await runner.recoverDiffViaFullFileReemit('src/a.ts', 'base\n', 'diff', freshSignal());
+
+    expect(out).toBeNull();
+  });
+
+  it('returns null when the endpoint returns empty content', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ content: '' }), { status: 200, headers: { 'content-type': 'application/json' } }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const runner = new ActionRunner(createRuntime(), () => createShell() as any);
+    const out = await runner.recoverDiffViaFullFileReemit('src/a.ts', 'base\n', 'diff', freshSignal());
+
+    expect(out).toBeNull();
+  });
+});

@@ -2673,30 +2673,63 @@ export class WorkbenchStore {
 
       if (!resolution.ok) {
         /*
-         * STRICT fail-safe: the base file is left byte-unchanged. Surface the
-         * failure and ask the model for a full-file re-emission; write nothing.
+         * Auto full-file re-emit recovery BEFORE surfacing a user-facing error.
+         * This interception seam resolves diffs itself, so the runner's own
+         * #runDiffAction fallback never runs — wire the SAME recovery here (a
+         * drifted anchor / malformed block asks the model to re-emit the COMPLETE
+         * file, then normalizes onto the file pipeline below). Only with an existing
+         * base file; `missing-file` has nothing to repair. Purely additive on an
+         * already-failing branch: on failure it falls through to the strict alert,
+         * so it can never regress a working apply. Stop cancels via abortSignal.
          */
-        this.actionAlert.set({
-          type: 'warning',
-          title: 'Diff could not be applied',
-          description: resolution.message,
-          content: resolution.message,
-          source: 'preview',
-        });
-        this.appendWorkspaceLog(`AI diff not applied: ${resolution.message}`);
-        artifact.runner.skipAction(data.actionId);
+        const recovered =
+          (resolution.kind === 'apply-failed' || resolution.kind === 'malformed') &&
+          typeof resolution.original === 'string'
+            ? await artifact.runner.recoverDiffViaFullFileReemit(
+                data.action.filePath,
+                resolution.original,
+                data.action.content,
+                action.abortSignal,
+              )
+            : null;
 
-        return;
+        if (recovered == null) {
+          /*
+           * STRICT fail-safe: the base file is left byte-unchanged. Surface the
+           * failure and ask the model for a full-file re-emission; write nothing.
+           */
+          this.actionAlert.set({
+            type: 'warning',
+            title: 'Diff could not be applied',
+            description: resolution.message,
+            content: resolution.message,
+            source: 'preview',
+          });
+          this.appendWorkspaceLog(`AI diff not applied: ${resolution.message}`);
+          artifact.runner.skipAction(data.actionId);
+
+          return;
+        }
+
+        // Recovered: substitute the re-emitted FULL file and continue the pipeline.
+        data = {
+          ...data,
+          action: {
+            type: 'file',
+            filePath: data.action.filePath,
+            content: recovered,
+          },
+        };
+      } else {
+        data = {
+          ...data,
+          action: {
+            type: 'file',
+            filePath: data.action.filePath,
+            content: resolution.content,
+          },
+        };
       }
-
-      data = {
-        ...data,
-        action: {
-          type: 'file',
-          filePath: data.action.filePath,
-          content: resolution.content,
-        },
-      };
     }
 
     if (data.action.type === 'file') {
