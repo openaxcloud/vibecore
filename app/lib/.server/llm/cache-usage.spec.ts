@@ -31,4 +31,37 @@ describe('accumulateCacheUsage', () => {
     accumulateCacheUsage(tally, { anthropic: { cacheReadInputTokens: 'x' } });
     expect(tally).toEqual({ cachedPromptTokens: 0, cacheWriteTokens: 0 });
   });
+
+  // Priority-1 telemetry normalization — every provider's native field → cachedPromptTokens.
+  it('reads Google/Gemini cachedContentTokenCount', () => {
+    const tally = fresh();
+    accumulateCacheUsage(tally, { google: { cachedContentTokenCount: 2048 } });
+    expect(tally).toEqual({ cachedPromptTokens: 2048, cacheWriteTokens: 0 });
+  });
+
+  it('reads xAI / OpenAI-compatible cached_tokens', () => {
+    const tally = fresh();
+    accumulateCacheUsage(tally, { xai: { cached_tokens: 640 } });
+    expect(tally.cachedPromptTokens).toBe(640);
+  });
+
+  it('reads DeepSeek prompt_cache_hit_tokens', () => {
+    const tally = fresh();
+    accumulateCacheUsage(tally, { deepseek: { prompt_cache_hit_tokens: 512 } });
+    expect(tally.cachedPromptTokens).toBe(512);
+  });
+
+  it('does NOT double-count when one provider entry exposes two read aliases', () => {
+    const tally = fresh();
+
+    // Same count under two aliases → counted ONCE (first alias wins per entry).
+    accumulateCacheUsage(tally, { openai: { cachedPromptTokens: 300, cached_tokens: 300 } });
+    expect(tally.cachedPromptTokens).toBe(300);
+  });
+
+  it('normalizes an unknown OpenAI-compatible provider key by field name', () => {
+    const tally = fresh();
+    accumulateCacheUsage(tally, { groq: { cached_tokens: 128 }, together: { cachedTokens: 64 } });
+    expect(tally.cachedPromptTokens).toBe(192);
+  });
 });
