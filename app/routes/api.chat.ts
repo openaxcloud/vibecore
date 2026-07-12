@@ -360,6 +360,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     const totalMessageContent = messages.reduce((acc, message) => acc + message.content, '');
     logger.debug(`Total message length: ${totalMessageContent.split(' ').length}, words`);
 
+    /*
+     * Billing floor for providers that don't report streaming usage. xAI (and some
+     * OpenAI-compatible endpoints) return promptTokens=0 on streamed generations
+     * (they ignore stream_options.include_usage), so charging `usage.promptTokens`
+     * verbatim would bill 0 input tokens for a real generation — a credit leak. This
+     * char/4 estimate (same basis as the pre-flight quota check) is the fallback used
+     * when the provider under-reports, so no provider gets its generations for free.
+     * A floor, not exact accounting (it excludes the system prefix, like the pre-flight).
+     */
+    const estimatedInputTokens = Math.ceil((totalMessageContent.length / 4) * 1.2);
+
     let lastChunk: string | undefined = undefined;
 
     const dataStream = createDataStream({
@@ -391,8 +402,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         let premiumModesEligible = true;
 
         if (projectId) {
-          const estimatedInputTokens = Math.ceil((totalMessageContent.length / 4) * 1.2);
-
           const quota = await checkChatQuota({
             projectId,
             estimatedInputTokens,
@@ -1327,7 +1336,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                     projectId,
                     provider: completionProvider,
                     model: completionModel,
-                    inputTokens: cumulativeUsage.promptTokens,
+
+                    /*
+                     * Floor to the estimate when the provider under-reports usage (xAI streams
+                     * return promptTokens=0) so a real generation is never billed 0 input tokens.
+                     */
+                    inputTokens: cumulativeUsage.promptTokens || estimatedInputTokens,
                     outputTokens: cumulativeUsage.completionTokens,
                     finishReason: terminalFinishReason,
                     cookieHeader: request.headers.get('Cookie') ?? undefined,
