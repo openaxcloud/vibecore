@@ -41,6 +41,7 @@ import {
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
+import { anthropicCacheStore } from '~/lib/.server/llm/anthropic-cache-als';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import { accumulateCacheUsage } from '~/lib/.server/llm/cache-usage';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
@@ -363,6 +364,16 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
     const dataStream = createDataStream({
       async execute(dataStream) {
+        /*
+         * Scope a per-request Anthropic cache tally to this execute's async
+         * context. The provider's wire reader (spawned during streamText below)
+         * accumulates the off-wire cache_read/creation tokens here — the ones
+         * @ai-sdk/anthropic@0.0.39 drops — so flushUsage can fold them into the
+         * normalized telemetry. enterWith (not run) avoids re-indenting the whole
+         * body; each concurrent request runs execute in its own async context.
+         */
+        anthropicCacheStore.enterWith({ read: 0, write: 0 });
+
         streamRecovery.startMonitoring();
 
         /*
@@ -1269,6 +1280,25 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               const { provider: completionProvider, model: completionModel } = lastUserMessageForUsage
                 ? extractPropertiesFromMessage(lastUserMessageForUsage)
                 : { provider: 'unknown', model: 'unknown' };
+
+              /*
+               * Fold in the off-wire Anthropic cache tokens when the SDK surfaced
+               * none (its provider metadata is empty on 0.0.39). Guarded on
+               * cachedPromptTokens===0 so providers that DO report via metadata
+               * (OpenAI, Google) are never double-counted, and the tally only ever
+               * holds Anthropic data (no other provider reports into it).
+               */
+              const anthropicWireCache = anthropicCacheStore.getStore();
+
+              if (
+                anthropicWireCache &&
+                cumulativeUsage.cachedPromptTokens === 0 &&
+                cumulativeUsage.cacheWriteTokens === 0 &&
+                (anthropicWireCache.read > 0 || anthropicWireCache.write > 0)
+              ) {
+                cumulativeUsage.cachedPromptTokens = anthropicWireCache.read;
+                cumulativeUsage.cacheWriteTokens = anthropicWireCache.write;
+              }
 
               logger.info(
                 JSON.stringify({

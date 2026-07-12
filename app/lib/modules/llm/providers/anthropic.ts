@@ -1,5 +1,6 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import type { LanguageModelV1 } from 'ai';
+import { reportAnthropicCacheUsage } from '~/lib/modules/llm/anthropic-cache-report';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import { ANTHROPIC_CACHE_BREAKPOINT } from '~/lib/modules/llm/cache-breakpoint';
 import type { ModelInfo } from '~/lib/modules/llm/types';
@@ -35,6 +36,15 @@ function teeAndLogAnthropicWireUsage(response: Response): Response {
         const usage: Record<string, number> = {};
         const keys = ['input_tokens', 'output_tokens', 'cache_read_input_tokens', 'cache_creation_input_tokens'];
 
+        /*
+         * The cache tokens arrive in `message_start` — the FIRST SSE event — so we
+         * report them into the request's ALS tally as soon as they appear (well
+         * before onFinish fires at stream end), exactly once per stream, so the
+         * normalized telemetry can fill cachedPromptTokens/cacheWriteTokens that the
+         * SDK dropped. `reportAnthropicCacheUsage` no-ops off a request context.
+         */
+        let reported = false;
+
         for (;;) {
           const { done, value } = await reader.read();
 
@@ -50,6 +60,15 @@ function teeAndLogAnthropicWireUsage(response: Response): Response {
             if (m) {
               usage[key] = Number(m[1]);
             }
+          }
+
+          if (
+            !reported &&
+            ('cache_read_input_tokens' in usage || 'cache_creation_input_tokens' in usage) &&
+            'input_tokens' in usage
+          ) {
+            reportAnthropicCacheUsage(usage.cache_read_input_tokens || 0, usage.cache_creation_input_tokens || 0);
+            reported = true;
           }
 
           // Cap memory; already-found values persist in `usage`.
