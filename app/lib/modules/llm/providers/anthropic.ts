@@ -4,6 +4,76 @@ import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import { ANTHROPIC_CACHE_BREAKPOINT } from '~/lib/modules/llm/cache-breakpoint';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
+import { createScopedLogger } from '~/utils/logger';
+
+const anthropicCacheLogger = createScopedLogger('anthropic-cache');
+
+/**
+ * DIAGNOSTIC — `@ai-sdk/anthropic@0.0.39` reads ONLY `input_tokens`/`output_tokens`
+ * from the wire and DISCARDS `cache_read_input_tokens` / `cache_creation_input_tokens`,
+ * so our normalized telemetry is blind to Anthropic caching (it reports
+ * cachedPromptTokens=0 even on a real hit). To PROVE the cache live we tee the SSE
+ * response stream and read Anthropic's raw usage off the wire (message_start carries
+ * the cache fields). Read-only, best-effort, memory-capped: it must NEVER break or
+ * delay the generation stream the SDK consumes.
+ */
+function teeAndLogAnthropicWireUsage(response: Response): Response {
+  try {
+    if (!response.ok || !response.body) {
+      return response;
+    }
+
+    const [forward, inspect] = response.body.tee();
+
+    void (async () => {
+      try {
+        const reader = inspect.getReader();
+        const decoder = new TextDecoder();
+
+        let buf = '';
+
+        const usage: Record<string, number> = {};
+        const keys = ['input_tokens', 'output_tokens', 'cache_read_input_tokens', 'cache_creation_input_tokens'];
+
+        for (;;) {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            break;
+          }
+
+          buf += decoder.decode(value, { stream: true });
+
+          for (const key of keys) {
+            const m = buf.match(new RegExp(`"${key}"\\s*:\\s*(\\d+)`));
+
+            if (m) {
+              usage[key] = Number(m[1]);
+            }
+          }
+
+          // Cap memory; already-found values persist in `usage`.
+          if (buf.length > 200_000) {
+            buf = buf.slice(-50_000);
+          }
+        }
+
+        anthropicCacheLogger.info(JSON.stringify({ event: 'anthropic.wire.usage', usage }));
+      } catch {
+        // diagnostics only — swallow
+      }
+    })();
+
+    // Strip encoding/length headers that no longer describe the re-wrapped stream.
+    const headers = new Headers(response.headers);
+    headers.delete('content-length');
+    headers.delete('content-encoding');
+
+    return new Response(forward, { status: response.status, statusText: response.statusText, headers });
+  } catch {
+    return response;
+  }
+}
 
 /**
  * Builds the model-picker label for an Anthropic dynamic model.
@@ -198,7 +268,16 @@ export function createAnthropicCachingFetch(baseFetch: typeof fetch): typeof fet
        */
     }
 
-    return baseFetch(input as any, init);
+    const response = await baseFetch(input as any, init);
+
+    // Only the streaming /v1/messages call carries usage worth tracing.
+    const url = typeof input === 'string' ? input : ((input as Request)?.url ?? String(input));
+
+    if (url.includes('/v1/messages')) {
+      return teeAndLogAnthropicWireUsage(response);
+    }
+
+    return response;
   };
 }
 
