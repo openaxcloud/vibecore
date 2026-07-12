@@ -1,0 +1,17 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const rootSource = readFileSync(join(process.cwd(), 'app/root.tsx'), 'utf8');
+const clientEntrySource = readFileSync(join(process.cwd(), 'app/entry.client.tsx'), 'utf8');
+
+describe('React Router document hydration contract', () => {
+  it('renders route content directly in body without the legacy root island wrapper', () => {
+    expect(rootSource).toMatch(/<body[^>]*>\s*\{children\}/);
+    expect(rootSource).not.toContain('id="root"');
+  });
+
+  it('hydrates the same document root that the server renders', () => {
+    expect(clientEntrySource).toContain('hydrateRoot(document, <HydratedRouter />)');
+  });
+});

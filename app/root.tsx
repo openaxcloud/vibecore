@@ -384,10 +384,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body>
-        <div id="root" className="w-full h-full">
-          {children}
-        </div>
+      <body className="h-full w-full">
+        {children}
         <ScrollRestoration />
         <Scripts />
       </body>
