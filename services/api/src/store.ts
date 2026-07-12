@@ -460,6 +460,10 @@ export interface ScimTokenRecord {
   tokenHash: string;
   createdAt: string;
   lastUsedAt?: string;
+
+  // F16 — internal dual-valid rotation state (never exposed by the endpoints).
+  previousTokenHash?: string;
+  rotatedAt?: string;
 }
 
 export interface CustomRoleRecord {
@@ -1673,6 +1677,13 @@ export interface ApiStore {
   findScimToken(token: string): Promise<ScimTokenRecord | undefined>;
   listScimTokens(organizationId: string): Promise<ScimTokenRecord[]>;
   revokeScimToken(tokenId: string): Promise<ScimTokenRecord | undefined>;
+
+  /**
+   * F16 — rotate a SCIM token IN PLACE (same id): mint `newToken`, retain the old
+   * hash as previousTokenHash + stamp rotatedAt so the old bearer stays valid for 24h.
+   * Undefined if the id no longer exists.
+   */
+  rotateScimToken(tokenId: string, newToken: string): Promise<ScimTokenRecord | undefined>;
   createCustomRole(input: {
     organizationId: string;
     key: string;

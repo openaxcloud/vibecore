@@ -1259,15 +1259,21 @@ model SsoConfiguration {
 }
 
 model ScimToken {
-  id             String       @id @default(cuid())
-  organizationId String
-  name           String
-  tokenHash      String       @unique
-  lastUsedAt     DateTime?
-  createdAt      DateTime     @default(now())
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id                String       @id @default(cuid())
+  organizationId    String
+  name              String
+  tokenHash         String       @unique
+  lastUsedAt        DateTime?
+  createdAt         DateTime     @default(now())
+  // F16 — 24h dual-valid rotation: on rotate the old hash moves to
+  // previousTokenHash and rotatedAt is stamped; the previous token keeps
+  // authenticating until rotatedAt + 24h so an IdP can roll over with no downtime.
+  previousTokenHash String?
+  rotatedAt         DateTime?
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
+  @@index([previousTokenHash])
 }
 
 model CustomRole {

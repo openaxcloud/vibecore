@@ -2869,7 +2869,18 @@ export class PrismaApiStore implements ApiStore {
 
   async findScimToken(token: string) {
     const tokenHash = hashToken(token);
-    const record = await this.prisma.scimToken.findUnique({ where: { tokenHash } });
+
+    /*
+     * F16 — dual-valid: authenticate the CURRENT hash OR a PREVIOUS hash that is
+     * still inside its 24h rotation window (rotatedAt within the last 24h). Outside
+     * that window the previous hash no longer matches, so an old bearer stops working.
+     */
+    const rotationWindowStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const record = await this.prisma.scimToken.findFirst({
+      where: {
+        OR: [{ tokenHash }, { previousTokenHash: tokenHash, rotatedAt: { gte: rotationWindowStart } }],
+      },
+    });
 
     if (!record) {
       return undefined;
@@ -2903,6 +2914,35 @@ export class PrismaApiStore implements ApiStore {
     try {
       const deleted = await this.prisma.scimToken.delete({ where: { id: tokenId } });
       return mapScimToken(deleted);
+    } catch {
+      return undefined;
+    }
+  }
+
+  /*
+   * F16 — 24h dual-valid rotation: mint a new bearer IN PLACE (same row/id), moving
+   * the old hash to previousTokenHash and stamping rotatedAt. The previous token keeps
+   * authenticating for 24h (see findScimToken) so an IdP can roll over with no
+   * downtime. Returns undefined if the token id no longer exists.
+   */
+  async rotateScimToken(tokenId: string, newToken: string) {
+    try {
+      const existing = await this.prisma.scimToken.findUnique({ where: { id: tokenId } });
+
+      if (!existing) {
+        return undefined;
+      }
+
+      return mapScimToken(
+        await this.prisma.scimToken.update({
+          where: { id: tokenId },
+          data: {
+            previousTokenHash: existing.tokenHash,
+            tokenHash: hashToken(newToken),
+            rotatedAt: new Date(),
+          },
+        }),
+      );
     } catch {
       return undefined;
     }

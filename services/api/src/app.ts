@@ -17038,31 +17038,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Confirm the token belongs to this org BEFORE the (unscoped) delete, so an
      * admin of one org cannot delete another tenant's SCIM token by id.
      */
-    const ownsRotateToken = (await store.listScimTokens(params.orgId)).some((token) => token.id === params.tokenId);
+    const existingRotateToken = (await store.listScimTokens(params.orgId)).find((token) => token.id === params.tokenId);
 
-    if (!ownsRotateToken) {
+    if (!existingRotateToken) {
       return reply.code(404).send({ error: 'SCIM token not found', code: 'SCIM_TOKEN_NOT_FOUND' });
     }
 
-    const existing = await store.revokeScimToken(params.tokenId);
-
-    if (!existing || existing.organizationId !== params.orgId) {
-      return reply.code(404).send({ error: 'SCIM token not found', code: 'SCIM_TOKEN_NOT_FOUND' });
-    }
-
+    /*
+     * F16 — 24h dual-valid rotation: mint the new bearer IN PLACE on the SAME token
+     * id (previous hash retained + rotatedAt stamped) instead of revoke-then-recreate.
+     * The OLD bearer keeps authenticating for 24h (store.findScimToken), so an IdP can
+     * swap the secret with zero provisioning downtime.
+     */
     const token = createOpaqueToken('scim');
+    const scimToken = await store.rotateScimToken(params.tokenId, token);
 
-    const scimToken = await store.createScimToken({
-      organizationId: params.orgId,
-      name: existing.name,
-      token,
-    });
+    if (!scimToken || scimToken.organizationId !== params.orgId) {
+      return reply.code(404).send({ error: 'SCIM token not found', code: 'SCIM_TOKEN_NOT_FOUND' });
+    }
+
     await audit(request, store, {
       organizationId: params.orgId,
       action: 'scim.token.rotate',
       resourceType: 'scimToken',
       resourceId: scimToken.id,
-      metadata: { previousTokenId: existing.id },
+      metadata: { dualValidHours: 24 },
     });
 
     return reply

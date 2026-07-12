@@ -866,7 +866,9 @@ exports.Prisma.ScimTokenScalarFieldEnum = {
   name: 'name',
   tokenHash: 'tokenHash',
   lastUsedAt: 'lastUsedAt',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  previousTokenHash: 'previousTokenHash',
+  rotatedAt: 'rotatedAt'
 };
 
 exports.Prisma.CustomRoleScalarFieldEnum = {

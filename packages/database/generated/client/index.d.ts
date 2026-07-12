@@ -228,7 +228,8 @@ export type Subscription = $Result.DefaultSelection<Prisma.$SubscriptionPayload>
 export type Plan = $Result.DefaultSelection<Prisma.$PlanPayload>
 /**
  * Model StripeConfig
- * * Admin-managed Stripe configuration (singleton row, id = "singleton"). Lets a
+ * *
+ *  * Admin-managed Stripe configuration (singleton row, id = "singleton"). Lets a
  *  * platform admin paste the live secret key + webhook signing secret in the admin
  *  * console instead of editing values-prod.yaml. Both secrets are encrypted at rest
  *  * (encryptJson) and write-only (never returned to the browser — only a hasX flag).
@@ -239,7 +240,8 @@ export type Plan = $Result.DefaultSelection<Prisma.$PlanPayload>
 export type StripeConfig = $Result.DefaultSelection<Prisma.$StripeConfigPayload>
 /**
  * Model LoginProviderConfig
- * * Admin-managed social-login provider config (2026-06-30): a platform admin can
+ * *
+ *  * Admin-managed social-login provider config (2026-06-30): a platform admin can
  *  * paste each sign-in provider's (GitHub / Google) OAuth client_id + client_secret
  *  * in /admin/oauth-providers instead of editing the platform Secret + redeploying.
  *  * One row per provider (provider key is the PK). The secret is stored encrypted
@@ -271,7 +273,8 @@ export type QuotaOverride = $Result.DefaultSelection<Prisma.$QuotaOverridePayloa
 export type StripeEvent = $Result.DefaultSelection<Prisma.$StripeEventPayload>
 /**
  * Model StripeWebhookFailure
- * * A Stripe webhook whose side-effect processing threw (E28 admin health).
+ * *
+ *  * A Stripe webhook whose side-effect processing threw (E28 admin health).
  *  * The full event payload is stored so an admin can replay it later — replays
  *  * re-run the SAME processing path with this stored payload (signature
  *  * verification is skipped by design: the payload came from our own store, not
@@ -89783,6 +89786,8 @@ export namespace Prisma {
     tokenHash: string | null
     lastUsedAt: Date | null
     createdAt: Date | null
+    previousTokenHash: string | null
+    rotatedAt: Date | null
   }
 
   export type ScimTokenMaxAggregateOutputType = {
@@ -89792,6 +89797,8 @@ export namespace Prisma {
     tokenHash: string | null
     lastUsedAt: Date | null
     createdAt: Date | null
+    previousTokenHash: string | null
+    rotatedAt: Date | null
   }
 
   export type ScimTokenCountAggregateOutputType = {
@@ -89801,6 +89808,8 @@ export namespace Prisma {
     tokenHash: number
     lastUsedAt: number
     createdAt: number
+    previousTokenHash: number
+    rotatedAt: number
     _all: number
   }
 
@@ -89812,6 +89821,8 @@ export namespace Prisma {
     tokenHash?: true
     lastUsedAt?: true
     createdAt?: true
+    previousTokenHash?: true
+    rotatedAt?: true
   }
 
   export type ScimTokenMaxAggregateInputType = {
@@ -89821,6 +89832,8 @@ export namespace Prisma {
     tokenHash?: true
     lastUsedAt?: true
     createdAt?: true
+    previousTokenHash?: true
+    rotatedAt?: true
   }
 
   export type ScimTokenCountAggregateInputType = {
@@ -89830,6 +89843,8 @@ export namespace Prisma {
     tokenHash?: true
     lastUsedAt?: true
     createdAt?: true
+    previousTokenHash?: true
+    rotatedAt?: true
     _all?: true
   }
 
@@ -89912,6 +89927,8 @@ export namespace Prisma {
     tokenHash: string
     lastUsedAt: Date | null
     createdAt: Date
+    previousTokenHash: string | null
+    rotatedAt: Date | null
     _count: ScimTokenCountAggregateOutputType | null
     _min: ScimTokenMinAggregateOutputType | null
     _max: ScimTokenMaxAggregateOutputType | null
@@ -89938,6 +89955,8 @@ export namespace Prisma {
     tokenHash?: boolean
     lastUsedAt?: boolean
     createdAt?: boolean
+    previousTokenHash?: boolean
+    rotatedAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["scimToken"]>
 
@@ -89948,6 +89967,8 @@ export namespace Prisma {
     tokenHash?: boolean
     lastUsedAt?: boolean
     createdAt?: boolean
+    previousTokenHash?: boolean
+    rotatedAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["scimToken"]>
 
@@ -89958,6 +89979,8 @@ export namespace Prisma {
     tokenHash?: boolean
     lastUsedAt?: boolean
     createdAt?: boolean
+    previousTokenHash?: boolean
+    rotatedAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["scimToken"]>
 
@@ -89968,9 +89991,11 @@ export namespace Prisma {
     tokenHash?: boolean
     lastUsedAt?: boolean
     createdAt?: boolean
+    previousTokenHash?: boolean
+    rotatedAt?: boolean
   }
 
-  export type ScimTokenOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "name" | "tokenHash" | "lastUsedAt" | "createdAt", ExtArgs["result"]["scimToken"]>
+  export type ScimTokenOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "name" | "tokenHash" | "lastUsedAt" | "createdAt" | "previousTokenHash" | "rotatedAt", ExtArgs["result"]["scimToken"]>
   export type ScimTokenInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }
@@ -89993,6 +90018,8 @@ export namespace Prisma {
       tokenHash: string
       lastUsedAt: Date | null
       createdAt: Date
+      previousTokenHash: string | null
+      rotatedAt: Date | null
     }, ExtArgs["result"]["scimToken"]>
     composites: {}
   }
@@ -90423,6 +90450,8 @@ export namespace Prisma {
     readonly tokenHash: FieldRef<"ScimToken", 'String'>
     readonly lastUsedAt: FieldRef<"ScimToken", 'DateTime'>
     readonly createdAt: FieldRef<"ScimToken", 'DateTime'>
+    readonly previousTokenHash: FieldRef<"ScimToken", 'String'>
+    readonly rotatedAt: FieldRef<"ScimToken", 'DateTime'>
   }
     
 
@@ -130902,7 +130931,9 @@ export namespace Prisma {
     name: 'name',
     tokenHash: 'tokenHash',
     lastUsedAt: 'lastUsedAt',
-    createdAt: 'createdAt'
+    createdAt: 'createdAt',
+    previousTokenHash: 'previousTokenHash',
+    rotatedAt: 'rotatedAt'
   };
 
   export type ScimTokenScalarFieldEnum = (typeof ScimTokenScalarFieldEnum)[keyof typeof ScimTokenScalarFieldEnum]
@@ -136951,6 +136982,8 @@ export namespace Prisma {
     tokenHash?: StringFilter<"ScimToken"> | string
     lastUsedAt?: DateTimeNullableFilter<"ScimToken"> | Date | string | null
     createdAt?: DateTimeFilter<"ScimToken"> | Date | string
+    previousTokenHash?: StringNullableFilter<"ScimToken"> | string | null
+    rotatedAt?: DateTimeNullableFilter<"ScimToken"> | Date | string | null
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
   }
 
@@ -136961,6 +136994,8 @@ export namespace Prisma {
     tokenHash?: SortOrder
     lastUsedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    previousTokenHash?: SortOrderInput | SortOrder
+    rotatedAt?: SortOrderInput | SortOrder
     organization?: OrganizationOrderByWithRelationInput
   }
 
@@ -136974,6 +137009,8 @@ export namespace Prisma {
     name?: StringFilter<"ScimToken"> | string
     lastUsedAt?: DateTimeNullableFilter<"ScimToken"> | Date | string | null
     createdAt?: DateTimeFilter<"ScimToken"> | Date | string
+    previousTokenHash?: StringNullableFilter<"ScimToken"> | string | null
+    rotatedAt?: DateTimeNullableFilter<"ScimToken"> | Date | string | null
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
   }, "id" | "tokenHash">
 
@@ -136984,6 +137021,8 @@ export namespace Prisma {
     tokenHash?: SortOrder
     lastUsedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    previousTokenHash?: SortOrderInput | SortOrder
+    rotatedAt?: SortOrderInput | SortOrder
     _count?: ScimTokenCountOrderByAggregateInput
     _max?: ScimTokenMaxOrderByAggregateInput
     _min?: ScimTokenMinOrderByAggregateInput
@@ -136999,6 +137038,8 @@ export namespace Prisma {
     tokenHash?: StringWithAggregatesFilter<"ScimToken"> | string
     lastUsedAt?: DateTimeNullableWithAggregatesFilter<"ScimToken"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ScimToken"> | Date | string
+    previousTokenHash?: StringNullableWithAggregatesFilter<"ScimToken"> | string | null
+    rotatedAt?: DateTimeNullableWithAggregatesFilter<"ScimToken"> | Date | string | null
   }
 
   export type CustomRoleWhereInput = {
@@ -145358,6 +145399,8 @@ export namespace Prisma {
     tokenHash: string
     lastUsedAt?: Date | string | null
     createdAt?: Date | string
+    previousTokenHash?: string | null
+    rotatedAt?: Date | string | null
     organization: OrganizationCreateNestedOneWithoutScimTokensInput
   }
 
@@ -145368,6 +145411,8 @@ export namespace Prisma {
     tokenHash: string
     lastUsedAt?: Date | string | null
     createdAt?: Date | string
+    previousTokenHash?: string | null
+    rotatedAt?: Date | string | null
   }
 
   export type ScimTokenUpdateInput = {
@@ -145376,6 +145421,8 @@ export namespace Prisma {
     tokenHash?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    previousTokenHash?: NullableStringFieldUpdateOperationsInput | string | null
+    rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     organization?: OrganizationUpdateOneRequiredWithoutScimTokensNestedInput
   }
 
@@ -145386,6 +145433,8 @@ export namespace Prisma {
     tokenHash?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    previousTokenHash?: NullableStringFieldUpdateOperationsInput | string | null
+    rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type ScimTokenCreateManyInput = {
@@ -145395,6 +145444,8 @@ export namespace Prisma {
     tokenHash: string
     lastUsedAt?: Date | string | null
     createdAt?: Date | string
+    previousTokenHash?: string | null
+    rotatedAt?: Date | string | null
   }
 
   export type ScimTokenUpdateManyMutationInput = {
@@ -145403,6 +145454,8 @@ export namespace Prisma {
     tokenHash?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    previousTokenHash?: NullableStringFieldUpdateOperationsInput | string | null
+    rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type ScimTokenUncheckedUpdateManyInput = {
@@ -145412,6 +145465,8 @@ export namespace Prisma {
     tokenHash?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    previousTokenHash?: NullableStringFieldUpdateOperationsInput | string | null
+    rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type CustomRoleCreateInput = {
@@ -152306,6 +152361,8 @@ export namespace Prisma {
     tokenHash?: SortOrder
     lastUsedAt?: SortOrder
     createdAt?: SortOrder
+    previousTokenHash?: SortOrder
+    rotatedAt?: SortOrder
   }
 
   export type ScimTokenMaxOrderByAggregateInput = {
@@ -152315,6 +152372,8 @@ export namespace Prisma {
     tokenHash?: SortOrder
     lastUsedAt?: SortOrder
     createdAt?: SortOrder
+    previousTokenHash?: SortOrder
+    rotatedAt?: SortOrder
   }
 
   export type ScimTokenMinOrderByAggregateInput = {
@@ -152324,6 +152383,8 @@ export namespace Prisma {
     tokenHash?: SortOrder
     lastUsedAt?: SortOrder
     createdAt?: SortOrder
+    previousTokenHash?: SortOrder
+    rotatedAt?: SortOrder
   }
 
   export type CustomRoleOrganizationIdKeyCompoundUniqueInput = {
@@ -164017,6 +164078,8 @@ export namespace Prisma {
     tokenHash: string
     lastUsedAt?: Date | string | null
     createdAt?: Date | string
+    previousTokenHash?: string | null
+    rotatedAt?: Date | string | null
   }
 
   export type ScimTokenUncheckedCreateWithoutOrganizationInput = {
@@ -164025,6 +164088,8 @@ export namespace Prisma {
     tokenHash: string
     lastUsedAt?: Date | string | null
     createdAt?: Date | string
+    previousTokenHash?: string | null
+    rotatedAt?: Date | string | null
   }
 
   export type ScimTokenCreateOrConnectWithoutOrganizationInput = {
@@ -165010,6 +165075,8 @@ export namespace Prisma {
     tokenHash?: StringFilter<"ScimToken"> | string
     lastUsedAt?: DateTimeNullableFilter<"ScimToken"> | Date | string | null
     createdAt?: DateTimeFilter<"ScimToken"> | Date | string
+    previousTokenHash?: StringNullableFilter<"ScimToken"> | string | null
+    rotatedAt?: DateTimeNullableFilter<"ScimToken"> | Date | string | null
   }
 
   export type CustomRoleUpsertWithWhereUniqueWithoutOrganizationInput = {
@@ -187664,6 +187731,8 @@ export namespace Prisma {
     tokenHash: string
     lastUsedAt?: Date | string | null
     createdAt?: Date | string
+    previousTokenHash?: string | null
+    rotatedAt?: Date | string | null
   }
 
   export type CustomRoleCreateManyOrganizationInput = {
@@ -188370,6 +188439,8 @@ export namespace Prisma {
     tokenHash?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    previousTokenHash?: NullableStringFieldUpdateOperationsInput | string | null
+    rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type ScimTokenUncheckedUpdateWithoutOrganizationInput = {
@@ -188378,6 +188449,8 @@ export namespace Prisma {
     tokenHash?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    previousTokenHash?: NullableStringFieldUpdateOperationsInput | string | null
+    rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type ScimTokenUncheckedUpdateManyWithoutOrganizationInput = {
@@ -188386,6 +188459,8 @@ export namespace Prisma {
     tokenHash?: StringFieldUpdateOperationsInput | string
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    previousTokenHash?: NullableStringFieldUpdateOperationsInput | string | null
+    rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type CustomRoleUpdateWithoutOrganizationInput = {

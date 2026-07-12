@@ -2163,7 +2163,16 @@ export class TestApiStore implements ApiStore {
 
   async findScimToken(token: string) {
     const tokenHash = hashToken(token);
-    const record = [...this.scimTokens.values()].find((item) => item.tokenHash === tokenHash);
+    const windowStartMs = Date.now() - 24 * 60 * 60 * 1000;
+
+    // F16 — dual-valid: current hash, OR a previous hash still within its 24h window.
+    const record = [...this.scimTokens.values()].find(
+      (item) =>
+        item.tokenHash === tokenHash ||
+        (item.previousTokenHash === tokenHash &&
+          item.rotatedAt !== undefined &&
+          new Date(item.rotatedAt).getTime() >= windowStartMs),
+    );
 
     if (record) {
       record.lastUsedAt = now();
@@ -2186,6 +2195,20 @@ export class TestApiStore implements ApiStore {
     }
 
     this.scimTokens.delete(tokenId);
+
+    return record;
+  }
+
+  async rotateScimToken(tokenId: string, newToken: string) {
+    const record = this.scimTokens.get(tokenId);
+
+    if (!record) {
+      return undefined;
+    }
+
+    record.previousTokenHash = record.tokenHash;
+    record.tokenHash = hashToken(newToken);
+    record.rotatedAt = now();
 
     return record;
   }
