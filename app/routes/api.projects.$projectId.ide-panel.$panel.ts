@@ -1683,8 +1683,14 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         method: 'POST',
       });
     } else if (intent === 'query') {
+      /*
+       * redirectOn401:false — a failed SQL run must surface as a panel error, NEVER
+       * eject the user to /login (which bounced them out of the Database panel to
+       * /dashboard). This is a fetcher action serving an IDE panel, not a page load.
+       */
       const queryResult = await apiRequest(request, `/projects/${projectId}/databases/query`, {
         method: 'POST',
+        redirectOn401: false,
         body: JSON.stringify({
           key: body.connectionKey,
           query: body.query,
@@ -1698,6 +1704,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       // Provision a managed CNPG database for this project (the button-wired path).
       const provisioned = await apiRequest(request, `/projects/${projectId}/database/provision`, {
         method: 'POST',
+        redirectOn401: false,
         body: JSON.stringify({ environment: body.environment || undefined }),
       });
 
