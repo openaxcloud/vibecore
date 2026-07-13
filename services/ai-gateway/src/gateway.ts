@@ -827,6 +827,38 @@ export function resolveMaxOutputTokens(request: AiChatRequest, model: string): n
   return clampGatewayOutputBudget(estimate, modelCeiling);
 }
 
+/** djb2 hash of a string → short base36. Never for billing; keys the prompt-cache routing hint. */
+function hashString(text: string): string {
+  let h = 5381;
+
+  for (let i = 0; i < text.length; i++) {
+    h = (h * 33) ^ text.charCodeAt(i);
+  }
+
+  return (h >>> 0).toString(36);
+}
+
+/**
+ * Stable `prompt_cache_key` for the OpenAI-compatible path (mirrors the main
+ * chat's stable-head keying that drove OpenAI's 95% cache hit-rate). Keyed to the
+ * SYSTEM prefix (SHARED_AGENT_SYSTEM_PREAMBLE + shared context) — byte-identical
+ * across every lane of a multi-agent run and across turns — so OpenAI routes all
+ * those requests to the same cache node and serves the shared prefix from cache
+ * instead of re-billing it per lane. Org-scoped so two orgs never share a key.
+ * `prompt_cache_key` is NOT part of the cached prefix (routing hint only), so the
+ * prompt bytes are unchanged; unsupported openai-compatible upstreams ignore it.
+ */
+export function openAiPromptCacheKey(request: AiChatRequest): string {
+  const system = request.messages
+    .filter((message) => message.role === 'system')
+    .map((message) => message.content)
+    .join('\n\n');
+
+  const scope = request.organizationId ?? 'anon';
+
+  return `ecode-${scope}-${hashString(system)}`;
+}
+
 function openAiPayload(request: AiChatRequest, model: string, stream: boolean) {
   return {
     model,
@@ -844,6 +876,15 @@ function openAiPayload(request: AiChatRequest, model: string, stream: boolean) {
      * openai-compatible upstreams (spec-safe `user` field).
      */
     ...(request.organizationId ? { user: request.organizationId } : {}),
+
+    /*
+     * `prompt_cache_key`: finer-grained cache routing than `user` — keyed to the
+     * stable SYSTEM prefix so ALL lanes of a run (and successive turns) land on the
+     * same cache node, the mechanism behind the main chat's 95% OpenAI hit-rate.
+     * Spec-safe extra field: openai-compatible upstreams that don't support it
+     * (incl. xAI) ignore it; it never changes the cached prompt bytes.
+     */
+    prompt_cache_key: openAiPromptCacheKey(request),
     ...optionalTemperature(request, model),
   };
 }

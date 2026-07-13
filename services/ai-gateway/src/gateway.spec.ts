@@ -9,8 +9,31 @@ import {
   maxCompletionTokensForModel,
   modelCatalog,
   modelDisallowsTemperature,
+  openAiPromptCacheKey,
   providerConfigs,
 } from './gateway.js';
+
+describe('openAiPromptCacheKey', () => {
+  it('is stable for the same system prefix across lanes and org-scoped', () => {
+    const sys = { role: 'system' as const, content: 'S'.repeat(2000) };
+    const laneA = { organizationId: 'org1', messages: [sys, { role: 'user' as const, content: 'lane A' }] };
+    const laneB = { organizationId: 'org1', messages: [sys, { role: 'user' as const, content: 'lane B' }] };
+    const otherOrg = { organizationId: 'org2', messages: [sys, { role: 'user' as const, content: 'lane A' }] };
+
+    // Same system + org, different per-lane tail → identical cache key (all lanes hit one node).
+    expect(openAiPromptCacheKey(laneA)).toBe(openAiPromptCacheKey(laneB));
+
+    // Different org → different key (no cross-org cache sharing).
+    expect(openAiPromptCacheKey(laneA)).not.toBe(openAiPromptCacheKey(otherOrg));
+    expect(openAiPromptCacheKey(laneA)).toMatch(/^ecode-org1-/);
+  });
+
+  it('changes when the system prefix changes', () => {
+    const a = { messages: [{ role: 'system' as const, content: 'alpha' }] };
+    const b = { messages: [{ role: 'system' as const, content: 'beta' }] };
+    expect(openAiPromptCacheKey(a)).not.toBe(openAiPromptCacheKey(b));
+  });
+});
 
 /*
  * The verbatim body Anthropic's API returns when the account's own monthly
