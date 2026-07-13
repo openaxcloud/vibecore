@@ -24,6 +24,25 @@ const startSchema = z.object({
     .optional(),
 });
 
+/** Body for POST /server-deployments/start (Replit-parity durable runtime). */
+const serverStartSchema = z.object({
+  deploymentId: z.string().min(1),
+  orgId: z.string().optional(),
+  projectId: z.string().optional(),
+  image: z.string().min(1),
+  command: z.array(z.string()).optional(),
+  args: z.array(z.string()).optional(),
+  port: z.number().int().positive().default(3000),
+  host: z.string().min(1),
+  tlsSecretName: z.string().default('vibecore-preview-wildcard-tls'),
+  env: z.record(z.string()).optional(),
+  secrets: z.record(z.string()).optional(),
+  replicas: z.number().int().positive().optional(),
+  healthPath: z.string().optional(),
+  readyTimeoutMs: z.number().int().positive().optional(),
+  createIngress: z.boolean().optional(),
+});
+
 function runtimeNamespace() {
   return process.env.WORKSPACE_RUNTIME_NAMESPACE ?? 'workspaces';
 }
@@ -175,6 +194,21 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
    */
   app.post('/workspaces/start', async (request) =>
     manager.startWorkspace({ ...startSchema.parse(request.body), namespace: runtimeNamespace() }),
+  );
+
+  /*
+   * Server deployments (Replit-parity durable runtime): apply Deployment+Service+
+   * Ingress running the built backend, poll readiness, return the public URL. The
+   * namespace is always the manager's runtimeNamespace() (same as workspaces).
+   */
+  app.post('/server-deployments/start', async (request) =>
+    manager.startServerDeployment({ ...serverStartSchema.parse(request.body), namespace: runtimeNamespace() }),
+  );
+  app.get('/server-deployments/:deploymentId/status', async (request) =>
+    manager.getServerDeploymentStatus(runtimeNamespace(), (request.params as any).deploymentId),
+  );
+  app.post('/server-deployments/:deploymentId/stop', async (request) =>
+    manager.stopServerDeployment(runtimeNamespace(), (request.params as any).deploymentId),
   );
   app.get('/workspaces/:workspaceId', async (request) => manager.store.get((request.params as any).workspaceId));
   app.get('/workspaces/:workspaceId/agent-token', async (request) => {

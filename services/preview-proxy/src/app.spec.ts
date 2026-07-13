@@ -3,7 +3,9 @@ import {
   buildPreviewProxyApp,
   computeHostPreviewSubpath,
   injectInspectorScript,
+  parseServerDeployHost,
   readCookie,
+  serverDeployUpstreamUrl,
   signPreviewTenantToken,
   verifyPreviewTenantToken,
 } from './app.js';
@@ -300,6 +302,7 @@ describe('preview-proxy', () => {
     // Our injections landed (before </head>)…
     expect(out).toContain('src="/__vibecore/preview-reporter.js"');
     expect(out).toContain('src="/__vibecore/inspector-script.js"');
+
     // …and the app entry survives, exactly once (structurally: our tags go in <head>, the entry in <body>).
     expect((out.match(/src="\/src\/main\.tsx"/g) ?? []).length).toBe(1);
     expect(out).toContain('<div id="root">');
@@ -712,6 +715,81 @@ describe('preview-proxy', () => {
       const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/', headers: { accept: 'text/html' } });
 
       expect(response.statusCode).not.toBe(401);
+      await app.close();
+    });
+  });
+
+  describe('server deployments (Replit-parity durable runtime)', () => {
+    it('parseServerDeployHost extracts the deployment id from a `d-<id>` host', () => {
+      expect(parseServerDeployHost('d-clr8x9abc123.preview.e-code.ai', 'preview.e-code.ai')).toEqual({
+        deploymentId: 'clr8x9abc123',
+      });
+    });
+
+    it('parseServerDeployHost rejects a preview host and a bare/foreign host (no collision)', () => {
+      // A per-preview host `<ws>-<port>` is NOT a deploy host.
+      expect(parseServerDeployHost('ws-abc-5173.preview.e-code.ai', 'preview.e-code.ai')).toBeNull();
+
+      // Wrong domain, nested label, and missing prefix all reject.
+      expect(parseServerDeployHost('d-abc123.evil.com', 'preview.e-code.ai')).toBeNull();
+      expect(parseServerDeployHost('x.d-abc123.preview.e-code.ai', 'preview.e-code.ai')).toBeNull();
+      expect(parseServerDeployHost('abc123.preview.e-code.ai', 'preview.e-code.ai')).toBeNull();
+    });
+
+    it('serverDeployUpstreamUrl substitutes the id and rejects a non-http template', () => {
+      expect(serverDeployUpstreamUrl('dep1', 'http://app-{deploymentId}.workspaces.svc.cluster.local')).toBe(
+        'http://app-dep1.workspaces.svc.cluster.local',
+      );
+      expect(serverDeployUpstreamUrl('dep1', 'file:///etc/passwd')).toBeNull();
+    });
+
+    it('forwards a deploy host straight to the `app-<id>` Service (no agent token, no gates)', async () => {
+      const { fn: fetchImpl, calls } = recordingFetch(
+        async () => new Response('hello from the deployed server', { status: 200 }),
+      );
+
+      const app = await buildPreviewProxyApp({
+        fetchImpl,
+        previewDomain: 'preview.e-code.ai',
+
+        // resolveAgent must NEVER be consulted for a deploy host.
+        resolveAgent: async () => {
+          throw new Error('resolveAgent should not be called for a server deploy host');
+        },
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/health?x=1',
+        headers: { host: 'd-clr8x9abc123.preview.e-code.ai' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toBe('hello from the deployed server');
+
+      // Path + query forwarded verbatim to the deployment's Service (no /preview/ prefix, no token).
+      expect(calls[0].url.href).toBe('http://app-clr8x9abc123.workspaces.svc.cluster.local/api/health?x=1');
+      expect((calls[0].init.headers as Record<string, string>)?.authorization).toBeUndefined();
+
+      await app.close();
+    });
+
+    it('serves the starting/holding page when the deploy Service is unreachable (document nav)', async () => {
+      const fetchImpl = (async () => {
+        throw new Error('ECONNREFUSED');
+      }) as unknown as typeof fetch;
+
+      const app = await buildPreviewProxyApp({ fetchImpl, previewDomain: 'preview.e-code.ai' });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/',
+        headers: { host: 'd-clr8x9abc123.preview.e-code.ai', accept: 'text/html' },
+      });
+
+      expect(response.statusCode).toBe(503);
+      expect(response.body).toContain('Starting your app');
+
       await app.close();
     });
   });

@@ -1,10 +1,15 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import {
+  serverAppDeployment,
+  serverAppIngress,
+  serverAppService,
+  serverDeploymentName,
   workspaceAgentSecret,
   workspacePod,
   workspacePvc,
   workspaceService,
+  type ServerRuntimeInput,
   type WorkspaceK8sClient,
   type WorkspacePlan,
 } from '@vibecore/k8s-client';
@@ -479,6 +484,143 @@ export class WorkspaceManager {
 
       return failed;
     }
+  }
+
+  /*
+   * SERVER DEPLOYMENTS (Replit-parity durable runtime). A server deployment runs
+   * the user's built backend as a durable Deployment + Service + exact-host Ingress
+   * (public URL under the preview wildcard cert). Env + per-env secrets (incl. the
+   * prod DATABASE_URL) are injected via an `app-secrets-<id>` Secret. These live in
+   * the SAME runtime namespace + gVisor sandbox as workspace pods.
+   */
+  async startServerDeployment(input: {
+    deploymentId: string;
+    namespace: string;
+    orgId?: string;
+    projectId?: string;
+    image: string;
+    command?: string[];
+    args?: string[];
+    port: number;
+    host: string;
+    tlsSecretName: string;
+    env?: Record<string, string>;
+    // Secret-backed env (name -> value); stored in an app-secrets-<id> Secret.
+    secrets?: Record<string, string>;
+    replicas?: number;
+    healthPath?: string;
+    readyTimeoutMs?: number;
+    /*
+     * Create an exact-host Ingress in the runtime namespace. OFF by default: the
+     * default deploy routing is the preview-proxy host-routing `d-<id>.<domain>`
+     * (which reuses the platform-ns wildcard cert). An exact-host Ingress here
+     * would instead register its OWN server block for the host — with no cert in
+     * this namespace it serves the fake default cert AND, being an exact match,
+     * beats the wildcard so the proxy never sees the request. Only enable it in a
+     * cluster where the wildcard TLS secret is mirrored into the runtime namespace.
+     */
+    createIngress?: boolean;
+  }): Promise<{ ready: boolean; url: string; name: string; readyReplicas: number }> {
+    const name = serverDeploymentName(input.deploymentId);
+    const hasSecrets = Boolean(input.secrets && Object.keys(input.secrets).length > 0);
+    const secretName = `app-secrets-${input.deploymentId}`;
+
+    if (hasSecrets) {
+      await this.k8s.apply({
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: {
+          name: secretName,
+          namespace: input.namespace,
+          labels: { 'vibecore.ai/server-deploy': input.deploymentId },
+        },
+        type: 'Opaque',
+        stringData: input.secrets as Record<string, string>,
+      });
+    }
+
+    const runtime: ServerRuntimeInput = {
+      deploymentId: input.deploymentId,
+      namespace: input.namespace,
+      orgId: input.orgId,
+      projectId: input.projectId,
+      image: input.image,
+      command: input.command,
+      args: input.args,
+      port: input.port,
+      host: input.host,
+      tlsSecretName: input.tlsSecretName,
+      env: input.env,
+      ...(hasSecrets
+        ? {
+            secretName,
+            secretEnv: Object.fromEntries(Object.keys(input.secrets as Record<string, string>).map((k) => [k, k])),
+          }
+        : {}),
+      replicas: input.replicas,
+      healthPath: input.healthPath,
+    };
+
+    await this.k8s.apply(serverAppDeployment(runtime));
+    await this.k8s.apply(serverAppService(runtime));
+
+    if (input.createIngress) {
+      await this.k8s.apply(serverAppIngress(runtime));
+    }
+
+    const ready = await this.#pollServerDeploymentReady(input.namespace, name, input.readyTimeoutMs ?? 120_000);
+    const status = await this.getServerDeploymentStatus(input.namespace, input.deploymentId);
+
+    return { ready, url: `https://${input.host}`, name, readyReplicas: status.readyReplicas };
+  }
+
+  async #pollServerDeploymentReady(namespace: string, name: string, timeoutMs: number): Promise<boolean> {
+    const deadline = Date.now() + timeoutMs;
+
+    for (;;) {
+      const dep = (await this.k8s.get('Deployment', namespace, name).catch(() => undefined)) as
+        | { status?: { readyReplicas?: number } }
+        | undefined;
+
+      if ((dep?.status?.readyReplicas ?? 0) >= 1) {
+        return true;
+      }
+
+      if (Date.now() >= deadline) {
+        return false;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+  }
+
+  async getServerDeploymentStatus(
+    namespace: string,
+    deploymentId: string,
+  ): Promise<{ exists: boolean; readyReplicas: number; replicas: number }> {
+    const dep = (await this.k8s
+      .get('Deployment', namespace, serverDeploymentName(deploymentId))
+      .catch(() => undefined)) as { status?: { readyReplicas?: number; replicas?: number } } | undefined;
+
+    return {
+      exists: Boolean(dep),
+      readyReplicas: dep?.status?.readyReplicas ?? 0,
+      replicas: dep?.status?.replicas ?? 0,
+    };
+  }
+
+  async stopServerDeployment(namespace: string, deploymentId: string): Promise<{ stopped: true }> {
+    const name = serverDeploymentName(deploymentId);
+
+    // Best-effort teardown of all four resources; a straggler is caught by GC.
+    await Promise.allSettled([
+      this.k8s.delete('Ingress', namespace, name),
+      this.k8s.delete('Service', namespace, name),
+      this.k8s.delete('Deployment', namespace, name),
+      this.k8s.delete('Secret', namespace, `app-secrets-${deploymentId}`),
+    ]);
+
+    return { stopped: true };
   }
 
   async stopWorkspace(namespace: string, workspaceId: string, guard?: { status?: string; lastActiveAt?: string }) {

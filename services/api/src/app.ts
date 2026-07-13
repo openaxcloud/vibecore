@@ -138,6 +138,7 @@ import {
   removeStaticDeploymentSnapshot,
   runStaticBuild,
   sanitizeDeploymentEnvVars,
+  serverDeployHost,
   snapshotStaticBuild,
   staticDeploymentSnapshotDir,
   triggerProviderDeployHook,
@@ -6265,6 +6266,108 @@ function workspaceManagerUrl() {
   }
 
   return (process.env.WORKSPACE_MANAGER_URL?.trim() || 'http://127.0.0.1:3010').replace(/\/+$/, '');
+}
+
+/*
+ * Platform-provided server-deploy runtime (Replit-parity Lot 1). A dependency-free
+ * Node HTTP server that proves the durable runtime + public URL end-to-end: it
+ * listens on PORT and answers `/` and `/health` with the deployment id + uptime.
+ * `/db/*` routes light up in Lot 2 once a prod DATABASE_URL secret is injected and
+ * a pg client is available (require('pg') is attempted lazily and degrades to a
+ * clear 503 when absent, so this same script serves both lots).
+ */
+const SERVER_DEPLOY_PROBE_SCRIPT = `
+const http = require('http');
+const startedAt = new Date().toISOString();
+let pg = null;
+try { pg = require('pg'); } catch (_) { pg = null; }
+let pool = null;
+function getPool() {
+  if (!pg) return null;
+  if (!process.env.DATABASE_URL) return null;
+  if (!pool) pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 3, connectionTimeoutMillis: 5000 });
+  return pool;
+}
+const server = http.createServer(async (req, res) => {
+  const send = (code, obj) => { res.statusCode = code; res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(obj)); };
+  try {
+    const url = (req.url || '/').split('?')[0];
+    if (url === '/' || url === '/health') {
+      return send(200, { ok: true, service: 'e-code-server-deploy', deploymentId: process.env.DEPLOY_ID || null, startedAt, now: new Date().toISOString(), db: Boolean(process.env.DATABASE_URL) });
+    }
+    if (url === '/db/write') {
+      const p = getPool();
+      if (!p) return send(503, { ok: false, error: process.env.DATABASE_URL ? 'pg client unavailable' : 'DATABASE_URL not set' });
+      await p.query('CREATE TABLE IF NOT EXISTS ecode_deploy_probe (id serial primary key, deployment_id text, note text, created_at timestamptz default now())');
+      const note = 'server-deploy-proof-' + Date.now();
+      const r = await p.query('INSERT INTO ecode_deploy_probe (deployment_id, note) VALUES ($1,$2) RETURNING id, note, created_at', [process.env.DEPLOY_ID || null, note]);
+      return send(200, { ok: true, wrote: r.rows[0] });
+    }
+    if (url === '/db/read') {
+      const p = getPool();
+      if (!p) return send(503, { ok: false, error: process.env.DATABASE_URL ? 'pg client unavailable' : 'DATABASE_URL not set' });
+      const r = await p.query('SELECT id, deployment_id, note, created_at FROM ecode_deploy_probe ORDER BY id DESC LIMIT 5');
+      return send(200, { ok: true, rows: r.rows });
+    }
+    return send(404, { ok: false, error: 'not found', path: url });
+  } catch (e) { return send(500, { ok: false, error: String((e && e.message) || e) }); }
+});
+server.listen(Number(process.env.PORT) || 3000, () => console.log('e-code server-deploy probe listening on', process.env.PORT || 3000));
+`;
+
+/*
+ * Start a server deployment via the workspace-manager (applies the Deployment +
+ * Service in the runtime sandbox, polls readiness). Routing to the public host is
+ * handled by the preview-proxy (createIngress stays off), so no Ingress is created.
+ */
+async function startServerDeploymentViaManager(payload: {
+  deploymentId: string;
+  image: string;
+  command?: string[];
+  args?: string[];
+  port: number;
+  host: string;
+  tlsSecretName?: string;
+  env?: Record<string, string>;
+  secrets?: Record<string, string>;
+  projectId?: string;
+  orgId?: string;
+  healthPath?: string;
+  readyTimeoutMs?: number;
+}): Promise<{ ready: boolean; url: string; name: string; readyReplicas: number }> {
+  const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+  const response = await fetch(`${workspaceManagerUrl()}/server-deployments/start`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      accept: 'application/json',
+      ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}),
+    },
+    body: JSON.stringify({ tlsSecretName: 'vibecore-preview-wildcard-tls', createIngress: false, ...payload }),
+    signal: AbortSignal.timeout(Number(process.env.SERVER_DEPLOY_START_TIMEOUT_MS) || 200_000),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw Object.assign(new Error(`server-deployment start failed: ${response.status} ${text}`), {
+      statusCode: 502,
+      code: 'SERVER_DEPLOY_MANAGER_FAILED',
+    });
+  }
+
+  return (await response.json()) as { ready: boolean; url: string; name: string; readyReplicas: number };
+}
+
+/* Tear down a server deployment (Deployment/Service/Secret/Ingress) best-effort. */
+async function stopServerDeploymentViaManager(deploymentId: string): Promise<void> {
+  const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+  await fetch(`${workspaceManagerUrl()}/server-deployments/${encodeURIComponent(deploymentId)}/stop`, {
+    method: 'POST',
+    headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
+    signal: AbortSignal.timeout(30_000),
+  }).catch(() => undefined);
 }
 
 function agentBaseUrl(workspaceId: string) {
@@ -27042,6 +27145,101 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
     };
 
+    /*
+     * Server deployment (Replit-parity durable runtime). Self-contained branch:
+     * apply the Deployment+Service via workspace-manager, poll readiness, and
+     * persist READY with the public host (routed by the preview-proxy) or FAILED.
+     * Returns early — it shares none of the static-build / provider-hook logic.
+     */
+    if (body.provider === 'server') {
+      const host = serverDeployHost(queued.id);
+      const nowIso = () => new Date().toISOString();
+
+      buildProgress.onPhase('deploying');
+      buildProgress.onLog({
+        timestamp: nowIso(),
+        level: 'info',
+        message: `Server deploy: starting runtime for ${host}`,
+      });
+
+      let started: { ready: boolean; url: string; name: string; readyReplicas: number } | undefined;
+      let serverError: string | undefined;
+
+      try {
+        started = await startServerDeploymentViaManager({
+          deploymentId: queued.id,
+          image:
+            process.env.SERVER_DEPLOY_IMAGE ??
+            process.env.WORKSPACE_AGENT_IMAGE ??
+            'vibecore/workspace-agent:2026.04.0',
+          command: ['node', '-e', SERVER_DEPLOY_PROBE_SCRIPT],
+          port: Number(process.env.SERVER_DEPLOY_PORT) || 3000,
+          host,
+          projectId: project.id,
+          orgId: project.organizationId,
+          env: { DEPLOY_ID: queued.id, ...body.envVars },
+          healthPath: '/health',
+        });
+      } catch (error) {
+        serverError = (error as Error).message ?? 'server deploy failed to start';
+      }
+
+      const ok = Boolean(started?.ready);
+      const serverUrl = started?.url ?? `https://${host}`;
+
+      buildProgress.onLog({
+        timestamp: nowIso(),
+        level: ok ? 'info' : 'error',
+        message: ok
+          ? `Server deploy: ready with ${started?.readyReplicas ?? 0} replica(s) at ${serverUrl}`
+          : `Server deploy: not ready${serverError ? ` (${serverError})` : ''}. It may still be starting — retry.`,
+      });
+
+      const serverStatus = ok ? 'READY' : 'FAILED';
+
+      const readyRow = await store.updateDeployment(project.id, queued.id, {
+        status: serverStatus,
+        url: ok ? serverUrl : undefined,
+        previewUrl: ok && body.environment !== 'production' ? serverUrl : undefined,
+        productionUrl: ok && body.environment === 'production' ? serverUrl : undefined,
+        metadata: {
+          ...(queued.metadata as Record<string, unknown>),
+          serverDeploy: { host, ready: ok, readyReplicas: started?.readyReplicas ?? 0 },
+        },
+        logs: [...createDeploymentLogs(body, { ...queued, url: serverUrl }, project), ...liveLog],
+        finishedAt: nowIso(),
+      });
+
+      if (shouldRecordDeploymentUsage(readyRow.status)) {
+        await recordUsage(request, project.organizationId, 'deployments.count');
+      }
+
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'deployment.create',
+        resourceType: 'deployment',
+        resourceId: readyRow.id,
+        metadata: { provider: readyRow.provider, environment: readyRow.environment, framework: readyRow.framework },
+      });
+      await store.recordProjectActivity({
+        projectId: project.id,
+        actorUserId: request.currentUser?.id,
+        action: 'deployment.create',
+        metadata: {
+          deploymentId: readyRow.id,
+          provider: readyRow.provider,
+          environment: readyRow.environment,
+          url: readyRow.url,
+        },
+      });
+
+      if (readyRow.url) {
+        thumbnailCapturer.schedule(project.id, readyRow.url);
+      }
+
+      return readyRow;
+    }
+
     const hookResult = await triggerProviderDeployHook(body.provider);
 
     let staticBuildFailed = false;
@@ -27402,7 +27600,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * so their response carries the final status (the existing deploy tests keep
      * asserting on it), and they never touch Redis.
      */
-    const asyncBuild = useWorkspacePodBuild && body.provider === 'static';
+    const asyncBuild = useWorkspacePodBuild && (body.provider === 'static' || body.provider === 'server');
 
     if (asyncBuild) {
       try {
@@ -27688,6 +27886,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         { timestamp: new Date().toISOString(), level: 'warn', message: 'Deployment canceled by user' },
       ],
     });
+
+    /*
+     * A server deployment runs a durable Deployment+Service in the runtime
+     * sandbox — cancelling must tear it down so it doesn't keep serving / consume
+     * resources. Best-effort (the manager also GC's orphans); never blocks cancel.
+     */
+    if (deployment.provider === 'server') {
+      await stopServerDeploymentViaManager(deployment.id);
+    }
+
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'deployment.cancel',

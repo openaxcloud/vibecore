@@ -6,6 +6,7 @@ import type { DeploymentRecord, ProjectRecord } from './store.js';
 
 export const deploymentProviders = [
   'static',
+  'server',
   'vercel',
   'netlify',
   'github-pages',
@@ -111,6 +112,9 @@ export function sanitizeDeploymentPath(path: string) {
 
 const providerEnvRequirement: Record<(typeof deploymentProviders)[number], readonly string[]> = {
   static: [],
+
+  // A server deploy runs the app as an in-cluster Deployment via workspace-manager.
+  server: ['WORKSPACE_MANAGER_URL', 'WORKSPACE_MANAGER_SHARED_SECRET'],
   vercel: ['VERCEL_DEPLOY_HOOK_URL'],
   netlify: ['NETLIFY_BUILD_HOOK_URL'],
   'github-pages': ['GITHUB_DEPLOY_TOKEN', 'GITHUB_PAGES_REPO', 'GITHUB_PAGES_WORKFLOW'],
@@ -143,6 +147,7 @@ export function assertDeploymentProviderConfigured(
 
 const providerDisplayName: Record<(typeof deploymentProviders)[number], string> = {
   static: 'Static hosting',
+  server: 'Server (Autoscale)',
   vercel: 'Vercel',
   netlify: 'Netlify',
   'github-pages': 'GitHub Pages',
@@ -671,9 +676,30 @@ export function detectFramework(input: CreateDeploymentRequest) {
   return 'static';
 }
 
+/*
+ * Base domain for server-deployment public hosts (`d-<id>.<domain>`). Reuses the
+ * preview wildcard domain (`*.preview.e-code.ai`) so the deploy host is covered by
+ * the existing wildcard TLS cert + ingress + DNS with ZERO new infra — the
+ * preview-proxy host-routes `d-<id>.<domain>` to the deployment's Service.
+ */
+export function serverDeployDomain() {
+  return (process.env.SERVER_DEPLOY_DOMAIN?.trim() || process.env.PREVIEW_DOMAIN?.trim() || 'preview.e-code.ai')
+    .replace(/^\.+|\.+$/g, '')
+    .toLowerCase();
+}
+
+/** Public host for a server deployment: `d-<deploymentId>.<serverDeployDomain()>`. */
+export function serverDeployHost(deploymentId: string) {
+  return `d-${deploymentId.toLowerCase()}.${serverDeployDomain()}`;
+}
+
 export function buildDeploymentUrl(project: ProjectRecord, deployment: DeploymentRecord) {
   if (deployment.provider === 'static') {
     return `${staticDeployPublicBaseUrl()}/static-deployments/${deployment.id}/`;
+  }
+
+  if (deployment.provider === 'server') {
+    return `https://${serverDeployHost(deployment.id)}`;
   }
 
   const slug = project.slug || project.id;
@@ -1412,6 +1438,9 @@ export function createDeploymentLogs(
     baseLogs.push('Cloud Run: deployed service without platform secrets');
   } else if (deployment.provider === 'static') {
     baseLogs.push('Static export: uploaded immutable artifact bundle');
+  } else if (deployment.provider === 'server') {
+    baseLogs.push('Server deploy: applied Deployment + Service in the runtime sandbox');
+    baseLogs.push('Server deploy: routed the public host through the preview wildcard');
   } else {
     baseLogs.push(`${deployment.provider}: provider deployment created through scoped integration`);
   }

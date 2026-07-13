@@ -103,6 +103,17 @@ export interface PreviewProxyOptions {
    * (dev/tests) keeps pure path-based `/p/<ws>/<port>` routing.
    */
   previewDomain?: string;
+
+  /**
+   * Upstream base for a SERVER DEPLOYMENT (Replit-parity durable runtime). A
+   * request whose Host is `d-<deploymentId>.<previewDomain>` is a PUBLIC deployed
+   * app (not an IDE preview): it is forwarded straight to the deployment's
+   * in-cluster Service with NO agent token, tenant cookie, private-port gate, or
+   * inspector injection. `{deploymentId}` is substituted into the template; the
+   * default targets the Service the workspace-manager creates for the deploy
+   * (`app-<id>` in the workspaces runtime namespace, port 80).
+   */
+  serverDeployUpstreamTemplate?: string;
 }
 
 /*
@@ -218,6 +229,75 @@ export function parsePreviewHost(
   return { workspaceId: match[1], port: String(port) };
 }
 
+/*
+ * Derive the deployment id from a SERVER-DEPLOY Host header
+ * (`d-<deploymentId>.<previewDomain>`). Distinct from parsePreviewHost: a deploy
+ * host has a `d-` prefix and NO trailing `-<port>`, so the two never collide (a
+ * preview host `<ws>-<port>` fails the `d-` prefix; a deploy host `d-<cuid>`
+ * fails the `-<digits>` suffix). The deployment id is a cuid (lowercase
+ * alphanumeric), which names the in-cluster Service `app-<deploymentId>`.
+ */
+export function parseServerDeployHost(
+  hostHeader: string | undefined,
+  previewDomain: string | undefined,
+): { deploymentId: string } | null {
+  if (!hostHeader || !previewDomain) {
+    return null;
+  }
+
+  const host = hostHeader.split(':')[0].trim().toLowerCase();
+
+  const suffix = `.${previewDomain
+    .trim()
+    .toLowerCase()
+    .replace(/^\.+|\.+$/g, '')}`;
+
+  if (suffix === '.' || !host.endsWith(suffix)) {
+    return null;
+  }
+
+  const label = host.slice(0, host.length - suffix.length);
+
+  // A deploy host is a single subdomain label `d-<cuid>` (no nested dots).
+  if (!label || label.includes('.')) {
+    return null;
+  }
+
+  const match = /^d-([a-z0-9]{6,})$/.exec(label);
+
+  if (!match) {
+    return null;
+  }
+
+  return { deploymentId: match[1] };
+}
+
+/*
+ * Build the in-cluster upstream base URL for a server deployment from the
+ * template (default: the workspace-manager's `app-<id>` Service on port 80).
+ * Returns null when the substituted value is not a usable http(s) URL so a bad
+ * template can never proxy to an attacker-influenced host.
+ */
+export function serverDeployUpstreamUrl(deploymentId: string, template: string): string | null {
+  const raw = template.replaceAll('{deploymentId}', deploymentId).replace(/\/+$/, '');
+
+  let url: URL;
+
+  try {
+    url = new URL(raw);
+  } catch {
+    return null;
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return null;
+  }
+
+  return raw;
+}
+
+const DEFAULT_SERVER_DEPLOY_UPSTREAM_TEMPLATE = 'http://app-{deploymentId}.workspaces.svc.cluster.local';
+
 function base64url(input: Buffer | string): string {
   return Buffer.from(input).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
@@ -322,6 +402,12 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   const requestTimeoutMs = options.requestTimeoutMs ?? 30_000;
   const injectInspector = options.injectInspector ?? true;
   const previewDomain = options.previewDomain ?? process.env.PREVIEW_DOMAIN;
+
+  const serverDeployUpstreamTemplate =
+    options.serverDeployUpstreamTemplate ??
+    process.env.SERVER_DEPLOY_UPSTREAM_TEMPLATE ??
+    DEFAULT_SERVER_DEPLOY_UPSTREAM_TEMPLATE;
+
   const enforceTenant = options.enforceTenant ?? process.env.PREVIEW_PROXY_ENFORCE_TENANT === 'true';
   const tenantSecret = options.tenantSecret ?? process.env.PREVIEW_TENANT_SECRET;
   const enforcePrivatePorts = options.enforcePrivatePorts ?? process.env.PREVIEW_ENFORCE_PRIVATE_PORTS === 'true';
@@ -464,6 +550,147 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   });
 
   const resolveAgent = options.resolveAgent ?? defaultResolveAgent(options, fetchImpl);
+
+  /*
+   * Forward a request for a server-deployment host (`d-<id>.<previewDomain>`) to
+   * the deployment's in-cluster Service. Unlike the IDE preview path this is a
+   * PUBLIC app URL: no agent token, no tenant/private gates, no inspector/reporter
+   * injection, no `/preview/<port>/` prefix — the request path/query is forwarded
+   * verbatim (byte-exact stream-through both ways). CORP/COEP/referrer headers are
+   * still added by the onSend hook so the deployed app can be framed in the IDE.
+   */
+  const handleServerDeployRequest = async (request: FastifyRequest, reply: FastifyReply, deploymentId: string) => {
+    const upstreamBase = serverDeployUpstreamUrl(deploymentId, serverDeployUpstreamTemplate);
+
+    if (!upstreamBase) {
+      return reply
+        .code(500)
+        .send({ error: 'Server deploy upstream misconfigured', code: 'SERVER_DEPLOY_UPSTREAM_INVALID' });
+    }
+
+    const rawPath = request.url.startsWith('/') ? request.url : `/${request.url}`;
+
+    let upstream: URL;
+
+    try {
+      upstream = new URL(`${upstreamBase}${rawPath}`);
+    } catch {
+      return reply.code(400).send({ error: 'Invalid deploy path', code: 'SERVER_DEPLOY_PATH_INVALID' });
+    }
+
+    /*
+     * The resolved host must still be the deploy Service — an app-controlled path
+     * can never repoint us off the intended in-cluster upstream origin.
+     */
+    if (upstream.origin !== new URL(upstreamBase).origin) {
+      return reply.code(400).send({ error: 'Invalid deploy path', code: 'SERVER_DEPLOY_PATH_INVALID' });
+    }
+
+    const headers: Record<string, string> = { 'x-vibecore-server-deploy': deploymentId };
+
+    for (const [name, value] of Object.entries(request.headers)) {
+      if (typeof value !== 'string') {
+        continue;
+      }
+
+      const lower = name.toLowerCase();
+
+      if (
+        lower === 'host' ||
+        lower === 'connection' ||
+        lower === 'keep-alive' ||
+        lower === 'transfer-encoding' ||
+        lower === 'content-length' ||
+        lower === 'upgrade' ||
+        lower === 'forwarded' ||
+        lower.startsWith('x-forwarded-') ||
+        lower.startsWith('x-vibecore-')
+      ) {
+        continue;
+      }
+
+      headers[name] = value;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+
+    let streamingHandoff = false;
+
+    try {
+      const upstreamResponse = await fetchImpl(upstream, {
+        method: request.method,
+        headers,
+        body: shouldStreamBody(request.method) ? (request.raw as unknown as ReadableStream<Uint8Array>) : undefined,
+        signal: controller.signal,
+
+        // App-controlled code: surface a 3xx verbatim rather than following it in-cluster.
+        redirect: 'manual',
+        ...({ duplex: 'half' } as Record<string, unknown>),
+      });
+
+      // Headers arrived → the connection succeeded; don't abort a long-lived body.
+      clearTimeout(timeout);
+      reply.status(upstreamResponse.status);
+
+      const upstreamWasEncoded = upstreamResponse.headers.has('content-encoding');
+
+      upstreamResponse.headers.forEach((value, name) => {
+        const lower = name.toLowerCase();
+
+        if (
+          lower === 'content-encoding' ||
+          lower === 'transfer-encoding' ||
+          lower === 'connection' ||
+          lower === 'keep-alive' ||
+          (upstreamWasEncoded && lower === 'content-length')
+        ) {
+          return;
+        }
+
+        reply.header(name, value);
+      });
+
+      if (!upstreamResponse.body) {
+        return reply.send();
+      }
+
+      streamingHandoff = true;
+
+      const readable = Readable.fromWeb(upstreamResponse.body as ReadableStream<Uint8Array>);
+      const clear = () => clearTimeout(timeout);
+      readable.on('close', clear);
+      readable.on('end', clear);
+      readable.on('error', clear);
+      reply.raw.on('close', () => {
+        if (!reply.raw.writableFinished) {
+          controller.abort();
+        }
+      });
+
+      return reply.send(readable);
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        return reply.code(504).send({ error: 'Deploy upstream timeout', code: 'SERVER_DEPLOY_UPSTREAM_TIMEOUT' });
+      }
+
+      /*
+       * Not-yet-ready or unreachable deploy Service: surface a starting/holding page
+       * for a document navigation, a JSON error otherwise (mirrors the preview path).
+       */
+      if (wantsHtmlDocument(request)) {
+        return reply.code(503).type('text/html').header('cache-control', 'no-store').send(PREVIEW_STARTING_HTML);
+      }
+
+      return reply
+        .code(502)
+        .send({ error: 'Deploy upstream error', code: 'SERVER_DEPLOY_UPSTREAM_ERROR', detail: error?.message });
+    } finally {
+      if (!streamingHandoff) {
+        clearTimeout(timeout);
+      }
+    }
+  };
 
   const handlePreviewRequest = async (request: FastifyRequest<{ Params: PreviewRouteParams }>, reply: FastifyReply) => {
     const params = request.params;
@@ -883,13 +1110,35 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    */
   if (previewDomain) {
     app.addHook('onRequest', async (request, reply) => {
+      const path = request.url.split('?')[0].split('#')[0];
+
+      /*
+       * Server-deployment host (`d-<id>.<previewDomain>`): a public deployed app.
+       * Checked before the preview parse (the two host shapes never collide) and
+       * forwarded straight to the deploy Service. Proxy-owned endpoints still win.
+       */
+      const deploy = parseServerDeployHost(request.headers.host, previewDomain);
+
+      if (deploy) {
+        if (
+          path === '/health' ||
+          path === INSPECTOR_SCRIPT_PATH ||
+          path === REPORTER_SCRIPT_PATH ||
+          path === BLANK_PREVIEW_PATH
+        ) {
+          return;
+        }
+
+        await handleServerDeployRequest(request, reply, deploy.deploymentId);
+
+        return;
+      }
+
       const parsed = parsePreviewHost(request.headers.host, previewDomain);
 
       if (!parsed) {
         return; // not a preview host — fall through to path-based routing
       }
-
-      const path = request.url.split('?')[0].split('#')[0];
 
       if (
         path === '/health' ||
