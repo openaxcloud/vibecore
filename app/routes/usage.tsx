@@ -17,6 +17,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { memberDisplayLabel, quotaDisplayLabel, userFacingLabel } from '~/lib/user-facing-labels';
 
 type MemberLimit = { userId: string; limitCents: number };
 type OrgMember = { userId: string; role?: string; email?: string; name?: string };
@@ -44,14 +45,6 @@ type UsageData = {
 };
 
 export const meta: MetaFunction = () => [{ title: 'Usage - E-Code' }];
-
-/** 'ai.inputTokens' -> 'ai input tokens' for the threshold notes. */
-function humanizeQuotaKey(key: string): string {
-  return key
-    .replace(/\./g, ' ')
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .toLowerCase();
-}
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
@@ -174,7 +167,6 @@ export default function UsagePage() {
   const savingLimit = navigation.state !== 'idle' && navigation.formData?.get('intent') === 'member-limit';
   const dollars = (cents: number) => `€${(cents / 100).toFixed(2)}`;
   const limitFor = (userId: string) => memberLimits?.limits.find((l) => l.userId === userId)?.limitCents;
-  const memberLabel = (m: OrgMember) => m.email || m.name || m.userId;
 
   const iconFor: Record<string, typeof Sparkles> = {
     agent: Sparkles,
@@ -187,7 +179,7 @@ export default function UsagePage() {
   return (
     <AppShell
       title="Usage overview"
-      description="Track backend-enforced quota usage across projects, workspaces, AI, storage, snapshots, previews and deployments."
+      description="See how your plan allowances are being used across projects, workspaces, AI, storage and deployments."
     >
       {data.breakdownUnavailable ? (
         retrying ? (
@@ -323,10 +315,10 @@ export default function UsagePage() {
                   >
                     <div className="grid grid-cols-[1fr_120px_120px]">
                       <span className="min-w-0 truncate">
-                        {quota}
+                        {quotaDisplayLabel(quota)}
                         {override ? (
                           <span className="ml-2 rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] uppercase text-bolt-elements-textTertiary">
-                            override
+                            Custom limit
                           </span>
                         ) : null}
                       </span>
@@ -335,7 +327,7 @@ export default function UsagePage() {
                     </div>
                     <div
                       role="progressbar"
-                      aria-label={`${humanizeQuotaKey(quota)} usage`}
+                      aria-label={`${quotaDisplayLabel(quota)} usage`}
                       aria-valuemin={0}
                       aria-valuemax={effectiveLimit}
                       aria-valuenow={Math.min(usedValue, effectiveLimit)}
@@ -361,7 +353,7 @@ export default function UsagePage() {
                             color: tone === 'error' ? 'var(--status-error-text)' : 'var(--status-warning-text)',
                           }}
                         >
-                          {`You've used ${pct}% of your ${humanizeQuotaKey(quota)}`}
+                          {`You've used ${pct}% of your ${quotaDisplayLabel(quota).toLowerCase()} allowance`}
                         </span>
                         {tone === 'error' ? (
                           <Link
@@ -381,16 +373,16 @@ export default function UsagePage() {
 
           {overrides.length > 0 ? (
             <div className="mt-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Active quota overrides</h3>
+              <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Custom plan limits</h3>
               <p className="mb-3 text-xs text-bolt-elements-textSecondary">
-                Custom limits applied to your organization (e.g. Enterprise allowances).
+                Limits tailored to this organization replace the standard plan allowance.
               </p>
               <ul className="flex flex-col gap-2">
                 {overrides.map((override) => (
                   <li key={override.id} className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
-                    <span className="text-bolt-elements-textPrimary">{override.key}</span>
+                    <span className="text-bolt-elements-textPrimary">{quotaDisplayLabel(override.key)}</span>
                     <span className="text-bolt-elements-textSecondary">
-                      limit {override.limit}
+                      Limit {override.limit.toLocaleString('en-GB')}
                       {override.reason ? ` · ${override.reason}` : ''}
                       {override.expiresAt ? ` · until ${new Date(override.expiresAt).toLocaleDateString()}` : ''}
                     </span>
@@ -432,15 +424,18 @@ export default function UsagePage() {
             </div>
           ) : null}
           <ul className="flex flex-col gap-2">
-            {memberLimits.members.map((member) => {
+            {memberLimits.members.map((member, memberIndex) => {
               const current = limitFor(member.userId);
+              const memberLabel = memberDisplayLabel(member, memberIndex);
 
               return (
                 <li key={member.userId} className="flex flex-wrap items-center justify-between gap-2">
                   <span className="min-w-0 truncate text-sm text-bolt-elements-textPrimary">
-                    {memberLabel(member)}
+                    {memberLabel}
                     {member.role ? (
-                      <span className="ml-2 text-[11px] uppercase text-bolt-elements-textTertiary">{member.role}</span>
+                      <span className="ml-2 text-[11px] uppercase text-bolt-elements-textTertiary">
+                        {userFacingLabel(member.role, 'Member')}
+                      </span>
                     ) : null}
                     <span className="ml-2 text-xs text-bolt-elements-textSecondary">
                       {current != null ? `limit ${dollars(current)}` : 'no member limit'}
@@ -457,7 +452,7 @@ export default function UsagePage() {
                       step="any"
                       defaultValue={current != null ? (current / 100).toString() : ''}
                       placeholder="No limit"
-                      aria-label={`Spend limit for ${memberLabel(member)} in euros`}
+                      aria-label={`Spend limit for ${memberLabel} in euros`}
                       className="w-28 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-1.5 text-sm text-bolt-elements-textPrimary"
                     />
                     <Button type="submit" variant="outline" disabled={savingLimit}>

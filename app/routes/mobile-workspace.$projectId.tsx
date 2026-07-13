@@ -3,8 +3,8 @@ import type { MetaFunction } from 'react-router';
 import { useParams } from 'react-router';
 import { MarketingStaticPage, type MarketingPageDefinition } from '~/components/marketing/EcodeMarketingPages';
 
-export const meta: MetaFunction = ({ params }) => [
-  { title: `Mobile workspace ${params.projectId ?? ''} - E-Code` },
+export const meta: MetaFunction = () => [
+  { title: 'Mobile workspace - E-Code' },
   {
     name: 'description',
     content: 'Mobile workspace compatibility route for E-Code projects in E-Code.',
@@ -17,7 +17,7 @@ export default function MobileWorkspacePage() {
 
   const page = {
     slug: `mobile-workspace/${projectId}`,
-    title: `Mobile workspace ${projectId}`,
+    title: 'Mobile workspace',
     eyebrow: 'Mobile IDE',
     description:
       'Open the same E-Code project context from a mobile-ready route with agent, files, preview and runtime status available through the canonical IDE.',
@@ -28,14 +28,14 @@ export default function MobileWorkspacePage() {
     highlights: ['Phone workflow', 'Project context', 'Agent panel', 'Preview access'],
     sections: [
       {
-        title: 'Compatibility path',
-        body: 'The original E-Code mobile workspace URL is preserved while E-Code keeps the canonical project IDE route under /projects.',
-        items: ['Project-aware link', 'Mobile shell', 'Agent workflow', 'Preview route'],
+        title: 'Continue on mobile',
+        body: 'Return to your project with the same files, agent conversation and workspace status available on your other devices.',
+        items: ['Project context', 'Mobile navigation', 'Agent workflow', 'Preview access'],
       },
       {
-        title: 'Canonical route',
-        body: 'Signed-in users should continue in the project IDE where permissions, runtime state and collaboration are enforced.',
-        items: [`/projects/${projectId}/ide`, 'Authenticated access', 'Runtime controls', 'Team governance'],
+        title: 'Secure project access',
+        body: 'Sign-in, project permissions and team policies stay active when you move between desktop, tablet and mobile.',
+        items: ['Authenticated access', 'Project permissions', 'Workspace controls', 'Team governance'],
       },
     ],
   } satisfies MarketingPageDefinition;

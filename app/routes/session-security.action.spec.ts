@@ -123,7 +123,7 @@ describe('session-security action error handling', () => {
     const { status, body } = await runAction({ sessionDurationMinutes: '60' });
 
     expect(status).toBe(400);
-    expect(body.error).toBe('Organization ID is required.');
+    expect(body.error).toBe('Your organization is unavailable. Reload the page and try again.');
     expect(apiRequest).not.toHaveBeenCalled();
   });
 

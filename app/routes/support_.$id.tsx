@@ -15,6 +15,7 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 import { isReauthRedirect } from '~/lib/route-reauth';
+import { statusDisplayLabel } from '~/lib/user-facing-labels';
 
 type Ticket = { id: string; subject: string; status: string; category?: string; createdAt?: string };
 type TicketMessage = {
@@ -149,7 +150,7 @@ export default function SupportTicketPage() {
               </p>
             </div>
             <Badge variant={STATUS_BADGE_VARIANT[ticket.status] ?? 'secondary'} size="md">
-              {ticket.status}
+              {statusDisplayLabel(ticket.status)}
             </Badge>
           </div>
 

@@ -90,7 +90,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   };
 
   if (!body.orgId) {
-    return json({ error: 'Organization ID is required.' }, { status: 400 });
+    return json({ error: 'Your organization is unavailable. Reload the page and try again.' }, { status: 400 });
   }
 
   try {
@@ -131,13 +131,13 @@ export default function InvitationsPage() {
   return (
     <EnterpriseFormPage
       title="Invitations"
-      description="Prepare enterprise member invitations with explicit organization roles."
+      description="Invite teammates and assign the right level of access."
       status={actionData?.status}
       error={actionData?.error}
     >
       {canManageInvitations ? (
         <Form method="post" className="space-y-4">
-          <TextField label="Organization ID" name="orgId" defaultValue={orgId} required />
+          <input type="hidden" name="orgId" value={orgId} />
           <TextField label="Email" name="email" type="email" required />
           <SelectField
             label="Role"

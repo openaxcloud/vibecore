@@ -13,6 +13,7 @@ import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { apiRequest, json, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import type { ProjectRecord } from '~/lib/project-route.server';
 import { shouldRethrowActionError } from '~/lib/route-reauth';
+import { statusDisplayLabel } from '~/lib/user-facing-labels';
 
 /* Re-fetch the runtime log buffer this often while a workspace is live. */
 const LOG_POLL_INTERVAL_MS = 4000;
@@ -94,16 +95,12 @@ export default function ProjectLogsPage() {
   }, [polling, revalidator]);
 
   return (
-    <ProjectShell
-      projectId={project.id}
-      title="Logs"
-      description="Live workspace runtime output (stdout/stderr) from the running project."
-    >
+    <ProjectShell projectId={project.id} title="Logs" description="Live output from your running project.">
       <div className="mb-3 flex items-center gap-3 text-xs text-bolt-elements-textTertiary">
         {data.workspace ? (
           <span>
-            workspace {data.workspace.id} · {data.workspace.status}
-            {polling ? ' · live' : ''}
+            Workspace {statusDisplayLabel(data.workspace.status)}
+            {polling ? ' · Live updates' : ''}
           </span>
         ) : null}
         <button
@@ -120,7 +117,9 @@ export default function ProjectLogsPage() {
           <div className="text-bolt-elements-textTertiary">No workspace has been started for this project yet.</div>
         ) : null}
         {view.kind === 'error' ? (
-          <div className="text-[var(--status-error-text)]">Unable to load logs: {view.message}</div>
+          <div className="text-[var(--status-error-text)]" role="alert">
+            Project logs are temporarily unavailable. Retry to reconnect.
+          </div>
         ) : null}
         {view.kind === 'empty' ? (
           <div className="text-bolt-elements-textTertiary">No runtime output captured yet.</div>

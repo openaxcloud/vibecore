@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Form, useActionData, useLoaderData } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import {
@@ -12,6 +13,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { permissionLabel } from '~/lib/rbac-catalog';
 import { isReauthRedirect } from '~/lib/route-reauth';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
@@ -62,7 +64,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   };
 
   if (!body.orgId) {
-    return json({ error: 'Organization ID is required.' }, { status: 400 });
+    return json({ error: 'Your organization is unavailable. Reload the page and try again.' }, { status: 400 });
   }
 
   try {
@@ -108,37 +110,57 @@ export async function action({ request }: EnterpriseActionArgs) {
 export default function RolesAndPermissionsPage() {
   const { orgId, roles, permissions } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+
+  const setPermission = (permission: string, checked: boolean) => {
+    setSelectedPermissions((current) =>
+      checked ? [...new Set([...current, permission])] : current.filter((candidate) => candidate !== permission),
+    );
+  };
 
   return (
     <EnterpriseFormPage
       title="Roles and permissions"
-      description="Create custom roles that map to backend permission checks."
+      description="Create custom roles and choose exactly what each role can do."
       status={actionData?.status}
       error={actionData?.error}
     >
       <Form method="post" className="space-y-4">
-        <TextField label="Organization ID" name="orgId" defaultValue={orgId} required />
-        <TextField label="Role key" name="key" required />
+        <input type="hidden" name="orgId" value={orgId} />
+        <input type="hidden" name="permissions" value={selectedPermissions.join(',')} />
+        <TextField label="Role identifier" name="key" placeholder="e.g. release-manager" required />
         <TextField label="Role name" name="name" required />
-        <TextField label="Permissions" name="permissions" placeholder="projects:read,usage:read" required />
-        <PrimaryButton>Create role</PrimaryButton>
+        <fieldset className="grid gap-2">
+          <legend className="text-sm font-medium text-bolt-elements-textPrimary">Permissions</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {permissions.map((permission) => (
+              <label
+                key={permission}
+                className="flex min-h-11 items-center gap-3 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm text-bolt-elements-textPrimary"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedPermissions.includes(permission)}
+                  onChange={(event) => setPermission(permission, event.currentTarget.checked)}
+                />
+                <span>{permissionLabel(permission)}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <PrimaryButton disabled={selectedPermissions.length === 0}>Create role</PrimaryButton>
       </Form>
-      <div className="mt-6 rounded-md border border-bolt-elements-borderColor p-3 text-xs text-bolt-elements-textSecondary">
-        <strong className="block text-bolt-elements-textPrimary">Available permissions</strong>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {permissions.map((permission) => (
-            <code key={permission} className="rounded border border-bolt-elements-borderColor px-2 py-1">
-              {permission}
-            </code>
-          ))}
-        </div>
-      </div>
       <div className="mt-6 overflow-hidden rounded-md border border-bolt-elements-borderColor text-sm">
         {roles.map((role) => (
           <div key={role.key} className="border-b border-bolt-elements-borderColor p-3 last:border-b-0">
             <div className="font-medium text-bolt-elements-textPrimary">{role.name}</div>
-            <div className="text-xs text-bolt-elements-textSecondary">{role.key}</div>
-            <div className="mt-2 text-xs text-bolt-elements-textSecondary">{role.permissions.join(', ')}</div>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs text-bolt-elements-textSecondary">
+              {role.permissions.map((permission) => (
+                <span key={permission} className="rounded border border-bolt-elements-borderColor px-2 py-1">
+                  {permissionLabel(permission)}
+                </span>
+              ))}
+            </div>
           </div>
         ))}
         {roles.length === 0 && <div className="p-3 text-bolt-elements-textSecondary">No custom roles created.</div>}

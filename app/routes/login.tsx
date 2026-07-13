@@ -18,6 +18,7 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 import { invalidateRuntimeToken } from '~/lib/runtime/RuntimeAdapterProvider';
+import { oauthErrorDisplayMessage, providerDisplayLabel } from '~/lib/user-facing-labels';
 
 export const meta: MetaFunction = () => [
   { title: 'Login - E-Code' },
@@ -225,9 +226,7 @@ export default function LoginPage() {
     | undefined;
 
   const oauthErrorMessage = loaderData?.oauth
-    ? `Sign-in with ${loaderData.oauth.provider} failed (${loaderData.oauth.error}${
-        loaderData.oauth.detail ? `: ${loaderData.oauth.detail}` : ''
-      }).`
+    ? `${providerDisplayLabel(loaderData.oauth.provider)} sign-in failed. ${oauthErrorDisplayMessage(loaderData.oauth.error)}`
     : null;
 
   const navigation = useNavigation();

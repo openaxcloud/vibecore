@@ -106,7 +106,7 @@ describe('scim-token-settings action error handling', () => {
     const { status, body } = await runAction({ name: 'x' });
 
     expect(status).toBe(400);
-    expect(body.error).toBe('Organization ID is required.');
+    expect(body.error).toBe('Your organization is unavailable. Reload the page and try again.');
     expect(apiRequest).not.toHaveBeenCalled();
   });
 

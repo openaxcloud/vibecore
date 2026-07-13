@@ -16,6 +16,7 @@ import {
 } from '~/lib/enterprise-api.server';
 import type { ProjectRecord } from '~/lib/project-route.server';
 import { isReauthRedirect } from '~/lib/route-reauth';
+import { statusDisplayLabel, userFacingLabel } from '~/lib/user-facing-labels';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -291,8 +292,8 @@ function InstanceCard({ instance, retentionDays }: { instance: Instance; retenti
       </div>
       {instance ? (
         <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-          <Stat label="Status" value={instance.status} />
-          <Stat label="Engine" value={instance.engine} />
+          <Stat label="Status" value={statusDisplayLabel(instance.status)} />
+          <Stat label="Engine" value={userFacingLabel(instance.engine, 'Managed database')} />
           <Stat label="Retention" value={`${retentionDays} days`} />
           <Stat label="Size" value={formatBytes(instance.sizeBytes)} />
         </dl>
@@ -558,7 +559,7 @@ function RestoreStatusBadge({ status }: { status: string }) {
             : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary',
       )}
     >
-      {status}
+      {statusDisplayLabel(status)}
     </span>
   );
 }

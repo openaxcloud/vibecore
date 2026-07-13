@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Form, useSubmit } from 'react-router';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { RelativeTime } from '~/components/ui/RelativeTime';
+import { userFacingLabel } from '~/lib/user-facing-labels';
 
 export type PendingInvitation = {
   id: string;
@@ -53,7 +54,7 @@ export function PendingInvitationsSection({ orgId, invitations }: { orgId: strin
                 <div className="truncate font-medium text-bolt-elements-textPrimary">{invite.email}</div>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textSecondary">
                   <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5">
-                    {invite.roleKey}
+                    {userFacingLabel(invite.roleKey, 'Member')}
                   </span>
                   <RelativeTime value={invite.createdAt} prefix="Invited" />
                   {expired ? (

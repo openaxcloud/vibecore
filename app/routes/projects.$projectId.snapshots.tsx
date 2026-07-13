@@ -17,6 +17,7 @@ import {
 } from '~/lib/enterprise-api.server';
 import { projectAction, projectPageLoader } from '~/lib/project-route.server';
 import { isReauthRedirect } from '~/lib/route-reauth';
+import { userFacingLabel } from '~/lib/user-facing-labels';
 
 type SnapshotSummary = { id: string; label?: string; kind: string; byteLength?: number; createdAt?: string };
 
@@ -270,10 +271,10 @@ export default function ProjectSnapshotsPage() {
           items={
             data.snapshots.length
               ? data.snapshots.map((snapshot) => ({
-                  title: snapshot.label ?? snapshot.kind,
+                  title: snapshot.label ?? userFacingLabel(snapshot.kind, 'Snapshot'),
                   detail: (
                     <>
-                      {snapshot.kind} - {snapshot.byteLength ?? 0} bytes -{' '}
+                      {userFacingLabel(snapshot.kind, 'Snapshot')} - {snapshot.byteLength ?? 0} bytes -{' '}
                       {snapshot.createdAt ? <RelativeTime value={snapshot.createdAt} /> : 'recorded'}
                     </>
                   ),

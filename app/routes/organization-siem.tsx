@@ -68,7 +68,8 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     }
 
     if (isApiResponse(error, 403)) {
-      loadError = 'You do not have permission to view SIEM webhooks. This requires the audit:export permission.';
+      loadError =
+        'You do not have permission to view SIEM webhooks. Ask an organization admin for audit export access.';
     } else {
       loadError = await apiErrorMessage(error, 'Configured SIEM webhooks are temporarily unavailable.');
     }
@@ -88,7 +89,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   };
 
   if (!body.orgId) {
-    return json({ error: 'Organization ID is required.' }, { status: 400 });
+    return json({ error: 'Your organization is unavailable. Reload the page and try again.' }, { status: 400 });
   }
 
   try {
@@ -169,7 +170,8 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     if (isApiResponse(error, 403)) {
       return json({
-        error: 'You do not have permission to configure SIEM webhooks. This requires the audit:export permission.',
+        error:
+          'You do not have permission to configure SIEM webhooks. Ask an organization admin for audit export access.',
       });
     }
 
@@ -345,7 +347,6 @@ export default function OrganizationSiemPage() {
       </div>
 
       <p className="mt-6 text-xs text-bolt-elements-textSecondary">
-        Organization <span className="font-mono">{orgId}</span> ·{' '}
         <a className="underline hover:text-bolt-elements-textPrimary" href="/audit-logs">
           View and export audit logs
         </a>

@@ -16,6 +16,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { memberDisplayLabel, userFacingLabel } from '~/lib/user-facing-labels';
 
 export const meta: MetaFunction = () => [{ title: 'Organization members - E-Code' }];
 
@@ -45,7 +46,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return json({
       forbidden: false as const,
       orgId: organization.id,
-      orgName: orgResult.organization?.name ?? organization.id,
+      orgName: orgResult.organization?.name ?? 'Organization',
       memberships: membersResult.memberships,
       invitations: invitesResult.invitations,
       roles: [
@@ -120,7 +121,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   // Invitation intents carry an inviteId (no userId) — handle them first.
   if (body.intent === 'invite-resend' || body.intent === 'invite-revoke') {
     if (!body.orgId || !body.inviteId) {
-      return json({ error: 'Organization ID and invitation are required.' }, { status: 400 });
+      return json({ error: 'Choose an invitation and try again.' }, { status: 400 });
     }
 
     try {
@@ -148,7 +149,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   }
 
   if (!body.orgId || !body.userId) {
-    return json({ error: 'Organization ID is required.' }, { status: 400 });
+    return json({ error: 'Choose a member and try again.' }, { status: 400 });
   }
 
   try {
@@ -210,10 +211,14 @@ export default function OrganizationMembersPage() {
   const ownerCount = memberships.filter((member) => member.roleKey === 'owner').length;
   const confirmMatches = confirmText.trim() === orgName;
 
-  // Friendly label for a member userId (name → email → id) for dialog copy.
+  // Friendly label for dialog copy without exposing the opaque member id.
   const memberLabel = (userId: string | null) => {
-    const match = memberships.find((member) => member.userId === userId);
-    return match ? (match.userName ?? match.userEmail ?? match.userId) : (userId ?? '');
+    const matchIndex = memberships.findIndex((member) => member.userId === userId);
+    const match = matchIndex >= 0 ? memberships[matchIndex] : undefined;
+
+    return match
+      ? memberDisplayLabel({ name: match.userName, email: match.userEmail }, matchIndex)
+      : 'Organization member';
   };
 
   const closeTransferDialog = () => {
@@ -234,7 +239,7 @@ export default function OrganizationMembersPage() {
     return (
       <AppShell
         title="Organization members"
-        description="Manage members with backend-enforced roles and audit coverage."
+        description="Invite members, assign roles and review access across your organization."
       >
         <p className="rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-3 py-2 text-sm text-[var(--status-warning-text)]">
           Member management is available only to organization owners or member managers.
@@ -244,7 +249,10 @@ export default function OrganizationMembersPage() {
   }
 
   return (
-    <AppShell title="Organization members" description="Manage members with backend-enforced roles and audit coverage.">
+    <AppShell
+      title="Organization members"
+      description="Invite members, assign roles and review access across your organization."
+    >
       <div className="grid gap-6">
         <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
           {actionData?.status ? (
@@ -278,10 +286,10 @@ export default function OrganizationMembersPage() {
           <div className="border-b border-bolt-elements-borderColor px-4 py-3">
             <h2 className="font-semibold text-bolt-elements-textPrimary">Members</h2>
             <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-              Role changes are persisted through the organization membership API.
+              Role changes take effect as soon as you save them.
             </p>
           </div>
-          {memberships.map((member) => {
+          {memberships.map((member, memberIndex) => {
             /*
              * Client-side mirror of the server's LAST_OWNER guard: the only
              * remaining owner cannot be demoted or removed — ownership must be
@@ -289,8 +297,10 @@ export default function OrganizationMembersPage() {
              */
             const isLastOwner = member.roleKey === 'owner' && ownerCount <= 1;
 
-            // Prefer a human identity; fall back to email, then the opaque id.
-            const displayName = member.userName ?? member.userEmail ?? member.userId;
+            const memberRoleLabel =
+              roles.find((role) => role.key === member.roleKey)?.name ?? userFacingLabel(member.roleKey, 'Member');
+
+            const displayName = memberDisplayLabel({ name: member.userName, email: member.userEmail }, memberIndex);
             const hasName = Boolean(member.userName);
 
             return (
@@ -302,7 +312,7 @@ export default function OrganizationMembersPage() {
                   <div className="truncate font-medium text-bolt-elements-textPrimary">{displayName}</div>
                   <div className="truncate text-xs text-bolt-elements-textSecondary">
                     {hasName && member.userEmail ? `${member.userEmail} · ` : ''}
-                    {member.roleKey}
+                    {memberRoleLabel}
                   </div>
                 </div>
                 <Form method="post" className="flex flex-wrap gap-2" title={isLastOwner ? LAST_OWNER_HINT : undefined}>

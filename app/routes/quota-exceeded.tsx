@@ -8,11 +8,11 @@ export default function QuotaExceededPage() {
   return (
     <EnterpriseFormPage
       title="Quota exceeded"
-      description="A backend quota check blocked the requested action before cost was incurred."
+      description="Your current plan limit stopped this action before any additional usage was recorded."
     >
       <div className="space-y-4">
         <p className="text-sm text-bolt-elements-textSecondary">
-          Upgrade the plan or ask an administrator for an audited quota override.
+          Upgrade the plan or ask an organization administrator to adjust the limit.
         </p>
         <div className="flex flex-wrap gap-3">
           <Link

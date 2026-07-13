@@ -50,7 +50,7 @@ describe('enterprise SSO settings action', () => {
 
     expect(apiRequest).not.toHaveBeenCalled();
     expect(result.init?.status).toBe(400);
-    expect(result.data.error).toBe('Organization ID is required.');
+    expect(result.data.error).toBe('Your organization is unavailable. Reload the page and try again.');
   });
 
   it('saves a SAML config and returns a success status', async () => {

@@ -9,6 +9,7 @@ import {
   redirect,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { userFacingLabel } from '~/lib/user-facing-labels';
 
 /*
  * A stored audit event, matching the columns the API's `auditEventsToCsv` emits
@@ -121,7 +122,7 @@ const exportLinkClass =
   'inline-flex items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3';
 
 export default function AuditLogsPage() {
-  const { orgId, auditLogs, listError, forbidden } = useLoaderData<typeof loader>();
+  const { auditLogs, listError, forbidden } = useLoaderData<typeof loader>();
 
   /*
    * Distinct action names drive a client-side action filter over the already
@@ -139,7 +140,7 @@ export default function AuditLogsPage() {
       description="Review and export security-relevant organization events to CSV or JSON. Route deliveries to a SIEM from the SIEM webhooks page."
       error={
         forbidden
-          ? 'You do not have permission to export audit logs. Ask an organization admin for the audit:export permission.'
+          ? 'You do not have permission to export audit logs. Ask an organization admin for audit log export access.'
           : listError
             ? 'Audit logs are temporarily unavailable. Please try again in a moment.'
             : undefined
@@ -150,7 +151,7 @@ export default function AuditLogsPage() {
           <div>
             <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Export</h2>
             <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-              Download the full audit trail. The export is generated server-side over your session.
+              Download the full audit trail. Your signed-in account is used to prepare the export securely.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -184,7 +185,7 @@ export default function AuditLogsPage() {
                   <option value="">All actions</option>
                   {actions.map((action) => (
                     <option key={action} value={action}>
-                      {action}
+                      {userFacingLabel(action, 'Recorded action')}
                     </option>
                   ))}
                 </select>
@@ -219,18 +220,15 @@ export default function AuditLogsPage() {
                       <td className="whitespace-nowrap px-3 py-2 text-bolt-elements-textSecondary">
                         {formatTimestamp(row.createdAt)}
                       </td>
-                      <td className="px-3 py-2 font-medium text-bolt-elements-textPrimary">{row.action ?? '—'}</td>
-                      <td className="px-3 py-2 text-bolt-elements-textSecondary">
-                        {row.resourceType ? (
-                          <span>
-                            {row.resourceType}
-                            {row.resourceId ? <span className="opacity-70"> · {row.resourceId}</span> : null}
-                          </span>
-                        ) : (
-                          '—'
-                        )}
+                      <td className="px-3 py-2 font-medium text-bolt-elements-textPrimary">
+                        {row.action ? userFacingLabel(row.action, 'Recorded action') : '—'}
                       </td>
-                      <td className="px-3 py-2 text-bolt-elements-textSecondary">{row.actorUserId ?? '—'}</td>
+                      <td className="px-3 py-2 text-bolt-elements-textSecondary">
+                        {row.resourceType ? userFacingLabel(row.resourceType, 'Resource') : '—'}
+                      </td>
+                      <td className="px-3 py-2 text-bolt-elements-textSecondary">
+                        {row.actorUserId ? 'Organization member' : 'System'}
+                      </td>
                       <td className="whitespace-nowrap px-3 py-2 text-bolt-elements-textSecondary">
                         {row.ipAddress ?? '—'}
                       </td>
@@ -243,7 +241,6 @@ export default function AuditLogsPage() {
         </div>
 
         <p className="text-xs text-bolt-elements-textSecondary">
-          Organization <span className="font-mono">{orgId}</span> ·{' '}
           <a className="underline hover:text-bolt-elements-textPrimary" href="/organization-siem">
             Configure SIEM webhooks
           </a>

@@ -68,7 +68,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   const body = formObject(await request.formData()) as Record<string, string>;
 
   if (!body.orgId) {
-    return json({ error: 'Organization ID is required.' }, { status: 400 });
+    return json({ error: 'Your organization is unavailable. Reload the page and try again.' }, { status: 400 });
   }
 
   const intent = body.intent ?? 'save';

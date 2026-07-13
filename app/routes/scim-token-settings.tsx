@@ -74,7 +74,9 @@ export async function action({ request }: EnterpriseActionArgs) {
   };
 
   if (!body.orgId) {
-    return json({ error: 'Organization ID is required.' } satisfies ActionData, { status: 400 });
+    return json({ error: 'Your organization is unavailable. Reload the page and try again.' } satisfies ActionData, {
+      status: 400,
+    });
   }
 
   try {

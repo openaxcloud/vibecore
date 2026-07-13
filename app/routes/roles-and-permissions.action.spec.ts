@@ -147,7 +147,7 @@ describe('roles-and-permissions route action', () => {
     } as never)) as ActionResult;
 
     expect(result.init?.status).toBe(400);
-    expect(result.data.error).toBe('Organization ID is required.');
+    expect(result.data.error).toBe('Your organization is unavailable. Reload the page and try again.');
     expect(apiRequest).not.toHaveBeenCalled();
   });
 });

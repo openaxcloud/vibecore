@@ -18,6 +18,7 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 import { isReauthRedirect } from '~/lib/route-reauth';
+import { statusDisplayLabel } from '~/lib/user-facing-labels';
 
 type Ticket = { id: string; subject: string; status: string; category?: string; createdAt?: string };
 
@@ -209,7 +210,7 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
         </p>
       </div>
       <Badge variant={STATUS_BADGE_VARIANT[ticket.status] ?? 'secondary'} size="md">
-        {ticket.status}
+        {statusDisplayLabel(ticket.status)}
       </Badge>
     </li>
   );
@@ -304,7 +305,7 @@ export default function SupportPage() {
             </label>
             <p className="text-sm text-bolt-elements-textSecondary">
               <ShieldAlert className="mr-2 inline h-4 w-4" aria-hidden />
-              Ticket creation is stored in the backend and audited.
+              Your request is logged securely and included in your organization&apos;s audit history.
             </p>
             <Button type="submit">Open ticket</Button>
           </Form>

@@ -15,6 +15,7 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 import { isReauthRedirect } from '~/lib/route-reauth';
+import { oauthErrorDisplayMessage, providerDisplayLabel } from '~/lib/user-facing-labels';
 import { classNames } from '~/utils/classNames';
 
 export const meta: MetaFunction = () => [{ title: 'Connected accounts - E-Code' }];
@@ -165,6 +166,31 @@ function reconnectReasonText(reason: string) {
   return RECONNECT_REASON_COPY[reason] ?? 'the stored credential is no longer valid';
 }
 
+type ConnectionAction = 'connect' | 'reconnect' | 'dismiss' | 'disconnect';
+
+function connectionActionError(action: ConnectionAction, status?: number): string {
+  if (status === 401) {
+    return 'Your session expired. Sign in again and retry.';
+  }
+
+  if (status === 403) {
+    return 'You do not have permission to change this connection.';
+  }
+
+  if (status === 429) {
+    return 'Too many attempts. Wait a moment and try again.';
+  }
+
+  const copy: Record<ConnectionAction, string> = {
+    connect: 'Unable to start the connection. Try again.',
+    reconnect: 'Unable to start the reconnection. Try again.',
+    dismiss: 'Unable to dismiss this alert. Try again.',
+    disconnect: 'Unable to disconnect this account. Try again.',
+  };
+
+  return copy[action];
+}
+
 const dateFormat: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
 
 export default function ConnectedAccountsPage() {
@@ -198,18 +224,19 @@ export default function ConnectedAccountsPage() {
   const linked = searchParams.get('linked');
   const linkError = searchParams.get('linkError');
   const linkErrorDetail = searchParams.get('detail');
+  const linkedProviderLabel = linked ? providerDisplayLabel(linked) : null;
+  const failedProviderLabel = linkError ? providerDisplayLabel(linkError) : null;
 
   return (
     <>
-      {linked ? (
+      {linkedProviderLabel ? (
         <div className="mb-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm text-bolt-elements-textPrimary">
-          Linked {linked} to your account.
+          Linked {linkedProviderLabel} to your account.
         </div>
       ) : null}
-      {linkError ? (
+      {failedProviderLabel ? (
         <div className="mb-3 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]">
-          Could not link {linkError}
-          {linkErrorDetail ? `: ${linkErrorDetail}` : ''}.
+          Could not link {failedProviderLabel}. {oauthErrorDisplayMessage(linkErrorDetail)}
         </div>
       ) : null}
       {actionData?.error ? (
@@ -328,7 +355,7 @@ function ReconnectionAlertRow({ alert }: { alert: ReconnectionAlert }) {
       revalidator.revalidate();
       reset();
     } else if (state.phase === 'failed') {
-      setError(state.result.errorMessage ?? 'Reconnection failed.');
+      setError(connectionActionError('reconnect'));
       reset();
     }
   }, [state, revalidator, reset]);
@@ -345,14 +372,13 @@ function ReconnectionAlertRow({ alert }: { alert: ReconnectionAlert }) {
       });
 
       if (!response.ok) {
-        const parsed = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(parsed.error ?? `Failed to start reconnection (HTTP ${response.status})`);
+        throw new Error(connectionActionError('reconnect', response.status));
       }
 
       const result = (await response.json()) as { provider: string; authorizationUrl: string };
       launch({ authorizationUrl: result.authorizationUrl, provider: result.provider });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Unable to start the reconnection.');
+      setError(cause instanceof Error ? cause.message : connectionActionError('reconnect'));
     } finally {
       setReconnecting(false);
     }
@@ -370,20 +396,19 @@ function ReconnectionAlertRow({ alert }: { alert: ReconnectionAlert }) {
       });
 
       if (!response.ok) {
-        const parsed = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(parsed.error ?? `Failed to dismiss (HTTP ${response.status})`);
+        throw new Error(connectionActionError('dismiss', response.status));
       }
 
       revalidator.revalidate();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Unable to dismiss this alert.');
+      setError(cause instanceof Error ? cause.message : connectionActionError('dismiss'));
     } finally {
       setDismissing(false);
     }
   }, [alert.id, revalidator]);
 
   const reconnectBusy = reconnecting || state.phase === 'launching';
-  const providerLabel = alert.provider.charAt(0).toUpperCase() + alert.provider.slice(1);
+  const providerLabel = providerDisplayLabel(alert.provider);
 
   return (
     <li className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -434,7 +459,7 @@ function IntegrationConnectButton({ provider }: { provider: string }) {
       revalidator.revalidate();
       reset();
     } else if (state.phase === 'failed') {
-      setError(state.result.errorMessage ?? 'Connection failed.');
+      setError(connectionActionError('connect'));
       reset();
     }
   }, [state, revalidator, reset]);
@@ -451,14 +476,13 @@ function IntegrationConnectButton({ provider }: { provider: string }) {
       });
 
       if (!response.ok) {
-        const parsed = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(parsed.error ?? `Failed to start connection (HTTP ${response.status})`);
+        throw new Error(connectionActionError('connect', response.status));
       }
 
       const result = (await response.json()) as { provider: string; authorizationUrl: string };
       launch({ authorizationUrl: result.authorizationUrl, provider: result.provider });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Unable to start the connection.');
+      setError(cause instanceof Error ? cause.message : connectionActionError('connect'));
     } finally {
       setStarting(false);
     }
@@ -508,13 +532,12 @@ function IntegrationDisconnectButton({ connectionId }: { connectionId: string })
       });
 
       if (!response.ok) {
-        const parsed = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(parsed.error ?? `Failed to disconnect (HTTP ${response.status})`);
+        throw new Error(connectionActionError('disconnect', response.status));
       }
 
       revalidator.revalidate();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Unable to disconnect.');
+      setError(cause instanceof Error ? cause.message : connectionActionError('disconnect'));
     } finally {
       setBusy(false);
     }

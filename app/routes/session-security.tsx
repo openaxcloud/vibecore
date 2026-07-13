@@ -104,7 +104,7 @@ export async function action({ request }: EnterpriseActionArgs) {
     }
 
     if (!body.orgId) {
-      return json({ error: 'Organization ID is required.' }, { status: 400 });
+      return json({ error: 'Your organization is unavailable. Reload the page and try again.' }, { status: 400 });
     }
 
     await apiRequest(request, `/orgs/${body.orgId}/enterprise-settings`, {
@@ -347,7 +347,7 @@ export default function SessionSecurityPage() {
             Applies to everyone in the organization: session lifetime and the IP ranges allowed to sign in.
           </p>
           <Form method="post" className="mt-4 space-y-4">
-            <TextField label="Organization ID" name="orgId" defaultValue={orgId} required />
+            <input type="hidden" name="orgId" value={orgId} />
             <TextField label="Session duration minutes" name="sessionDurationMinutes" type="number" />
             <TextField label="IP allowlist" name="ipAllowlist" placeholder="203.0.113.10,198.51.100.0/24" />
             <PrimaryButton disabled={busy}>Save policy</PrimaryButton>
