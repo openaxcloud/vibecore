@@ -3574,11 +3574,14 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
 }
 
 [data-vc-tour-active='true'] {
-  position: relative;
   z-index: 60 !important;
   outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action), white 10%);
   outline-offset: 3px;
   box-shadow: 0 0 0 7px color-mix(in srgb, var(--vc-ide-accent-action), transparent 78%) !important;
+}
+
+.vc-user-area-shell .vc-product-tour button[data-vc-button='true'] {
+  min-height: 44px;
 }
 
 .vc-app-shell-grid {

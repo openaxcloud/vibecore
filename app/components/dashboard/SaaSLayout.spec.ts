@@ -99,6 +99,22 @@ describe('public marketing brand', () => {
     expect(projectMenuSource).toContain('className="min-h-[44px]"');
   });
 
+  it('keeps the guided tour non-modal, resumable from help, and responsive', () => {
+    const layoutSource = readFileSync(join(process.cwd(), 'app/components/dashboard/SaaSLayout.tsx'), 'utf8');
+    const stylesSource = readFileSync(join(process.cwd(), 'app/styles/index.scss'), 'utf8');
+
+    expect(layoutSource).toContain('<ProductTour restartToken={tourRestartToken} />');
+    expect(layoutSource).toContain('onStartTour={() => setTourRestartToken((current) => current + 1)}');
+    expect(layoutSource).toContain('Open guided tour');
+    expect(layoutSource).toContain('data-vc-tour-target="navigation"');
+    expect(layoutSource).toContain('data-vc-tour-target="create-project"');
+    expect(layoutSource).toContain('data-vc-tour-target="help"');
+    expect(stylesSource).not.toContain("[data-vc-tour-active='true'] {\n  position: relative;");
+    expect(stylesSource).toContain(
+      ".vc-user-area-shell .vc-product-tour button[data-vc-button='true'] {\n  min-height: 44px;",
+    );
+  });
+
   it('keeps marketing navigation mapped to real application routes and anchors', () => {
     const menuTargets = Object.values(publicMarketingMenus)
       .flat()

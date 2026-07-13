@@ -71,6 +71,7 @@ import {
 } from 'react-icons/si';
 import { Form, Link, NavLink, useFetcher, useNavigate } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from './AsyncPanelState';
+import { ProductTour } from './ProductTour';
 import { ProjectCardMenu, ProjectRenameForm } from './ProjectCardMenu';
 import {
   type CommandPaletteItem,
@@ -796,6 +797,7 @@ export function AppShell({
 }) {
   const { sidebarCollapsed, toggleSidebar, drawerOpen, openDrawer, closeDrawer } = useSidebarController();
   const navigate = useNavigate();
+  const [tourRestartToken, setTourRestartToken] = useState(0);
 
   useSidebarShortcuts({
     toggleSidebar,
@@ -819,10 +821,19 @@ export function AppShell({
         <DesktopSidebar collapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
         <MobileSidebarDrawer open={drawerOpen} onClose={closeDrawer} />
         <section id="main-content" tabIndex={-1} className="min-w-0 outline-none">
-          {!hideTopBar ? <TopBar onOpenDrawer={openDrawer} title={title} /> : null}
+          {!hideTopBar ? (
+            <TopBar
+              onOpenDrawer={openDrawer}
+              onStartTour={() => setTourRestartToken((current) => current + 1)}
+              title={title}
+            />
+          ) : null}
           <div className={classNames('mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8', contentClassName)}>
             {!hideHeader ? (
-              <div className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
+              <div
+                className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6"
+                data-vc-tour-target="page-header"
+              >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <p className="mb-2 text-xs font-medium uppercase text-bolt-elements-textTertiary">
@@ -841,6 +852,7 @@ export function AppShell({
           </div>
         </section>
       </div>
+      {!hideTopBar ? <ProductTour restartToken={tourRestartToken} /> : null}
     </main>
   );
 }
@@ -854,6 +866,7 @@ function DesktopSidebar({ collapsed, toggleSidebar }: { collapsed: boolean; togg
       )}
       role="navigation"
       aria-label="Main"
+      data-vc-tour-target="navigation"
     >
       <SidebarHeader collapsed={collapsed} />
       <SidebarToggle collapsed={collapsed} onToggle={toggleSidebar} />
@@ -1833,14 +1846,26 @@ export function LinkButton({
   );
 }
 
-function TopBar({ onOpenDrawer, title }: { onOpenDrawer: () => void; title?: string }) {
+function TopBar({
+  onOpenDrawer,
+  onStartTour,
+  title,
+}: {
+  onOpenDrawer: () => void;
+  onStartTour: () => void;
+  title?: string;
+}) {
   return (
-    <header className="sticky top-0 z-10 flex h-[56px] items-center justify-between gap-3 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 px-4 backdrop-blur-xl sm:px-6">
+    <header
+      className="sticky top-0 z-10 flex h-[56px] items-center justify-between gap-3 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 px-4 backdrop-blur-xl sm:px-6"
+      data-vc-tour-target="tools"
+    >
       <button
         type="button"
         onClick={onOpenDrawer}
-        className="inline-flex h-[44px] min-w-[44px] shrink-0 items-center justify-center gap-2 rounded-md px-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] lg:hidden"
+        className="relative inline-flex h-[44px] min-w-[44px] shrink-0 items-center justify-center gap-2 rounded-md px-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] lg:hidden"
         aria-label="Open navigation menu"
+        data-vc-tour-target="navigation"
       >
         <Menu className="h-4 w-4" aria-hidden />
         <span className="text-xs font-medium sm:sr-only">Menu</span>
@@ -1859,8 +1884,74 @@ function TopBar({ onOpenDrawer, title }: { onOpenDrawer: () => void; title?: str
           ⌘K
         </kbd>
       </Link>
+      <TopBarHelp onStartTour={onStartTour} />
       <TopBarNotifications />
     </header>
+  );
+}
+
+function TopBarHelp({ onStartTour }: { onStartTour: () => void }) {
+  return (
+    <Popover.Root>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          className="relative inline-flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)]"
+          aria-label="Help and guided tour"
+          title="Help and guided tour"
+          data-vc-tour-target="help"
+        >
+          <LifeBuoy className="h-4 w-4" aria-hidden />
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          side="bottom"
+          align="end"
+          sideOffset={8}
+          collisionPadding={12}
+          className="z-[90] w-[min(18rem,calc(100vw-24px))] rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 text-bolt-elements-textPrimary shadow-xl"
+          aria-label="Help menu"
+        >
+          <div className="px-2 pb-2 pt-1">
+            <p className="text-sm font-semibold">Help</p>
+            <p className="mt-1 text-xs leading-5 text-bolt-elements-textTertiary">
+              Guides and support for your workspace.
+            </p>
+          </div>
+          <div className="grid gap-1 border-t border-bolt-elements-borderColor pt-2">
+            <Popover.Close asChild>
+              <button
+                type="button"
+                onClick={onStartTour}
+                className="flex min-h-[44px] w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)]"
+              >
+                <BookOpen className="h-4 w-4" aria-hidden />
+                Open guided tour
+              </button>
+            </Popover.Close>
+            <Popover.Close asChild>
+              <Link
+                to="/help-center"
+                className="flex min-h-[44px] items-center gap-2 rounded-md px-3 py-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)]"
+              >
+                <LifeBuoy className="h-4 w-4" aria-hidden />
+                Help center
+              </Link>
+            </Popover.Close>
+            <Popover.Close asChild>
+              <Link
+                to="/support"
+                className="flex min-h-[44px] items-center gap-2 rounded-md px-3 py-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)]"
+              >
+                <MailPlus className="h-4 w-4" aria-hidden />
+                Contact support
+              </Link>
+            </Popover.Close>
+          </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
 
@@ -2163,6 +2254,7 @@ function CreateProjectCta({ collapsed }: { collapsed: boolean }) {
       }
       aria-label={collapsed ? 'Create project' : undefined}
       title={collapsed ? 'Create project' : undefined}
+      data-vc-tour-target="create-project"
     >
       <Plus className="h-4 w-4 shrink-0" aria-hidden />
       {!collapsed ? <span className="vc-sidebar-fade-label truncate">New project</span> : null}
