@@ -7830,6 +7830,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     reply.header('content-security-policy', 'sandbox allow-scripts allow-forms allow-popups allow-modals');
     reply.header('x-content-type-options', 'nosniff');
+
+    /*
+     * BLANK-APP FIX: the sandbox above makes the DOCUMENT an opaque ("null")
+     * origin, so when it loads its OWN Vite bundle (`<script type="module"
+     * crossorigin>`) that request is now cross-origin. Helmet's global
+     * `Cross-Origin-Resource-Policy: same-origin` then BLOCKS the fetch, and the
+     * absent `Access-Control-Allow-Origin` fails the module's CORS check — the
+     * bundle never executes and `#root` stays empty (a white page). These files
+     * are PUBLIC, unauthenticated build output, so relaxing CORP to
+     * `cross-origin` + `ACAO: *` for THIS route only is safe and lets the
+     * sandboxed app boot while the opaque-origin isolation (no ambient cookie
+     * authority against the API) is fully preserved. Proven live: with these two
+     * headers a real deployed SPA renders `#root`; without them it is blank.
+     */
+    reply.header('cross-origin-resource-policy', 'cross-origin');
+    reply.header('access-control-allow-origin', '*');
     reply.type(staticDeploymentMimeType(filePath));
 
     return reply.send(createReadStream(realFile));
