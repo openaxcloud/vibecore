@@ -17,6 +17,7 @@ import {
 } from '~/components/dashboard/SaaSLayout';
 import { projectStackLabel } from '~/lib/dashboard-project-stack';
 import { apiRequest, isForbiddenApiResponse, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { projectLifecycle, projectLifecycleDisplayLabel } from '~/lib/project-card-presentation';
 import { projectIdePath } from '~/utils/project-url';
 
 type Organization = { id: string; slug?: string };
@@ -194,18 +195,23 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     },
     billingAccessLimited,
     onboarding,
-    projects: sortedProjects.slice(0, 6).map((project) => ({
-      id: project.id,
-      name: project.name,
-      status: 'Ready',
-      deploymentCount: project.deploymentCount,
-      updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
-      updatedAtIso: project.updatedAt,
-      stack: projectStackLabel(project),
-      sourceType: project.sourceType,
-      previewImageUrl: `/api/projects/${project.id}/thumbnail`,
-      ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
-    })),
+    projects: sortedProjects.slice(0, 6).map((project) => {
+      const lifecycle = projectLifecycle(project);
+
+      return {
+        id: project.id,
+        name: project.name,
+        status: projectLifecycleDisplayLabel(lifecycle),
+        lifecycle,
+        deploymentCount: project.deploymentCount,
+        updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
+        updatedAtIso: project.updatedAt,
+        stack: projectStackLabel(project),
+        sourceType: project.sourceType,
+        previewImageUrl: `/api/projects/${project.id}/thumbnail`,
+        ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
+      };
+    }),
   };
 }
 

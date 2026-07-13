@@ -4,13 +4,24 @@ import type { MetaFunction } from 'react-router';
 import { useLoaderData, useRevalidator, useSearchParams } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { ProjectCardMenu, ProjectRenameForm } from '~/components/dashboard/ProjectCardMenu';
-import { AppShell, ProjectGrid, LinkButton, StatusPill, type ProjectCard } from '~/components/dashboard/SaaSLayout';
+import {
+  AppShell,
+  ProjectGrid,
+  ProjectPreviewMedia,
+  ProjectStatusPill,
+  LinkButton,
+  type ProjectCard,
+} from '~/components/dashboard/SaaSLayout';
 import { EmptyState } from '~/components/ui/EmptyState';
 import { FilterChip } from '~/components/ui/FilterChip';
 import { RelativeTime } from '~/components/ui/RelativeTime';
 import { SearchInput } from '~/components/ui/SearchInput';
 import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
-import { statusDisplayLabel } from '~/lib/user-facing-labels';
+import {
+  projectDeploymentSummary,
+  projectLifecycle,
+  projectLifecycleDisplayLabel,
+} from '~/lib/project-card-presentation';
 import { projectIdePath } from '~/utils/project-url';
 
 export const meta: MetaFunction = () => [{ title: 'Projects - E-Code' }];
@@ -69,16 +80,12 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       );
 
       return result.projects.map((project) => {
-        const lifecycle: NonNullable<ProjectCard['lifecycle']> = project.deletedAt
-          ? 'archived'
-          : (project.deploymentCount ?? 0) > 0
-            ? 'deployed'
-            : 'draft';
+        const lifecycle = projectLifecycle(project);
 
         return {
           id: project.id,
           name: project.name,
-          status: lifecycle === 'archived' ? 'Archived' : 'Ready',
+          status: projectLifecycleDisplayLabel(lifecycle),
           lifecycle,
           deploymentCount: project.deploymentCount,
           updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
@@ -302,17 +309,7 @@ function ProjectListRow({ project }: { project: ProjectCard }) {
     <div className="flex flex-col gap-3 border-b border-bolt-elements-borderColor p-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
-          {project.previewImageUrl ? (
-            <img
-              src={project.previewImageUrl}
-              alt={`Latest homepage preview for ${project.name}`}
-              className="h-full w-full object-cover"
-              loading="lazy"
-              onError={(event) => {
-                event.currentTarget.style.display = 'none';
-              }}
-            />
-          ) : null}
+          <ProjectPreviewMedia project={project} className="h-full w-full object-cover" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -327,23 +324,22 @@ function ProjectListRow({ project }: { project: ProjectCard }) {
                 {project.name}
               </h2>
             )}
-            <StatusPill label={statusDisplayLabel(project.status ?? 'Ready')} />
+            <ProjectStatusPill project={project} />
           </div>
           <p className="mt-1 truncate text-sm text-bolt-elements-textSecondary">
             {project.stack ?? project.sourceType ?? 'Persistent E-Code project'}
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        {project.updatedAtIso ? (
-          <RelativeTime
-            value={project.updatedAtIso}
-            prefix="Updated"
-            className="text-xs text-bolt-elements-textTertiary"
-          />
-        ) : (
-          <span className="text-xs text-bolt-elements-textTertiary">Updated {project.updated ?? 'recently'}</span>
-        )}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="min-w-0 text-xs text-bolt-elements-textTertiary">
+          {project.updatedAtIso ? (
+            <RelativeTime value={project.updatedAtIso} prefix="Last activity" className="block" />
+          ) : (
+            <span className="block">Last activity {project.updated ?? 'recently'}</span>
+          )}
+          <span className="block">{projectDeploymentSummary(project.deploymentCount)}</span>
+        </div>
         <LinkButton to={project.ideUrl ?? `/projects/${project.id}/ide`} variant="outline">
           Open IDE
         </LinkButton>

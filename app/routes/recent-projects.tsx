@@ -2,6 +2,7 @@ import type { MetaFunction } from 'react-router';
 import { useLoaderData } from 'react-router';
 import { AppShell, ProjectGrid } from '~/components/dashboard/SaaSLayout';
 import { apiRequest, firstOrganizationOrNull, redirect, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { projectLifecycle, projectLifecycleDisplayLabel } from '~/lib/project-card-presentation';
 
 export const meta: MetaFunction = () => [{ title: 'Recent projects - E-Code' }];
 
@@ -28,16 +29,22 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   return {
     projects: projects
       .sort((left, right) => new Date(right.updatedAt ?? 0).getTime() - new Date(left.updatedAt ?? 0).getTime())
-      .map((project) => ({
-        id: project.id,
-        name: project.name,
-        status: 'Ready',
-        deploymentCount: project.deploymentCount,
-        updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
-        stack: project.gitRepositoryUrl ?? project.sourceType ?? 'E-Code project',
-        sourceType: project.sourceType,
-        previewImageUrl: `/api/projects/${project.id}/thumbnail`,
-      })),
+      .map((project) => {
+        const lifecycle = projectLifecycle(project);
+
+        return {
+          id: project.id,
+          name: project.name,
+          status: projectLifecycleDisplayLabel(lifecycle),
+          lifecycle,
+          deploymentCount: project.deploymentCount,
+          updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
+          updatedAtIso: project.updatedAt,
+          stack: project.gitRepositoryUrl ?? project.sourceType ?? 'E-Code project',
+          sourceType: project.sourceType,
+          previewImageUrl: `/api/projects/${project.id}/thumbnail`,
+        };
+      }),
   };
 }
 

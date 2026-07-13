@@ -65,6 +65,13 @@ describe('dashboard loader', () => {
       aiCostCents: 0,
     });
     expect(data.projects).toHaveLength(1);
-    expect(data.projects[0]).toMatchObject({ id: 'project_1', name: 'Client Portal', sourceType: 'ai' });
+    expect(data.projects[0]).toMatchObject({
+      id: 'project_1',
+      name: 'Client Portal',
+      sourceType: 'ai',
+      status: 'Draft',
+      lifecycle: 'draft',
+      updatedAtIso: '2026-05-04T08:00:00.000Z',
+    });
   });
 });

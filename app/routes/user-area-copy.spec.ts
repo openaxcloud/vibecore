@@ -89,8 +89,8 @@ describe('user-area product vocabulary', () => {
     const database = source('app/routes/projects.$projectId.database.tsx');
     const deployments = source('app/routes/projects.$projectId.deployments.tsx');
 
-    expect(projectCards).toContain("statusDisplayLabel(project.status ?? 'Ready')");
-    expect(projects).toContain("statusDisplayLabel(project.status ?? 'Ready')");
+    expect(projectCards).toContain('statusDisplayLabel(project.status ?? fallback)');
+    expect(projects).toContain('<ProjectStatusPill project={project} />');
     expect(database).toContain('statusDisplayLabel(status)');
     expect(deployments).toContain('statusDisplayLabel(status)');
   });

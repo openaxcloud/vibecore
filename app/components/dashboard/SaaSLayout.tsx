@@ -93,6 +93,11 @@ import { EmptyState } from '~/components/ui/EmptyState';
 import UiPopover from '~/components/ui/Popover';
 import { RelativeTime } from '~/components/ui/RelativeTime';
 import { SkipLink } from '~/components/ui/SkipLink';
+import {
+  projectDeploymentSummary,
+  projectLifecycleDisplayLabel,
+  type ProjectLifecycle,
+} from '~/lib/project-card-presentation';
 import { profileStore } from '~/lib/stores/profile';
 import { themeStore, toggleTheme } from '~/lib/stores/theme';
 import { statusDisplayLabel } from '~/lib/user-facing-labels';
@@ -390,7 +395,7 @@ export interface ProjectCard {
   ideUrl?: string;
 
   /** Real lifecycle derived from API data (deployments count / soft-delete). */
-  lifecycle?: 'deployed' | 'draft' | 'archived';
+  lifecycle?: ProjectLifecycle;
 
   /** Raw updatedAt ISO string — drives the relative "Updated ..." label. */
   updatedAtIso?: string;
@@ -1234,6 +1239,8 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
 function ProjectGridCard({ project }: { project: ProjectCard }) {
   // E16: the ⋯ menu's Rename swaps the card title for an inline input.
   const [renaming, setRenaming] = useState(false);
+  const lifecycle = project.lifecycle ?? 'draft';
+  const statusLabel = projectStatusLabel(project);
 
   return (
     <Card className="group min-w-0 w-full max-w-full overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3">
@@ -1260,40 +1267,45 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
         {/* Cap the thumbnail height while cards are wide enough to scan; the
             aspect ratio governs again in the large multi-column layout. */}
         <div className="vc-project-preview relative aspect-[16/10] max-h-44 w-full overflow-hidden rounded-md sm:max-h-52 lg:aspect-[16/9] lg:max-h-none">
-          <ProjectPreviewFallback project={project} />
-          {project.previewImageUrl ? (
-            <img
-              src={project.previewImageUrl}
-              alt={`Latest homepage preview for ${project.name}`}
-              className="relative z-[1] h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.015]"
-              loading="lazy"
-              onError={(event) => {
-                event.currentTarget.style.display = 'none';
-              }}
-            />
-          ) : null}
+          <ProjectPreviewMedia
+            project={project}
+            className="relative z-[1] h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.015]"
+          />
           {/* Replit parity: status as a translucent overlay chip in the thumbnail
               corner (readable over any preview image), not a header pill. */}
-          <span className="absolute right-2 top-2 z-[2] inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
+          <span
+            className="absolute right-2 top-2 z-[2] inline-flex items-center gap-1.5 rounded-full bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm"
+            aria-label={`Project status: ${statusLabel}`}
+          >
             <span
               className={classNames(
                 'h-1.5 w-1.5 rounded-full',
-                /(ready|running|active|live)/i.test(project.status ?? 'Ready') ? 'bg-green-400' : 'bg-white/70',
+                lifecycle === 'deployed'
+                  ? 'bg-[var(--status-success-text)]'
+                  : lifecycle === 'draft'
+                    ? 'bg-[var(--status-info-text)]'
+                    : 'bg-bolt-elements-textTertiary',
               )}
               aria-hidden
             />
-            {statusDisplayLabel(project.status ?? 'Ready')}
+            {statusLabel}
           </span>
         </div>
-        <div className="flex items-center justify-between text-xs text-bolt-elements-textSecondary">
-          {project.updatedAtIso ? (
-            <RelativeTime value={project.updatedAtIso} prefix="Updated" />
-          ) : (
-            <span>Updated {project.updated ?? 'recently'}</span>
-          )}
+        <div className="flex min-w-0 items-center justify-between gap-3 text-xs text-bolt-elements-textSecondary">
+          <div className="min-w-0 space-y-1">
+            {project.updatedAtIso ? (
+              <RelativeTime value={project.updatedAtIso} prefix="Last activity" className="block truncate" />
+            ) : (
+              <span className="block truncate">Last activity {project.updated ?? 'recently'}</span>
+            )}
+            <span className="flex items-center gap-1.5 text-bolt-elements-textTertiary">
+              <Rocket className="h-3.5 w-3.5" aria-hidden />
+              {projectDeploymentSummary(project.deploymentCount)}
+            </span>
+          </div>
           <Link
             to={project.ideUrl ?? `/projects/${project.id}/ide`}
-            className="inline-flex min-h-[44px] items-center rounded-md px-2 py-1 font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
+            className="inline-flex min-h-[44px] shrink-0 items-center rounded-md px-2 py-1 font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
           >
             Open IDE
           </Link>
@@ -1307,7 +1319,7 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
  * Neutral, theme-correct placeholder shown until a REAL preview screenshot has
  * been captured (or if the capture fails to load). Deliberately NOT the old
  * synthetic "browser window" mock, which misrepresented the project as a generic
- * template. A real thumbnail (project.previewImageUrl) renders on top of this.
+ * template. A real thumbnail replaces this fallback when it loads successfully.
  */
 function ProjectPreviewFallback({ project }: { project: ProjectCard }) {
   return (
@@ -1316,6 +1328,41 @@ function ProjectPreviewFallback({ project }: { project: ProjectCard }) {
       <span className="text-[11px]">No preview yet</span>
       <span className="sr-only">No preview captured yet for {project.name}</span>
     </div>
+  );
+}
+
+export function ProjectPreviewMedia({ project, className }: { project: ProjectCard; className?: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!project.previewImageUrl || failed) {
+    return <ProjectPreviewFallback project={project} />;
+  }
+
+  return (
+    <img
+      src={project.previewImageUrl}
+      alt={`Latest preview of ${project.name}`}
+      className={className}
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function projectStatusLabel(project: ProjectCard): string {
+  const fallback = projectLifecycleDisplayLabel(project.lifecycle ?? 'draft');
+
+  return statusDisplayLabel(project.status ?? fallback);
+}
+
+export function ProjectStatusPill({ project }: { project: ProjectCard }) {
+  const lifecycle = project.lifecycle ?? 'draft';
+
+  return (
+    <StatusPill
+      label={projectStatusLabel(project)}
+      tone={lifecycle === 'deployed' ? 'success' : lifecycle === 'draft' ? 'info' : 'neutral'}
+    />
   );
 }
 
@@ -1735,9 +1782,18 @@ export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCar
   );
 }
 
-export function StatusPill({ label }: { label: string }) {
+export function StatusPill({ label, tone = 'neutral' }: { label: string; tone?: 'neutral' | 'success' | 'info' }) {
   return (
-    <span className="rounded-full border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textSecondary">
+    <span
+      className={classNames(
+        'shrink-0 rounded-full border px-2 py-1 text-xs',
+        tone === 'success' &&
+          'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-text)]',
+        tone === 'info' &&
+          'border-[var(--status-info-border)] bg-[var(--status-info-bg)] text-[var(--status-info-text)]',
+        tone === 'neutral' && 'border-bolt-elements-borderColor text-bolt-elements-textSecondary',
+      )}
+    >
       {label}
     </span>
   );

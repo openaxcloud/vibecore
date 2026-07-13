@@ -66,10 +66,29 @@ describe('recent-projects loader', () => {
     const { loader } = await import('./recent-projects');
 
     const data = (await loader({ request: loaderRequest() } as any)) as {
-      projects: Array<{ id: string; status: string }>;
+      projects: Array<{ id: string; status: string; lifecycle: string; updatedAtIso?: string }>;
     };
 
     expect(data.projects.map((project) => project.id)).toEqual(['new', 'old']);
-    expect(data.projects[0].status).toBe('Ready');
+    expect(data.projects[0]).toMatchObject({
+      status: 'Draft',
+      lifecycle: 'draft',
+      updatedAtIso: '2024-06-01T00:00:00.000Z',
+    });
+  });
+
+  it('marks a project with deployments as deployed', async () => {
+    firstOrganizationOrNull.mockResolvedValueOnce({ id: 'org-1', name: 'Acme' });
+    apiRequest.mockResolvedValueOnce({
+      projects: [{ id: 'live', name: 'Live project', deploymentCount: 1 }],
+    });
+
+    const { loader } = await import('./recent-projects');
+
+    const data = (await loader({ request: loaderRequest() } as any)) as {
+      projects: Array<{ status: string; lifecycle: string; deploymentCount?: number }>;
+    };
+
+    expect(data.projects[0]).toMatchObject({ status: 'Deployed', lifecycle: 'deployed', deploymentCount: 1 });
   });
 });

@@ -18,11 +18,21 @@ describe('toProjectCards', () => {
 
     expect(card.id).toBe('p1');
     expect(card.name).toBe('Checkout');
-    expect(card.status).toBe('Ready');
+    expect(card.status).toBe('Draft');
+    expect(card.lifecycle).toBe('draft');
+    expect(card.updatedAtIso).toBe('2026-01-02T00:00:00Z');
 
     // The palette navigates via ideUrl, so it must be populated.
     expect(card.ideUrl).toBeTruthy();
     expect(card.previewImageUrl).toBe('/api/projects/p1/thumbnail');
+  });
+
+  it('marks projects with deployments as deployed', () => {
+    const [card] = toProjectCards([project({ id: 'p1', deploymentCount: 2 })]);
+
+    expect(card.status).toBe('Deployed');
+    expect(card.lifecycle).toBe('deployed');
+    expect(card.deploymentCount).toBe(2);
   });
 
   it('sorts most-recently-updated first', () => {

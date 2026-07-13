@@ -1,4 +1,5 @@
 import type { ProjectCard } from '~/components/dashboard/SaaSLayout';
+import { projectLifecycle, projectLifecycleDisplayLabel } from '~/lib/project-card-presentation';
 import { projectIdePath } from '~/utils/project-url';
 
 export type ApiProject = {
@@ -8,6 +9,8 @@ export type ApiProject = {
   updatedAt?: string;
   sourceType?: string;
   gitRepositoryUrl?: string;
+  deletedAt?: string | null;
+  deploymentCount?: number;
 };
 
 /**
@@ -28,19 +31,26 @@ export function toProjectCards(
       return bt - at;
     })
     .slice(0, limit)
-    .map((project) => ({
-      id: project.id,
-      name: project.name,
-      status: 'Ready',
-      updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
-      stack: project.gitRepositoryUrl ?? project.sourceType ?? 'E-Code project',
-      sourceType: project.sourceType,
+    .map((project) => {
+      const lifecycle = projectLifecycle(project);
 
-      /*
-       * Real captured preview screenshot; the card falls back to a neutral
-       * placeholder (not the old synthetic mock) until the first capture exists.
-       */
-      previewImageUrl: `/api/projects/${project.id}/thumbnail`,
-      ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization?.slug }),
-    }));
+      return {
+        id: project.id,
+        name: project.name,
+        status: projectLifecycleDisplayLabel(lifecycle),
+        lifecycle,
+        deploymentCount: project.deploymentCount,
+        updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
+        updatedAtIso: project.updatedAt,
+        stack: project.gitRepositoryUrl ?? project.sourceType ?? 'E-Code project',
+        sourceType: project.sourceType,
+
+        /*
+         * Real captured preview screenshot; the card falls back to a neutral
+         * placeholder (not the old synthetic mock) until the first capture exists.
+         */
+        previewImageUrl: `/api/projects/${project.id}/thumbnail`,
+        ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization?.slug }),
+      };
+    });
 }
