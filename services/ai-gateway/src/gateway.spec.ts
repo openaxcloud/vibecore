@@ -2,6 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   AiGateway,
+  anthropicPayload,
   countTokens,
   ensureGptTokenizer,
   extractProviderErrorMessage,
@@ -12,6 +13,49 @@ import {
   openAiPromptCacheKey,
   providerConfigs,
 } from './gateway.js';
+
+describe('anthropicPayload shared-context caching', () => {
+  it('sets cache_control on the last SHARED message when the prefix clears the min', () => {
+    const bigShared = 'C'.repeat(8000); // ~2000 tok, clears the 1024 sonnet min
+
+    const req = {
+      messages: [
+        { role: 'system' as const, content: 'preamble' },
+        { role: 'user' as const, content: bigShared },
+        { role: 'assistant' as const, content: 'ack' },
+        { role: 'user' as const, content: 'act as the architect lane' }, // per-lane tail
+      ],
+    };
+
+    const payload = anthropicPayload(req, 'claude-3-5-sonnet-latest', false) as any;
+
+    // System block is cached (1h)...
+    expect(payload.system[0].cache_control.ttl).toBe('1h');
+
+    // ...and the last SHARED message (index len-2 = the assistant 'ack') carries a breakpoint.
+    const boundary = payload.messages[payload.messages.length - 2];
+    expect(Array.isArray(boundary.content)).toBe(true);
+    expect(boundary.content[0].cache_control).toEqual({ type: 'ephemeral' });
+
+    // The per-lane tail stays a plain string (not cached — it differs per lane).
+    expect(typeof payload.messages[payload.messages.length - 1].content).toBe('string');
+  });
+
+  it('does not add a shared-message breakpoint below the min (short prefix)', () => {
+    const req = {
+      messages: [
+        { role: 'system' as const, content: 'preamble' },
+        { role: 'user' as const, content: 'small shared' },
+        { role: 'user' as const, content: 'per-lane tail' },
+      ],
+    };
+
+    const payload = anthropicPayload(req, 'claude-3-5-sonnet-latest', false) as any;
+
+    // messages[len-2] stays a plain string (no wasted breakpoint on a tiny prefix).
+    expect(typeof payload.messages[payload.messages.length - 2].content).toBe('string');
+  });
+});
 
 describe('openAiPromptCacheKey', () => {
   it('is stable for the same system prefix across lanes and org-scoped', () => {
@@ -28,10 +72,20 @@ describe('openAiPromptCacheKey', () => {
     expect(openAiPromptCacheKey(laneA)).toMatch(/^ecode-org1-/);
   });
 
-  it('changes when the system prefix changes', () => {
-    const a = { messages: [{ role: 'system' as const, content: 'alpha' }] };
-    const b = { messages: [{ role: 'system' as const, content: 'beta' }] };
+  it('changes when the shared prefix (system or shared context) changes', () => {
+    const tail = { role: 'user' as const, content: 'per-lane role' };
+    const a = { messages: [{ role: 'system' as const, content: 'alpha' }, tail] };
+    const b = { messages: [{ role: 'system' as const, content: 'beta' }, tail] };
     expect(openAiPromptCacheKey(a)).not.toBe(openAiPromptCacheKey(b));
+
+    // Shared context (a user message before the per-lane tail) is part of the key too.
+    const c = {
+      messages: [{ role: 'system' as const, content: 'x' }, { role: 'user' as const, content: 'ctx-A' }, tail],
+    };
+    const d = {
+      messages: [{ role: 'system' as const, content: 'x' }, { role: 'user' as const, content: 'ctx-B' }, tail],
+    };
+    expect(openAiPromptCacheKey(c)).not.toBe(openAiPromptCacheKey(d));
   });
 });
 

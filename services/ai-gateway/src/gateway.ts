@@ -849,14 +849,36 @@ function hashString(text: string): string {
  * prompt bytes are unchanged; unsupported openai-compatible upstreams ignore it.
  */
 export function openAiPromptCacheKey(request: AiChatRequest): string {
-  const system = request.messages
-    .filter((message) => message.role === 'system')
+  /*
+   * Key on the SHARED prefix — every message EXCEPT the last (the per-lane role
+   * instruction) — so all lanes of ONE multi-agent fan-out route to the same cache
+   * node (OpenAI then serves the shared system + shared context from its automatic
+   * prefix cache), while distinct fan-outs with a different shared context don't
+   * collide on one key. Was keyed on the system block only, which missed the large
+   * shared context that rides as user messages.
+   */
+  const shared = request.messages
+    .slice(0, -1)
     .map((message) => message.content)
     .join('\n\n');
 
   const scope = request.organizationId ?? 'anon';
 
-  return `ecode-${scope}-${hashString(system)}`;
+  return `ecode-${scope}-${hashString(shared)}`;
+}
+
+/** chars≈tokens/4 estimate (never for billing) — gates the shared-message breakpoint. */
+function estimateTokensFromText(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * Anthropic minimum cacheable prefix (tokens), per model. Below this Anthropic
+ * silently ignores `cache_control`, so we gate the shared-message breakpoint on it.
+ * Haiku's effective minimum is higher (~2048); Sonnet/Opus 1024.
+ */
+function anthropicCacheMinTokens(model: string): number {
+  return /haiku/i.test(model) ? 2048 : 1024;
 }
 
 function openAiPayload(request: AiChatRequest, model: string, stream: boolean) {
@@ -889,29 +911,55 @@ function openAiPayload(request: AiChatRequest, model: string, stream: boolean) {
   };
 }
 
-function anthropicPayload(request: AiChatRequest, model: string, stream: boolean) {
+export function anthropicPayload(request: AiChatRequest, model: string, stream: boolean) {
   const system = request.messages
     .filter((message) => message.role === 'system')
     .map((message) => message.content)
     .join('\n\n');
-  const messages = request.messages
+  const messages: Array<{ role: string; content: unknown }> = request.messages
     .filter((message) => message.role !== 'system')
     .map((message) => ({ role: message.role === 'assistant' ? 'assistant' : 'user', content: message.content }));
+
+  /*
+   * SHARED-MESSAGE breakpoint (the multi-agent win). In a fan-out the heavy shared
+   * context rides as USER messages (all but the LAST, which is the per-lane role
+   * instruction), so a system-only breakpoint missed it. Put a second
+   * `cache_control` on the last SHARED message (messages[len-2]) so Anthropic caches
+   * the whole shared prefix (system + shared messages) and re-bills it at ~10% on
+   * lanes 2..N. Default (5-min) TTL: the shared context is per-turn, but all N lanes
+   * fire within seconds. Gated on the shared prefix clearing the per-model minimum
+   * (else Anthropic ignores it) — a no-op for the short api→gateway completion path.
+   * Fail-safe: any issue leaves `messages` as plain strings (no breakpoint, still valid).
+   */
+  try {
+    if (messages.length >= 2) {
+      const sharedText = `${system}\n\n${messages
+        .slice(0, -1)
+        .map((m) => String(m.content))
+        .join('\n\n')}`;
+
+      if (estimateTokensFromText(sharedText) >= anthropicCacheMinTokens(model)) {
+        const boundary = messages.length - 2;
+        messages[boundary] = {
+          role: messages[boundary].role,
+          content: [{ type: 'text', text: String(messages[boundary].content), cache_control: { type: 'ephemeral' } }],
+        };
+      }
+    }
+  } catch {
+    // leave messages untouched — the generation still runs, just without the extra breakpoint
+  }
 
   return {
     model,
 
     /*
-     * Mark the system prefix as a cache breakpoint. The gateway's system is FULLY
-     * stable — either the hoisted SHARED_AGENT_SYSTEM_PREAMBLE (identical across
-     * every lane of a multi-agent run, re-sent each turn) or the short fixed
-     * system of the regular api→gateway completion path (no variable tail, no
-     * sentinel is ever forwarded here). So the whole thing is one cacheable head:
-     * `ttl: '1h'` keeps it warm ACROSS turns (not just the 5-minute default), and
-     * Anthropic serves it from cache (~10% input price) instead of re-billing it.
-     * A string system stays a plain string when there's nothing to cache. Below
-     * Anthropic's ~1024-token minimum this is a silent no-op, never an error; if
-     * the account lacks the extended-ttl beta the ttl is ignored (5min fallback).
+     * System-prefix breakpoint: the hoisted SHARED_AGENT_SYSTEM_PREAMBLE (identical
+     * across lanes, re-sent each turn) or the short api→gateway system. `ttl: '1h'`
+     * keeps it warm across turns; Anthropic serves it at ~10% input price. Below the
+     * ~1024-token minimum this is a silent no-op; missing extended-ttl beta → 5-min
+     * fallback. The shared-MESSAGE breakpoint above extends caching to the shared
+     * user context (the real multi-lane cost).
      */
     system: system ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral', ttl: '1h' } }] : undefined,
     messages,
@@ -988,7 +1036,7 @@ async function providerCompletion(config: ProviderConfig, request: AiChatRequest
 
     // Fail-safe: a stale/invalid cachedContent name 4xxs — retry once with the inline-system original.
     if (cached.usedCache && !response.ok) {
-      invalidateGeminiCache(key, model, cached.systemText);
+      invalidateGeminiCache(key, model, cached.keyText);
       await response.body?.cancel().catch(() => {});
       response = await send(base);
     }
@@ -1041,7 +1089,7 @@ async function* providerStream(
    * multi-agent prefix is billed once, not per lane. Fail-safe — a stale name
    * 4xxs and is retried inline below.
    */
-  let geminiCache: { usedCache: boolean; systemText: string } | undefined;
+  let geminiCache: { usedCache: boolean; keyText: string } | undefined;
 
   if (config.kind === 'gemini') {
     const applied = await applyGeminiCache(
@@ -1051,7 +1099,7 @@ async function* providerStream(
       body as Record<string, unknown>,
     );
     body = applied.payload;
-    geminiCache = { usedCache: applied.usedCache, systemText: applied.systemText };
+    geminiCache = { usedCache: applied.usedCache, keyText: applied.keyText };
   }
 
   /*
@@ -1086,7 +1134,7 @@ async function* providerStream(
    * the stream always runs (worst case: one wasted round-trip).
    */
   if (config.kind === 'gemini' && geminiCache?.usedCache && !response.ok) {
-    invalidateGeminiCache(bearer(config) ?? '', model, geminiCache.systemText);
+    invalidateGeminiCache(bearer(config) ?? '', model, geminiCache.keyText);
     await response.body?.cancel().catch(() => {});
     response = await fetch(url, {
       method: 'POST',

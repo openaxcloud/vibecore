@@ -101,30 +101,54 @@ export function __resetGeminiCacheStore(): void {
   inFlight.clear();
 }
 
-/** Invalidate a specific (apiKey, model, system) entry — called after a 4xx on a rewritten request. */
-export function invalidateGeminiCache(apiKey: string, model: string, systemText: string): void {
-  cacheStore.delete(cacheKeyFor(apiKey, model, systemText));
+/** Invalidate a specific (apiKey, model, keyText) entry — called after a 4xx on a rewritten request. */
+export function invalidateGeminiCache(apiKey: string, model: string, keyText: string): void {
+  cacheStore.delete(cacheKeyFor(apiKey, model, keyText));
+}
+
+/** Concatenate the text of a Gemini `contents` array ({ role, parts:[{text}] }). */
+function contentsText(contents: unknown): string {
+  if (!Array.isArray(contents)) {
+    return '';
+  }
+
+  return contents
+    .map((c) => {
+      const parts = (c as { parts?: unknown }).parts;
+
+      if (!Array.isArray(parts)) {
+        return '';
+      }
+
+      return parts
+        .map((p) =>
+          p && typeof p === 'object' && typeof (p as { text?: unknown }).text === 'string'
+            ? (p as { text: string }).text
+            : '',
+        )
+        .join('');
+    })
+    .join('\n');
 }
 
 /**
- * Return a live `cachedContents/<id>` name for this (apiKey, model,
- * systemInstruction), creating it if we don't hold a fresh one. Never throws — on
- * any failure returns null and the caller sends the original (uncached) request.
+ * Get-or-create a `cachedContents/<id>` for an arbitrary cache body (systemInstruction
+ * and/or a shared contents prefix). `keyText` is the dedup + minimum-size key. Never
+ * throws — on any failure returns null and the caller sends the original request.
  */
 export async function getOrCreateGeminiCachedContent(
   baseUrl: string,
   apiKey: string,
   model: string,
-  systemInstruction: unknown,
+  cacheBody: Record<string, unknown>,
+  keyText: string,
   now: number = Date.now(),
 ): Promise<string | null> {
-  const systemText = systemInstructionText(systemInstruction);
-
-  if (!systemText || !geminiModelSupportsCaching(model) || estimateTokens(systemText) < geminiCacheMinTokens(model)) {
+  if (!keyText || !geminiModelSupportsCaching(model) || estimateTokens(keyText) < geminiCacheMinTokens(model)) {
     return null;
   }
 
-  const key = cacheKeyFor(apiKey, model, systemText);
+  const key = cacheKeyFor(apiKey, model, keyText);
   const existing = cacheStore.get(key);
 
   if (existing && now < existing.expiresAt) {
@@ -142,11 +166,7 @@ export async function getOrCreateGeminiCachedContent(
       const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/cachedContents?key=${encodeURIComponent(apiKey)}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          model: `models/${model}`,
-          systemInstruction,
-          ttl: `${GEMINI_CACHE_TTL_SECONDS}s`,
-        }),
+        body: JSON.stringify({ model: `models/${model}`, ...cacheBody, ttl: `${GEMINI_CACHE_TTL_SECONDS}s` }),
       });
 
       if (!res.ok) {
@@ -175,11 +195,18 @@ export async function getOrCreateGeminiCachedContent(
 }
 
 /**
- * Given a built gemini generate payload, return a possibly-rewritten payload that
- * references a cachedContents resource for its systemInstruction (systemInstruction
- * stripped, `cachedContent` added). Returns the original payload unchanged when
- * caching doesn't apply or the create failed. `usedCache` lets the caller run the
- * 4xx-retry-with-original fallback.
+ * Given a built gemini generate payload, cache the SHARED prefix — the
+ * systemInstruction AND the shared `contents` that are identical across multi-agent
+ * lanes — as one `cachedContents` resource, then send only the per-lane tail. This
+ * is the real multi-lane win: the heavy shared project context rides as user
+ * `contents` (not systemInstruction), so a system-only cache missed it.
+ *
+ * Role alternation is preserved: we cache up to the last `model` turn among
+ * all-but-the-last content, so the live tail always resumes on a `user` turn. If
+ * there is no model turn to cut on, only the systemInstruction is cached (contents
+ * stay live) — backward-compatible with the previous behaviour. Returns the payload
+ * unchanged when nothing clears the per-model minimum or the create failed;
+ * `usedCache` + `keyText` let the caller run the 4xx-retry-with-original fallback.
  */
 export async function applyGeminiCache(
   baseUrl: string,
@@ -187,23 +214,56 @@ export async function applyGeminiCache(
   model: string,
   payload: Record<string, unknown>,
   now: number = Date.now(),
-): Promise<{ payload: Record<string, unknown>; usedCache: boolean; systemText: string }> {
+): Promise<{ payload: Record<string, unknown>; usedCache: boolean; keyText: string }> {
   const systemInstruction = payload.systemInstruction;
-  const systemText = systemInstructionText(systemInstruction);
+  const contents = Array.isArray(payload.contents) ? (payload.contents as Array<Record<string, unknown>>) : [];
 
-  if (!systemInstruction || payload.cachedContent) {
-    return { payload, usedCache: false, systemText };
+  if ((!systemInstruction && contents.length === 0) || payload.cachedContent) {
+    return { payload, usedCache: false, keyText: '' };
   }
 
-  const name = await getOrCreateGeminiCachedContent(baseUrl, apiKey, model, systemInstruction, now);
+  // Cache up to the last `model` turn among all-but-the-last content (keep alternation valid).
+  let cutIdx = -1;
+
+  for (let i = contents.length - 2; i >= 0; i--) {
+    if ((contents[i] as { role?: unknown }).role === 'model') {
+      cutIdx = i;
+      break;
+    }
+  }
+
+  const sharedContents = cutIdx >= 0 ? contents.slice(0, cutIdx + 1) : [];
+  const tail = cutIdx >= 0 ? contents.slice(cutIdx + 1) : contents;
+
+  const keyText = `${systemInstructionText(systemInstruction)} ${contentsText(sharedContents)}`;
+
+  const cacheBody: Record<string, unknown> = {};
+
+  if (systemInstruction) {
+    cacheBody.systemInstruction = systemInstruction;
+  }
+
+  if (sharedContents.length) {
+    cacheBody.contents = sharedContents;
+  }
+
+  if (Object.keys(cacheBody).length === 0) {
+    return { payload, usedCache: false, keyText };
+  }
+
+  const name = await getOrCreateGeminiCachedContent(baseUrl, apiKey, model, cacheBody, keyText, now);
 
   if (!name) {
-    return { payload, usedCache: false, systemText };
+    return { payload, usedCache: false, keyText };
   }
 
   const { systemInstruction: _stripped, ...rest } = payload;
 
-  return { payload: { ...rest, cachedContent: name }, usedCache: true, systemText };
+  return {
+    payload: { ...rest, cachedContent: name, ...(sharedContents.length ? { contents: tail } : {}) },
+    usedCache: true,
+    keyText,
+  };
 }
 
 /**

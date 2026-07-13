@@ -125,11 +125,17 @@ describe('gemini gateway cache', () => {
     );
 
     expect(
-      await getOrCreateGeminiCachedContent(BASE, 'KEY', 'gemini-2.5-flash', { parts: [{ text: 'x' }] }),
+      await getOrCreateGeminiCachedContent(BASE, 'KEY', 'gemini-2.5-flash', { systemInstruction: {} }, 'x'),
     ).toBeNull();
-    expect(await getOrCreateGeminiCachedContent(BASE, 'KEY', 'gemini-2.5-flash', bigSystem())).toBe(
-      'cachedContents/ok',
-    );
+    expect(
+      await getOrCreateGeminiCachedContent(
+        BASE,
+        'KEY',
+        'gemini-2.5-flash',
+        { systemInstruction: bigSystem() },
+        'S'.repeat(12_000),
+      ),
+    ).toBe('cachedContents/ok');
   });
 
   it('invalidate forces a fresh create on the next call', async () => {
@@ -146,10 +152,51 @@ describe('gemini gateway cache', () => {
       }),
     );
 
-    await applyGeminiCache(BASE, 'KEY', 'gemini-2.5-flash', payload(bigSystem()));
-    invalidateGeminiCache('KEY', 'gemini-2.5-flash', 'S'.repeat(12_000));
+    const first = await applyGeminiCache(BASE, 'KEY', 'gemini-2.5-flash', payload(bigSystem()));
+    invalidateGeminiCache('KEY', 'gemini-2.5-flash', first.keyText);
     await applyGeminiCache(BASE, 'KEY', 'gemini-2.5-flash', payload(bigSystem()));
 
     expect(creates).toBe(2); // invalidation dropped the reuse entry
+  });
+
+  it('caches the SHARED contents prefix and sends only the per-lane tail (multi-agent)', async () => {
+    let createBody: any;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: any, init: any) => {
+        if (String(url).includes('/cachedContents')) {
+          createBody = JSON.parse(init.body);
+          return new Response(JSON.stringify({ name: 'cachedContents/shared' }), { status: 200 });
+        }
+
+        return new Response('{}', { status: 200 });
+      }),
+    );
+
+    // Shared context (big user turn + a model turn) identical across lanes, then a per-lane user tail.
+    const bigShared = 'C'.repeat(12_000);
+
+    const p = {
+      systemInstruction: { parts: [{ text: 'preamble' }] },
+      contents: [
+        { role: 'user', parts: [{ text: bigShared }] },
+        { role: 'model', parts: [{ text: 'shared ack' }] },
+        { role: 'user', parts: [{ text: 'act as the architect lane' }] },
+      ],
+      generationConfig: { maxOutputTokens: 100 },
+    };
+
+    const r = await applyGeminiCache(BASE, 'KEY', 'gemini-2.5-flash', p);
+
+    expect(r.usedCache).toBe(true);
+    expect(r.payload.cachedContent).toBe('cachedContents/shared');
+    expect(r.payload.systemInstruction).toBeUndefined();
+
+    // Cached body carried the shared prefix (system + up to the last model turn)...
+    expect(createBody.contents).toHaveLength(2);
+
+    // ...and the live request sends ONLY the per-lane tail.
+    expect((r.payload.contents as any[]).map((c) => c.role)).toEqual(['user']);
+    expect((r.payload.contents as any[])[0].parts[0].text).toContain('architect');
   });
 });
