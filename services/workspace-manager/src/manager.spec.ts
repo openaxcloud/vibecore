@@ -160,6 +160,44 @@ describe('WorkspaceManager', () => {
     expect(events.events.map((event) => event.type)).toContain('workspace.running');
   });
 
+  it('never runs the real agent-reachability fetch under vitest, even without the timeout env (keeps the root `vitest --run` suite fast)', async () => {
+    /*
+     * Regression guard for the CI flake: the repo-root `vitest --run` globs this
+     * spec WITHOUT this package's vitest.config env (WORKSPACE_AGENT_REACHABLE_
+     * TIMEOUT_MS=0), so startWorkspace() used to block the full 45s default on a
+     * real fetch to a cluster DNS that can't resolve — ~16-minute suite, vitest
+     * onTaskUpdate worker timeout, flaky deploys. Simulate that env-less run and
+     * assert no network call happens (the manager auto-disables the probe under
+     * VITEST). If the guard is removed this fails fast instead of going slow.
+     */
+    const previous = process.env.WORKSPACE_AGENT_REACHABLE_TIMEOUT_MS;
+    delete process.env.WORKSPACE_AGENT_REACHABLE_TIMEOUT_MS;
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+    try {
+      const k8s = new TestWorkspaceK8sClient();
+      const manager = new WorkspaceManager(
+        new TestWorkspaceStore(),
+        k8s,
+        new TestEventBus(),
+        'test-workspace-agent-secret',
+      );
+      const workspace = await manager.startWorkspace(input);
+
+      expect(workspace.status).toBe('RUNNING');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+
+      if (previous === undefined) {
+        delete process.env.WORKSPACE_AGENT_REACHABLE_TIMEOUT_MS;
+      } else {
+        process.env.WORKSPACE_AGENT_REACHABLE_TIMEOUT_MS = previous;
+      }
+    }
+  });
+
   it('injects decrypted secret values into the agent Secret and references them as optional pod env', async () => {
     const k8s = new TestWorkspaceK8sClient();
 

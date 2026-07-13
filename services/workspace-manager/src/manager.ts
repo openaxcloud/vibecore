@@ -992,6 +992,17 @@ export class WorkspaceManager {
       return false;
     }
 
+    /*
+     * Auto-disable under vitest unless explicitly configured (same reason as
+     * waitForAgentReachable): the repo-root `vitest --run` glob omits this
+     * package's vitest.config env, so this real `/busy` fetch would otherwise run
+     * against an unresolvable cluster DNS on every GC test. Fail-safe default is
+     * "not busy". VITEST is never set in production.
+     */
+    if (process.env.WORKSPACE_AGENT_BUSY_PROBE_TIMEOUT_MS === undefined && process.env.VITEST) {
+      return false;
+    }
+
     const timeoutMs = Number.isFinite(parsed) && parsed > 0 ? parsed : 3_000;
 
     try {
@@ -1026,6 +1037,19 @@ export class WorkspaceManager {
      * is no real agent Service to reach).
      */
     if (Number.isFinite(parsed) && parsed <= 0) {
+      return;
+    }
+
+    /*
+     * Auto-disable under vitest unless a timeout is EXPLICITLY set. This
+     * package's vitest.config sets WORKSPACE_AGENT_REACHABLE_TIMEOUT_MS=0, but the
+     * repo-root `vitest --run` globs this spec WITHOUT that per-package env — so
+     * every startWorkspace test would otherwise block the full 45s default on a
+     * real fetch to a cluster DNS that can't resolve, turning the suite into a
+     * ~16-minute run that trips the vitest worker's onTaskUpdate timeout and makes
+     * CI flaky. VITEST is never set in production, so prod behavior is unchanged.
+     */
+    if (process.env.WORKSPACE_AGENT_REACHABLE_TIMEOUT_MS === undefined && process.env.VITEST) {
       return;
     }
 
