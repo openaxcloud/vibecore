@@ -1179,6 +1179,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
    * content type, and on any parse failure return a clear 400 instead of a 500.
    */
   let body: Record<string, string>;
+
   try {
     const contentType = request.headers.get('content-type') ?? '';
 
@@ -1188,11 +1189,9 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       body = formObject(await request.formData()) as Record<string, string>;
     }
   } catch {
-    throw json(
-      { error: 'Invalid request body — expected form-encoded or application/json.' },
-      { status: 400 },
-    );
+    throw json({ error: 'Invalid request body — expected form-encoded or application/json.' }, { status: 400 });
   }
+
   const intent = body.intent ?? 'default';
 
   if (panel === 'snapshots') {
