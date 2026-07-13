@@ -27,3 +27,12 @@ export function reportAnthropicCacheUsage(readTokens: number, writeTokens: numbe
     // Reporting must never affect the generation stream.
   }
 }
+
+/**
+ * Provider-agnostic alias. The per-request ALS tally is not Anthropic-specific —
+ * only ONE provider runs per request, so the Google wire reader (which surfaces
+ * `cachedContentTokenCount` the SDK drops) reports read tokens through the same
+ * indirection. Kept as a named alias so callers read clearly and the certified
+ * Anthropic call site is untouched.
+ */
+export const reportWireCacheUsage = reportAnthropicCacheUsage;
