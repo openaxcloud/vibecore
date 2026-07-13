@@ -1,4 +1,5 @@
 import { clampGatewayOutputBudget, estimateGatewayOutputBudget } from './gateway-output-budget.js';
+import { applyGeminiCache, invalidateGeminiCache, logGeminiCacheUsage } from './gemini-cache.js';
 
 export type AiProviderId =
   | 'openai'
@@ -932,20 +933,29 @@ async function providerCompletion(config: ProviderConfig, request: AiChatRequest
   }
 
   if (config.kind === 'gemini') {
-    const key = bearer(config);
-    return extractContent(
-      await readJson(
-        await fetch(
-          `${config.baseUrl.replace(/\/+$/, '')}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key ?? '')}`,
-          {
-            method: 'POST',
-            headers: headers(config),
-            body: JSON.stringify(geminiPayload(request, model)),
-            signal: reqSignal,
-          },
-        ),
-      ),
-    );
+    const key = bearer(config) ?? '';
+    const url = `${config.baseUrl.replace(/\/+$/, '')}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+    const base = geminiPayload(request, model) as Record<string, unknown>;
+
+    // Explicit cachedContents: reference the stable systemInstruction by name (see gemini-cache.ts).
+    const cached = await applyGeminiCache(config.baseUrl, key, model, base);
+
+    const send = (body: Record<string, unknown>) =>
+      fetch(url, { method: 'POST', headers: headers(config), body: JSON.stringify(body), signal: reqSignal });
+
+    let response = await send(cached.payload);
+
+    // Fail-safe: a stale/invalid cachedContent name 4xxs — retry once with the inline-system original.
+    if (cached.usedCache && !response.ok) {
+      invalidateGeminiCache(key, model, cached.systemText);
+      await response.body?.cancel().catch(() => {});
+      response = await send(base);
+    }
+
+    const json = await readJson(response);
+    logGeminiCacheUsage(json);
+
+    return extractContent(json);
   }
 
   return extractContent(
@@ -974,7 +984,8 @@ async function* providerStream(
         : config.kind === 'ollama'
           ? `${config.baseUrl.replace(/\/+$/, '')}/api/chat`
           : `${config.baseUrl.replace(/\/+$/, '')}/chat/completions`;
-  const body =
+
+  let body: unknown =
     config.kind === 'anthropic'
       ? anthropicPayload(request, model, true)
       : config.kind === 'gemini'
@@ -982,6 +993,25 @@ async function* providerStream(
         : config.kind === 'ollama'
           ? { model, messages: request.messages, stream: true }
           : openAiPayload(request, model, true);
+
+  /*
+   * Gemini explicit cachedContents (see gemini-cache.ts): swap the inline
+   * systemInstruction for a `cachedContent` reference so the heavy shared
+   * multi-agent prefix is billed once, not per lane. Fail-safe — a stale name
+   * 4xxs and is retried inline below.
+   */
+  let geminiCache: { usedCache: boolean; systemText: string } | undefined;
+
+  if (config.kind === 'gemini') {
+    const applied = await applyGeminiCache(
+      config.baseUrl,
+      bearer(config) ?? '',
+      model,
+      body as Record<string, unknown>,
+    );
+    body = applied.payload;
+    geminiCache = { usedCache: applied.usedCache, systemText: applied.systemText };
+  }
 
   /*
    * Bound only the CONNECT/headers phase with 60s, then clear it. A fixed
@@ -1007,6 +1037,22 @@ async function* providerStream(
     });
   } finally {
     clearTimeout(connectTimer);
+  }
+
+  /*
+   * Gemini cache fail-safe: a stale/invalid cachedContent name 4xxs the whole
+   * generate call — invalidate and retry ONCE with the inline-system original so
+   * the stream always runs (worst case: one wasted round-trip).
+   */
+  if (config.kind === 'gemini' && geminiCache?.usedCache && !response.ok) {
+    invalidateGeminiCache(bearer(config) ?? '', model, geminiCache.systemText);
+    await response.body?.cancel().catch(() => {});
+    response = await fetch(url, {
+      method: 'POST',
+      headers: headers(config),
+      body: JSON.stringify(geminiPayload(request, model)),
+      signal: upstreamSignal,
+    });
   }
 
   if (!response.ok || !response.body) {
