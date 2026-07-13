@@ -205,7 +205,6 @@ import {
   resolveDefaultObjectStorage,
 } from './object-storage.js';
 import { PrismaApiStore } from './prisma-store.js';
-import { aggregateProviderMetrics } from './provider-metrics.js';
 import {
   decodeFileContent,
   filesFromZip,
@@ -218,6 +217,7 @@ import {
   type ProjectStorage,
   type StoredArchive,
 } from './project-storage.js';
+import { aggregateProviderMetrics } from './provider-metrics.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
 import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
@@ -1456,8 +1456,11 @@ const aiTranscriptMessageSchema = z.object({
 const aiTranscriptSchema = z.object({
   messages: z.array(aiTranscriptMessageSchema).min(1).max(200),
 });
-// F18 — a single AI provider request outcome (metric-only, decoupled from billing so
-// errored/zero-token requests are still counted toward the 24h error rate).
+
+/*
+ * F18 — a single AI provider request outcome (metric-only, decoupled from billing so
+ * errored/zero-token requests are still counted toward the 24h error rate).
+ */
 const providerMetricSchema = z.object({
   provider: z.string().min(1),
   model: z.string().min(1).optional(),
@@ -12475,6 +12478,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           buildCommand: body.buildCommand,
           outputDirectory: body.outputDirectory,
           cwd: '.',
+
+          /*
+           * Isolate install+build in a throwaway copy so the deploy NEVER mutates
+           * the live workspace's node_modules (which broke the user's running dev
+           * server). Removed after the artifact is pulled.
+           */
+          sandboxDir: `.vibecore-deploy-${deploymentId}`,
           materializeDir: tempDir,
           maxFileBytes: DEPLOY_MAX_PULL_FILE_BYTES,
           artifactSizeLimitMb: body.artifactSizeLimitMb,
@@ -18934,8 +18944,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const provisioner = resolveDefaultDatabaseProvisioner();
 
         if (provisioner.active) {
-          const environment = ((instance as { environment?: string }).environment ??
-            'development') as Parameters<typeof provisioner.getConnectionUri>[0]['environment'];
+          const environment = ((instance as { environment?: string }).environment ?? 'development') as Parameters<
+            typeof provisioner.getConnectionUri
+          >[0]['environment'];
+
           const billing = await billingState(project.organizationId).catch(() => undefined);
           const tier = resolveDatabaseTier(billing?.plan.key);
           const uri = await provisioner.getConnectionUri({ projectId: project.id, tier, environment });

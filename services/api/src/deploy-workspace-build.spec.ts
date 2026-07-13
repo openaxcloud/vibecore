@@ -21,6 +21,7 @@ afterEach(async () => {
 async function materializeDir(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), 'wsbuild-'));
   tmpDirs.push(dir);
+
   return dir;
 }
 
@@ -66,6 +67,7 @@ describe('splitBuildCommand', () => {
 describe('runWorkspaceStaticBuild', () => {
   it('builds, validates index.html, and materializes the artifact locally', async () => {
     const dir = await materializeDir();
+
     const agent = fakeAgent({
       listFiles: vi.fn(async () => ({
         files: [
@@ -94,23 +96,90 @@ describe('runWorkspaceStaticBuild', () => {
     expect(result.outputDir).toBe(dir);
     expect(await readFile(join(dir, 'index.html'), 'utf8')).toBe('<html>quiz</html>');
     expect(await readFile(join(dir, 'assets/app.js'), 'utf8')).toBe('console.log(1)');
+
     // base64 asset decoded to raw bytes
     expect((await stat(join(dir, 'logo.png'))).size).toBe(4);
+
     // install ran before build
     expect((agent.runStep as ReturnType<typeof vi.fn>).mock.calls[0][0].command).toBe('npm');
+  });
+
+  it('isolates install+build in a sandbox so the live workspace is never mutated', async () => {
+    const dir = await materializeDir();
+    const calls: { command: string; cwd: string; args: string[] }[] = [];
+
+    const agent = fakeAgent({
+      runStep: vi.fn(async ({ command, cwd, args }: { command: string; cwd: string; args: string[] }) => {
+        calls.push({ command, cwd, args });
+        return { exitCode: 0, timedOut: false };
+      }),
+      listFiles: vi.fn(async (path: string) => ({
+        files: path === '.deploy-x/dist' ? [{ path: '.deploy-x/dist/index.html', size: 12 }] : [],
+      })),
+      readFile: vi.fn(async () => ({ content: '<html></html>', encoding: 'utf8' as const })),
+    });
+
+    const result = await runWorkspaceStaticBuild(
+      { ...baseOptions, materializeDir: dir, sandboxDir: '.deploy-x' },
+      agent,
+    );
+
+    expect(result.ok).toBe(true);
+
+    // First step copies the sources into the sandbox (never `npm install` in place), excluding node_modules.
+    expect(calls[0].command).toBe('sh');
+    expect(calls[0].cwd).toBe('.');
+    expect(calls[0].args[1]).toContain('! -name node_modules');
+    expect(calls[0].args[1]).toContain('.deploy-x');
+
+    // install + build run INSIDE the sandbox, not the live workspace root.
+    expect(calls[1]).toMatchObject({ command: 'npm', cwd: '.deploy-x' });
+    expect(calls[2].cwd).toBe('.deploy-x');
+
+    // the artifact is enumerated from the sandbox output dir.
+    expect(agent.listFiles as ReturnType<typeof vi.fn>).toHaveBeenCalledWith('.deploy-x/dist');
+
+    // the sandbox is torn down afterwards.
+    const last = calls[calls.length - 1];
+    expect(last.command).toBe('sh');
+    expect(last.args[1]).toContain('rm -rf ".deploy-x"');
+  });
+
+  it('tears down the sandbox even when the build fails', async () => {
+    const dir = await materializeDir();
+    const calls: { command: string; args: string[] }[] = [];
+
+    const agent = fakeAgent({
+      runStep: vi.fn(async ({ command, args }: { command: string; args: string[]; cwd: string }) => {
+        calls.push({ command, args });
+
+        // prepare (sh) + install (npm) succeed; the build fails.
+        return { exitCode: command === 'sh' || args[0] === 'install' ? 0 : 1, timedOut: false };
+      }),
+    });
+
+    const result = await runWorkspaceStaticBuild(
+      { ...baseOptions, materializeDir: dir, sandboxDir: '.deploy-y' },
+      agent,
+    );
+
+    expect(result.ok).toBe(false);
+
+    const last = calls[calls.length - 1];
+    expect(last.command).toBe('sh');
+    expect(last.args[1]).toContain('rm -rf ".deploy-y"');
   });
 
   it('streams logs via onLog and reports phase transitions', async () => {
     const dir = await materializeDir();
     const phases: string[] = [];
     const logged: string[] = [];
+
     const agent = fakeAgent({
-      runStep: vi.fn(
-        async ({ onLine }: { onLine: (level: 'info' | 'error', line: string) => void }) => {
-          onLine('info', 'step output');
-          return { exitCode: 0, timedOut: false };
-        },
-      ),
+      runStep: vi.fn(async ({ onLine }: { onLine: (level: 'info' | 'error', line: string) => void }) => {
+        onLine('info', 'step output');
+        return { exitCode: 0, timedOut: false };
+      }),
       listFiles: vi.fn(async () => ({ files: [{ path: 'dist/index.html', size: 5 }] })),
       readFile: vi.fn(async () => ({ content: '<html></html>', encoding: 'utf8' as const })),
     });
@@ -132,6 +201,7 @@ describe('runWorkspaceStaticBuild', () => {
 
   it('fails clearly when install fails', async () => {
     const dir = await materializeDir();
+
     const agent = fakeAgent({
       runStep: vi.fn(async ({ command }: { command: string }) =>
         command === 'npm' ? { exitCode: 1, timedOut: false } : { exitCode: 0, timedOut: false },
@@ -145,7 +215,9 @@ describe('runWorkspaceStaticBuild', () => {
 
   it('maps a non-zero build exit to BUILD_FAILED and a timeout to BUILD_TIMEOUT', async () => {
     const dir = await materializeDir();
+
     let call = 0;
+
     const agent = fakeAgent({
       runStep: vi.fn(async () => {
         call += 1;
@@ -159,6 +231,7 @@ describe('runWorkspaceStaticBuild', () => {
 
   it('returns NOT_STATIC_SITE when the build produces no index.html (full-stack app)', async () => {
     const dir = await materializeDir();
+
     const agent = fakeAgent({
       listFiles: vi.fn(async () => ({ files: [{ path: 'dist/server.js', size: 100 }] })),
     });
@@ -177,6 +250,7 @@ describe('runWorkspaceStaticBuild', () => {
 
   it('rejects a single file above the per-file transfer cap', async () => {
     const dir = await materializeDir();
+
     const agent = fakeAgent({
       listFiles: vi.fn(async () => ({
         files: [
@@ -194,6 +268,7 @@ describe('runWorkspaceStaticBuild', () => {
 
   it('surfaces an unreachable agent instead of a silent failure', async () => {
     const dir = await materializeDir();
+
     const agent = fakeAgent({
       runStep: vi.fn(async () => ({ exitCode: null, timedOut: false, error: 'WORKSPACE_AGENT_REQUEST_FAILED' })),
     });

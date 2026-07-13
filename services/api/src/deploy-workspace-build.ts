@@ -70,6 +70,16 @@ export interface WorkspaceStaticBuildOptions {
   /** Build cwd relative to the workspace root ('.' for the project root). */
   cwd: string;
 
+  /*
+   * Throwaway build sandbox, relative to the workspace root. When set, the deploy
+   * copies the project sources (EXCLUDING node_modules/.git) into this directory
+   * and runs install + build THERE, so `npm install` never mutates the live
+   * workspace's node_modules — a deploy must not break the user's running dev
+   * server. Removed after the artifact is pulled (success or failure). When
+   * omitted, the build runs in `cwd` directly (legacy in-place behavior).
+   */
+  sandboxDir?: string;
+
   /** Absolute API-local directory to materialize the pulled artifact into. */
   materializeDir: string;
 
@@ -167,163 +177,229 @@ export async function runWorkspaceStaticBuild(
   agent: WorkspaceBuildAgent,
 ): Promise<WorkspaceStaticBuildResult> {
   const log = makeLogger(options.onLog);
-  const cwd = options.cwd || '.';
+  const sourceCwd = options.cwd || '.';
+  const sandbox = options.sandboxDir;
+  const cwd = sandbox ?? sourceCwd;
 
-  log.push('info', `Workspace deploy: building in pod (cwd ${cwd})`);
-
-  // 1. Install dependencies.
-  options.onPhase?.('installing');
-  log.push(
-    'info',
-    `Workspace deploy: installing dependencies (${options.install.command} ${options.install.args.join(' ')})`,
-  );
-
-  const install = await agent.runStep({
-    command: options.install.command,
-    args: options.install.args,
-    cwd,
-    onLine: (level, line) => log.push(level, `[install] ${line}`),
-  });
-
-  if (install.error) {
-    log.push('error', `Workspace deploy: could not reach the workspace to install (${install.error}).`);
-    return { ok: false, logs: log.logs, error: 'AGENT_UNREACHABLE' };
-  }
-
-  if (install.exitCode !== 0) {
-    log.push(
-      'error',
-      `Workspace deploy: dependency install failed (exit ${install.exitCode ?? 'null'}${install.timedOut ? ', timed out' : ''}).`,
-    );
-    return { ok: false, logs: log.logs, error: 'INSTALL_FAILED' };
-  }
-
-  // 2. Run the build.
-  const split = splitBuildCommand(options.buildCommand);
-
-  if (!split) {
-    log.push('error', `Workspace deploy: invalid build command "${options.buildCommand}".`);
-    return { ok: false, logs: log.logs, error: 'BUILD_FAILED' };
-  }
-
-  options.onPhase?.('building');
-  log.push('info', `Workspace deploy: running build (${options.buildCommand})`);
-
-  const build = await agent.runStep({
-    command: split.command,
-    args: split.args,
-    cwd,
-    onLine: (level, line) => log.push(level, `[build] ${line}`),
-  });
-
-  if (build.error) {
-    log.push('error', `Workspace deploy: lost the workspace during build (${build.error}).`);
-    return { ok: false, logs: log.logs, error: 'AGENT_UNREACHABLE' };
-  }
-
-  if (build.timedOut) {
-    log.push('error', 'Workspace deploy: build timed out.');
-    return { ok: false, logs: log.logs, error: 'BUILD_TIMEOUT' };
-  }
-
-  if (build.exitCode !== 0) {
-    log.push('error', `Workspace deploy: build failed (exit ${build.exitCode ?? 'null'}).`);
-    return { ok: false, logs: log.logs, error: 'BUILD_FAILED' };
-  }
-
-  // 3. Enumerate + pull the built output directory.
-  options.onPhase?.('deploying');
-
-  const prefix = outputPrefix(cwd, options.outputDirectory);
-  const listing = await agent.listFiles(prefix);
-
-  if (listing.error) {
-    log.push(
-      'error',
-      `Workspace deploy: could not read ${options.outputDirectory}/ from the workspace (${listing.error}).`,
-    );
-    return { ok: false, logs: log.logs, error: 'PULL_FAILED' };
-  }
-
-  if (listing.files.length === 0) {
-    log.push(
-      'error',
-      `Workspace deploy: the build produced no ${options.outputDirectory}/ output. Check the build command and output directory.`,
-    );
-    return { ok: false, logs: log.logs, error: 'OUTPUT_DIRECTORY_MISSING' };
-  }
-
-  // 4. A static site must have an index.html at the output root.
-  const relFiles = listing.files.map((file) => ({
-    ...file,
-
-    // path relative to the output directory, posix.
-    rel: posix.relative(prefix, file.path),
-  }));
-
-  const hasIndex = relFiles.some((file) => file.rel === 'index.html');
-
-  if (!hasIndex) {
-    log.push(
-      'error',
-      `This project isn't a static site: the build did not produce ${options.outputDirectory}/index.html. ` +
-        `Full-stack apps (a Node/SSR server, an API, a database) can't be served as static files — ` +
-        `deploy them as a server app instead, or set the output directory to your static build folder.`,
-    );
-    return { ok: false, logs: log.logs, error: 'NOT_STATIC_SITE' };
-  }
-
-  // 5. Artifact-size gate (before pulling every file over the wire).
-  const knownBytes = relFiles.reduce((sum, file) => sum + (file.size ?? 0), 0);
-
-  if (options.artifactSizeLimitMb && knownBytes > options.artifactSizeLimitMb * 1024 * 1024) {
-    log.push(
-      'error',
-      `Workspace deploy: artifact (${(knownBytes / (1024 * 1024)).toFixed(1)} MB) exceeds the ${options.artifactSizeLimitMb} MB limit.`,
-    );
-    return { ok: false, logs: log.logs, error: 'ARTIFACT_TOO_LARGE' };
-  }
-
-  // 6. Pull each file back and materialize it into the API-local temp dir.
-  for (const file of relFiles) {
-    if (file.size !== undefined && file.size > options.maxFileBytes) {
-      log.push(
-        'error',
-        `Workspace deploy: ${file.rel} is ${(file.size / (1024 * 1024)).toFixed(1)} MB, over the ` +
-          `${(options.maxFileBytes / (1024 * 1024)).toFixed(0)} MB per-file transfer limit. ` +
-          `Split or externalize large assets, then redeploy.`,
-      );
-      return { ok: false, logs: log.logs, error: 'ARTIFACT_FILE_TOO_LARGE' };
+  /*
+   * Best-effort teardown of the throwaway sandbox. Runs in a finally so a failed
+   * install/build/pull never leaves the copy behind. Never throws.
+   */
+  const cleanupSandbox = async () => {
+    if (!sandbox) {
+      return;
     }
 
-    let payload: { content: string; encoding: 'utf8' | 'base64' };
+    await agent
+      .runStep({ command: 'sh', args: ['-c', `rm -rf "${sandbox}"`], cwd: '.', onLine: () => undefined })
+      .catch(() => undefined);
+  };
 
-    try {
-      payload = await agent.readFile(file.path);
-    } catch (error) {
+  try {
+    /*
+     * Isolate the build from the live workspace: copy the sources (minus
+     * node_modules/.git) into the sandbox and build there, so `npm install`
+     * never mutates the running dev server's node_modules. `find … -exec cp`
+     * is space-safe and skips the sandbox itself.
+     */
+    if (sandbox) {
+      options.onPhase?.('installing');
+      log.push(
+        'info',
+        `Workspace deploy: preparing isolated build sandbox (${sandbox}); the live workspace is left untouched`,
+      );
+
+      const sandboxBase = posix.basename(sandbox);
+
+      const prepScript = [
+        'set -e',
+        `rm -rf "${sandbox}"`,
+        `mkdir -p "${sandbox}"`,
+        `find "${sourceCwd}" -mindepth 1 -maxdepth 1 ! -name node_modules ! -name .git ! -name "${sandboxBase}" -exec cp -a {} "${sandbox}/" ';'`,
+      ].join('\n');
+
+      const prep = await agent.runStep({
+        command: 'sh',
+        args: ['-c', prepScript],
+        cwd: '.',
+        onLine: (level, line) => log.push(level, `[prepare] ${line}`),
+      });
+
+      if (prep.error) {
+        log.push(
+          'error',
+          `Workspace deploy: could not reach the workspace to prepare the build sandbox (${prep.error}).`,
+        );
+        return { ok: false, logs: log.logs, error: 'AGENT_UNREACHABLE' };
+      }
+
+      if (prep.exitCode !== 0) {
+        log.push(
+          'error',
+          `Workspace deploy: failed to prepare the isolated build sandbox (exit ${prep.exitCode ?? 'null'}).`,
+        );
+        return { ok: false, logs: log.logs, error: 'INSTALL_FAILED' };
+      }
+    }
+
+    log.push('info', `Workspace deploy: building in pod (cwd ${cwd})`);
+
+    // 1. Install dependencies.
+    options.onPhase?.('installing');
+    log.push(
+      'info',
+      `Workspace deploy: installing dependencies (${options.install.command} ${options.install.args.join(' ')})`,
+    );
+
+    const install = await agent.runStep({
+      command: options.install.command,
+      args: options.install.args,
+      cwd,
+      onLine: (level, line) => log.push(level, `[install] ${line}`),
+    });
+
+    if (install.error) {
+      log.push('error', `Workspace deploy: could not reach the workspace to install (${install.error}).`);
+      return { ok: false, logs: log.logs, error: 'AGENT_UNREACHABLE' };
+    }
+
+    if (install.exitCode !== 0) {
       log.push(
         'error',
-        `Workspace deploy: failed to read ${file.rel} from the workspace (${(error as Error).message}).`,
+        `Workspace deploy: dependency install failed (exit ${install.exitCode ?? 'null'}${install.timedOut ? ', timed out' : ''}).`,
+      );
+      return { ok: false, logs: log.logs, error: 'INSTALL_FAILED' };
+    }
+
+    // 2. Run the build.
+    const split = splitBuildCommand(options.buildCommand);
+
+    if (!split) {
+      log.push('error', `Workspace deploy: invalid build command "${options.buildCommand}".`);
+      return { ok: false, logs: log.logs, error: 'BUILD_FAILED' };
+    }
+
+    options.onPhase?.('building');
+    log.push('info', `Workspace deploy: running build (${options.buildCommand})`);
+
+    const build = await agent.runStep({
+      command: split.command,
+      args: split.args,
+      cwd,
+      onLine: (level, line) => log.push(level, `[build] ${line}`),
+    });
+
+    if (build.error) {
+      log.push('error', `Workspace deploy: lost the workspace during build (${build.error}).`);
+      return { ok: false, logs: log.logs, error: 'AGENT_UNREACHABLE' };
+    }
+
+    if (build.timedOut) {
+      log.push('error', 'Workspace deploy: build timed out.');
+      return { ok: false, logs: log.logs, error: 'BUILD_TIMEOUT' };
+    }
+
+    if (build.exitCode !== 0) {
+      log.push('error', `Workspace deploy: build failed (exit ${build.exitCode ?? 'null'}).`);
+      return { ok: false, logs: log.logs, error: 'BUILD_FAILED' };
+    }
+
+    // 3. Enumerate + pull the built output directory.
+    options.onPhase?.('deploying');
+
+    const prefix = outputPrefix(cwd, options.outputDirectory);
+    const listing = await agent.listFiles(prefix);
+
+    if (listing.error) {
+      log.push(
+        'error',
+        `Workspace deploy: could not read ${options.outputDirectory}/ from the workspace (${listing.error}).`,
       );
       return { ok: false, logs: log.logs, error: 'PULL_FAILED' };
     }
 
-    // Guard against path traversal in agent-supplied relative paths.
-    const localRelative = file.rel.split('/').join(sep);
-    const destination = join(options.materializeDir, localRelative);
-
-    if (destination !== options.materializeDir && !destination.startsWith(`${options.materializeDir}${sep}`)) {
-      log.push('error', `Workspace deploy: refusing to write outside the artifact directory (${file.rel}).`);
-      return { ok: false, logs: log.logs, error: 'PULL_FAILED' };
+    if (listing.files.length === 0) {
+      log.push(
+        'error',
+        `Workspace deploy: the build produced no ${options.outputDirectory}/ output. Check the build command and output directory.`,
+      );
+      return { ok: false, logs: log.logs, error: 'OUTPUT_DIRECTORY_MISSING' };
     }
 
-    await mkdir(dirname(destination), { recursive: true });
-    await writeFile(destination, Buffer.from(payload.content, payload.encoding === 'base64' ? 'base64' : 'utf8'));
+    // 4. A static site must have an index.html at the output root.
+    const relFiles = listing.files.map((file) => ({
+      ...file,
+
+      // path relative to the output directory, posix.
+      rel: posix.relative(prefix, file.path),
+    }));
+
+    const hasIndex = relFiles.some((file) => file.rel === 'index.html');
+
+    if (!hasIndex) {
+      log.push(
+        'error',
+        `This project isn't a static site: the build did not produce ${options.outputDirectory}/index.html. ` +
+          `Full-stack apps (a Node/SSR server, an API, a database) can't be served as static files — ` +
+          `deploy them as a server app instead, or set the output directory to your static build folder.`,
+      );
+      return { ok: false, logs: log.logs, error: 'NOT_STATIC_SITE' };
+    }
+
+    // 5. Artifact-size gate (before pulling every file over the wire).
+    const knownBytes = relFiles.reduce((sum, file) => sum + (file.size ?? 0), 0);
+
+    if (options.artifactSizeLimitMb && knownBytes > options.artifactSizeLimitMb * 1024 * 1024) {
+      log.push(
+        'error',
+        `Workspace deploy: artifact (${(knownBytes / (1024 * 1024)).toFixed(1)} MB) exceeds the ${options.artifactSizeLimitMb} MB limit.`,
+      );
+      return { ok: false, logs: log.logs, error: 'ARTIFACT_TOO_LARGE' };
+    }
+
+    // 6. Pull each file back and materialize it into the API-local temp dir.
+    for (const file of relFiles) {
+      if (file.size !== undefined && file.size > options.maxFileBytes) {
+        log.push(
+          'error',
+          `Workspace deploy: ${file.rel} is ${(file.size / (1024 * 1024)).toFixed(1)} MB, over the ` +
+            `${(options.maxFileBytes / (1024 * 1024)).toFixed(0)} MB per-file transfer limit. ` +
+            `Split or externalize large assets, then redeploy.`,
+        );
+        return { ok: false, logs: log.logs, error: 'ARTIFACT_FILE_TOO_LARGE' };
+      }
+
+      let payload: { content: string; encoding: 'utf8' | 'base64' };
+
+      try {
+        payload = await agent.readFile(file.path);
+      } catch (error) {
+        log.push(
+          'error',
+          `Workspace deploy: failed to read ${file.rel} from the workspace (${(error as Error).message}).`,
+        );
+        return { ok: false, logs: log.logs, error: 'PULL_FAILED' };
+      }
+
+      // Guard against path traversal in agent-supplied relative paths.
+      const localRelative = file.rel.split('/').join(sep);
+      const destination = join(options.materializeDir, localRelative);
+
+      if (destination !== options.materializeDir && !destination.startsWith(`${options.materializeDir}${sep}`)) {
+        log.push('error', `Workspace deploy: refusing to write outside the artifact directory (${file.rel}).`);
+        return { ok: false, logs: log.logs, error: 'PULL_FAILED' };
+      }
+
+      await mkdir(dirname(destination), { recursive: true });
+      await writeFile(destination, Buffer.from(payload.content, payload.encoding === 'base64' ? 'base64' : 'utf8'));
+    }
+
+    log.push('info', `Workspace deploy: pulled ${relFiles.length} file(s); artifact ready.`);
+
+    return { ok: true, logs: log.logs, outputDir: options.materializeDir };
+  } finally {
+    await cleanupSandbox();
   }
-
-  log.push('info', `Workspace deploy: pulled ${relFiles.length} file(s); artifact ready.`);
-
-  return { ok: true, logs: log.logs, outputDir: options.materializeDir };
 }
 
 /**
