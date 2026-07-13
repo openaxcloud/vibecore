@@ -186,6 +186,79 @@ describe('WorkspaceManager', () => {
     });
   });
 
+  it('recreates the pod when reopening with a changed (immutable) spec instead of failing the start', async () => {
+    /*
+     * Reproduces the live bug: a user adds a project secret / DATABASE_URL, the
+     * api folds it into the pod env, and the next start re-applies the Pod. K8s
+     * forbids in-place env edits on a running pod → the whole start used to fail
+     * and the secret never reached the workspace. The manager must instead
+     * delete + recreate the pod so the new env takes effect.
+     */
+    class ImmutableOnUpdateK8sClient extends TestWorkspaceK8sClient {
+      async apply(object: K8sObject) {
+        const key = `${object.metadata.namespace ?? 'default'}:${object.kind}:${object.metadata.name}`;
+
+        if (object.kind === 'Pod' && this.objects.has(key)) {
+          throw Object.assign(
+            new Error(
+              'Command failed: kubectl apply\nThe Pod "workspace-workspace_1" is invalid: spec: Forbidden: ' +
+                'pod updates may not change fields other than `spec.containers[*].image`',
+            ),
+            {
+              stderr:
+                'The Pod "workspace-workspace_1" is invalid: spec: Forbidden: pod updates may not change fields other than `spec.containers[*].image`',
+            },
+          );
+        }
+
+        return super.apply(object);
+      }
+    }
+
+    const k8s = new ImmutableOnUpdateK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    // First open: pod is created normally.
+    await manager.startWorkspace(input);
+
+    // Reopen with a newly-added secret → pod spec (env) changes → apply is forbidden.
+    const reopened = await manager.startWorkspace({
+      ...input,
+      allowedSecrets: { DATABASE_URL: 'postgres://db' },
+    });
+
+    expect(reopened.status).toBe('RUNNING');
+
+    // The pod was recreated (delete then a fresh apply), not left un-updated.
+    const podApplies = k8s.events.filter((event) => event === 'apply:Pod:workspace-workspace_1').length;
+    const podDeletes = k8s.events.filter((event) => event === 'delete:Pod:workspace-workspace_1').length;
+    expect(podDeletes).toBe(1);
+    expect(podApplies).toBe(2);
+
+    // Recreate order: the delete must precede the successful re-apply.
+    const lastDelete = k8s.events.lastIndexOf('delete:Pod:workspace-workspace_1');
+    const lastApply = k8s.events.lastIndexOf('apply:Pod:workspace-workspace_1');
+    expect(lastDelete).toBeLessThan(lastApply);
+
+    // The new secret reached the pod env, and the PVC (data) was never re-applied/deleted.
+    const pod = k8s.objects.get('workspaces:Pod:workspace-workspace_1') as any;
+    const dbEnv = pod.spec.containers[0].env.find((entry: any) => entry.name === 'DATABASE_URL');
+    expect(dbEnv?.valueFrom?.secretKeyRef).toMatchObject({ name: 'agent-token-workspace_1', key: 'DATABASE_URL' });
+    expect(k8s.events.filter((event) => event === 'delete:PersistentVolumeClaim:pvc-workspace_1')).toHaveLength(0);
+  });
+
+  it('leaves the warm pod untouched on an unchanged reopen (apply is a no-op, no recreate)', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const manager = new WorkspaceManager(new TestWorkspaceStore(), k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input);
+    await manager.startWorkspace(input);
+
+    // No immutable change → the fake apply just overwrites; the pod is never deleted.
+    expect(k8s.events.filter((event) => event === 'delete:Pod:workspace-workspace_1')).toHaveLength(0);
+  });
+
   it('stops, restarts and fully deletes workspace runtime resources', async () => {
     const k8s = new TestWorkspaceK8sClient();
     const store = new TestWorkspaceStore();

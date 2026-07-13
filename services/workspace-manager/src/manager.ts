@@ -395,7 +395,7 @@ export class WorkspaceManager {
         ...workspaceAgentSecret(runtimeInput),
         stringData: { tokenSecret: this.tokenSecret, ...allowedSecrets },
       });
-      await this.k8s.apply(workspacePod(runtimeInput));
+      await this.#applyWorkspacePod(workspacePod(runtimeInput), input.namespace, record.podName);
       await this.k8s.apply(workspaceService(runtimeInput));
       await this.waitForReadiness(input.namespace, record.podName);
 
@@ -827,6 +827,68 @@ export class WorkspaceManager {
     }
   }
 
+  /*
+   * Apply the workspace Pod, recreating it when its spec changed in a way
+   * Kubernetes forbids editing in place. On a cold start the pod is absent and
+   * this is a plain create; on an unchanged reopen `kubectl apply` is a no-op and
+   * the warm pod is left running untouched (preserving the live dev server). Only
+   * a real immutable change — the user added a project secret / DATABASE_URL, the
+   * plan resources changed — makes apply fail; we then delete and recreate the pod
+   * so the new spec takes effect. The PVC (and therefore all project data) is
+   * never touched, so this is non-destructive to files.
+   */
+  async #applyWorkspacePod(pod: Parameters<WorkspaceK8sClient['apply']>[0], namespace: string, podName: string) {
+    try {
+      await this.k8s.apply(pod);
+
+      return;
+    } catch (error) {
+      if (!isImmutablePodUpdateError(error)) {
+        throw error;
+      }
+
+      console.warn(
+        JSON.stringify({
+          level: 'warn',
+          service: 'workspace-manager',
+          event: 'workspace.pod.recreate_for_immutable_change',
+          namespace,
+          podName,
+          message: 'Pod spec changed in an immutable field (e.g. added secret / DATABASE_URL); recreating the pod.',
+        }),
+      );
+    }
+
+    await this.k8s.delete('Pod', namespace, podName);
+    await this.#waitForPodGone(namespace, podName);
+    await this.k8s.apply(pod);
+  }
+
+  /*
+   * Poll until the pod is fully gone after a delete, so the subsequent re-apply
+   * doesn't race a still-terminating pod ("object is being deleted"). Bounded so a
+   * stuck termination surfaces as a clean start failure rather than hanging.
+   */
+  async #waitForPodGone(namespace: string, podName: string) {
+    const parsed = Number(process.env.WORKSPACE_POD_DELETE_TIMEOUT_MS);
+    const timeoutMs = Number.isFinite(parsed) && parsed > 0 ? parsed : 60_000;
+    const startedAt = Date.now();
+
+    while (Date.now() - startedAt < timeoutMs) {
+      const pod = await this.k8s.getPod(namespace, podName).catch(() => null);
+
+      if (!pod) {
+        return;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+    }
+
+    throw Object.assign(new Error(`Timed out waiting for pod ${podName} to terminate before recreation`), {
+      code: 'WORKSPACE_POD_DELETE_TIMEOUT',
+    });
+  }
+
   private async waitForReadiness(namespace: string, podName: string) {
     const startedAt = Date.now();
 
@@ -1127,6 +1189,27 @@ function pendingScheduleReason(pod: PodStatusView): { reason: string; message: s
  * provision a node before surfacing the coded error, so the slow stall becomes an
  * actionable WORKSPACE_POD_UNSCHEDULABLE instead of an opaque 180s "not ready".
  */
+/*
+ * `kubectl apply` on a Pod that already exists and whose spec changed in a field
+ * Kubernetes forbids editing in place (env, secret refs, resources, …) fails with
+ * "Pod … is invalid: spec: Forbidden: pod updates may not change fields other than
+ * `spec.containers[*].image`, …" (or a plain "field is immutable"). A running
+ * workspace hitting this on reopen — the common trigger is the user adding a
+ * project secret / DATABASE_URL, which the api folds into the pod env — used to
+ * fail the ENTIRE start, so the secret never reached the pod and the workspace
+ * would not come up. We detect this specific class so startWorkspace can recover
+ * by recreating the pod instead of failing.
+ */
+export function isImmutablePodUpdateError(error: unknown): boolean {
+  const parts = [
+    (error as { stderr?: unknown } | undefined)?.stderr,
+    (error as { message?: unknown } | undefined)?.message,
+  ];
+  const text = parts.map((part) => (typeof part === 'string' ? part : '')).join('\n');
+
+  return /pod updates may not change fields other than|field is immutable|spec:\s*Forbidden/i.test(text);
+}
+
 export function detectPodTerminalFailure(
   pod: PodStatusView,
   now: number = Date.now(),
