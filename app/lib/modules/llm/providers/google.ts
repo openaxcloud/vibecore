@@ -43,12 +43,19 @@ export default class GoogleProvider extends BaseProvider {
     },
 
     /*
-     * gemini-2.5-flash-lite removed 2026-07-13: Google retired it — a live
-     * generateContent returns "This model models/gemini-2.5-flash-lite is no longer
-     * available to new users." Keeping it in the selector only surfaced a model that
-     * hard-errors on every call. Certified live (org cmpdblp23…): flash / 3.5-flash
-     * cache at 99.4%; this id 404s.
+     * gemini-2.5-flash-lite was retired by Google ("no longer available to new
+     * users") and gemini-2.0-flash-(lite) are gone too — replaced 2026-07-13 with
+     * the live-confirmed successor on the platform key (drove a real turn, org
+     * cmpdblp23…): gemini-flash-lite-latest generated (promptTokens 3793). The
+     * `-latest` alias auto-tracks Google's current lite model so it can't go stale.
      */
+    {
+      name: 'gemini-flash-lite-latest',
+      label: 'Gemini Flash Lite (latest)',
+      provider: 'Google',
+      maxTokenAllowed: 1048576,
+      maxCompletionTokens: 65536,
+    },
   ];
 
   async getDynamicModels(

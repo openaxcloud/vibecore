@@ -31,6 +31,9 @@ describe('GoogleProvider.staticModels', () => {
     // Retired by Google (hard-errors on generateContent) — must not resurface.
     expect(names).not.toContain('gemini-2.5-flash-lite');
 
+    // Its live-confirmed successor IS present (the `-latest` alias can't go stale).
+    expect(names).toContain('gemini-flash-lite-latest');
+
     for (const model of provider.staticModels) {
       expect(model.maxTokenAllowed).toBe(1048576);
       expect(model.maxCompletionTokens).toBe(65536);
