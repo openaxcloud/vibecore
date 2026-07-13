@@ -317,7 +317,7 @@ runDbTests('McpMarketplaceService integration (real Postgres)', () => {
           organizationId: org.id,
           catalogEntrySlug: 'postgres',
           alias: `pg-${stamp}`,
-          config: { connectionString: 'postgres://localhost/db' },
+          config: { DATABASE_URL: 'postgres://localhost/db' },
         }),
       ).rejects.toMatchObject({ statusCode: 403, code: 'MCP_ORG_POLICY_BLOCKED' });
 
@@ -420,7 +420,7 @@ runDbTests('McpMarketplaceService integration (real Postgres)', () => {
           userId: user.id,
           catalogEntrySlug: 'postgres',
           alias: `pg-${stamp}`,
-          config: { connectionString: 'postgres://localhost/db' },
+          config: { DATABASE_URL: 'postgres://localhost/db' },
         }),
       ).rejects.toMatchObject({ statusCode: 403, code: 'MCP_GLOBAL_POLICY_BLOCKED' });
 
@@ -442,7 +442,7 @@ runDbTests('McpMarketplaceService integration (real Postgres)', () => {
         userId: user.id,
         catalogEntrySlug: 'postgres',
         alias: `pg2-${stamp}`,
-        config: { connectionString: 'postgres://localhost/db' },
+        config: { DATABASE_URL: 'postgres://localhost/db' },
       });
       expect(ok.enabled).toBe(true);
 

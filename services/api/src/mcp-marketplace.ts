@@ -735,7 +735,10 @@ export class McpMarketplaceService {
   }
 
   async listCatalog(filter: CatalogFilter): Promise<CatalogPage> {
-    const where: Record<string, unknown> = {};
+    // Public catalog listing hides globally-disabled (kill-switched) entries,
+    // matching getCatalogEntry (404s on disabled) and install (blocks disabled).
+    // Admins still see everything via listCatalogForAdmin.
+    const where: Record<string, unknown> = { enabled: true };
 
     if (filter.domain) where.domain = filter.domain;
     if (filter.featured !== undefined) where.featured = filter.featured;
