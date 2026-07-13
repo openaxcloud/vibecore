@@ -189,6 +189,76 @@ describe('admin.$section action — user management', () => {
     expect(calls.some((c) => c === 'POST https://api.example.com/admin/models/toggle')).toBe(true);
   });
 
+  it('saves a provider platform key (reauth then POST /admin/providers/:provider/credentials)', async () => {
+    const calls: string[] = [];
+
+    let postedBody: Record<string, unknown> | undefined;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+        const href = typeof url === 'string' ? url : url.toString();
+        calls.push(`${init?.method ?? 'GET'} ${href}`);
+
+        if (href.endsWith('/auth/reauth')) {
+          return new Response(JSON.stringify({ reauthenticated: true }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        if (href.endsWith('/admin/providers/xAI/credentials')) {
+          postedBody = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : undefined;
+          return new Response(JSON.stringify({ provider: { provider: 'xAI', hasKey: true } }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        throw new Error(`unexpected ${href}`);
+      }),
+    );
+
+    const response = toResponse(
+      await action(
+        args(
+          actionRequest({ intent: 'provider-credentials', provider: 'xAI', apiKey: 'xai-secret-123', password: 'pw' }),
+        ),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(((await response.json()) as { message: string }).message).toMatch(/platform key saved/i);
+    expect(calls.some((c) => c === 'POST https://api.example.com/admin/providers/xAI/credentials')).toBe(true);
+    expect(postedBody).toEqual({ apiKey: 'xai-secret-123' });
+  });
+
+  it('rejects an empty provider key without calling the API', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL | Request) => {
+        const href = typeof url === 'string' ? url : url.toString();
+
+        if (href.endsWith('/auth/reauth')) {
+          return new Response(JSON.stringify({ reauthenticated: true }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        throw new Error(`unexpected ${href}`);
+      }),
+    );
+
+    const response = toResponse(
+      await action(
+        args(actionRequest({ intent: 'provider-credentials', provider: 'xAI', apiKey: '  ', password: 'pw' })),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as { error: string }).error).toMatch(/enter an api key/i);
+  });
+
   it('grants a quota override (reauth then POST /admin/quota-overrides with the right body)', async () => {
     const calls: string[] = [];
 

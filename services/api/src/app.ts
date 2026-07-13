@@ -22961,6 +22961,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           provider: name,
           displayName: byName.get(name)?.displayName ?? name,
           enabled: byName.get(name)?.enabled ?? false,
+          // Non-secret: whether a platform key (apiKeyEnc) is stored — never the value.
+          keyConfigured: Boolean(byName.get(name)?.apiKeyEnc),
           sampleCount: metric?.sampleCount ?? 0,
           p95LatencyMs: metric?.p95LatencyMs ?? null,
           errorRatePct: metric?.errorRatePct ?? null,
