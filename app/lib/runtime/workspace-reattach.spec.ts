@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { shouldReattachWarmWorkspace } from './workspace-reattach';
+import { describe, expect, it, vi } from 'vitest';
+import { reseedWorkspacePreservingOnFailure, shouldReattachWarmWorkspace } from './workspace-reattach';
 
 const warm = {
   reused: true,
@@ -32,5 +32,55 @@ describe('shouldReattachWarmWorkspace', () => {
   it('treats an unknown storage-freshness as safe (relies on the same-session marker)', () => {
     const { storageNewerThanSeed: _omit, ...withoutFreshness } = warm;
     expect(shouldReattachWarmWorkspace(withoutFreshness)).toBe(true);
+  });
+});
+
+describe('reseedWorkspacePreservingOnFailure', () => {
+  it('fetches the archive BEFORE clearing, then applies it (happy path)', async () => {
+    const calls: string[] = [];
+    const fetchArchive = vi.fn(async () => {
+      calls.push('fetch');
+      return 'ARCHIVE';
+    });
+    const clearTree = vi.fn(async () => {
+      calls.push('clear');
+    });
+    const applyArchive = vi.fn(async (archive: string) => {
+      calls.push(`apply:${archive}`);
+    });
+
+    await reseedWorkspacePreservingOnFailure({ fetchArchive, clearTree, applyArchive });
+
+    // Order matters: fetch must happen before the destructive clear.
+    expect(calls).toEqual(['fetch', 'clear', 'apply:ARCHIVE']);
+  });
+
+  it('NEVER clears the pod when the archive fetch fails (no wiped-but-unseeded window)', async () => {
+    const clearTree = vi.fn(async () => undefined);
+    const applyArchive = vi.fn(async () => undefined);
+    const fetchArchive = vi.fn(async () => {
+      throw new Error('export 502');
+    });
+
+    await expect(reseedWorkspacePreservingOnFailure({ fetchArchive, clearTree, applyArchive })).rejects.toThrow(
+      'export 502',
+    );
+
+    // The pod keeps its files: the destructive steps never ran.
+    expect(clearTree).not.toHaveBeenCalled();
+    expect(applyArchive).not.toHaveBeenCalled();
+  });
+
+  it('propagates an apply failure (the caller keeps the pod RUNNING to retry)', async () => {
+    const fetchArchive = vi.fn(async () => 'ARCHIVE');
+    const clearTree = vi.fn(async () => undefined);
+    const applyArchive = vi.fn(async () => {
+      throw new Error('agent 502');
+    });
+
+    await expect(reseedWorkspacePreservingOnFailure({ fetchArchive, clearTree, applyArchive })).rejects.toThrow(
+      'agent 502',
+    );
+    expect(clearTree).toHaveBeenCalledOnce();
   });
 });
