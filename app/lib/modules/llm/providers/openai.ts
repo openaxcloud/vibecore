@@ -217,17 +217,14 @@ export default class OpenAIProvider extends BaseProvider {
       maxCompletionTokens: 4096,
     },
 
-    // o1-preview: 128k context, 32k output limit (reasoning model)
-    {
-      name: 'o1-preview',
-      label: 'o1-preview',
-      provider: 'OpenAI',
-      maxTokenAllowed: 128000,
-      maxCompletionTokens: 32000,
-    },
-
-    // o1-mini: 128k context, 65k output limit (reasoning model)
-    { name: 'o1-mini', label: 'o1-mini', provider: 'OpenAI', maxTokenAllowed: 128000, maxCompletionTokens: 65000 },
+    /*
+     * o1-preview / o1-mini removed 2026-07-13: OpenAI deprecated both — a live call
+     * returns "The model `o1-mini` does not exist or you do not have access to it."
+     * They only surfaced a guaranteed-error option in the selector. Certified live
+     * (org cmpdblp23…): every gpt-4.1/4o family model above caches at 95–99%; these
+     * two 404. Superseding reasoning ids (o1 / o3-mini / o4-mini) can be added back
+     * once confirmed available on the platform key.
+     */
   ];
 
   async getDynamicModels(
