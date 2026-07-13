@@ -18916,6 +18916,44 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
+    /*
+     * Reconcile-on-read for THIS panel's connection source. A managed CNPG database
+     * ("Create database") is provisioned async: the POST creates the instance record
+     * + kicks off the cluster, but the DATABASE_URL secret is only seeded once the
+     * cluster is ready. That seeding lived ONLY in the /projects/:id/database (PITR)
+     * endpoint — never triggered by the IDE Database panel, which loads THIS route —
+     * so a provisioned CNPG cluster stayed unbound (connections:[], no DATABASE_URL,
+     * orphaned cluster). Seed it here too: if a non-ACTIVE managed instance exists and
+     * the provisioner can now resolve its URI, write DATABASE_URL + flip ACTIVE so it
+     * shows up as a postgres connection below. Best-effort — never fails the list.
+     */
+    try {
+      const instance = await store.getDatabaseInstanceByProject(project.id);
+
+      if (instance && instance.status !== 'ACTIVE') {
+        const provisioner = resolveDefaultDatabaseProvisioner();
+
+        if (provisioner.active) {
+          const environment = ((instance as { environment?: string }).environment ??
+            'development') as Parameters<typeof provisioner.getConnectionUri>[0]['environment'];
+          const billing = await billingState(project.organizationId).catch(() => undefined);
+          const tier = resolveDatabaseTier(billing?.plan.key);
+          const uri = await provisioner.getConnectionUri({ projectId: project.id, tier, environment });
+
+          if (uri) {
+            await store.upsertProjectSecret({
+              projectId: project.id,
+              key: environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL',
+              valueEncrypted: encryptJson({ value: uri }),
+            });
+            await store.updateDatabaseInstance(instance.id, { status: 'ACTIVE' });
+          }
+        }
+      }
+    } catch (error) {
+      request.log?.warn?.({ err: error }, 'db connection reconcile on /databases failed (non-fatal)');
+    }
+
     const connections = await listDatabaseConnections(store, project.id);
 
     return {
