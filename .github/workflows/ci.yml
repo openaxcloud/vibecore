@@ -80,11 +80,20 @@ jobs:
         run: pnpm run test
 
       - name: Integration tests
+        # services/** is excluded from the root `pnpm run test` (see
+        # vitest.config.ts) because running a service without its own vitest
+        # config makes real network probes block for their full timeouts. Every
+        # service with specs is therefore run here with its own config so no
+        # coverage is lost.
         run: |
           pnpm --filter @vibecore/api test
           pnpm --filter @vibecore/workspace-manager test
           pnpm --filter @vibecore/workspace-agent test
           pnpm --filter @vibecore/ai-gateway test
+          pnpm --filter @vibecore/worker test
+          pnpm --filter @vibecore/connector-proxy test
+          pnpm --filter @vibecore/preview-proxy test
+          pnpm --filter @vibecore/screenshotter test
 
       - name: Build web
         timeout-minutes: 20

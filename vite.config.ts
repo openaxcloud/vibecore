@@ -314,8 +314,17 @@ export default defineConfig((config) => {
         '**/tests/preview/**', // Exclude preview tests that require Playwright
         '**/tests/e2e/**',
 
-        // service workspaces have their own vitest configs (node env, fastify, etc.)
-        'services/preview-proxy/**',
+        // Every service under services/* has its OWN vitest config (node env,
+        // fastify, env that disables real network probes, real-Postgres wiring)
+        // and is run separately in CI's "Integration tests" step. Running any of
+        // them in this flat root pass executes them WITHOUT that config, so their
+        // start-time/health probes make real fetches to per-workspace cluster DNS
+        // that can't resolve and block for their full ~45s timeouts — across the
+        // suites that turned `pnpm run test` into a ~16-min run that tripped
+        // vitest's "Timeout calling onTaskUpdate" and made CI (and deploys) flaky.
+        // Excluding all of services/** keeps coverage (the filtered step runs each
+        // with its real config) while making this pass fast and deterministic.
+        'services/**',
       ],
     },
   };
