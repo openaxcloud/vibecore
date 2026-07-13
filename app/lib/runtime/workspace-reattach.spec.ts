@@ -38,6 +38,7 @@ describe('shouldReattachWarmWorkspace', () => {
 describe('reseedWorkspacePreservingOnFailure', () => {
   it('fetches the archive BEFORE clearing, then applies it (happy path)', async () => {
     const calls: string[] = [];
+
     const fetchArchive = vi.fn(async () => {
       calls.push('fetch');
       return 'ARCHIVE';
@@ -58,6 +59,7 @@ describe('reseedWorkspacePreservingOnFailure', () => {
   it('NEVER clears the pod when the archive fetch fails (no wiped-but-unseeded window)', async () => {
     const clearTree = vi.fn(async () => undefined);
     const applyArchive = vi.fn(async () => undefined);
+
     const fetchArchive = vi.fn(async () => {
       throw new Error('export 502');
     });
@@ -74,6 +76,7 @@ describe('reseedWorkspacePreservingOnFailure', () => {
   it('propagates an apply failure (the caller keeps the pod RUNNING to retry)', async () => {
     const fetchArchive = vi.fn(async () => 'ARCHIVE');
     const clearTree = vi.fn(async () => undefined);
+
     const applyArchive = vi.fn(async () => {
       throw new Error('agent 502');
     });

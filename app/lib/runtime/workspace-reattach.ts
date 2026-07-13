@@ -77,8 +77,10 @@ export function shouldReattachWarmWorkspace(signals: WarmReattachSignals): boole
 export async function reseedWorkspacePreservingOnFailure<TArchive>(steps: {
   /** Fetch + validate the project-storage archive. MUST throw on failure/empty. */
   fetchArchive: () => Promise<TArchive>;
+
   /** Destructively clear the runtime project tree (node_modules/.git already excluded). */
   clearTree: () => Promise<void>;
+
   /** Import the fetched archive back into the runtime. */
   applyArchive: (archive: TArchive) => Promise<void>;
 }): Promise<void> {
