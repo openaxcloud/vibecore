@@ -14,6 +14,9 @@ export interface PreviewManifestRepair {
     changed: boolean;
     missingDependencies: string[];
     addedScripts: string[];
+
+    /** react/react-dom bumped to a React-18 range because the code uses createRoot (P0-2 guard). */
+    upgradedDependencies: string[];
   };
   supplementalFiles: GeneratedPreviewFile[];
 }
@@ -200,6 +203,38 @@ function hasReactSource(files: Record<string, string>) {
 
     return /<\s*[A-Za-z][\w.:]*/.test(content) || /\breact-dom\/client\b/.test(content);
   });
+}
+
+/*
+ * P0-2 guard signal. React's client entry API — `createRoot` / `hydrateRoot`,
+ * exported from `react-dom/client` — DOES NOT EXIST before React 18. When the
+ * model emits this code but pins react/react-dom below 18 in package.json, the
+ * install "succeeds", but `react-dom/client` resolves to nothing, the app never
+ * mounts, and the preview (and the deploy build) render blank. Detect the 18-only
+ * API so the manifest repair can force a compatible react range.
+ */
+function usesReact18ClientApi(files: Record<string, string>) {
+  return Object.entries(files).some(([filePath, content]) => {
+    if (!/\.(c|m)?(j|t)sx?$/.test(filePath)) {
+      return false;
+    }
+
+    return (
+      /\breact-dom\/client\b/.test(content) || /\bcreateRoot\s*\(/.test(content) || /\bhydrateRoot\s*\(/.test(content)
+    );
+  });
+}
+
+/**
+ * Lowest major version a semver range permits (first integer in the range), or
+ * undefined when unparseable (`latest`, `*`, `workspace:*`). Used to tell an
+ * incompatible react pin (`^17`, `~16`, `17.0.2`) from an already-fine one
+ * (`^18.2.0`, `19.0.0`) without pulling in a full semver parser.
+ */
+function versionMajorFloor(range: string): number | undefined {
+  const match = String(range).match(/\d+/);
+
+  return match ? Number(match[0]) : undefined;
 }
 
 function hasViteEntryPoint(files: Record<string, string>) {
@@ -390,6 +425,7 @@ export function buildPreviewManifestRepair(filesInput: Record<string, string>): 
           changed: true,
           missingDependencies: [],
           addedScripts: [],
+          upgradedDependencies: [],
         },
         supplementalFiles: [],
       };
@@ -451,6 +487,32 @@ export function buildPreviewManifestRepair(filesInput: Record<string, string>): 
     changed = true;
   }
 
+  /*
+   * P0-2 React 17/18 guard. The model frequently emits React-18 client code
+   * (`react-dom/client`, `createRoot`) while pinning `react`/`react-dom` at ^17
+   * (or lower) in the same package.json — a combination that installs cleanly but
+   * never renders (`createRoot` doesn't exist in React <18). The pin loops above
+   * don't catch it: an explicit `^17.0.0` is neither "missing" nor `'latest'`.
+   * When the code uses the 18-only API, force any react/react-dom pin whose floor
+   * is below 18 up to the supported range. A pin that's already >=18 (incl. an
+   * intentional React 19 app, whose newer APIs a downgrade would break) is left
+   * untouched.
+   */
+  const upgradedDependencies: string[] = [];
+
+  if (hasReact && usesReact18ClientApi(scopedFiles)) {
+    for (const dependency of ['react', 'react-dom']) {
+      const current = nextDependencies[dependency];
+      const floor = current ? versionMajorFloor(current) : undefined;
+
+      if (floor !== undefined && floor < 18) {
+        nextDependencies[dependency] = RUNTIME_DEPENDENCY_VERSIONS[dependency];
+        upgradedDependencies.push(dependency);
+        changed = true;
+      }
+    }
+  }
+
   const addedScripts: string[] = [];
   const nextScripts = { ...scripts };
 
@@ -499,6 +561,7 @@ export function buildPreviewManifestRepair(filesInput: Record<string, string>): 
       changed,
       missingDependencies,
       addedScripts,
+      upgradedDependencies,
     },
     supplementalFiles,
   };

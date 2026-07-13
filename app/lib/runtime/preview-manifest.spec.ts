@@ -92,6 +92,70 @@ describe('preview manifest repair', () => {
     });
   });
 
+  it('P0-2: upgrades a react ^17 pin to 18 when the entry uses createRoot (react-dom/client)', () => {
+    const { repair, packageJson } = packageJsonFromRepair({
+      'package.json': JSON.stringify({
+        name: 'react17-createroot',
+        scripts: { dev: 'vite', build: 'vite build' },
+        dependencies: { react: '^17.0.2', 'react-dom': '^17.0.2', vite: '^5.4.19' },
+      }),
+      'index.html': '<div id="root"></div><script type="module" src="/src/main.tsx"></script>',
+      'src/main.tsx': [
+        "import React from 'react';",
+        "import { createRoot } from 'react-dom/client';",
+        "import App from './App';",
+        'createRoot(document.getElementById("root")!).render(<App />);',
+        '',
+      ].join('\n'),
+      'src/App.tsx': 'export default function App() { return <main>Hi</main>; }\n',
+    });
+
+    // react/react-dom forced to the supported 18 range — createRoot now resolves.
+    expect(packageJson.dependencies.react).toBe('^18.3.1');
+    expect(packageJson.dependencies['react-dom']).toBe('^18.3.1');
+    expect(repair.packageJson?.changed).toBe(true);
+    expect(repair.packageJson?.upgradedDependencies.sort()).toEqual(['react', 'react-dom']);
+  });
+
+  it('P0-2: leaves an already-18 (and a deliberate 19) react pin untouched', () => {
+    const { repair, packageJson } = packageJsonFromRepair({
+      'package.json': JSON.stringify({
+        name: 'react19-app',
+        scripts: { dev: 'vite', build: 'vite build' },
+        dependencies: { react: '^19.0.0', 'react-dom': '^19.0.0', vite: '^5.4.19' },
+      }),
+      'index.html': '<div id="root"></div><script type="module" src="/src/main.tsx"></script>',
+      'src/main.tsx':
+        "import { createRoot } from 'react-dom/client';\nimport App from './App';\ncreateRoot(document.getElementById('root')!).render(<App />);\n",
+      'src/App.tsx': 'export default function App() { return <main>Hi</main>; }\n',
+    });
+
+    // React 19 also has createRoot — downgrading it would break React-19 APIs, so keep it.
+    expect(packageJson.dependencies.react).toBe('^19.0.0');
+    expect(packageJson.dependencies['react-dom']).toBe('^19.0.0');
+    expect(repair.packageJson?.upgradedDependencies).toEqual([]);
+  });
+
+  it('P0-2: does not touch a react ^17 pin when the code uses no React-18 client API', () => {
+    const { repair, packageJson } = packageJsonFromRepair({
+      'package.json': JSON.stringify({
+        name: 'react17-legacy',
+        scripts: { dev: 'vite', build: 'vite build' },
+        dependencies: { react: '^17.0.2', 'react-dom': '^17.0.2', vite: '^5.4.19' },
+      }),
+      'index.html': '<div id="root"></div><script type="module" src="/src/main.tsx"></script>',
+
+      // Legacy React 17 entry — ReactDOM.render, no createRoot.
+      'src/main.tsx':
+        "import React from 'react';\nimport ReactDOM from 'react-dom';\nimport App from './App';\nReactDOM.render(<App />, document.getElementById('root'));\n",
+      'src/App.tsx': 'export default function App() { return <main>Hi</main>; }\n',
+    });
+
+    expect(packageJson.dependencies.react).toBe('^17.0.2');
+    expect(packageJson.dependencies['react-dom']).toBe('^17.0.2');
+    expect(repair.packageJson?.upgradedDependencies).toEqual([]);
+  });
+
   it('creates a runnable Vite manifest and glue files when React entry files exist without package.json', () => {
     const { repair, packageJson } = packageJsonFromRepair({
       'src/App.tsx': 'export default function App() { return <main>Preview</main>; }\n',

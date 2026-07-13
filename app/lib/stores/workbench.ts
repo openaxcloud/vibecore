@@ -3204,6 +3204,14 @@ export class WorkbenchStore {
       if (repair.packageJson.addedScripts.length) {
         this.appendWorkspaceLog(`Added preview package scripts: ${repair.packageJson.addedScripts.join(', ')}`);
       }
+
+      if (repair.packageJson.upgradedDependencies.length) {
+        this.appendWorkspaceLog(
+          `Upgraded ${repair.packageJson.upgradedDependencies.join(
+            ', ',
+          )} to React 18 (the app calls createRoot / react-dom/client, which require React ≥18)`,
+        );
+      }
     }
 
     for (const file of repair.supplementalFiles) {
