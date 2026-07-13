@@ -1,7 +1,8 @@
 import { Activity, Boxes, CreditCard, MailPlus, Rocket, Sparkles } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
-import { Link, useLoaderData } from 'react-router';
+import { Link, useLoaderData, useRevalidator } from 'react-router';
 import { resolveDashboardHeaderActions, shouldUseSpaNavigation } from './dashboard-nav';
+import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import {
   ActivityList,
   AppShell,
@@ -84,6 +85,7 @@ type OnboardingSummary = {
   invitedTeammate: boolean;
   deployTo?: string;
   projectName?: string;
+  checksUnavailable: boolean;
 };
 
 /*
@@ -99,10 +101,10 @@ async function onboardingSignals(
 ): Promise<OnboardingSummary> {
   const mostRecentProjectId = mostRecentProject?.id;
 
-  const [deployedFirstApp, invitedTeammate] = await Promise.all([
+  const [deploymentProbe, invitationProbe] = await Promise.all([
     (async () => {
       if (!mostRecentProjectId) {
-        return false;
+        return { complete: false, unavailable: false };
       }
 
       try {
@@ -111,28 +113,29 @@ async function onboardingSignals(
           `/projects/${mostRecentProjectId}/deployments`,
         );
 
-        return Array.isArray(result?.deployments) && result.deployments.length > 0;
+        return { complete: Array.isArray(result?.deployments) && result.deployments.length > 0, unavailable: false };
       } catch {
-        return false;
+        return { complete: false, unavailable: true };
       }
     })(),
     (async () => {
       try {
         const result = await apiRequest<{ invitations?: unknown[] }>(request, `/orgs/${organizationId}/invitations`);
 
-        return Array.isArray(result?.invitations) && result.invitations.length > 0;
+        return { complete: Array.isArray(result?.invitations) && result.invitations.length > 0, unavailable: false };
       } catch {
-        return false;
+        return { complete: false, unavailable: true };
       }
     })(),
   ]);
 
   return {
     createdFirstApp: projectCount >= 1,
-    deployedFirstApp,
-    invitedTeammate,
+    deployedFirstApp: deploymentProbe.complete,
+    invitedTeammate: invitationProbe.complete,
     deployTo: mostRecentProjectId ? `/projects/${mostRecentProjectId}/deployments` : undefined,
     projectName: mostRecentProject?.name,
+    checksUnavailable: deploymentProbe.unavailable || invitationProbe.unavailable,
   };
 }
 
@@ -149,6 +152,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         createdFirstApp: false,
         deployedFirstApp: false,
         invitedTeammate: false,
+        checksUnavailable: false,
       } satisfies OnboardingSummary,
     };
   }
@@ -210,6 +214,8 @@ export const meta: MetaFunction = () => [{ title: 'Dashboard - E-Code' }];
 export default function DashboardPage() {
   const { projects, usageSummary, billingAccessLimited, onboarding } = useLoaderData<typeof loader>();
   const headerActions = resolveDashboardHeaderActions(projects);
+  const revalidator = useRevalidator();
+  const retryingOnboarding = revalidator.state !== 'idle';
 
   return (
     <AppShell
@@ -235,43 +241,56 @@ export default function DashboardPage() {
             </div>
             <ProjectGrid projects={projects} />
             <div className="mt-6">
-              <OnboardingChecklistCard
-                steps={[
-                  {
-                    key: 'create',
-                    title: 'Create your first app',
-                    description: onboarding.createdFirstApp
-                      ? `${onboarding.projectName ?? 'Your project'} is ready in your workspace.`
-                      : 'Describe what you want to build and the E-Code agent scaffolds a real project.',
-                    done: onboarding.createdFirstApp,
-                    actionLabel: 'Create',
-                    to: '/projects/new',
-                    glyph: <Sparkles className="h-4 w-4" aria-hidden />,
-                  },
-                  {
-                    key: 'deploy',
-                    title: 'Deploy it',
-                    description: 'Ship your app to a live URL from the project deployments page.',
-                    done: onboarding.deployedFirstApp,
-                    actionLabel: 'Deploy',
-                    to: onboarding.deployTo,
-                    glyph: (
-                      <span className="text-[13px] leading-none" aria-hidden>
-                        ▲
-                      </span>
-                    ),
-                  },
-                  {
-                    key: 'invite',
-                    title: 'Invite a teammate',
-                    description: 'Bring a collaborator into your organization to build together.',
-                    done: onboarding.invitedTeammate,
-                    actionLabel: 'Invite',
-                    to: '/invitations',
-                    glyph: <MailPlus className="h-4 w-4" aria-hidden />,
-                  },
-                ]}
-              />
+              {onboarding.checksUnavailable ? (
+                retryingOnboarding ? (
+                  <AsyncPanelSkeleton label="Checking workspace setup" rows={3} compact />
+                ) : (
+                  <AsyncPanelError
+                    title="Setup progress could not be verified"
+                    description="Your projects remain available. Deployment and invitation steps are hidden until their status can be confirmed."
+                    onRetry={revalidator.revalidate}
+                    compact
+                  />
+                )
+              ) : (
+                <OnboardingChecklistCard
+                  steps={[
+                    {
+                      key: 'create',
+                      title: 'Create your first app',
+                      description: onboarding.createdFirstApp
+                        ? `${onboarding.projectName ?? 'Your project'} is ready in your workspace.`
+                        : 'Describe what you want to build and the E-Code agent scaffolds a real project.',
+                      done: onboarding.createdFirstApp,
+                      actionLabel: 'Create',
+                      to: '/projects/new',
+                      glyph: <Sparkles className="h-4 w-4" aria-hidden />,
+                    },
+                    {
+                      key: 'deploy',
+                      title: 'Deploy it',
+                      description: 'Ship your app to a live URL from the project deployments page.',
+                      done: onboarding.deployedFirstApp,
+                      actionLabel: 'Deploy',
+                      to: onboarding.deployTo,
+                      glyph: (
+                        <span className="text-[13px] leading-none" aria-hidden>
+                          ▲
+                        </span>
+                      ),
+                    },
+                    {
+                      key: 'invite',
+                      title: 'Invite a teammate',
+                      description: 'Bring a collaborator into your organization to build together.',
+                      done: onboarding.invitedTeammate,
+                      actionLabel: 'Invite',
+                      to: '/invitations',
+                      glyph: <MailPlus className="h-4 w-4" aria-hidden />,
+                    },
+                  ]}
+                />
+              )}
             </div>
           </div>
           <div className="min-w-0 space-y-6">

@@ -1,7 +1,8 @@
 import { Grid2X2, List, SearchX } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { MetaFunction } from 'react-router';
-import { useLoaderData, useSearchParams } from 'react-router';
+import { useLoaderData, useRevalidator, useSearchParams } from 'react-router';
+import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { ProjectCardMenu, ProjectRenameForm } from '~/components/dashboard/ProjectCardMenu';
 import { AppShell, ProjectGrid, LinkButton, StatusPill, type ProjectCard } from '~/components/dashboard/SaaSLayout';
 import { EmptyState } from '~/components/ui/EmptyState';
@@ -42,7 +43,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   const orgs = await apiRequest<{ organizations: Organization[] }>(request, '/orgs');
 
   if (orgs.organizations.length === 0) {
-    return { projects: [] satisfies ProjectCard[] };
+    return { projects: [] satisfies ProjectCard[], failedOrganizationCount: 0, organizationCount: 0 };
   }
 
   /*
@@ -97,15 +98,19 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   }
 
   const projects = perOrg.flatMap((settled) => (settled.status === 'fulfilled' ? settled.value : []));
+  const failedOrganizationCount = perOrg.filter((settled) => settled.status === 'rejected').length;
 
-  return { projects };
+  return { projects, failedOrganizationCount, organizationCount: orgs.organizations.length };
 }
 
 export default function ProjectsPage() {
-  const { projects } = useLoaderData<typeof loader>();
+  const { projects, failedOrganizationCount, organizationCount } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [view, setView] = useState<'grid' | 'list'>('grid');
+  const revalidator = useRevalidator();
+  const retrying = revalidator.state !== 'idle';
+  const allOrganizationsFailed = organizationCount > 0 && failedOrganizationCount === organizationCount;
 
   const statusParam = searchParams.get('status');
   const statusFilter: LifecycleFilter = isLifecycleFilter(statusParam) ? statusParam : 'all';
@@ -193,58 +198,82 @@ export default function ProjectsPage() {
         </>
       }
     >
-      <div className="mb-5 flex flex-col gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <SearchInput
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onClear={() => setQuery('')}
-            placeholder="Search projects"
-            aria-label="Search projects"
-            containerClassName="min-w-0 flex-1"
-          />
-          <div className="flex gap-2">
-            <button
-              className="flex h-9 w-9 items-center justify-center rounded-md border border-bolt-elements-borderColor"
-              aria-label="Grid view"
-              aria-pressed={view === 'grid'}
-              onClick={() => setView('grid')}
-            >
-              <Grid2X2 className="h-4 w-4" aria-hidden />
-            </button>
-            <button
-              className="flex h-9 w-9 items-center justify-center rounded-md border border-bolt-elements-borderColor"
-              aria-label="List view"
-              aria-pressed={view === 'list'}
-              onClick={() => setView('list')}
-            >
-              <List className="h-4 w-4" aria-hidden />
-            </button>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter projects by status">
-          {LIFECYCLE_FILTERS.map((filter) => (
-            <FilterChip
-              key={filter.id}
-              label={filter.label}
-              active={statusFilter === filter.id}
-              onClick={() => setStatusFilter(filter.id)}
-            />
-          ))}
-        </div>
-      </div>
-      {noMatches ? (
-        <EmptyState
-          icon={SearchX}
-          title={query.trim() ? `No projects match “${query.trim()}”` : 'No projects match these filters'}
-          description="Try a different search or clear the filters."
-          actionLabel="Clear filters"
-          onAction={clearFilters}
+      {failedOrganizationCount > 0 && !allOrganizationsFailed ? (
+        <AsyncPanelError
+          title="Some projects could not load"
+          description={`${failedOrganizationCount} organization${failedOrganizationCount === 1 ? '' : 's'} could not be reached. Projects from the other organizations remain available.`}
+          onRetry={revalidator.revalidate}
+          retrying={retrying}
+          compact
+          className="mb-5"
         />
-      ) : view === 'grid' ? (
-        <ProjectGrid projects={filteredProjects} />
+      ) : null}
+      {allOrganizationsFailed ? (
+        retrying ? (
+          <AsyncPanelSkeleton label="Loading projects" rows={4} />
+        ) : (
+          <AsyncPanelError
+            title="Projects could not load"
+            description="We could not reach your organizations. Your projects are unchanged; try loading them again."
+            onRetry={revalidator.revalidate}
+          />
+        )
       ) : (
-        <ProjectList projects={filteredProjects} />
+        <>
+          <div className="mb-5 flex flex-col gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <SearchInput
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onClear={() => setQuery('')}
+                placeholder="Search projects"
+                aria-label="Search projects"
+                containerClassName="min-w-0 flex-1"
+              />
+              <div className="flex gap-2">
+                <button
+                  className="flex h-9 w-9 items-center justify-center rounded-md border border-bolt-elements-borderColor"
+                  aria-label="Grid view"
+                  aria-pressed={view === 'grid'}
+                  onClick={() => setView('grid')}
+                >
+                  <Grid2X2 className="h-4 w-4" aria-hidden />
+                </button>
+                <button
+                  className="flex h-9 w-9 items-center justify-center rounded-md border border-bolt-elements-borderColor"
+                  aria-label="List view"
+                  aria-pressed={view === 'list'}
+                  onClick={() => setView('list')}
+                >
+                  <List className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filter projects by status">
+              {LIFECYCLE_FILTERS.map((filter) => (
+                <FilterChip
+                  key={filter.id}
+                  label={filter.label}
+                  active={statusFilter === filter.id}
+                  onClick={() => setStatusFilter(filter.id)}
+                />
+              ))}
+            </div>
+          </div>
+          {noMatches ? (
+            <EmptyState
+              icon={SearchX}
+              title={query.trim() ? `No projects match “${query.trim()}”` : 'No projects match these filters'}
+              description="Try a different search or clear the filters."
+              actionLabel="Clear filters"
+              onAction={clearFilters}
+            />
+          ) : view === 'grid' ? (
+            <ProjectGrid projects={filteredProjects} />
+          ) : (
+            <ProjectList projects={filteredProjects} />
+          )}
+        </>
       )}
     </AppShell>
   );

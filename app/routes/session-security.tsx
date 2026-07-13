@@ -1,7 +1,8 @@
 import { Laptop, LogOut, Monitor, Smartphone, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation, useRevalidator, useSubmit } from 'react-router';
 import { toast } from 'react-toastify';
+import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import {
@@ -208,8 +209,10 @@ export default function SessionSecurityPage() {
   const { orgId, sessions, sessionsUnavailable } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
   const navigation = useNavigation();
+  const revalidator = useRevalidator();
   const submit = useSubmit();
   const busy = navigation.state !== 'idle';
+  const retryingSessions = revalidator.state !== 'idle';
   const [confirmRevokeAll, setConfirmRevokeAll] = useState(false);
   const [sessionPendingRevoke, setSessionPendingRevoke] = useState<{ id: string; device: string } | null>(null);
 
@@ -256,12 +259,17 @@ export default function SessionSecurityPage() {
           </div>
 
           {sessionsUnavailable ? (
-            <p
-              role="alert"
-              className="mt-4 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]"
-            >
-              Your active sessions are temporarily unavailable. Reload the page to try again.
-            </p>
+            retryingSessions ? (
+              <AsyncPanelSkeleton label="Loading active sessions" rows={3} compact className="mt-4" />
+            ) : (
+              <AsyncPanelError
+                title="Active sessions could not load"
+                description="No session was revoked. The organization policy below remains available."
+                onRetry={revalidator.revalidate}
+                compact
+                className="mt-4"
+              />
+            )
           ) : sessions.length === 0 ? (
             <div className="mt-4 flex flex-col items-center gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-6 py-10 text-center">
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-bolt-elements-background-depth-3">

@@ -14,7 +14,8 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { MetaFunction } from 'react-router';
-import { useFetcher, useLoaderData } from 'react-router';
+import { useFetcher, useLoaderData, useRevalidator } from 'react-router';
+import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import { Switch } from '~/components/ui/Switch';
@@ -160,20 +161,27 @@ type FeedNotification = {
 
 type NotificationFeed = { notifications: FeedNotification[]; unreadCount: number };
 
+const EMPTY_NOTIFICATION_FEED: NotificationFeed = { notifications: [], unreadCount: 0 };
+
 export async function loader({ request }: EnterpriseLoaderArgs) {
   /*
    * Preferences and the real per-user feed load together. The feed is fetched
    * best-effort so a transient feed error never blanks the whole preferences
    * page — the preferences call already redirects on 401 for us.
    */
-  const [data, feed] = await Promise.all([
+  const [data, feedResult] = await Promise.all([
     apiRequest<{ preferences?: { notifications?: SavedNotificationPreferences } }>(request, '/user/preferences'),
-    apiRequest<NotificationFeed>(request, '/user/notifications').catch(
-      () => ({ notifications: [], unreadCount: 0 }) as NotificationFeed,
+    apiRequest<NotificationFeed>(request, '/user/notifications').then(
+      (feed) => ({ feed, unavailable: false as const }),
+      () => ({ feed: EMPTY_NOTIFICATION_FEED, unavailable: true as const }),
     ),
   ]);
 
-  return { preferences: resolvePreferences(data.preferences?.notifications), feed };
+  return {
+    preferences: resolvePreferences(data.preferences?.notifications),
+    feed: feedResult.feed,
+    feedUnavailable: feedResult.unavailable,
+  };
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
@@ -210,7 +218,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 export default function NotificationsPage() {
-  const { preferences, feed } = useLoaderData<typeof loader>();
+  const { preferences, feed, feedUnavailable } = useLoaderData<typeof loader>();
 
   return (
     <AppShell
@@ -218,7 +226,7 @@ export default function NotificationsPage() {
       description="Control high-signal product, billing, deployment and security notifications across your workspace."
       actions={<LinkButton to="/security-settings">Security rules</LinkButton>}
     >
-      <NotificationFeedSection feed={feed} />
+      <NotificationFeedSection feed={feed} unavailable={feedUnavailable} />
       <div className="space-y-6">
         <PreferencesMatrixSection initial={preferences} />
 
@@ -442,10 +450,25 @@ function toneClasses(tone: NotificationCategory['tone']) {
   );
 }
 
-function NotificationFeedSection({ feed }: { feed: NotificationFeed }) {
+function NotificationFeedSection({ feed, unavailable }: { feed: NotificationFeed; unavailable: boolean }) {
   const markAllFetcher = useFetcher();
+  const revalidator = useRevalidator();
   const { notifications, unreadCount } = feed;
   const markingAll = markAllFetcher.state !== 'idle';
+  const retrying = revalidator.state !== 'idle';
+
+  if (unavailable) {
+    return retrying ? (
+      <AsyncPanelSkeleton label="Loading notification inbox" rows={3} className="mb-6" />
+    ) : (
+      <AsyncPanelError
+        title="Notification inbox could not load"
+        description="Notification preferences remain available, and no inbox item was changed. Try loading the inbox again."
+        onRetry={revalidator.revalidate}
+        className="mb-6"
+      />
+    );
+  }
 
   return (
     <section className="mb-6 overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">

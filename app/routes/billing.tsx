@@ -1,6 +1,7 @@
 import { CreditCard, FileText, TrendingUp } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
-import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router';
+import { Form, Link, useActionData, useLoaderData, useNavigation, useRevalidator } from 'react-router';
+import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { ActivityList, AppShell, LinkButton, StatGrid } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
@@ -261,21 +262,31 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
    * Credits are a separate, lower-sensitivity read (member-level scope); never
    * let a credits failure break the billing page.
    */
-  const creditsPromise = apiRequest<CreditsData>(request, `/orgs/${organization.id}/credits`).catch(
-    () => EMPTY_CREDITS,
+  const creditsPromise = apiRequest<CreditsData>(request, `/orgs/${organization.id}/credits`).then(
+    (credits) => ({ credits, unavailable: false as const }),
+    () => ({ credits: EMPTY_CREDITS, unavailable: true as const }),
   );
 
   try {
     const billing = await apiRequest<BillingData>(request, `/orgs/${organization.id}/billing`);
-    const credits = await creditsPromise;
+    const creditsResult = await creditsPromise;
 
-    return json({ organization, billing, credits, billingAccessLimited: false });
+    return json({
+      organization,
+      billing,
+      credits: creditsResult.credits,
+      creditsUnavailable: creditsResult.unavailable,
+      billingAccessLimited: false,
+    });
   } catch (error) {
     if (isForbiddenApiResponse(error)) {
+      const creditsResult = await creditsPromise;
+
       return json({
         organization,
         billingAccessLimited: true,
-        credits: await creditsPromise,
+        credits: creditsResult.credits,
+        creditsUnavailable: creditsResult.unavailable,
         billing: {
           plan: { key: 'unavailable', name: 'Unavailable', monthlyCents: 0 },
           subscription: null,
@@ -482,8 +493,10 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 export default function BillingPage() {
-  const { billing, credits, billingAccessLimited } = useLoaderData<typeof loader>();
+  const { billing, credits, creditsUnavailable, billingAccessLimited } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { error?: string; ok?: string } | undefined;
+  const revalidator = useRevalidator();
+  const retryingCredits = revalidator.state !== 'idle';
 
   /*
    * Disable every checkout/portal button while any submission is in flight so a
@@ -577,13 +590,17 @@ export default function BillingPage() {
     },
     {
       label: 'Available balance',
-      value: formatEuro(credits.totalAvailableCents),
-      detail: 'credits and packs',
+      value: creditsUnavailable ? 'Unavailable' : formatEuro(credits.totalAvailableCents),
+      detail: creditsUnavailable ? 'Could not load credit balance' : 'credits and packs',
     },
     {
       label: 'Spend limit',
-      value: credits.budgetCapCents != null ? formatEuro(credits.budgetCapCents) : 'No limit',
-      detail: 'pay as you go',
+      value: creditsUnavailable
+        ? 'Unavailable'
+        : credits.budgetCapCents != null
+          ? formatEuro(credits.budgetCapCents)
+          : 'No limit',
+      detail: creditsUnavailable ? 'Could not load spend limit' : 'pay as you go',
     },
   ];
 
@@ -662,204 +679,222 @@ export default function BillingPage() {
                 Your included credits, purchased packs and effort-based agent usage.
               </p>
             </div>
-            {credits.shadow ? (
+            {!creditsUnavailable && credits.shadow ? (
               <span className="shrink-0 whitespace-nowrap rounded-full bg-[var(--status-warning-bg)] px-3 py-1 text-xs font-medium text-[var(--status-warning-text)]">
                 Preview (not charged)
               </span>
             ) : null}
           </div>
-          <div className="hidden sm:block">
-            <StatGrid stats={creditStats} />
-          </div>
-          <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-            <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Spend limit (pay-as-you-go)</h3>
-              {cycleLabel ? (
-                <span className="text-xs text-bolt-elements-textSecondary">Billing period: {cycleLabel}</span>
-              ) : null}
-            </div>
-            <p className="mb-3 text-xs text-bolt-elements-textSecondary">
-              Cap usage-based spend beyond your included credits. Leave blank for no cap; set €0.01 to restrict to
-              credits only. Org limits are set in €500 increments.
-            </p>
-            {!credits.creditsEnabled ? (
-              <p className="mb-3 rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-2 text-xs text-[var(--status-warning-text)]">
-                Usage-based billing isn&apos;t enabled for this organization yet — limits you set here apply once it is.
-              </p>
-            ) : null}
-            <SpendUsageIndicator
-              spentCents={credits.paygSpentCents ?? 0}
-              capCents={credits.budgetCapCents}
-              thresholds={credits.spendAlertThresholds ?? [50, 80, 100]}
-            />
-            {actionData?.ok ? (
-              <div className="mb-3 rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] p-2 text-xs text-[var(--status-success-text)]">
-                {actionData.ok}
+          {creditsUnavailable ? (
+            retryingCredits ? (
+              <AsyncPanelSkeleton label="Loading credits and usage" rows={4} compact />
+            ) : (
+              <AsyncPanelError
+                title="Credits and usage could not load"
+                description="Subscription details remain available, but balances and spend controls are hidden to avoid showing stale values."
+                onRetry={revalidator.revalidate}
+                compact
+              />
+            )
+          ) : (
+            <>
+              <div className="hidden sm:block">
+                <StatGrid stats={creditStats} />
               </div>
-            ) : null}
-            <Form method="post" className="flex flex-wrap items-center gap-2">
-              <input type="hidden" name="intent" value="set-limits" />
-              <span className="text-sm text-bolt-elements-textSecondary">€</span>
-              <input
-                type="number"
-                name="budgetCapDollars"
-                min="0"
-                step="any"
-                defaultValue={credits.budgetCapCents != null ? (credits.budgetCapCents / 100).toString() : ''}
-                placeholder="No cap"
-                aria-label="Spend limit in euros"
-                title="Set in €500 increments, or €0.01 to cap spend at your current credits."
-                className="h-[44px] w-36 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm text-bolt-elements-textPrimary"
-              />
-              <span className="w-full text-[11px] text-bolt-elements-textSecondary sm:w-auto">
-                €500 increments (or €0.01 to cap at credits)
-              </span>
-              <span className="w-full text-sm text-bolt-elements-textSecondary sm:ml-2 sm:w-auto">Hard stop €</span>
-              <input
-                type="number"
-                name="serviceShutdownDollars"
-                min="0"
-                step="any"
-                defaultValue={
-                  credits.serviceShutdownCents != null ? (credits.serviceShutdownCents / 100).toString() : ''
-                }
-                placeholder="No hard stop"
-                aria-label="Service shutdown limit in euros"
-                title="Service Shutdown Limit — suspends usage-based services when reached (no grace)."
-                className="h-[44px] w-36 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm text-bolt-elements-textPrimary"
-              />
-              <Button type="submit" variant="outline" disabled={submitting} className="min-h-[44px]">
-                {submitting && navigation.formData?.get('intent') === 'set-limits' ? 'Saving…' : 'Save limit'}
-              </Button>
-            </Form>
-          </div>
-          <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-medium text-bolt-elements-textPrimary">External AI integrations</h3>
-                <p className="text-xs text-bolt-elements-textSecondary">
-                  {credits.blockExternalAi
-                    ? 'Blocked — members use managed keys only; bring-your-own OpenAI/Anthropic keys are disabled org-wide.'
-                    : 'Allowed — eligible members may use their own external AI-model keys.'}
+              <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+                <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Spend limit (pay-as-you-go)</h3>
+                  {cycleLabel ? (
+                    <span className="text-xs text-bolt-elements-textSecondary">Billing period: {cycleLabel}</span>
+                  ) : null}
+                </div>
+                <p className="mb-3 text-xs text-bolt-elements-textSecondary">
+                  Cap usage-based spend beyond your included credits. Leave blank for no cap; set €0.01 to restrict to
+                  credits only. Org limits are set in €500 increments.
                 </p>
+                {!credits.creditsEnabled ? (
+                  <p className="mb-3 rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-2 text-xs text-[var(--status-warning-text)]">
+                    Usage-based billing isn&apos;t enabled for this organization yet — limits you set here apply once it
+                    is.
+                  </p>
+                ) : null}
+                <SpendUsageIndicator
+                  spentCents={credits.paygSpentCents ?? 0}
+                  capCents={credits.budgetCapCents}
+                  thresholds={credits.spendAlertThresholds ?? [50, 80, 100]}
+                />
+                {actionData?.ok ? (
+                  <div className="mb-3 rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] p-2 text-xs text-[var(--status-success-text)]">
+                    {actionData.ok}
+                  </div>
+                ) : null}
+                <Form method="post" className="flex flex-wrap items-center gap-2">
+                  <input type="hidden" name="intent" value="set-limits" />
+                  <span className="text-sm text-bolt-elements-textSecondary">€</span>
+                  <input
+                    type="number"
+                    name="budgetCapDollars"
+                    min="0"
+                    step="any"
+                    defaultValue={credits.budgetCapCents != null ? (credits.budgetCapCents / 100).toString() : ''}
+                    placeholder="No cap"
+                    aria-label="Spend limit in euros"
+                    title="Set in €500 increments, or €0.01 to cap spend at your current credits."
+                    className="h-[44px] w-36 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm text-bolt-elements-textPrimary"
+                  />
+                  <span className="w-full text-[11px] text-bolt-elements-textSecondary sm:w-auto">
+                    €500 increments (or €0.01 to cap at credits)
+                  </span>
+                  <span className="w-full text-sm text-bolt-elements-textSecondary sm:ml-2 sm:w-auto">Hard stop €</span>
+                  <input
+                    type="number"
+                    name="serviceShutdownDollars"
+                    min="0"
+                    step="any"
+                    defaultValue={
+                      credits.serviceShutdownCents != null ? (credits.serviceShutdownCents / 100).toString() : ''
+                    }
+                    placeholder="No hard stop"
+                    aria-label="Service shutdown limit in euros"
+                    title="Service Shutdown Limit — suspends usage-based services when reached (no grace)."
+                    className="h-[44px] w-36 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm text-bolt-elements-textPrimary"
+                  />
+                  <Button type="submit" variant="outline" disabled={submitting} className="min-h-[44px]">
+                    {submitting && navigation.formData?.get('intent') === 'set-limits' ? 'Saving…' : 'Save limit'}
+                  </Button>
+                </Form>
               </div>
-              <Form method="post">
-                <input type="hidden" name="intent" value="ai-policy" />
-                <input type="hidden" name="blockExternalAi" value={credits.blockExternalAi ? 'false' : 'true'} />
-                <Button type="submit" variant="outline" disabled={submitting} className="min-h-[44px]">
-                  {submitting && navigation.formData?.get('intent') === 'ai-policy'
-                    ? 'Saving…'
-                    : credits.blockExternalAi
-                      ? 'Allow external AI'
-                      : 'Block external AI'}
-                </Button>
-              </Form>
-            </div>
-          </div>
-          <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Buy credits</h3>
-              {credits.activePacks && credits.activePacks.length ? (
-                <span className="text-xs text-bolt-elements-textSecondary">
-                  {credits.activePacks.length} active pack{credits.activePacks.length === 1 ? '' : 's'}
-                </span>
-              ) : null}
-            </div>
-            <p className="mb-3 text-xs text-bolt-elements-textSecondary">
-              Pre-paid credit packs remain available for the validity period shown below. Packs with the nearest expiry
-              are used first, before pay-as-you-go charges apply.
-            </p>
-            {!credits.creditsEnabled ? (
-              <p className="mb-3 rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-2 text-xs text-[var(--status-warning-text)]">
-                Credit-pack purchases are not enabled for this organization yet.
-              </p>
-            ) : null}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {(credits.packCatalog ?? []).map((pack) => {
-                const discount = Math.max(0, pack.creditCents - pack.priceCents);
-
-                return (
-                  <Form key={pack.id} method="post" reloadDocument className="contents">
-                    <input type="hidden" name="intent" value="buy-credits" />
-                    <input type="hidden" name="packId" value={pack.id} />
-                    <button
-                      type="submit"
-                      disabled={submitting || !credits.creditsEnabled}
-                      aria-label={`Buy ${formatEuro(pack.creditCents)} credit pack for ${formatEuro(pack.priceCents)}, valid for ${pack.validityDays} days`}
-                      className="flex flex-col items-start gap-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-left transition-colors hover:border-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <span className="text-base font-semibold text-bolt-elements-textPrimary">
-                        {formatEuro(pack.creditCents)}
-                      </span>
-                      <span className="text-xs text-bolt-elements-textSecondary">
-                        {discount > 0 ? (
-                          <>
-                            Pay {formatEuro(pack.priceCents)}{' '}
-                            <span className="text-[var(--status-success-text)]">save {formatEuro(discount)}</span>
-                          </>
-                        ) : (
-                          <>Pay {formatEuro(pack.priceCents)}</>
-                        )}
-                      </span>
-                      <span className="text-[11px] text-bolt-elements-textSecondary">
-                        Valid for {pack.validityDays} days
-                      </span>
-                      <span className="mt-1 text-[11px] font-medium text-[var(--vc-ide-accent-action)]">
-                        {submittingPackId === pack.id ? 'Redirecting…' : 'Buy credits'}
-                      </span>
-                    </button>
+              <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-medium text-bolt-elements-textPrimary">External AI integrations</h3>
+                    <p className="text-xs text-bolt-elements-textSecondary">
+                      {credits.blockExternalAi
+                        ? 'Blocked — members use managed keys only; bring-your-own OpenAI/Anthropic keys are disabled org-wide.'
+                        : 'Allowed — eligible members may use their own external AI-model keys.'}
+                    </p>
+                  </div>
+                  <Form method="post">
+                    <input type="hidden" name="intent" value="ai-policy" />
+                    <input type="hidden" name="blockExternalAi" value={credits.blockExternalAi ? 'false' : 'true'} />
+                    <Button type="submit" variant="outline" disabled={submitting} className="min-h-[44px]">
+                      {submitting && navigation.formData?.get('intent') === 'ai-policy'
+                        ? 'Saving…'
+                        : credits.blockExternalAi
+                          ? 'Allow external AI'
+                          : 'Block external AI'}
+                    </Button>
                   </Form>
-                );
-              })}
-            </div>
-            {credits.activePacks && credits.activePacks.length ? (
-              <ul className="mt-3 space-y-1">
-                {credits.activePacks.map((pack) => (
-                  <li
-                    key={pack.id}
-                    className="flex items-center justify-between text-xs text-bolt-elements-textSecondary"
-                  >
-                    <span>{formatEuro(pack.remainingCents)} remaining</span>
-                    <span>{pack.expiresAt ? `Expires ${formatBillingDate(pack.expiresAt)} (UTC)` : 'No expiry'}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-          {credits.ledger && credits.ledger.length ? (
-            <div className="mt-4">
-              <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Credit history</h3>
-              <ActivityList
-                items={credits.ledger.slice(0, 8).map((entry) => ({
-                  title: `${entry.deltaCents >= 0 ? '+' : '-'}${formatEuro(Math.abs(entry.deltaCents))} - ${billingDisplayLabel(entry.kind)}`,
-                  detail: `${entry.reason ?? ''}${entry.createdAt ? ` · ${formatBillingDateTime(entry.createdAt)}` : ''}`,
-                  icon: CreditCard,
-                }))}
-              />
-            </div>
-          ) : null}
-          <div className="mt-4">
-            <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Recent agent checkpoints</h3>
-            <ActivityList
-              items={
-                credits.checkpoints.length
-                  ? credits.checkpoints.slice(0, 8).map((cp) => ({
-                      title: `${formatEuro(cp.creditCents)} - ${billingDisplayLabel(cp.buildTier)}${cp.highPowerModel ? ' · High-power model' : ''}${
-                        cp.extendedThinking ? ' · Extended thinking' : ''
-                      }${cp.turboMode ? ' · Turbo' : ''}`,
-                      detail: `${billingDisplayLabel(cp.status)} · ${formatBillingDateTime(cp.startedAt)}`,
-                      icon: TrendingUp,
-                    }))
-                  : [
-                      {
-                        title: 'No agent checkpoints yet',
-                        detail: 'Each agent request records one effort-based checkpoint with its credit cost.',
-                        icon: TrendingUp,
-                      },
-                    ]
-              }
-            />
-          </div>
+                </div>
+              </div>
+              <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Buy credits</h3>
+                  {credits.activePacks && credits.activePacks.length ? (
+                    <span className="text-xs text-bolt-elements-textSecondary">
+                      {credits.activePacks.length} active pack{credits.activePacks.length === 1 ? '' : 's'}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mb-3 text-xs text-bolt-elements-textSecondary">
+                  Pre-paid credit packs remain available for the validity period shown below. Packs with the nearest
+                  expiry are used first, before pay-as-you-go charges apply.
+                </p>
+                {!credits.creditsEnabled ? (
+                  <p className="mb-3 rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-2 text-xs text-[var(--status-warning-text)]">
+                    Credit-pack purchases are not enabled for this organization yet.
+                  </p>
+                ) : null}
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {(credits.packCatalog ?? []).map((pack) => {
+                    const discount = Math.max(0, pack.creditCents - pack.priceCents);
+
+                    return (
+                      <Form key={pack.id} method="post" reloadDocument className="contents">
+                        <input type="hidden" name="intent" value="buy-credits" />
+                        <input type="hidden" name="packId" value={pack.id} />
+                        <button
+                          type="submit"
+                          disabled={submitting || !credits.creditsEnabled}
+                          aria-label={`Buy ${formatEuro(pack.creditCents)} credit pack for ${formatEuro(pack.priceCents)}, valid for ${pack.validityDays} days`}
+                          className="flex flex-col items-start gap-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-left transition-colors hover:border-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <span className="text-base font-semibold text-bolt-elements-textPrimary">
+                            {formatEuro(pack.creditCents)}
+                          </span>
+                          <span className="text-xs text-bolt-elements-textSecondary">
+                            {discount > 0 ? (
+                              <>
+                                Pay {formatEuro(pack.priceCents)}{' '}
+                                <span className="text-[var(--status-success-text)]">save {formatEuro(discount)}</span>
+                              </>
+                            ) : (
+                              <>Pay {formatEuro(pack.priceCents)}</>
+                            )}
+                          </span>
+                          <span className="text-[11px] text-bolt-elements-textSecondary">
+                            Valid for {pack.validityDays} days
+                          </span>
+                          <span className="mt-1 text-[11px] font-medium text-[var(--vc-ide-accent-action)]">
+                            {submittingPackId === pack.id ? 'Redirecting…' : 'Buy credits'}
+                          </span>
+                        </button>
+                      </Form>
+                    );
+                  })}
+                </div>
+                {credits.activePacks && credits.activePacks.length ? (
+                  <ul className="mt-3 space-y-1">
+                    {credits.activePacks.map((pack) => (
+                      <li
+                        key={pack.id}
+                        className="flex items-center justify-between text-xs text-bolt-elements-textSecondary"
+                      >
+                        <span>{formatEuro(pack.remainingCents)} remaining</span>
+                        <span>
+                          {pack.expiresAt ? `Expires ${formatBillingDate(pack.expiresAt)} (UTC)` : 'No expiry'}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+              {credits.ledger && credits.ledger.length ? (
+                <div className="mt-4">
+                  <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Credit history</h3>
+                  <ActivityList
+                    items={credits.ledger.slice(0, 8).map((entry) => ({
+                      title: `${entry.deltaCents >= 0 ? '+' : '-'}${formatEuro(Math.abs(entry.deltaCents))} - ${billingDisplayLabel(entry.kind)}`,
+                      detail: `${entry.reason ?? ''}${entry.createdAt ? ` · ${formatBillingDateTime(entry.createdAt)}` : ''}`,
+                      icon: CreditCard,
+                    }))}
+                  />
+                </div>
+              ) : null}
+              <div className="mt-4">
+                <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Recent agent checkpoints</h3>
+                <ActivityList
+                  items={
+                    credits.checkpoints.length
+                      ? credits.checkpoints.slice(0, 8).map((cp) => ({
+                          title: `${formatEuro(cp.creditCents)} - ${billingDisplayLabel(cp.buildTier)}${cp.highPowerModel ? ' · High-power model' : ''}${
+                            cp.extendedThinking ? ' · Extended thinking' : ''
+                          }${cp.turboMode ? ' · Turbo' : ''}`,
+                          detail: `${billingDisplayLabel(cp.status)} · ${formatBillingDateTime(cp.startedAt)}`,
+                          icon: TrendingUp,
+                        }))
+                      : [
+                          {
+                            title: 'No agent checkpoints yet',
+                            detail: 'Each agent request records one effort-based checkpoint with its credit cost.',
+                            icon: TrendingUp,
+                          },
+                        ]
+                  }
+                />
+              </div>
+            </>
+          )}
         </section>
         {!billingAccessLimited ? (
           <div className="flex flex-wrap gap-3">

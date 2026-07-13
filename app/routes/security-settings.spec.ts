@@ -25,7 +25,7 @@ describe('security-settings loader', () => {
 
     const result = await loader({ request: makeRequest() } as never);
 
-    expect(result).toEqual({ mfaEnabled: true });
+    expect(result).toEqual({ mfaEnabled: true, mfaUnavailable: false });
   });
 
   it('reports MFA as disabled when /auth/me reports no MFA', async () => {
@@ -33,7 +33,7 @@ describe('security-settings loader', () => {
 
     const result = await loader({ request: makeRequest() } as never);
 
-    expect(result).toEqual({ mfaEnabled: false });
+    expect(result).toEqual({ mfaEnabled: false, mfaUnavailable: false });
   });
 
   it('re-throws a login redirect when the session has expired instead of stranding the user', async () => {
@@ -50,11 +50,11 @@ describe('security-settings loader', () => {
     await expect(loader({ request: makeRequest() } as never)).rejects.toBe(mfaRedirect);
   });
 
-  it('falls back to MFA-off for non-redirect failures (e.g. network errors)', async () => {
+  it('marks MFA status unavailable for non-redirect failures instead of claiming it is off', async () => {
     apiRequest.mockRejectedValueOnce(new Error('network down'));
 
     const result = await loader({ request: makeRequest() } as never);
 
-    expect(result).toEqual({ mfaEnabled: false });
+    expect(result).toEqual({ mfaEnabled: false, mfaUnavailable: true });
   });
 });

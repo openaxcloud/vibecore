@@ -70,6 +70,7 @@ import {
   SiVite,
 } from 'react-icons/si';
 import { Form, Link, NavLink, useFetcher, useNavigate } from 'react-router';
+import { AsyncPanelError, AsyncPanelSkeleton } from './AsyncPanelState';
 import { ProjectCardMenu, ProjectRenameForm } from './ProjectCardMenu';
 import {
   type CommandPaletteItem,
@@ -1813,13 +1814,24 @@ type TopBarNotification = {
   createdAt: string;
 };
 
-type TopBarNotificationFeed = { notifications: TopBarNotification[]; unreadCount: number };
+type TopBarNotificationFeed = {
+  notifications: TopBarNotification[];
+  unreadCount: number;
+  unavailable?: boolean;
+};
+
+type TopBarNotificationState = {
+  feed: TopBarNotificationFeed | null;
+  phase: 'loading' | 'ready' | 'error';
+};
 
 const TOP_BAR_FEED_LIMIT = 8;
 const TOP_BAR_FEED_POLL_MS = 60_000;
+const TOP_BAR_FEED_TIMEOUT_MS = 12_000;
 
 function TopBarNotifications() {
-  const [feed, setFeed] = useState<TopBarNotificationFeed | null>(null);
+  const [feedState, setFeedState] = useState<TopBarNotificationState>({ feed: null, phase: 'loading' });
+  const [reloadToken, setReloadToken] = useState(0);
   const markAllFetcher = useFetcher<{ ok: boolean; unreadCount?: number }>();
   const markingAll = markAllFetcher.state !== 'idle';
 
@@ -1832,54 +1844,95 @@ function TopBarNotifications() {
   useEffect(() => {
     let cancelled = false;
 
-    const load = async () => {
+    const activeControllers = new Set<AbortController>();
+
+    const load = async (foreground: boolean) => {
       if (document.hidden) {
         return;
       }
 
+      if (foreground) {
+        setFeedState((current) => ({ ...current, phase: 'loading' }));
+      }
+
+      const controller = new AbortController();
+
+      activeControllers.add(controller);
+
+      const timeout = window.setTimeout(() => controller.abort(), TOP_BAR_FEED_TIMEOUT_MS);
+
       try {
-        const response = await fetch('/api/notifications', { headers: { accept: 'application/json' } });
+        const response = await fetch('/api/notifications', {
+          headers: { accept: 'application/json' },
+          signal: controller.signal,
+        });
 
         if (!response.ok) {
-          return;
+          throw new Error('Notification feed request failed');
         }
 
         const payload = (await response.json()) as TopBarNotificationFeed;
 
-        if (!cancelled && Array.isArray(payload.notifications)) {
-          setFeed({ notifications: payload.notifications, unreadCount: payload.unreadCount ?? 0 });
+        if (payload.unavailable || !Array.isArray(payload.notifications)) {
+          throw new Error('Notification feed response was invalid');
+        }
+
+        if (!cancelled) {
+          setFeedState({
+            feed: { notifications: payload.notifications, unreadCount: payload.unreadCount ?? 0 },
+            phase: 'ready',
+          });
         }
       } catch {
-        // Transient badge failures stay silent; /notifications is the reliable surface.
+        if (!cancelled) {
+          setFeedState((current) => ({ ...current, phase: 'error' }));
+        }
+      } finally {
+        window.clearTimeout(timeout);
+        activeControllers.delete(controller);
       }
     };
 
-    load();
+    void load(true);
 
-    const timer = window.setInterval(load, TOP_BAR_FEED_POLL_MS);
+    const timer = window.setInterval(() => void load(false), TOP_BAR_FEED_POLL_MS);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        void load(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       cancelled = true;
       window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      activeControllers.forEach((controller) => controller.abort());
     };
-  }, []);
+  }, [reloadToken]);
 
   // Fold a successful "Mark all read" back into the polled snapshot immediately.
   useEffect(() => {
     if (markAllFetcher.data?.ok) {
       const confirmedUnread = markAllFetcher.data.unreadCount ?? 0;
-      setFeed(
-        (prev) =>
-          prev && {
-            notifications: prev.notifications.map((notification) => ({ ...notification, read: true })),
-            unreadCount: confirmedUnread,
-          },
-      );
+      setFeedState((current) => ({
+        ...current,
+        feed: current.feed
+          ? {
+              notifications: current.feed.notifications.map((notification) => ({ ...notification, read: true })),
+              unreadCount: confirmedUnread,
+            }
+          : null,
+      }));
     }
   }, [markAllFetcher.data]);
 
+  const { feed, phase } = feedState;
   const unreadCount = feed?.unreadCount ?? 0;
   const notifications = (feed?.notifications ?? []).slice(0, TOP_BAR_FEED_LIMIT);
+  const retry = () => setReloadToken((current) => current + 1);
 
   return (
     <UiPopover
@@ -1891,7 +1944,13 @@ function TopBarNotifications() {
         <button
           type="button"
           className="relative inline-flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
-          aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : 'Notifications'}
+          aria-label={
+            phase === 'error' && !feed
+              ? 'Notifications unavailable'
+              : unreadCount > 0
+                ? `Notifications (${unreadCount} unread)`
+                : 'Notifications'
+          }
         >
           <Bell className="h-4 w-4" aria-hidden />
           {unreadCount > 0 ? (
@@ -1919,38 +1978,59 @@ function TopBarNotifications() {
           </markAllFetcher.Form>
         ) : null}
       </div>
-      {notifications.length === 0 ? (
-        <p className="px-3 py-6 text-center text-sm text-bolt-elements-textSecondary">
-          {feed ? 'You are all caught up.' : 'Loading notifications…'}
-        </p>
+      {phase === 'loading' ? (
+        <AsyncPanelSkeleton label="Loading notifications" rows={2} compact className="m-3" />
+      ) : phase === 'error' && !feed ? (
+        <AsyncPanelError
+          title="Notifications could not load"
+          description="Your notifications are unchanged. Check your connection and try again."
+          onRetry={retry}
+          compact
+          className="m-3"
+        />
       ) : (
-        <ul className="max-h-80 divide-y divide-bolt-elements-borderColor overflow-y-auto">
-          {notifications.map((notification) => (
-            <li key={notification.id} className="flex items-start gap-2 px-3 py-2.5">
-              <span
-                className={classNames(
-                  'mt-1.5 h-2 w-2 shrink-0 rounded-full',
-                  notification.read ? 'bg-transparent' : 'bg-bolt-elements-item-contentAccent',
-                )}
-                aria-label={notification.read ? undefined : 'Unread'}
-              />
-              <span className="min-w-0 flex-1">
-                <span
-                  className={classNames(
-                    'block truncate text-sm',
-                    notification.read ? 'text-bolt-elements-textSecondary' : 'font-semibold',
-                  )}
-                >
-                  {notification.title}
-                </span>
-                <RelativeTime
-                  value={notification.createdAt}
-                  className="mt-0.5 block text-[11px] text-bolt-elements-textTertiary"
-                />
-              </span>
-            </li>
-          ))}
-        </ul>
+        <>
+          {phase === 'error' ? (
+            <AsyncPanelError
+              title="Notifications may be out of date"
+              description="The last available notifications are shown below."
+              onRetry={retry}
+              compact
+              className="m-3"
+            />
+          ) : null}
+          {notifications.length === 0 ? (
+            <p className="px-3 py-6 text-center text-sm text-bolt-elements-textSecondary">You are all caught up.</p>
+          ) : (
+            <ul className="max-h-80 divide-y divide-bolt-elements-borderColor overflow-y-auto">
+              {notifications.map((notification) => (
+                <li key={notification.id} className="flex items-start gap-2 px-3 py-2.5">
+                  <span
+                    className={classNames(
+                      'mt-1.5 h-2 w-2 shrink-0 rounded-full',
+                      notification.read ? 'bg-transparent' : 'bg-bolt-elements-item-contentAccent',
+                    )}
+                    aria-label={notification.read ? undefined : 'Unread'}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={classNames(
+                        'block truncate text-sm',
+                        notification.read ? 'text-bolt-elements-textSecondary' : 'font-semibold',
+                      )}
+                    >
+                      {notification.title}
+                    </span>
+                    <RelativeTime
+                      value={notification.createdAt}
+                      className="mt-0.5 block text-[11px] text-bolt-elements-textTertiary"
+                    />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
       <div className="border-t border-bolt-elements-borderColor p-1">
         <Popover.Close asChild>

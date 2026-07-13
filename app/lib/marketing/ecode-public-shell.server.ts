@@ -251,19 +251,30 @@ function normalizeNotificationFeed(payload: NotificationFeedPayload | undefined)
 
 /**
  * Loads the current user's in-app notification feed (unread first, newest
- * next) with the unread count for the badge. Strictly user-scoped server-side.
- * Degrades to an empty feed for anonymous visitors / an unreachable API so the
- * public marketing shell header never crashes (mirrors ecodeMeLoader).
+ * next) with the unread count for the badge. Anonymous visitors receive the
+ * stable empty shape, while authenticated failures carry an explicit flag so
+ * the user area can render an honest, retryable error state without causing a
+ * browser-level failed-resource error.
  */
 export async function notificationFeedLoader({ request }: EnterpriseLoaderArgs) {
+  if (!readSessionToken(request)) {
+    return json(normalizeNotificationFeed(undefined), { headers: noStoreHeaders });
+  }
+
   try {
     const payload = await apiRequest<NotificationFeedPayload>(request, '/user/notifications', {
       redirectOn401: false,
     });
-
     return json(normalizeNotificationFeed(payload), { headers: noStoreHeaders });
-  } catch {
-    return json(normalizeNotificationFeed(undefined), { headers: noStoreHeaders });
+  } catch (error) {
+    return json(
+      {
+        ...normalizeNotificationFeed(undefined),
+        unavailable: true,
+        status: isApiResponse(error) ? error.status : 503,
+      },
+      { headers: noStoreHeaders },
+    );
   }
 }
 

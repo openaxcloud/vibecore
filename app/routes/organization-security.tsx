@@ -1,6 +1,7 @@
 import { AlertTriangle, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation, useRevalidator } from 'react-router';
+import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import {
   apiErrorMessage,
@@ -111,6 +112,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
    */
   let settings: EnterpriseSettings | null = null;
   let loadError: string | null = null;
+  let loadErrorKind: 'permission' | 'temporary' | null = null;
 
   try {
     const result = await apiRequest<{ settings: EnterpriseSettings }>(
@@ -125,8 +127,10 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
     if (isApiResponse(error, 403)) {
       loadError = "You don't have permission to manage this organization's security settings.";
+      loadErrorKind = 'permission';
     } else {
       loadError = await apiErrorMessage(error, 'Security settings are temporarily unavailable.');
+      loadErrorKind = 'temporary';
     }
   }
 
@@ -135,6 +139,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     orgName: organization.name ?? organization.slug ?? organization.id,
     settings: settings ?? { ...FALLBACK_SETTINGS, organizationId: organization.id },
     loadError,
+    loadErrorKind,
   });
 }
 
@@ -262,10 +267,12 @@ function ToggleRow(props: {
 }
 
 export default function OrganizationSecurityPage() {
-  const { orgId, orgName, settings, loadError } = useLoaderData<typeof loader>();
+  const { orgId, orgName, settings, loadError, loadErrorKind } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
   const navigation = useNavigation();
+  const revalidator = useRevalidator();
   const busy = navigation.state !== 'idle';
+  const retrying = revalidator.state !== 'idle';
 
   /*
    * IP allowlist is edited as an interactive add/remove list, then serialized
@@ -276,6 +283,32 @@ export default function OrganizationSecurityPage() {
   const [draft, setDraft] = useState('');
   const [draftError, setDraftError] = useState<string | null>(null);
   const [legalHold, setLegalHold] = useState(settings.legalHoldEnabled);
+
+  if (loadError) {
+    return (
+      <EnterpriseFormPage
+        title="Organization security"
+        description={`Authoritative security policy for ${orgName}: IP allowlist, session lifetime, admin MFA, data retention and legal hold.`}
+      >
+        {retrying ? (
+          <AsyncPanelSkeleton label="Loading organization security settings" rows={5} />
+        ) : (
+          <AsyncPanelError
+            title={
+              loadErrorKind === 'permission' ? 'Security settings are restricted' : 'Security settings could not load'
+            }
+            description={
+              loadErrorKind === 'permission'
+                ? "Your role cannot manage this organization's security policy. No settings can be changed from this page."
+                : 'The editor is hidden to prevent fallback values from overwriting the current policy. No settings were changed.'
+            }
+            onRetry={revalidator.revalidate}
+            tone={loadErrorKind === 'permission' ? 'warning' : 'error'}
+          />
+        )}
+      </EnterpriseFormPage>
+    );
+  }
 
   const addEntry = () => {
     const value = draft.trim();
@@ -310,15 +343,6 @@ export default function OrganizationSecurityPage() {
       status={actionData?.status}
       error={actionData?.error}
     >
-      {loadError ? (
-        <p
-          role="alert"
-          className="mb-6 rounded-md border border-[var(--status-warning-border)] px-3 py-2 text-sm text-[var(--status-warning-text)]"
-        >
-          {loadError}
-        </p>
-      ) : null}
-
       <Form method="post" className="space-y-8">
         <input type="hidden" name="orgId" value={orgId} />
 

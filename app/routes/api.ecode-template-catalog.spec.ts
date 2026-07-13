@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { loader as categoriesLoader } from './api.marketplace.categories';
 import { loader as tagsLoader } from './api.marketplace.tags';
@@ -17,11 +17,11 @@ import {
 } from '~/lib/marketing/ecode-template-catalog.server';
 import { toResponse } from '~/lib/test/rr7-data';
 
-function loaderArgs(url: string): Parameters<typeof templatesLoader>[0] {
+function loaderArgs(url: string, init?: RequestInit): Parameters<typeof templatesLoader>[0] {
   return {
     context: {},
     params: {},
-    request: new Request(url),
+    request: new Request(url, init),
   };
 }
 
@@ -131,6 +131,30 @@ describe('E-Code public template API routes', () => {
     expect(preferences.email.deployments).toBe(true);
     expect(preferences.push.security).toBe(true);
     expect(preferences.frequency).toBe('instant');
+  });
+
+  it('preserves authenticated notification failures for the retryable user-area state', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new TypeError('API unavailable'));
+
+    try {
+      const response = toResponse(
+        await notificationsLoader(
+          loaderArgs('http://app.e-code.ai/api/notifications', {
+            headers: { cookie: 'vc_session=test-session' },
+          }),
+        ),
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({
+        notifications: [],
+        unreadCount: 0,
+        unavailable: true,
+        status: 503,
+      });
+    } finally {
+      fetchMock.mockRestore();
+    }
   });
 
   it('accepts E-Code performance telemetry posted by the public shell', async () => {
