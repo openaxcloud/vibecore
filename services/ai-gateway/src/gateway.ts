@@ -1195,6 +1195,52 @@ async function* providerStream(
   let buffer = '';
 
   /*
+   * Cache-usage observability for the STREAM path (parity with providerCompletion's
+   * logAnthropicCacheUsage / logGeminiCacheUsage). The multi-agent lanes stream, so
+   * without this the shared-context cache-hit was invisible. The provider carries its
+   * cache accounting in the FIRST SSE event — Anthropic `message_start.usage`
+   * (cache_read/creation_input_tokens), Gemini `usageMetadata.cachedContentTokenCount`
+   * — so we scan each full SSE line and log once. Read-only, best-effort.
+   */
+  let streamCacheLogged = false;
+
+  const scanStreamCacheUsage = (rawLine: string): void => {
+    if (streamCacheLogged) {
+      return;
+    }
+
+    try {
+      if (config.kind === 'anthropic') {
+        const read = Number(rawLine.match(/"cache_read_input_tokens"\s*:\s*(\d+)/)?.[1] ?? 0);
+        const write = Number(rawLine.match(/"cache_creation_input_tokens"\s*:\s*(\d+)/)?.[1] ?? 0);
+
+        if (read > 0 || write > 0) {
+          console.info(
+            JSON.stringify({
+              event: 'ai-gateway.anthropic.cache',
+              cacheReadInputTokens: read,
+              cacheCreationInputTokens: write,
+              stream: true,
+            }),
+          );
+          streamCacheLogged = true;
+        }
+      } else if (config.kind === 'gemini') {
+        const cached = Number(rawLine.match(/"cachedContentTokenCount"\s*:\s*(\d+)/)?.[1] ?? 0);
+
+        if (cached > 0) {
+          console.info(
+            JSON.stringify({ event: 'ai-gateway.gemini.cache', cachedContentTokenCount: cached, stream: true }),
+          );
+          streamCacheLogged = true;
+        }
+      }
+    } catch {
+      // observability only — never affect the stream
+    }
+  };
+
+  /*
    * Idle (between-chunk) timeout. The connect timeout only bounds time-to-headers;
    * after that a provider that sends headers then stalls (or a half-open socket)
    * would hang this read loop — and the caller's request — indefinitely. Bound the
@@ -1272,6 +1318,8 @@ async function* providerStream(
       buffer = lines.pop() ?? '';
 
       for (const rawLine of lines) {
+        scanStreamCacheUsage(rawLine);
+
         const delta = parseLine(rawLine);
 
         if (delta) {
