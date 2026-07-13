@@ -1809,8 +1809,9 @@ export function LinkButton({
   variant?: 'default' | 'outline' | 'ghost';
 }) {
   const className = classNames(
-    'inline-flex h-[44px] items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-bolt-elements-borderColor',
-    variant === 'default' && 'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text',
+    'inline-flex h-[44px] items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)]',
+    variant === 'default' &&
+      'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover',
     variant === 'outline' &&
       'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2',
     variant === 'ghost' &&

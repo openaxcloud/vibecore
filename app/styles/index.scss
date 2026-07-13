@@ -398,6 +398,9 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-text-on-accent: #ffffff;
   --vc-ide-accent-success: #3fb950;
   --vc-ide-accent-action: #0099ff;
+  --vc-action-primary: var(--vc-ide-accent-action);
+  --vc-action-primary-hover: #007fe0;
+  --vc-action-primary-foreground: #ffffff;
   // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
   --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
   --vc-ide-accent-orange: #f26207;
@@ -493,21 +496,18 @@ html:has(.vc-app-shell-grid) body {
   --ecode-yellow: #f77f00;
   // A1 dark-brand delta from tokens.css: deep tint for dark surfaces (fills stay --ecode-orange).
   --ecode-orange-tint: #7c2d12;
-  --ecode-background: #0e1525;
-  --ecode-border: #313744;
-  --ecode-border-strong: #3a4358;
-  --ecode-text: #f5f9fc;
-  --ecode-text-secondary: #9ba3b3;
+  --ecode-background: #111315;
+  --ecode-border: #34383d;
+  --ecode-border-strong: #4a5057;
+  --ecode-text: #f5f7f8;
+  --ecode-text-secondary: #c0c5ca;
   --ecode-text-muted: var(--vc-ide-text-muted);
-  --ecode-surface: #1c2333;
-  --ecode-surface-secondary: #262c3b;
-  --ecode-surface-tertiary: #313744;
-  --ecode-surface-elevated: #1c2333;
-  --ecode-surface-hover: #313744;
-  --marketing-gradient:
-    radial-gradient(circle at 20% 20%, rgba(125, 211, 252, 0.12), transparent 45%),
-    radial-gradient(circle at 80% 0%, rgba(242, 98, 7, 0.16), transparent 42%),
-    linear-gradient(180deg, rgba(14, 21, 37, 0.96), rgba(28, 35, 51, 0.96));
+  --ecode-surface: #191c1f;
+  --ecode-surface-secondary: #22262a;
+  --ecode-surface-tertiary: #2b3035;
+  --ecode-surface-elevated: #1f2327;
+  --ecode-surface-hover: #2c3136;
+  --marketing-gradient: var(--ecode-background);
   --marketing-grid-line: rgba(148, 163, 184, 0.07);
   --marketing-divider: linear-gradient(90deg, transparent, var(--ecode-border), transparent);
   --mobile-nav-height: 72px;
@@ -721,6 +721,9 @@ html:has(.vc-app-shell-grid) body {
   --vc-file-tree-foreground-hover: #1f2024;
   --vc-ide-accent-success: #17803d;
   --vc-ide-accent-action: #006fd6;
+  --vc-action-primary: var(--vc-ide-accent-action);
+  --vc-action-primary-hover: #0059ab;
+  --vc-action-primary-foreground: #ffffff;
   // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
   --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 45%, transparent);
   --vc-ide-accent-orange: #c2410c;
@@ -807,21 +810,18 @@ html:has(.vc-app-shell-grid) body {
   --ecode-yellow: #f77f00;
   // A1 brand tint from tokens.css (light) — completes the token set (fills stay --ecode-orange).
   --ecode-orange-tint: #ffe4d3;
-  --ecode-background: #ffffff;
-  --ecode-border: #e0e0e0;
-  --ecode-border-strong: #c1c8cd;
-  --ecode-text: #1a1a1a;
-  --ecode-text-secondary: #333333;
+  --ecode-background: #f7f8f9;
+  --ecode-border: #d7dadd;
+  --ecode-border-strong: #afb5bc;
+  --ecode-text: #17191c;
+  --ecode-text-secondary: #3f4449;
   --ecode-text-muted: var(--vc-ide-text-muted);
   --ecode-surface: #ffffff;
-  --ecode-surface-secondary: #eef2f7;
-  --ecode-surface-tertiary: #f8f9fa;
+  --ecode-surface-secondary: #f0f1f2;
+  --ecode-surface-tertiary: #e7e9eb;
   --ecode-surface-elevated: #ffffff;
-  --ecode-surface-hover: #e2e8f0;
-  --marketing-gradient:
-    radial-gradient(circle at 20% 20%, rgba(14, 165, 233, 0.06), transparent 45%),
-    radial-gradient(circle at 80% 0%, rgba(242, 98, 7, 0.09), transparent 42%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 249, 250, 0.96));
+  --ecode-surface-hover: #e5e7e9;
+  --marketing-gradient: var(--ecode-background);
   --marketing-grid-line: rgba(49, 55, 68, 0.08);
   --marketing-divider: linear-gradient(90deg, transparent, var(--ecode-border), transparent);
   --mobile-nav-bg: #ffffff;
@@ -3636,6 +3636,65 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
 }
 
 /*
+ * Product surfaces use balanced neutral greys and the E-Code orange only for
+ * primary actions/focus. These compatibility overrides are deliberately scoped
+ * to the non-IDE shell so the workbench keeps its own compact blue action system.
+ */
+.vc-user-area-shell {
+  --vc-ide-bg-app: #111315;
+  --vc-ide-bg-panel: #181b1e;
+  --vc-ide-bg-card: #22262a;
+  --vc-ide-bg-hover: #2b3035;
+  --vc-ide-bg-card-hover: var(--vc-ide-bg-hover);
+  --vc-ide-bg-muted: #25292d;
+  --vc-ide-bg-base: var(--vc-ide-bg-app);
+  --vc-ide-bg-elevated: var(--vc-ide-bg-panel);
+  --vc-ide-bg-subtle: var(--vc-ide-bg-muted);
+  --vc-ide-bg-overlay: rgb(24 27 30 / 0.94);
+  --vc-ide-border-subtle: #2f3439;
+  --vc-ide-border-visible: #474e56;
+  --vc-ide-text-primary: #f5f7f8;
+  --vc-ide-text-secondary: #c0c5ca;
+  --vc-ide-text-muted: #979ea6;
+  --vc-action-primary: #f97316;
+  --vc-action-primary-hover: #fb923c;
+  --vc-action-primary-foreground: #111827;
+  --vc-ide-accent-action: var(--vc-action-primary);
+  --vc-ide-accent-primary: var(--vc-action-primary);
+  --vc-ide-accent: var(--vc-action-primary);
+  --vc-ide-text-on-accent: var(--vc-action-primary-foreground);
+  --vc-ide-focus-ring: color-mix(in srgb, var(--vc-action-primary) 55%, transparent);
+  --bolt-elements-focus: var(--vc-action-primary);
+  --bolt-elements-borderColorActive: color-mix(in srgb, var(--vc-action-primary) 72%, var(--vc-ide-border-visible));
+  --bolt-elements-bg-depth-4: rgb(43 48 53 / 0.72);
+  --bolt-elements-button-primary-background: var(--vc-action-primary);
+  --bolt-elements-button-primary-backgroundHover: var(--vc-action-primary-hover);
+  --bolt-elements-button-primary-text: var(--vc-action-primary-foreground);
+  --bolt-elements-item-backgroundAccent: color-mix(in srgb, var(--vc-action-primary) 14%, transparent);
+  --bolt-elements-item-contentAccent: var(--vc-action-primary);
+  --bolt-elements-loader-progress: var(--vc-action-primary);
+  font-family: var(--vc-font-interface);
+}
+
+:root[data-theme='light'] .vc-user-area-shell {
+  --vc-ide-bg-app: #f5f6f7;
+  --vc-ide-bg-panel: #ffffff;
+  --vc-ide-bg-card: #f0f1f2;
+  --vc-ide-bg-hover: #e7e9eb;
+  --vc-ide-bg-muted: #eceeef;
+  --vc-ide-bg-overlay: rgb(255 255 255 / 0.96);
+  --vc-ide-border-subtle: #d5d8dc;
+  --vc-ide-border-visible: #aeb4bc;
+  --vc-ide-text-primary: #17191c;
+  --vc-ide-text-secondary: #3f4449;
+  --vc-ide-text-muted: #626970;
+  --vc-action-primary: #c2410c;
+  --vc-action-primary-hover: #9a3412;
+  --vc-action-primary-foreground: #ffffff;
+  --bolt-elements-bg-depth-4: rgb(231 233 235 / 0.84);
+}
+
+/*
  * The base IDE typography rules intentionally use compact !important sizes.
  * Restore the authored utility scale inside the non-IDE user area so headings,
  * values and supporting copy keep a clear enterprise hierarchy.
@@ -3909,8 +3968,8 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
 }
 
 .vc-sidebar-cta {
-  background: var(--vc-ide-accent-action);
-  color: #ffffff;
+  background: var(--vc-action-primary);
+  color: var(--vc-action-primary-foreground);
   box-shadow:
     0 1px 0 0 rgb(0 0 0 / 0.04),
     0 1px 2px 0 rgb(0 0 0 / 0.06);
@@ -21173,41 +21232,49 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 .vc-auth-page {
-  --vc-auth-bg: var(--vc-ide-bg-app);
-  --vc-auth-card: color-mix(in srgb, var(--vc-ide-bg-panel) 88%, transparent);
-  --vc-auth-card-solid: var(--vc-ide-bg-panel);
-  --vc-auth-field: var(--vc-ide-bg-base);
-  --vc-auth-raised: var(--vc-ide-bg-card);
-  --vc-auth-hover: var(--vc-ide-bg-hover);
-  --vc-auth-border: var(--vc-ide-border-visible);
-  --vc-auth-border-subtle: var(--vc-ide-border-subtle);
-  --vc-auth-text: var(--vc-ide-text-primary);
-  --vc-auth-secondary: var(--vc-ide-text-secondary);
-  --vc-auth-muted: var(--vc-ide-text-muted);
-  --vc-auth-accent: var(--vc-ide-accent-orange);
-  --vc-auth-accent-2: #f99d25;
-  --vc-auth-link: var(--vc-ide-accent-action);
-  --vc-auth-focus: var(--vc-ide-accent-action);
+  --vc-auth-bg: #111315;
+  --vc-auth-card: rgb(25 28 31 / 0.92);
+  --vc-auth-card-solid: #191c1f;
+  --vc-auth-field: #111315;
+  --vc-auth-raised: #22262a;
+  --vc-auth-hover: #2c3136;
+  --vc-auth-border: #4a5057;
+  --vc-auth-border-subtle: #34383d;
+  --vc-auth-text: #f5f7f8;
+  --vc-auth-secondary: #c0c5ca;
+  --vc-auth-muted: #979ea6;
+  --vc-auth-accent: #f97316;
+  --vc-auth-action-foreground: #111827;
+  --vc-auth-link: var(--vc-auth-accent);
+  --vc-auth-focus: var(--vc-auth-accent);
+  --vc-action-primary: var(--vc-auth-accent);
+  --vc-action-primary-hover: #fb923c;
+  --vc-action-primary-foreground: var(--vc-auth-action-foreground);
   --vc-auth-success: var(--vc-ide-accent-success);
   --vc-auth-error: var(--vc-ide-accent-error);
-  --vc-auth-shadow: 0 24px 64px rgb(0 4 20 / 0.62);
+  --vc-auth-shadow: 0 24px 64px rgb(0 0 0 / 0.54);
   min-height: 100dvh;
   background: var(--vc-auth-bg);
   color: var(--vc-auth-text);
 }
 
 :root[data-theme='light'] .vc-auth-page {
-  --vc-auth-bg: #f6f8fb;
+  --vc-auth-bg: #f5f6f7;
   --vc-auth-card: rgb(255 255 255 / 0.9);
   --vc-auth-field: #ffffff;
-  --vc-auth-raised: #eef2f7;
-  --vc-auth-hover: #e2e8f0;
-  --vc-auth-border: #b8c3d2;
-  --vc-auth-border-subtle: #d8e0ea;
+  --vc-auth-raised: #f0f1f2;
+  --vc-auth-hover: #e7e9eb;
+  --vc-auth-border: #aeb4bc;
+  --vc-auth-border-subtle: #d5d8dc;
+  --vc-auth-text: #17191c;
+  --vc-auth-secondary: #3f4449;
+  --vc-auth-muted: #626970;
   --vc-auth-accent: #c2410c;
-  --vc-auth-accent-2: #0f766e;
-  --vc-auth-link: #5b4ae8;
-  --vc-auth-shadow: 0 24px 64px rgb(15 23 42 / 0.14);
+  --vc-auth-action-foreground: #ffffff;
+  --vc-auth-link: var(--vc-auth-accent);
+  --vc-auth-focus: var(--vc-auth-accent);
+  --vc-action-primary-hover: #9a3412;
+  --vc-auth-shadow: 0 24px 64px rgb(24 27 30 / 0.14);
 }
 
 .vc-auth-left-glow {
@@ -21346,8 +21413,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 .vc-auth-submit {
-  background: linear-gradient(135deg, var(--vc-auth-accent), var(--vc-auth-accent-2));
-  color: #ffffff;
+  background: var(--vc-auth-accent);
+  color: var(--vc-auth-action-foreground);
   box-shadow: 0 12px 32px color-mix(in srgb, var(--vc-auth-accent) 28%, transparent);
 }
 
@@ -21376,44 +21443,48 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 .vc-public-shell {
-  --vc-public-bg: #080b13;
-  --vc-public-panel: #0d1322;
-  --vc-public-card: #111827;
-  --vc-public-border: rgba(148, 163, 184, 0.22);
-  --vc-public-text: #f8fafc;
-  --vc-public-muted: #94a3b8;
+  --vc-public-bg: #101214;
+  --vc-public-panel: #171a1d;
+  --vc-public-card: #202428;
+  --vc-public-border: rgba(167, 174, 182, 0.22);
+  --vc-public-text: #f5f7f8;
+  --vc-public-muted: #a3a9b0;
   --vc-public-accent: #f97316;
   --vc-public-accent-2: #facc15;
   --vc-public-link: #fed7aa;
   --vc-public-link-hover: #ffedd5;
   --vc-public-button-text: #111827;
-  --vc-public-header-bg: rgba(8, 11, 19, 0.86);
-  --vc-public-announcement-bg: rgba(17, 24, 39, 0.72);
-  --vc-public-menu-bg: rgba(13, 19, 34, 0.98);
-  --vc-public-control-bg: #111827;
-  --vc-public-card-bg: rgba(17, 24, 39, 0.72);
-  --vc-public-card-soft-bg: rgba(17, 24, 39, 0.68);
-  --vc-public-stat-bg: rgba(13, 19, 34, 0.55);
+  --vc-public-header-bg: rgba(16, 18, 20, 0.88);
+  --vc-public-announcement-bg: rgba(32, 36, 40, 0.72);
+  --vc-public-menu-bg: rgba(23, 26, 29, 0.98);
+  --vc-public-control-bg: #202428;
+  --vc-public-card-bg: rgba(32, 36, 40, 0.74);
+  --vc-public-card-soft-bg: rgba(32, 36, 40, 0.68);
+  --vc-public-stat-bg: rgba(23, 26, 29, 0.58);
   --vc-public-hover-bg: rgba(255, 255, 255, 0.07);
   --vc-public-hover-strong-bg: rgba(255, 255, 255, 0.11);
-  --vc-public-form-bg: rgba(17, 24, 39, 0.86);
+  --vc-public-form-bg: rgba(32, 36, 40, 0.88);
   --vc-public-grid-line: rgba(255, 255, 255, 0.035);
   --vc-public-hero-image-opacity: 0.12;
-  --vc-public-hero-fade-start: rgba(8, 11, 19, 0.4);
+  --vc-public-hero-fade-start: rgba(16, 18, 20, 0.42);
   --vc-public-shadow: rgba(0, 0, 0, 0.34);
-  --vc-public-footer-bg: #070a12;
-  --vc-public-trust-text: #cbd5e1;
-  --vc-public-code-text: #dbeafe;
+  --vc-public-footer-bg: #0c0e10;
+  --vc-public-trust-text: #c9cdd1;
+  --vc-public-code-text: #f1f3f5;
   --vc-public-active-tab: #fed7aa;
   --vc-public-cta-text: #111827;
   --vc-public-focus-ring: rgba(251, 146, 60, 0.42);
   --vc-public-card-hover-border: rgba(251, 146, 60, 0.46);
   --vc-public-card-hover-shadow: rgba(249, 115, 22, 0.22);
+  --vc-action-primary: var(--vc-public-accent);
+  --vc-action-primary-hover: #fb923c;
+  --vc-action-primary-foreground: var(--vc-public-button-text);
+  --bolt-elements-button-primary-background: var(--vc-action-primary);
+  --bolt-elements-button-primary-backgroundHover: var(--vc-action-primary-hover);
+  --bolt-elements-button-primary-text: var(--vc-action-primary-foreground);
   position: relative;
   overflow-x: hidden;
-  background:
-    radial-gradient(circle at 18% 10%, rgba(249, 115, 22, 0.18), transparent 32rem),
-    radial-gradient(circle at 82% 8%, rgba(56, 189, 248, 0.12), transparent 30rem), var(--vc-public-bg);
+  background: var(--vc-public-bg);
   color: var(--vc-public-text);
 }
 
@@ -21693,42 +21764,50 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 :root[data-theme='light'] .vc-public-shell {
-  --vc-public-bg: #f8fafc;
+  --vc-public-bg: #f7f8f9;
   --vc-public-panel: #ffffff;
-  --vc-public-card: #eef4fb;
-  --vc-public-border: rgba(15, 23, 42, 0.16);
-  --vc-public-text: #0f172a;
-  --vc-public-muted: #475569;
+  --vc-public-card: #f0f1f2;
+  --vc-public-border: rgba(24, 27, 30, 0.16);
+  --vc-public-text: #17191c;
+  --vc-public-muted: #52575d;
   --vc-public-accent: #b45309;
   --vc-public-accent-2: #0f766e;
   --vc-public-link: #92400e;
-  --vc-public-link-hover: #0f766e;
+  --vc-public-link-hover: #78350f;
   --vc-public-button-text: #ffffff;
   --vc-public-header-bg: rgba(255, 255, 255, 0.9);
-  --vc-public-announcement-bg: rgba(241, 245, 249, 0.86);
+  --vc-public-announcement-bg: rgba(240, 241, 242, 0.9);
   --vc-public-menu-bg: rgba(255, 255, 255, 0.98);
   --vc-public-control-bg: #ffffff;
   --vc-public-card-bg: rgba(255, 255, 255, 0.84);
   --vc-public-card-soft-bg: rgba(255, 255, 255, 0.78);
-  --vc-public-stat-bg: rgba(226, 232, 240, 0.58);
-  --vc-public-hover-bg: rgba(15, 23, 42, 0.06);
-  --vc-public-hover-strong-bg: rgba(15, 23, 42, 0.09);
+  --vc-public-stat-bg: rgba(231, 233, 235, 0.68);
+  --vc-public-hover-bg: rgba(24, 27, 30, 0.06);
+  --vc-public-hover-strong-bg: rgba(24, 27, 30, 0.09);
   --vc-public-form-bg: rgba(255, 255, 255, 0.92);
-  --vc-public-grid-line: rgba(15, 23, 42, 0.055);
+  --vc-public-grid-line: rgba(24, 27, 30, 0.055);
   --vc-public-hero-image-opacity: 0.16;
-  --vc-public-hero-fade-start: rgba(248, 250, 252, 0.62);
-  --vc-public-shadow: rgba(15, 23, 42, 0.14);
-  --vc-public-footer-bg: #f1f5f9;
-  --vc-public-trust-text: #334155;
-  --vc-public-code-text: #0f172a;
+  --vc-public-hero-fade-start: rgba(247, 248, 249, 0.66);
+  --vc-public-shadow: rgba(24, 27, 30, 0.14);
+  --vc-public-footer-bg: #f0f1f2;
+  --vc-public-trust-text: #3f4449;
+  --vc-public-code-text: #17191c;
   --vc-public-active-tab: #92400e;
   --vc-public-cta-text: #0f172a;
-  --vc-public-focus-ring: rgba(15, 118, 110, 0.28);
-  --vc-public-card-hover-border: rgba(15, 118, 110, 0.32);
-  --vc-public-card-hover-shadow: rgba(15, 23, 42, 0.16);
-  background:
-    radial-gradient(circle at 18% 10%, rgba(180, 83, 9, 0.14), transparent 32rem),
-    radial-gradient(circle at 82% 8%, rgba(15, 118, 110, 0.1), transparent 30rem), var(--vc-public-bg);
+  --vc-public-focus-ring: rgba(180, 83, 9, 0.32);
+  --vc-public-card-hover-border: rgba(180, 83, 9, 0.36);
+  --vc-public-card-hover-shadow: rgba(24, 27, 30, 0.16);
+  --vc-action-primary-hover: #92400e;
+  background: var(--vc-public-bg);
+}
+
+[data-ecode-static-shell] {
+  --vc-action-primary: var(--ecode-accent);
+  --vc-action-primary-hover: var(--ecode-accent-hover);
+  --vc-action-primary-foreground: var(--ecode-accent-contrast);
+  --bolt-elements-button-primary-background: var(--vc-action-primary);
+  --bolt-elements-button-primary-backgroundHover: var(--vc-action-primary-hover);
+  --bolt-elements-button-primary-text: var(--vc-action-primary-foreground);
 }
 
 .vc-public-container {
@@ -22900,7 +22979,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 .vc-public-actions a:last-of-type {
   border: 0;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--vc-public-accent), var(--vc-public-accent-2));
+  background: var(--vc-public-accent);
   color: var(--vc-public-button-text);
   font-weight: 800;
   box-shadow: 0 12px 28px rgba(249, 115, 22, 0.22);

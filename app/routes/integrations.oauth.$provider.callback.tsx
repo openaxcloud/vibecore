@@ -156,7 +156,7 @@ export default function IntegrationOauthCallbackPage() {
     return (
       <main
         style={{
-          fontFamily: 'system-ui, sans-serif',
+          fontFamily: 'var(--vc-font-interface)',
           padding: '32px',
           maxWidth: 480,
           background: 'var(--ecode-background)',
@@ -176,7 +176,7 @@ export default function IntegrationOauthCallbackPage() {
   return (
     <main
       style={{
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: 'var(--vc-font-interface)',
         padding: '32px',
         maxWidth: 480,
         background: 'var(--ecode-background)',

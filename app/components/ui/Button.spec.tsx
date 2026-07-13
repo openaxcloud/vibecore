@@ -89,4 +89,12 @@ describe('Button', () => {
     expect(typeof buttonVariants).toBe('function');
     expect(buttonVariants({ variant: 'default', size: 'default' })).toContain('inline-flex');
   });
+
+  it('uses the scoped semantic action tokens for intentional primary actions', () => {
+    const classes = buttonVariants({ variant: 'primary', size: 'default' });
+
+    expect(classes).toContain('bg-[var(--vc-action-primary)]');
+    expect(classes).toContain('text-[var(--vc-action-primary-foreground)]');
+    expect(classes).toContain('hover:bg-[var(--vc-action-primary-hover)]');
+  });
 });

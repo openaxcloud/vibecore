@@ -382,10 +382,7 @@ export default function Pricing() {
   // Show loading only if actually loading AND no error (use fallback on error)
   if (isLoading && !error) {
     return (
-      <div
-        className="min-h-screen flex flex-col bg-[var(--ecode-background)]"
-        style={{ fontFamily: 'var(--ecode-font-sans)' }}
-      >
+      <div className="min-h-screen flex flex-col bg-[var(--ecode-background)]">
         <PublicNavbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
@@ -398,11 +395,7 @@ export default function Pricing() {
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col bg-[var(--ecode-background)]"
-      style={{ fontFamily: 'var(--ecode-font-sans)' }}
-      data-testid="page-pricing"
-    >
+    <div className="min-h-screen flex flex-col bg-[var(--ecode-background)]" data-testid="page-pricing">
       <PublicNavbar />
 
       {/* Hero Section with Background */}

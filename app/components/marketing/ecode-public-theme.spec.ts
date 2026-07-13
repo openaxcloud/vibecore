@@ -2,6 +2,28 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 describe('E-Code public theme wrappers', () => {
+  it('uses neutral surfaces, orange actions, and one IBM Plex interface stack outside the IDE', () => {
+    const styles = readFileSync(new URL('../../styles/index.scss', import.meta.url), 'utf8');
+    const landing = readFileSync(new URL('./ecode-exact/pages/LandingOptimized.tsx', import.meta.url), 'utf8');
+    const pricing = readFileSync(new URL('./ecode-exact/pages/Pricing.tsx', import.meta.url), 'utf8');
+
+    const oauthCallback = readFileSync(
+      new URL('../../routes/integrations.oauth.$provider.callback.tsx', import.meta.url),
+      'utf8',
+    );
+
+    expect(styles).toContain('--ecode-background: #111315;');
+    expect(styles).toContain('--ecode-surface: #191c1f;');
+    expect(styles).toContain('--marketing-gradient: var(--ecode-background);');
+    expect(styles).toContain('.vc-public-shell {\n  --vc-public-bg: #101214;');
+    expect(styles).toContain('background: var(--vc-public-accent);');
+    expect(styles).toContain('[data-ecode-static-shell] {');
+    expect(landing).not.toContain('--ecode-font-sans');
+    expect(pricing).not.toContain('--ecode-font-sans');
+    expect(oauthCallback).not.toContain('system-ui, sans-serif');
+    expect(oauthCallback).toContain("fontFamily: 'var(--vc-font-interface)'");
+  });
+
   it('renders shared marketing pages with the exact E-Code theme tokens instead of legacy vc wrappers', () => {
     const source = readFileSync(new URL('./EcodeMarketingPages.tsx', import.meta.url), 'utf8');
 

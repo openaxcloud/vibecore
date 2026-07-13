@@ -262,7 +262,6 @@ export default function LandingOptimized() {
       {/* Hero Section - Critical Path (loads immediately) */}
       <section
         className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-[var(--ecode-background)] animate-fade-in"
-        style={{ fontFamily: 'var(--ecode-font-sans)' }}
         data-testid="section-hero"
       >
         <div className="absolute inset-0 bg-grid-pattern opacity-5 dark:opacity-10" />

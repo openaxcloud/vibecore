@@ -3,7 +3,7 @@ import * as React from 'react';
 import { classNames } from '~/utils/classNames';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-bolt-elements-borderColor disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
@@ -15,7 +15,8 @@ const buttonVariants = cva(
          * copies stop drifting — and hover darkens the fill instead of turning the label
          * accent-coloured (invisible on the accent bg).
          */
-        primary: 'bg-accent-500 text-white hover:bg-accent-600',
+        primary:
+          'bg-[var(--vc-action-primary)] text-[var(--vc-action-primary-foreground)] hover:bg-[var(--vc-action-primary-hover)]',
         destructive: 'bg-red-500 text-white hover:bg-red-600',
         outline:
           'border border-bolt-elements-borderColor bg-transparent hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary text-bolt-elements-textPrimary dark:border-bolt-elements-borderColorActive',

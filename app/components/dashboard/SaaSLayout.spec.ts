@@ -86,6 +86,12 @@ describe('public marketing brand', () => {
     expect(layoutSource).toContain('line-clamp-2 min-h-[56px] text-lg');
     expect(stylesSource).toContain('.vc-user-area-shell .vc-app-shell-title');
     expect(stylesSource).toContain('font-size: 28px !important');
+    expect(stylesSource).toContain('.vc-user-area-shell {\n  --vc-ide-bg-app: #111315;');
+    expect(stylesSource).toContain('--vc-action-primary: #f97316;');
+    expect(stylesSource).toContain(":root[data-theme='light'] .vc-user-area-shell");
+    expect(stylesSource).toContain('--vc-action-primary: #c2410c;');
+    expect(stylesSource).toContain('--bolt-elements-button-primary-background: var(--vc-action-primary);');
+    expect(layoutSource).toContain('hover:bg-bolt-elements-button-primary-backgroundHover');
     expect(layoutSource).toContain('vc-keyboard-shortcut vc-sidebar-shortcut');
     expect(stylesSource).toContain('@media (hover: hover) and (pointer: fine)');
     expect(extractCssRule(stylesSource, '.vc-keyboard-shortcut')).toContain('display: none');
