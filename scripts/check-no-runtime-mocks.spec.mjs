@@ -144,8 +144,13 @@ describe('BLOCKED_PATTERN', () => {
     expect(BLOCKED_PATTERN.test('InMemory')).toBe(true);
     expect(BLOCKED_PATTERN.test('stub')).toBe(true);
     expect(BLOCKED_PATTERN.test('fake')).toBe(true);
-    expect(BLOCKED_PATTERN.test('scaffolded')).toBe(true);
     expect(BLOCKED_PATTERN.test('TestApiStore')).toBe(true);
+  });
+
+  it('does not block scaffolded — it denotes real code generation, not a test double', () => {
+    // The auth-file scaffolding feature legitimately ships `scaffolded` file
+    // paths in runtime code; it is not a mock/stub placeholder.
+    expect(BLOCKED_PATTERN.test('scaffolded')).toBe(false);
   });
 
   it('does not match unrelated camel-case identifiers', () => {

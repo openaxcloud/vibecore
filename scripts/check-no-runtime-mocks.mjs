@@ -4,9 +4,14 @@ import process from 'node:process';
 
 /**
  * Identifiers that must not appear in shipped runtime code. The list pairs
- * an English mock-vocabulary (Mock/mock/InMemory/stub/fake/scaffolded) with
- * a small set of Test* class names that have been used historically as
- * production substitutes inside this repo.
+ * an English mock-vocabulary (Mock/mock/InMemory/stub/fake) — words that
+ * unambiguously denote a test double — with a small set of Test* class names
+ * that have been used historically as production substitutes inside this repo.
+ *
+ * `scaffolded` is deliberately NOT blocked: it denotes real code generation
+ * (e.g. the auth-file scaffolding feature returns the list of `scaffolded`
+ * file paths), not a mock/stub placeholder, so blocking it produced false
+ * positives on shipped features. The mock-double vocabulary below stays.
  *
  * The regex intentionally matches both casings of `mock` because we have
  * had drift in both directions in the past. Comments are stripped before
@@ -14,7 +19,7 @@ import process from 'node:process';
  * referencing the words for clarity are not flagged.
  */
 export const BLOCKED_PATTERN =
-  /\b(Mock|mock|InMemory|stub|fake|scaffolded)\b|Test(ApiStore|ProjectStorage|GitProvider|EmailProvider|WorkspaceStore|EventBus|WorkspaceK8sClient)/;
+  /\b(Mock|mock|InMemory|stub|fake)\b|Test(ApiStore|ProjectStorage|GitProvider|EmailProvider|WorkspaceStore|EventBus|WorkspaceK8sClient)/;
 
 export const SCAN_ROOTS = ['app', 'services', 'packages', 'infra'];
 
