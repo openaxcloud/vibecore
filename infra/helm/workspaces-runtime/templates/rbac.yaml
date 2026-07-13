@@ -17,6 +17,19 @@ rules:
   - apiGroups: [""]
     resources: ["pods/log"]
     verbs: ["get", "list", "watch"]
+  # Server deployments (Replit-parity "Autoscale / Reserved VM"): a durable
+  # Deployment + Ingress running the user's built backend. Same namespace + gVisor
+  # sandbox as workspace pods; the Deployment gives restarts/replicas/rolling-update
+  # and the Ingress the public URL (exact host under the preview wildcard cert).
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments/scale"]
+    verbs: ["get", "update", "patch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

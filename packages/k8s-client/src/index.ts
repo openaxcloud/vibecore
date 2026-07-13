@@ -152,7 +152,7 @@ export interface WorkspaceResourceLimits {
 export interface K8sObject {
   apiVersion: string;
   kind: string;
-  metadata: { name: string; namespace?: string; labels?: Record<string, string> };
+  metadata: { name: string; namespace?: string; labels?: Record<string, string>; annotations?: Record<string, string> };
   spec?: Record<string, unknown>;
   data?: Record<string, string>;
   stringData?: Record<string, string>;
@@ -602,6 +602,210 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
         },
       ],
       volumes: [{ name: 'workspace', persistentVolumeClaim: { claimName: input.pvcName } }],
+    },
+  };
+}
+
+/* ---------------------------------------------------------------------------
+ * SERVER DEPLOYMENT runtime (Replit-parity "Autoscale / Reserved VM").
+ *
+ * A server deployment is a DURABLE workload (unlike the ephemeral workspace Pod):
+ * a Deployment (restarts, replicas, rolling update) running the user's built
+ * backend, fronted by a Service + an exact-host Ingress under the existing
+ * `*.preview.e-code.ai` wildcard cert (so no new DNS/TLS is needed). The pod keeps
+ * the same gVisor sandbox + hardened securityContext as the workspace pod, since it
+ * runs untrusted user code. Env + per-env secrets (incl. the prod DATABASE_URL) are
+ * injected the same way as the workspace pod (plain env + secretKeyRef).
+ * ------------------------------------------------------------------------- */
+
+export interface ServerRuntimeInput {
+  /** Stable deployment id — names all resources `app-<deploymentId>`. */
+  deploymentId: string;
+  namespace: string;
+  orgId?: string;
+  projectId?: string;
+  /** Runtime container image (platform-controlled; e.g. the workspace-agent image). */
+  image: string;
+  /** Container entrypoint override + args (e.g. ["sh","-c","npm start"]). */
+  command?: string[];
+  args?: string[];
+  /** Port the app listens on (also injected as PORT). */
+  port: number;
+  replicas?: number;
+  /** Public host, e.g. `d-<id>.preview.e-code.ai` (must be covered by tlsSecretName). */
+  host: string;
+  /** Existing TLS secret whose cert covers `host` (e.g. the preview wildcard). */
+  tlsSecretName: string;
+  /** Plain env vars. */
+  env?: Record<string, string>;
+  /** Secret holding env values (envName -> secretKey via secretEnv). */
+  secretName?: string;
+  secretEnv?: Record<string, string>;
+  cpuRequest?: string;
+  cpuLimit?: string;
+  memoryRequest?: string;
+  memoryLimit?: string;
+  /** Readiness path on the app port (default '/'). */
+  healthPath?: string;
+  /** Disable gVisor scheduling (tests / non-sandbox clusters). */
+  disableSandboxScheduling?: boolean;
+}
+
+/** Stable resource name for a server deployment's Deployment/Service/Ingress. */
+export function serverDeploymentName(deploymentId: string): string {
+  return `app-${deploymentId}`;
+}
+
+function serverLabels(input: Pick<ServerRuntimeInput, 'deploymentId' | 'orgId' | 'projectId'>) {
+  return {
+    app: serverDeploymentName(input.deploymentId),
+    'vibecore.ai/server-deploy': input.deploymentId,
+    ...(input.orgId ? { 'vibecore.ai/org': input.orgId } : {}),
+    ...(input.projectId ? { 'vibecore.ai/project': input.projectId } : {}),
+  };
+}
+
+function serverEnvVars(input: ServerRuntimeInput) {
+  const env = input.env ?? {};
+  const secretEnv = input.secretEnv ?? {};
+
+  return [
+    { name: 'PORT', value: String(input.port) },
+    ...(input.projectId ? [{ name: 'PROJECT_ID', value: input.projectId }] : []),
+    // Plain user env (reserved platform names stripped so a tenant can't spoof them).
+    ...Object.entries(env)
+      .filter(([name]) => !RESERVED_WORKSPACE_ENV.has(name) && name !== 'PORT')
+      .map(([name, value]) => ({ name, value })),
+    // Secret-backed env (optional so a not-yet-synced key can't brick startup).
+    ...(input.secretName
+      ? Object.entries(secretEnv)
+          .filter(([name]) => !RESERVED_WORKSPACE_ENV.has(name))
+          .map(([name, key]) => ({
+            name,
+            valueFrom: { secretKeyRef: { name: input.secretName as string, key, optional: true } },
+          }))
+      : []),
+  ];
+}
+
+export function serverAppDeployment(input: ServerRuntimeInput): K8sObject {
+  assertWorkspaceImageAllowed(input.image);
+
+  const sandbox = !input.disableSandboxScheduling && process.env.WORKSPACE_DISABLE_SANDBOX_SCHEDULING !== '1';
+  const selector = serverLabels(input);
+
+  return {
+    apiVersion: 'apps/v1',
+    kind: 'Deployment',
+    metadata: { name: serverDeploymentName(input.deploymentId), namespace: input.namespace, labels: selector },
+    spec: {
+      replicas: input.replicas ?? 1,
+      selector: { matchLabels: { app: selector.app } },
+      // Zero-downtime rolling update (durable, unlike the workspace Pod).
+      strategy: { type: 'RollingUpdate', rollingUpdate: { maxUnavailable: 0, maxSurge: 1 } },
+      template: {
+        metadata: { labels: selector },
+        spec: {
+          hostNetwork: false,
+          hostPID: false,
+          hostIPC: false,
+          ...(sandbox
+            ? {
+                runtimeClassName: 'gvisor',
+                nodeSelector: { 'vibecore.ai/node-pool': 'sandbox' },
+                tolerations: [
+                  { key: 'vibecore.ai/sandbox', operator: 'Equal', value: 'true', effect: 'NoSchedule' },
+                  { key: 'sandbox.gke.io/runtime', operator: 'Equal', value: 'gvisor', effect: 'NoSchedule' },
+                ],
+              }
+            : {}),
+          automountServiceAccountToken: false,
+          securityContext: {
+            runAsNonRoot: true,
+            runAsUser: 1000,
+            runAsGroup: 1000,
+            fsGroup: 1000,
+            seccompProfile: { type: 'RuntimeDefault' },
+          },
+          containers: [
+            {
+              name: 'app',
+              image: input.image,
+              ...(input.command ? { command: input.command } : {}),
+              ...(input.args ? { args: input.args } : {}),
+              ports: [{ containerPort: input.port, name: 'http' }],
+              env: serverEnvVars(input),
+              resources: {
+                requests: { cpu: input.cpuRequest ?? '250m', memory: input.memoryRequest ?? '512Mi' },
+                limits: { cpu: input.cpuLimit ?? '1', memory: input.memoryLimit ?? '1Gi' },
+              },
+              readinessProbe: {
+                httpGet: { path: input.healthPath ?? '/', port: input.port },
+                initialDelaySeconds: 3,
+                periodSeconds: 5,
+                timeoutSeconds: 3,
+                failureThreshold: 6,
+              },
+              // TCP liveness (a busy app under gVisor can starve an HTTP handler; the bound port still accepts).
+              livenessProbe: {
+                tcpSocket: { port: input.port },
+                initialDelaySeconds: 15,
+                periodSeconds: 15,
+                timeoutSeconds: 5,
+                failureThreshold: 10,
+              },
+            },
+          ],
+        },
+      },
+    },
+  };
+}
+
+export function serverAppService(input: ServerRuntimeInput): K8sObject {
+  return {
+    apiVersion: 'v1',
+    kind: 'Service',
+    metadata: {
+      name: serverDeploymentName(input.deploymentId),
+      namespace: input.namespace,
+      labels: serverLabels(input),
+    },
+    spec: {
+      selector: { app: serverDeploymentName(input.deploymentId) },
+      ports: [{ name: 'http', port: 80, targetPort: input.port }],
+    },
+  };
+}
+
+export function serverAppIngress(input: ServerRuntimeInput): K8sObject {
+  return {
+    apiVersion: 'networking.k8s.io/v1',
+    kind: 'Ingress',
+    metadata: {
+      name: serverDeploymentName(input.deploymentId),
+      namespace: input.namespace,
+      labels: serverLabels(input),
+      annotations: { 'nginx.ingress.kubernetes.io/ssl-redirect': 'true' },
+    },
+    spec: {
+      ingressClassName: 'nginx',
+      // Exact host beats the `*.preview.e-code.ai` wildcard ingress, reusing its cert.
+      tls: [{ hosts: [input.host], secretName: input.tlsSecretName }],
+      rules: [
+        {
+          host: input.host,
+          http: {
+            paths: [
+              {
+                path: '/',
+                pathType: 'Prefix',
+                backend: { service: { name: serverDeploymentName(input.deploymentId), port: { number: 80 } } },
+              },
+            ],
+          },
+        },
+      ],
     },
   };
 }

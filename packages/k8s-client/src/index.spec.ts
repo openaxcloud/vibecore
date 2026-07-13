@@ -352,3 +352,66 @@ describe('workspace Kubernetes manifests', () => {
     });
   });
 });
+
+describe('server deployment runtime templates', () => {
+  const input = {
+    deploymentId: 'dep123',
+    namespace: 'vibecore-workspaces',
+    orgId: 'org1',
+    projectId: 'proj1',
+    image: 'registry.example.com/workspace-agent:abc123',
+    command: ['sh', '-c', 'npm start'],
+    port: 3000,
+    host: 'd-dep123.preview.e-code.ai',
+    tlsSecretName: 'vibecore-preview-wildcard-tls',
+    env: { APP_FLAG: 'on', PORT: '9999' },
+    secretName: 'app-secrets-dep123',
+    secretEnv: { DATABASE_URL: 'PROD_DATABASE_URL', API_KEY: 'API_KEY' },
+    disableSandboxScheduling: true,
+  };
+
+  it('serverAppDeployment is a durable Deployment with the app port, PORT env, and optional secretKeyRefs', async () => {
+    const { serverAppDeployment, serverDeploymentName } = await import('./index');
+    const dep = serverAppDeployment(input) as any;
+
+    expect(dep.kind).toBe('Deployment');
+    expect(dep.apiVersion).toBe('apps/v1');
+    expect(dep.metadata.name).toBe(serverDeploymentName('dep123'));
+    expect(dep.spec.replicas).toBe(1);
+    expect(dep.spec.strategy.rollingUpdate.maxUnavailable).toBe(0);
+
+    const c = dep.spec.template.spec.containers[0];
+    expect(c.ports[0].containerPort).toBe(3000);
+    expect(c.command).toEqual(['sh', '-c', 'npm start']);
+
+    const env = c.env as Array<{ name: string; value?: string; valueFrom?: any }>;
+    // PORT is authoritative (input.port), a user PORT override is stripped.
+    expect(env.filter((e) => e.name === 'PORT')).toHaveLength(1);
+    expect(env.find((e) => e.name === 'PORT')?.value).toBe('3000');
+    expect(env.find((e) => e.name === 'APP_FLAG')?.value).toBe('on');
+    // secret-backed env references the app secret, optional so a missing key can't brick startup.
+    const dbUrl = env.find((e) => e.name === 'DATABASE_URL');
+    expect(dbUrl?.valueFrom.secretKeyRef).toEqual({ name: 'app-secrets-dep123', key: 'PROD_DATABASE_URL', optional: true });
+    // readiness on the app port, TCP liveness.
+    expect(c.readinessProbe.httpGet.port).toBe(3000);
+    expect(c.livenessProbe.tcpSocket.port).toBe(3000);
+  });
+
+  it('serverAppService exposes port 80 → the app targetPort', async () => {
+    const { serverAppService } = await import('./index');
+    const svc = serverAppService(input) as any;
+    expect(svc.kind).toBe('Service');
+    expect(svc.spec.ports[0]).toEqual({ name: 'http', port: 80, targetPort: 3000 });
+    expect(svc.spec.selector.app).toBe('app-dep123');
+  });
+
+  it('serverAppIngress is an exact-host ingress reusing the given TLS secret', async () => {
+    const { serverAppIngress } = await import('./index');
+    const ing = serverAppIngress(input) as any;
+    expect(ing.kind).toBe('Ingress');
+    expect(ing.spec.ingressClassName).toBe('nginx');
+    expect(ing.spec.rules[0].host).toBe('d-dep123.preview.e-code.ai');
+    expect(ing.spec.tls[0]).toEqual({ hosts: ['d-dep123.preview.e-code.ai'], secretName: 'vibecore-preview-wildcard-tls' });
+    expect(ing.spec.rules[0].http.paths[0].backend.service.port.number).toBe(80);
+  });
+});
