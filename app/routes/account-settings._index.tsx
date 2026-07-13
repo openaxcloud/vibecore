@@ -4,6 +4,7 @@ import { data as json } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { Button } from '~/components/ui/Button';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
+import { TimezoneSelector } from '~/components/ui/TimezoneSelector';
 import {
   apiErrorMessage,
   apiRequest,
@@ -12,6 +13,7 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 import { shouldRethrowActionError } from '~/lib/route-reauth';
+import { isValidIanaTimeZone } from '~/lib/time-zones';
 import { useUnsavedChangesGuard } from '~/lib/use-unsaved-guard';
 
 export const meta: MetaFunction = () => [{ title: 'Account settings - E-Code' }];
@@ -32,6 +34,11 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
 export async function action({ request }: EnterpriseActionArgs) {
   const body = formObject(await request.formData()) as { name?: string; email?: string; timezone?: string };
+  const timezone = body.timezone?.trim();
+
+  if (timezone && !isValidIanaTimeZone(timezone)) {
+    return json({ error: 'Choose a valid IANA time zone.' }, { status: 400 });
+  }
 
   /*
    * Only send fields the user actually filled in. The API's userProfileSchema
@@ -65,13 +72,12 @@ export async function action({ request }: EnterpriseActionArgs) {
   return json({ status: 'Account settings saved.' });
 }
 
-const FIELDS = [
+const PROFILE_FIELDS = [
   { label: 'Name', name: 'name', type: 'text', placeholder: 'Ada Lovelace' },
   { label: 'Email', name: 'email', type: 'email', placeholder: 'ada@example.com' },
-  { label: 'Timezone', name: 'timezone', type: 'text', placeholder: 'UTC' },
 ] as const;
 
-type FieldName = (typeof FIELDS)[number]['name'];
+type FieldName = 'name' | 'email' | 'timezone';
 
 export default function AccountSettingsIndex() {
   const { user } = useLoaderData<typeof loader>();
@@ -109,11 +115,11 @@ export default function AccountSettingsIndex() {
           </p>
         ) : null}
         <Form className="grid gap-4" method="post">
-          {FIELDS.map((field) => (
+          {PROFILE_FIELDS.map((field) => (
             <label key={field.name} className="grid gap-2 text-sm font-medium">
               {field.label}
               <input
-                className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
+                className="h-[44px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
                 name={field.name}
                 type={field.type}
                 placeholder={field.placeholder}
@@ -122,8 +128,13 @@ export default function AccountSettingsIndex() {
               />
             </label>
           ))}
+          <TimezoneSelector
+            value={values.timezone}
+            disabled={submitting}
+            onChange={(timezone) => setValues((current) => ({ ...current, timezone }))}
+          />
           <div>
-            <Button type="submit" disabled={!dirty || submitting}>
+            <Button type="submit" className="min-h-[44px]" disabled={!dirty || submitting}>
               {submitting ? 'Saving…' : 'Save changes'}
             </Button>
           </div>
