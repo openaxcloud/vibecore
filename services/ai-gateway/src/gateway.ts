@@ -9,6 +9,7 @@ export type AiProviderId =
   | 'mistral'
   | 'groq'
   | 'xai'
+  | 'moonshot'
   | 'ollama';
 
 export type AiPlanKey = 'free' | 'pro' | 'business' | 'enterprise' | 'self-host';
@@ -140,6 +141,13 @@ export function providerConfigs(): ProviderConfig[] {
       defaultModel: 'grok-2-latest',
     },
     {
+      id: 'moonshot',
+      kind: 'openai-compatible',
+      baseUrl: process.env.MOONSHOT_BASE_URL ?? 'https://api.moonshot.ai/v1',
+      apiKeyEnv: 'MOONSHOT_API_KEY',
+      defaultModel: 'moonshot-v1-8k',
+    },
+    {
       id: 'ollama',
       kind: 'ollama',
       baseUrl: process.env.OLLAMA_BASE_URL ?? 'http://127.0.0.1:11434',
@@ -254,6 +262,262 @@ export const modelCatalog: AiModel[] = [
     inputCentsPerMillion: 0,
     outputCentsPerMillion: 0,
     contextWindow: 128_000,
+  },
+
+  /*
+   * Catalogue synced 2026-07-13 with the web providers so a multi-agent lane runs
+   * the EXACT model the user chose (previously an id the gateway didn't know was
+   * silently downgraded via planFallback — a product lie). Pricing is approximate
+   * (cost ESTIMATE only; real billing is computeAiCostCents on the api side).
+   */
+  // --- OpenAI ---
+  {
+    id: 'gpt-4.1-nano',
+    provider: 'openai',
+    displayName: 'GPT-4.1 Nano',
+    plans: ['free', 'pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 10,
+    outputCentsPerMillion: 40,
+    contextWindow: 1_000_000,
+    maxCompletionTokens: 32768,
+  },
+  {
+    id: 'gpt-4o',
+    provider: 'openai',
+    displayName: 'GPT-4o',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 250,
+    outputCentsPerMillion: 1000,
+    contextWindow: 128_000,
+    maxCompletionTokens: 16384,
+  },
+  {
+    id: 'gpt-4o-mini',
+    provider: 'openai',
+    displayName: 'GPT-4o Mini',
+    plans: ['free', 'pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 15,
+    outputCentsPerMillion: 60,
+    contextWindow: 128_000,
+    maxCompletionTokens: 16384,
+  },
+  {
+    id: 'gpt-3.5-turbo',
+    provider: 'openai',
+    displayName: 'GPT-3.5 Turbo',
+    plans: ['free', 'pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 50,
+    outputCentsPerMillion: 150,
+    contextWindow: 16_000,
+    maxCompletionTokens: 4096,
+  },
+  {
+    id: 'o1',
+    provider: 'openai',
+    displayName: 'o1',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 1500,
+    outputCentsPerMillion: 6000,
+    contextWindow: 200_000,
+    maxCompletionTokens: 100000,
+  },
+  {
+    id: 'o3-mini',
+    provider: 'openai',
+    displayName: 'o3-mini',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 110,
+    outputCentsPerMillion: 440,
+    contextWindow: 200_000,
+    maxCompletionTokens: 100000,
+  },
+  {
+    id: 'o3',
+    provider: 'openai',
+    displayName: 'o3',
+    plans: ['business', 'enterprise'],
+    inputCentsPerMillion: 1000,
+    outputCentsPerMillion: 4000,
+    contextWindow: 200_000,
+    maxCompletionTokens: 100000,
+  },
+
+  // --- Anthropic ---
+  {
+    id: 'claude-opus-4-8',
+    provider: 'anthropic',
+    displayName: 'Claude Opus 4.8',
+    plans: ['business', 'enterprise'],
+    inputCentsPerMillion: 1500,
+    outputCentsPerMillion: 7500,
+    contextWindow: 1_000_000,
+    maxCompletionTokens: 128000,
+  },
+  {
+    id: 'claude-sonnet-4-6',
+    provider: 'anthropic',
+    displayName: 'Claude Sonnet 4.6',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 300,
+    outputCentsPerMillion: 1500,
+    contextWindow: 1_000_000,
+    maxCompletionTokens: 64000,
+  },
+  {
+    id: 'claude-sonnet-4-5-20250929',
+    provider: 'anthropic',
+    displayName: 'Claude Sonnet 4.5',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 300,
+    outputCentsPerMillion: 1500,
+    contextWindow: 200_000,
+    maxCompletionTokens: 64000,
+  },
+  {
+    id: 'claude-opus-4-7',
+    provider: 'anthropic',
+    displayName: 'Claude Opus 4.7',
+    plans: ['business', 'enterprise'],
+    inputCentsPerMillion: 1500,
+    outputCentsPerMillion: 7500,
+    contextWindow: 200_000,
+    maxCompletionTokens: 32000,
+  },
+  {
+    id: 'claude-haiku-4-5-20251001',
+    provider: 'anthropic',
+    displayName: 'Claude Haiku 4.5',
+    plans: ['free', 'pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 100,
+    outputCentsPerMillion: 500,
+    contextWindow: 200_000,
+    maxCompletionTokens: 64000,
+  },
+
+  // --- Google ---
+  {
+    id: 'gemini-flash-lite-latest',
+    provider: 'google-gemini',
+    displayName: 'Gemini Flash Lite (latest)',
+    plans: ['free', 'pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 10,
+    outputCentsPerMillion: 40,
+    contextWindow: 1_048_576,
+    maxCompletionTokens: 65536,
+  },
+
+  // --- xAI ---
+  {
+    id: 'grok-4',
+    provider: 'xai',
+    displayName: 'Grok 4',
+    plans: ['business', 'enterprise'],
+    inputCentsPerMillion: 300,
+    outputCentsPerMillion: 1500,
+    contextWindow: 256_000,
+    maxCompletionTokens: 32768,
+  },
+  {
+    id: 'grok-4-07-09',
+    provider: 'xai',
+    displayName: 'Grok 4 (07-09)',
+    plans: ['business', 'enterprise'],
+    inputCentsPerMillion: 300,
+    outputCentsPerMillion: 1500,
+    contextWindow: 256_000,
+    maxCompletionTokens: 32768,
+  },
+  {
+    id: 'grok-3-mini',
+    provider: 'xai',
+    displayName: 'Grok 3 Mini',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 30,
+    outputCentsPerMillion: 50,
+    contextWindow: 131_000,
+    maxCompletionTokens: 16384,
+  },
+  {
+    id: 'grok-3-mini-fast',
+    provider: 'xai',
+    displayName: 'Grok 3 Mini Fast',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 60,
+    outputCentsPerMillion: 100,
+    contextWindow: 131_000,
+    maxCompletionTokens: 16384,
+  },
+  {
+    id: 'grok-code-fast-1',
+    provider: 'xai',
+    displayName: 'Grok Code Fast 1',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 20,
+    outputCentsPerMillion: 150,
+    contextWindow: 131_000,
+    maxCompletionTokens: 16384,
+  },
+
+  // --- Moonshot (openai-compatible) ---
+  {
+    id: 'moonshot-v1-8k',
+    provider: 'moonshot',
+    displayName: 'Moonshot v1 8k',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 120,
+    outputCentsPerMillion: 120,
+    contextWindow: 8_000,
+    maxCompletionTokens: 4096,
+  },
+  {
+    id: 'moonshot-v1-32k',
+    provider: 'moonshot',
+    displayName: 'Moonshot v1 32k',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 240,
+    outputCentsPerMillion: 240,
+    contextWindow: 32_000,
+    maxCompletionTokens: 8192,
+  },
+  {
+    id: 'moonshot-v1-128k',
+    provider: 'moonshot',
+    displayName: 'Moonshot v1 128k',
+    plans: ['business', 'enterprise'],
+    inputCentsPerMillion: 600,
+    outputCentsPerMillion: 600,
+    contextWindow: 128_000,
+    maxCompletionTokens: 8192,
+  },
+  {
+    id: 'kimi-latest',
+    provider: 'moonshot',
+    displayName: 'Kimi (latest)',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 200,
+    outputCentsPerMillion: 500,
+    contextWindow: 128_000,
+    maxCompletionTokens: 8192,
+  },
+  {
+    id: 'kimi-k2-0711-preview',
+    provider: 'moonshot',
+    displayName: 'Kimi K2',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 60,
+    outputCentsPerMillion: 250,
+    contextWindow: 128_000,
+    maxCompletionTokens: 8192,
+  },
+  {
+    id: 'kimi-k2-turbo-preview',
+    provider: 'moonshot',
+    displayName: 'Kimi K2 Turbo',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 120,
+    outputCentsPerMillion: 500,
+    contextWindow: 128_000,
+    maxCompletionTokens: 8192,
   },
 ];
 
@@ -1393,9 +1657,30 @@ export class AiGateway {
      */
     if (request.planFallback) {
       const requested = request.model ? modelCatalog.find((model) => model.id === request.model) : undefined;
-      const allowedForPlan = Boolean(requested && requested.plans.includes(plan));
 
-      if (!allowedForPlan) {
+      /*
+       * GUARD-RAIL (2026-07-13): an UNKNOWN model must NEVER be silently downgraded
+       * to a foreign default — that hands the user a different model than they chose
+       * without telling them (a product lie, and it broke the cache measurement).
+       * The catalog is now synced with the web providers, so a real chosen model is
+       * always `requested`; a still-unknown id is genuinely invalid → fail loud.
+       */
+      if (request.model && !requested) {
+        throw Object.assign(new Error(`Model '${request.model}' is not in the gateway catalog`), {
+          statusCode: 400,
+          code: 'AI_MODEL_UNKNOWN',
+        });
+      }
+
+      /*
+       * KNOWN but plan-blocked (e.g. a Free user's lane requested a premium model):
+       * resolve to the plan's default allowed model so the multi-agent run still
+       * succeeds instead of failing the whole consensus. This is legitimate PLAN
+       * gating (the user's plan can't use that tier) — surfaced to the user via the
+       * web `agentModesGated` annotation — not a silent substitution of an available
+       * model. Distinct from the UNKNOWN case above, which now fails loud.
+       */
+      if (requested && !requested.plans.includes(plan)) {
         const planDefault = this.models(plan)[0];
 
         if (planDefault) {

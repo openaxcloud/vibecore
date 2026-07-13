@@ -164,6 +164,45 @@ describe('AiGateway', () => {
     expect(routed.model.id).toBe('gpt-4.1-mini');
   });
 
+  it('runs the EXACT chosen frontier model (no silent downgrade) once it is in the synced catalog', () => {
+    process.env.ANTHROPIC_API_KEY = 'k';
+
+    const gateway = new AiGateway();
+
+    // Enterprise user picks a current frontier model — the lane must use THAT model.
+    const routed = gateway.route({
+      plan: 'enterprise',
+      provider: 'anthropic',
+      model: 'claude-opus-4-8',
+      planFallback: true,
+      messages: [],
+    });
+    expect(routed.model.id).toBe('claude-opus-4-8');
+    expect(routed.providers[0].id).toBe('anthropic');
+  });
+
+  it('GUARD-RAIL: an UNKNOWN model fails loud (AI_MODEL_UNKNOWN), never a silent downgrade', () => {
+    process.env.OPENAI_API_KEY = 'k';
+
+    const gateway = new AiGateway();
+
+    let caught: any;
+
+    try {
+      gateway.route({
+        plan: 'enterprise',
+        provider: 'anthropic',
+        model: 'claude-does-not-exist-9',
+        planFallback: true,
+        messages: [],
+      });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught?.code).toBe('AI_MODEL_UNKNOWN');
+    expect(caught?.statusCode).toBe(400);
+  });
+
   it('routes by plan and falls back to the next configured provider', async () => {
     const failing = await startProvider((_body, response) => {
       response.writeHead(503).end('down');
