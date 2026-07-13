@@ -22,8 +22,10 @@ export type WorkspaceBuildLine = { level: StaticBuildLogLevel; line: string };
 export interface WorkspaceBuildStepResult {
   /** Process exit code; null when killed by signal (e.g. SIGKILL on timeout). */
   exitCode: number | null;
+
   /** True when the step exceeded its deadline and was killed. */
   timedOut: boolean;
+
   /** Transport-level failure (agent unreachable, WS error). */
   error?: string;
 }
@@ -31,6 +33,7 @@ export interface WorkspaceBuildStepResult {
 export interface WorkspaceListedFile {
   /** Path relative to the workspace root (posix separators). */
   path: string;
+
   /** Byte size when known (used for the artifact-size gate). */
   size?: number;
 }
@@ -57,22 +60,29 @@ export interface WorkspaceBuildAgent {
 export interface WorkspaceStaticBuildOptions {
   /** Package-manager install step. Detected by the caller from the pod's lockfiles. */
   install: { command: string; args: string[] };
+
   /** The raw build command, e.g. `npm run build`. */
   buildCommand: string;
+
   /** Output directory relative to the project root, e.g. `dist`. */
   outputDirectory: string;
+
   /** Build cwd relative to the workspace root ('.' for the project root). */
   cwd: string;
+
   /** Absolute API-local directory to materialize the pulled artifact into. */
   materializeDir: string;
+
   /** Per-file cap enforced by the workspace-agent (bytes) — files above it can't be pulled. */
   maxFileBytes: number;
   artifactSizeLimitMb?: number;
+
   /**
    * Called for every log line as it happens (P2: lets the caller flush build
    * output to the deployment record incrementally so the UI streams it live).
    */
   onLog?: (log: StaticBuildLog) => void;
+
   /**
    * Called when the build enters a new phase (installing → building → deploying).
    * Drives the async status/phase the UI shows.
@@ -96,6 +106,7 @@ export type WorkspaceStaticBuildErrorCode =
 export interface WorkspaceStaticBuildResult {
   ok: boolean;
   logs: StaticBuildLog[];
+
   /** Equals `materializeDir` when ok — feed straight into snapshotStaticBuild(). */
   outputDir?: string;
   error?: WorkspaceStaticBuildErrorCode;
@@ -103,6 +114,7 @@ export interface WorkspaceStaticBuildResult {
 
 function makeLogger(onLog?: (log: StaticBuildLog) => void) {
   const logs: StaticBuildLog[] = [];
+
   const push = (level: StaticBuildLogLevel, message: string) => {
     const entry = { timestamp: new Date().toISOString(), level, message };
     logs.push(entry);
@@ -161,7 +173,10 @@ export async function runWorkspaceStaticBuild(
 
   // 1. Install dependencies.
   options.onPhase?.('installing');
-  log.push('info', `Workspace deploy: installing dependencies (${options.install.command} ${options.install.args.join(' ')})`);
+  log.push(
+    'info',
+    `Workspace deploy: installing dependencies (${options.install.command} ${options.install.args.join(' ')})`,
+  );
 
   const install = await agent.runStep({
     command: options.install.command,
@@ -218,11 +233,15 @@ export async function runWorkspaceStaticBuild(
 
   // 3. Enumerate + pull the built output directory.
   options.onPhase?.('deploying');
+
   const prefix = outputPrefix(cwd, options.outputDirectory);
   const listing = await agent.listFiles(prefix);
 
   if (listing.error) {
-    log.push('error', `Workspace deploy: could not read ${options.outputDirectory}/ from the workspace (${listing.error}).`);
+    log.push(
+      'error',
+      `Workspace deploy: could not read ${options.outputDirectory}/ from the workspace (${listing.error}).`,
+    );
     return { ok: false, logs: log.logs, error: 'PULL_FAILED' };
   }
 
@@ -237,6 +256,7 @@ export async function runWorkspaceStaticBuild(
   // 4. A static site must have an index.html at the output root.
   const relFiles = listing.files.map((file) => ({
     ...file,
+
     // path relative to the output directory, posix.
     rel: posix.relative(prefix, file.path),
   }));
@@ -281,7 +301,10 @@ export async function runWorkspaceStaticBuild(
     try {
       payload = await agent.readFile(file.path);
     } catch (error) {
-      log.push('error', `Workspace deploy: failed to read ${file.rel} from the workspace (${(error as Error).message}).`);
+      log.push(
+        'error',
+        `Workspace deploy: failed to read ${file.rel} from the workspace (${(error as Error).message}).`,
+      );
       return { ok: false, logs: log.logs, error: 'PULL_FAILED' };
     }
 
@@ -323,5 +346,16 @@ export function detectPodPackageManager(topLevelFiles: string[]): { command: str
     return { manager: 'bun', command: 'bun', args: ['install'] };
   }
 
-  return { manager: 'npm', command: 'npm', args: ['install', '--include=dev', '--no-audit', '--no-fund'] };
+  /*
+   * `--legacy-peer-deps`: AI-generated apps routinely ship peer-dependency
+   * conflicts (e.g. vite@4 with a vite-plugin-checker that peers vite@^2||^3),
+   * which npm v7+ turns into a hard ERESOLVE that fails the whole deploy even
+   * though the preview dev server (whose install tolerates it) runs fine. Match
+   * that tolerance so a valid app doesn't fail to deploy on a peer-range nit.
+   */
+  return {
+    manager: 'npm',
+    command: 'npm',
+    args: ['install', '--include=dev', '--no-audit', '--no-fund', '--legacy-peer-deps'],
+  };
 }

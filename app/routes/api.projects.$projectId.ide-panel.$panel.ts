@@ -1172,7 +1172,27 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     throw json({ error: 'Project panel not found' }, { status: 404 });
   }
 
-  const body = formObject(await request.formData()) as Record<string, string>;
+  /*
+   * Accept BOTH form-encoded (the in-app panels submit that) and JSON (API
+   * clients / scripts). Previously this called request.formData() unconditionally,
+   * so a JSON body threw a raw TypeError and surfaced as an opaque 500. Detect the
+   * content type, and on any parse failure return a clear 400 instead of a 500.
+   */
+  let body: Record<string, string>;
+  try {
+    const contentType = request.headers.get('content-type') ?? '';
+
+    if (contentType.includes('application/json')) {
+      body = ((await request.json()) ?? {}) as Record<string, string>;
+    } else {
+      body = formObject(await request.formData()) as Record<string, string>;
+    }
+  } catch {
+    throw json(
+      { error: 'Invalid request body — expected form-encoded or application/json.' },
+      { status: 400 },
+    );
+  }
   const intent = body.intent ?? 'default';
 
   if (panel === 'snapshots') {

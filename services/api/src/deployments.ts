@@ -835,7 +835,15 @@ function detectPackageManager(projectDir: string) {
     return { manager: 'bun', install: ['install'] } as const;
   }
 
-  return { manager: 'npm', install: ['install', '--include=dev', '--no-audit', '--no-fund'] } as const;
+  /*
+   * `--legacy-peer-deps`: tolerate the peer-dependency conflicts AI-generated
+   * apps routinely ship (npm v7+ ERESOLVE) so a valid app that previews fine
+   * doesn't fail to deploy on a peer-range nit. Mirrors deploy-workspace-build.
+   */
+  return {
+    manager: 'npm',
+    install: ['install', '--include=dev', '--no-audit', '--no-fund', '--legacy-peer-deps'],
+  } as const;
 }
 
 function existsSync(targetPath: string) {
@@ -895,6 +903,7 @@ export interface StaticBuildLog {
 
 export interface RunStaticBuildOptions {
   projectId: string;
+
   /**
    * Optional workspace scope. When set, the build runs from the workspace's
    * checkout under `<projectStorage>/<projectId>/.vibecore-workspaces/<workspaceId>/`
@@ -1114,6 +1123,7 @@ export async function runStaticBuild(options: RunStaticBuildOptions): Promise<Ru
    */
   const deadline = Date.now() + timeoutMs;
   const remainingMs = () => Math.max(1, deadline - Date.now());
+
   const projectDir = options.workspaceId
     ? workspaceStorageDir(options.projectId, options.workspaceId)
     : projectStorageDir(options.projectId);
