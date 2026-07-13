@@ -106,6 +106,31 @@ describe('createGoogleCachingFetch', () => {
     }
   });
 
+  it('scopes the reuse map per API key (BYOK: identical system, different keys → no cross-key reuse)', async () => {
+    let createCount = 0;
+
+    const base = vi.fn(async (input: any) => {
+      const url = typeof input === 'string' ? input : input.url;
+
+      if (url.endsWith('/cachedContents')) {
+        createCount += 1;
+        return new Response(JSON.stringify({ name: `cachedContents/${createCount}` }), { status: 200 });
+      }
+
+      return okStream(9000);
+    }) as unknown as typeof fetch;
+
+    // Two BYOK users on the same warm pod send the byte-identical static Bolt system.
+    const userA = createGoogleCachingFetch(base, 'KEY-A', { baseURL: BASE });
+    const userB = createGoogleCachingFetch(base, 'KEY-B', { baseURL: BASE });
+
+    await userA(STREAM_URL, { method: 'POST', body: generateBody(bigSystem()) });
+    await userB(STREAM_URL, { method: 'POST', body: generateBody(bigSystem()) });
+
+    // Distinct keys → distinct cache resources; B must not reuse A's key-scoped name.
+    expect(createCount).toBe(2);
+  });
+
   it('skips caching (forwards original) when the system is below the per-model minimum', async () => {
     const calls: string[] = [];
 

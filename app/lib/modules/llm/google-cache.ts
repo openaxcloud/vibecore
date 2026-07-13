@@ -140,14 +140,21 @@ interface CacheEntry {
 
 /**
  * The reuse map + in-flight dedupe are module-level so they persist across turns
- * within one server process (a warm web pod). Keyed by `<model>::<hash(system)>`
- * so a byte-stable system prompt reuses turn-1's cachedContents on every later turn.
+ * within one server process (a warm web pod). Keyed by
+ * `<hash(apiKey)>::<model>::<hash(system)>`.
+ *
+ * The apiKey fingerprint is essential in BYOK mode: a `cachedContents` resource is
+ * owned by the API key / project that created it, and the large Bolt
+ * `systemInstruction` is byte-IDENTICAL across users. Without key-scoping, user B on
+ * the same warm pod would receive user A's key-scoped cache name → Google 403 → the
+ * fail-safe retry recovers but churns a needless create. Managed prod uses one
+ * platform key so it never collides; keying by the key makes BYOK correct too.
  */
 const cacheStore = new Map<string, CacheEntry>();
 const inFlight = new Map<string, Promise<string | null>>();
 
-function cacheKeyFor(model: string, systemText: string): string {
-  return `${model}::${hashText(systemText)}`;
+function cacheKeyFor(apiKey: string, model: string, systemText: string): string {
+  return `${hashText(apiKey)}::${model}::${hashText(systemText)}`;
 }
 
 /** Test seam — drop all reuse state so specs start clean. */
@@ -170,7 +177,7 @@ async function getOrCreateCachedContent(
   systemText: string,
   now: number,
 ): Promise<string | null> {
-  const key = cacheKeyFor(model, systemText);
+  const key = cacheKeyFor(apiKey, model, systemText);
 
   const existing = cacheStore.get(key);
 
@@ -360,7 +367,7 @@ export function createGoogleCachingFetch(
         const systemText = parsed ? extractSystemInstructionText(parsed.systemInstruction) : '';
 
         if (model && systemText) {
-          cacheStore.delete(cacheKeyFor(model, systemText));
+          cacheStore.delete(cacheKeyFor(apiKey, model, systemText));
         }
       } catch {
         // ignore — the retry below is the real safety net
