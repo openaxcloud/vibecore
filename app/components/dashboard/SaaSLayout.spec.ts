@@ -43,8 +43,12 @@ describe('public marketing brand', () => {
     const stylesSource = readFileSync(join(process.cwd(), 'app/styles/index.scss'), 'utf8');
     const sidebarRule = extractCssRule(stylesSource, '.vc-sidebar');
     const drawerRule = extractCssRule(stylesSource, '.vc-sidebar-drawer-panel');
+    const drawerScrollRule = extractCssRule(stylesSource, '.vc-sidebar-scroll-region');
 
     expect(layoutSource).toContain('min-h-0 flex-1 overflow-y-auto overflow-x-visible');
+    expect(layoutSource).toContain('className="flex min-h-0 flex-1 overflow-hidden"');
+    expect(layoutSource).toContain('<SidebarBody collapsed={false} mobile />');
+    expect(layoutSource).toContain("data-testid={mobile ? 'mobile-navigation-scroll-region' : undefined}");
     expect(layoutSource).toContain(
       'vc-sidebar vc-sidebar--desktop relative overflow-visible border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2',
     );
@@ -65,6 +69,9 @@ describe('public marketing brand', () => {
     expect(drawerRule).toContain('height: 100dvh');
     expect(drawerRule).toContain('max-height: 100dvh');
     expect(drawerRule).toContain('overflow: hidden');
+    expect(drawerScrollRule).toContain('overscroll-behavior-y: contain');
+    expect(drawerScrollRule).toContain('touch-action: pan-y');
+    expect(drawerScrollRule).toContain('-webkit-overflow-scrolling: touch');
   });
 
   it('keeps user-area navigation labelled, tablet-aware and touch accessible', () => {

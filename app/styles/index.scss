@@ -3970,6 +3970,17 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   transform: translateX(0);
 }
 
+.vc-sidebar-scroll-region {
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.vc-sidebar-drawer-footer {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
+}
+
 .vc-sidebar-cta {
   background: var(--vc-action-primary);
   color: var(--vc-action-primary-foreground);

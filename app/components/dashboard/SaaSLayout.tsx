@@ -931,14 +931,16 @@ function SidebarToggle({ collapsed, onToggle }: { collapsed: boolean; onToggle: 
   );
 }
 
-function SidebarBody({ collapsed }: { collapsed: boolean }) {
+function SidebarBody({ collapsed, mobile = false }: { collapsed: boolean; mobile?: boolean }) {
   return (
     <nav
       className={classNames(
         'min-h-0 flex-1 overflow-y-auto overflow-x-visible px-3 py-3',
         collapsed && 'items-center px-2',
+        mobile && 'vc-sidebar-scroll-region',
       )}
       aria-label="Application navigation"
+      data-testid={mobile ? 'mobile-navigation-scroll-region' : undefined}
     >
       <CreateProjectCta collapsed={collapsed} />
       <NavSection items={workspaceNav} collapsed={collapsed} />
@@ -997,10 +999,10 @@ function MobileSidebarDrawer({ open, onClose }: { open: boolean; onClose: () => 
             <X className="h-4 w-4" aria-hidden />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-hidden" onClick={onClose} role="presentation">
-          <SidebarBody collapsed={false} />
+        <div className="flex min-h-0 flex-1 overflow-hidden" onClick={onClose} role="presentation">
+          <SidebarBody collapsed={false} mobile />
         </div>
-        <div className="shrink-0 border-t border-bolt-elements-borderColor px-3 py-3">
+        <div className="vc-sidebar-drawer-footer shrink-0 border-t border-bolt-elements-borderColor px-3 pt-3">
           <SidebarFooter collapsed={false} embedded />
         </div>
       </aside>
