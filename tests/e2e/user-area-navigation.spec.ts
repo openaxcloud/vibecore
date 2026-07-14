@@ -126,12 +126,63 @@ async function captureEvidence(page: Page, filename: string) {
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
-  const overflow = await page.evaluate(() => ({
-    viewportWidth: window.innerWidth,
-    documentWidth: document.documentElement.scrollWidth,
-  }));
+  const overflow = await page.evaluate(() => {
+    const describeElement = (element: HTMLElement) => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
 
-  expect(overflow.documentWidth).toBeLessThanOrEqual(overflow.viewportWidth);
+      return {
+        tag: element.tagName.toLowerCase(),
+        className: typeof element.className === 'string' ? element.className : '',
+        testId: element.dataset.testid ?? '',
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+        minWidth: style.minWidth,
+        overflowX: style.overflowX,
+        left: Math.round(rect.left),
+        right: Math.round(rect.right),
+        width: Math.round(rect.width),
+      };
+    };
+
+    return {
+      viewportWidth: window.innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      bodyWidth: document.body.scrollWidth,
+      roots: [
+        document.documentElement,
+        document.body,
+        ...document.querySelectorAll<HTMLElement>('main, .vc-app-shell-grid, #main-content'),
+      ].map((element) => describeElement(element as HTMLElement)),
+      scrollRegions: Array.from(document.querySelectorAll<HTMLElement>('[data-testid$="scroll-region"]')).map(
+        (element) => {
+          const ancestors: ReturnType<typeof describeElement>[] = [];
+
+          let current = element.parentElement;
+
+          while (current && ancestors.length < 6) {
+            ancestors.push(describeElement(current));
+            current = current.parentElement;
+          }
+
+          return {
+            ...describeElement(element),
+            ancestors,
+          };
+        },
+      ),
+      offenders: Array.from(document.querySelectorAll<HTMLElement>('body *'))
+        .map((element) => describeElement(element))
+        .filter((element) => element.right > window.innerWidth + 1 || element.left < -1)
+        .sort((left, right) => right.width - left.width)
+        .slice(0, 8),
+    };
+  });
+
+  expect(
+    overflow.documentWidth,
+    `Horizontal overflow roots: ${JSON.stringify(overflow.roots)}; offenders: ${JSON.stringify(overflow.offenders)}; scroll regions: ${JSON.stringify(overflow.scrollRegions)}`,
+  ).toBeLessThanOrEqual(overflow.viewportWidth);
 }
 
 async function expectDashboardReady(page: Page) {
@@ -486,4 +537,75 @@ test('async user-area panels recover from an unavailable API without exposing fa
       await expect(retry).toBeVisible();
     }
   }
+});
+
+test.describe('user-area locale consistency', () => {
+  test.use({ locale: 'fr-FR' });
+
+  test('keeps English dates and 44px controls across responsive themes', async ({ page }) => {
+    test.setTimeout(240_000);
+
+    await provisionWorkspace(page);
+    await installHydrationObserver(page);
+    await setTheme(page, 'light');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/api-keys');
+    await expectUserAreaReady(page, 'API keys');
+
+    await page.getByRole('button', { name: 'Create key', exact: true }).first().click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('heading', { name: 'Create an API key' })).toBeVisible();
+    await dialog.getByLabel('Name').fill('Locale verification key');
+    await dialog.getByRole('button', { name: 'Create key', exact: true }).click();
+    await expect(page.getByText(/Key created — copy it now/u)).toBeVisible({ timeout: 30_000 });
+
+    const englishExpiration = /^(?:Expires )?\d{1,2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) \d{4}$/u;
+
+    for (const viewport of [
+      { width: 1440, height: 900, theme: 'light' as const, capture: true },
+      { width: 768, height: 900, theme: 'light' as const, capture: false },
+      { width: 1024, height: 768, theme: 'dark' as const, capture: false },
+      { width: 390, height: 844, theme: 'dark' as const, capture: true },
+    ]) {
+      await setTheme(page, viewport.theme);
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.reload();
+      await expectUserAreaReady(page, 'API keys');
+      await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+
+      const responsiveKeySurface =
+        viewport.width >= 1280
+          ? page.getByTestId('api-key-table-scroll-region')
+          : page.getByTestId('api-key-mobile-list');
+
+      await expect(responsiveKeySurface).toBeVisible();
+      await expect(responsiveKeySurface.getByText(englishExpiration)).toBeVisible();
+      await expect(page.getByText(/(?:juil|août|sept\.|oct\.|déc\.)/iu)).toHaveCount(0);
+      await expectNoHorizontalOverflow(page);
+
+      if (viewport.width < 1280) {
+        await expect(page.getByTestId('api-key-table-scroll-region')).toBeHidden();
+      } else {
+        await expect(page.getByTestId('api-key-mobile-list')).toBeHidden();
+      }
+
+      const visibleControlHeights = await page.locator('#main-content button').evaluateAll((elements) =>
+        elements
+          .filter((element) => {
+            const style = window.getComputedStyle(element);
+
+            return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0;
+          })
+          .map((element) => element.getBoundingClientRect().height),
+      );
+
+      expect(visibleControlHeights.length).toBeGreaterThan(0);
+      expect(Math.min(...visibleControlHeights)).toBeGreaterThanOrEqual(44);
+
+      if (viewport.capture) {
+        await captureEvidence(page, `user-area-locale-${viewport.theme}-${viewport.width}.jpg`);
+      }
+    }
+  });
 });
