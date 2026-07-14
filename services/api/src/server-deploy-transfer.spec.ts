@@ -48,6 +48,30 @@ describe('snapshotWorkspaceAppSource', () => {
     expect(agent.readFile as ReturnType<typeof vi.fn>).toHaveBeenCalledWith(serverDeploySourceTarPath('dep1'));
   });
 
+  it('writes the tarball to a workspace-relative path (the agent 404s /tmp) and removes it after', async () => {
+    const calls: { args: string[] }[] = [];
+    const agent = fakeAgent({
+      runStep: vi.fn(async ({ args }: { args: string[] }) => {
+        calls.push({ args });
+
+        return { exitCode: 0, timedOut: false };
+      }),
+    });
+
+    await snapshotWorkspaceAppSource({ agent, deploymentId: 'dep1' });
+
+    // The agent's /files/read only serves the workspace root, so the tar path must
+    // be workspace-relative (a dotfile), NOT an absolute /tmp path.
+    const tarPath = serverDeploySourceTarPath('dep1');
+    expect(tarPath.startsWith('/')).toBe(false);
+    expect(calls[0].args[1]).toContain(`tar czf ${tarPath}`);
+    expect(calls[0].args[1]).toContain('--exclude=./.vibecore-src-*');
+
+    // After the read, the tarball is removed from the user's workspace.
+    const last = calls[calls.length - 1];
+    expect(last.args[1]).toBe(`rm -f ${tarPath}`);
+  });
+
   it('uploads to object storage and returns a signed URL when available', async () => {
     const putObject = vi.fn(async () => ({ key: 'tmp/server-deploy/dep2.tgz', size: 13 }));
     const createDownloadUrl = vi.fn(async () => ({

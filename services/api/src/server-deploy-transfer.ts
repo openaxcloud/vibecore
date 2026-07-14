@@ -27,7 +27,13 @@ export interface SnapshotAgent {
   readFile(filePath: string): Promise<{ content: string; encoding: 'utf8' | 'base64' }>;
 }
 
-export const serverDeploySourceTarPath = (deploymentId: string) => `/tmp/vibecore-src-${deploymentId}.tgz`;
+/*
+ * The tarball is written INSIDE the workspace root (a dotfile), not /tmp: the
+ * workspace agent's `/files/read` only serves paths under the workspace root and
+ * 404s an absolute /tmp path. It is excluded from its own archive and removed
+ * right after it's pulled, so it never lingers in the user's project.
+ */
+export const serverDeploySourceTarPath = (deploymentId: string) => `.vibecore-src-${deploymentId}.tgz`;
 
 /*
  * Inline base64 is a pod-spec env value, and a Kubernetes object must fit in etcd
@@ -76,6 +82,7 @@ export async function snapshotWorkspaceAppSource(opts: {
     '--exclude=./node_modules',
     '--exclude=./.git',
     '--exclude=./.vibecore-deploy-*',
+    '--exclude=./.vibecore-src-*',
     opts.extraExclude ? `--exclude=${opts.extraExclude}` : '',
     '.',
   ]
@@ -110,12 +117,17 @@ export async function snapshotWorkspaceAppSource(opts: {
   try {
     file = await opts.agent.readFile(tarPath);
   } catch (error) {
+    await cleanupTarball(opts.agent, tarPath, cwd);
+
     return {
       ok: false,
       error: 'SNAPSHOT_FAILED',
       message: `Could not read the app snapshot from the workspace (${(error as Error).message ?? 'unknown error'}).`,
     };
   }
+
+  // The tarball lives in the user's workspace root — remove it now that it's pulled.
+  await cleanupTarball(opts.agent, tarPath, cwd);
 
   const base64 = file.encoding === 'base64' ? file.content : Buffer.from(file.content, 'utf8').toString('base64');
   const raw = Buffer.from(base64, 'base64');
@@ -157,6 +169,21 @@ export async function snapshotWorkspaceAppSource(opts: {
   }
 
   return { ok: true, transfer: { kind: 'inline', base64 }, bytes: raw.byteLength };
+}
+
+/** Best-effort removal of the workspace-root tarball; never throws. */
+async function cleanupTarball(agent: SnapshotAgent, tarPath: string, cwd: string): Promise<void> {
+  try {
+    await agent.runStep({
+      command: 'sh',
+      args: ['-c', `rm -f ${tarPath}`],
+      cwd,
+      onLine: () => undefined,
+    });
+  } catch {
+    // The tarball is excluded from future snapshots and lives only in the pod's
+    // ephemeral view of the workspace; a failed cleanup is not worth failing on.
+  }
 }
 
 /**
