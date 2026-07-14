@@ -114,6 +114,14 @@ export interface PreviewProxyOptions {
    * (`app-<id>` in the workspaces runtime namespace, port 80).
    */
   serverDeployUpstreamTemplate?: string;
+
+  /*
+   * workspace-manager base URL + shared secret for the scale-to-zero activator.
+   * When set, an unreachable deploy upstream triggers a wake (scale 0→1) before
+   * the proxy gives up. Default from WORKSPACE_MANAGER_URL / *_SHARED_SECRET.
+   */
+  serverDeployManagerUrl?: string;
+  serverDeployManagerSecret?: string;
 }
 
 /*
@@ -408,6 +416,19 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     process.env.SERVER_DEPLOY_UPSTREAM_TEMPLATE ??
     DEFAULT_SERVER_DEPLOY_UPSTREAM_TEMPLATE;
 
+  /*
+   * Scale-to-zero activator wiring. When a deploy host resolves but its upstream
+   * is unreachable (the app is scaled to 0, or its pod is mid-restart), the proxy
+   * asks the workspace-manager to wake it (scale 0→1 + wait for readiness) and
+   * retries once. Absent this URL the proxy keeps its old behaviour (serve the
+   * starting page / 502) — so scale-to-zero degrades safely to "no auto-wake".
+   */
+  const serverDeployManagerUrl = (options.serverDeployManagerUrl ?? process.env.WORKSPACE_MANAGER_URL ?? '')
+    .trim()
+    .replace(/\/$/, '');
+  const serverDeployManagerSecret =
+    options.serverDeployManagerSecret ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
   const enforceTenant = options.enforceTenant ?? process.env.PREVIEW_PROXY_ENFORCE_TENANT === 'true';
   const tenantSecret = options.tenantSecret ?? process.env.PREVIEW_TENANT_SECRET;
   const enforcePrivatePorts = options.enforcePrivatePorts ?? process.env.PREVIEW_ENFORCE_PRIVATE_PORTS === 'true';
@@ -551,6 +572,73 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
   const resolveAgent = options.resolveAgent ?? defaultResolveAgent(options, fetchImpl);
 
+  const lastServerTouchAt = new Map<string, number>();
+
+  /*
+   * Ask the workspace-manager to wake a scaled-to-zero deployment (scale 0→1 +
+   * wait for readiness). Returns true when a replica is ready. Best-effort: any
+   * error (manager unset/unreachable, deployment gone) resolves false so the
+   * caller falls back to the starting page rather than throwing.
+   */
+  const wakeServerDeploy = async (deploymentId: string): Promise<boolean> => {
+    if (!serverDeployManagerUrl) {
+      return false;
+    }
+
+    try {
+      const response = await fetchImpl(
+        `${serverDeployManagerUrl}/server-deployments/${encodeURIComponent(deploymentId)}/activate`,
+        {
+          method: 'POST',
+          headers: {
+            accept: 'application/json',
+            ...(serverDeployManagerSecret ? { authorization: `Bearer ${serverDeployManagerSecret}` } : {}),
+          },
+          // Wake = scale + pull + install + boot; allow well beyond a normal request.
+          signal: AbortSignal.timeout(90_000),
+        },
+      );
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const body = (await response.json().catch(() => ({}))) as { ready?: boolean };
+      return Boolean(body.ready);
+    } catch {
+      return false;
+    }
+  };
+
+  /*
+   * Record live traffic against a deployment so the manager's idle controller
+   * measures inactivity from the LAST request, not the last deploy. Throttled
+   * in-memory (once per interval per deployment) and fire-and-forget — it must
+   * never add latency to or fail the proxied request.
+   */
+  const touchServerDeploy = (deploymentId: string) => {
+    if (!serverDeployManagerUrl) {
+      return;
+    }
+
+    const now = Date.now();
+
+    if (now - (lastServerTouchAt.get(deploymentId) ?? 0) < 30_000) {
+      return;
+    }
+
+    lastServerTouchAt.set(deploymentId, now);
+
+    void fetchImpl(`${serverDeployManagerUrl}/server-deployments/${encodeURIComponent(deploymentId)}/touch`, {
+      method: 'POST',
+      headers: serverDeployManagerSecret ? { authorization: `Bearer ${serverDeployManagerSecret}` } : {},
+      signal: AbortSignal.timeout(5_000),
+    }).catch(() => {
+      // Drop the throttle marker so the next request retries the stamp.
+      lastServerTouchAt.delete(deploymentId);
+    });
+  };
+
   /*
    * Forward a request for a server-deployment host (`d-<id>.<previewDomain>`) to
    * the deployment's in-cluster Service. Unlike the IDE preview path this is a
@@ -558,8 +646,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    * injection, no `/preview/<port>/` prefix — the request path/query is forwarded
    * verbatim (byte-exact stream-through both ways). CORP/COEP/referrer headers are
    * still added by the onSend hook so the deployed app can be framed in the IDE.
+   *
+   * `alreadyWoke` guards the scale-to-zero retry: on an unreachable upstream we
+   * wake the deployment once and re-enter; the flag prevents a wake loop.
    */
-  const handleServerDeployRequest = async (request: FastifyRequest, reply: FastifyReply, deploymentId: string) => {
+  const handleServerDeployRequest = async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+    deploymentId: string,
+    alreadyWoke = false,
+  ): Promise<unknown> => {
     const upstreamBase = serverDeployUpstreamUrl(deploymentId, serverDeployUpstreamTemplate);
 
     if (!upstreamBase) {
@@ -631,6 +727,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
       // Headers arrived → the connection succeeded; don't abort a long-lived body.
       clearTimeout(timeout);
+
+      // Live traffic → keep the idle controller's clock fresh (throttled, async).
+      touchServerDeploy(deploymentId);
+
       reply.status(upstreamResponse.status);
 
       const upstreamWasEncoded = upstreamResponse.headers.has('content-encoding');
@@ -672,6 +772,25 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     } catch (error: any) {
       if (error?.name === 'AbortError') {
         return reply.code(504).send({ error: 'Deploy upstream timeout', code: 'SERVER_DEPLOY_UPSTREAM_TIMEOUT' });
+      }
+
+      /*
+       * Scale-to-zero wake path: an unreachable upstream (connection refused / no
+       * endpoints) is the expected signal that the app is asleep at 0 replicas.
+       * Ask the manager to wake it, then retry the forward exactly once. The
+       * `alreadyWoke` guard prevents a wake loop if it comes up unreachable again.
+       */
+      if (!alreadyWoke) {
+        clearTimeout(timeout);
+
+        const woke = await wakeServerDeploy(deploymentId);
+
+        if (woke) {
+          return handleServerDeployRequest(request, reply, deploymentId, true);
+        }
+
+        // Couldn't wake it in time — fall through to the starting page below so a
+        // document navigation auto-refreshes while it finishes booting.
       }
 
       /*

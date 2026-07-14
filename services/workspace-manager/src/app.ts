@@ -87,6 +87,17 @@ function defaultDeleteStoppedMs(): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed * 60 * 60_000 : 24 * 60 * 60_000;
 }
 
+/*
+ * Idle window before a deployed server app is scaled to 0 (Replit-parity: apps
+ * sleep when idle, wake on request). Defaults to 15 min — tighter than the
+ * workspace idle-stop (30 min) because a server app wakes far faster than a
+ * workspace reprovision (scale 0→1 vs pod+PVC provisioning).
+ */
+const SERVER_DEPLOY_IDLE_MS = (() => {
+  const parsed = Number(process.env.SERVER_DEPLOY_IDLE_MINUTES);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed * 60_000 : 15 * 60_000;
+})();
+
 function agentBaseUrl(workspaceId: string) {
   const template = process.env.WORKSPACE_AGENT_URL_TEMPLATE ?? process.env.WORKSPACE_AGENT_BASE_URL;
 
@@ -234,6 +245,41 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   );
 
   /*
+   * Scale-to-zero wake path: the preview-proxy calls this when a request hits a
+   * deployment that is scaled to 0 (or whose pod is gone). Scales to 1, waits for
+   * readiness, and returns it so the proxy can then forward without a 502. 404s a
+   * genuinely-absent deployment so the proxy surfaces a clean error.
+   */
+  app.post('/server-deployments/:deploymentId/activate', async (request, reply) => {
+    try {
+      return await manager.activateServerDeployment(runtimeNamespace(), (request.params as any).deploymentId);
+    } catch (error) {
+      if ((error as { code?: string })?.code === 'SERVER_DEPLOY_NOT_FOUND') {
+        return reply.code(404).send({ error: 'server deployment not found', code: 'SERVER_DEPLOY_NOT_FOUND' });
+      }
+
+      throw error;
+    }
+  });
+
+  /* Record live traffic (throttled) so the idle controller can measure inactivity. */
+  app.post('/server-deployments/:deploymentId/touch', async (request) => {
+    await manager.touchServerDeployment(runtimeNamespace(), (request.params as any).deploymentId);
+    return { ok: true };
+  });
+
+  /*
+   * Idle sweep: scale every server deployment idle past `idleMs` to 0. Triggered
+   * on the same cadence as the workspace GC (the worker's scheduled tick), so it
+   * needs no cron of its own.
+   */
+  app.post('/server-deployments/reap-idle', async (request) => {
+    const idleMs = Number((request.body as { idleMs?: number } | undefined)?.idleMs) || SERVER_DEPLOY_IDLE_MS;
+    const slept = await manager.reapIdleServerDeployments(runtimeNamespace(), idleMs);
+    return { slept };
+  });
+
+  /*
    * Scheduled runs ("Scheduled" deployment type): one DISPOSABLE Pod per run.
    * Synchronous by design — the api's scheduler owns the run row and needs the
    * exit code + full logs back to close it out. The pod (and its secret) are
@@ -320,7 +366,19 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
      */
     await manager.garbageCollect(runtimeNamespace(), body.inactiveMs, body.deleteMs);
 
-    return { ok: true };
+    /*
+     * Same tick, second sweep: put idle server deployments to sleep (replicas→0).
+     * Best-effort — a failure here must not fail the workspace GC response.
+     */
+    let serverDeploysSlept: string[] = [];
+
+    try {
+      serverDeploysSlept = await manager.reapIdleServerDeployments(runtimeNamespace(), SERVER_DEPLOY_IDLE_MS);
+    } catch (error) {
+      request.log.error({ err: error }, 'server-deploy idle sweep failed');
+    }
+
+    return { ok: true, serverDeploysSlept };
   });
   app.get('/internal/workspaces/:workspaceId/agent', async (request, reply) => {
     requirePreviewProxyAuth(request as any);

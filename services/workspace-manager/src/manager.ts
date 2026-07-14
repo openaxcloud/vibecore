@@ -623,6 +623,158 @@ export class WorkspaceManager {
     return { stopped: true };
   }
 
+  /*
+   * ===== Server-deploy scale-to-zero (Replit-parity Autoscale) =====
+   *
+   * A deployed server app scales to 0 replicas when idle (no compute cost, the
+   * Deployment/Service/routing stay in place) and back to 1 on the next request.
+   * Unlike the workspace GC (which deletes bare Pods + PVCs), this is a pure
+   * `replicas 0/1` toggle on the durable Deployment — the app source is baked
+   * into the boot artifact, so a wake is a fresh pull+install+start, not a
+   * reprovision. The annotation `vibecore.ai/last-request-at` (stamped by the
+   * preview-proxy on live traffic, throttled) drives the idle decision.
+   */
+  static readonly LAST_REQUEST_ANNOTATION = 'vibecore.ai/last-request-at';
+
+  private readonly lastServerTouchAt = new Map<string, number>();
+
+  /**
+   * Wake a server deployment: if it is scaled to 0 (or its pod is gone), scale to
+   * 1 and poll readiness. Idempotent — a call while already ready is a fast
+   * no-op. Also stamps the last-request time so it isn't immediately reaped.
+   * Throws `{ code: 'SERVER_DEPLOY_NOT_FOUND' }` if the Deployment doesn't exist.
+   */
+  async activateServerDeployment(
+    namespace: string,
+    deploymentId: string,
+    readyTimeoutMs = 60_000,
+  ): Promise<{ ready: boolean; readyReplicas: number; wokeUp: boolean }> {
+    const name = serverDeploymentName(deploymentId);
+    const dep = (await this.k8s.get('Deployment', namespace, name).catch(() => undefined)) as
+      | { spec?: { replicas?: number }; status?: { readyReplicas?: number } }
+      | undefined;
+
+    if (!dep) {
+      throw Object.assign(new Error(`server deployment not found: ${deploymentId}`), {
+        code: 'SERVER_DEPLOY_NOT_FOUND',
+      });
+    }
+
+    // Best-effort activity stamp so the idle sweep doesn't race a just-woken app back to 0.
+    await this.k8s
+      .annotate('Deployment', namespace, name, WorkspaceManager.LAST_REQUEST_ANNOTATION, String(Date.now()))
+      .catch(() => undefined);
+
+    const alreadyReady = (dep.status?.readyReplicas ?? 0) >= 1;
+
+    if (alreadyReady) {
+      return { ready: true, readyReplicas: dep.status?.readyReplicas ?? 0, wokeUp: false };
+    }
+
+    const desiredReplicas = dep.spec?.replicas ?? 0;
+
+    if (desiredReplicas < 1) {
+      await this.k8s.scale('Deployment', namespace, name, 1);
+    }
+
+    const ready = await this.#pollServerDeploymentReady(namespace, name, readyTimeoutMs);
+    const status = await this.getServerDeploymentStatus(namespace, deploymentId);
+
+    return { ready, readyReplicas: status.readyReplicas, wokeUp: true };
+  }
+
+  /**
+   * Record live traffic against a server deployment (throttled) so the idle
+   * controller can measure inactivity. Cheap: an in-memory throttle gates the
+   * annotation write to once per interval per deployment.
+   */
+  async touchServerDeployment(namespace: string, deploymentId: string): Promise<void> {
+    const now = Date.now();
+    const last = this.lastServerTouchAt.get(deploymentId) ?? 0;
+
+    if (now - last < WORKSPACE_ACTIVITY_TOUCH_INTERVAL_MS) {
+      return;
+    }
+
+    this.lastServerTouchAt.set(deploymentId, now);
+
+    await this.k8s
+      .annotate(
+        'Deployment',
+        namespace,
+        serverDeploymentName(deploymentId),
+        WorkspaceManager.LAST_REQUEST_ANNOTATION,
+        String(now),
+      )
+      .catch(() => {
+        // Row/Deployment may be gone; drop the throttle marker so a later touch retries.
+        this.lastServerTouchAt.delete(deploymentId);
+      });
+  }
+
+  /**
+   * Scale to 0 every server deployment whose last request is older than
+   * `idleMs`. A deployment with NO last-request annotation yet uses its creation
+   * timestamp as the floor, so a freshly-deployed-but-never-hit app is given the
+   * full idle window before its first sleep. Already-zero deployments are
+   * skipped. Returns the ids it put to sleep (for logging/metrics).
+   */
+  async reapIdleServerDeployments(namespace: string, idleMs: number): Promise<string[]> {
+    const now = Date.now();
+    const deployments = await this.k8s
+      .listByLabel('Deployment', namespace, 'vibecore.ai/server-deploy')
+      .catch(() => [] as Awaited<ReturnType<typeof this.k8s.listByLabel>>);
+
+    const slept: string[] = [];
+
+    for (const dep of deployments) {
+      try {
+        const meta = (
+          dep as {
+            metadata?: {
+              name?: string;
+              labels?: Record<string, string>;
+              annotations?: Record<string, string>;
+              creationTimestamp?: string;
+            };
+          }
+        ).metadata;
+        const spec = (dep as { spec?: { replicas?: number } }).spec;
+        const deploymentId = meta?.labels?.['vibecore.ai/server-deploy'];
+
+        if (!meta?.name || !deploymentId) {
+          continue;
+        }
+
+        // Already asleep — nothing to do.
+        if ((spec?.replicas ?? 0) < 1) {
+          continue;
+        }
+
+        const lastRequestRaw = meta.annotations?.[WorkspaceManager.LAST_REQUEST_ANNOTATION];
+        const lastRequestMs = lastRequestRaw
+          ? Number(lastRequestRaw)
+          : new Date(meta.creationTimestamp ?? now).getTime();
+
+        if (Number.isNaN(lastRequestMs) || now - lastRequestMs < idleMs) {
+          continue;
+        }
+
+        await this.k8s.scale('Deployment', namespace, meta.name, 0);
+        this.lastServerTouchAt.delete(deploymentId);
+        slept.push(deploymentId);
+      } catch (error) {
+        // Isolate each deployment: a transient error must not abort the whole sweep.
+        console.error('server-deploy idle reap failed', {
+          deployment: (dep as { metadata?: { name?: string } }).metadata?.name,
+          error,
+        });
+      }
+    }
+
+    return slept;
+  }
+
   async stopWorkspace(namespace: string, workspaceId: string, guard?: { status?: string; lastActiveAt?: string }) {
     const workspace = await this.requireWorkspace(workspaceId);
 

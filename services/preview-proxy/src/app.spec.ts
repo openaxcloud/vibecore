@@ -792,5 +792,96 @@ describe('preview-proxy', () => {
 
       await app.close();
     });
+
+    it('wakes a scaled-to-zero deploy (activate via manager) and retries the forward → 200', async () => {
+      const seen: string[] = [];
+      let upstreamHits = 0;
+
+      const fetchImpl = (async (url: any, init: any) => {
+        const href = typeof url === 'string' ? url : (url.href ?? url.toString());
+        seen.push(href);
+
+        // The manager activate call: report the deployment woke up.
+        if (href.includes('/server-deployments/') && href.endsWith('/activate')) {
+          expect(init.method).toBe('POST');
+          return new Response(JSON.stringify({ ready: true, readyReplicas: 1, wokeUp: true }), { status: 200 });
+        }
+
+        // Upstream app: asleep on the first hit (refused), serving after the wake.
+        if (href.includes('app-clr8x9abc123')) {
+          upstreamHits += 1;
+
+          if (upstreamHits === 1) {
+            throw new Error('ECONNREFUSED');
+          }
+
+          return new Response('awake and serving', { status: 200 });
+        }
+
+        return new Response('{}', { status: 200 });
+      }) as unknown as typeof fetch;
+
+      const app = await buildPreviewProxyApp({
+        fetchImpl,
+        previewDomain: 'preview.e-code.ai',
+        serverDeployManagerUrl: 'http://workspace-manager.test',
+        serverDeployManagerSecret: 'mgr-secret',
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/',
+        headers: { host: 'd-clr8x9abc123.preview.e-code.ai', accept: 'text/html' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toBe('awake and serving');
+      // The manager was asked to wake it, and the upstream was hit twice (fail → retry).
+      expect(seen.some((u) => u.endsWith('/server-deployments/clr8x9abc123/activate'))).toBe(true);
+      expect(upstreamHits).toBe(2);
+
+      await app.close();
+    });
+
+    it('does not loop: if the app is still unreachable after a wake, it serves the starting page once', async () => {
+      let activateCalls = 0;
+      let upstreamHits = 0;
+
+      const fetchImpl = (async (url: any) => {
+        const href = typeof url === 'string' ? url : (url.href ?? url.toString());
+
+        if (href.endsWith('/activate')) {
+          activateCalls += 1;
+          return new Response(JSON.stringify({ ready: true }), { status: 200 });
+        }
+
+        if (href.includes('app-clr8x9abc123')) {
+          upstreamHits += 1;
+          throw new Error('ECONNREFUSED');
+        }
+
+        return new Response('{}', { status: 200 });
+      }) as unknown as typeof fetch;
+
+      const app = await buildPreviewProxyApp({
+        fetchImpl,
+        previewDomain: 'preview.e-code.ai',
+        serverDeployManagerUrl: 'http://workspace-manager.test',
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/',
+        headers: { host: 'd-clr8x9abc123.preview.e-code.ai', accept: 'text/html' },
+      });
+
+      expect(response.statusCode).toBe(503);
+      expect(response.body).toContain('Starting your app');
+      // Woke exactly once, hit upstream exactly twice (original + one retry) — no loop.
+      expect(activateCalls).toBe(1);
+      expect(upstreamHits).toBe(2);
+
+      await app.close();
+    });
   });
 });

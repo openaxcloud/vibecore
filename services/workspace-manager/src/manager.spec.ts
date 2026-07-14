@@ -51,6 +51,42 @@ class TestWorkspaceK8sClient implements WorkspaceK8sClient {
   async *streamPodLogs(namespace: string, name: string) {
     yield `logs:${namespace}:${name}:ready`;
   }
+
+  async scale(kind: string, namespace: string, name: string, replicas: number) {
+    const object = this.objects.get(`${namespace}:${kind}:${name}`);
+
+    if (!object) {
+      throw Object.assign(new Error(`NotFound: ${kind}/${name}`), { code: 1 });
+    }
+
+    (object as any).spec = { ...(object as any).spec, replicas };
+
+    // A scale-up to >=1 flips readiness on (models a pod that comes Ready).
+    (object as any).status = { ...(object as any).status, replicas, readyReplicas: replicas >= 1 ? replicas : 0 };
+    this.events.push(`scale:${kind}:${name}:${replicas}`);
+  }
+
+  async annotate(kind: string, namespace: string, name: string, key: string, value: string) {
+    const object = this.objects.get(`${namespace}:${kind}:${name}`);
+
+    if (!object) {
+      throw Object.assign(new Error(`NotFound: ${kind}/${name}`), { code: 1 });
+    }
+
+    object.metadata.annotations = { ...(object.metadata.annotations ?? {}), [key]: value };
+    this.events.push(`annotate:${kind}:${name}:${key}`);
+  }
+
+  async listByLabel(kind: string, namespace: string, labelSelector: string) {
+    const [labelKey] = labelSelector.split('=');
+
+    return [...this.objects.values()].filter(
+      (object) =>
+        object.kind === kind &&
+        (object.metadata.namespace ?? 'default') === namespace &&
+        object.metadata.labels?.[labelKey] !== undefined,
+    );
+  }
 }
 
 class TestWorkspaceStore implements WorkspaceStore {
@@ -288,7 +324,12 @@ describe('WorkspaceManager', () => {
 
   it('leaves the warm pod untouched on an unchanged reopen (apply is a no-op, no recreate)', async () => {
     const k8s = new TestWorkspaceK8sClient();
-    const manager = new WorkspaceManager(new TestWorkspaceStore(), k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    const manager = new WorkspaceManager(
+      new TestWorkspaceStore(),
+      k8s,
+      new TestEventBus(),
+      'test-workspace-agent-secret',
+    );
 
     await manager.startWorkspace(input);
     await manager.startWorkspace(input);
@@ -421,7 +462,7 @@ describe('WorkspaceManager', () => {
       await manager.garbageCollect('workspaces', 5 * 60 * 1000, 30 * 60 * 1000);
 
       expect(fetchSpy).toHaveBeenCalled();
-      expect((fetchSpy.mock.calls[0]![0] as string)).toContain('/busy');
+      expect(fetchSpy.mock.calls[0]![0] as string).toContain('/busy');
       // Fail-safe: probe error → treated as not busy → stopped (PVC kept).
       expect((await store.get(input.workspaceId))?.status).toBe('STOPPED');
     } finally {
@@ -1139,9 +1180,7 @@ describe('WorkspaceManager server deployments (Replit-parity durable runtime)', 
       readyTimeoutMs: 500,
     });
 
-    expect(k8s.events).toEqual(
-      expect.arrayContaining(['apply:Deployment:app-dep6', 'apply:Service:app-dep6']),
-    );
+    expect(k8s.events).toEqual(expect.arrayContaining(['apply:Deployment:app-dep6', 'apply:Service:app-dep6']));
     expect(k8s.events.some((e) => e.startsWith('apply:Ingress:'))).toBe(false);
   });
 
@@ -1196,5 +1235,137 @@ describe('WorkspaceManager server deployments (Replit-parity durable runtime)', 
       readyReplicas: 0,
       replicas: 0,
     });
+  });
+});
+
+describe('server-deploy scale-to-zero (Replit-parity Autoscale)', () => {
+  function seedServerDeploy(
+    k8s: TestWorkspaceK8sClient,
+    deploymentId: string,
+    overrides: {
+      replicas?: number;
+      readyReplicas?: number;
+      annotations?: Record<string, string>;
+      creationTimestamp?: string;
+    } = {},
+  ) {
+    const name = `app-${deploymentId}`;
+    k8s.objects.set(`workspaces:Deployment:${name}`, {
+      apiVersion: 'apps/v1',
+      kind: 'Deployment',
+      metadata: {
+        name,
+        namespace: 'workspaces',
+        labels: { app: name, 'vibecore.ai/server-deploy': deploymentId },
+        annotations: overrides.annotations,
+        ...(overrides.creationTimestamp ? { creationTimestamp: overrides.creationTimestamp } : {}),
+      } as any,
+      spec: { replicas: overrides.replicas ?? 1 },
+      status: { replicas: overrides.replicas ?? 1, readyReplicas: overrides.readyReplicas ?? overrides.replicas ?? 1 },
+    } as any);
+  }
+
+  it('activate() wakes a scaled-to-zero deployment (scale 0 -> 1) and waits for readiness', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const manager = new WorkspaceManager(
+      new TestWorkspaceStore(),
+      k8s,
+      new TestEventBus(),
+      'test-workspace-agent-secret',
+    );
+    seedServerDeploy(k8s, 'dep_sleeping', { replicas: 0, readyReplicas: 0 });
+
+    const result = await manager.activateServerDeployment('workspaces', 'dep_sleeping', 5_000);
+
+    expect(result).toEqual({ ready: true, readyReplicas: 1, wokeUp: true });
+    expect(k8s.events).toContain('scale:Deployment:app-dep_sleeping:1');
+    // Stamped last-request so the idle sweep doesn't immediately re-sleep it.
+    expect(k8s.events).toContain('annotate:Deployment:app-dep_sleeping:vibecore.ai/last-request-at');
+  });
+
+  it('activate() is a fast no-op when the deployment is already ready (no scale call)', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const manager = new WorkspaceManager(
+      new TestWorkspaceStore(),
+      k8s,
+      new TestEventBus(),
+      'test-workspace-agent-secret',
+    );
+    seedServerDeploy(k8s, 'dep_awake', { replicas: 1, readyReplicas: 1 });
+
+    const result = await manager.activateServerDeployment('workspaces', 'dep_awake', 5_000);
+
+    expect(result).toEqual({ ready: true, readyReplicas: 1, wokeUp: false });
+    expect(k8s.events.some((e) => e.startsWith('scale:'))).toBe(false);
+  });
+
+  it('activate() throws SERVER_DEPLOY_NOT_FOUND for an unknown deployment', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const manager = new WorkspaceManager(
+      new TestWorkspaceStore(),
+      k8s,
+      new TestEventBus(),
+      'test-workspace-agent-secret',
+    );
+
+    await expect(manager.activateServerDeployment('workspaces', 'ghost', 1_000)).rejects.toMatchObject({
+      code: 'SERVER_DEPLOY_NOT_FOUND',
+    });
+  });
+
+  it('reapIdleServerDeployments() sleeps only deployments idle past the window', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const manager = new WorkspaceManager(
+      new TestWorkspaceStore(),
+      k8s,
+      new TestEventBus(),
+      'test-workspace-agent-secret',
+    );
+    const now = Date.now();
+
+    // Idle 20 min ago -> should sleep.
+    seedServerDeploy(k8s, 'dep_idle', {
+      replicas: 1,
+      annotations: { 'vibecore.ai/last-request-at': String(now - 20 * 60_000) },
+    });
+    // Hit 1 min ago -> stays up.
+    seedServerDeploy(k8s, 'dep_active', {
+      replicas: 1,
+      annotations: { 'vibecore.ai/last-request-at': String(now - 60_000) },
+    });
+    // Already asleep -> skipped.
+    seedServerDeploy(k8s, 'dep_zero', { replicas: 0, readyReplicas: 0 });
+
+    const slept = await manager.reapIdleServerDeployments('workspaces', 15 * 60_000);
+
+    expect(slept).toEqual(['dep_idle']);
+    expect(k8s.events).toContain('scale:Deployment:app-dep_idle:0');
+    expect(k8s.events).not.toContain('scale:Deployment:app-dep_active:0');
+    expect(k8s.events).not.toContain('scale:Deployment:app-dep_zero:0');
+  });
+
+  it('reapIdleServerDeployments() gives a never-hit deployment its full window from creation', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const manager = new WorkspaceManager(
+      new TestWorkspaceStore(),
+      k8s,
+      new TestEventBus(),
+      'test-workspace-agent-secret',
+    );
+
+    // No last-request annotation, created 20 min ago -> falls back to creation, past window -> sleep.
+    seedServerDeploy(k8s, 'dep_fresh_old', {
+      replicas: 1,
+      creationTimestamp: new Date(Date.now() - 20 * 60_000).toISOString(),
+    });
+    // No annotation, created just now -> within window -> stays up.
+    seedServerDeploy(k8s, 'dep_fresh_new', {
+      replicas: 1,
+      creationTimestamp: new Date().toISOString(),
+    });
+
+    const slept = await manager.reapIdleServerDeployments('workspaces', 15 * 60_000);
+
+    expect(slept).toEqual(['dep_fresh_old']);
   });
 });

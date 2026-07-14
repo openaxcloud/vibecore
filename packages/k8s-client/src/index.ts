@@ -171,6 +171,9 @@ export interface WorkspaceK8sClient {
   get(kind: string, namespace: string, name: string): Promise<K8sObject | undefined>;
   getPod(namespace: string, name: string): Promise<K8sObject | undefined>;
   streamPodLogs(namespace: string, name: string): AsyncIterable<string>;
+  scale(kind: string, namespace: string, name: string, replicas: number): Promise<void>;
+  annotate(kind: string, namespace: string, name: string, key: string, value: string): Promise<void>;
+  listByLabel(kind: string, namespace: string, labelSelector: string): Promise<K8sObject[]>;
 }
 
 export const defaultWorkspaceEgressBlockedCidrs = Object.freeze([
@@ -334,7 +337,8 @@ function mergePlanResources(base: PlanResources, override: unknown): PlanResourc
   const merged: PlanResources = {
     cpuRequest: parseCpuMillicores(o.cpuRequest) !== undefined ? String(o.cpuRequest).trim() : base.cpuRequest,
     cpuLimit: parseCpuMillicores(o.cpuLimit) !== undefined ? String(o.cpuLimit).trim() : base.cpuLimit,
-    memoryRequest: parseMemoryBytes(o.memoryRequest) !== undefined ? String(o.memoryRequest).trim() : base.memoryRequest,
+    memoryRequest:
+      parseMemoryBytes(o.memoryRequest) !== undefined ? String(o.memoryRequest).trim() : base.memoryRequest,
     memoryLimit: parseMemoryBytes(o.memoryLimit) !== undefined ? String(o.memoryLimit).trim() : base.memoryLimit,
     storageRequest:
       parseMemoryBytes(o.storageRequest) !== undefined ? String(o.storageRequest).trim() : base.storageRequest,
@@ -1165,6 +1169,91 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
 
     for (const line of stdout.split('\n').filter(Boolean)) {
       yield line;
+    }
+  }
+
+  /*
+   * Scale a Deployment to `replicas`. Drives server-deploy scale-to-zero: an
+   * idle app is scaled to 0 (no compute cost, replicas kept off) and woken back
+   * to 1 on the next request. `--ignore-not-found` is not a kubectl scale flag,
+   * so a genuinely-absent Deployment throws — callers that scale on the wake path
+   * treat that as "deployment gone" and surface a clean error rather than a 502.
+   */
+  async scale(kind: string, namespace: string, name: string, replicas: number) {
+    await execFile(
+      this.kubectl,
+      [
+        ...this.configArgs,
+        'scale',
+        kind,
+        name,
+        '-n',
+        namespace,
+        `--replicas=${replicas}`,
+        `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`,
+      ],
+      { timeout: KUBECTL_TIMEOUT_MS },
+    );
+  }
+
+  /*
+   * Set (or overwrite) a single annotation on a resource. Used to stamp a
+   * server-deploy's last-request time so the idle controller can decide when to
+   * scale it to zero. `--overwrite` makes repeated stamps idempotent.
+   */
+  async annotate(kind: string, namespace: string, name: string, key: string, value: string) {
+    await execFile(
+      this.kubectl,
+      [
+        ...this.configArgs,
+        'annotate',
+        kind,
+        name,
+        '-n',
+        namespace,
+        `${key}=${value}`,
+        '--overwrite',
+        `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`,
+      ],
+      { timeout: KUBECTL_TIMEOUT_MS },
+    );
+  }
+
+  /*
+   * List resources of a kind in a namespace filtered by a label selector.
+   * Returns the raw items array (empty on none). Drives the idle sweep over
+   * server-deploy Deployments (`vibecore.ai/server-deploy`).
+   */
+  async listByLabel(kind: string, namespace: string, labelSelector: string): Promise<K8sObject[]> {
+    const { stdout } = await execFile(
+      this.kubectl,
+      [
+        ...this.configArgs,
+        'get',
+        kind,
+        '-n',
+        namespace,
+        '-l',
+        labelSelector,
+        '-o',
+        'json',
+        `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`,
+      ],
+      { timeout: KUBECTL_TIMEOUT_MS },
+    );
+
+    if (!stdout) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(stdout) as { items?: K8sObject[] };
+      return parsed.items ?? [];
+    } catch (parseError) {
+      throw Object.assign(new Error(`kubectl get ${kind} -l ${labelSelector} returned unparseable JSON`), {
+        code: 'KUBECTL_BAD_JSON',
+        cause: parseError,
+      });
     }
   }
 }
