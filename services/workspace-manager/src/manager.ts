@@ -207,6 +207,12 @@ export interface StartWorkspaceInput {
     storageGb?: number;
   };
   storageClassName?: string;
+
+  /*
+   * Opt-in shared Nix store PVC (candidate E). Threads to the pod's RO /nix
+   * mount; defaults to NIX_STORE_PVC_NAME. Undefined = kill switch off.
+   */
+  nixStorePvcName?: string;
 }
 
 /*
@@ -292,6 +298,14 @@ export class WorkspaceManager {
       tokenSecret: this.tokenSecret,
       secretEnv,
       env: { ...input.env, WORKSPACE_ID: input.workspaceId },
+
+      /*
+       * Shared Nix store (candidate E) — OFF by default. Enabled per-request or
+       * cluster-wide via NIX_STORE_PVC_NAME (a Helm value pinned to the current
+       * store generation). Undefined ⇒ workspacePod emits the pre-Nix spec
+       * verbatim, so live Node workspaces never change until an operator opts in.
+       */
+      nixStorePvcName: input.nixStorePvcName ?? process.env.NIX_STORE_PVC_NAME,
     };
     const baseRecord = {
       id: input.workspaceId,

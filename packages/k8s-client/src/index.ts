@@ -147,6 +147,17 @@ export interface WorkspaceRuntimeInput {
   storageClassName?: string;
   /** App-facing object storage env injected into the pod (apiUrl + access token). */
   objectStorage?: { apiUrl: string; accessToken: string };
+
+  /*
+   * Replit-parity shared Nix store (candidate E). When set, the pre-built store
+   * disk is mounted READ-ONLY at /nix from this ReadOnlyMany PVC — no download,
+   * no compile: the runtime resolves a package's store path and links its bins
+   * into a writable PATH dir (E-1 link-farm). KILL SWITCH: when unset, the pod
+   * spec is byte-for-byte identical to the pre-Nix spec (no extra volume/mount),
+   * so existing Node workspaces are untouched. The store is append-only and
+   * pinned by generation in Helm values; evolving it = a new disk + re-point.
+   */
+  nixStorePvcName?: string;
 }
 
 export interface WorkspaceResourceLimits {
@@ -563,7 +574,12 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
                 valueFrom: { secretKeyRef: { name: input.agentTokenSecretName, key, optional: true } },
               })),
           ],
-          volumeMounts: [{ name: 'workspace', mountPath: '/workspace' }],
+          volumeMounts: [
+            { name: 'workspace', mountPath: '/workspace' },
+            // Kill switch: the /nix RO mount appears ONLY when a store PVC is set;
+            // otherwise this array is byte-for-byte the original single mount.
+            ...(input.nixStorePvcName ? [{ name: 'nix-store', mountPath: '/nix', readOnly: true }] : []),
+          ],
           resources: {
             requests: { cpu: resources.cpuRequest, memory: resources.memoryRequest },
             limits: { cpu: resources.cpuLimit, memory: resources.memoryLimit },
@@ -611,7 +627,13 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
           },
         },
       ],
-      volumes: [{ name: 'workspace', persistentVolumeClaim: { claimName: input.pvcName } }],
+      volumes: [
+        { name: 'workspace', persistentVolumeClaim: { claimName: input.pvcName } },
+        // Kill switch: matches the volumeMount above — present only when opted in.
+        ...(input.nixStorePvcName
+          ? [{ name: 'nix-store', persistentVolumeClaim: { claimName: input.nixStorePvcName, readOnly: true } }]
+          : []),
+      ],
     },
   };
 }

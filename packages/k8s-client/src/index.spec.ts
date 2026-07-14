@@ -64,6 +64,30 @@ describe('workspace Kubernetes manifests', () => {
     expect(JSON.stringify(pod.spec?.volumes)).not.toContain('hostPath');
   });
 
+  it('Nix store kill switch: no nixStorePvcName ⇒ spec byte-for-byte the pre-Nix spec (no /nix mount or volume)', () => {
+    const pod = workspacePod(input);
+    const container = (pod.spec?.containers as any[])[0];
+
+    // Exactly the single workspace mount/volume — nothing Nix-related leaks in.
+    expect(container.volumeMounts).toEqual([{ name: 'workspace', mountPath: '/workspace' }]);
+    expect(pod.spec?.volumes).toEqual([{ name: 'workspace', persistentVolumeClaim: { claimName: 'pvc-project-1' } }]);
+    expect(JSON.stringify(pod)).not.toContain('/nix');
+    expect(JSON.stringify(pod)).not.toContain('nix-store');
+  });
+
+  it('mounts the shared Nix store READ-ONLY at /nix when nixStorePvcName is set (opt-in)', () => {
+    const pod = workspacePod({ ...input, nixStorePvcName: 'nix-store-gen1-pvc' });
+    const container = (pod.spec?.containers as any[])[0];
+
+    expect(container.volumeMounts).toContainEqual({ name: 'nix-store', mountPath: '/nix', readOnly: true });
+    expect(pod.spec?.volumes).toContainEqual({
+      name: 'nix-store',
+      persistentVolumeClaim: { claimName: 'nix-store-gen1-pvc', readOnly: true },
+    });
+    // The workspace mount is still there and unchanged — Nix is additive.
+    expect(container.volumeMounts).toContainEqual({ name: 'workspace', mountPath: '/workspace' });
+  });
+
   it('applies plan and backend resource limits to CPU, memory and disk', () => {
     const limitedInput = { ...input, resourceLimits: { cpuMillicores: 1500, ramMb: 3072, storageGb: 30 } };
     const pod = workspacePod(limitedInput);
@@ -332,9 +356,7 @@ describe('workspace Kubernetes manifests', () => {
     });
 
     it('clamps an over-max limit override to the namespace LimitRange max', () => {
-      const table = resolvePlanResourcesTable(
-        JSON.stringify({ enterprise: { cpuLimit: '16', memoryLimit: '64Gi' } }),
-      );
+      const table = resolvePlanResourcesTable(JSON.stringify({ enterprise: { cpuLimit: '16', memoryLimit: '64Gi' } }));
       // Limits above the LimitRange max (4 cpu / 8Gi) would fail admission → clamped.
       expect(table.enterprise.cpuLimit).toBe('4');
       expect(table.enterprise.memoryLimit).toBe('8192Mi');
@@ -391,7 +413,11 @@ describe('server deployment runtime templates', () => {
     expect(env.find((e) => e.name === 'APP_FLAG')?.value).toBe('on');
     // secret-backed env references the app secret, optional so a missing key can't brick startup.
     const dbUrl = env.find((e) => e.name === 'DATABASE_URL');
-    expect(dbUrl?.valueFrom.secretKeyRef).toEqual({ name: 'app-secrets-dep123', key: 'PROD_DATABASE_URL', optional: true });
+    expect(dbUrl?.valueFrom.secretKeyRef).toEqual({
+      name: 'app-secrets-dep123',
+      key: 'PROD_DATABASE_URL',
+      optional: true,
+    });
     // readiness on the app port, TCP liveness.
     expect(c.readinessProbe.httpGet.port).toBe(3000);
     expect(c.livenessProbe.tcpSocket.port).toBe(3000);
@@ -422,7 +448,10 @@ describe('server deployment runtime templates', () => {
     expect(ing.kind).toBe('Ingress');
     expect(ing.spec.ingressClassName).toBe('nginx');
     expect(ing.spec.rules[0].host).toBe('d-dep123.preview.e-code.ai');
-    expect(ing.spec.tls[0]).toEqual({ hosts: ['d-dep123.preview.e-code.ai'], secretName: 'vibecore-preview-wildcard-tls' });
+    expect(ing.spec.tls[0]).toEqual({
+      hosts: ['d-dep123.preview.e-code.ai'],
+      secretName: 'vibecore-preview-wildcard-tls',
+    });
     expect(ing.spec.rules[0].http.paths[0].backend.service.port.number).toBe(80);
   });
 });
