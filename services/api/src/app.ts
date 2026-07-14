@@ -126,7 +126,7 @@ import {
   type WorkspaceStaticBuildResult,
 } from './deploy-workspace-build.js';
 import { buildServerDeployEnv, snapshotWorkspaceAppSource } from './server-deploy-transfer.js';
-import { buildServerBootScript, detectServerRuntime, isDetectionError } from './server-runtime-detect.js';
+import { buildServerBootScript, detectDeployTarget, detectServerRuntime, isDetectionError } from './server-runtime-detect.js';
 import { shouldRecordDeploymentUsage } from './deployment-billing.js';
 import {
   assertDeploymentRequestAllowed,
@@ -12655,6 +12655,71 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   const buildStaticInWorkspacePod = options.buildStaticInWorkspacePod ?? realBuildStaticInWorkspacePod;
+
+  /*
+   * Read a project's deploy manifest (package.json + top-level file names) from
+   * its live workspace pod. This is the input to detectDeployTarget/detectServerRuntime,
+   * so the Deploy panel's "detected mode" and the deploy handler's routing agree.
+   * Never throws — an unreachable workspace comes back as { ok:false }.
+   */
+  const readWorkspaceDeployManifest = async (
+    request: any,
+    project: ProjectRecord,
+    timeoutSeconds: number,
+  ): Promise<{ ok: true; packageJson: string | null; topLevelFiles: string[] } | { ok: false; reason: string }> => {
+    const userId = request.currentUser?.id;
+    const WebSocketCtor = (globalThis as { WebSocket?: new (url: string) => WsLike }).WebSocket;
+
+    if (!userId || !WebSocketCtor) {
+      return { ok: false, reason: 'Open the project workspace before deploying.' };
+    }
+
+    const workspaceId = runtimeWorkspaceId(project.id, userId);
+    const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
+
+    try {
+      await ensureWorkspaceReachable(request, authorized);
+    } catch {
+      return { ok: false, reason: 'Workspace is starting — please retry.' };
+    }
+
+    let token: string;
+
+    try {
+      token = await agentToken(workspaceId);
+    } catch {
+      return { ok: false, reason: 'Workspace is starting — please retry.' };
+    }
+
+    const buildAgent = createWorkspaceBuildAgent({
+      agentWsBaseUrl: agentBaseUrl(workspaceId).replace(/^http/i, 'ws'),
+      token,
+      deadlineMs: Math.max(1, timeoutSeconds) * 1000,
+      wsFactory: (url) => new WebSocketCtor(url),
+      agentGet: <T>(path: string) => agentRequest<T>(workspaceId, path, { method: 'GET' }),
+    });
+
+    let packageJson: string | null = null;
+
+    try {
+      packageJson = (await buildAgent.readFile('package.json')).content;
+    } catch {
+      packageJson = null;
+    }
+
+    let topLevelFiles: string[] = [];
+
+    try {
+      const listing = await buildAgent.listFiles('.');
+      topLevelFiles = Array.from(
+        new Set((listing.files ?? []).map((file) => file.path.replace(/^\.\//, '').split('/')[0]).filter(Boolean)),
+      );
+    } catch {
+      topLevelFiles = [];
+    }
+
+    return { ok: true, packageJson, topLevelFiles };
+  };
 
   /*
    * A dev server binds (LISTEN) its port BEFORE it can serve HTTP, so a port the
@@ -26367,6 +26432,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     return { deployments: reconciled };
+  });
+
+  /*
+   * Deploy-target auto-detection (Replit-parity: the user does NOT choose Static
+   * vs Server). The Deploy panel calls this to SHOW the detected mode + framework
+   * before publishing; the same detectServerRuntime powers the server-deploy
+   * handler, so the shown mode and the executed mode agree. Returns mode
+   * 'server' | 'static' | 'unknown' — never a silent guess.
+   */
+  app.get('/projects/:projectId/deployments/detect', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    const manifest = await readWorkspaceDeployManifest(request, project, 60);
+
+    if (!manifest.ok) {
+      // Workspace not reachable yet — tell the panel to retry rather than guess.
+      return { mode: 'unknown', framework: 'unknown', reason: manifest.reason, pending: true };
+    }
+
+    const target = detectDeployTarget({
+      packageJson: manifest.packageJson,
+      topLevelFiles: manifest.topLevelFiles,
+    });
+
+    return {
+      mode: target.mode,
+      framework: target.framework,
+      reason: target.reason,
+      ...(target.error ? { error: target.error } : {}),
+      pending: false,
+    };
   });
   app.get('/projects/:projectId/deployments/:deploymentId', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);

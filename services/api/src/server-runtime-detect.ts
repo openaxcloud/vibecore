@@ -329,3 +329,64 @@ export function buildServerBootScript(plan: {
   ];
   return lines.join('\n');
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ * Deploy-target auto-detection (Replit-parity: the user does NOT choose).
+ *
+ * Replit picks Autoscale (server) by default and never asks the user to guess:
+ * an app with a backend deploys as a server; a static SPA/site deploys static.
+ * `detectDeployTarget` is the single decision layer both the Deploy panel (to
+ * SHOW the detected mode) and the deploy handler (to ROUTE to the right path)
+ * use, so the shown mode and the executed mode can never disagree.
+ * ---------------------------------------------------------------------------
+ */
+export type DeployMode = 'server' | 'static' | 'unknown';
+
+export interface DeployTargetDetection {
+  mode: DeployMode;
+  /** e.g. 'nextjs', 'express', 'static', 'unknown' — shown in the panel. */
+  framework: string;
+  /** Human-readable one-liner: "Detected a Next.js server", "Static site (no server)". */
+  reason: string;
+  /** Present only when mode==='server': the concrete runtime plan to boot. */
+  plan?: ServerRuntimePlan;
+  /** Present only when mode==='unknown': why detection could not decide. */
+  error?: string;
+}
+
+/**
+ * Decide how a project should deploy from its package.json + top-level files.
+ * Never throws — an undecidable project returns mode 'unknown' with a clear
+ * `error` (the panel shows it; the handler fails cleanly) rather than guessing.
+ */
+export function detectDeployTarget(input: {
+  packageJson: string | null | undefined;
+  topLevelFiles?: string[];
+}): DeployTargetDetection {
+  const topLevelFiles = input.topLevelFiles ?? [];
+  const detection = detectServerRuntime(input);
+
+  if (!isDetectionError(detection)) {
+    return {
+      mode: 'server',
+      framework: detection.framework,
+      reason: detection.notes[0] ?? `Detected a ${detection.framework} server`,
+      plan: detection,
+    };
+  }
+
+  // A Vite/CRA SPA with no server (STATIC_ONLY) is a static deploy, not an error.
+  if (detection.code === 'STATIC_ONLY') {
+    return { mode: 'static', framework: 'static', reason: 'Static single-page app (no server) — deploy as a static site.' };
+  }
+
+  // No package.json (or no start) but a static entry present → a plain static site.
+  const hasIndexHtml = topLevelFiles.some((file) => (file.replace(/^\.\//, '').split('/').pop() ?? file) === 'index.html');
+
+  if (hasIndexHtml) {
+    return { mode: 'static', framework: 'static', reason: 'Static site (index.html, no server).' };
+  }
+
+  return { mode: 'unknown', framework: 'unknown', reason: detection.error, error: detection.error };
+}

@@ -2,8 +2,6 @@ import {
   Ban,
   CheckCircle2,
   ChevronDown,
-  Cloud,
-  CloudCog,
   GitBranch,
   GitCommitHorizontal,
   Globe2,
@@ -14,7 +12,6 @@ import {
   Rocket,
   Settings,
   ShieldCheck,
-  Sparkles,
   TerminalSquare,
   Timer,
   type LucideIcon,
@@ -22,7 +19,15 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useLoaderData, useNavigation, useRevalidator, useSearchParams } from 'react-router';
+import {
+  Form,
+  useActionData,
+  useFetcher,
+  useLoaderData,
+  useNavigation,
+  useRevalidator,
+  useSearchParams,
+} from 'react-router';
 import {
   DEPLOY_POLL_INTERVAL_MS,
   DEPLOY_REQUEST_TIMEOUT_MS,
@@ -31,16 +36,9 @@ import {
   shouldPollDeployments,
 } from './projects.$projectId.deployments.view';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
-import { ComputeTierPreview } from '~/components/deploy/ComputeTierPreview';
 import { DeploySubNav, type DeployView } from '~/components/deploy/DeploySubNav';
 import { DeploymentOverview } from '~/components/deploy/DeploymentOverview';
-import { DeploymentTypeSelector } from '~/components/deploy/DeploymentTypeSelector';
-import {
-  DEFAULT_DEPLOYMENT_TYPE,
-  getDeploymentType,
-  type DeploymentType,
-  type DeploymentTypeId,
-} from '~/components/deploy/deployment-types';
+import { DEFAULT_DEPLOYMENT_TYPE, type DeploymentTypeId } from '~/components/deploy/deployment-types';
 import { Button } from '~/components/ui/Button';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { RelativeTime } from '~/components/ui/RelativeTime';
@@ -80,16 +78,6 @@ type Deployment = {
 };
 type DeploymentsData = { deployments: Deployment[] };
 
-const providers = [
-  { id: 'static', name: 'Static export', detail: 'Upload a static build artifact.', icon: Globe2 },
-  { id: 'vercel', name: 'Vercel', detail: 'Deploy with scoped Vercel integration.', icon: Cloud },
-  { id: 'netlify', name: 'Netlify', detail: 'Deploy previews and production sites.', icon: Cloud },
-  { id: 'github-pages', name: 'GitHub Pages', detail: 'Publish static apps from GitHub.', icon: GitBranch },
-  { id: 'cloudflare-pages', name: 'Cloudflare Pages', detail: 'Edge static deployments.', icon: CloudCog },
-  { id: 'google-cloud-run', name: 'Google Cloud Run', detail: 'Build an isolated container service.', icon: CloudCog },
-  { id: 'docker', name: 'Custom Dockerfile', detail: 'Enterprise isolated builder only.', icon: ShieldCheck },
-];
-
 /**
  * True when `error` is a react-router redirect Response (3xx with a Location
  * header). apiRequest throws one of these when the session expired (401) or MFA
@@ -98,8 +86,53 @@ const providers = [
  * body-less redirect into a generic inline "Failed to …" banner.
  */
 export const meta: MetaFunction = () => [{ title: 'Project deployments - E-Code' }];
-export const loader = (args: EnterpriseLoaderArgs) =>
-  projectPageLoader<DeploymentsData>(args, (projectId) => `/projects/${projectId}/deployments`);
+
+export type DeployDetect = {
+  mode: 'server' | 'static' | 'unknown';
+  framework: string;
+  reason: string;
+  error?: string;
+  pending?: boolean;
+};
+
+export const loader = async (args: EnterpriseLoaderArgs) => {
+  /*
+   * `?detect=1` is a lightweight side-channel the Publish panel's fetcher hits to
+   * auto-detect the deploy mode (server vs static) WITHOUT choosing for the user.
+   * It reuses this route (no extra file / single-fetch nesting) and returns only
+   * the detection so the page's own loader shape is untouched.
+   */
+  const url = new URL(args.request.url);
+
+  if (url.searchParams.get('detect') === '1') {
+    const projectId = args.params.projectId;
+
+    if (!projectId) {
+      throw json({ ok: false, error: 'Project not found' }, { status: 404 });
+    }
+
+    try {
+      const detected = await apiRequest<DeployDetect>(args.request, `/projects/${projectId}/deployments/detect`);
+
+      return json({ detected });
+    } catch (error) {
+      if (isReauthRedirect(error)) {
+        throw error;
+      }
+
+      return json({
+        detected: {
+          mode: 'unknown' as const,
+          framework: 'unknown',
+          reason: 'Detection is unavailable right now — open the workspace and retry.',
+          pending: true,
+        },
+      });
+    }
+  }
+
+  return projectPageLoader<DeploymentsData>(args, (projectId) => `/projects/${projectId}/deployments`);
+};
 export const action = (args: EnterpriseActionArgs) =>
   projectAction(args, {
     default: async ({ request, projectId, body }) => {
@@ -216,7 +249,13 @@ export const action = (args: EnterpriseActionArgs) =>
   });
 
 export default function ProjectDeploymentsPage() {
-  const { project, data } = useLoaderData<typeof loader>();
+  /*
+   * The loader is dual-purpose (the page shape, plus a `?detect=1` side-channel
+   * the Publish card hits via a fetcher), so `typeof loader` is a union. The
+   * PAGE render is always the page shape — the detect branch is only ever read
+   * from the fetcher — so narrow to it here.
+   */
+  const { project, data } = useLoaderData() as { project: { id: string }; data: DeploymentsData };
   const actionData = useActionData<{ error?: string }>();
   const navigation = useNavigation();
   const revalidator = useRevalidator();
@@ -348,150 +387,170 @@ export default function ProjectDeploymentsPage() {
             />
           </section>
 
-          <div className="grid gap-4">
-            <div className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md">
-              <DeploymentTypeSelector selected={deployType} onSelect={setDeployType} />
-            </div>
-
-            {deployType === 'static' ? (
-              <Form
-                method="post"
-                className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md"
-              >
-                <input type="hidden" name="workspaceId" value={workspaceId} />
-                <div>
-                  <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Deployment wizard</h2>
-                  <p className="text-xs text-bolt-elements-textSecondary">
-                    Provider, environment, build command, output directory and controlled secret injection.
-                  </p>
-                </div>
-
-                <fieldset className="grid gap-2 border-0 p-0">
-                  <legend className="text-xs font-medium uppercase tracking-[0.04em] text-bolt-elements-textTertiary">
-                    Provider
-                  </legend>
-                  <div className="grid gap-2">
-                    {providers.map((provider, index) => {
-                      const Icon = provider.icon;
-                      return (
-                        <label
-                          key={provider.id}
-                          className="flex cursor-pointer items-center gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 transition-colors hover:bg-bolt-elements-background-depth-3"
-                        >
-                          <input
-                            className="h-4 w-4 accent-bolt-elements-focus"
-                            type="radio"
-                            name="provider"
-                            value={provider.id}
-                            defaultChecked={index === 0}
-                          />
-                          <Icon className="h-4 w-4 text-bolt-elements-item-contentAccent" aria-hidden />
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-sm font-medium text-bolt-elements-textPrimary">
-                              {provider.name}
-                            </span>
-                            <span className="block truncate text-xs text-bolt-elements-textSecondary">
-                              {provider.detail}
-                            </span>
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field as="select" label="Environment" name="environment" defaultValue="preview">
-                    <option value="preview">Preview</option>
-                    <option value="staging">Staging</option>
-                    <option value="production">Production</option>
-                  </Field>
-                  <Field label="Framework" name="framework" placeholder="Auto detect" />
-                </div>
-                <Field label="Build command" name="buildCommand" defaultValue="npm run build" />
-                <Field label="Output directory" name="outputDirectory" defaultValue="dist" />
-                <Field label="Git branch" name="branch" placeholder="main" />
-                <div className="grid gap-1">
-                  <Field label="Custom domain" name="customDomain" placeholder="app.example.com" />
-                  <p className="text-[11px] text-bolt-elements-textTertiary">
-                    Optional. After publishing, point your domain&apos;s DNS (CNAME) at the deployment. Managed TLS
-                    certificates for custom domains are coming soon.
-                  </p>
-                </div>
-                <Field label="GitHub repository URL" name="repositoryUrl" placeholder="https://github.com/acme/app" />
-                <Field
-                  as="textarea"
-                  label="Environment variables"
-                  name="envVars"
-                  placeholder={'PUBLIC_API_URL=https://api.example.com\nSECRET_TOKEN=redacted-in-logs'}
-                />
-                <Field
-                  label="Inject user-scoped secrets"
-                  name="injectSecrets"
-                  placeholder="DATABASE_URL,STRIPE_SECRET_KEY"
-                />
-                <label className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
-                  <input
-                    className="h-4 w-4 accent-bolt-elements-focus"
-                    type="checkbox"
-                    name="previewDeployment"
-                    defaultChecked
-                  />
-                  Create preview deployment URL when environment is not production.
-                </label>
-
-                <Button type="submit" disabled={busy || building} className="gap-2">
-                  <Rocket className="h-4 w-4" aria-hidden />
-                  {busy || building ? 'Deploying…' : 'Deploy project'}
-                </Button>
-              </Form>
-            ) : deployType === 'autoscale' ? (
-              <Form
-                method="post"
-                className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md"
-              >
-                <input type="hidden" name="workspaceId" value={workspaceId} />
-                <input type="hidden" name="provider" value="server" />
-                <div>
-                  <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Server deployment</h2>
-                  <p className="text-xs text-bolt-elements-textSecondary">
-                    Runs your app as a managed HTTP service on a durable runtime. The runtime, build and start command
-                    are auto-detected from your project; install → build → start run in an isolated pod and your app is
-                    served at a public URL.
-                  </p>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field as="select" label="Environment" name="environment" defaultValue="preview">
-                    <option value="preview">Preview</option>
-                    <option value="production">Production</option>
-                  </Field>
-                  <Field label="Custom domain" name="customDomain" placeholder="app.example.com" />
-                </div>
-
-                <Field
-                  as="textarea"
-                  label="Environment variables"
-                  name="envVars"
-                  placeholder={'PUBLIC_API_URL=https://api.example.com\nFEATURE_FLAG=on'}
-                />
-                <p className="text-[11px] text-bolt-elements-textTertiary">
-                  Your project secrets (including the database URL) are injected automatically. Production uses the
-                  production database; preview uses the development database.
-                </p>
-
-                <Button type="submit" disabled={busy || building} className="gap-2">
-                  <Rocket className="h-4 w-4" aria-hidden />
-                  {busy || building ? 'Deploying…' : 'Deploy server'}
-                </Button>
-              </Form>
-            ) : (
-              <ComingSoonPanel type={getDeploymentType(deployType)} />
-            )}
-          </div>
+          <DeployPublishCard
+            projectId={project.id}
+            workspaceId={workspaceId}
+            busy={busy}
+            building={building}
+            onDetectedMode={(mode) => setDeployType(mode === 'server' ? 'autoscale' : 'static')}
+          />
         </div>
       ) : null}
     </ProjectShell>
+  );
+}
+
+/**
+ * Replit-parity Publish card: the user does NOT choose Static vs Server. We
+ * auto-detect the deploy mode from the project (detectServerRuntime, via the
+ * `?detect=1` loader side-channel), SHOW it ("Detected: Next.js → server
+ * deployment"), and publish with a single button. An "Advanced" disclosure lets
+ * you override the mode, but guessing is never required, and a detection failure
+ * surfaces a clear message instead of a silent wrong-mode deploy.
+ */
+function DeployPublishCard({
+  projectId,
+  workspaceId,
+  busy,
+  building,
+  onDetectedMode,
+}: {
+  projectId: string;
+  workspaceId: string;
+  busy: boolean;
+  building: boolean;
+  onDetectedMode: (mode: 'server' | 'static') => void;
+}) {
+  const detectFetcher = useFetcher<{ detected: DeployDetect }>();
+  const [override, setOverride] = useState<'auto' | 'server' | 'static'>('auto');
+
+  const detectHref = `/projects/${projectId}/deployments?detect=1${
+    workspaceId ? `&workspace=${encodeURIComponent(workspaceId)}` : ''
+  }`;
+
+  // Detect on mount and whenever the workspace changes.
+  useEffect(() => {
+    detectFetcher.load(detectHref);
+  }, [detectHref]);
+
+  const detected = detectFetcher.data?.detected;
+  const detecting = detectFetcher.state !== 'idle' || !detected;
+  const detectedMode = detected?.mode ?? 'unknown';
+
+  // The effective mode: an explicit override wins; otherwise the detected mode.
+  const effectiveMode: 'server' | 'static' | 'unknown' = override === 'auto' ? detectedMode : override;
+
+  useEffect(() => {
+    if (effectiveMode === 'server' || effectiveMode === 'static') {
+      onDetectedMode(effectiveMode);
+    }
+  }, [effectiveMode]);
+
+  const provider = effectiveMode === 'server' ? 'server' : 'static';
+  const canPublish = (effectiveMode === 'server' || effectiveMode === 'static') && !busy && !building;
+
+  return (
+    <div className="grid gap-4">
+      {/* Detected-mode banner — transparency, no opaque magic. */}
+      <div className="grid gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md">
+        <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Publish</h2>
+        {detecting ? (
+          <p className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Detecting how your app should deploy…
+          </p>
+        ) : detectedMode === 'unknown' && override === 'auto' ? (
+          <div className="grid gap-2">
+            <p className="flex items-start gap-2 text-xs text-[var(--status-error-text)]">
+              <Ban className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span>{detected?.reason ?? 'Could not detect how this app should deploy.'}</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => detectFetcher.load(detectHref)}
+              className="justify-self-start text-xs font-medium text-bolt-elements-item-contentAccent hover:underline"
+            >
+              Re-detect
+            </button>
+          </div>
+        ) : (
+          <p className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
+            <CheckCircle2 className="h-3.5 w-3.5 text-[var(--status-success-text,currentColor)]" aria-hidden />
+            <span>
+              Detected: <span className="font-medium text-bolt-elements-textPrimary">{detected?.framework}</span> →{' '}
+              <span className="font-medium text-bolt-elements-textPrimary">
+                {effectiveMode === 'server' ? 'server deployment' : 'static deployment'}
+              </span>
+              {override !== 'auto' ? ' (overridden)' : ''}
+            </span>
+          </p>
+        )}
+      </div>
+
+      <Form
+        method="post"
+        className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md"
+      >
+        <input type="hidden" name="workspaceId" value={workspaceId} />
+        <input type="hidden" name="provider" value={provider} />
+
+        <p className="text-xs text-bolt-elements-textSecondary">
+          {effectiveMode === 'server'
+            ? 'Runs your app as a managed HTTP service on a durable runtime. Build and start command are auto-detected; your project secrets (including the database URL) are injected automatically.'
+            : 'Builds your app and serves the output as a fast static site at a public URL.'}
+        </p>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field as="select" label="Environment" name="environment" defaultValue="preview">
+            <option value="preview">Preview</option>
+            <option value="staging">Staging</option>
+            <option value="production">Production</option>
+          </Field>
+          <Field label="Custom domain" name="customDomain" placeholder="app.example.com" />
+        </div>
+
+        <Field
+          as="textarea"
+          label="Environment variables"
+          name="envVars"
+          placeholder={'PUBLIC_API_URL=https://api.example.com\nFEATURE_FLAG=on'}
+        />
+
+        <details className="group">
+          <summary className="cursor-pointer text-xs font-medium text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary">
+            Advanced — override the deploy mode
+          </summary>
+          <div className="mt-2 grid gap-1.5 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
+            {(
+              [
+                ['auto', 'Auto (recommended) — use the detected mode'],
+                ['server', 'Server — managed HTTP service'],
+                ['static', 'Static — built output, no server'],
+              ] as const
+            ).map(([value, label]) => (
+              <label
+                key={value}
+                className="flex cursor-pointer items-center gap-2 text-xs text-bolt-elements-textSecondary"
+              >
+                <input
+                  className="h-3.5 w-3.5 accent-bolt-elements-focus"
+                  type="radio"
+                  name="deployModeOverride"
+                  value={value}
+                  checked={override === value}
+                  onChange={() => setOverride(value)}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </details>
+
+        <Button type="submit" disabled={!canPublish} className="gap-2">
+          <Rocket className="h-4 w-4" aria-hidden />
+          {busy || building ? 'Publishing…' : 'Publish'}
+        </Button>
+      </Form>
+    </div>
   );
 }
 
@@ -656,60 +715,6 @@ function DeployHistory({
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function ComingSoonPanel({ type }: { type?: DeploymentType }) {
-  if (!type) {
-    return null;
-  }
-
-  return (
-    <div className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md">
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
-          <Sparkles className="h-4 w-4 text-bolt-elements-item-contentAccent" aria-hidden />
-        </span>
-        <div className="min-w-0">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
-            {type.name}
-            <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary">
-              Coming soon
-            </span>
-          </h2>
-          <p className="mt-1 text-xs text-bolt-elements-textSecondary">{type.description}</p>
-        </div>
-      </div>
-
-      <ComputeTierPreview tier={type.id} />
-
-      {type.requires ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <RequirementList title="In progress (platform)" items={type.requires.code} />
-          <RequirementList title="Requires scale infrastructure" items={type.requires.infra} />
-        </div>
-      ) : null}
-
-      <p className="text-xs text-bolt-elements-textTertiary">
-        Need this tier now? Use Static for front-end apps today, or contact us to prioritise managed compute.
-      </p>
-    </div>
-  );
-}
-
-function RequirementList({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
-      <p className="text-[11px] font-medium uppercase tracking-[0.04em] text-bolt-elements-textTertiary">{title}</p>
-      <ul className="mt-2 grid gap-1.5">
-        {items.map((item) => (
-          <li key={item} className="flex gap-2 text-xs text-bolt-elements-textSecondary">
-            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-bolt-elements-textTertiary" aria-hidden />
-            {item}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

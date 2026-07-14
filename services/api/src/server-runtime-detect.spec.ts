@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { detectServerRuntime, isDetectionError, type ServerRuntimePlan } from './server-runtime-detect.js';
+import {
+  detectDeployTarget,
+  detectServerRuntime,
+  isDetectionError,
+  type ServerRuntimePlan,
+} from './server-runtime-detect.js';
 
 const plan = (pkg: object, topLevelFiles: string[] = []): ServerRuntimePlan => {
   const d = detectServerRuntime({ packageJson: JSON.stringify(pkg), topLevelFiles });
@@ -142,3 +147,42 @@ describe('buildServerBootScript', () => {
     expect(s).toContain('exec sh -c "node app.js"');
   });
 });
+
+describe('detectDeployTarget — the decision layer (user does not choose)', () => {
+  it('server app (Next.js) → mode server, with the runtime plan', () => {
+    const t = detectDeployTarget({ packageJson: JSON.stringify({ dependencies: { next: '14' } }) });
+    expect(t.mode).toBe('server');
+    expect(t.framework).toBe('nextjs');
+    expect(t.plan?.startCommand).toContain('next start');
+    expect(t.reason).toMatch(/next/i);
+  });
+
+  it('Express server → mode server', () => {
+    const t = detectDeployTarget({
+      packageJson: JSON.stringify({ dependencies: { express: '4' }, scripts: { start: 'node server.js' } }),
+    });
+    expect(t.mode).toBe('server');
+    expect(t.framework).toBe('express');
+  });
+
+  it('Vite SPA (no server) → mode static, not an error', () => {
+    const t = detectDeployTarget({
+      packageJson: JSON.stringify({ devDependencies: { vite: '5' }, scripts: { build: 'vite build' } }),
+      topLevelFiles: ['vite.config.ts', 'index.html'],
+    });
+    expect(t.mode).toBe('static');
+    expect(t.framework).toBe('static');
+  });
+
+  it('plain static site (index.html, no package.json) → mode static', () => {
+    const t = detectDeployTarget({ packageJson: null, topLevelFiles: ['index.html', 'style.css'] });
+    expect(t.mode).toBe('static');
+  });
+
+  it('undecidable (no package.json, no index.html) → mode unknown with a clear error, never a guess', () => {
+    const t = detectDeployTarget({ packageJson: null, topLevelFiles: ['README.md'] });
+    expect(t.mode).toBe('unknown');
+    expect(t.error).toBeTruthy();
+    expect(t.plan).toBeUndefined();
+  });
+})
