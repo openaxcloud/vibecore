@@ -90,4 +90,45 @@ describe('runtime E-Code branding', () => {
     expect(documentation).toContain('bolt-ai-production');
     expect(documentation).not.toMatch(/thinktank\.ottomator\.ai|x\.com\/bolt_diy|bsky\.app\/profile\/bolt\.diy/i);
   });
+
+  it('uses E-Code in user-facing agent guidance while preserving compatibility identifiers', () => {
+    const walkthrough = source('app/components/docs/AgentWalkthrough.tsx');
+    const chat = source('app/components/chat/BaseChat.tsx');
+    const prompt = source('app/lib/common/prompts/discuss-prompt.ts');
+
+    expect(walkthrough).toContain('Standalone E-Code safety:');
+    expect(chat).toContain("reason: 'Core E-Code workflow'");
+    expect(prompt).toContain('E-Code ALWAYS uses stock photos from Pexels');
+    expect(prompt).toContain('E-Code NEVER downloads the images');
+    expect(`${walkthrough}\n${chat}\n${prompt}`).not.toMatch(
+      /Standalone Bolt safety|Core Bolt workflow|Bolt (?:ALWAYS|NEVER)/,
+    );
+
+    // These names are parser, theme and storage contracts rather than product copy.
+    expect(prompt).toContain('<bolt-quick-actions>');
+    expect(chat).toContain('workbenchStore.boltTerminal');
+  });
+
+  it('keeps root contributor documentation owned by E-Code', () => {
+    const contributing = source('CONTRIBUTING.md');
+    const project = source('PROJECT.md');
+    const faq = source('FAQ.md');
+    const documentation = [contributing, project, faq].join('\n');
+
+    expect(contributing).toContain('helping us make **E-Code** a better tool');
+    expect(contributing).toContain('git clone https://github.com/openaxcloud/vibecore.git');
+    expect(project).toContain('# Project management for E-Code');
+    expect(project).toContain('https://github.com/openaxcloud/vibecore/issues');
+    expect(faq).toContain("What is E-Code's open-source history?");
+    expect(faq).toContain(
+      'It originated from the open-source [bolt.diy](https://github.com/stackblitz-labs/bolt.diy) project',
+    );
+    expect(faq).toContain('https://github.com/openaxcloud/vibecore/issues/new/choose');
+
+    // Preserve one structured upstream attribution and existing Docker contracts only.
+    expect(documentation.match(/stackblitz-labs\/bolt\.diy/g)).toHaveLength(1);
+    expect(documentation).toContain('bolt-ai-development');
+    expect(documentation).toContain('bolt-ai-production');
+    expect(documentation).not.toMatch(/orgs\/stackblitz-labs|roadmap\.sh\/r\/ottodev|forms\.gle\//i);
+  });
 });

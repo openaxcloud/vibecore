@@ -1,16 +1,13 @@
 /**
  * Replit-parity deployment-type model for the Publish panel.
  *
- * E-Code's managed deploy backend fulfils two tiers TODAY: `static` (an
- * in-process build served at `/static-deployments/<id>/`) and `autoscale`
- * (`provider=server` — a durable managed HTTP service: the app source is
- * snapshotted from the workspace, installed/built/started in an isolated pod, and
- * served at a per-deployment subdomain routed by the preview-proxy). The remaining
- * two tiers (Reserved VM / Scheduled) mirror Replit's offerings and exist as
- * billing rates (metering-service.ts) but have no provisioning runtime yet, so
- * they are surfaced as "coming soon" rather than faked. Keeping the taxonomy here
- * (one source of truth) lets the Publish UI show the full Replit-style menu while
- * only enabling what the backend can actually fulfil.
+ * E-Code's managed deploy backend fulfils three tiers: `static` builds served at
+ * `/static-deployments/<id>/`, `autoscale` managed HTTP services routed through
+ * the preview proxy, and `scheduled` commands executed on a cron schedule with
+ * persisted run history. Reserved VM mirrors Replit's dedicated-compute offering
+ * but has no provisioning runtime yet, so it remains "coming soon" rather than
+ * being faked. Keeping the taxonomy here as one source of truth lets the Publish
+ * UI show the full menu while enabling only what the backend can fulfil.
  */
 export type DeploymentTypeId = 'static' | 'autoscale' | 'reserved-vm' | 'scheduled';
 
@@ -96,5 +93,5 @@ export function isDeploymentTypeAvailable(id: string): boolean {
   return getDeploymentType(id)?.status === 'available';
 }
 
-/** The default selection — the only tier that is actually deployable today. */
+/** The default selection shown when the Publish panel opens. */
 export const DEFAULT_DEPLOYMENT_TYPE: DeploymentTypeId = 'static';
