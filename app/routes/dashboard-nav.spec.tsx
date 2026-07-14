@@ -90,11 +90,29 @@ describe('dashboard import options', () => {
 });
 
 describe('dashboard header actions', () => {
-  it('prioritizes resuming the most recently updated project', () => {
+  it('names the most recently updated project and exposes a chooser when several exist', () => {
     expect(
-      resolveDashboardHeaderActions([{ ideUrl: '/acme/project-alpha' }, { ideUrl: '/acme/project-beta' }]),
+      resolveDashboardHeaderActions([
+        { ideUrl: '/acme/project-alpha', name: 'Project Alpha' },
+        { ideUrl: '/acme/project-beta', name: 'Project Beta' },
+      ]),
     ).toEqual({
-      primary: { label: 'Resume project', to: '/acme/project-alpha' },
+      primary: { label: 'Resume Project Alpha', to: '/acme/project-alpha' },
+      secondary: { label: 'Choose project', to: '/projects' },
+      tertiary: { label: 'New project', to: '/projects/new' },
+    });
+  });
+
+  it('keeps creation directly available when only one project exists', () => {
+    expect(resolveDashboardHeaderActions([{ ideUrl: '/acme/project-alpha', name: 'Project Alpha' }])).toEqual({
+      primary: { label: 'Resume Project Alpha', to: '/acme/project-alpha' },
+      secondary: { label: 'New project', to: '/projects/new' },
+    });
+  });
+
+  it('uses an explicit latest-project fallback when a project has no usable name', () => {
+    expect(resolveDashboardHeaderActions([{ ideUrl: '/acme/project-alpha', name: '  ' }])).toEqual({
+      primary: { label: 'Resume latest project', to: '/acme/project-alpha' },
       secondary: { label: 'New project', to: '/projects/new' },
     });
   });

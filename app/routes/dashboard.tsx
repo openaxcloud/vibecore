@@ -220,19 +220,36 @@ export const meta: MetaFunction = () => [{ title: 'Dashboard - E-Code' }];
 export default function DashboardPage() {
   const { projects, usageSummary, billingAccessLimited, onboarding } = useLoaderData<typeof loader>();
   const headerActions = resolveDashboardHeaderActions(projects);
+
+  const dashboardDescription =
+    projects.length > 1
+      ? 'Continue your most recently updated project, choose another project, or start something new with the E-Code agent.'
+      : projects.length === 1
+        ? 'Continue your project or start building something new with the E-Code agent.'
+        : 'Start building with the E-Code agent or choose a curated template.';
+
   const revalidator = useRevalidator();
   const retryingOnboarding = revalidator.state !== 'idle';
 
   return (
     <AppShell
       title="Dashboard"
-      description="Resume your latest project or start building something new with the E-Code agent."
+      description={dashboardDescription}
       actions={
         <>
-          <LinkButton to={headerActions.primary.to}>{headerActions.primary.label}</LinkButton>
+          <LinkButton to={headerActions.primary.to}>
+            <span className="block max-w-[min(70vw,20rem)] truncate" title={headerActions.primary.label}>
+              {headerActions.primary.label}
+            </span>
+          </LinkButton>
           <LinkButton to={headerActions.secondary.to} variant="outline">
             {headerActions.secondary.label}
           </LinkButton>
+          {headerActions.tertiary ? (
+            <LinkButton to={headerActions.tertiary.to} variant="ghost">
+              {headerActions.tertiary.label}
+            </LinkButton>
+          ) : null}
         </>
       }
     >

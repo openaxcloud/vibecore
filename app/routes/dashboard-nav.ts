@@ -42,15 +42,33 @@ export function shouldUseSpaNavigation(to: string): boolean {
 export type DashboardHeaderActions = {
   primary: { label: string; to: string };
   secondary: { label: string; to: string };
+  tertiary?: { label: string; to: string };
 };
 
 /** Keep the most useful next action first, based on whether work already exists. */
-export function resolveDashboardHeaderActions(projects: ReadonlyArray<{ ideUrl?: string }>): DashboardHeaderActions {
+export function resolveDashboardHeaderActions(
+  projects: ReadonlyArray<{ ideUrl?: string; name?: string }>,
+): DashboardHeaderActions {
   const mostRecentProject = projects[0];
 
   if (mostRecentProject) {
+    const projectName = mostRecentProject.name?.trim();
+
+    const primary = {
+      label: projectName ? `Resume ${projectName}` : 'Resume latest project',
+      to: mostRecentProject.ideUrl ?? '/projects',
+    };
+
+    if (projects.length > 1) {
+      return {
+        primary,
+        secondary: { label: 'Choose project', to: '/projects' },
+        tertiary: { label: 'New project', to: '/projects/new' },
+      };
+    }
+
     return {
-      primary: { label: 'Resume project', to: mostRecentProject.ideUrl ?? '/projects' },
+      primary,
       secondary: { label: 'New project', to: '/projects/new' },
     };
   }
