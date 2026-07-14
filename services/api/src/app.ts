@@ -28360,7 +28360,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/projects/:projectId/scheduled-tasks', async (request, reply) => {
     const { projectId } = parse(scheduledTaskParams, request.params);
-    const body = parse(createScheduledTaskSchema, request.body ?? {});
+    /*
+     * `parse`'s generic collapses zod input/output, so defaulted fields (cron
+     * timezone/machineSize/enabled/…) surface as `T | undefined`. They are always
+     * present at runtime (zod applies the defaults), so annotate with the schema's
+     * OUTPUT type to reflect that.
+     */
+    const body = parse(createScheduledTaskSchema, request.body ?? {}) as z.infer<typeof createScheduledTaskSchema>;
     const project = await requireProject(request, store, projectId, 'projects:write');
     const { repository } = requireScheduledTasks();
     const planKey = await scheduledTaskPlanKey(project.organizationId);
