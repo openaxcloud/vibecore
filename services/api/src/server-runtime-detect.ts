@@ -294,3 +294,38 @@ function resolveNodeStart(pkg: PackageJson, scripts: Record<string, string>, top
 
   return null;
 }
+
+/*
+ * Boot command for the durable server-deploy pod. The pod runs the platform
+ * runtime image (has node + npm, NOT the user's app), so the boot script fetches
+ * the app SOURCE artifact (a signed URL to the tarball snapshotted from the
+ * workspace), installs deps (dev deps INCLUDED — the image runs NODE_ENV=production,
+ * so a plain `npm install` would drop the build toolchain like vite), runs the
+ * detected build, then execs the detected start command with PORT set. This is the
+ * exact flow proven live against real Express / Next.js / SPA-server apps.
+ *
+ * fail-fast: any install/build failure exits non-zero so the Deployment surfaces it
+ * (pod not Ready) instead of silently serving nothing.
+ */
+export function buildServerBootScript(plan: {
+  install: { command: string; args: string[] };
+  buildCommand: string | null;
+  startCommand: string;
+}): string {
+  const installCmd = [plan.install.command, ...plan.install.args].join(' ');
+  const lines = [
+    'set -e',
+    // APP_SRC_URL is a signed URL to the source tarball; APP_SRC_B64 is an inline
+    // fallback for tiny apps. Whichever is set wins.
+    'mkdir -p /tmp/app',
+    'if [ -n "$APP_SRC_URL" ]; then echo "[boot] fetching app artifact"; curl -fsSL "$APP_SRC_URL" -o /tmp/app.tgz;',
+    'elif [ -n "$APP_SRC_B64" ]; then echo "$APP_SRC_B64" | base64 -d > /tmp/app.tgz;',
+    'else echo "[boot] no app artifact (APP_SRC_URL/APP_SRC_B64)"; exit 1; fi',
+    'tar -xzf /tmp/app.tgz -C /tmp/app',
+    'cd /tmp/app',
+    `echo "[boot] install"; ${installCmd}`,
+    plan.buildCommand ? `echo "[boot] build"; ${plan.buildCommand}` : 'echo "[boot] no build step"',
+    `echo "[boot] start on PORT=$PORT"; exec sh -c ${JSON.stringify(plan.startCommand)}`,
+  ];
+  return lines.join('\n');
+}

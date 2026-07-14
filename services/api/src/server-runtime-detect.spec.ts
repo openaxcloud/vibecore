@@ -115,3 +115,30 @@ describe('detectServerRuntime — package manager', () => {
     expect(npm.install.args).toContain('--legacy-peer-deps');
   });
 });
+
+describe('buildServerBootScript', () => {
+  it('fetches the artifact, installs (dev included), builds, and execs the start command', async () => {
+    const { buildServerBootScript } = await import('./server-runtime-detect.js');
+    const s = buildServerBootScript({
+      install: { command: 'npm', args: ['install', '--include=dev', '--legacy-peer-deps'] },
+      buildCommand: 'vite build',
+      startCommand: 'node server.js',
+    });
+    expect(s).toContain('curl -fsSL "$APP_SRC_URL"');
+    expect(s).toContain('npm install --include=dev --legacy-peer-deps');
+    expect(s).toContain('vite build');
+    expect(s).toContain('exec sh -c "node server.js"');
+    expect(s).toContain('set -e'); // fail-fast
+  });
+
+  it('omits the build line when the framework needs no build', async () => {
+    const { buildServerBootScript } = await import('./server-runtime-detect.js');
+    const s = buildServerBootScript({
+      install: { command: 'npm', args: ['install'] },
+      buildCommand: null,
+      startCommand: 'node app.js',
+    });
+    expect(s).toContain('no build step');
+    expect(s).toContain('exec sh -c "node app.js"');
+  });
+});
