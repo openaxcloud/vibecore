@@ -32,7 +32,7 @@ export default function AccountSettingsLayout() {
             role="tab"
             className={({ isActive }) =>
               classNames(
-                'relative -mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
+                'relative -mb-px inline-flex min-h-[44px] items-center border-b-2 px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
                 isActive
                   ? 'border-[var(--vc-ide-accent-action)] text-bolt-elements-textPrimary'
                   : 'border-transparent text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',

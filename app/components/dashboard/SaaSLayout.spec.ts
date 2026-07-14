@@ -87,6 +87,12 @@ describe('public marketing brand', () => {
     expect(layoutSource).toContain('vc-sidebar-header group relative flex h-[56px]');
     expect(layoutSource).toContain('relative inline-flex h-[44px] w-[44px]');
     expect(layoutSource).toContain("collapsed ? 'h-[44px] w-[44px] justify-center px-0'");
+    expect(layoutSource).toContain('overflow-y-auto overflow-x-visible px-3 py-2');
+    expect(layoutSource).toContain("classNames('grid w-full gap-0'");
+    expect(layoutSource).toContain("{ label: 'Account', to: '/account-settings', icon: Settings, end: true }");
+    expect(layoutSource).toContain('end={item.end}');
+    expect(layoutSource).toContain('px-3 pb-0.5 text-[10px]');
+    expect(layoutSource).not.toContain("classNames('grid w-full gap-1', collapsed");
     expect(layoutSource).toContain('vc-user-area-shell min-h-[100dvh]');
     expect(layoutSource).toContain('vc-app-shell-title text-[28px] font-semibold leading-[36px]');
     expect(layoutSource).toContain('md:grid-cols-2 2xl:grid-cols-3');

@@ -272,7 +272,7 @@ export const publicFooterUtilityLinks = [
   { label: 'Instagram', to: 'https://instagram.com/ecode', icon: Instagram, external: true },
 ] as const satisfies readonly FooterUtilityLink[];
 
-type NavItem = { label: string; to: string; icon: Icon; shortcut?: string };
+type NavItem = { label: string; to: string; icon: Icon; shortcut?: string; end?: boolean };
 
 export const workspaceNav: NavItem[] = [
   { label: 'Search', to: '/command-palette', icon: Search, shortcut: '⌘K' },
@@ -291,7 +291,7 @@ export const orgNav = [
 export const appNav = [...workspaceNav, { label: 'Create project', to: '/projects/new', icon: Plus }, ...orgNav];
 
 export const accountNav = [
-  { label: 'Account', to: '/account-settings', icon: Settings },
+  { label: 'Account', to: '/account-settings', icon: Settings, end: true },
   { label: 'Security', to: '/security-settings', icon: ShieldCheck },
   { label: 'API keys', to: '/api-keys', icon: KeyRound },
   { label: 'Connected accounts', to: '/account-settings/connected', icon: Github },
@@ -935,7 +935,7 @@ function SidebarBody({ collapsed, mobile = false }: { collapsed: boolean; mobile
   return (
     <nav
       className={classNames(
-        'min-h-0 flex-1 overflow-y-auto overflow-x-visible px-3 py-3',
+        'min-h-0 flex-1 overflow-y-auto overflow-x-visible px-3 py-2',
         collapsed && 'items-center px-2',
         mobile && 'vc-sidebar-scroll-region',
       )}
@@ -1029,7 +1029,7 @@ function SidebarFooter({ collapsed, embedded = false }: { collapsed: boolean; em
       className={classNames(
         'vc-sidebar-footer',
         !embedded && 'shrink-0 border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-2',
-        collapsed ? 'px-2 py-2' : 'px-3 py-3',
+        collapsed ? 'px-2 py-2' : 'px-3 py-2',
         embedded && 'p-0',
       )}
     >
@@ -2230,11 +2230,11 @@ function NavSection({ label, items, collapsed }: { label?: string; items: NavIte
     <div className={classNames('w-full', collapsed && 'flex flex-col items-center')}>
       {label ? (
         !collapsed ? (
-          <p className="vc-sidebar-group-label vc-sidebar-fade-label px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
+          <p className="vc-sidebar-group-label vc-sidebar-fade-label px-3 pb-0.5 text-[10px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
             {label}
           </p>
         ) : (
-          <div className="vc-sidebar-divider mb-1.5 mt-1 h-px w-6 bg-bolt-elements-borderColor" aria-hidden />
+          <div className="vc-sidebar-divider mb-0.5 mt-0.5 h-px w-6 bg-bolt-elements-borderColor" aria-hidden />
         )
       ) : null}
       <NavGroup items={items} collapsed={collapsed} />
@@ -2267,13 +2267,14 @@ function CreateProjectCta({ collapsed }: { collapsed: boolean }) {
 
 function NavGroup({ items, collapsed = false }: { items: NavItem[]; collapsed?: boolean }) {
   return (
-    <div className={classNames('grid w-full gap-1', collapsed && 'place-items-center')}>
+    <div className={classNames('grid w-full gap-0', collapsed && 'place-items-center')}>
       {items.map((item) => {
         const Icon = item.icon;
         return (
           <NavLink
             key={item.to}
             to={item.to}
+            end={item.end}
             className={({ isActive }) =>
               classNames(
                 'vc-sidebar-nav-item group relative flex items-center rounded-md text-[13px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
