@@ -6,7 +6,7 @@ body:
       value: |
         Thank you for reporting an issue :pray:.
 
-        This issue tracker is for bugs and issues found with [Bolt.diy](https://bolt.diy).
+        This issue tracker is for bugs and issues found with [E-Code](https://e-code.ai).
         If you experience issues related to WebContainer, please file an issue in the official [StackBlitz WebContainer repo](https://github.com/stackblitz/webcontainer-core).
 
         The more information you fill in, the better we can help you.
@@ -20,8 +20,8 @@ body:
   - type: input
     id: link
     attributes:
-      label: Link to the Bolt URL that caused the error
-      description: Please do not delete it after reporting!
+      label: Link to the E-Code project that caused the error
+      description: Share the E-Code project URL and keep it available while the issue is investigated.
     validations:
       required: true
   - type: textarea

@@ -27,4 +27,67 @@ describe('runtime E-Code branding', () => {
     expect(source('pre-start.cjs')).toContain('E - C O D E');
     expect(source('pre-start.cjs')).not.toContain('B O L T . D I Y');
   });
+
+  it('publishes desktop updates from the public E-Code repository', () => {
+    const updater = source('electron-update.yml');
+    const builder = source('electron-builder.yml');
+
+    expect(updater).toContain('owner: openaxcloud\nrepo: vibecore\nprovider: github\nprivate: false');
+    expect(builder).toMatch(
+      /publish:\n  provider: github\n  owner: openaxcloud\n  repo: vibecore\n  private: false\n  releaseType: release/,
+    );
+    expect(`${updater}\n${builder}`).not.toMatch(/stackblitz-labs|repo: bolt\.diy|owner: vibecore|private: true/i);
+  });
+
+  it('keeps public contributor surfaces owned by E-Code', () => {
+    const bugReport = source('.github/ISSUE_TEMPLATE/bug_report.yml');
+    const issueConfig = source('.github/ISSUE_TEMPLATE/config.yml');
+    const preview = source('.github/workflows/preview.yaml');
+    const changelog = source('.github/scripts/generate-changelog.sh');
+    const codeowners = source('.github/CODEOWNERS');
+
+    expect(bugReport).toContain('[E-Code](https://e-code.ai)');
+    expect(bugReport).toContain('Link to the E-Code project that caused the error');
+    expect(issueConfig).toContain('url: https://e-code.ai/contact');
+    expect(preview).toContain('projectName: bolt-diy-preview');
+    expect(preview.match(/Built with \[E-Code\]\(https:\/\/e-code\.ai\)/g)).toHaveLength(2);
+    expect(changelog).toContain(': "${GITHUB_REPOSITORY:=openaxcloud/vibecore}"');
+    expect(codeowners).toContain('# Code Owners for E-Code');
+    expect(codeowners.match(/@openaxcloud/g)?.length).toBeGreaterThanOrEqual(10);
+
+    const brandedSurfaces = [
+      bugReport,
+      issueConfig,
+      preview.replace('bolt-diy-preview', ''),
+      changelog,
+      codeowners,
+    ].join('\n');
+    expect(brandedSurfaces).not.toMatch(/bolt\.diy|stackblitz-labs\/bolt|thinktank\.ottomator\.ai|@stackblitz-labs/i);
+  });
+
+  it('keeps the published documentation on E-Code product and repository links', () => {
+    const mkdocs = source('docs/mkdocs.yml');
+    const index = source('docs/docs/index.md');
+    const faq = source('docs/docs/FAQ.md');
+    const contributing = source('docs/docs/CONTRIBUTING.md');
+    const documentation = [mkdocs, index, faq, contributing].join('\n');
+
+    expect(mkdocs).toContain('site_name: E-Code Docs');
+    expect(mkdocs).toContain('repo_name: openaxcloud/vibecore');
+    expect(mkdocs).toContain('repo_url: https://github.com/openaxcloud/vibecore');
+    expect(index).toContain('# Welcome to E-Code');
+    expect(index).toContain('git clone https://github.com/openaxcloud/vibecore.git');
+    expect(faq).toContain('https://github.com/openaxcloud/vibecore/issues/new/choose');
+    expect(contributing).toContain('git clone https://github.com/openaxcloud/vibecore.git');
+
+    // Keep one explicit upstream attribution and the existing Docker target identifiers.
+    expect(index).toContain(
+      'E-Code originated from the open-source [bolt.diy](https://github.com/stackblitz-labs/bolt.diy) project',
+    );
+    expect(documentation.match(/stackblitz-labs\/bolt\.diy/g)).toHaveLength(1);
+    expect(documentation.match(/bolt\.diy/gi)).toHaveLength(2);
+    expect(documentation).toContain('bolt-ai-development');
+    expect(documentation).toContain('bolt-ai-production');
+    expect(documentation).not.toMatch(/thinktank\.ottomator\.ai|x\.com\/bolt_diy|bsky\.app\/profile\/bolt\.diy/i);
+  });
 });
