@@ -31,13 +31,16 @@ resourceQuota:
   #
   # ⚠️ SAFETY: this cap is NOT currently applied on the live cluster (the deployed
   # rev-2 ResourceQuota has no requests.storage) — it lands only on the NEXT full
-  # `helm upgrade` of this chart. On 2026-07-14 live usage was 3845Gi across 65 PVCs
-  # (96% of the old 4000Gi value), so upgrading with 4000Gi would have HARD-BLOCKED
-  # creation of every new workspace/project. Raised to 10000Gi to keep a safety net
-  # with real headroom. Before raising further or removing the cap, validate against
-  # the region's actual persistent-disk quota (a cap far above it just moves the
-  # failure to cloud-provisioning time). Revisit if usage approaches this ceiling.
-  requestsStorage: 10000Gi
+  # `helm upgrade` of this chart. History: on 2026-07-14 live usage was 3845Gi/65 PVCs,
+  # 96% of the OLD 4000Gi value, so upgrading with 4000Gi would have HARD-BLOCKED new
+  # workspaces. Root cause was the regional persistent-disk quota (DISKS_TOTAL_GB) at
+  # 4096Gi/95%; that GCP quota was raised to 20000Gi (europe-west9), verified live (a
+  # fresh 100Gi workspace PVC binds, no QUOTA_EXCEEDED). This k8s cap is set to 15000Gi
+  # — below the 20000Gi PD quota so it leaves ~5000Gi for CNPG DBs + node/system disks,
+  # while giving workspaces ~150 x 100Gi of headroom. Keep it below the PD quota; if you
+  # raise it, raise DISKS_TOTAL_GB first (a k8s cap above the cloud quota just moves the
+  # failure to provisioning time).
+  requestsStorage: 15000Gi
 
 limitRange:
   defaultRequest:
