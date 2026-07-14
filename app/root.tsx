@@ -302,6 +302,7 @@ const inlineThemeCode = stripIndents`
     }
 
     const root = document.querySelector('html');
+    const firstApplication = !root?.hasAttribute('data-ecode-theme-ready');
 
     root?.setAttribute('data-theme', theme);
     root?.classList.toggle('dark', theme === 'dark');
@@ -313,6 +314,16 @@ const inlineThemeCode = stripIndents`
     }
     refreshChromeMeta('theme-color', theme === 'dark' ? '#0a0f1c' : '#f6f8fb');
     refreshChromeMeta('apple-mobile-web-app-status-bar-style', theme === 'dark' ? 'black-translucent' : 'default');
+
+    if (firstApplication && root) {
+      root.setAttribute('data-ecode-theme-ready', 'true');
+
+      try {
+        performance.mark('ecode-theme-applied');
+      } catch (e) {
+        // Performance marks are optional; the DOM marker remains authoritative.
+      }
+    }
   }
 
   /*
@@ -352,6 +363,11 @@ const inlineThemeCode = stripIndents`
     meta.setAttribute('content', content);
     head.appendChild(meta);
   }
+
+  // Resolve the persisted/system preference while the parser is still in
+  // <head>, before the SSR splash can paint. The hydration event reapplies the
+  // same value after React commits and handles the remaining document state.
+  setTutorialKitTheme();
 `;
 
 /*
@@ -361,9 +377,11 @@ const inlineThemeCode = stripIndents`
  * renders <ServerRouter /> / <HydratedRouter /> *as* the children of this
  * Layout, so the document shell lives here in one place.
  *
- * data-theme is seeded to "dark" (the app default) on the server. The inline
- * script registers hydration-safe preference reconciliation; App emits its
- * event after React commits so the document is never mutated during hydration.
+ * data-theme is seeded to "dark" as a deterministic SSR fallback. The inline
+ * script immediately reconciles the shared cookie/local preference/system
+ * scheme before first paint; suppressHydrationWarning covers those intentional
+ * root/meta attribute changes. App emits its event after React commits to
+ * reapply the same theme and initialize the remaining persisted document state.
  */
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -378,7 +396,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" suppressHydrationWarning />
         <meta name="apple-mobile-web-app-title" content="E-Code" />
-        {/* Register preference reconciliation without mutating the SSR document before hydration. */}
+        {/* Apply the persisted/system theme before the SSR splash can paint. */}
         <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
         <Meta />
         <Links />

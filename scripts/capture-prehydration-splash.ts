@@ -7,12 +7,14 @@ import { chromium, type Browser, type BrowserContext, type Page, type Response }
 /**
  * Read-only evidence capture for the server-rendered E-Code boot splash.
  *
- * Every case uses a fresh browser context, forces its theme before first paint,
- * blocks external JavaScript (and therefore React hydration), and verifies that
- * the canonical SVG already exists in the raw SSR response. Run this only after
- * the production rollout has completed when the resulting PNGs are intended as
- * release evidence; URL overrides make the same checks usable against preview
- * or local production servers.
+ * Every case uses a fresh browser context, persists a real E-Code theme
+ * preference in the shared cookie, blocks external JavaScript (and therefore
+ * React hydration), and verifies that the product's own inline theme bootstrap
+ * applies that preference before first paint. The canonical SVG must already
+ * exist in the raw SSR response. Run this only after the production rollout has
+ * completed when the resulting PNGs are intended as release evidence; URL
+ * overrides make the same checks usable against preview or local production
+ * servers.
  */
 
 type Theme = 'light' | 'dark';
@@ -45,8 +47,9 @@ interface DomEvidence {
   firstContentfulPaintMs: number | null;
   hydratedAttribute: string | null;
   htmlTheme: string | null;
-  initThemeAppliedAtMs: number | null;
-  initThemeApplyCount: number;
+  productThemeAppliedAtMs: number | null;
+  productThemeApplyCount: number;
+  productThemeReady: boolean;
   legacyOrangeSquareCount: number;
   legacySquareClassCount: number;
   logo: {
@@ -103,7 +106,7 @@ interface EvidenceReport {
   cases: CaptureEvidence[];
   generatedAt: string;
   outputDirectory: string;
-  schemaVersion: 1;
+  schemaVersion: 2;
   viewport: { height: number; width: number };
 }
 
@@ -227,7 +230,7 @@ function isJavaScriptRequest(url: string, resourceType: string) {
   }
 }
 
-async function installThemeBeforePaint(context: BrowserContext, targetUrl: string, theme: Theme) {
+async function persistThemePreference(context: BrowserContext, targetUrl: string, theme: Theme) {
   const target = new URL(targetUrl);
 
   if (target.hostname === 'e-code.ai' || target.hostname.endsWith('.e-code.ai')) {
@@ -251,72 +254,6 @@ async function installThemeBeforePaint(context: BrowserContext, targetUrl: strin
       },
     ]);
   }
-
-  await context.addInitScript({
-    content: `(() => {
-      const forcedTheme = ${JSON.stringify(theme)};
-      const proof = {
-        appliedAt: null,
-        applyCount: 0,
-        requestedTheme: forcedTheme,
-      };
-
-      Reflect.set(globalThis, '__ecodeSplashThemeProof', proof);
-
-      try {
-        localStorage.setItem('bolt_theme', forcedTheme);
-      } catch {
-        // Storage may be unavailable in hardened browser contexts; the DOM
-        // assignment below remains the source of truth for this capture.
-      }
-
-      const applyTheme = () => {
-        const root = document.documentElement;
-
-        if (!root) {
-          return false;
-        }
-
-        if (root.getAttribute('data-theme') !== forcedTheme) {
-          root.setAttribute('data-theme', forcedTheme);
-        }
-
-        root.classList.toggle('light', forcedTheme === 'light');
-        root.classList.toggle('dark', forcedTheme === 'dark');
-
-        if (root.style.colorScheme !== forcedTheme) {
-          root.style.colorScheme = forcedTheme;
-        }
-
-        proof.applyCount += 1;
-        proof.appliedAt ??= performance.now();
-
-        return true;
-      };
-
-      applyTheme();
-
-      const observer = new MutationObserver(() => {
-        applyTheme();
-      });
-
-      observer.observe(document, {
-        attributeFilter: ['class', 'data-theme', 'style'],
-        attributes: true,
-        childList: true,
-        subtree: true,
-      });
-
-      document.addEventListener(
-        'DOMContentLoaded',
-        () => {
-          applyTheme();
-          observer.disconnect();
-        },
-        { once: true },
-      );
-    })();`,
-  });
 }
 
 async function waitForStyledSplash(page: Page, timeoutMs: number) {
@@ -361,7 +298,7 @@ async function inspectDom(page: Page): Promise<DomEvidence> {
     const statusSplash = document.querySelector(statusSelector);
     const splash = expectedSplash ?? statusSplash;
     const logo = splash?.querySelector(logoSelector) ?? null;
-    const proof = Reflect.get(globalThis, '__ecodeSplashThemeProof');
+    const productThemeMarks = performance.getEntriesByName('ecode-theme-applied', 'mark');
     const firstContentfulPaint = performance.getEntriesByName('first-contentful-paint')[0];
     const splashStyle = splash instanceof HTMLElement ? getComputedStyle(splash) : null;
     const splashBounds = splash instanceof HTMLElement ? splash.getBoundingClientRect() : null;
@@ -440,8 +377,6 @@ async function inspectDom(page: Page): Promise<DomEvidence> {
       firstContentfulPaintMs: firstContentfulPaint?.startTime ?? null,
       hydratedAttribute: document.documentElement.getAttribute('data-ecode-hydrated'),
       htmlTheme: document.documentElement.getAttribute('data-theme'),
-      initThemeAppliedAtMs: proof?.appliedAt ?? null,
-      initThemeApplyCount: proof?.applyCount ?? 0,
       legacyOrangeSquareCount,
       legacySquareClassCount: splash?.querySelectorAll('.bolt-app-boot-mark').length ?? 0,
       logo:
@@ -459,6 +394,9 @@ async function inspectDom(page: Page): Promise<DomEvidence> {
               width: logoBounds?.width ?? 0,
             }
           : null,
+      productThemeAppliedAtMs: productThemeMarks[0]?.startTime ?? null,
+      productThemeApplyCount: productThemeMarks.length,
+      productThemeReady: document.documentElement.getAttribute('data-ecode-theme-ready') === 'true',
       splashImageCount: splash?.querySelectorAll('img, image').length ?? 0,
       splashPresent: expectedSplash !== null,
       splashVisible:
@@ -521,7 +459,7 @@ async function captureCase(
       viewport: VIEWPORT,
     });
 
-    await installThemeBeforePaint(context, target.url, theme);
+    await persistThemePreference(context, target.url, theme);
 
     await context.route('**/*', async (route) => {
       const request = route.request();
@@ -573,15 +511,22 @@ async function captureCase(
 
     addAssertion(assertions, 'SSR splash uses stable shell marker', dom.splashPresent, dom.splashPresent);
     addAssertion(assertions, 'splash is visible and viewport-sized', dom.splashVisible, dom.splashVisible);
-    addAssertion(assertions, 'forced theme is active', dom.htmlTheme === theme, dom.htmlTheme, `expected ${theme}`);
     addAssertion(
       assertions,
-      'theme was applied before first contentful paint',
-      dom.initThemeAppliedAtMs !== null &&
+      'product theme bootstrap applied the persisted preference',
+      dom.productThemeReady && dom.htmlTheme === theme,
+      { htmlTheme: dom.htmlTheme, productThemeReady: dom.productThemeReady },
+      `expected ${theme}`,
+    );
+    addAssertion(
+      assertions,
+      'product theme bootstrap ran before first contentful paint',
+      dom.productThemeAppliedAtMs !== null &&
         dom.firstContentfulPaintMs !== null &&
-        dom.initThemeAppliedAtMs <= dom.firstContentfulPaintMs,
+        dom.productThemeAppliedAtMs <= dom.firstContentfulPaintMs,
       {
-        appliedAtMs: dom.initThemeAppliedAtMs,
+        appliedAtMs: dom.productThemeAppliedAtMs,
+        applyCount: dom.productThemeApplyCount,
         firstContentfulPaintMs: dom.firstContentfulPaintMs,
       },
     );
@@ -720,11 +665,11 @@ async function main() {
   const report: EvidenceReport = {
     allPassed: cases.every((capture) => capture.passed),
     captureMode:
-      'Fresh Chromium context; service workers disabled; cache bypassed; external JavaScript blocked; theme init applied before first paint',
+      'Fresh Chromium context; real shared theme cookie; service workers disabled; cache bypassed; external JavaScript blocked; product inline bootstrap verified before first paint',
     cases,
     generatedAt: new Date().toISOString(),
     outputDirectory: options.outputDirectory,
-    schemaVersion: 1,
+    schemaVersion: 2,
     viewport: VIEWPORT,
   };
 

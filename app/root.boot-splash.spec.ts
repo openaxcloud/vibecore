@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const rootSource = readFileSync(join(process.cwd(), 'app/root.tsx'), 'utf8');
 const stylesSource = readFileSync(join(process.cwd(), 'app/styles/index.scss'), 'utf8');
+const evidenceSource = readFileSync(join(process.cwd(), 'scripts/capture-prehydration-splash.ts'), 'utf8');
 
 describe('pre-hydration E-Code splash', () => {
   it('renders the self-contained SVG mark in both the app and IDE fallbacks', () => {
@@ -25,5 +26,13 @@ describe('pre-hydration E-Code splash', () => {
     expect(stylesSource).toContain('background-color: var(--vc-ide-bg-app)');
     expect(stylesSource).not.toContain('.bolt-app-boot-mark');
     expect(stylesSource).not.toMatch(/\.ecode-app-boot-(?:logo|content)[\s\S]{0,300}linear-gradient\(135deg/);
+  });
+
+  it('proves the real product theme bootstrap instead of mutating the captured DOM', () => {
+    expect(rootSource).toContain("root.setAttribute('data-ecode-theme-ready', 'true')");
+    expect(rootSource).toContain("performance.mark('ecode-theme-applied')");
+    expect(evidenceSource).toContain("name: 'ecode_theme'");
+    expect(evidenceSource).toContain("getAttribute('data-ecode-theme-ready') === 'true'");
+    expect(evidenceSource).not.toContain('addInitScript');
   });
 });
