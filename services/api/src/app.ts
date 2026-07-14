@@ -6280,7 +6280,24 @@ const SERVER_DEPLOY_PROBE_SCRIPT = `
 const http = require('http');
 const startedAt = new Date().toISOString();
 let pg = null;
-try { pg = require('pg'); } catch (_) { pg = null; }
+try {
+  pg = require('pg');
+} catch (_) {
+  // The platform runtime image (workspace-agent) does not bundle pg — a REAL user
+  // app carries it in its own package.json, but this dependency-free probe must
+  // fetch it to exercise the DB. Best-effort install into /tmp (writable) so the
+  // /db/* routes can prove the deployed app reaches its production database. npm +
+  // 443 egress are available in the sandbox; a failure degrades to a clear 503.
+  try {
+    require('child_process').execSync('npm install pg@8 --no-save --no-audit --no-fund --prefix /tmp/pgdeps', {
+      stdio: 'ignore',
+      timeout: 90000,
+    });
+    pg = require('/tmp/pgdeps/node_modules/pg');
+  } catch (_) {
+    pg = null;
+  }
+}
 let pool = null;
 function getPool() {
   if (!pg) return null;

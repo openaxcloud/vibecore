@@ -113,3 +113,50 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: preview-proxy
+---
+# Server-deployment egress (Replit-parity Lot 2): the deployed app must reach its
+# OWN production database + DNS + the internet. These pods carry
+# `vibecore.ai/server-deploy` (not the workspace label), so the workspace
+# controlled-egress above (which only grants DNS + 443 to vibecore-workspace pods)
+# leaves them under the namespace default-deny with NO egress at all — a deployed
+# app couldn't resolve DNS or connect to Postgres. Allow: DNS, the per-project
+# CNPG databases on 5432, and outbound HTTPS (metadata + private ranges blocked).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: server-deploy-egress
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: vibecore.ai/server-deploy
+        operator: Exists
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.databaseNamespace | default "project-databases" | quote }}
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - ipBlock:
+            cidr: {{ .Values.network.packageRegistryCidr | quote }}
+            except:
+{{- range .Values.network.blockedCidrs }}
+              - {{ . | quote }}
+{{- end }}
+      ports:
+        - protocol: TCP
+          port: 443
