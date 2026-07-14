@@ -16,6 +16,7 @@ import { EmptyState } from '~/components/ui/EmptyState';
 import { FilterChip } from '~/components/ui/FilterChip';
 import { RelativeTime } from '~/components/ui/RelativeTime';
 import { SearchInput } from '~/components/ui/SearchInput';
+import { projectStackLabel } from '~/lib/dashboard-project-stack';
 import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import {
   projectDeploymentSummary,
@@ -90,7 +91,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
           deploymentCount: project.deploymentCount,
           updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
           updatedAtIso: project.updatedAt,
-          stack: project.gitRepositoryUrl ?? project.sourceType ?? 'E-Code project',
+          stack: projectStackLabel(project),
           sourceType: project.sourceType,
           previewImageUrl: `/api/projects/${project.id}/thumbnail`,
           ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
@@ -240,7 +241,7 @@ export default function ProjectsPage() {
               />
               <div className="flex gap-2">
                 <button
-                  className="flex h-9 w-9 items-center justify-center rounded-md border border-bolt-elements-borderColor"
+                  className="flex h-[44px] w-[44px] items-center justify-center rounded-md border border-bolt-elements-borderColor"
                   aria-label="Grid view"
                   aria-pressed={view === 'grid'}
                   onClick={() => setView('grid')}
@@ -248,7 +249,7 @@ export default function ProjectsPage() {
                   <Grid2X2 className="h-4 w-4" aria-hidden />
                 </button>
                 <button
-                  className="flex h-9 w-9 items-center justify-center rounded-md border border-bolt-elements-borderColor"
+                  className="flex h-[44px] w-[44px] items-center justify-center rounded-md border border-bolt-elements-borderColor"
                   aria-label="List view"
                   aria-pressed={view === 'list'}
                   onClick={() => setView('list')}
