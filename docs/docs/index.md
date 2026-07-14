@@ -1,10 +1,12 @@
-# Welcome to bolt diy
+# Welcome to E-Code
 
-bolt.diy allows you to choose the LLM that you use for each prompt! Currently, you can use models from 19 providers including OpenAI, Anthropic, Ollama, OpenRouter, Google/Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together AI, Perplexity AI, Hyperbolic, Moonshot AI (Kimi), Amazon Bedrock, GitHub Models, and more - with easy extensibility to add any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
+E-Code lets you choose the LLM used for each prompt. It supports models from 19 providers, including OpenAI, Anthropic, Ollama, OpenRouter, Google/Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, Groq, Cohere, Together AI, Perplexity AI, Hyperbolic, Moonshot AI (Kimi), Amazon Bedrock, GitHub Models, and more. Its provider layer can be extended with any model supported by the Vercel AI SDK.
+
+E-Code originated from the open-source [bolt.diy](https://github.com/stackblitz-labs/bolt.diy) project and continues under the E-Code product and `openaxcloud/vibecore` repository.
 
 ## Table of Contents
 
-- [Join the community!](#join-the-community)
+- [Support and project links](#support-and-project-links)
 - [Features](#features)
 - [Setup](#setup)
   - [Prerequisites](#prerequisites)
@@ -29,11 +31,11 @@ bolt.diy allows you to choose the LLM that you use for each prompt! Currently, y
 
 ---
 
-## Join the community!
+## Support and project links
 
-[Join the community!](https://thinktank.ottomator.ai)
-
-Also [this pinned post in our community](https://thinktank.ottomator.ai/t/videos-tutorial-helpful-content/3243) has a bunch of incredible resources for running and deploying bolt.diy yourself!
+- [E-Code website](https://e-code.ai)
+- [Contact E-Code support](https://e-code.ai/contact)
+- [Report an issue or request a feature](https://github.com/openaxcloud/vibecore/issues)
 
 ---
 
@@ -66,7 +68,6 @@ If you're new to installing software from GitHub, don't worry! If you encounter 
 
 1. **Install Git**: [Download Git](https://git-scm.com/downloads)
 2. **Install Node.js**: [Download Node.js](https://nodejs.org/en/download/)
-
    - After installation, the Node.js path is usually added to your system automatically. To verify:
      - **Windows**: Search for "Edit the system environment variables," click "Environment Variables," and check if `Node.js` is in the `Path` variable.
      - **Mac/Linux**: Open a terminal and run:
@@ -77,26 +78,26 @@ If you're new to installing software from GitHub, don't worry! If you encounter 
 
 ### Clone the Repository
 
-Alternatively, you can download the latest version of the project directly from the [Releases Page](https://github.com/stackblitz-labs/bolt.diy/releases/latest). Simply download the .zip file, extract it, and proceed with the setup instructions below. If you are comfertiable using git then run the command below.
+Alternatively, download the latest version from the [E-Code releases page](https://github.com/openaxcloud/vibecore/releases/latest), extract the archive, and follow the setup instructions below. If you use Git, run:
 
 Clone the repository using Git:
 
 ```bash
-git clone https://github.com/stackblitz-labs/bolt.diy
-cd bolt.diy
+git clone https://github.com/openaxcloud/vibecore.git
+cd vibecore
 ```
 
 ---
 
 ### Entering API Keys
 
-There are two ways to configure your API keys in bolt.diy:
+There are two ways to configure your API keys in E-Code:
 
 #### 1. Set API Keys in the `.env.local` File
 
 When setting up the application, you will need to add your API keys for the LLMs you wish to use. You can do this by renaming the `.env.example` file to `.env.local` and adding your API keys there.
 
-- On **Mac**, you can find the file at `[your name]/bolt.diy/.env.example`.
+- On **Mac**, you can find the file at `[your name]/vibecore/.env.example`.
 - On **Windows/Linux**, the path will be similar.
 
 If you can't see the file, it's likely because hidden files are not being shown. On **Mac**, open a Terminal window and enter the following command to show hidden files:
@@ -116,7 +117,8 @@ ANTHROPIC_API_KEY=XXX
 Once you've set your keys, you can proceed with running the app. You will set these keys up during the initial setup, and you can revisit and update them later after the app is running.
 
 **Important for Docker users**: Docker Compose needs a `.env` file for variable substitution. After creating `.env.local`:
-- Run `./scripts/setup-env.sh` to automatically sync the files, or  
+
+- Run `./scripts/setup-env.sh` to automatically sync the files, or
 - Manually copy: `cp .env.local .env`
 
 **Note**: Never commit your `.env.local` or `.env` files to version control. They're already included in the `.gitignore`.
@@ -133,6 +135,7 @@ Alternatively, you can configure your API keys directly in the application using
 6. **Verify Configuration**: Look for the green checkmark indicator showing the provider is properly configured
 
 The interface provides:
+
 - **Real-time validation** with visual status indicators
 - **Bulk operations** to enable/disable multiple providers at once
 - **Secure storage** of API keys in browser cookies
@@ -199,7 +202,7 @@ Once you've configured your keys, the application will be ready to use the selec
 
 ### Update Your Local Version to the Latest
 
-To keep your local version of bolt.diy up to date with the latest changes, follow these steps for your operating system:
+To keep your local E-Code checkout up to date with the latest changes, follow these steps for your operating system:
 
 #### 1. **Navigate to your project folder**
 
@@ -234,13 +237,13 @@ pnpm install
   pnpm run dev
   ```
 
-This ensures that you're running the latest version of bolt.diy and can take advantage of all the newest features and bug fixes.
+This ensures that you're running the latest version of E-Code and can take advantage of all the newest features and bug fixes.
 
 ---
 
 ## Adding New LLMs
 
-bolt.diy supports a modular architecture for adding new LLM providers and models. The system is designed to be easily extensible while maintaining consistency across all providers.
+E-Code supports a modular architecture for adding new LLM providers and models. The system is designed to be easily extensible while maintaining consistency across all providers.
 
 ### Understanding the Provider Architecture
 
@@ -378,7 +381,7 @@ The modular architecture makes it easy to add new providers while maintaining co
 
 ## MCP (Model Context Protocol) Integration
 
-bolt.diy supports MCP (Model Context Protocol) servers to extend AI capabilities with external tools and services. MCP allows you to connect various tools and services that the AI can use during conversations.
+E-Code supports MCP (Model Context Protocol) servers to extend AI capabilities with external tools and services. MCP allows you to connect various tools and services that the AI can use during conversations.
 
 ### Setting up MCP Servers
 
@@ -388,6 +391,7 @@ bolt.diy supports MCP (Model Context Protocol) servers to extend AI capabilities
 4. Enable/disable servers as needed
 
 MCP servers can provide:
+
 - Database connections and queries
 - File system operations
 - API integrations
@@ -400,7 +404,7 @@ The MCP integration enhances the AI's ability to perform complex tasks by giving
 
 ## Git Integration and Version Control
 
-bolt.diy provides comprehensive Git integration for version control, collaboration, and project management.
+E-Code provides comprehensive Git integration for version control, collaboration, and project management.
 
 ### GitHub Integration
 
@@ -427,23 +431,26 @@ bolt.diy provides comprehensive Git integration for version control, collaborati
 
 ## Deployment Options
 
-bolt.diy provides one-click deployment to popular hosting platforms, making it easy to share your projects with the world.
+E-Code provides one-click deployment to popular hosting platforms, making it easy to share your projects with the world.
 
 ### Supported Platforms
 
 #### Vercel Deployment
+
 1. Connect your Vercel account in Settings → Connections → Vercel
 2. Click the deploy button in your project
-3. bolt.diy automatically builds and deploys your project
+3. E-Code automatically builds and deploys your project
 4. Get a live URL instantly with Vercel's global CDN
 
 #### Netlify Deployment
+
 1. Connect your Netlify account in Settings → Connections → Netlify
 2. Deploy with a single click
 3. Automatic build configuration and optimization
 4. Preview deployments for every change
 
 #### GitHub Pages
+
 1. Connect your GitHub account
 2. Push your project to a GitHub repository
 3. Enable GitHub Pages in repository settings
@@ -461,13 +468,13 @@ bolt.diy provides one-click deployment to popular hosting platforms, making it e
 
 ## Supabase Integration
 
-bolt.diy integrates with Supabase to provide backend database functionality, authentication, and real-time features for your applications.
+E-Code integrates with Supabase to provide backend database functionality, authentication, and real-time features for your applications.
 
 ### Setting up Supabase
 
 1. Create a Supabase project at [supabase.com](https://supabase.com)
 2. Get your project URL and API keys from the Supabase dashboard
-3. Configure the connection in your bolt.diy project
+3. Configure the connection in your E-Code project
 4. Use the Supabase tools to interact with your database
 
 ### Database Features
@@ -481,6 +488,7 @@ bolt.diy integrates with Supabase to provide backend database functionality, aut
 ### Integration with AI Development
 
 The AI can help you:
+
 - **Design database schemas** for your applications
 - **Write SQL queries** and database functions
 - **Implement authentication flows**
@@ -493,7 +501,7 @@ Supabase integration makes it easy to build full-stack applications with a robus
 
 ## WebContainer and Live Preview
 
-bolt.diy uses WebContainer technology to provide a secure, isolated development environment with live preview capabilities.
+E-Code uses WebContainer technology to provide a secure, isolated development environment with live preview capabilities.
 
 ### WebContainer Features
 
@@ -514,6 +522,7 @@ bolt.diy uses WebContainer technology to provide a secure, isolated development 
 ### Supported Technologies
 
 WebContainer supports all major JavaScript frameworks and tools:
+
 - React, Vue, Angular, Svelte
 - Next.js, Nuxt, Astro, Remix
 - Vite, Webpack, Parcel
@@ -526,9 +535,10 @@ The WebContainer integration provides a seamless development experience without 
 
 ## Project Templates
 
-bolt.diy comes with a comprehensive collection of starter templates to help you quickly bootstrap your projects. Choose from popular frameworks and technologies:
+E-Code comes with a comprehensive collection of starter templates to help you quickly bootstrap your projects. Choose from popular frameworks and technologies:
 
 ### Frontend Frameworks
+
 - **React + Vite** - Modern React setup with TypeScript
 - **Vue.js** - Progressive JavaScript framework
 - **Angular** - Enterprise-ready framework
@@ -536,6 +546,7 @@ bolt.diy comes with a comprehensive collection of starter templates to help you 
 - **SolidJS** - Reactive framework with fine-grained updates
 
 ### Full-Stack Frameworks
+
 - **Next.js with shadcn/ui** - React framework with UI components
 - **Astro** - Static site generator for content-focused sites
 - **Qwik** - Resumable framework for instant loading
@@ -543,20 +554,23 @@ bolt.diy comes with a comprehensive collection of starter templates to help you 
 - **Nuxt** - Vue.js meta-framework
 
 ### Mobile & Cross-Platform
+
 - **Expo App** - React Native with Expo
 - **React Native** - Cross-platform mobile development
 
 ### Presentation & Content
+
 - **Slidev** - Developer-friendly presentations
 - **Astro Basic** - Lightweight static sites
 
 ### Vanilla JavaScript
+
 - **Vanilla Vite** - Minimal JavaScript setup
 - **Vite TypeScript** - TypeScript without framework
 
 ### Getting Started with Templates
 
-1. Start a new project in bolt.diy
+1. Start a new project in E-Code
 2. Browse available templates in the starter selection
 3. Select your preferred technology stack
 4. The AI will scaffold your project with best practices
@@ -569,6 +583,7 @@ All templates are pre-configured with modern tooling, linting, and build process
 ## Available Scripts
 
 ### Development Scripts
+
 - `pnpm run dev`: Starts the development server with hot reloading
 - `pnpm run build`: Builds the project for production
 - `pnpm run start`: Runs the built application locally using Wrangler Pages
@@ -580,12 +595,14 @@ All templates are pre-configured with modern tooling, linting, and build process
 - `pnpm run typegen`: Generates TypeScript types using Wrangler
 
 ### Docker Scripts
+
 - `pnpm run dockerbuild`: Builds Docker image for development
 - `pnpm run dockerbuild:prod`: Builds Docker image for production
 - `pnpm run dockerrun`: Runs the Docker container
 - `docker compose --profile development up`: Runs with Docker Compose (development)
 
 ### Electron Scripts
+
 - `pnpm electron:build:mac`: Builds for macOS
 - `pnpm electron:build:win`: Builds for Windows
 - `pnpm electron:build:linux`: Builds for Linux
@@ -593,10 +610,12 @@ All templates are pre-configured with modern tooling, linting, and build process
 - `pnpm electron:build:unpack`: Creates unpacked build for testing
 
 ### Deployment Scripts
+
 - `pnpm run deploy`: Builds and deploys to Cloudflare Pages
 - `npm run dockerbuild`: Alternative Docker build command
 
 ### Utility Scripts
+
 - `pnpm run clean`: Cleans build artifacts
 - `pnpm run prepare`: Sets up Husky for git hooks
 
@@ -617,30 +636,33 @@ This will start the Remix Vite development server. You will need Google Chrome C
 ## Getting Help & Resources
 
 ### Help Icon in Sidebar
-bolt.diy includes a convenient help icon (?) in the sidebar that provides quick access to comprehensive documentation. Simply click the help icon to open the full documentation in a new tab.
+
+E-Code includes a convenient help icon (?) in the sidebar that provides quick access to comprehensive documentation. Simply click the help icon to open the full documentation in a new tab.
 
 The documentation includes:
+
 - **Complete setup guides** for all supported providers
 - **Feature explanations** for advanced capabilities
 - **Troubleshooting guides** for common issues
 - **Best practices** for optimal usage
 - **FAQ section** with detailed answers
 
-### Community Support
-- **GitHub Issues**: Report bugs and request features
-- **Community Forum**: Join discussions at [thinktank.ottomator.ai](https://thinktank.ottomator.ai)
+### Support
+
+- **GitHub Issues**: [Report bugs and request features](https://github.com/openaxcloud/vibecore/issues)
+- **E-Code support**: [Contact the product team](https://e-code.ai/contact)
 - **Contributing Guide**: Learn how to contribute to the project
 
 ## Tips and Tricks
 
-Here are some tips to get the most out of bolt.diy:
+Here are some tips to get the most out of E-Code:
 
-- **Be specific about your stack**: If you want to use specific frameworks or libraries (like Astro, Tailwind, ShadCN, or any other popular JavaScript framework), mention them in your initial prompt to ensure Bolt scaffolds the project accordingly.
+- **Be specific about your stack**: If you want to use specific frameworks or libraries (like Astro, Tailwind, ShadCN, or any other popular JavaScript framework), mention them in your initial prompt so E-Code scaffolds the project accordingly.
 
 - **Use the enhance prompt icon**: Before sending your prompt, try clicking the 'enhance' icon to have the AI model help you refine your prompt, then edit the results before submitting.
 
-- **Scaffold the basics first, then add features**: Make sure the basic structure of your application is in place before diving into more advanced functionality. This helps Bolt understand the foundation of your project and ensure everything is wired up right before building out more advanced functionality.
+- **Scaffold the basics first, then add features**: Make sure the basic structure of your application is in place before diving into more advanced functionality. This helps E-Code understand the foundation of your project and ensure everything is wired up right before building out more advanced functionality.
 
-- **Batch simple instructions**: Save time by combining simple instructions into one message. For example, you can ask Bolt to change the color scheme, add mobile responsiveness, and restart the dev server, all in one go saving you time and reducing API credit consumption significantly.
+- **Batch simple instructions**: Save time by combining simple instructions into one message. For example, you can ask E-Code to change the color scheme, add mobile responsiveness, and restart the dev server in one request.
 
 - **Access documentation quickly**: Use the help icon (?) in the sidebar for instant access to guides, troubleshooting, and best practices.

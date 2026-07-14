@@ -20,7 +20,7 @@ jobs:
     name: Deploy Preview
     runs-on: ubuntu-latest
     if: github.event.action != 'closed'
-    
+
     steps:
       - name: Check if preview deployment is configured
         id: check-secrets
@@ -93,7 +93,7 @@ jobs:
               | Latest commit | ${{ github.sha }} |
               | Preview URL | ${deployUrl} |
 
-              Built with ❤️ by [bolt.diy](https://bolt.diy)
+              Built with [E-Code](https://e-code.ai)
               `;
             } else {
               commentBody = `ℹ️ Preview deployment not configured
@@ -107,7 +107,7 @@ jobs:
               - \`CLOUDFLARE_API_TOKEN\` secret
               - \`CLOUDFLARE_ACCOUNT_ID\` secret
 
-              Built with ❤️ by [bolt.diy](https://bolt.diy)
+              Built with [E-Code](https://e-code.ai)
               `;
             }
 

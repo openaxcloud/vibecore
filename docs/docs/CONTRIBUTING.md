@@ -1,6 +1,6 @@
 # Contribution Guidelines
 
-Welcome! This guide provides all the details you need to contribute effectively to the project. Thank you for helping us make **bolt.diy** a better tool for developers worldwide. 💡
+Welcome! This guide provides all the details you need to contribute effectively to the project. Thank you for helping us make **E-Code** a better tool for developers worldwide. 💡
 
 ---
 
@@ -28,7 +28,7 @@ This project is governed by our **Code of Conduct**. By participating, you agree
 
 ### 1️⃣ Reporting Bugs or Feature Requests
 
-- Check the [issue tracker](#) to avoid duplicates.
+- Check the [E-Code issue tracker](https://github.com/openaxcloud/vibecore/issues) to avoid duplicates.
 - Use issue templates (if available).
 - Provide detailed, relevant information and steps to reproduce bugs.
 
@@ -41,7 +41,7 @@ This project is governed by our **Code of Conduct**. By participating, you agree
 
 ### 3️⃣ Join as a Core Contributor
 
-Interested in maintaining and growing the project? Fill out our [Contributor Application Form](https://forms.gle/TBSteXSDCtBDwr5m7).
+Interested in maintaining and growing the project? Start with an issue or pull request in [`openaxcloud/vibecore`](https://github.com/openaxcloud/vibecore), or [contact the E-Code team](https://e-code.ai/contact).
 
 ---
 
@@ -80,7 +80,8 @@ Interested in maintaining and growing the project? Fill out our [Contributor App
 
 - Clone the repository:
   ```bash
-  git clone https://github.com/stackblitz-labs/bolt.diy.git
+  git clone https://github.com/openaxcloud/vibecore.git
+  cd vibecore
   ```
 - Install dependencies:
   ```bash
@@ -96,14 +97,17 @@ Interested in maintaining and growing the project? Fill out our [Contributor App
      ...
      ```
   3. **For Docker users**: Run the setup script or manually copy `.env.local` to `.env`:
+
      ```bash
      # Option 1: Use the setup script
      ./scripts/setup-env.sh
-     
+
      # Option 2: Manual copy
      cp .env.local .env
      ```
+
      Docker Compose requires `.env` for variable substitution.
+
   4. Optionally set:
      - Debug level: `VITE_LOG_LEVEL=debug`
      - Context size: `DEFAULT_NUM_CTX=32768`
