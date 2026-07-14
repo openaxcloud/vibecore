@@ -754,6 +754,22 @@ export function serverAppDeployment(input: ServerRuntimeInput): K8sObject {
                 timeoutSeconds: 5,
                 failureThreshold: 10,
               },
+
+              // Container-level hardening — REQUIRED, not just defence-in-depth: the
+              // `workspaces` namespace enforces the `restricted` Pod Security Standard,
+              // which rejects any pod whose container omits allowPrivilegeEscalation:false
+              // or capabilities.drop:[ALL]. The pod-level securityContext above does NOT
+              // satisfy these (they are container-scoped fields). Mirror the workspace
+              // pod's container context so the server-app pod is admitted + runs untrusted
+              // user code with the same sandboxed, unprivileged, no-capabilities profile.
+              securityContext: {
+                allowPrivilegeEscalation: false,
+                privileged: false,
+                runAsNonRoot: true,
+                runAsUser: 1000,
+                capabilities: { drop: ['ALL'] },
+                seccompProfile: { type: 'RuntimeDefault' },
+              },
             },
           ],
         },

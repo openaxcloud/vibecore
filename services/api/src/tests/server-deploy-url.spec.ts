@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildDeploymentUrl, deployProviderConfigError, serverDeployHost, serverDeployDomain } from '~/deployments.js';
-import type { DeploymentRecord, ProjectRecord } from '~/store.js';
+import { buildDeploymentUrl, deployProviderConfigError, serverDeployHost, serverDeployDomain } from '../deployments.js';
+import type { DeploymentRecord, ProjectRecord } from '../store.js';
 
 /*
  * A server deployment (Replit-parity durable runtime) is served at

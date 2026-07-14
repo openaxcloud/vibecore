@@ -395,6 +395,17 @@ describe('server deployment runtime templates', () => {
     // readiness on the app port, TCP liveness.
     expect(c.readinessProbe.httpGet.port).toBe(3000);
     expect(c.livenessProbe.tcpSocket.port).toBe(3000);
+
+    // Container-level securityContext is MANDATORY: the workspaces namespace enforces
+    // the `restricted` Pod Security Standard, which rejects any pod whose container
+    // omits allowPrivilegeEscalation:false / capabilities.drop:[ALL]. Without this the
+    // Deployment is created but every pod is denied with a PodSecurity violation.
+    expect(c.securityContext).toMatchObject({
+      allowPrivilegeEscalation: false,
+      runAsNonRoot: true,
+      seccompProfile: { type: 'RuntimeDefault' },
+    });
+    expect(c.securityContext.capabilities.drop).toEqual(['ALL']);
   });
 
   it('serverAppService exposes port 80 → the app targetPort', async () => {
