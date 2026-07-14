@@ -205,6 +205,22 @@ import {
   resolveDefaultObjectStorage,
 } from './object-storage.js';
 import { PrismaApiStore } from './prisma-store.js';
+import { describeCron } from './scheduled-tasks-cron.js';
+import {
+  PostgresScheduledTaskRepository,
+  type ScheduledTaskRepository,
+  type ScheduledTaskRow,
+  type ScheduledTaskRunRow,
+} from './scheduled-tasks-repository.js';
+import {
+  clampTimeoutSeconds,
+  planMaxTasks,
+  ScheduledTaskService,
+  startScheduledTaskScheduler,
+  validateSchedule,
+  type SandboxExec,
+  type WorkflowResolver,
+} from './scheduled-tasks.js';
 import {
   decodeFileContent,
   filesFromZip,
@@ -283,6 +299,13 @@ export interface ApiAppOptions {
   agentMemory?: AgentMemoryService;
   mcpMarketplace?: McpMarketplaceService;
   projectStorage?: ProjectStorage;
+
+  /**
+   * Storage for cron-scheduled tasks. Defaults to Postgres when the store is
+   * Prisma-backed; tests inject an in-memory repository so the executor can be
+   * driven without a database.
+   */
+  scheduledTaskRepository?: ScheduledTaskRepository;
 
   /** Override the per-project object storage backend (tests inject a fake). */
   objectStorage?: ObjectStorage;
@@ -7830,6 +7853,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     reply.header('content-security-policy', 'sandbox allow-scripts allow-forms allow-popups allow-modals');
     reply.header('x-content-type-options', 'nosniff');
+
+    /*
+     * BLANK-APP FIX: the sandbox above makes the DOCUMENT an opaque ("null")
+     * origin, so when it loads its OWN Vite bundle (`<script type="module"
+     * crossorigin>`) that request is now cross-origin. Helmet's global
+     * `Cross-Origin-Resource-Policy: same-origin` then BLOCKS the fetch, and the
+     * absent `Access-Control-Allow-Origin` fails the module's CORS check — the
+     * bundle never executes and `#root` stays empty (a white page). These files
+     * are PUBLIC, unauthenticated build output, so relaxing CORP to
+     * `cross-origin` + `ACAO: *` for THIS route only is safe and lets the
+     * sandboxed app boot while the opaque-origin isolation (no ambient cookie
+     * authority against the API) is fully preserved. Proven live: with these two
+     * headers a real deployed SPA renders `#root`; without them it is blank.
+     */
+    reply.header('cross-origin-resource-policy', 'cross-origin');
+    reply.header('access-control-allow-origin', '*');
     reply.type(staticDeploymentMimeType(filePath));
 
     return reply.send(createReadStream(realFile));
@@ -12863,6 +12902,162 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { code, stdout, stderr, localRuntime: true };
+  };
+
+  /*
+   * ---------------------------------------------------------------------
+   * Scheduled tasks (cron) — see scheduled-tasks.ts.
+   *
+   * The executor needs exactly one capability from this app: "run this shell
+   * command in that project's sandbox". It is a closure because the exec hop
+   * (agent token -> agent URL -> retry -> local fallback) only exists here.
+   * A scheduled run has no HTTP caller, so there is no `request`: the sandbox
+   * is authorized by project ownership on the task row, not by a session.
+   * ---------------------------------------------------------------------
+   */
+  const SCHEDULED_COLD_START_BUDGET_MS = Math.max(
+    30_000,
+    Number(process.env.SCHEDULED_TASK_COLD_START_BUDGET_MS ?? 120_000),
+  );
+
+  const scheduledTaskProjectWorkspace = async (projectId: string) => {
+    const workspaces = await store.listWorkspaces(projectId).catch(() => []);
+    const existing =
+      workspaces.find((workspace) => (workspace.environment ?? 'development') === 'development') ?? workspaces[0];
+
+    if (existing) {
+      return existing;
+    }
+
+    // A project whose workspace row was never created still deserves its cron.
+    return store.createWorkspace({
+      projectId,
+      name: 'Scheduled',
+      runtimeMode: process.env.WORKSPACE_DEFAULT_RUNTIME_MODE ?? 'docker',
+    });
+  };
+
+  const scheduledSandboxExec: SandboxExec = async ({ projectId, organizationId, command, timeoutMs }) => {
+    const workspace = await scheduledTaskProjectWorkspace(projectId);
+    const authorized = { workspaceId: workspace.id, projectId, organizationId };
+
+    /*
+     * A scheduled run almost always lands on a cold (GC'd) workspace, so pay the
+     * provisioning wait UP FRONT with a generous budget instead of failing the
+     * first exec and retrying — the run's own timeout still bounds the whole thing.
+     */
+    const scheduledRequest = { currentUser: undefined, raw: {} };
+
+    const body = { command: 'sh', args: ['-lc', command], timeoutMs };
+
+    let result: { code: number; stdout?: string; stderr?: string };
+
+    try {
+      await ensureWorkspaceReachable(scheduledRequest, authorized, SCHEDULED_COLD_START_BUDGET_MS);
+      result = await agentRequest<{ code: number; stdout?: string; stderr?: string }>(
+        workspace.id,
+        '/commands/run',
+        { method: 'POST', body: JSON.stringify(body) },
+      );
+    } catch (error) {
+      if (!shouldUseLocalRuntimeFallback(error)) {
+        throw error;
+      }
+
+      result = await runLocalRuntimeCommand(authorized, body as z.infer<typeof runtimeCommandSchema>);
+    }
+
+    return { exitCode: result.code ?? 0, output: `${result.stdout ?? ''}${result.stderr ?? ''}` };
+  };
+
+  /*
+   * Workflows-panel workflows live in the project's VIBECORE_WORKFLOWS_STATE env
+   * blob (the panel's own storage). A scheduled WORKFLOW task therefore resolves
+   * its steps at RUN time, so editing the workflow changes what the cron runs —
+   * which is what a user expects, and avoids a second copy of the truth.
+   */
+  const resolveScheduledWorkflow: WorkflowResolver = async ({ projectId, workflowId }) => {
+    const envVars = await store.listProjectEnvVars(projectId).catch(() => []);
+    const raw = envVars.find((entry) => entry.key === 'VIBECORE_WORKFLOWS_STATE' && entry.value)?.value;
+
+    if (!raw) {
+      return undefined;
+    }
+
+    let state: { workflows?: Array<Record<string, unknown>> };
+
+    try {
+      state = JSON.parse(raw);
+    } catch {
+      return undefined;
+    }
+
+    const workflows = Array.isArray(state.workflows) ? state.workflows : [];
+    const target = workflows.find((workflow) => Number(workflow.id) === workflowId);
+
+    if (!target) {
+      return undefined;
+    }
+
+    const stepsOf = (workflow: Record<string, unknown>, depth: number): string[] => {
+      const tasks = Array.isArray(workflow.tasks) ? (workflow.tasks as Array<Record<string, unknown>>) : [];
+
+      return tasks.flatMap((task) => {
+        if (task.taskType === 'workflow' && depth < 2) {
+          const nested = workflows.find((candidate) => Number(candidate.id) === Number(task.targetWorkflowId));
+
+          return nested ? stepsOf(nested, depth + 1) : [];
+        }
+
+        const command = typeof task.command === 'string' ? task.command.trim() : '';
+
+        return command ? [command] : [];
+      });
+    };
+
+    return { name: String(target.name ?? 'Workflow'), commands: stepsOf(target, 0) };
+  };
+
+  const scheduledTaskRepository: ScheduledTaskRepository | undefined =
+    options.scheduledTaskRepository ??
+    (store instanceof PrismaApiStore ? new PostgresScheduledTaskRepository(store.prisma) : undefined);
+
+  const scheduledTasks = scheduledTaskRepository
+    ? new ScheduledTaskService({
+        repository: scheduledTaskRepository,
+        store,
+        exec: scheduledSandboxExec,
+        resolveWorkflow: resolveScheduledWorkflow,
+        onRunFailed: async (failure) => {
+          await store
+            .recordAudit({
+              organizationId: failure.organizationId,
+              action: 'scheduled-task.run.failed',
+              resourceType: 'scheduled-task',
+              resourceId: failure.taskId,
+              metadata: {
+                runId: failure.runId,
+                projectId: failure.projectId,
+                name: failure.taskName,
+                status: failure.status,
+                exitCode: failure.exitCode,
+              },
+            })
+            .catch(() => undefined);
+        },
+      })
+    : undefined;
+
+  /** Every scheduled-task route needs both the repository and the service. */
+  const requireScheduledTasks = () => {
+    if (!scheduledTaskRepository || !scheduledTasks) {
+      throw Object.assign(new Error('Scheduled tasks require the database-backed store'), {
+        statusCode: 503,
+        code: 'SCHEDULED_TASKS_UNAVAILABLE',
+      });
+    }
+
+    return { repository: scheduledTaskRepository, service: scheduledTasks };
   };
 
   const listLocalRuntimeProcesses = (workspaceId: string) => ({
@@ -27508,6 +27703,341 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reapStaleDeployments(store, { timeoutMs: resolveDeployBuildTimeoutMs() });
   });
+
+  /*
+   * ---------------------------------------------------------------------
+   * Scheduled tasks (cron): the 4th deployment type + real Workflows schedules.
+   * ---------------------------------------------------------------------
+   */
+  const scheduledTaskParams = z.object({ projectId: z.string().min(1) });
+  const scheduledTaskIdParams = scheduledTaskParams.extend({ taskId: z.string().min(1) });
+  const scheduledTaskRunParams = scheduledTaskIdParams.extend({ runId: z.string().min(1) });
+
+  const createScheduledTaskSchema = z.object({
+    kind: z.enum(['WORKFLOW', 'DEPLOYMENT']).default('DEPLOYMENT'),
+    name: z.string().min(1).max(120),
+    command: z.string().max(4000).optional(),
+    workflowId: z.number().int().optional(),
+    cron: z.string().min(1).max(200),
+    timezone: z.string().min(1).max(64).default('UTC'),
+
+    /*
+     * The machine-size CATALOGUE is owned by another workstream; this endpoint
+     * only carries the field through to billing, so any key is accepted and an
+     * unknown one degrades to the smallest size rather than 400-ing.
+     */
+    machineSize: z.string().min(1).max(64).default('shared-0.5'),
+    enabled: z.boolean().default(true),
+    timeoutSeconds: z.number().int().optional(),
+    concurrency: z.enum(['FORBID', 'ALLOW']).default('FORBID'),
+    maxRetries: z.number().int().min(0).max(5).default(0),
+    notifyOnFailure: z.boolean().default(true),
+  });
+
+  const updateScheduledTaskSchema = createScheduledTaskSchema.partial();
+
+  const scheduledTaskPlanKey = async (organizationId: string) =>
+    (await store.getSubscription(organizationId).catch(() => undefined))?.planKey ?? 'free';
+
+  const iso = (value: Date | null | undefined) => (value ? new Date(value).toISOString() : null);
+
+  const serializeScheduledTask = (task: ScheduledTaskRow) => ({
+    id: task.id,
+    projectId: task.projectId,
+    kind: task.kind,
+    name: task.name,
+    command: task.command,
+    workflowId: task.workflowId,
+    cron: task.cron,
+    timezone: task.timezone,
+    machineSize: task.machineSize,
+    enabled: task.enabled,
+    timeoutSeconds: task.timeoutSeconds,
+    concurrency: task.concurrency,
+    maxRetries: task.maxRetries,
+    notifyOnFailure: task.notifyOnFailure,
+    lastRunAt: iso(task.lastRunAt),
+    lastStatus: task.lastStatus ?? null,
+    nextRunAt: iso(task.nextRunAt),
+    createdAt: iso(task.createdAt),
+    updatedAt: iso(task.updatedAt),
+  });
+
+  /** Run summary for the history list — full logs are fetched per-run, not in bulk. */
+  const serializeScheduledRun = (run: ScheduledTaskRunRow, options: { logs?: boolean } = {}) => ({
+    id: run.id,
+    taskId: run.taskId,
+    status: run.status,
+    trigger: run.trigger,
+    attempt: run.attempt,
+    scheduledFor: iso(run.scheduledFor),
+    startedAt: iso(run.startedAt),
+    finishedAt: iso(run.finishedAt),
+    durationMs: run.durationMs ?? null,
+    exitCode: run.exitCode ?? null,
+    error: run.error ?? null,
+    machineSize: run.machineSize ?? null,
+    computeUnits: run.computeUnits ?? null,
+    costCents: run.costCents ?? null,
+    meteredAt: iso(run.meteredAt),
+    ...(options.logs ? { logs: run.logs ?? '' } : {}),
+  });
+
+  app.get('/projects/:projectId/scheduled-tasks', async (request) => {
+    const { projectId } = parse(scheduledTaskParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:read');
+    const { repository } = requireScheduledTasks();
+
+    const [tasks, recentRuns, planKey] = await Promise.all([
+      repository.listProjectTasks(project.id),
+      repository.listRecentProjectRuns(project.id, 200),
+      scheduledTaskPlanKey(project.organizationId),
+    ]);
+
+    return {
+      tasks: tasks.map((task) => {
+        const lastRun = recentRuns.find((run) => run.taskId === task.id);
+
+        return {
+          ...serializeScheduledTask(task),
+          lastRun: lastRun ? serializeScheduledRun(lastRun) : null,
+        };
+      }),
+      limits: { planKey, maxTasks: planMaxTasks(planKey) },
+    };
+  });
+
+  app.post('/projects/:projectId/scheduled-tasks', async (request, reply) => {
+    const { projectId } = parse(scheduledTaskParams, request.params);
+    const body = parse(createScheduledTaskSchema, request.body ?? {});
+    const project = await requireProject(request, store, projectId, 'projects:write');
+    const { repository } = requireScheduledTasks();
+    const planKey = await scheduledTaskPlanKey(project.organizationId);
+
+    const existing = await repository.countProjectTasks(project.id);
+
+    if (existing >= planMaxTasks(planKey)) {
+      return reply.code(402).send({
+        error: `Your plan allows ${planMaxTasks(planKey)} scheduled task(s) per project.`,
+        code: 'SCHEDULED_TASK_LIMIT_REACHED',
+      });
+    }
+
+    if (body.kind === 'DEPLOYMENT' && !body.command?.trim()) {
+      return reply.code(400).send({ error: 'A command is required.', code: 'SCHEDULED_TASK_NO_COMMAND' });
+    }
+
+    if (body.kind === 'WORKFLOW' && !body.workflowId) {
+      return reply.code(400).send({ error: 'A workflowId is required.', code: 'SCHEDULED_TASK_NO_WORKFLOW' });
+    }
+
+    const schedule = validateSchedule({ cron: body.cron, timezone: body.timezone, planKey });
+
+    if (!schedule.valid) {
+      return reply.code(400).send({ error: schedule.error, code: schedule.code });
+    }
+
+    const task = await repository.createTask({
+      organizationId: project.organizationId,
+      projectId: project.id,
+      kind: body.kind,
+      name: body.name,
+      command: body.command ?? '',
+      workflowId: body.kind === 'WORKFLOW' ? (body.workflowId ?? null) : null,
+      cron: schedule.normalized!,
+      timezone: body.timezone,
+      machineSize: body.machineSize,
+      enabled: body.enabled,
+      timeoutSeconds: clampTimeoutSeconds(body.timeoutSeconds),
+      concurrency: body.concurrency,
+      maxRetries: body.maxRetries,
+      notifyOnFailure: body.notifyOnFailure,
+      nextRunAt: body.enabled ? (schedule.nextRunAt ?? null) : null,
+      createdByUserId: request.currentUser?.id,
+    });
+
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'scheduled-task.create',
+      resourceType: 'scheduled-task',
+      resourceId: task.id,
+      metadata: { projectId: project.id, kind: task.kind, cron: task.cron, timezone: task.timezone },
+    });
+
+    return reply.code(201).send({ task: serializeScheduledTask(task) });
+  });
+
+  app.patch('/projects/:projectId/scheduled-tasks/:taskId', async (request, reply) => {
+    const { projectId, taskId } = parse(scheduledTaskIdParams, request.params);
+    const body = parse(updateScheduledTaskSchema, request.body ?? {});
+    const project = await requireProject(request, store, projectId, 'projects:write');
+    const { repository } = requireScheduledTasks();
+
+    const current = await repository.getProjectTask(project.id, taskId);
+
+    if (!current) {
+      return reply.code(404).send({ error: 'Scheduled task not found', code: 'SCHEDULED_TASK_NOT_FOUND' });
+    }
+
+    const cron = body.cron ?? current.cron;
+    const timezone = body.timezone ?? current.timezone;
+    const enabled = body.enabled ?? current.enabled;
+    const planKey = await scheduledTaskPlanKey(project.organizationId);
+
+    const schedule = validateSchedule({ cron, timezone, planKey });
+
+    if (!schedule.valid) {
+      return reply.code(400).send({ error: schedule.error, code: schedule.code });
+    }
+
+    /*
+     * Only re-arm nextRunAt when the schedule itself moved. Renaming a task must
+     * not silently push its next fire time out.
+     */
+    const scheduleChanged =
+      schedule.normalized !== current.cron || timezone !== current.timezone || enabled !== current.enabled;
+
+    const task = await repository.updateTask(current.id, {
+      name: body.name ?? current.name,
+      command: body.command ?? current.command,
+      cron: schedule.normalized!,
+      timezone,
+      machineSize: body.machineSize ?? current.machineSize,
+      enabled,
+      timeoutSeconds: body.timeoutSeconds ? clampTimeoutSeconds(body.timeoutSeconds) : current.timeoutSeconds,
+      concurrency: body.concurrency ?? current.concurrency,
+      maxRetries: body.maxRetries ?? current.maxRetries,
+      notifyOnFailure: body.notifyOnFailure ?? current.notifyOnFailure,
+      ...(scheduleChanged ? { nextRunAt: enabled ? (schedule.nextRunAt ?? null) : null } : {}),
+    });
+
+    if (!task) {
+      return reply.code(404).send({ error: 'Scheduled task not found', code: 'SCHEDULED_TASK_NOT_FOUND' });
+    }
+
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'scheduled-task.update',
+      resourceType: 'scheduled-task',
+      resourceId: task.id,
+      metadata: { projectId: project.id, cron: task.cron, enabled: task.enabled },
+    });
+
+    return { task: serializeScheduledTask(task) };
+  });
+
+  app.delete('/projects/:projectId/scheduled-tasks/:taskId', async (request, reply) => {
+    const { projectId, taskId } = parse(scheduledTaskIdParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:write');
+    const { repository } = requireScheduledTasks();
+
+    if (!(await repository.deleteTask(project.id, taskId))) {
+      return reply.code(404).send({ error: 'Scheduled task not found', code: 'SCHEDULED_TASK_NOT_FOUND' });
+    }
+
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'scheduled-task.delete',
+      resourceType: 'scheduled-task',
+      resourceId: taskId,
+      metadata: { projectId: project.id },
+    });
+
+    return reply.code(204).send();
+  });
+
+  app.post('/projects/:projectId/scheduled-tasks/:taskId/run', async (request, reply) => {
+    const { projectId, taskId } = parse(scheduledTaskIdParams, request.params);
+    const project = await requireProject(request, store, projectId, 'workspaces:write');
+    const { repository, service } = requireScheduledTasks();
+
+    const task = await repository.getProjectTask(project.id, taskId);
+
+    if (!task) {
+      return reply.code(404).send({ error: 'Scheduled task not found', code: 'SCHEDULED_TASK_NOT_FOUND' });
+    }
+
+    const run = await service.runNow(task.id);
+
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'scheduled-task.run.manual',
+      resourceType: 'scheduled-task',
+      resourceId: task.id,
+      metadata: { projectId: project.id, runId: run.id },
+    });
+
+    return reply.code(202).send({ run: { id: run.id, status: 'RUNNING' } });
+  });
+
+  app.get('/projects/:projectId/scheduled-tasks/:taskId/runs', async (request, reply) => {
+    const { projectId, taskId } = parse(scheduledTaskIdParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:read');
+    const { repository } = requireScheduledTasks();
+
+    const task = await repository.getProjectTask(project.id, taskId);
+
+    if (!task) {
+      return reply.code(404).send({ error: 'Scheduled task not found', code: 'SCHEDULED_TASK_NOT_FOUND' });
+    }
+
+    const runs = await repository.listRuns(task.id, 50);
+
+    return { runs: runs.map((run) => serializeScheduledRun(run)) };
+  });
+
+  /** Full, untruncated logs of one run — what the panel's log viewer shows. */
+  app.get('/projects/:projectId/scheduled-tasks/:taskId/runs/:runId', async (request, reply) => {
+    const { projectId, taskId, runId } = parse(scheduledTaskRunParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:read');
+    const { repository } = requireScheduledTasks();
+
+    const run = await repository.getProjectRun(project.id, taskId, runId);
+
+    if (!run) {
+      return reply.code(404).send({ error: 'Run not found', code: 'SCHEDULED_TASK_RUN_NOT_FOUND' });
+    }
+
+    return { run: serializeScheduledRun(run, { logs: true }) };
+  });
+
+  app.post('/projects/:projectId/scheduled-tasks/:taskId/runs/:runId/cancel', async (request, reply) => {
+    const { projectId, taskId, runId } = parse(scheduledTaskRunParams, request.params);
+    const project = await requireProject(request, store, projectId, 'workspaces:write');
+    const { repository, service } = requireScheduledTasks();
+
+    const run = await repository.getProjectRun(project.id, taskId, runId);
+
+    if (!run) {
+      return reply.code(404).send({ error: 'Run not found', code: 'SCHEDULED_TASK_RUN_NOT_FOUND' });
+    }
+
+    await service.cancelRun(run.id);
+
+    return reply.code(202).send({ run: { id: run.id, status: 'CANCELED' } });
+  });
+
+  /** Cron helper for the panels: validate + preview the next fire times. */
+  app.post('/scheduled-tasks/preview', async (request) => {
+    const body = parse(
+      z.object({ cron: z.string().min(1).max(200), timezone: z.string().min(1).max(64).default('UTC') }),
+      request.body ?? {},
+    );
+
+    return describeCron(body.cron, body.timezone);
+  });
+
+  /*
+   * Belt-and-braces tick: the api replicas already tick on a timer, but exposing
+   * the same tick to the internal secret lets an operator (or a k8s CronJob) drive
+   * the scheduler if the in-process timer is ever disabled.
+   */
+  app.post('/internal/scheduled-tasks/tick', async (request) => {
+    requireInternalSecret(request);
+
+    return requireScheduledTasks().service.tick();
+  });
+
   app.get('/projects/:projectId/deployments/:deploymentId/logs', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
     const project = await requireProject(request, store, projectId, 'projects:read');
@@ -28606,6 +29136,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(204).send();
   });
+
+  /*
+   * Drive the cron executor from every api replica. Ticks are claimed with a
+   * conditional UPDATE on ScheduledTask.nextRunAt, so N replicas racing the same
+   * due task produce exactly ONE run (see scheduled-tasks.ts). The timer is
+   * unref'd and never overlaps itself.
+   *
+   * Off in tests (a background timer must not touch a test's database) and
+   * killable in prod via SCHEDULED_TASKS_SCHEDULER=off without a redeploy of the
+   * routes — the internal /internal/scheduled-tasks/tick endpoint still works.
+   */
+  if (scheduledTasks && process.env.NODE_ENV !== 'test' && process.env.SCHEDULED_TASKS_SCHEDULER !== 'off') {
+    const scheduler = startScheduledTaskScheduler(scheduledTasks, { logger: app.log });
+
+    app.addHook('onClose', async () => {
+      scheduler.stop();
+    });
+  }
 
   return app;
 }

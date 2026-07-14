@@ -16781,14 +16781,63 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                 <PanelButton disabled={busy}>Save schedule</PanelButton>
                 {workflow.schedule?.enabled && workflow.schedule?.nextRunAt ? (
                   <small className="bolt-project-workflow-nextrun" data-testid={`workflow-nextrun-${workflow.id}`}>
-                    Next run {new Date(workflow.schedule.nextRunAt).toLocaleString()}
+                    Next run {new Date(workflow.schedule.nextRunAt).toLocaleString()} (
+                    {workflow.schedule.timezone ?? 'UTC'})
                   </small>
                 ) : (
                   <small className="bolt-project-workflow-nextrun">
-                    Not scheduled. The scheduler runs in the cluster; this stores when it should fire.
+                    Not scheduled. Enter a cron expression (e.g. <code>0 3 * * *</code>) and enable it — the scheduler
+                    will actually run it.
                   </small>
                 )}
               </form>
+              {/*
+               * Real execution history. Every row below is a run that actually
+               * happened in this project's sandbox: real exit code, real duration,
+               * real captured output, and the compute it was billed for.
+               */}
+              {workflow.scheduledTaskId ? (
+                <div
+                  className="bolt-project-workflow-runs"
+                  data-testid={`workflow-scheduled-runs-${workflow.id}`}
+                >
+                  <div className="bolt-project-workflow-subhead">
+                    <strong>Scheduled runs</strong>
+                    <form onSubmit={onSubmit}>
+                      <input type="hidden" name="intent" value="run-scheduled-now" />
+                      <input type="hidden" name="workflowId" value={workflow.id} />
+                      <input type="hidden" name="scheduledTaskId" value={workflow.scheduledTaskId} />
+                      <PanelButton disabled={busy} data-testid={`workflow-run-now-${workflow.id}`}>
+                        Run now
+                      </PanelButton>
+                    </form>
+                  </div>
+                  {(workflow.scheduledRuns ?? []).length === 0 ? (
+                    <small>No runs yet. The first one will appear here after the schedule fires.</small>
+                  ) : (
+                    <ul className="bolt-project-workflow-run-list">
+                      {(workflow.scheduledRuns ?? []).map((run: any) => (
+                        <li key={run.id} data-testid={`workflow-scheduled-run-${run.id}`} data-status={run.status}>
+                          <span className="bolt-project-workflow-run-status">{run.status}</span>
+                          <span>{new Date(run.startedAt).toLocaleString()}</span>
+                          <span>{run.durationMs == null ? '—' : `${Math.round(run.durationMs / 100) / 10}s`}</span>
+                          <span>{run.exitCode == null ? '' : `exit ${run.exitCode}`}</span>
+                          <span>{run.trigger === 'manual' ? 'manual' : 'cron'}</span>
+                          <span title="Billed compute for this run">
+                            {run.costCents == null ? '' : `${run.costCents.toFixed(4)}¢`}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {workflow.latestScheduledRun?.logs ? (
+                    <details data-testid={`workflow-scheduled-logs-${workflow.id}`}>
+                      <summary>Logs — latest run ({workflow.latestScheduledRun.status})</summary>
+                      <pre className="bolt-project-workflow-run-logs">{workflow.latestScheduledRun.logs}</pre>
+                    </details>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             <div className="bolt-project-workflow-task-list">

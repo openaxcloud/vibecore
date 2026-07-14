@@ -84,15 +84,17 @@ export const DEPLOYMENT_TYPES: readonly DeploymentType[] = [
   {
     id: 'scheduled',
     name: 'Scheduled',
-    tagline: 'Run a job on a cron schedule.',
+    tagline: 'Run a command on a cron schedule.',
     description:
-      'Runs your build/command on a recurring schedule (cron). Best for batch jobs, data syncs, report generation and periodic maintenance tasks.',
-    status: 'coming-soon',
+      'Runs a command on a recurring schedule inside your project sandbox, then stops. Billed for the seconds it actually ran (duration x machine size), not 24/7. Every run is kept with its exit code, duration and full logs. Best for batch jobs, data syncs, report generation and periodic maintenance.',
+
+    /*
+     * Now real: the executor lives in the api (scheduled-tasks.ts) and is backed
+     * by the ScheduledTask / ScheduledTaskRun tables. See the Scheduled tab for
+     * the run history.
+     */
+    status: 'available',
     bestFor: 'Cron jobs, batch tasks, periodic syncs',
-    requires: {
-      code: ['Cron expression input + validation', 'Scheduled-run trigger route + run history'],
-      infra: ['Cluster CronJob scheduler wired to the build executor'],
-    },
   },
 ] as const;
 
