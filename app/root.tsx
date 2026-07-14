@@ -1,7 +1,7 @@
 /* eslint-disable import/order */
 import { useStore } from '@nanostores/react';
-import EcodeBrandMark from './components/brand/EcodeBrandMark';
-import type { LinksFunction } from 'react-router';
+import EcodeBootMark from './components/brand/EcodeBootMark';
+import type { LinksFunction, MetaFunction } from 'react-router';
 import {
   isRouteErrorResponse,
   Links,
@@ -51,6 +51,9 @@ const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
   exit: 'animated fadeOutRight',
 });
+
+/** Fallback metadata for routes that do not publish a more specific title. */
+export const meta: MetaFunction = () => [{ title: 'E-Code — AI application development platform' }];
 
 export const links: LinksFunction = () => [
   {
@@ -448,21 +451,38 @@ function AppShell({ children }: { children: React.ReactNode }) {
 function AppBootFallback({ ide }: { ide: boolean }) {
   if (!ide) {
     return (
-      <main className="bolt-app-boot-fallback" aria-label="Loading E-Code" role="status">
-        <div className="bolt-app-boot-mark" aria-hidden />
-        <span>Loading E-Code</span>
+      <main
+        className="ecode-app-boot-splash"
+        data-ecode-boot-splash=""
+        aria-label="Loading E-Code"
+        aria-live="polite"
+        role="status"
+      >
+        <span className="ecode-app-boot-content">
+          <span className="ecode-app-boot-logo" aria-hidden="true">
+            <span className="ecode-app-boot-halo" />
+            <EcodeBootMark theme="auto" width={56} height={56} />
+          </span>
+          <span className="ecode-app-boot-label">Loading E-Code</span>
+        </span>
       </main>
     );
   }
 
   return (
-    <main className="bolt-ide-boot-fallback" aria-label="Loading project IDE" role="status">
-      <div className="bolt-ide-boot-topbar">
+    <main
+      className="ecode-ide-boot-fallback"
+      data-ecode-ide-boot-splash=""
+      aria-label="Loading E-Code IDE"
+      aria-live="polite"
+      role="status"
+    >
+      <div className="ecode-ide-boot-topbar">
         <span />
         <span />
         <span />
       </div>
-      <div className="bolt-ide-boot-body">
+      <div className="ecode-ide-boot-body">
         <aside>
           <span />
           <span />
@@ -479,7 +499,10 @@ function AppBootFallback({ ide }: { ide: boolean }) {
           <span />
         </aside>
       </div>
-      <span className="bolt-ide-boot-label">Loading project IDE</span>
+      <span className="ecode-ide-boot-brand">
+        <EcodeBootMark theme="auto" width={32} height={32} />
+        <span>Loading E-Code IDE</span>
+      </span>
     </main>
   );
 }
@@ -584,7 +607,7 @@ function GlobalRouteLoader() {
           <span className="relative inline-flex h-16 w-16 items-center justify-center">
             <span className="absolute inset-0 animate-ping rounded-full bg-[#F26207]/20" />
             <span className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#F26207]" />
-            <EcodeBrandMark size="lg" showText={false} gradientId="route-loader-gradient" />
+            <EcodeBootMark theme="auto" width={44} height={44} />
           </span>
           <span className="text-sm font-medium text-bolt-elements-textSecondary">Loading E-Code…</span>
         </div>

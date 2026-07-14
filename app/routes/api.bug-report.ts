@@ -105,7 +105,7 @@ function formatIssueBody(data: z.infer<typeof bugReportSchema>): string {
     }
 
     if (data.environmentInfo.boltVersion) {
-      body += `- bolt.diy: ${data.environmentInfo.boltVersion}\n`;
+      body += `- E-Code: ${data.environmentInfo.boltVersion}\n`;
     }
 
     if (data.environmentInfo.aiProviders) {

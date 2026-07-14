@@ -271,38 +271,80 @@ html:has(.vc-app-shell-grid) body {
   }
 }
 
-.bolt-app-boot-fallback,
-.bolt-ide-boot-fallback {
+.ecode-app-boot-splash,
+.ecode-ide-boot-fallback {
   min-height: 100dvh;
-  background: var(--vc-ide-bg-app);
+  background-color: var(--vc-ide-bg-app);
   color: var(--vc-ide-text-secondary);
   font-family: var(--vc-font-interface);
 }
 
-.bolt-app-boot-fallback {
+.ecode-app-boot-splash {
+  position: relative;
+  z-index: 2147483646;
   display: grid;
   place-items: center;
-  gap: 12px;
+  width: 100%;
+  overflow: hidden;
+  background-image:
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--ecode-accent) 10%, transparent), transparent 24rem),
+    linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-panel) 30%, transparent), transparent 42%);
+  isolation: isolate;
 }
 
-.bolt-app-boot-mark {
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 10px;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--vc-ide-accent-orange), transparent 30%), transparent),
-    var(--vc-ide-bg-card);
-  animation: boltBootPulse 1.2s ease-in-out infinite;
+.ecode-app-boot-splash--overlay,
+.ecode-ide-boot-fallback--overlay {
+  position: fixed;
+  inset: 0;
 }
 
-.bolt-ide-boot-fallback {
+.ecode-app-boot-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  transform: translateY(-1.5vh);
+}
+
+.ecode-app-boot-logo {
+  position: relative;
+  display: inline-grid;
+  width: 72px;
+  height: 72px;
+  place-items: center;
+}
+
+.ecode-app-boot-logo > svg {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 12px 22px color-mix(in srgb, var(--vc-ide-bg-app) 58%, transparent));
+  animation: ecodeBootMarkPulse 1.8s ease-in-out infinite;
+}
+
+.ecode-app-boot-halo {
+  position: absolute;
+  inset: 0;
+  border: 1px solid color-mix(in srgb, var(--ecode-accent) 22%, transparent);
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--ecode-accent) 15%, transparent), transparent 68%);
+  animation: ecodeBootHalo 1.8s ease-out infinite;
+}
+
+.ecode-app-boot-label {
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.ecode-ide-boot-fallback {
+  position: relative;
   display: grid;
   grid-template-rows: 36px minmax(0, 1fr);
   overflow: hidden;
 }
 
-.bolt-ide-boot-topbar {
+.ecode-ide-boot-topbar {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr) 180px;
   gap: 16px;
@@ -312,26 +354,26 @@ html:has(.vc-app-shell-grid) body {
   padding: 0 16px;
 }
 
-.bolt-ide-boot-topbar span,
-.bolt-ide-boot-body span,
-.bolt-ide-boot-body div {
+.ecode-ide-boot-topbar span,
+.ecode-ide-boot-body span,
+.ecode-ide-boot-body div {
   border-radius: 8px;
   background: color-mix(in srgb, var(--vc-ide-bg-card), var(--vc-ide-text-primary) 4%);
-  animation: boltBootPulse 1.25s ease-in-out infinite;
+  animation: ecodeBootSkeletonPulse 1.25s ease-in-out infinite;
 }
 
-.bolt-ide-boot-topbar span {
+.ecode-ide-boot-topbar span {
   height: 16px;
 }
 
-.bolt-ide-boot-body {
+.ecode-ide-boot-body {
   display: grid;
   min-height: 0;
   grid-template-columns: minmax(260px, 28vw) minmax(0, 1fr) 220px;
 }
 
-.bolt-ide-boot-body aside,
-.bolt-ide-boot-body section {
+.ecode-ide-boot-body aside,
+.ecode-ide-boot-body section {
   display: grid;
   align-content: start;
   gap: 12px;
@@ -339,29 +381,57 @@ html:has(.vc-app-shell-grid) body {
   padding: 18px;
 }
 
-.bolt-ide-boot-body aside:last-child {
+.ecode-ide-boot-body aside:last-child {
   border-right: 0;
 }
 
-.bolt-ide-boot-body span {
+.ecode-ide-boot-body span {
   height: 34px;
 }
 
-.bolt-ide-boot-body section {
+.ecode-ide-boot-body section {
   grid-template-rows: 48px minmax(220px, 1fr) 110px;
 }
 
-.bolt-ide-boot-label {
+.ecode-ide-boot-brand {
   position: fixed;
   left: 50%;
   bottom: 28px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   transform: translateX(-50%);
   color: var(--vc-ide-text-muted);
   font-size: 12px;
   font-weight: 700;
 }
 
-@keyframes boltBootPulse {
+@keyframes ecodeBootMarkPulse {
+  0%,
+  100% {
+    transform: scale(0.98);
+  }
+
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes ecodeBootHalo {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.78);
+  }
+
+  75%,
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes ecodeBootSkeletonPulse {
   0%,
   100% {
     opacity: 0.55;
@@ -369,6 +439,32 @@ html:has(.vc-app-shell-grid) body {
 
   50% {
     opacity: 1;
+  }
+}
+
+@media (max-width: 720px) {
+  .ecode-ide-boot-topbar {
+    grid-template-columns: 120px minmax(0, 1fr) 72px;
+    gap: 8px;
+    padding-inline: 10px;
+  }
+
+  .ecode-ide-boot-body {
+    grid-template-columns: minmax(110px, 34vw) minmax(0, 1fr);
+  }
+
+  .ecode-ide-boot-body aside:last-child {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ecode-app-boot-logo > svg,
+  .ecode-app-boot-halo,
+  .ecode-ide-boot-topbar span,
+  .ecode-ide-boot-body span,
+  .ecode-ide-boot-body div {
+    animation: none;
   }
 }
 
@@ -8597,7 +8693,11 @@ body :where(.lucide, svg[data-lucide]) {
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  background: linear-gradient(135deg, var(--vc-ide-accent-action), color-mix(in srgb, var(--vc-ide-accent-action) 45%, #ffffff));
+  background: linear-gradient(
+    135deg,
+    var(--vc-ide-accent-action),
+    color-mix(in srgb, var(--vc-ide-accent-action) 45%, #ffffff)
+  );
   color: white;
 }
 
@@ -9338,7 +9438,11 @@ body :where(.lucide, svg[data-lucide]) {
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--vc-ide-accent-action), color-mix(in srgb, var(--vc-ide-accent-action) 45%, #ffffff));
+  background: linear-gradient(
+    135deg,
+    var(--vc-ide-accent-action),
+    color-mix(in srgb, var(--vc-ide-accent-action) 45%, #ffffff)
+  );
   color: white;
   font-size: 32px;
   opacity: 0.75;
@@ -13975,7 +14079,11 @@ body :where(.lucide, svg[data-lucide]) {
   justify-content: center;
   border: 1.5px solid var(--vc-ide-bg-panel);
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--vc-ide-accent-action), color-mix(in srgb, var(--vc-ide-accent-action) 45%, #ffffff));
+  background: linear-gradient(
+    135deg,
+    var(--vc-ide-accent-action),
+    color-mix(in srgb, var(--vc-ide-accent-action) 45%, #ffffff)
+  );
   color: #ffffff;
   font-size: 10px;
   font-weight: 700;
