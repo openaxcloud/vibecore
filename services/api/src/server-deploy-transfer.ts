@@ -90,7 +90,11 @@ export async function snapshotWorkspaceAppSource(opts: {
   });
 
   if (tarStep.error === 'WORKSPACE_AGENT_REQUEST_FAILED') {
-    return { ok: false, error: 'AGENT_UNREACHABLE', message: 'The workspace could not be reached to snapshot the app.' };
+    return {
+      ok: false,
+      error: 'AGENT_UNREACHABLE',
+      message: 'The workspace could not be reached to snapshot the app.',
+    };
   }
 
   if (tarStep.timedOut || tarStep.exitCode !== 0) {

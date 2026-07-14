@@ -13,7 +13,10 @@ import {
 function fakeAgent(overrides: Partial<SnapshotAgent> = {}): SnapshotAgent {
   return {
     runStep: vi.fn(async () => ({ exitCode: 0, timedOut: false })),
-    readFile: vi.fn(async () => ({ content: Buffer.from('tarball-bytes').toString('base64'), encoding: 'base64' as const })),
+    readFile: vi.fn(async () => ({
+      content: Buffer.from('tarball-bytes').toString('base64'),
+      encoding: 'base64' as const,
+    })),
     ...overrides,
   };
 }
@@ -47,7 +50,10 @@ describe('snapshotWorkspaceAppSource', () => {
 
   it('uploads to object storage and returns a signed URL when available', async () => {
     const putObject = vi.fn(async () => ({ key: 'tmp/server-deploy/dep2.tgz', size: 13 }));
-    const createDownloadUrl = vi.fn(async () => ({ url: 'https://signed.example/dep2.tgz', expiresAt: '2026-01-01T00:00:00Z' }));
+    const createDownloadUrl = vi.fn(async () => ({
+      url: 'https://signed.example/dep2.tgz',
+      expiresAt: '2026-01-01T00:00:00Z',
+    }));
     const objectStorage = { putObject, createDownloadUrl } as unknown as ObjectStorage;
 
     const result = await snapshotWorkspaceAppSource({

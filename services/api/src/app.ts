@@ -27208,7 +27208,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * the server-deploy infra — routing, readiness, and the environment's
          * DATABASE_URL injection — independently of any user app.
          */
-        const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(() => ({}));
+        const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(
+          (): Record<string, string> => ({}),
+        );
         const dbUrl =
           (body.environment ?? 'preview') === 'production'
             ? projectSecrets.PROD_DATABASE_URL
@@ -27250,7 +27252,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           try {
             const listing = await buildAgent.listFiles('.');
             topLevelFiles = Array.from(
-              new Set((listing.files ?? []).map((file) => file.path.replace(/^\.\//, '').split('/')[0]).filter(Boolean)),
+              new Set(
+                (listing.files ?? []).map((file) => file.path.replace(/^\.\//, '').split('/')[0]).filter(Boolean),
+              ),
             );
           } catch {
             topLevelFiles = [];
@@ -27288,7 +27292,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             if (!snapshot.ok || !snapshot.transfer) {
               serverError = snapshot.message ?? 'Failed to snapshot the app for deployment.';
             } else {
-              const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(() => ({}));
+              const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(
+                (): Record<string, string> => ({}),
+              );
               serverEnv = buildServerDeployEnv({
                 transfer: snapshot.transfer,
                 deploymentId: queued.id,
