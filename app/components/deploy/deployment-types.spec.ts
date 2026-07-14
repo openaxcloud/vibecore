@@ -19,7 +19,7 @@ describe('deployment-types', () => {
     expect(isDeploymentTypeAvailable('reserved-vm')).toBe(false);
   });
 
-  it('defaults to the only deployable tier', () => {
+  it('defaults to the static deployment tier', () => {
     expect(DEFAULT_DEPLOYMENT_TYPE).toBe('static');
     expect(isDeploymentTypeAvailable(DEFAULT_DEPLOYMENT_TYPE)).toBe(true);
   });

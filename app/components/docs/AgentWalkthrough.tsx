@@ -423,8 +423,8 @@ const WALKTHROUGH_SECTIONS: WalkthroughEntry[] = [
     preview: <SlashCommandsPreview />,
     notes: (
       <p>
-        <strong>Standalone Bolt safety:</strong> commands that need a project context (/snapshot, /run, /preview-error)
-        no-op gracefully when the user is not in a project IDE.
+        <strong>Standalone E-Code safety:</strong> commands that need a project context (/snapshot, /run,
+        /preview-error) no-op gracefully when the user is not in a project IDE.
       </p>
     ),
   },

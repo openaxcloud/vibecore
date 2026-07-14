@@ -1478,7 +1478,7 @@ function buildProjectAgentSuggestions(input: {
     label: 'Add a feature',
     prompt:
       'Inspect the current project and add one useful, coherent feature. Keep the change small, runnable, and aligned with the existing app structure.',
-    reason: 'Core Bolt workflow',
+    reason: 'Core E-Code workflow',
     icon: 'i-ph:plus-circle',
     priority: 88,
   });

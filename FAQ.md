@@ -42,17 +42,16 @@ Check out our [Contribution Guide](CONTRIBUTING.md) for more details on how to g
 <details>
 <summary><strong>What are the future plans for E-Code?</strong></summary>
 
-Visit our [Roadmap](https://roadmap.sh/r/ottodev-roadmap-2ovzo) for the latest updates.  
-New features and improvements are on the way!
+Follow [E-Code releases](https://github.com/openaxcloud/vibecore/releases) and the [issue tracker](https://github.com/openaxcloud/vibecore/issues) for shipped changes and planned improvements.
 
 </details>
 
 <details>
-<summary><strong>Why are there so many open issues/pull requests?</strong></summary>
+<summary><strong>What is E-Code's open-source history?</strong></summary>
 
-bolt.diy began as a small showcase project on @ColeMedin's YouTube channel to explore editing open-source projects with local LLMs. However, it quickly grew into a massive community effort!
+E-Code is developed in the [`openaxcloud/vibecore`](https://github.com/openaxcloud/vibecore) repository. It originated from the open-source [bolt.diy](https://github.com/stackblitz-labs/bolt.diy) project, which began as a showcase for editing open-source projects with local LLMs and grew through broad community contributions. We preserve that upstream attribution while maintaining E-Code as its own product and codebase.
 
-We're forming a team of maintainers to manage demand and streamline issue resolution. The maintainers are rockstars, and we're also exploring partnerships to help the project thrive.
+To contribute to E-Code, open an issue or pull request in the current repository.
 
 </details>
 
@@ -96,10 +95,10 @@ If you are getting this, you are probably on Windows. The fix is generally to up
 
 ### **"Miniflare or Wrangler errors in Windows"**
 
-You will need to make sure you have the latest version of Visual Studio C++ installed (14.40.33816), more information here https://github.com/stackblitz-labs/bolt.diy/issues/19.
+Make sure Visual Studio C++ 14.40.33816 or later is installed. If the problem persists, [open an E-Code issue](https://github.com/openaxcloud/vibecore/issues/new/choose) with the Windows version and complete error output.
 
 </details>
 
 ---
 
-Got more questions? Feel free to reach out or open an issue in our GitHub repo!
+Got more questions? [Contact the E-Code team](https://e-code.ai/contact) or [open an issue in `openaxcloud/vibecore`](https://github.com/openaxcloud/vibecore/issues/new/choose).
