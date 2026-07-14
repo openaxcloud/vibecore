@@ -16797,10 +16797,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                * real captured output, and the compute it was billed for.
                */}
               {workflow.scheduledTaskId ? (
-                <div
-                  className="bolt-project-workflow-runs"
-                  data-testid={`workflow-scheduled-runs-${workflow.id}`}
-                >
+                <div className="bolt-project-workflow-runs" data-testid={`workflow-scheduled-runs-${workflow.id}`}>
                   <div className="bolt-project-workflow-subhead">
                     <strong>Scheduled runs</strong>
                     <form onSubmit={onSubmit}>
