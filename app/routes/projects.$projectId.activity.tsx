@@ -3,6 +3,7 @@ import type { MetaFunction } from 'react-router';
 import { useLoaderData } from 'react-router';
 import { ActivityList, ProjectShell } from '~/components/dashboard/SaaSLayout';
 import type { EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
 import { projectPageLoader } from '~/lib/project-route.server';
 
 type ActivityData = { activity: Array<{ id: string; action: string; createdAt?: string; metadata?: unknown }> };
@@ -26,7 +27,7 @@ export default function ProjectActivityPage() {
             ? data.activity.map((event) => {
                 const parsed = event.createdAt ? new Date(event.createdAt) : null;
 
-                const detail = parsed && !Number.isNaN(parsed.getTime()) ? parsed.toLocaleString() : 'Recorded by API';
+                const detail = parsed ? (formatUserAreaDateTime(parsed) ?? 'Activity recorded') : 'Activity recorded';
 
                 return {
                   title: event.action,

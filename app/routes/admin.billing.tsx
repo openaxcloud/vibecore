@@ -8,6 +8,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { formatUserAreaDate } from '~/lib/i18n/user-area-locale';
 
 type AdminBillingData = {
   plans: Array<{ key: string; name: string; monthlyCents: number }>;
@@ -228,7 +229,7 @@ export default function AdminBillingPage() {
                   <td className="py-2 pr-3">{subscription.externalId ?? 'manual'}</td>
                   <td className="py-2 pr-3">
                     {subscription.currentPeriodEnd
-                      ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
+                      ? (formatUserAreaDate(subscription.currentPeriodEnd) ?? 'invalid date')
                       : 'not set'}
                   </td>
                 </tr>

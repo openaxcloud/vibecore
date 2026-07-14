@@ -1,3 +1,5 @@
+import { USER_AREA_LOCALE } from '~/lib/i18n/user-area-locale';
+
 /*
  * Number → compact badge label. Never collapses to "99+" — when the count
  * crosses 999 the formatter switches to Intl compact notation ("1.2K",
@@ -5,7 +7,7 @@
  * counts without throwing away precision the way a "99+" ceiling does.
  */
 
-const COMPACT_FORMATTER = new Intl.NumberFormat('en-US', {
+const COMPACT_FORMATTER = new Intl.NumberFormat(USER_AREA_LOCALE, {
   notation: 'compact',
   maximumFractionDigits: 1,
 });

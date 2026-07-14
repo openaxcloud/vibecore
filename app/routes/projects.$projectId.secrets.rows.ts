@@ -1,3 +1,5 @@
+import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
+
 /*
  * Pure presentation logic for the dashboard Secrets page, extracted so the
  * empty-state / row-label decisions can be unit-tested without rendering React.
@@ -12,7 +14,7 @@ export type SecretRow =
 /* Build the detail line shown under a secret key. */
 export function secretDetail(secret: SecretRecord): string {
   if (secret.updatedAt) {
-    return `Encrypted, updated ${new Date(secret.updatedAt).toLocaleString()}`;
+    return `Encrypted, updated ${formatUserAreaDateTime(secret.updatedAt) ?? 'date unavailable'}`;
   }
 
   return 'Encrypted project secret';

@@ -54,6 +54,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { formatUserAreaNumber } from '~/lib/i18n/user-area-locale';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import { fetchAdminEnabledProviders } from '~/lib/modules/llm/provider-visibility.server';
 import type { ModelInfo } from '~/lib/modules/llm/types';
@@ -1370,19 +1371,19 @@ export default function NewProjectPage() {
             ) : promptWordCount < 3 ? (
               `${promptWordCount} word${promptWordCount === 1 ? '' : 's'} — keep going.`
             ) : (
-              `${promptWordCount} words · ${promptCharacterCount.toLocaleString()}/${PROMPT_MAX_CHARS.toLocaleString()} chars`
+              `${promptWordCount} words · ${formatUserAreaNumber(promptCharacterCount)}/${formatUserAreaNumber(PROMPT_MAX_CHARS)} chars`
             )}
             {promptWordCount >= 3 && promptCostEstimate.tokens > 0 ? (
               <span
                 className="vc-new-project-prompt-estimate"
                 title={
                   promptCostEstimate.hasPricing
-                    ? `Estimate: ~${promptCostEstimate.tokens.toLocaleString()} input tokens at $${promptCostEstimate.pricing!.inputPer1MUsd}/M for ${selectedModel}`
+                    ? `Estimate: ~${formatUserAreaNumber(promptCostEstimate.tokens)} input tokens at $${promptCostEstimate.pricing!.inputPer1MUsd}/M for ${selectedModel}`
                     : 'No published pricing for this model — only the token estimate is shown.'
                 }
               >
                 {' · '}
-                {`~${promptCostEstimate.tokens.toLocaleString()} tokens`}
+                {`~${formatUserAreaNumber(promptCostEstimate.tokens)} tokens`}
                 {promptCostEstimate.hasPricing && promptCostEstimate.inputUsd !== null
                   ? ` · ~${formatEstimatedCost(promptCostEstimate.inputUsd)} input`
                   : ' · pricing unknown'}

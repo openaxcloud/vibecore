@@ -14,6 +14,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
 import { isReauthRedirect, shouldRethrowActionError } from '~/lib/route-reauth';
 import { classNames } from '~/utils/classNames';
 
@@ -465,7 +466,7 @@ export default function OrganizationSecurityPage() {
           </PrimaryButton>
           {settings.updatedAt ? (
             <span className="text-xs text-bolt-elements-textTertiary">
-              Last updated {new Date(settings.updatedAt).toLocaleString()}
+              Last updated {formatUserAreaDateTime(settings.updatedAt) ?? 'date unavailable'}
             </span>
           ) : null}
         </div>

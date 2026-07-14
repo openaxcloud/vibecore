@@ -61,12 +61,12 @@ describe('toProjectCards', () => {
     expect(card.updated).toBe('recently');
   });
 
-  it('prefers git repository URL, then sourceType, for the stack label', () => {
+  it('uses customer-facing source labels without exposing repository URLs or identifiers', () => {
     const [gitCard] = toProjectCards([project({ id: 'g', gitRepositoryUrl: 'https://git/x', sourceType: 'github' })]);
     const [srcCard] = toProjectCards([project({ id: 's', sourceType: 'github' })]);
 
-    expect(gitCard.stack).toBe('https://git/x');
-    expect(srcCard.stack).toBe('github');
+    expect(gitCard.stack).toBe('Git repository');
+    expect(srcCard.stack).toBe('GitHub repository');
   });
 
   it('does not mutate the input array order', () => {

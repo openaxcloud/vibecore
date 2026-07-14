@@ -15,6 +15,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
 import { BUILTIN_ROLE_LABELS, BUILTIN_ROLE_ORDER } from '~/lib/rbac-catalog';
 import { userFacingLabel } from '~/lib/user-facing-labels';
 
@@ -145,7 +146,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 function formatDate(value: string) {
   const parsed = new Date(value);
 
-  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
+  return formatUserAreaDateTime(parsed) ?? value;
 }
 
 export default function OrganizationInvitationsPage() {

@@ -18,6 +18,7 @@ import {
   requirePlatformAdmin,
   sessionCookie,
 } from '~/lib/enterprise-api.server';
+import { formatUserAreaDateTime, formatUserAreaNumber } from '~/lib/i18n/user-area-locale';
 import { budgetTone, centsToUsd } from '~/utils/admin-cost-budget';
 import { rowsToCsv } from '~/utils/admin-csv';
 import { errorRateTone, moveItem } from '~/utils/admin-provider-metrics';
@@ -1576,7 +1577,8 @@ type ProviderHealthRow = {
   error?: string;
 };
 
-const usd = (cents: number) => `€${(cents / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+const euros = (cents: number) =>
+  formatUserAreaNumber(cents / 100, { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
 
 /*
  * Structured shape returned by GET /admin/platform-metrics, which reads the SAME
@@ -1757,10 +1759,10 @@ function MonitoringPanel({ payload }: { payload: Record<string, JsonValue> }) {
 
       {/* KPI cards — collapse 4 → 2 → 1 col on narrower viewports. */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Total AI cost" value={usd(totalCostCents)} />
-        <MetricCard label="Total tokens" value={totalTokens.toLocaleString()} />
-        <MetricCard label="Cost records" value={aiCosts.length.toLocaleString()} />
-        <MetricCard label="Usage events" value={totalUsage.toLocaleString()} />
+        <MetricCard label="Total AI cost" value={euros(totalCostCents)} />
+        <MetricCard label="Total tokens" value={formatUserAreaNumber(totalTokens)} />
+        <MetricCard label="Cost records" value={formatUserAreaNumber(aiCosts.length)} />
+        <MetricCard label="Usage events" value={formatUserAreaNumber(totalUsage)} />
       </div>
 
       {/* Charts — each in a height-bounded, responsive wrapper (charts use maintainAspectRatio:false). */}
@@ -1962,19 +1964,20 @@ function PlatformMetricsSection({
       <p className="mb-3 text-xs text-bolt-elements-textTertiary">
         Real observability from the in-cluster Prometheus registry (the same series exposed at{' '}
         <code className="rounded bg-bolt-elements-background-depth-3 px-1 py-0.5">/metrics</code>). Snapshot at{' '}
-        {new Date(snapshot.generatedAt).toLocaleString()}. Metrics with no recorded observations are labelled “no data”.
+        {formatUserAreaDateTime(snapshot.generatedAt) ?? 'date unavailable'}. Metrics with no recorded observations are
+        labelled “no data”.
       </p>
 
       {/* Headline stat cards. */}
       <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <PlatformStatCard
           label="Workspace starts"
-          value={hasData(starts) ? startsTotal.toLocaleString() : 'no data'}
+          value={hasData(starts) ? formatUserAreaNumber(startsTotal) : 'no data'}
           available={hasData(starts)}
         />
         <PlatformStatCard
           label="Workspace failures"
-          value={hasData(failures) ? failuresTotal.toLocaleString() : 'no data'}
+          value={hasData(failures) ? formatUserAreaNumber(failuresTotal) : 'no data'}
           available={hasData(failures)}
           tone={failuresTotal > 0 ? 'danger' : 'default'}
         />
@@ -1985,7 +1988,7 @@ function PlatformMetricsSection({
         />
         <PlatformStatCard
           label="Active workspaces"
-          value={hasData(activeWorkspaces) ? metricTotal(activeWorkspaces).toLocaleString() : 'no data'}
+          value={hasData(activeWorkspaces) ? formatUserAreaNumber(metricTotal(activeWorkspaces)) : 'no data'}
           available={hasData(activeWorkspaces)}
         />
         <PlatformStatCard
@@ -2073,25 +2076,25 @@ function PlatformMetricsSection({
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <PlatformStatCard
           label="Background job failures"
-          value={hasData(jobFailures) ? metricTotal(jobFailures).toLocaleString() : 'no data'}
+          value={hasData(jobFailures) ? formatUserAreaNumber(metricTotal(jobFailures)) : 'no data'}
           available={hasData(jobFailures)}
           tone={metricTotal(jobFailures) > 0 ? 'danger' : 'default'}
         />
         <PlatformStatCard
           label="AI provider errors"
-          value={hasData(aiErrors) ? metricTotal(aiErrors).toLocaleString() : 'no data'}
+          value={hasData(aiErrors) ? formatUserAreaNumber(metricTotal(aiErrors)) : 'no data'}
           available={hasData(aiErrors)}
           tone={metricTotal(aiErrors) > 0 ? 'danger' : 'default'}
         />
         <PlatformStatCard
           label="K8s pod failures"
-          value={hasData(podFailures) ? metricTotal(podFailures).toLocaleString() : 'no data'}
+          value={hasData(podFailures) ? formatUserAreaNumber(metricTotal(podFailures)) : 'no data'}
           available={hasData(podFailures)}
           tone={metricTotal(podFailures) > 0 ? 'danger' : 'default'}
         />
         <PlatformStatCard
           label="Auth failures"
-          value={hasData(authFailures) ? metricTotal(authFailures).toLocaleString() : 'no data'}
+          value={hasData(authFailures) ? formatUserAreaNumber(metricTotal(authFailures)) : 'no data'}
           available={hasData(authFailures)}
           tone={metricTotal(authFailures) > 0 ? 'danger' : 'default'}
         />
@@ -6029,7 +6032,7 @@ function formatValue(value: JsonValue | undefined): string {
   }
 
   if (typeof value === 'number') {
-    return value.toLocaleString();
+    return formatUserAreaNumber(value);
   }
 
   if (typeof value === 'string') {

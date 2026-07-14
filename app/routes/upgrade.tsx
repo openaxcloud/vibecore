@@ -13,6 +13,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { formatUserAreaNumber } from '~/lib/i18n/user-area-locale';
 import { isReauthRedirect } from '~/lib/route-reauth';
 
 export const meta: MetaFunction = () => [{ title: 'Upgrade - E-Code' }];
@@ -227,11 +228,11 @@ export async function action({ request }: EnterpriseActionArgs) {
  */
 function planHighlights(limits: Record<string, number>): string[] {
   const rows: Array<[string, (n: number) => string]> = [
-    ['projects.count', (n) => `${n.toLocaleString()} projects`],
-    ['workspaces.active', (n) => `${n.toLocaleString()} active workspace${n === 1 ? '' : 's'}`],
-    ['team.members', (n) => (n === 1 ? '1 member' : `${n.toLocaleString()} team members`)],
-    ['ai.messages', (n) => `${n.toLocaleString()} AI messages / month`],
-    ['storage.gb', (n) => `${n.toLocaleString()} GB storage`],
+    ['projects.count', (n) => `${formatUserAreaNumber(n)} projects`],
+    ['workspaces.active', (n) => `${formatUserAreaNumber(n)} active workspace${n === 1 ? '' : 's'}`],
+    ['team.members', (n) => (n === 1 ? '1 member' : `${formatUserAreaNumber(n)} team members`)],
+    ['ai.messages', (n) => `${formatUserAreaNumber(n)} AI messages / month`],
+    ['storage.gb', (n) => `${formatUserAreaNumber(n)} GB storage`],
   ];
 
   return rows.filter(([key]) => typeof limits[key] === 'number').map(([key, format]) => format(limits[key]));

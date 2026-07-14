@@ -50,6 +50,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { formatUserAreaTime } from '~/lib/i18n/user-area-locale';
 import { projectAction, projectPageLoader } from '~/lib/project-route.server';
 import { isReauthRedirect } from '~/lib/route-reauth';
 import { statusDisplayLabel } from '~/lib/user-facing-labels';
@@ -726,7 +727,7 @@ function DeployHistory({
  */
 function formatLogTimestamp(timestamp: string): string {
   const date = new Date(timestamp);
-  return Number.isNaN(date.getTime()) ? timestamp : date.toLocaleTimeString();
+  return formatUserAreaTime(date) ?? timestamp;
 }
 
 /**

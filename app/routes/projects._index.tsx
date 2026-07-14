@@ -18,6 +18,7 @@ import { RelativeTime } from '~/components/ui/RelativeTime';
 import { SearchInput } from '~/components/ui/SearchInput';
 import { projectStackLabel } from '~/lib/dashboard-project-stack';
 import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
 import {
   projectDeploymentSummary,
   projectLifecycle,
@@ -89,7 +90,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
           status: projectLifecycleDisplayLabel(lifecycle),
           lifecycle,
           deploymentCount: project.deploymentCount,
-          updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
+          updated: project.updatedAt ? (formatUserAreaDateTime(project.updatedAt) ?? 'recently') : 'recently',
           updatedAtIso: project.updatedAt,
           stack: projectStackLabel(project),
           sourceType: project.sourceType,

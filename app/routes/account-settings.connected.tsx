@@ -14,6 +14,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { formatUserAreaDate } from '~/lib/i18n/user-area-locale';
 import { isReauthRedirect } from '~/lib/route-reauth';
 import { oauthErrorDisplayMessage, providerDisplayLabel } from '~/lib/user-facing-labels';
 import { classNames } from '~/utils/classNames';
@@ -259,7 +260,7 @@ export default function ConnectedAccountsPage() {
           const isConnected = Boolean(integration && integration.status === 'active') || Boolean(identity);
 
           const createdAt = integration?.createdAt ?? identity?.createdAt ?? null;
-          const connectedSince = createdAt ? new Date(createdAt).toLocaleDateString(undefined, dateFormat) : null;
+          const connectedSince = createdAt ? formatUserAreaDate(createdAt, dateFormat) : null;
 
           const statusLabel = needsReconnect ? 'Needs reconnect' : isConnected ? 'Connected' : 'Not connected';
 

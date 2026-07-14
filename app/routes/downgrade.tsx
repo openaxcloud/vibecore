@@ -13,6 +13,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { formatUserAreaNumber } from '~/lib/i18n/user-area-locale';
 import { shouldRethrowActionError } from '~/lib/route-reauth';
 
 export const meta: MetaFunction = () => [{ title: 'Downgrade - E-Code' }];
@@ -308,7 +309,7 @@ export default function DowngradePage() {
                   <ul className="mt-1.5 space-y-1 text-sm text-bolt-elements-textSecondary">
                     {reductions.map((row) => (
                       <li key={row.label}>
-                        {row.label}: {row.from.toLocaleString()} → {row.to.toLocaleString()}
+                        {row.label}: {formatUserAreaNumber(row.from)} → {formatUserAreaNumber(row.to)}
                       </li>
                     ))}
                   </ul>

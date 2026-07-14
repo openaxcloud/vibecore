@@ -1,3 +1,5 @@
+import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
+
 /** Env-var scopes, mirroring the API's `envVarScopeSchema` (services/api). */
 export const ENV_VAR_SCOPES = ['development', 'preview', 'production'] as const;
 export type EnvVarScope = (typeof ENV_VAR_SCOPES)[number];
@@ -50,7 +52,9 @@ export function buildEnvVarRows(envVars: EnvVarRecord[] | undefined, scope: EnvV
     kind: 'var' as const,
     id: item.id,
     key: item.key,
-    detail: item.updatedAt ? `Updated ${new Date(item.updatedAt).toLocaleString()}` : 'Stored in project metadata',
+    detail: item.updatedAt
+      ? `Updated ${formatUserAreaDateTime(item.updatedAt) ?? 'date unavailable'}`
+      : 'Saved for this project',
   }));
 }
 

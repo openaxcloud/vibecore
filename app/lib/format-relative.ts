@@ -1,23 +1,27 @@
+import { USER_AREA_LOCALE, USER_AREA_TIME_ZONE } from './i18n/user-area-locale';
+
 /**
  * Relative timestamps for list surfaces ("Updated 2 hours ago"). Fixed 'en'
  * locale — the product UI is English — so server and client render the same
  * string. Beyond a week the relative form stops being useful and we fall back
  * to an absolute date.
  */
-const relativeFormatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+const relativeFormatter = new Intl.RelativeTimeFormat(USER_AREA_LOCALE, { numeric: 'auto' });
 
-const absoluteDateFormatter = new Intl.DateTimeFormat('en-US', {
+const absoluteDateFormatter = new Intl.DateTimeFormat(USER_AREA_LOCALE, {
   month: 'short',
   day: 'numeric',
   year: 'numeric',
+  timeZone: USER_AREA_TIME_ZONE,
 });
 
-const absoluteDateTimeFormatter = new Intl.DateTimeFormat('en-US', {
+const absoluteDateTimeFormatter = new Intl.DateTimeFormat(USER_AREA_LOCALE, {
   month: 'short',
   day: 'numeric',
   year: 'numeric',
   hour: '2-digit',
   minute: '2-digit',
+  timeZone: USER_AREA_TIME_ZONE,
 });
 
 const MINUTE_MS = 60_000;

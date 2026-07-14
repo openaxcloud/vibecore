@@ -28,8 +28,8 @@ describe('formatRelativeTime', () => {
   });
 
   it('falls back to the absolute date beyond a week (and for future dates)', () => {
-    expect(formatRelativeTime(secondsAgo(8 * 24 * 3600), NOW)).toBe('Jun 25, 2026');
-    expect(formatRelativeTime(secondsAgo(-3600), NOW)).toBe('Jul 3, 2026');
+    expect(formatRelativeTime(secondsAgo(8 * 24 * 3600), NOW)).toBe('25 Jun 2026');
+    expect(formatRelativeTime(secondsAgo(-3600), NOW)).toBe('3 Jul 2026');
   });
 
   it('returns an empty string for invalid input', () => {
@@ -39,7 +39,7 @@ describe('formatRelativeTime', () => {
 
 describe('formatAbsoluteTime', () => {
   it('renders a full date-time for tooltips', () => {
-    expect(formatAbsoluteTime(NOW)).toMatch(/Jul 3, 2026/);
+    expect(formatAbsoluteTime(NOW)).toMatch(/3 Jul 2026/);
   });
 
   it('returns an empty string for invalid input', () => {

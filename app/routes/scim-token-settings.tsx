@@ -14,6 +14,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { formatUserAreaDate } from '~/lib/i18n/user-area-locale';
 import { isReauthRedirect } from '~/lib/route-reauth';
 import { classNames } from '~/utils/classNames';
 
@@ -139,7 +140,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 const dateFormat: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
 
 function formatDate(value: string | null) {
-  return value ? new Date(value).toLocaleDateString(undefined, dateFormat) : null;
+  return value ? formatUserAreaDate(value, dateFormat) : null;
 }
 
 export default function ScimTokenSettingsPage() {

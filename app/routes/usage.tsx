@@ -17,6 +17,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { formatUserAreaDate, formatUserAreaNumber } from '~/lib/i18n/user-area-locale';
 import { memberDisplayLabel, quotaDisplayLabel, userFacingLabel } from '~/lib/user-facing-labels';
 
 type MemberLimit = { userId: string; limitCents: number };
@@ -208,8 +209,9 @@ export default function UsagePage() {
             </div>
           </div>
           <p className="mb-4 text-xs text-bolt-elements-textSecondary">
-            This billing period ({new Date(breakdown.periodStart).toLocaleDateString()} –{' '}
-            {new Date(breakdown.periodEnd).toLocaleDateString()}) at the metered rates, broken down by resource.
+            This billing period ({formatUserAreaDate(breakdown.periodStart) ?? 'date unavailable'} –{' '}
+            {formatUserAreaDate(breakdown.periodEnd) ?? 'date unavailable'}) at the metered rates, broken down by
+            resource.
           </p>
           <ul className="flex flex-col gap-3">
             {breakdown.categories.map((category) => {
@@ -225,7 +227,7 @@ export default function UsagePage() {
                       {category.label}
                     </span>
                     <span className="text-bolt-elements-textSecondary">
-                      {category.quantity.toLocaleString()} {category.unit} ·{' '}
+                      {formatUserAreaNumber(category.quantity)} {category.unit} ·{' '}
                       <span className="font-medium text-bolt-elements-textPrimary">{dollars(category.costCents)}</span>
                     </span>
                   </div>
@@ -382,9 +384,11 @@ export default function UsagePage() {
                   <li key={override.id} className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
                     <span className="text-bolt-elements-textPrimary">{quotaDisplayLabel(override.key)}</span>
                     <span className="text-bolt-elements-textSecondary">
-                      Limit {override.limit.toLocaleString('en-GB')}
+                      Limit {formatUserAreaNumber(override.limit)}
                       {override.reason ? ` · ${override.reason}` : ''}
-                      {override.expiresAt ? ` · until ${new Date(override.expiresAt).toLocaleDateString()}` : ''}
+                      {override.expiresAt
+                        ? ` · until ${formatUserAreaDate(override.expiresAt) ?? 'date unavailable'}`
+                        : ''}
                     </span>
                   </li>
                 ))}

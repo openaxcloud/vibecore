@@ -14,6 +14,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
 import type { ProjectRecord } from '~/lib/project-route.server';
 import { isReauthRedirect } from '~/lib/route-reauth';
 import { statusDisplayLabel, userFacingLabel } from '~/lib/user-facing-labels';
@@ -346,7 +347,7 @@ function RecoveryPointsCard({ points, busy, disabled }: { points: RecoveryPoint[
                 <div className="flex flex-wrap items-center gap-2">
                   <KindBadge kind={point.kind} />
                   <span className="text-sm font-medium text-bolt-elements-textPrimary">
-                    {new Date(point.timestamp).toLocaleString()}
+                    {formatUserAreaDateTime(point.timestamp) ?? 'Date unavailable'}
                   </span>
                 </div>
                 <p className="mt-1 truncate text-xs text-bolt-elements-textSecondary">
@@ -410,8 +411,14 @@ function RestorePanel({
       {restoreWindow ? (
         <p className="text-xs text-bolt-elements-textSecondary">
           Choose any moment in your {restoreWindow.retentionDays}-day window, from{' '}
-          <span className="text-bolt-elements-textPrimary">{new Date(restoreWindow.earliest).toLocaleString()}</span> to{' '}
-          <span className="text-bolt-elements-textPrimary">{new Date(restoreWindow.latest).toLocaleString()}</span>.
+          <span className="text-bolt-elements-textPrimary">
+            {formatUserAreaDateTime(restoreWindow.earliest) ?? 'date unavailable'}
+          </span>{' '}
+          to{' '}
+          <span className="text-bolt-elements-textPrimary">
+            {formatUserAreaDateTime(restoreWindow.latest) ?? 'date unavailable'}
+          </span>
+          .
         </p>
       ) : (
         <p className="text-xs text-bolt-elements-textSecondary">
@@ -471,10 +478,12 @@ function RestoreHistoryCard({ restores }: { restores: Restore[] }) {
           <article key={restore.id} className="flex flex-wrap items-center gap-3 px-5 py-3 text-sm">
             <RestoreStatusBadge status={restore.status} />
             <span className="text-bolt-elements-textPrimary">
-              {restore.targetTimestamp ? new Date(restore.targetTimestamp).toLocaleString() : 'Latest'}
+              {restore.targetTimestamp
+                ? (formatUserAreaDateTime(restore.targetTimestamp) ?? 'Date unavailable')
+                : 'Latest'}
             </span>
             <span className="text-xs text-bolt-elements-textTertiary">
-              requested {new Date(restore.createdAt).toLocaleString()}
+              requested {formatUserAreaDateTime(restore.createdAt) ?? 'date unavailable'}
             </span>
             {restore.error ? <span className="text-xs text-bolt-elements-icon-error">{restore.error}</span> : null}
           </article>

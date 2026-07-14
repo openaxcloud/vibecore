@@ -17,6 +17,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
 import { isReauthRedirect, shouldRethrowActionError } from '~/lib/route-reauth';
 import { classNames } from '~/utils/classNames';
 
@@ -154,7 +155,7 @@ const dateTimeFormat: Intl.DateTimeFormatOptions = {
 function formatDateTime(value: string) {
   const date = new Date(value);
 
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString(undefined, dateTimeFormat);
+  return formatUserAreaDateTime(date, dateTimeFormat) ?? value;
 }
 
 /*

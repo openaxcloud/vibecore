@@ -11,6 +11,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { formatUserAreaDateTime, formatUserAreaNumber } from '~/lib/i18n/user-area-locale';
 
 /*
  * Admin credit wallets — platform admins read every org's credit balance and
@@ -43,7 +44,7 @@ function formatCents(cents: number | undefined, currency = 'USD') {
   }
 
   try {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(cents / 100);
+    return formatUserAreaNumber(cents / 100, { style: 'currency', currency });
   } catch {
     return `${(cents / 100).toFixed(2)} ${currency}`;
   }
@@ -245,7 +246,7 @@ export default function AdminWalletsPage() {
                     <td className="px-3 py-2">{formatCents(wallet.budgetCapCents, wallet.currency)}</td>
                     <td className="px-3 py-2">{formatCents(wallet.serviceShutdownCents, wallet.currency)}</td>
                     <td className="px-3 py-2 text-xs text-bolt-elements-textSecondary">
-                      {new Date(wallet.updatedAt).toLocaleString()}
+                      {formatUserAreaDateTime(wallet.updatedAt) ?? 'Date unavailable'}
                     </td>
                   </tr>
                 ))

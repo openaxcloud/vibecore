@@ -4,6 +4,7 @@ import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/Asyn
 import { AppShell, ProjectGrid } from '~/components/dashboard/SaaSLayout';
 import { projectStackLabel } from '~/lib/dashboard-project-stack';
 import { apiRequest, firstOrganizationOrNull, redirect, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
 import { projectLifecycle, projectLifecycleDisplayLabel } from '~/lib/project-card-presentation';
 import { isReauthRedirect } from '~/lib/route-reauth';
 
@@ -42,7 +43,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
             status: projectLifecycleDisplayLabel(lifecycle),
             lifecycle,
             deploymentCount: project.deploymentCount,
-            updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
+            updated: project.updatedAt ? (formatUserAreaDateTime(project.updatedAt) ?? 'recently') : 'recently',
             updatedAtIso: project.updatedAt,
             stack: projectStackLabel(project),
             sourceType: project.sourceType,

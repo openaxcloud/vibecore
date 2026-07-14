@@ -12,6 +12,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
 import { isReauthRedirect } from '~/lib/route-reauth';
 
 type Domain = {
@@ -189,7 +190,7 @@ export default function ProjectDomainsPage() {
                     title: item.domain,
                     detail: `${
                       item.verifiedAt
-                        ? `Verified ${new Date(item.verifiedAt).toLocaleString()}`
+                        ? `Verified ${formatUserAreaDateTime(item.verifiedAt) ?? 'date unavailable'}`
                         : 'Pending DNS verification'
                     } · ${ssl.label}`,
                     icon: item.verifiedAt ? ShieldCheck : Globe2,

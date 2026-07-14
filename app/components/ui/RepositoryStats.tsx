@@ -1,5 +1,6 @@
 import React from 'react';
 import { Badge } from './Badge';
+import { formatUserAreaNumber } from '~/lib/i18n/user-area-locale';
 import { classNames } from '~/utils/classNames';
 import { formatSize } from '~/utils/formatSize';
 
@@ -30,7 +31,7 @@ export function RepositoryStats({ stats, className, compact = false }: Repositor
         {totalFiles !== undefined && (
           <div className="flex items-center gap-2 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark">
             <span className="i-ph:files text-bolt-elements-item-contentAccent w-4 h-4" />
-            <span className={compact ? 'text-xs' : 'text-sm'}>Total Files: {totalFiles.toLocaleString()}</span>
+            <span className={compact ? 'text-xs' : 'text-sm'}>Total Files: {formatUserAreaNumber(totalFiles)}</span>
           </div>
         )}
 

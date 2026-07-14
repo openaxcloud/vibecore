@@ -66,7 +66,7 @@ describe('buildEnvVarRows (scoped)', () => {
 
     const flag = rows.find((r) => r.kind === 'var' && r.key === 'FEATURE_FLAG');
     const api = rows.find((r) => r.kind === 'var' && r.key === 'VITE_API_URL');
-    expect(flag?.kind === 'var' && flag.detail).toBe('Stored in project metadata');
+    expect(flag?.kind === 'var' && flag.detail).toBe('Saved for this project');
     expect(api?.kind === 'var' && api.detail).toContain('Updated');
   });
 
