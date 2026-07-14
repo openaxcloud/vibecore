@@ -445,6 +445,46 @@ export default function ProjectDeploymentsPage() {
                   {busy || building ? 'Deploying…' : 'Deploy project'}
                 </Button>
               </Form>
+            ) : deployType === 'autoscale' ? (
+              <Form
+                method="post"
+                className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md"
+              >
+                <input type="hidden" name="workspaceId" value={workspaceId} />
+                <input type="hidden" name="provider" value="server" />
+                <div>
+                  <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Server deployment</h2>
+                  <p className="text-xs text-bolt-elements-textSecondary">
+                    Runs your app as a managed HTTP service on a durable runtime. The runtime, build and start command
+                    are auto-detected from your project; install → build → start run in an isolated pod and your app is
+                    served at a public URL.
+                  </p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field as="select" label="Environment" name="environment" defaultValue="preview">
+                    <option value="preview">Preview</option>
+                    <option value="production">Production</option>
+                  </Field>
+                  <Field label="Custom domain" name="customDomain" placeholder="app.example.com" />
+                </div>
+
+                <Field
+                  as="textarea"
+                  label="Environment variables"
+                  name="envVars"
+                  placeholder={'PUBLIC_API_URL=https://api.example.com\nFEATURE_FLAG=on'}
+                />
+                <p className="text-[11px] text-bolt-elements-textTertiary">
+                  Your project secrets (including the database URL) are injected automatically. Production uses the
+                  production database; preview uses the development database.
+                </p>
+
+                <Button type="submit" disabled={busy || building} className="gap-2">
+                  <Rocket className="h-4 w-4" aria-hidden />
+                  {busy || building ? 'Deploying…' : 'Deploy server'}
+                </Button>
+              </Form>
             ) : (
               <ComingSoonPanel type={getDeploymentType(deployType)} />
             )}

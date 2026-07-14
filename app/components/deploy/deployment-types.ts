@@ -1,14 +1,16 @@
 /**
  * Replit-parity deployment-type model for the Publish panel.
  *
- * E-Code's managed deploy backend is static-only TODAY: `provider=static` runs a
- * real in-process build and serves the result at `/static-deployments/<id>/`
- * (see services/api/src/deployments.ts). The three compute tiers below mirror
- * Replit's Autoscale / Reserved VM / Scheduled offerings — they exist as billing
- * rates (metering-service.ts) but have NO provisioning runtime yet, so they are
- * surfaced as "coming soon" rather than faked. Keeping the taxonomy here (one
- * source of truth) lets the Publish UI show the full Replit-style menu while only
- * enabling what the backend can actually fulfil.
+ * E-Code's managed deploy backend fulfils two tiers TODAY: `static` (an
+ * in-process build served at `/static-deployments/<id>/`) and `autoscale`
+ * (`provider=server` — a durable managed HTTP service: the app source is
+ * snapshotted from the workspace, installed/built/started in an isolated pod, and
+ * served at a per-deployment subdomain routed by the preview-proxy). The remaining
+ * two tiers (Reserved VM / Scheduled) mirror Replit's offerings and exist as
+ * billing rates (metering-service.ts) but have no provisioning runtime yet, so
+ * they are surfaced as "coming soon" rather than faked. Keeping the taxonomy here
+ * (one source of truth) lets the Publish UI show the full Replit-style menu while
+ * only enabling what the backend can actually fulfil.
  */
 export type DeploymentTypeId = 'static' | 'autoscale' | 'reserved-vm' | 'scheduled';
 
@@ -52,21 +54,9 @@ export const DEPLOYMENT_TYPES: readonly DeploymentType[] = [
     name: 'Autoscale',
     tagline: 'Run a server that scales with traffic and to zero when idle.',
     description:
-      'Runs your app as a managed HTTP service that scales up under load and down to zero when idle, so you only pay for what you use. Best for full-stack apps with a backend (Next.js SSR, Express, Remix server).',
-    status: 'coming-soon',
+      'Runs your app as a managed HTTP service on a durable runtime. Best for full-stack apps with a backend (Next.js SSR, Express, Remix server). The runtime, build and start command are auto-detected from your project.',
+    status: 'available',
     bestFor: 'Full-stack apps with a server (SSR, APIs)',
-    requires: {
-      code: [
-        'Deploy provider + route for a long-running workspace service',
-        'Build → container image → service revision pipeline (job queue, not in-request)',
-        'Status/logs streaming from the running revision',
-      ],
-      infra: [
-        'Cluster autoscaling for request-driven service pods (scale-to-zero)',
-        'Host-based ingress + wildcard TLS for per-deployment subdomains',
-        'Container registry + build executor (Cloud Run / Knative-style runtime)',
-      ],
-    },
   },
   {
     id: 'reserved-vm',

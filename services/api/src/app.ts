@@ -125,6 +125,8 @@ import {
   runWorkspaceStaticBuild,
   type WorkspaceStaticBuildResult,
 } from './deploy-workspace-build.js';
+import { buildServerDeployEnv, snapshotWorkspaceAppSource } from './server-deploy-transfer.js';
+import { buildServerBootScript, detectServerRuntime, isDetectionError } from './server-runtime-detect.js';
 import { shouldRecordDeploymentUsage } from './deployment-billing.js';
 import {
   assertDeploymentRequestAllowed,
@@ -27181,24 +27183,157 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       let started: { ready: boolean; url: string; name: string; readyReplicas: number } | undefined;
       let serverError: string | undefined;
+      const serverPort = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
 
-      try {
-        started = await startServerDeploymentViaManager({
-          deploymentId: queued.id,
-          image:
-            process.env.SERVER_DEPLOY_IMAGE ??
-            process.env.WORKSPACE_AGENT_IMAGE ??
-            'vibecore/workspace-agent:2026.04.0',
-          command: ['node', '-e', SERVER_DEPLOY_PROBE_SCRIPT],
-          port: Number(process.env.SERVER_DEPLOY_PORT) || 3000,
-          host,
-          projectId: project.id,
-          orgId: project.organizationId,
-          env: { DEPLOY_ID: queued.id, ...body.envVars },
-          healthPath: '/health',
-        });
-      } catch (error) {
-        serverError = (error as Error).message ?? 'server deploy failed to start';
+      /*
+       * Build the REAL app artifact from the live workspace (replaces the old
+       * hard-coded probe so a user's "Deploy Server" runs THEIR app):
+       *   1. detect the runtime — start/build/port + framework, or a clear error
+       *      (e.g. a static SPA is told to use a Static deploy),
+       *   2. snapshot the app SOURCE out of the workspace pod (tarball; object
+       *      storage when available, inline base64 otherwise),
+       *   3. assemble the boot command + env — project secrets injected, and the
+       *      environment's database URL surfaced as DATABASE_URL.
+       * The runtime image is generic (node + npm); the boot script fetches the
+       * artifact, installs (dev deps included), builds, then execs the start command.
+       */
+      const userId = request.currentUser?.id;
+      const WebSocketCtor = (globalThis as { WebSocket?: new (url: string) => WsLike }).WebSocket;
+      let bootCommand: string[] | undefined;
+      let serverEnv: Record<string, string> = { DEPLOY_ID: queued.id, PORT: String(serverPort), ...body.envVars };
+
+      if (process.env.SERVER_DEPLOY_USE_PROBE === 'true') {
+        /*
+         * Escape hatch: a dependency-free probe (self-installs pg) to smoke-test
+         * the server-deploy infra — routing, readiness, and the environment's
+         * DATABASE_URL injection — independently of any user app.
+         */
+        const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(() => ({}));
+        const dbUrl =
+          (body.environment ?? 'preview') === 'production'
+            ? projectSecrets.PROD_DATABASE_URL
+            : projectSecrets.DATABASE_URL;
+        serverEnv = {
+          DEPLOY_ID: queued.id,
+          PORT: String(serverPort),
+          ...(dbUrl ? { DATABASE_URL: dbUrl } : {}),
+          ...body.envVars,
+        };
+        bootCommand = ['node', '-e', SERVER_DEPLOY_PROBE_SCRIPT];
+      } else if (!userId || !WebSocketCtor) {
+        serverError = 'Open the project workspace before deploying a server.';
+      } else {
+        const workspaceId = runtimeWorkspaceId(project.id, userId);
+        const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
+
+        try {
+          await ensureWorkspaceReachable(request, authorized);
+          const token = await agentToken(workspaceId);
+          const buildAgent = createWorkspaceBuildAgent({
+            agentWsBaseUrl: agentBaseUrl(workspaceId).replace(/^http/i, 'ws'),
+            token,
+            deadlineMs: Math.max(1, body.timeoutSeconds) * 1000,
+            wsFactory: (url) => new WebSocketCtor(url),
+            agentGet: <T>(path: string) => agentRequest<T>(workspaceId, path, { method: 'GET' }),
+          });
+
+          let packageJson: string | null = null;
+
+          try {
+            packageJson = (await buildAgent.readFile('package.json')).content;
+          } catch {
+            packageJson = null;
+          }
+
+          let topLevelFiles: string[] = [];
+
+          try {
+            const listing = await buildAgent.listFiles('.');
+            topLevelFiles = Array.from(
+              new Set((listing.files ?? []).map((file) => file.path.replace(/^\.\//, '').split('/')[0]).filter(Boolean)),
+            );
+          } catch {
+            topLevelFiles = [];
+          }
+
+          const detection = detectServerRuntime({ packageJson, topLevelFiles });
+
+          if (isDetectionError(detection)) {
+            serverError = detection.error;
+          } else {
+            buildProgress.onLog({
+              timestamp: nowIso(),
+              level: 'info',
+              message: `Server deploy: detected ${detection.framework} — build "${
+                detection.buildCommand ?? '(none)'
+              }", start "${detection.startCommand}"`,
+            });
+
+            const objectStorage = (() => {
+              try {
+                return resolveObjectStorage();
+              } catch {
+                return null;
+              }
+            })();
+
+            const snapshot = await snapshotWorkspaceAppSource({
+              agent: buildAgent,
+              deploymentId: queued.id,
+              objectStorage,
+              projectId: project.id,
+              onLog: (level, line) => buildProgress.onLog({ timestamp: nowIso(), level, message: line }),
+            });
+
+            if (!snapshot.ok || !snapshot.transfer) {
+              serverError = snapshot.message ?? 'Failed to snapshot the app for deployment.';
+            } else {
+              const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(() => ({}));
+              serverEnv = buildServerDeployEnv({
+                transfer: snapshot.transfer,
+                deploymentId: queued.id,
+                port: serverPort,
+                environment: body.environment ?? 'preview',
+                projectSecrets,
+                envOverrides: body.envVars,
+              });
+              bootCommand = [
+                'sh',
+                '-c',
+                buildServerBootScript({
+                  install: detection.install,
+                  buildCommand: detection.buildCommand,
+                  startCommand: detection.startCommand,
+                }),
+              ];
+            }
+          }
+        } catch (error) {
+          serverError = (error as Error).message ?? 'Failed to prepare the server deployment.';
+        }
+      }
+
+      if (bootCommand && !serverError) {
+        try {
+          started = await startServerDeploymentViaManager({
+            deploymentId: queued.id,
+            image:
+              process.env.SERVER_DEPLOY_IMAGE ??
+              process.env.WORKSPACE_AGENT_IMAGE ??
+              'vibecore/workspace-agent:2026.04.0',
+            command: bootCommand,
+            port: serverPort,
+            host,
+            projectId: project.id,
+            orgId: project.organizationId,
+            env: serverEnv,
+            // Real apps rarely expose /health; the readiness probe defaults to `/`,
+            // which every real web app answers (overridable per install).
+            healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+          });
+        } catch (error) {
+          serverError = (error as Error).message ?? 'server deploy failed to start';
+        }
       }
 
       const ok = Boolean(started?.ready);

@@ -11,10 +11,11 @@ describe('deployment-types', () => {
     expect(DEPLOYMENT_TYPES.map((t) => t.id)).toEqual(['static', 'autoscale', 'reserved-vm', 'scheduled']);
   });
 
-  it('marks only static as available today (the backend is static-only)', () => {
+  it('marks static + autoscale available (both are fulfilled by the backend)', () => {
     expect(isDeploymentTypeAvailable('static')).toBe(true);
+    expect(isDeploymentTypeAvailable('autoscale')).toBe(true);
 
-    for (const id of ['autoscale', 'reserved-vm', 'scheduled']) {
+    for (const id of ['reserved-vm', 'scheduled']) {
       expect(isDeploymentTypeAvailable(id)).toBe(false);
     }
   });
