@@ -10,7 +10,6 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-  useFetchers,
   useLocation,
   useNavigation,
   useRouteError,
@@ -560,12 +559,14 @@ function AppToastContainer() {
 
 function GlobalRouteLoader() {
   const navigation = useNavigation();
-  const fetchers = useFetchers();
   const [visible, setVisible] = useState(false);
 
-  const loading =
-    navigation.state !== 'idle' ||
-    fetchers.some((fetcher) => fetcher.state === 'loading' || fetcher.state === 'submitting');
+  /*
+   * Background fetchers and route revalidations must not blank an already
+   * rendered page. They own local pending UI; this full-screen surface is
+   * reserved for an actual route navigation.
+   */
+  const loading = navigation.state !== 'idle';
 
   useEffect(() => {
     if (!loading) {

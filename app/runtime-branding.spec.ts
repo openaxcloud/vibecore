@@ -24,5 +24,7 @@ describe('runtime E-Code branding', () => {
     expect(source('scripts/update.sh')).toContain('Starting E-Code update process');
     expect(source('scripts/update.sh')).toContain('https://api.github.com/repos/openaxcloud/vibecore/releases/latest');
     expect(source('scripts/update.sh')).not.toContain('stackblitz-labs/bolt.diy');
+    expect(source('pre-start.cjs')).toContain('E - C O D E');
+    expect(source('pre-start.cjs')).not.toContain('B O L T . D I Y');
   });
 });
