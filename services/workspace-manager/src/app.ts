@@ -3,6 +3,28 @@ import { getClusterCapacity } from '@vibecore/k8s-client';
 import Fastify from 'fastify';
 import { z } from 'zod';
 import { WorkspaceManager } from './manager.js';
+import { runScheduledJob } from './scheduled-jobs.js';
+
+/*
+ * One disposable run of a scheduled task. `secretValues` are the project's
+ * decrypted secrets; they are written to a per-run Secret that is deleted with
+ * the pod, so they never outlive the run.
+ */
+const scheduledJobSchema = z.object({
+  orgId: z.string().min(1),
+  projectId: z.string().min(1),
+  taskId: z.string().min(1),
+  runId: z.string().min(1),
+  image: z.string().min(1),
+  pvcName: z.string().min(1),
+  command: z.string().min(1),
+  machineSize: z.string().optional(),
+  timeoutSeconds: z.number().int().positive().max(3600).default(900),
+  env: z.record(z.string()).optional(),
+  secretEnv: z.record(z.string()).optional(),
+  secretValues: z.record(z.string()).optional(),
+  workingDir: z.string().optional(),
+});
 
 const startSchema = z.object({
   namespace: z.string().default('workspaces'),
@@ -210,6 +232,19 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   app.post('/server-deployments/:deploymentId/stop', async (request) =>
     manager.stopServerDeployment(runtimeNamespace(), (request.params as any).deploymentId),
   );
+
+  /*
+   * Scheduled runs ("Scheduled" deployment type): one DISPOSABLE Pod per run.
+   * Synchronous by design — the api's scheduler owns the run row and needs the
+   * exit code + full logs back to close it out. The pod (and its secret) are
+   * always deleted, including on timeout. Nothing durable is created, and this
+   * shares no code with the server-deployment path above.
+   */
+  app.post('/scheduled-jobs/run', async (request) => {
+    const input = scheduledJobSchema.parse(request.body);
+
+    return runScheduledJob(manager.k8s, { ...input, namespace: runtimeNamespace() });
+  });
   app.get('/workspaces/:workspaceId', async (request) => manager.store.get((request.params as any).workspaceId));
   app.get('/workspaces/:workspaceId/agent-token', async (request) => {
     const workspaceId = (request.params as any).workspaceId;
