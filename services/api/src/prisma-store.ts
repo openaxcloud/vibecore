@@ -101,6 +101,18 @@ function toIso(value: Date | string | null | undefined) {
   return value ? new Date(value).toISOString() : undefined;
 }
 
+type PrismaKnownRequestError = Error & { readonly code: string };
+
+/**
+ * Prisma's generated error constructor is a runtime value whose declaration can
+ * lose its construct signature across workspace module-resolution boundaries.
+ * Keep the runtime identity check while giving catch variables an explicit,
+ * stable narrowing from `unknown` before their Prisma code is inspected.
+ */
+function isPrismaKnownRequestError(error: unknown): error is PrismaKnownRequestError {
+  return error instanceof Prisma.PrismaClientKnownRequestError;
+}
+
 // Database point-in-time rollback (Phase-1 scaffold) row → record mappers.
 // sizeBytes is a Postgres BIGINT (Prisma `bigint`); narrow to number for the API.
 function mapDatabaseInstance(row: {
@@ -354,7 +366,7 @@ export class PrismaApiStore implements ApiStore {
        * would let GDPR/data-deletion breakage stay invisible in production.
        * Rethrow so the failure is observable to callers and operators.
        */
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      if (isPrismaKnownRequestError(error) && error.code === 'P2025') {
         return false;
       }
 
@@ -777,7 +789,7 @@ export class PrismaApiStore implements ApiStore {
           }),
         );
       } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002' && attempt < 5) {
+        if (isPrismaKnownRequestError(error) && error.code === 'P2002' && attempt < 5) {
           continue;
         }
 
@@ -1037,7 +1049,7 @@ export class PrismaApiStore implements ApiStore {
           );
         });
       } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002' && attempt < 5) {
+        if (isPrismaKnownRequestError(error) && error.code === 'P2002' && attempt < 5) {
           continue;
         }
 
@@ -4341,7 +4353,7 @@ export class PrismaApiStore implements ApiStore {
        * That's an anomalous state (one Stripe customer, two orgs) — return the
        * existing (provider,externalId) mapping idempotently instead of crashing.
        */
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (isPrismaKnownRequestError(error) && error.code === 'P2002') {
         const existing = await this.prisma.billingCustomer.findUnique({
           where: { provider_externalId: { provider: input.provider, externalId: input.externalId } },
         });
@@ -4632,7 +4644,7 @@ export class PrismaApiStore implements ApiStore {
 
       return { created: true };
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (isPrismaKnownRequestError(error) && error.code === 'P2002') {
         return { created: false };
       }
 
