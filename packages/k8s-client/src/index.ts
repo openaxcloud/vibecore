@@ -9,6 +9,12 @@ import { parseClusterCapacity, type ClusterCapacity } from './cluster-capacity.j
 
 export * from './cluster-capacity.js';
 
+/*
+ * Ephemeral per-run Pod for the "Scheduled" deployment type. Its own symbols
+ * (scheduledJob*) — no overlap with the durable serverApp* runtime.
+ */
+export * from './scheduled-job.js';
+
 const execFile = promisify(execFileCallback);
 
 /*

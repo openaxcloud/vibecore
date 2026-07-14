@@ -47,13 +47,21 @@ export interface ExecResult {
 }
 
 /**
- * The one capability this module needs from the api app: run a command in a
- * project's sandbox, bringing the pod up if it is cold. Injected (rather than
- * imported) because the exec hop is a closure over the app's agent client.
+ * The one capability this module needs from the api app: run a command for this
+ * run, in isolation, and give back the exit code and the output. Injected (rather
+ * than imported) because the runtime hop is a closure over the app's clients —
+ * and because it has two implementations: a disposable per-run Pod (production)
+ * and an exec into the project's workspace pod (no-Kubernetes fallback).
+ *
+ * `taskId` / `runId` / `machineSize` are passed through because the pod runtime
+ * needs them to name, size and label the run's own Pod.
  */
 export type SandboxExec = (input: {
   projectId: string;
   organizationId: string;
+  taskId: string;
+  runId: string;
+  machineSize: string;
   command: string;
   timeoutMs: number;
 }) => Promise<ExecResult>;
@@ -410,6 +418,7 @@ export class ScheduledTaskService {
 
     const timeoutSeconds = clampTimeoutSeconds(task.timeoutSeconds);
     const deadline = startedAt.getTime() + timeoutSeconds * 1000;
+    const size = resolveMachineSize(task.machineSize);
 
     let status: ScheduledTaskRunStatus = 'SUCCESS';
     let exitCode: number | null = 0;
@@ -446,6 +455,9 @@ export class ScheduledTaskService {
         const result = await this.deps.exec({
           projectId: task.projectId,
           organizationId: task.organizationId,
+          taskId: task.id,
+          runId,
+          machineSize: size.key,
           command,
           timeoutMs: remainingMs,
         });
@@ -480,7 +492,6 @@ export class ScheduledTaskService {
      * failed or timed-out run still consumed the sandbox, so it is still metered;
      * a SKIPPED run consumed nothing and never reaches here.
      */
-    const size = resolveMachineSize(task.machineSize);
     const computeUnits = workspaceComputeUnits(size.cpuMillicores, size.ramMb, durationMs / 1000);
 
     let costCents: number | null = null;

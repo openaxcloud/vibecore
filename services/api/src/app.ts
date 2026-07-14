@@ -218,6 +218,7 @@ import {
   ScheduledTaskService,
   startScheduledTaskScheduler,
   validateSchedule,
+  type ExecResult,
   type SandboxExec,
   type WorkflowResolver,
 } from './scheduled-tasks.js';
@@ -12937,9 +12938,81 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
   };
 
-  const scheduledSandboxExec: SandboxExec = async ({ projectId, organizationId, command, timeoutMs }) => {
-    const workspace = await scheduledTaskProjectWorkspace(projectId);
-    const authorized = { workspaceId: workspace.id, projectId, organizationId };
+  /*
+   * PRIMARY runtime for a scheduled run: a DISPOSABLE Pod, one per run.
+   *
+   * This is the Replit shape and the reason the tier exists — the run gets the
+   * machine size it was sold (requests == limits), it starts from nothing, it
+   * exits, and the pod is deleted. Billing (duration x size) therefore describes
+   * a machine that genuinely existed, and a scheduled job no longer depends on
+   * the project's dev workspace being awake (or on waking it, which would also
+   * bill workspace runtime on top).
+   *
+   * It mounts the project's own PVC, so the job sees the real project files, and
+   * receives the project's env + secrets. Entirely separate from the durable
+   * server-deployment path.
+   */
+  const scheduledPodExec = async (input: {
+    projectId: string;
+    organizationId: string;
+    taskId: string;
+    runId: string;
+    machineSize: string;
+    command: string;
+    timeoutMs: number;
+  }): Promise<ExecResult> => {
+    const workspace = await scheduledTaskProjectWorkspace(input.projectId);
+    const project = await store.getProject(input.projectId);
+
+    const [projectEnvVars, projectSecrets] = await Promise.all([
+      store.listProjectEnvVars(input.projectId).catch(() => []),
+      store.listProjectSecrets(input.projectId).catch(() => []),
+    ]);
+
+    const secretValues = await resolveProjectSecretValues(store, input.projectId).catch(() => ({}));
+
+    const result = await managerRequest<{ exitCode: number; output: string; timedOut: boolean; phase: string }>(
+      '/scheduled-jobs/run',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          orgId: input.organizationId,
+          projectId: input.projectId,
+          taskId: input.taskId,
+          runId: input.runId,
+          image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
+
+          // The project's existing volume — same files the IDE sees.
+          pvcName: project?.persistentVolumeClaim || `pvc-${workspace.id}`,
+          command: input.command,
+          machineSize: input.machineSize,
+          timeoutSeconds: Math.max(10, Math.round(input.timeoutMs / 1000)),
+          env: collapseEnvForWorkspace(projectEnvVars),
+
+          // name -> key; the values go into a per-run Secret deleted with the pod.
+          secretEnv: Object.fromEntries(projectSecrets.map((entry) => [entry.key, entry.key])),
+          secretValues,
+        }),
+      },
+    );
+
+    return { exitCode: result.exitCode ?? 0, output: result.output ?? '' };
+  };
+
+  /*
+   * FALLBACK runtime: run the command inside the project's existing workspace pod
+   * through the same agent hop the terminal uses. Used when the manager has no
+   * cluster (local dev / self-host, SCHEDULED_TASK_RUNTIME=workspace) so the
+   * feature still works without Kubernetes.
+   */
+  const scheduledAgentExec = async (input: {
+    projectId: string;
+    organizationId: string;
+    command: string;
+    timeoutMs: number;
+  }): Promise<ExecResult> => {
+    const workspace = await scheduledTaskProjectWorkspace(input.projectId);
+    const authorized = { workspaceId: workspace.id, projectId: input.projectId, organizationId: input.organizationId };
 
     /*
      * A scheduled run almost always lands on a cold (GC'd) workspace, so pay the
@@ -12947,18 +13020,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * first exec and retrying — the run's own timeout still bounds the whole thing.
      */
     const scheduledRequest = { currentUser: undefined, raw: {} };
-
-    const body = { command: 'sh', args: ['-lc', command], timeoutMs };
+    const body = { command: 'sh', args: ['-lc', input.command], timeoutMs: input.timeoutMs };
 
     let result: { code: number; stdout?: string; stderr?: string };
 
     try {
       await ensureWorkspaceReachable(scheduledRequest, authorized, SCHEDULED_COLD_START_BUDGET_MS);
-      result = await agentRequest<{ code: number; stdout?: string; stderr?: string }>(
-        workspace.id,
-        '/commands/run',
-        { method: 'POST', body: JSON.stringify(body) },
-      );
+      result = await agentRequest<{ code: number; stdout?: string; stderr?: string }>(workspace.id, '/commands/run', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
     } catch (error) {
       if (!shouldUseLocalRuntimeFallback(error)) {
         throw error;
@@ -12968,6 +13039,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return { exitCode: result.code ?? 0, output: `${result.stdout ?? ''}${result.stderr ?? ''}` };
+  };
+
+  /**
+   * `pod` (default when a workspace-manager is configured) = disposable Pod per
+   * run. `workspace` = exec into the project's workspace pod. Switchable without
+   * a code change so an operator can fall back instantly if the pod path misbehaves.
+   */
+  const scheduledTaskRuntime =
+    process.env.SCHEDULED_TASK_RUNTIME ?? (process.env.WORKSPACE_MANAGER_URL ? 'pod' : 'workspace');
+
+  const scheduledSandboxExec: SandboxExec = async (input) => {
+    if (scheduledTaskRuntime !== 'pod') {
+      return scheduledAgentExec(input);
+    }
+
+    return scheduledPodExec({
+      ...input,
+      taskId: input.taskId,
+      runId: input.runId,
+      machineSize: input.machineSize,
+    });
   };
 
   /*

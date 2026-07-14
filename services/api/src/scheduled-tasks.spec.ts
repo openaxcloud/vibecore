@@ -264,7 +264,16 @@ function buildService(
   return new ScheduledTaskService({
     repository,
     store,
-    exec: async ({ command }) => exec(command),
+
+    // The executor tells the runtime which run and which machine size it is for
+    // (the pod runtime names and sizes the run's own Pod from these).
+    exec: async ({ command, runId, taskId, machineSize }) => {
+      expect(runId).toMatch(/^run-/);
+      expect(taskId).toMatch(/^task-/);
+      expect(machineSize).toBeTruthy();
+
+      return exec(command);
+    },
     resolveWorkflow: overrides.resolveWorkflow ?? (async () => undefined),
     meter,
     onRunFailed: overrides.onRunFailed,
