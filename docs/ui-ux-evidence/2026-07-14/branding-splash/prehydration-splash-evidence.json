@@ -1,0 +1,981 @@
+{
+  "allPassed": true,
+  "captureMode": "Fresh Chromium context; service workers disabled; cache bypassed; external JavaScript blocked; theme init applied before first paint",
+  "cases": [
+    {
+      "assertions": [
+        {
+          "actual": 200,
+          "name": "document response exists",
+          "passed": true
+        },
+        {
+          "actual": 200,
+          "name": "document response is successful",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "name": "SSR splash uses stable shell marker",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "name": "splash is visible and viewport-sized",
+          "passed": true
+        },
+        {
+          "actual": "light",
+          "detail": "expected light",
+          "name": "forced theme is active",
+          "passed": true
+        },
+        {
+          "actual": {
+            "appliedAtMs": 752.714999973774,
+            "firstContentfulPaintMs": 1189.6850000023842
+          },
+          "name": "theme was applied before first contentful paint",
+          "passed": true
+        },
+        {
+          "actual": {
+            "blockedScriptCount": 32,
+            "hydratedAttribute": null
+          },
+          "name": "React hydration stayed blocked",
+          "passed": true
+        },
+        {
+          "actual": "svg",
+          "name": "E-Code logo is an inline SVG",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "name": "inline SVG is present in raw SSR HTML",
+          "passed": true
+        },
+        {
+          "actual": {
+            "dark": {
+              "display": "none",
+              "opacity": "1",
+              "painted": false,
+              "visibility": "visible"
+            },
+            "light": {
+              "display": "inline",
+              "opacity": "1",
+              "painted": true,
+              "visibility": "visible"
+            }
+          },
+          "name": "inline SVG has both theme variants",
+          "passed": true
+        },
+        {
+          "actual": {
+            "expectedVariant": {
+              "display": "inline",
+              "opacity": "1",
+              "painted": true,
+              "visibility": "visible"
+            },
+            "otherVariant": {
+              "display": "none",
+              "opacity": "1",
+              "painted": false,
+              "visibility": "visible"
+            }
+          },
+          "name": "light SVG variant is exclusively painted",
+          "passed": true
+        },
+        {
+          "actual": {
+            "externalAssetCount": 0,
+            "splashImageCount": 0
+          },
+          "name": "logo has no external image dependency",
+          "passed": true
+        },
+        {
+          "actual": {
+            "legacyOrangeSquareCount": 0,
+            "legacySquareClassCount": 0
+          },
+          "name": "legacy orange square is absent",
+          "passed": true
+        },
+        {
+          "actual": {
+            "backgroundColor": "rgb(246, 248, 251)",
+            "luminance": 0.9369266827356146
+          },
+          "name": "light splash background matches the selected theme",
+          "passed": true
+        },
+        {
+          "actual": "app-e-code-ai-light-prehydration-splash.png",
+          "name": "screenshot was written",
+          "passed": true
+        }
+      ],
+      "blockedScriptRequests": [
+        "https://app.e-code.ai/assets/Card-BJND1zaM.js",
+        "https://app.e-code.ai/assets/Dialog-D_a2Q5uE.js",
+        "https://app.e-code.ai/assets/Dropdown-CDO_3W_N.js",
+        "https://app.e-code.ai/assets/EcodeBrandMark-LlZgUIJs.js",
+        "https://app.e-code.ai/assets/EcodeExactLandingControls-D6Wk0EQ_.js",
+        "https://app.e-code.ai/assets/EcodeExactShell-CFFZUeHx.js",
+        "https://app.e-code.ai/assets/Input-CDYXJXA6.js",
+        "https://app.e-code.ai/assets/PanelBoundary-CEWUrd9O.js",
+        "https://app.e-code.ai/assets/Popover-DVjrNyeO.js",
+        "https://app.e-code.ai/assets/SaaSLayout-DgompPOz.js",
+        "https://app.e-code.ai/assets/_index-Cw0F6iFN.js",
+        "https://app.e-code.ai/assets/classNames-DIqb9g7i.js",
+        "https://app.e-code.ai/assets/entry.client-CqHPCoa2.js",
+        "https://app.e-code.ai/assets/format-relative-2wmbUovA.js",
+        "https://app.e-code.ai/assets/index-D-LvXoln.js",
+        "https://app.e-code.ai/assets/index-kI1LSwCS.js",
+        "https://app.e-code.ai/assets/logger-DX9uVd1W.js",
+        "https://app.e-code.ai/assets/logs-DUF6fNWx.js",
+        "https://app.e-code.ai/assets/model-handoff-iSX9BsrT.js",
+        "https://app.e-code.ai/assets/profile-BY0mUgpd.js",
+        "https://app.e-code.ai/assets/proxy-CSVHdwlL.js",
+        "https://app.e-code.ai/assets/resolve-preferred-model-CWnMwjlD.js",
+        "https://app.e-code.ai/assets/root-BowJNvpR.js",
+        "https://app.e-code.ai/assets/social-meta-DHaDVo45.js",
+        "https://app.e-code.ai/assets/stripIndent-ZXzdX4u1.js",
+        "https://app.e-code.ai/assets/theme-Slv2ke1v.js",
+        "https://app.e-code.ai/assets/user-facing-labels-BJ5e1Cfc.js",
+        "https://app.e-code.ai/assets/vendor-codemirror-Bgnu0S23.js",
+        "https://app.e-code.ai/assets/vendor-icons-DK8XCBZ_.js",
+        "https://app.e-code.ai/assets/vendor-monaco-core-w4AH3K4T.js",
+        "https://app.e-code.ai/assets/vendor-react-CX0GBmsu.js",
+        "https://app.e-code.ai/assets/vendor-terminal-krsq-pMQ.js"
+      ],
+      "consoleErrors": [
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+      ],
+      "dom": {
+        "backgroundColor": "rgb(246, 248, 251)",
+        "backgroundLuminance": 0.9369266827356146,
+        "firstContentfulPaintMs": 1189.6850000023842,
+        "hydratedAttribute": null,
+        "htmlTheme": "light",
+        "initThemeAppliedAtMs": 752.714999973774,
+        "initThemeApplyCount": 10,
+        "legacyOrangeSquareCount": 0,
+        "legacySquareClassCount": 0,
+        "logo": {
+          "ariaHidden": "true",
+          "darkVariant": {
+            "display": "none",
+            "opacity": "1",
+            "painted": false,
+            "visibility": "visible"
+          },
+          "externalAssetCount": 0,
+          "focusable": "false",
+          "height": 56,
+          "lightVariant": {
+            "display": "inline",
+            "opacity": "1",
+            "painted": true,
+            "visibility": "visible"
+          },
+          "outerHtml": "<svg width=\"56\" height=\"56\" viewBox=\"0 0 40 40\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\" shape-rendering=\"geometricPrecision\" focusable=\"false\" data-ecode-boot-mark=\"\" data-theme-variant=\"auto\" aria-hidden=\"true\"><style>\n  [data-ecode-boot-mark] [data-ecode-mark-variant] {\n    display: none;\n  }\n\n  [data-ecode-boot-mark][data-theme-variant=\"light\"] [data-ecode-mark-variant=\"light\"],\n  [data-ecode-boot-mark][data-theme-variant=\"dark\"] [data-ecode-mark-variant=\"dark\"],\n  [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"dark\"] {\n    display: inline;\n  }\n\n  [data-theme=\"light\"] [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"dark\"] {\n    display: none;\n  }\n\n  [data-theme=\"light\"] [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"light\"] {\n    display: inline;\n  }\n\n  [data-theme=\"dark\"] [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"light\"] {\n    display: none;\n  }\n\n  [data-theme=\"dark\"] [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"dark\"] {\n    display: inline;\n  }\n\n  @media (prefers-color-scheme: light) {\n    :root:not([data-theme]) [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"dark\"] {\n      display: none;\n    }\n\n    :root:not([data-theme]) [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"light\"] {\n      display: inline;\n    }\n  }\n</style><defs><linearGradient id=\"ecode-boot-light-Rib5\" x1=\"5\" y1=\"3\" x2=\"35\" y2=\"37\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#E65300\"></stop><stop offset=\"1\" stop-color=\"#F77F12\"></stop></linearGradient><linearGradient id=\"ecode-boot-dark-Rib5\" x1=\"4\" y1=\"2\" x2=\"36\" y2=\"38\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#F26207\"></stop><stop offset=\"1\" stop-color=\"#F99D25\"></stop></linearGradient></defs><g data-ecode-mark-variant=\"light\"><circle cx=\"20\" cy=\"20\" r=\"20\" fill=\"url(#ecode-boot-light-Rib5)\"></circle><circle cx=\"20\" cy=\"20\" r=\"19.25\" stroke=\"#A93600\" stroke-opacity=\"0.42\" stroke-width=\"0.75\"></circle><path d=\"M14 12 L14 20 L14 28 M14 12 L22 12 M14 20 L20 20 M14 28 L22 28\" stroke=\"#FFFFFF\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path><path d=\"M26 16 L30 20 L26 24\" stroke=\"#FFFFFF\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path></g><g data-ecode-mark-variant=\"dark\"><circle cx=\"20\" cy=\"20\" r=\"20\" fill=\"url(#ecode-boot-dark-Rib5)\"></circle><circle cx=\"20\" cy=\"20\" r=\"19.25\" stroke=\"#FFD0A0\" stroke-opacity=\"0.34\" stroke-width=\"0.75\"></circle><path d=\"M14 12 L14 20 L14 28 M14 12 L22 12 M14 20 L20 20 M14 28 L22 28\" stroke=\"#FFFFFF\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path><path d=\"M26 16 L30 20 L26 24\" stroke=\"#FFFFFF\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path></g></svg>",
+          "tagName": "svg",
+          "themeVariant": "auto",
+          "width": 56
+        },
+        "splashImageCount": 0,
+        "splashPresent": true,
+        "splashVisible": true
+      },
+      "effectiveUrl": "https://app.e-code.ai/?__ecode_splash_proof=app-e-code-ai-light",
+      "error": null,
+      "http": {
+        "cacheControl": "no-store",
+        "cfCacheStatus": null,
+        "date": "Tue, 14 Jul 2026 15:53:36 GMT",
+        "etag": null,
+        "status": 200
+      },
+      "id": "app-e-code-ai-light",
+      "pageErrors": [],
+      "passed": true,
+      "requestedUrl": "https://app.e-code.ai/",
+      "responseHtmlSha256": "2337213d7819f28b6ea4d50f77ddbcf7a55affc012cecf872940e0942bc76e8e",
+      "screenshot": "app-e-code-ai-light-prehydration-splash.png",
+      "surface": "app",
+      "theme": "light"
+    },
+    {
+      "assertions": [
+        {
+          "actual": 200,
+          "name": "document response exists",
+          "passed": true
+        },
+        {
+          "actual": 200,
+          "name": "document response is successful",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "name": "SSR splash uses stable shell marker",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "name": "splash is visible and viewport-sized",
+          "passed": true
+        },
+        {
+          "actual": "dark",
+          "detail": "expected dark",
+          "name": "forced theme is active",
+          "passed": true
+        },
+        {
+          "actual": {
+            "appliedAtMs": 413.5250000357628,
+            "firstContentfulPaintMs": 1028.460000038147
+          },
+          "name": "theme was applied before first contentful paint",
+          "passed": true
+        },
+        {
+          "actual": {
+            "blockedScriptCount": 32,
+            "hydratedAttribute": null
+          },
+          "name": "React hydration stayed blocked",
+          "passed": true
+        },
+        {
+          "actual": "svg",
+          "name": "E-Code logo is an inline SVG",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "name": "inline SVG is present in raw SSR HTML",
+          "passed": true
+        },
+        {
+          "actual": {
+            "dark": {
+              "display": "inline",
+              "opacity": "1",
+              "painted": true,
+              "visibility": "visible"
+            },
+            "light": {
+              "display": "none",
+              "opacity": "1",
+              "painted": false,
+              "visibility": "visible"
+            }
+          },
+          "name": "inline SVG has both theme variants",
+          "passed": true
+        },
+        {
+          "actual": {
+            "expectedVariant": {
+              "display": "inline",
+              "opacity": "1",
+              "painted": true,
+              "visibility": "visible"
+            },
+            "otherVariant": {
+              "display": "none",
+              "opacity": "1",
+              "painted": false,
+              "visibility": "visible"
+            }
+          },
+          "name": "dark SVG variant is exclusively painted",
+          "passed": true
+        },
+        {
+          "actual": {
+            "externalAssetCount": 0,
+            "splashImageCount": 0
+          },
+          "name": "logo has no external image dependency",
+          "passed": true
+        },
+        {
+          "actual": {
+            "legacyOrangeSquareCount": 0,
+            "legacySquareClassCount": 0
+          },
+          "name": "legacy orange square is absent",
+          "passed": true
+        },
+        {
+          "actual": {
+            "backgroundColor": "rgb(10, 15, 28)",
+            "luminance": 0.004900179598394491
+          },
+          "name": "dark splash background matches the selected theme",
+          "passed": true
+        },
+        {
+          "actual": "app-e-code-ai-dark-prehydration-splash.png",
+          "name": "screenshot was written",
+          "passed": true
+        }
+      ],
+      "blockedScriptRequests": [
+        "https://app.e-code.ai/assets/Card-BJND1zaM.js",
+        "https://app.e-code.ai/assets/Dialog-D_a2Q5uE.js",
+        "https://app.e-code.ai/assets/Dropdown-CDO_3W_N.js",
+        "https://app.e-code.ai/assets/EcodeBrandMark-LlZgUIJs.js",
+        "https://app.e-code.ai/assets/EcodeExactLandingControls-D6Wk0EQ_.js",
+        "https://app.e-code.ai/assets/EcodeExactShell-CFFZUeHx.js",
+        "https://app.e-code.ai/assets/Input-CDYXJXA6.js",
+        "https://app.e-code.ai/assets/PanelBoundary-CEWUrd9O.js",
+        "https://app.e-code.ai/assets/Popover-DVjrNyeO.js",
+        "https://app.e-code.ai/assets/SaaSLayout-DgompPOz.js",
+        "https://app.e-code.ai/assets/_index-Cw0F6iFN.js",
+        "https://app.e-code.ai/assets/classNames-DIqb9g7i.js",
+        "https://app.e-code.ai/assets/entry.client-CqHPCoa2.js",
+        "https://app.e-code.ai/assets/format-relative-2wmbUovA.js",
+        "https://app.e-code.ai/assets/index-D-LvXoln.js",
+        "https://app.e-code.ai/assets/index-kI1LSwCS.js",
+        "https://app.e-code.ai/assets/logger-DX9uVd1W.js",
+        "https://app.e-code.ai/assets/logs-DUF6fNWx.js",
+        "https://app.e-code.ai/assets/model-handoff-iSX9BsrT.js",
+        "https://app.e-code.ai/assets/profile-BY0mUgpd.js",
+        "https://app.e-code.ai/assets/proxy-CSVHdwlL.js",
+        "https://app.e-code.ai/assets/resolve-preferred-model-CWnMwjlD.js",
+        "https://app.e-code.ai/assets/root-BowJNvpR.js",
+        "https://app.e-code.ai/assets/social-meta-DHaDVo45.js",
+        "https://app.e-code.ai/assets/stripIndent-ZXzdX4u1.js",
+        "https://app.e-code.ai/assets/theme-Slv2ke1v.js",
+        "https://app.e-code.ai/assets/user-facing-labels-BJ5e1Cfc.js",
+        "https://app.e-code.ai/assets/vendor-codemirror-Bgnu0S23.js",
+        "https://app.e-code.ai/assets/vendor-icons-DK8XCBZ_.js",
+        "https://app.e-code.ai/assets/vendor-monaco-core-w4AH3K4T.js",
+        "https://app.e-code.ai/assets/vendor-react-CX0GBmsu.js",
+        "https://app.e-code.ai/assets/vendor-terminal-krsq-pMQ.js"
+      ],
+      "consoleErrors": [
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+      ],
+      "dom": {
+        "backgroundColor": "rgb(10, 15, 28)",
+        "backgroundLuminance": 0.004900179598394491,
+        "firstContentfulPaintMs": 1028.460000038147,
+        "hydratedAttribute": null,
+        "htmlTheme": "dark",
+        "initThemeAppliedAtMs": 413.5250000357628,
+        "initThemeApplyCount": 10,
+        "legacyOrangeSquareCount": 0,
+        "legacySquareClassCount": 0,
+        "logo": {
+          "ariaHidden": "true",
+          "darkVariant": {
+            "display": "inline",
+            "opacity": "1",
+            "painted": true,
+            "visibility": "visible"
+          },
+          "externalAssetCount": 0,
+          "focusable": "false",
+          "height": 56,
+          "lightVariant": {
+            "display": "none",
+            "opacity": "1",
+            "painted": false,
+            "visibility": "visible"
+          },
+          "outerHtml": "<svg width=\"56\" height=\"56\" viewBox=\"0 0 40 40\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\" shape-rendering=\"geometricPrecision\" focusable=\"false\" data-ecode-boot-mark=\"\" data-theme-variant=\"auto\" aria-hidden=\"true\"><style>\n  [data-ecode-boot-mark] [data-ecode-mark-variant] {\n    display: none;\n  }\n\n  [data-ecode-boot-mark][data-theme-variant=\"light\"] [data-ecode-mark-variant=\"light\"],\n  [data-ecode-boot-mark][data-theme-variant=\"dark\"] [data-ecode-mark-variant=\"dark\"],\n  [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"dark\"] {\n    display: inline;\n  }\n\n  [data-theme=\"light\"] [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"dark\"] {\n    display: none;\n  }\n\n  [data-theme=\"light\"] [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"light\"] {\n    display: inline;\n  }\n\n  [data-theme=\"dark\"] [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"light\"] {\n    display: none;\n  }\n\n  [data-theme=\"dark\"] [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"dark\"] {\n    display: inline;\n  }\n\n  @media (prefers-color-scheme: light) {\n    :root:not([data-theme]) [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"dark\"] {\n      display: none;\n    }\n\n    :root:not([data-theme]) [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"light\"] {\n      display: inline;\n    }\n  }\n</style><defs><linearGradient id=\"ecode-boot-light-Rib5\" x1=\"5\" y1=\"3\" x2=\"35\" y2=\"37\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#E65300\"></stop><stop offset=\"1\" stop-color=\"#F77F12\"></stop></linearGradient><linearGradient id=\"ecode-boot-dark-Rib5\" x1=\"4\" y1=\"2\" x2=\"36\" y2=\"38\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#F26207\"></stop><stop offset=\"1\" stop-color=\"#F99D25\"></stop></linearGradient></defs><g data-ecode-mark-variant=\"light\"><circle cx=\"20\" cy=\"20\" r=\"20\" fill=\"url(#ecode-boot-light-Rib5)\"></circle><circle cx=\"20\" cy=\"20\" r=\"19.25\" stroke=\"#A93600\" stroke-opacity=\"0.42\" stroke-width=\"0.75\"></circle><path d=\"M14 12 L14 20 L14 28 M14 12 L22 12 M14 20 L20 20 M14 28 L22 28\" stroke=\"#FFFFFF\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path><path d=\"M26 16 L30 20 L26 24\" stroke=\"#FFFFFF\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path></g><g data-ecode-mark-variant=\"dark\"><circle cx=\"20\" cy=\"20\" r=\"20\" fill=\"url(#ecode-boot-dark-Rib5)\"></circle><circle cx=\"20\" cy=\"20\" r=\"19.25\" stroke=\"#FFD0A0\" stroke-opacity=\"0.34\" stroke-width=\"0.75\"></circle><path d=\"M14 12 L14 20 L14 28 M14 12 L22 12 M14 20 L20 20 M14 28 L22 28\" stroke=\"#FFFFFF\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path><path d=\"M26 16 L30 20 L26 24\" stroke=\"#FFFFFF\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path></g></svg>",
+          "tagName": "svg",
+          "themeVariant": "auto",
+          "width": 56
+        },
+        "splashImageCount": 0,
+        "splashPresent": true,
+        "splashVisible": true
+      },
+      "effectiveUrl": "https://app.e-code.ai/?__ecode_splash_proof=app-e-code-ai-dark",
+      "error": null,
+      "http": {
+        "cacheControl": "no-store",
+        "cfCacheStatus": null,
+        "date": "Tue, 14 Jul 2026 15:53:37 GMT",
+        "etag": null,
+        "status": 200
+      },
+      "id": "app-e-code-ai-dark",
+      "pageErrors": [],
+      "passed": true,
+      "requestedUrl": "https://app.e-code.ai/",
+      "responseHtmlSha256": "2337213d7819f28b6ea4d50f77ddbcf7a55affc012cecf872940e0942bc76e8e",
+      "screenshot": "app-e-code-ai-dark-prehydration-splash.png",
+      "surface": "app",
+      "theme": "dark"
+    },
+    {
+      "assertions": [
+        {
+          "actual": 200,
+          "name": "document response exists",
+          "passed": true
+        },
+        {
+          "actual": 200,
+          "name": "document response is successful",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "name": "SSR splash uses stable shell marker",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "name": "splash is visible and viewport-sized",
+          "passed": true
+        },
+        {
+          "actual": "light",
+          "detail": "expected light",
+          "name": "forced theme is active",
+          "passed": true
+        },
+        {
+          "actual": {
+            "appliedAtMs": 396.9850000143051,
+            "firstContentfulPaintMs": 1042.7350000143051
+          },
+          "name": "theme was applied before first contentful paint",
+          "passed": true
+        },
+        {
+          "actual": {
+            "blockedScriptCount": 32,
+            "hydratedAttribute": null
+          },
+          "name": "React hydration stayed blocked",
+          "passed": true
+        },
+        {
+          "actual": "svg",
+          "name": "E-Code logo is an inline SVG",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "name": "inline SVG is present in raw SSR HTML",
+          "passed": true
+        },
+        {
+          "actual": {
+            "dark": {
+              "display": "none",
+              "opacity": "1",
+              "painted": false,
+              "visibility": "visible"
+            },
+            "light": {
+              "display": "inline",
+              "opacity": "1",
+              "painted": true,
+              "visibility": "visible"
+            }
+          },
+          "name": "inline SVG has both theme variants",
+          "passed": true
+        },
+        {
+          "actual": {
+            "expectedVariant": {
+              "display": "inline",
+              "opacity": "1",
+              "painted": true,
+              "visibility": "visible"
+            },
+            "otherVariant": {
+              "display": "none",
+              "opacity": "1",
+              "painted": false,
+              "visibility": "visible"
+            }
+          },
+          "name": "light SVG variant is exclusively painted",
+          "passed": true
+        },
+        {
+          "actual": {
+            "externalAssetCount": 0,
+            "splashImageCount": 0
+          },
+          "name": "logo has no external image dependency",
+          "passed": true
+        },
+        {
+          "actual": {
+            "legacyOrangeSquareCount": 0,
+            "legacySquareClassCount": 0
+          },
+          "name": "legacy orange square is absent",
+          "passed": true
+        },
+        {
+          "actual": {
+            "backgroundColor": "rgb(246, 248, 251)",
+            "luminance": 0.9369266827356146
+          },
+          "name": "light splash background matches the selected theme",
+          "passed": true
+        },
+        {
+          "actual": "e-code-ai-light-prehydration-splash.png",
+          "name": "screenshot was written",
+          "passed": true
+        }
+      ],
+      "blockedScriptRequests": [
+        "https://e-code.ai/assets/Card-BJND1zaM.js",
+        "https://e-code.ai/assets/Dialog-D_a2Q5uE.js",
+        "https://e-code.ai/assets/Dropdown-CDO_3W_N.js",
+        "https://e-code.ai/assets/EcodeBrandMark-LlZgUIJs.js",
+        "https://e-code.ai/assets/EcodeExactLandingControls-D6Wk0EQ_.js",
+        "https://e-code.ai/assets/EcodeExactShell-CFFZUeHx.js",
+        "https://e-code.ai/assets/Input-CDYXJXA6.js",
+        "https://e-code.ai/assets/PanelBoundary-CEWUrd9O.js",
+        "https://e-code.ai/assets/Popover-DVjrNyeO.js",
+        "https://e-code.ai/assets/SaaSLayout-DgompPOz.js",
+        "https://e-code.ai/assets/_index-Cw0F6iFN.js",
+        "https://e-code.ai/assets/classNames-DIqb9g7i.js",
+        "https://e-code.ai/assets/entry.client-CqHPCoa2.js",
+        "https://e-code.ai/assets/format-relative-2wmbUovA.js",
+        "https://e-code.ai/assets/index-D-LvXoln.js",
+        "https://e-code.ai/assets/index-kI1LSwCS.js",
+        "https://e-code.ai/assets/logger-DX9uVd1W.js",
+        "https://e-code.ai/assets/logs-DUF6fNWx.js",
+        "https://e-code.ai/assets/model-handoff-iSX9BsrT.js",
+        "https://e-code.ai/assets/profile-BY0mUgpd.js",
+        "https://e-code.ai/assets/proxy-CSVHdwlL.js",
+        "https://e-code.ai/assets/resolve-preferred-model-CWnMwjlD.js",
+        "https://e-code.ai/assets/root-BowJNvpR.js",
+        "https://e-code.ai/assets/social-meta-DHaDVo45.js",
+        "https://e-code.ai/assets/stripIndent-ZXzdX4u1.js",
+        "https://e-code.ai/assets/theme-Slv2ke1v.js",
+        "https://e-code.ai/assets/user-facing-labels-BJ5e1Cfc.js",
+        "https://e-code.ai/assets/vendor-codemirror-Bgnu0S23.js",
+        "https://e-code.ai/assets/vendor-icons-DK8XCBZ_.js",
+        "https://e-code.ai/assets/vendor-monaco-core-w4AH3K4T.js",
+        "https://e-code.ai/assets/vendor-react-CX0GBmsu.js",
+        "https://e-code.ai/assets/vendor-terminal-krsq-pMQ.js"
+      ],
+      "consoleErrors": [
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+      ],
+      "dom": {
+        "backgroundColor": "rgb(246, 248, 251)",
+        "backgroundLuminance": 0.9369266827356146,
+        "firstContentfulPaintMs": 1042.7350000143051,
+        "hydratedAttribute": null,
+        "htmlTheme": "light",
+        "initThemeAppliedAtMs": 396.9850000143051,
+        "initThemeApplyCount": 9,
+        "legacyOrangeSquareCount": 0,
+        "legacySquareClassCount": 0,
+        "logo": {
+          "ariaHidden": "true",
+          "darkVariant": {
+            "display": "none",
+            "opacity": "1",
+            "painted": false,
+            "visibility": "visible"
+          },
+          "externalAssetCount": 0,
+          "focusable": "false",
+          "height": 56,
+          "lightVariant": {
+            "display": "inline",
+            "opacity": "1",
+            "painted": true,
+            "visibility": "visible"
+          },
+          "outerHtml": "<svg width=\"56\" height=\"56\" viewBox=\"0 0 40 40\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\" shape-rendering=\"geometricPrecision\" focusable=\"false\" data-ecode-boot-mark=\"\" data-theme-variant=\"auto\" aria-hidden=\"true\"><style>\n  [data-ecode-boot-mark] [data-ecode-mark-variant] {\n    display: none;\n  }\n\n  [data-ecode-boot-mark][data-theme-variant=\"light\"] [data-ecode-mark-variant=\"light\"],\n  [data-ecode-boot-mark][data-theme-variant=\"dark\"] [data-ecode-mark-variant=\"dark\"],\n  [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"dark\"] {\n    display: inline;\n  }\n\n  [data-theme=\"light\"] [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"dark\"] {\n    display: none;\n  }\n\n  [data-theme=\"light\"] [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"light\"] {\n    display: inline;\n  }\n\n  [data-theme=\"dark\"] [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"light\"] {\n    display: none;\n  }\n\n  [data-theme=\"dark\"] [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"dark\"] {\n    display: inline;\n  }\n\n  @media (prefers-color-scheme: light) {\n    :root:not([data-theme]) [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"dark\"] {\n      display: none;\n    }\n\n    :root:not([data-theme]) [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"light\"] {\n      display: inline;\n    }\n  }\n</style><defs><linearGradient id=\"ecode-boot-light-Rib5\" x1=\"5\" y1=\"3\" x2=\"35\" y2=\"37\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#E65300\"></stop><stop offset=\"1\" stop-color=\"#F77F12\"></stop></linearGradient><linearGradient id=\"ecode-boot-dark-Rib5\" x1=\"4\" y1=\"2\" x2=\"36\" y2=\"38\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#F26207\"></stop><stop offset=\"1\" stop-color=\"#F99D25\"></stop></linearGradient></defs><g data-ecode-mark-variant=\"light\"><circle cx=\"20\" cy=\"20\" r=\"20\" fill=\"url(#ecode-boot-light-Rib5)\"></circle><circle cx=\"20\" cy=\"20\" r=\"19.25\" stroke=\"#A93600\" stroke-opacity=\"0.42\" stroke-width=\"0.75\"></circle><path d=\"M14 12 L14 20 L14 28 M14 12 L22 12 M14 20 L20 20 M14 28 L22 28\" stroke=\"#FFFFFF\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path><path d=\"M26 16 L30 20 L26 24\" stroke=\"#FFFFFF\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path></g><g data-ecode-mark-variant=\"dark\"><circle cx=\"20\" cy=\"20\" r=\"20\" fill=\"url(#ecode-boot-dark-Rib5)\"></circle><circle cx=\"20\" cy=\"20\" r=\"19.25\" stroke=\"#FFD0A0\" stroke-opacity=\"0.34\" stroke-width=\"0.75\"></circle><path d=\"M14 12 L14 20 L14 28 M14 12 L22 12 M14 20 L20 20 M14 28 L22 28\" stroke=\"#FFFFFF\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path><path d=\"M26 16 L30 20 L26 24\" stroke=\"#FFFFFF\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path></g></svg>",
+          "tagName": "svg",
+          "themeVariant": "auto",
+          "width": 56
+        },
+        "splashImageCount": 0,
+        "splashPresent": true,
+        "splashVisible": true
+      },
+      "effectiveUrl": "https://e-code.ai/?__ecode_splash_proof=e-code-ai-light",
+      "error": null,
+      "http": {
+        "cacheControl": "no-store",
+        "cfCacheStatus": null,
+        "date": "Tue, 14 Jul 2026 15:53:38 GMT",
+        "etag": null,
+        "status": 200
+      },
+      "id": "e-code-ai-light",
+      "pageErrors": [],
+      "passed": true,
+      "requestedUrl": "https://e-code.ai/",
+      "responseHtmlSha256": "2337213d7819f28b6ea4d50f77ddbcf7a55affc012cecf872940e0942bc76e8e",
+      "screenshot": "e-code-ai-light-prehydration-splash.png",
+      "surface": "marketing",
+      "theme": "light"
+    },
+    {
+      "assertions": [
+        {
+          "actual": 200,
+          "name": "document response exists",
+          "passed": true
+        },
+        {
+          "actual": 200,
+          "name": "document response is successful",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "name": "SSR splash uses stable shell marker",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "name": "splash is visible and viewport-sized",
+          "passed": true
+        },
+        {
+          "actual": "dark",
+          "detail": "expected dark",
+          "name": "forced theme is active",
+          "passed": true
+        },
+        {
+          "actual": {
+            "appliedAtMs": 306.5049999952316,
+            "firstContentfulPaintMs": 945.7750000357628
+          },
+          "name": "theme was applied before first contentful paint",
+          "passed": true
+        },
+        {
+          "actual": {
+            "blockedScriptCount": 32,
+            "hydratedAttribute": null
+          },
+          "name": "React hydration stayed blocked",
+          "passed": true
+        },
+        {
+          "actual": "svg",
+          "name": "E-Code logo is an inline SVG",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "name": "inline SVG is present in raw SSR HTML",
+          "passed": true
+        },
+        {
+          "actual": {
+            "dark": {
+              "display": "inline",
+              "opacity": "1",
+              "painted": true,
+              "visibility": "visible"
+            },
+            "light": {
+              "display": "none",
+              "opacity": "1",
+              "painted": false,
+              "visibility": "visible"
+            }
+          },
+          "name": "inline SVG has both theme variants",
+          "passed": true
+        },
+        {
+          "actual": {
+            "expectedVariant": {
+              "display": "inline",
+              "opacity": "1",
+              "painted": true,
+              "visibility": "visible"
+            },
+            "otherVariant": {
+              "display": "none",
+              "opacity": "1",
+              "painted": false,
+              "visibility": "visible"
+            }
+          },
+          "name": "dark SVG variant is exclusively painted",
+          "passed": true
+        },
+        {
+          "actual": {
+            "externalAssetCount": 0,
+            "splashImageCount": 0
+          },
+          "name": "logo has no external image dependency",
+          "passed": true
+        },
+        {
+          "actual": {
+            "legacyOrangeSquareCount": 0,
+            "legacySquareClassCount": 0
+          },
+          "name": "legacy orange square is absent",
+          "passed": true
+        },
+        {
+          "actual": {
+            "backgroundColor": "rgb(10, 15, 28)",
+            "luminance": 0.004900179598394491
+          },
+          "name": "dark splash background matches the selected theme",
+          "passed": true
+        },
+        {
+          "actual": "e-code-ai-dark-prehydration-splash.png",
+          "name": "screenshot was written",
+          "passed": true
+        }
+      ],
+      "blockedScriptRequests": [
+        "https://e-code.ai/assets/Card-BJND1zaM.js",
+        "https://e-code.ai/assets/Dialog-D_a2Q5uE.js",
+        "https://e-code.ai/assets/Dropdown-CDO_3W_N.js",
+        "https://e-code.ai/assets/EcodeBrandMark-LlZgUIJs.js",
+        "https://e-code.ai/assets/EcodeExactLandingControls-D6Wk0EQ_.js",
+        "https://e-code.ai/assets/EcodeExactShell-CFFZUeHx.js",
+        "https://e-code.ai/assets/Input-CDYXJXA6.js",
+        "https://e-code.ai/assets/PanelBoundary-CEWUrd9O.js",
+        "https://e-code.ai/assets/Popover-DVjrNyeO.js",
+        "https://e-code.ai/assets/SaaSLayout-DgompPOz.js",
+        "https://e-code.ai/assets/_index-Cw0F6iFN.js",
+        "https://e-code.ai/assets/classNames-DIqb9g7i.js",
+        "https://e-code.ai/assets/entry.client-CqHPCoa2.js",
+        "https://e-code.ai/assets/format-relative-2wmbUovA.js",
+        "https://e-code.ai/assets/index-D-LvXoln.js",
+        "https://e-code.ai/assets/index-kI1LSwCS.js",
+        "https://e-code.ai/assets/logger-DX9uVd1W.js",
+        "https://e-code.ai/assets/logs-DUF6fNWx.js",
+        "https://e-code.ai/assets/model-handoff-iSX9BsrT.js",
+        "https://e-code.ai/assets/profile-BY0mUgpd.js",
+        "https://e-code.ai/assets/proxy-CSVHdwlL.js",
+        "https://e-code.ai/assets/resolve-preferred-model-CWnMwjlD.js",
+        "https://e-code.ai/assets/root-BowJNvpR.js",
+        "https://e-code.ai/assets/social-meta-DHaDVo45.js",
+        "https://e-code.ai/assets/stripIndent-ZXzdX4u1.js",
+        "https://e-code.ai/assets/theme-Slv2ke1v.js",
+        "https://e-code.ai/assets/user-facing-labels-BJ5e1Cfc.js",
+        "https://e-code.ai/assets/vendor-codemirror-Bgnu0S23.js",
+        "https://e-code.ai/assets/vendor-icons-DK8XCBZ_.js",
+        "https://e-code.ai/assets/vendor-monaco-core-w4AH3K4T.js",
+        "https://e-code.ai/assets/vendor-react-CX0GBmsu.js",
+        "https://e-code.ai/assets/vendor-terminal-krsq-pMQ.js"
+      ],
+      "consoleErrors": [
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"
+      ],
+      "dom": {
+        "backgroundColor": "rgb(10, 15, 28)",
+        "backgroundLuminance": 0.004900179598394491,
+        "firstContentfulPaintMs": 945.7750000357628,
+        "hydratedAttribute": null,
+        "htmlTheme": "dark",
+        "initThemeAppliedAtMs": 306.5049999952316,
+        "initThemeApplyCount": 9,
+        "legacyOrangeSquareCount": 0,
+        "legacySquareClassCount": 0,
+        "logo": {
+          "ariaHidden": "true",
+          "darkVariant": {
+            "display": "inline",
+            "opacity": "1",
+            "painted": true,
+            "visibility": "visible"
+          },
+          "externalAssetCount": 0,
+          "focusable": "false",
+          "height": 56,
+          "lightVariant": {
+            "display": "none",
+            "opacity": "1",
+            "painted": false,
+            "visibility": "visible"
+          },
+          "outerHtml": "<svg width=\"56\" height=\"56\" viewBox=\"0 0 40 40\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\" preserveAspectRatio=\"xMidYMid meet\" shape-rendering=\"geometricPrecision\" focusable=\"false\" data-ecode-boot-mark=\"\" data-theme-variant=\"auto\" aria-hidden=\"true\"><style>\n  [data-ecode-boot-mark] [data-ecode-mark-variant] {\n    display: none;\n  }\n\n  [data-ecode-boot-mark][data-theme-variant=\"light\"] [data-ecode-mark-variant=\"light\"],\n  [data-ecode-boot-mark][data-theme-variant=\"dark\"] [data-ecode-mark-variant=\"dark\"],\n  [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"dark\"] {\n    display: inline;\n  }\n\n  [data-theme=\"light\"] [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"dark\"] {\n    display: none;\n  }\n\n  [data-theme=\"light\"] [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"light\"] {\n    display: inline;\n  }\n\n  [data-theme=\"dark\"] [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"light\"] {\n    display: none;\n  }\n\n  [data-theme=\"dark\"] [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"dark\"] {\n    display: inline;\n  }\n\n  @media (prefers-color-scheme: light) {\n    :root:not([data-theme]) [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"dark\"] {\n      display: none;\n    }\n\n    :root:not([data-theme]) [data-ecode-boot-mark][data-theme-variant=\"auto\"] [data-ecode-mark-variant=\"light\"] {\n      display: inline;\n    }\n  }\n</style><defs><linearGradient id=\"ecode-boot-light-Rib5\" x1=\"5\" y1=\"3\" x2=\"35\" y2=\"37\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#E65300\"></stop><stop offset=\"1\" stop-color=\"#F77F12\"></stop></linearGradient><linearGradient id=\"ecode-boot-dark-Rib5\" x1=\"4\" y1=\"2\" x2=\"36\" y2=\"38\" gradientUnits=\"userSpaceOnUse\"><stop stop-color=\"#F26207\"></stop><stop offset=\"1\" stop-color=\"#F99D25\"></stop></linearGradient></defs><g data-ecode-mark-variant=\"light\"><circle cx=\"20\" cy=\"20\" r=\"20\" fill=\"url(#ecode-boot-light-Rib5)\"></circle><circle cx=\"20\" cy=\"20\" r=\"19.25\" stroke=\"#A93600\" stroke-opacity=\"0.42\" stroke-width=\"0.75\"></circle><path d=\"M14 12 L14 20 L14 28 M14 12 L22 12 M14 20 L20 20 M14 28 L22 28\" stroke=\"#FFFFFF\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path><path d=\"M26 16 L30 20 L26 24\" stroke=\"#FFFFFF\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path></g><g data-ecode-mark-variant=\"dark\"><circle cx=\"20\" cy=\"20\" r=\"20\" fill=\"url(#ecode-boot-dark-Rib5)\"></circle><circle cx=\"20\" cy=\"20\" r=\"19.25\" stroke=\"#FFD0A0\" stroke-opacity=\"0.34\" stroke-width=\"0.75\"></circle><path d=\"M14 12 L14 20 L14 28 M14 12 L22 12 M14 20 L20 20 M14 28 L22 28\" stroke=\"#FFFFFF\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path><path d=\"M26 16 L30 20 L26 24\" stroke=\"#FFFFFF\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path></g></svg>",
+          "tagName": "svg",
+          "themeVariant": "auto",
+          "width": 56
+        },
+        "splashImageCount": 0,
+        "splashPresent": true,
+        "splashVisible": true
+      },
+      "effectiveUrl": "https://e-code.ai/?__ecode_splash_proof=e-code-ai-dark",
+      "error": null,
+      "http": {
+        "cacheControl": "no-store",
+        "cfCacheStatus": null,
+        "date": "Tue, 14 Jul 2026 15:53:40 GMT",
+        "etag": null,
+        "status": 200
+      },
+      "id": "e-code-ai-dark",
+      "pageErrors": [],
+      "passed": true,
+      "requestedUrl": "https://e-code.ai/",
+      "responseHtmlSha256": "2337213d7819f28b6ea4d50f77ddbcf7a55affc012cecf872940e0942bc76e8e",
+      "screenshot": "e-code-ai-dark-prehydration-splash.png",
+      "surface": "marketing",
+      "theme": "dark"
+    }
+  ],
+  "generatedAt": "2026-07-14T15:53:41.409Z",
+  "outputDirectory": "/private/tmp/vibecore-branding-splash/docs/ui-ux-evidence/2026-07-14/branding-splash",
+  "schemaVersion": 1,
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  }
+}
