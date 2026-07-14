@@ -338,7 +338,7 @@ flags whose audit trail belongs in git, not Secret Manager.
 - **URL:** `europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/`
 - **Current size:** ~23 GB
 - **Image naming:** `<service>:<short-sha>` and `<service>:latest`
-- **Services published:** `deps`, `web`, `admin`, `api`, `worker`, `ai-gateway`, `workspace-manager`, `preview-proxy`
+- **Services published:** `deps`, `web`, `admin`, `api`, `worker`, `ai-gateway`, `workspace-manager`, `preview-proxy`, `screenshotter`, `workspace-agent`
 - **Encryption:** Google-managed key
 - Labels: `app=vibecore environment=prod owner=platform`
 
@@ -347,8 +347,8 @@ flags whose audit trail belongs in git, not Secret Manager.
 - **Config:** `cloudbuild.yaml` (root)
 - **Region:** `europe-west9`
 - **Machine type:** `e2-highcpu-8` (cannot move to `e2-highcpu-32` in this region — quota does not exist as of 2026-05-19; gcloud returns FAILED_PRECONDITION)
-- **Trigger:** manual via `gcloud builds submit` (no GitHub trigger configured yet)
-- **Build duration:** ~8–12 min after the 2026-05-20 rewrite (was 25–50 min; deps now built once and shared across the 7 parallel service builds via `--build-arg DEPS_IMAGE=`)
+- **Trigger:** continuous production workflow on pushes to `main`; targeted and full configs can also be submitted manually with `gcloud builds submit`
+- **Build duration:** depends on the selected tier. The runtime tier is intentionally serialized on the 8 GB worker and typically takes ~15–35 min depending on cache state.
 - **Disk:** 200 GB (8 image layers chew through Cloud Build's default)
 - **Cache:** `--cache-from <img>:latest` plus `BUILDKIT_INLINE_CACHE=1` so each push embeds cache metadata for the next build
 - **Vuln scan:** runs after every service build, `allowFailure: true` — logs CVE findings but never gates the pipeline
@@ -530,7 +530,7 @@ There are two variants, picked by **whether the lockfile changed**:
 | Lockfile changed? | Source changes touch       | Use                             | Approx duration |
 | ----------------- | -------------------------- | ------------------------------- | --------------- |
 | No                | one service                | `make deploy-<service>`          | 90-180 s        |
-| Yes               | api/workspace-manager/preview-proxy only | `make deploy-runtime` | 4-6 min         |
+| Yes               | runtime services           | `make deploy-runtime`          | 15-35 min       |
 | Yes               | anything else, or multiple tiers | `make deploy-all`         | 8-12 min        |
 
 **Pinned-deps single-service builds** (`infra/cloudbuild/single-service.yaml`,
@@ -553,9 +553,10 @@ make list-deps-tags
 ```
 
 **Fresh-deps runtime tier** (`infra/cloudbuild/runtime-tier.yaml`) rebuilds
-the deps base and then api + workspace-manager + preview-proxy in
-parallel. Use this when a `pnpm-lock.yaml` or `package.json` change only
-affects code shipped in those three runtime services:
+the deps base and then serializes api, workspace-manager, preview-proxy,
+ai-gateway, worker and screenshotter. The deterministic chain prevents the six
+filtered pnpm installs from contending on the 8 GB Cloud Build worker. Use it
+when a lockfile/package change or runtime source change must ship this tier:
 
 ```bash
 make deploy-runtime

@@ -89,9 +89,9 @@ deploy-all: ## Full pipeline: rebuild deps + all 7 services.
 		--substitutions=_SHORT_SHA=$(SHORT_SHA) \
 		--timeout=$(TIMEOUT_FULL) .
 
-# ---- Runtime tier (fresh deps + api + workspace-manager + preview-proxy) ----
+# ---- Runtime tier (fresh deps + six serialized backend service images) ----
 
-deploy-runtime: ## Fresh deps + api + workspace-manager + preview-proxy.
+deploy-runtime: ## Fresh deps + all runtime service images (serialized).
 	@echo "::: runtime tier (fresh deps) → SHORT_SHA=$(SHORT_SHA)"
 	$(GCLOUD) \
 		--config=infra/cloudbuild/runtime-tier.yaml \

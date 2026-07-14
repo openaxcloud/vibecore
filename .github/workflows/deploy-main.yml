@@ -19,9 +19,9 @@
 #     *consumes* a deps image via _DEPS_TAG. Runtime therefore builds first and
 #     publishes deps:<sha>, then web builds against that exact deps tag so the
 #     web image matches this commit's lockfile.
-#   * admin / ai-gateway / worker are NOT built here — they have their own
-#     single-service.yaml builds and only change when their code changes. Their
-#     image tags are preserved across this rollout by `helm upgrade --reuse-values`.
+#   * runtime-tier.yaml serializes api, workspace-manager, preview-proxy,
+#     ai-gateway, worker and screenshotter on the 8 GB worker. Admin is not built
+#     by this continuous path; its current tag is preserved by `--reuse-values`.
 
 name: Deploy Production (Continuous)
 
@@ -183,9 +183,9 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
-      # ---- Build 1/2: runtime tier (api + workspace-manager + preview-proxy) ----
-      # Builds the deps base image first; publishes deps:<sha> + deps:latest so
-      # the web build below can pin _DEPS_TAG to this commit. Blocking call.
+      # ---- Build 1/2: runtime tier (six serialized backend service images) ----
+      # Builds the deps base and runtime images first; publishes deps:<sha> +
+      # deps:latest so the web build can pin _DEPS_TAG. Blocking by design.
       - name: Build runtime tier (Cloud Build)
         if: steps.tiers.outputs.runtime == 'true'
         run: |

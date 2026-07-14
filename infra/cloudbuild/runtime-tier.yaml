@@ -1,18 +1,20 @@
-# Cloud Build pipeline for the runtime tier (api + workspace-manager +
-# preview-proxy) with a freshly rebuilt deps image.
+# Cloud Build pipeline for the runtime tier (api, workspace-manager,
+# preview-proxy, ai-gateway, worker and screenshotter) with a freshly rebuilt
+# deps image.
 #
 # When to use this instead of the full pipeline:
 #   * pnpm-lock.yaml or any package.json changed (deps must be rebuilt), AND
-#   * only backend/runtime services need the new lockfile — web, worker,
-#     admin, and ai-gateway can stay on their previous SHA.
+#   * the runtime services need a fresh dependency base or runtime source
+#     changes must ship together, while web and admin can keep their current SHA.
 #
 # When to use the full pipeline (cloudbuild.yaml) instead:
-#   * Source changed in `app/` (web), `services/worker/`, `apps/admin/`,
-#     or `services/ai-gateway/`.
+#   * Source changed in `app/` (web), `apps/admin/` or another non-runtime tier.
 #   * You want consistent imageTag rollouts across every chart subdeployment
 #     (see "Targeted Rebuilds" in docs/INFRASTRUCTURE.md for the caveat).
 #
-# Expected duration: ~4-6 min cold, ~2-3 min with warm cache.
+# Expected duration: ~15-35 min depending on cache state. Service images are
+# deliberately serialized below to stay within the production worker's 8 GB
+# memory limit.
 #
 # Usage (via `make deploy-runtime`):
 #
@@ -45,7 +47,7 @@ steps:
     args:
       - -c
       - |
-        for img in deps api workspace-manager preview-proxy ai-gateway worker; do
+        for img in deps api workspace-manager preview-proxy ai-gateway worker screenshotter; do
           docker pull ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/$img:latest || true
         done
 
@@ -64,7 +66,14 @@ steps:
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:latest
       - .
 
-  # ---- 3. parallel service builds ----
+  # ---- 3. memory-safe service builds ----
+  #
+  # Every Docker build runs a filtered pnpm workspace install. Running all six
+  # at once contends for the production E2_HIGHCPU_8 worker's 8 GB of memory,
+  # shared I/O and Docker daemon, and has left every BuildKit process stalled
+  # without new logs. Keep this chain sequential: the outer deploy workflow
+  # already gives the runtime tier a one-hour timeout, and a slower successful
+  # build is safer than a parallel deadlock that blocks every queued rollout.
   - id: build-api
     name: gcr.io/cloud-builders/docker
     waitFor: ['build-deps']
@@ -84,7 +93,7 @@ steps:
 
   - id: build-workspace-manager
     name: gcr.io/cloud-builders/docker
-    waitFor: ['build-deps']
+    waitFor: ['build-api']
     env:
       - DOCKER_BUILDKIT=1
     args:
@@ -101,7 +110,7 @@ steps:
 
   - id: build-preview-proxy
     name: gcr.io/cloud-builders/docker
-    waitFor: ['build-deps']
+    waitFor: ['build-workspace-manager']
     env:
       - DOCKER_BUILDKIT=1
     args:
@@ -118,7 +127,7 @@ steps:
 
   - id: build-ai-gateway
     name: gcr.io/cloud-builders/docker
-    waitFor: ['build-deps']
+    waitFor: ['build-preview-proxy']
     env:
       - DOCKER_BUILDKIT=1
     args:
@@ -135,7 +144,7 @@ steps:
 
   - id: build-worker
     name: gcr.io/cloud-builders/docker
-    waitFor: ['build-deps']
+    waitFor: ['build-ai-gateway']
     env:
       - DOCKER_BUILDKIT=1
     args:
@@ -157,7 +166,7 @@ steps:
   # ships enabled:false so nothing consumes the image until infra is validated.
   - id: build-screenshotter
     name: gcr.io/cloud-builders/docker
-    waitFor: ['build-deps']
+    waitFor: ['build-worker']
     env:
       - DOCKER_BUILDKIT=1
     args:
@@ -175,13 +184,7 @@ steps:
   # ---- 4. vulnerability scan (non-blocking) ----
   - id: scan-images
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    waitFor:
-      - build-api
-      - build-workspace-manager
-      - build-preview-proxy
-      - build-ai-gateway
-      - build-worker
-      - build-screenshotter
+    waitFor: ['build-screenshotter']
     allowFailure: true
     entrypoint: bash
     args:
