@@ -84,19 +84,7 @@ async function provisionWorkspace(page: Page) {
 
   const { projects } = (await projectsResponse.json()) as { projects: ProvisionedProject[] };
 
-  const sortedProjects = [...projects].sort((a, b) => {
-    const aUpdatedAt = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-    const bUpdatedAt = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-
-    return bUpdatedAt - aUpdatedAt;
-  });
-
-  expect(sortedProjects).toHaveLength(2);
-
-  return {
-    mostRecentProject: sortedProjects[0],
-    organizationSlug: auth.organization.slug,
-  };
+  expect(projects).toHaveLength(2);
 }
 
 async function setTheme(page: Page, theme: 'light' | 'dark') {
@@ -115,6 +103,15 @@ async function captureEvidence(page: Page, filename: string) {
     return;
   }
 
+  const routeLoader = page.getByTestId('branded-route-loader');
+
+  await expect(routeLoader).toHaveAttribute('aria-hidden', 'true', {
+    timeout: 30_000,
+  });
+  await expect
+    .poll(() => routeLoader.evaluate((element) => window.getComputedStyle(element).opacity), { timeout: 30_000 })
+    .toBe('0');
+
   const outputDirectory = path.resolve(EVIDENCE_DIR);
   await mkdir(outputDirectory, { recursive: true });
   await page.screenshot({
@@ -122,7 +119,10 @@ async function captureEvidence(page: Page, filename: string) {
     type: 'jpeg',
     quality: 90,
     fullPage: false,
+    animations: 'disabled',
   });
+  await expect(routeLoader).toHaveAttribute('aria-hidden', 'true');
+  await expect.poll(() => routeLoader.evaluate((element) => window.getComputedStyle(element).opacity)).toBe('0');
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
@@ -135,8 +135,38 @@ async function expectNoHorizontalOverflow(page: Page) {
 }
 
 async function expectDashboardReady(page: Page) {
-  await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible();
-  await expect(page.getByText('Loading E-Code...', { exact: true })).toBeHidden({ timeout: 15_000 });
+  await expectUserAreaReady(page, 'Dashboard');
+}
+
+async function expectUserAreaReady(page: Page, heading: string) {
+  await page.waitForFunction(
+    () => Boolean((window as Window & { __ecodeHydrated?: boolean }).__ecodeHydrated),
+    undefined,
+    { timeout: 30_000 },
+  );
+  await page.waitForLoadState('networkidle', { timeout: 30_000 });
+  await expect(page.getByRole('heading', { name: heading, level: 1 })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('branded-route-loader')).toHaveAttribute('aria-hidden', 'true', {
+    timeout: 30_000,
+  });
+}
+
+async function installHydrationObserver(page: Page) {
+  await page.addInitScript(() => {
+    const testWindow = window as Window & { __ecodeHydrated?: boolean };
+    testWindow.__ecodeHydrated = false;
+    window.addEventListener(
+      'ecode:hydrated',
+      () => {
+        testWindow.__ecodeHydrated = true;
+      },
+      { once: true },
+    );
+    window.localStorage.setItem(
+      'ecode:user-area-tour:v1',
+      JSON.stringify({ version: 1, status: 'completed', step: 3 }),
+    );
+  });
 }
 
 async function openAndScrollMobileNavigation(page: Page, width: 390 | 768) {
@@ -198,46 +228,53 @@ async function openAndScrollMobileNavigation(page: Page, width: 390 | 768) {
   return navigation;
 }
 
-test('multi-project resume and user navigation remain usable across responsive sizes', async ({ page }) => {
-  test.setTimeout(120_000);
+test('project actions and user navigation remain usable across responsive sizes', async ({ page }) => {
+  test.setTimeout(180_000);
 
-  const { mostRecentProject, organizationSlug } = await provisionWorkspace(page);
-
-  await page.addInitScript(() => {
-    window.localStorage.setItem(
-      'ecode:user-area-tour:v1',
-      JSON.stringify({ version: 1, status: 'completed', step: 3 }),
-    );
+  const hydrationErrors: string[] = [];
+  const hydrationErrorPattern = /(?:React error #(?:418|423)|hydration (?:failed|mismatch)|did not match)/i;
+  page.on('console', (message) => {
+    if (message.type() === 'error' && hydrationErrorPattern.test(message.text())) {
+      hydrationErrors.push(message.text());
+    }
   });
+  page.on('pageerror', (error) => {
+    if (hydrationErrorPattern.test(error.message)) {
+      hydrationErrors.push(error.message);
+    }
+  });
+
+  await provisionWorkspace(page);
+
+  await installHydrationObserver(page);
 
   await setTheme(page, 'light');
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/dashboard');
 
-  const resumeAction = page.getByRole('link', { name: `Resume ${mostRecentProject.name}`, exact: true });
   await expectDashboardReady(page);
-  await expect(resumeAction).toBeVisible();
-
-  const expectedResumePath =
-    organizationSlug && mostRecentProject.slug
-      ? `/@${organizationSlug}/${mostRecentProject.slug}`
-      : `/projects/${mostRecentProject.id}/ide`;
-  await expect(resumeAction).toHaveAttribute('href', expectedResumePath);
-  await expect(page.getByRole('link', { name: 'Choose project', exact: true })).toHaveAttribute('href', '/projects');
+  await expect(page.getByRole('link', { name: /^Resume / })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Choose project', exact: true })).toHaveCount(0);
   await expect(page.locator('#main-content').getByRole('link', { name: 'New project', exact: true })).toHaveAttribute(
     'href',
     '/projects/new',
   );
+  await expect(page.locator('#main-content').getByRole('link', { name: 'Open IDE', exact: true })).toHaveCount(2);
+
+  const projectTitles = await page.locator('#main-content').getByRole('heading', { level: 3 }).allTextContents();
+  expect(projectTitles.indexOf('Operations dashboard')).toBeGreaterThanOrEqual(0);
+  expect(projectTitles.indexOf('Operations dashboard')).toBeLessThan(projectTitles.indexOf('Customer portal'));
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expectNoHorizontalOverflow(page);
-  await captureEvidence(page, 'dashboard-multi-project-resume-light.jpg');
+  await captureEvidence(page, 'dashboard-project-actions-light.jpg');
 
   await setTheme(page, 'dark');
   await page.reload();
   await expectDashboardReady(page);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await expect(page.getByRole('link', { name: `Resume ${mostRecentProject.name}`, exact: true })).toBeVisible();
-  await captureEvidence(page, 'dashboard-multi-project-resume-dark.jpg');
+  await expect(page.getByRole('link', { name: /^Resume / })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Choose project', exact: true })).toHaveCount(0);
+  await captureEvidence(page, 'dashboard-project-actions-dark.jpg');
 
   await setTheme(page, 'light');
   await openAndScrollMobileNavigation(page, 390);
@@ -266,11 +303,187 @@ test('multi-project resume and user navigation remain usable across responsive s
     overflowY: window.getComputedStyle(element).overflowY,
   }));
 
+  const tabletTouchTargetHeights = await tabletRailNavigation.locator('a, button').evaluateAll((elements) =>
+    elements
+      .filter((element) => {
+        const style = window.getComputedStyle(element);
+
+        return style.display !== 'none' && style.visibility !== 'hidden';
+      })
+      .map((element) => element.getBoundingClientRect().height),
+  );
+
   expect(tabletMeasurements.scrollHeight).toBeGreaterThan(tabletMeasurements.clientHeight);
   expect(tabletMeasurements.overflowY).toBe('auto');
+  expect(Math.min(...tabletTouchTargetHeights)).toBeGreaterThanOrEqual(44);
   await tabletRailNavigation.evaluate((element) =>
     element.scrollTo({ top: element.scrollHeight, behavior: 'instant' }),
   );
   await expect.poll(() => tabletRailNavigation.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
   await expectNoHorizontalOverflow(page);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/dashboard');
+  await expectDashboardReady(page);
+  await expect(page.getByRole('button', { name: 'Open navigation menu' })).toBeHidden();
+  await expect(page.locator('nav[aria-label="Application navigation"]:visible')).toHaveCount(1);
+  await expectNoHorizontalOverflow(page);
+  expect(hydrationErrors).toEqual([]);
+});
+
+const USER_AREA_SURFACES = [
+  {
+    path: '/projects',
+    heading: 'Projects',
+    evidenceName: 'projects',
+    settledCopy: /Customer portal|Operations dashboard|Projects could not load/,
+  },
+  {
+    path: '/recent-projects',
+    heading: 'Recent projects',
+    evidenceName: 'recent-projects',
+    settledCopy: /Customer portal|Operations dashboard|Recent projects could not load/,
+  },
+  {
+    path: '/support',
+    heading: 'Support',
+    evidenceName: 'support',
+    settledCopy: /Your open tickets|Support tickets could not load/,
+  },
+  {
+    path: '/invoices',
+    heading: 'Invoices',
+    evidenceName: 'invoices',
+    settledCopy: /No invoices yet|Invoices are restricted|Invoices could not load/,
+  },
+  {
+    path: '/desktop-settings',
+    heading: 'Desktop settings',
+    evidenceName: 'desktop-settings',
+    settledCopy: /Available in the E-Code desktop app|Desktop settings could not load/,
+  },
+  {
+    path: '/organization-domains',
+    heading: 'Verified domains',
+    evidenceName: 'verified-domains',
+    settledCopy: /Add a domain|Domain management is restricted|Domains could not load/,
+  },
+  {
+    path: '/organization-siem',
+    heading: 'SIEM webhooks',
+    evidenceName: 'siem-webhooks',
+    settledCopy: /Add a webhook|SIEM settings are restricted|SIEM webhooks could not load/,
+  },
+  {
+    path: '/audit-logs',
+    heading: 'Audit logs',
+    evidenceName: 'audit-logs',
+    settledCopy: /Recent events|Audit logs are restricted|Audit logs could not load/,
+  },
+  {
+    path: '/organization-members',
+    heading: 'Organization members',
+    evidenceName: 'organization-members',
+    settledCopy: /Members|Member management is restricted|Members could not load/,
+  },
+  {
+    path: '/account-settings/data',
+    heading: 'Account',
+    evidenceName: 'account-data',
+    settledCopy: /Account status|Data and privacy settings could not load/,
+  },
+] as const;
+
+test('updated user-area surfaces remain responsive in light and dark themes', async ({ page }) => {
+  test.setTimeout(600_000);
+
+  await provisionWorkspace(page);
+  await installHydrationObserver(page);
+
+  const viewports = [
+    { width: 1440, height: 900, theme: 'light' as const, capture: true },
+    { width: 390, height: 844, theme: 'dark' as const, capture: true },
+    { width: 768, height: 900, theme: 'light' as const, capture: false },
+    { width: 1024, height: 768, theme: 'dark' as const, capture: false },
+  ];
+
+  for (const viewport of viewports) {
+    await setTheme(page, viewport.theme);
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+
+    for (const surface of USER_AREA_SURFACES) {
+      await page.goto(surface.path);
+      await expectUserAreaReady(page, surface.heading);
+      await expect(page.locator('#main-content')).toContainText(surface.settledCopy, { timeout: 30_000 });
+      await expectNoHorizontalOverflow(page);
+
+      if (surface.path === '/account-settings/data' && viewport.width === 1440) {
+        const activeNavigationItems = page.locator(
+          'nav[aria-label="Application navigation"]:visible a[aria-current="page"]',
+        );
+        await expect(activeNavigationItems).toHaveCount(1);
+        await expect(activeNavigationItems).toHaveText('Data & privacy');
+      }
+
+      if (viewport.capture) {
+        await captureEvidence(page, `${surface.evidenceName}-${viewport.theme}-${viewport.width}.jpg`);
+      }
+    }
+  }
+});
+
+test('async user-area panels recover from an unavailable API without exposing fallback controls', async ({ page }) => {
+  test.skip(
+    process.env.UI_UX_FAULT_API_UNAVAILABLE !== '1',
+    'Run against a web process whose SAAS_API_URL points to an unavailable port.',
+  );
+  test.setTimeout(180_000);
+
+  await provisionWorkspace(page);
+  await installHydrationObserver(page);
+
+  const surfaces = [
+    {
+      path: '/organization-members?orgId=fault-injection',
+      heading: 'Organization members',
+      errorHeading: 'Members could not load',
+      evidenceName: 'organization-members-error',
+      hiddenControl: () => page.getByRole('button', { name: 'Send invite' }),
+    },
+    {
+      path: '/account-settings/data',
+      heading: 'Account',
+      errorHeading: 'Data and privacy settings could not load',
+      evidenceName: 'account-data-error',
+      hiddenControl: () => page.getByTestId('account-delete-open'),
+    },
+  ] as const;
+
+  for (const viewport of [
+    { width: 1440, height: 900, theme: 'light' as const },
+    { width: 390, height: 844, theme: 'dark' as const },
+  ]) {
+    await setTheme(page, viewport.theme);
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+
+    for (const surface of surfaces) {
+      await page.goto(surface.path);
+      await expectUserAreaReady(page, surface.heading);
+      await expect(page.getByRole('heading', { name: surface.errorHeading })).toBeVisible();
+      await expect(surface.hiddenControl()).toHaveCount(0);
+
+      if (surface.path === '/account-settings/data') {
+        await expect(page.getByTestId('account-data-export')).toHaveCount(0);
+      }
+
+      const retry = page.getByRole('button', { name: 'Try again' });
+      await expect(retry).toBeVisible();
+      expect(await retry.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+      await expectNoHorizontalOverflow(page);
+      await captureEvidence(page, `${surface.evidenceName}-${viewport.theme}-${viewport.width}.jpg`);
+      await retry.click();
+      await expect(page.getByRole('heading', { name: surface.errorHeading })).toBeVisible({ timeout: 30_000 });
+      await expect(retry).toBeVisible();
+    }
+  }
 });
