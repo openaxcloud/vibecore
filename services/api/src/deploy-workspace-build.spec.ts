@@ -5,9 +5,11 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  computeReactManifestRepair,
   detectPodPackageManager,
   runWorkspaceStaticBuild,
   splitBuildCommand,
+  DEPLOY_REACT18_RANGE,
   type WorkspaceBuildAgent,
 } from './deploy-workspace-build.js';
 
@@ -100,8 +102,12 @@ describe('runWorkspaceStaticBuild', () => {
     // base64 asset decoded to raw bytes
     expect((await stat(join(dir, 'logo.png'))).size).toBe(4);
 
-    // install ran before build
-    expect((agent.runStep as ReturnType<typeof vi.fn>).mock.calls[0][0].command).toBe('npm');
+    // the React-18 manifest guard runs first (node), then install (npm) before build.
+    const runCalls = (agent.runStep as ReturnType<typeof vi.fn>).mock.calls;
+    expect(runCalls[0][0].command).toBe('node');
+    expect(runCalls[0][0].args[0]).toBe('-e');
+    expect(runCalls[0][0].args[1]).toContain('[react18-guard]');
+    expect(runCalls[1][0].command).toBe('npm');
   });
 
   it('isolates install+build in a sandbox so the live workspace is never mutated', async () => {
@@ -132,9 +138,10 @@ describe('runWorkspaceStaticBuild', () => {
     expect(calls[0].args[1]).toContain('! -name node_modules');
     expect(calls[0].args[1]).toContain('.deploy-x');
 
-    // install + build run INSIDE the sandbox, not the live workspace root.
-    expect(calls[1]).toMatchObject({ command: 'npm', cwd: '.deploy-x' });
-    expect(calls[2].cwd).toBe('.deploy-x');
+    // React-18 manifest guard, then install + build, all INSIDE the sandbox (never the live root).
+    expect(calls[1]).toMatchObject({ command: 'node', cwd: '.deploy-x' });
+    expect(calls[2]).toMatchObject({ command: 'npm', cwd: '.deploy-x' });
+    expect(calls[3].cwd).toBe('.deploy-x');
 
     // the artifact is enumerated from the sandbox output dir.
     expect(agent.listFiles as ReturnType<typeof vi.fn>).toHaveBeenCalledWith('.deploy-x/dist');
@@ -221,7 +228,8 @@ describe('runWorkspaceStaticBuild', () => {
     const agent = fakeAgent({
       runStep: vi.fn(async () => {
         call += 1;
-        return call === 1 ? { exitCode: 0, timedOut: false } : { exitCode: null, timedOut: true };
+        // call 1 = React-18 guard, call 2 = install (both succeed); call 3 = build (times out).
+        return call <= 2 ? { exitCode: 0, timedOut: false } : { exitCode: null, timedOut: true };
       }),
     });
 
@@ -275,5 +283,47 @@ describe('runWorkspaceStaticBuild', () => {
 
     const result = await runWorkspaceStaticBuild({ ...baseOptions, materializeDir: dir }, agent);
     expect(result.error).toBe('AGENT_UNREACHABLE');
+  });
+});
+
+describe('computeReactManifestRepair (P0-2 deploy guard)', () => {
+  it('is a no-op when the sources do not use the React-18 client API', () => {
+    const r = computeReactManifestRepair({ dependencies: { react: '^17.0.0' } }, false);
+    expect(r.changed).toBe(false);
+    expect(r.forced).toEqual({});
+  });
+
+  it('forces a below-18 react/react-dom pin up to the supported range', () => {
+    const r = computeReactManifestRepair(
+      { dependencies: { react: '^17.0.2', 'react-dom': '17.0.2' } },
+      true,
+    );
+    expect(r.changed).toBe(true);
+    expect(r.forced).toEqual({ react: DEPLOY_REACT18_RANGE, 'react-dom': DEPLOY_REACT18_RANGE });
+  });
+
+  it('adds react-dom when it is omitted entirely (the real react-notes-app failure)', () => {
+    // src/main.tsx imports react-dom/client but package.json has no react-dom → the
+    // deploy build died with `Rollup failed to resolve import "react-dom/client"`.
+    const r = computeReactManifestRepair({ dependencies: { react: '^18.3.1' } }, true);
+    expect(r.forced).toEqual({ 'react-dom': DEPLOY_REACT18_RANGE });
+    expect(r.changed).toBe(true);
+  });
+
+  it('leaves an already >=18 pin untouched (incl. an intentional React 19 app)', () => {
+    expect(
+      computeReactManifestRepair({ dependencies: { react: '^18.3.1', 'react-dom': '^18.3.1' } }, true).changed,
+    ).toBe(false);
+    expect(
+      computeReactManifestRepair({ dependencies: { react: '^19.0.0', 'react-dom': '^19.0.0' } }, true).changed,
+    ).toBe(false);
+  });
+
+  it('does not downgrade a pin declared in devDependencies with a fine floor', () => {
+    const r = computeReactManifestRepair(
+      { dependencies: {}, devDependencies: { react: '^18.2.0', 'react-dom': '^18.2.0' } },
+      true,
+    );
+    expect(r.changed).toBe(false);
   });
 });

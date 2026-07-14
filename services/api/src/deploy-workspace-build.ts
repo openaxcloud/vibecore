@@ -167,6 +167,121 @@ function outputPrefix(cwd: string, outputDirectory: string): string {
   return posix.normalize(`${base}${outputDirectory.replace(/\/+$/, '')}`);
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * P0-2 React 17/18 guard, deploy edition.
+ *
+ * The preview repairs an AI-generated manifest in memory (buildPreviewManifestRepair)
+ * so a project that emits React-18 client code (`react-dom/client` / `createRoot`)
+ * while pinning react/react-dom below 18 — or omitting react-dom entirely — still
+ * renders. That repair is NOT persisted to the workspace disk, so the deploy build
+ * (which copies the on-disk sources into an isolated sandbox and runs a clean
+ * `npm install` + build) sees the UNREPAIRED package.json and the build dies with
+ * `Rollup failed to resolve import "react-dom/client"` — the app works in preview
+ * but fails to deploy. Mirror the preview's pin here, in the sandbox, before install.
+ *
+ * The build agent can't write files (readFile/listFiles/runStep only), so the repair
+ * runs pod-side as a self-contained node script (REACT_MANIFEST_REPAIR_SCRIPT). The
+ * decision core is `computeReactManifestRepair`, exported + unit-tested; the script
+ * inlines the same rules against the on-disk package.json + source scan.
+ * ---------------------------------------------------------------------------
+ */
+
+/** React 18-only client entry API — does not exist before React 18. */
+const REACT18_CLIENT_API_RE = /\breact-dom\/client\b|\bcreateRoot\s*\(|\bhydrateRoot\s*\(/;
+
+/** Supported React range forced when the code needs the 18-only client API. */
+export const DEPLOY_REACT18_RANGE = '^18.3.1';
+
+/** Lowest major a range permits (first integer), or undefined when unparseable ('latest', '*'). */
+function reactVersionMajorFloor(range: string): number | undefined {
+  const match = String(range).match(/\d+/);
+  return match ? Number(match[0]) : undefined;
+}
+
+/**
+ * Pure core: given a parsed package.json and whether the sources use the React-18
+ * client API, return the react/react-dom deps that must be forced to a >=18 range.
+ * A dependency is forced when it's MISSING (react-dom omitted entirely) or its floor
+ * is below 18 (`^17`, `16.x`). A pin already >=18 (incl. an intentional React 19
+ * app, which a downgrade would break) is left untouched.
+ */
+export function computeReactManifestRepair(
+  packageJson: { dependencies?: Record<string, string>; devDependencies?: Record<string, string> },
+  usesReact18ClientApi: boolean,
+): { changed: boolean; forced: Record<string, string> } {
+  const forced: Record<string, string> = {};
+
+  if (!usesReact18ClientApi) {
+    return { changed: false, forced };
+  }
+
+  const deps = packageJson.dependencies ?? {};
+  const devDeps = packageJson.devDependencies ?? {};
+
+  for (const name of ['react', 'react-dom']) {
+    // A dep already declared in devDependencies with a fine floor is left alone.
+    const current = deps[name] ?? devDeps[name];
+    const floor = current ? reactVersionMajorFloor(current) : undefined;
+
+    // Force when missing (floor undefined AND not declared) or explicitly below 18.
+    const missing = current === undefined;
+
+    if (missing || (floor !== undefined && floor < 18)) {
+      forced[name] = DEPLOY_REACT18_RANGE;
+    }
+  }
+
+  return { changed: Object.keys(forced).length > 0, forced };
+}
+
+/**
+ * Self-contained node script run in the sandbox cwd BEFORE `npm install`. Scans the
+ * project sources for the React-18 client API and, if found, forces react/react-dom
+ * to a >=18 range in package.json (adding react-dom when omitted). Deterministic,
+ * bounded (skips node_modules/.git/dist/build, caps the scan), and a no-op when the
+ * manifest is already fine or absent. Prints a `[react18-guard]` marker on a change.
+ */
+export const REACT_MANIFEST_REPAIR_SCRIPT = String.raw`
+const fs = require('fs'), path = require('path');
+const RANGE = '${DEPLOY_REACT18_RANGE}';
+const API = /\breact-dom\/client\b|\bcreateRoot\s*\(|\bhydrateRoot\s*\(/;
+const SKIP = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.vite', 'coverage']);
+const CODE = /\.(c|m)?(j|t)sx?$/;
+function floor(r){ const m = String(r).match(/\d+/); return m ? Number(m[0]) : undefined; }
+let pkgRaw; try { pkgRaw = fs.readFileSync('package.json', 'utf8'); } catch { process.exit(0); }
+let pkg; try { pkg = JSON.parse(pkgRaw); } catch { process.exit(0); }
+if (!pkg || typeof pkg !== 'object') process.exit(0);
+let uses = false, scanned = 0;
+(function walk(dir){
+  if (uses || scanned > 4000) return;
+  let entries; try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+  for (const e of entries) {
+    if (uses || scanned > 4000) return;
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) { if (!SKIP.has(e.name)) walk(p); continue; }
+    if (!CODE.test(e.name)) continue;
+    scanned++;
+    let c; try { c = fs.readFileSync(p, 'utf8'); } catch { continue; }
+    if (API.test(c)) uses = true;
+  }
+})('.');
+if (!uses) process.exit(0);
+const deps = pkg.dependencies || (pkg.dependencies = {});
+const dev = pkg.devDependencies || {};
+const forced = [];
+for (const name of ['react', 'react-dom']) {
+  const cur = deps[name] !== undefined ? deps[name] : dev[name];
+  const missing = cur === undefined;
+  const f = cur ? floor(cur) : undefined;
+  if (missing || (f !== undefined && f < 18)) { deps[name] = RANGE; forced.push(name + (missing ? '(added)' : '')); }
+}
+if (forced.length) {
+  fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+  console.log('[react18-guard] forced ' + forced.join(', ') + ' to ' + RANGE + ' (React-18 client API in sources)');
+}
+`;
+
 /**
  * Run the static build inside the workspace pod and materialize the artifact
  * locally. Pure orchestration over the injected agent — unit-tested in
@@ -243,6 +358,25 @@ export async function runWorkspaceStaticBuild(
     }
 
     log.push('info', `Workspace deploy: building in pod (cwd ${cwd})`);
+
+    /*
+     * 0. React 17/18 manifest guard (see REACT_MANIFEST_REPAIR_SCRIPT). Mirrors the
+     * preview repair on-disk so a project that uses the React-18 client API but pins
+     * react/react-dom < 18 (or omits react-dom) builds instead of dying on
+     * `Rollup failed to resolve import "react-dom/client"`. Best-effort: a failure
+     * here must NOT fail the deploy (the build still runs; if the manifest was truly
+     * broken it surfaces as a normal build error with the real message).
+     */
+    const guard = await agent.runStep({
+      command: 'node',
+      args: ['-e', REACT_MANIFEST_REPAIR_SCRIPT],
+      cwd,
+      onLine: (level, line) => log.push(level, `[prepare] ${line}`),
+    });
+
+    if (guard.error) {
+      log.push('info', `Workspace deploy: React-18 manifest guard skipped (${guard.error}).`);
+    }
 
     // 1. Install dependencies.
     options.onPhase?.('installing');
