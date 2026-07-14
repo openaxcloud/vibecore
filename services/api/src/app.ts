@@ -126,7 +126,12 @@ import {
   type WorkspaceStaticBuildResult,
 } from './deploy-workspace-build.js';
 import { buildServerDeployEnv, snapshotWorkspaceAppSource } from './server-deploy-transfer.js';
-import { buildServerBootScript, detectDeployTarget, detectServerRuntime, isDetectionError } from './server-runtime-detect.js';
+import {
+  buildServerBootScript,
+  detectDeployTarget,
+  detectServerRuntime,
+  isDetectionError,
+} from './server-runtime-detect.js';
 import { shouldRecordDeploymentUsage } from './deployment-billing.js';
 import {
   assertDeploymentRequestAllowed,
@@ -3537,10 +3542,64 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
    */
   const STALE_DEPLOYMENT_MS = 40 * 60 * 1000;
 
+  /*
+   * Server deployments (provider='server') converge asynchronously: the create
+   * request applies the k8s manifests and polls readiness for a bounded window,
+   * but a cold gVisor node (scale-up + image pull) can push the pod Ready well
+   * after that poll times out, leaving the row BUILDING with live-but-unpromoted
+   * manifests. Re-check the live readiness against the manager on read: promote
+   * to READY as soon as a replica is ready. This is what makes the Publish flow
+   * self-heal instead of showing a permanent FALSE "failed" for an app that is
+   * actually serving. If it never converges the stale-timeout below fails it AND
+   * tears the leaked Deployment/Service down.
+   */
+  if (deployment.status === 'BUILDING' && deployment.provider === 'server') {
+    const serverMeta = (deployment.metadata as Record<string, unknown> | undefined)?.serverDeploy as
+      | { host?: string; applied?: boolean }
+      | undefined;
+
+    if (serverMeta?.applied && serverMeta.host) {
+      const live = await getServerDeploymentStatusViaManager(deployment.id).catch(() => undefined);
+
+      if (live && live.readyReplicas >= 1) {
+        const url = `https://${serverMeta.host}`;
+
+        return store.updateDeployment(deployment.projectId, deployment.id, {
+          status: 'READY',
+          url,
+          previewUrl: deployment.environment !== 'production' ? url : undefined,
+          productionUrl: deployment.environment === 'production' ? url : undefined,
+          metadata: {
+            ...(deployment.metadata as Record<string, unknown>),
+            serverDeploy: { ...serverMeta, ready: true, readyReplicas: live.readyReplicas },
+          },
+          logs: [
+            ...deployment.logs,
+            {
+              timestamp: new Date().toISOString(),
+              level: 'info' as const,
+              message: `Server deploy: ready with ${live.readyReplicas} replica(s) at ${url}.`,
+            },
+          ],
+          finishedAt: new Date().toISOString(),
+        });
+      }
+    }
+  }
+
   if (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') {
     const startedMs = new Date(deployment.startedAt ?? deployment.createdAt).getTime();
 
     if (!Number.isNaN(startedMs) && Date.now() - startedMs > STALE_DEPLOYMENT_MS) {
+      /*
+       * A server deploy that never converged leaves its Deployment/Service
+       * applied — tear them down as we fail the row so nothing leaks (a Pending
+       * pod would otherwise keep the autoscaler retrying scale-up indefinitely).
+       */
+      if (deployment.provider === 'server') {
+        await stopServerDeploymentViaManager(deployment.id).catch(() => undefined);
+      }
+
       return store.updateDeployment(deployment.projectId, deployment.id, {
         status: 'FAILED',
         logs: [
@@ -6411,6 +6470,38 @@ async function stopServerDeploymentViaManager(deploymentId: string): Promise<voi
     headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
     signal: AbortSignal.timeout(30_000),
   }).catch(() => undefined);
+}
+
+/*
+ * Live readiness of a server deployment's k8s Deployment, read from the manager.
+ * Drives reconcile-on-read: a BUILDING row whose manifests are applied but whose
+ * pod converged AFTER the create-time readiness poll timed out (cold-node
+ * scale-up) is promoted to READY here. Returns undefined on any manager/network
+ * error so reconcile leaves the row untouched rather than mis-failing it.
+ */
+async function getServerDeploymentStatusViaManager(
+  deploymentId: string,
+): Promise<{ exists: boolean; readyReplicas: number; replicas: number } | undefined> {
+  const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+  try {
+    const response = await fetch(
+      `${workspaceManagerUrl()}/server-deployments/${encodeURIComponent(deploymentId)}/status`,
+      {
+        method: 'GET',
+        headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
+        signal: AbortSignal.timeout(15_000),
+      },
+    );
+
+    if (!response.ok) {
+      return undefined;
+    }
+
+    return (await response.json()) as { exists: boolean; readyReplicas: number; replicas: number };
+  } catch {
+    return undefined;
+  }
 }
 
 function agentBaseUrl(workspaceId: string) {
@@ -27717,15 +27808,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const ok = Boolean(started?.ready);
       const serverUrl = started?.url ?? `https://${host}`;
 
+      /*
+       * Manifests applied (the manager returned a well-formed result) but the
+       * readiness poll didn't converge inside its window. This is NOT a terminal
+       * failure — the Deployment/Service are live and converging. Under capacity
+       * pressure a fresh gVisor node (scale-up + image pull + boot) routinely
+       * exceeds the poll deadline, yet the pod goes Ready minutes later and the
+       * app serves 200. Marking FAILED here both lied to the UI (app is live) and
+       * LEAKED the Deployment: the monotonic status guard locks FAILED, so
+       * reconcile could never promote it and the manifests never got torn down.
+       * Persist a non-terminal BUILDING row instead; reconcileDeploymentStatus
+       * (on read) promotes it to READY once readyReplicas>=1, or the stale-build
+       * path fails it and tears the manifests down.
+       */
+      const manifestsApplied = Boolean(started) && !serverError;
+      const converging = manifestsApplied && !ok;
+      const serverStatus = ok ? 'READY' : converging ? 'BUILDING' : 'FAILED';
+
       buildProgress.onLog({
         timestamp: nowIso(),
-        level: ok ? 'info' : 'error',
+        level: ok ? 'info' : converging ? 'info' : 'error',
         message: ok
           ? `Server deploy: ready with ${started?.readyReplicas ?? 0} replica(s) at ${serverUrl}`
-          : `Server deploy: not ready${serverError ? ` (${serverError})` : ''}. It may still be starting — retry.`,
+          : converging
+            ? `Server deploy: applied — still starting at ${serverUrl} (this can take a few minutes on a cold node).`
+            : `Server deploy: failed${serverError ? ` (${serverError})` : ''}.`,
       });
-
-      const serverStatus = ok ? 'READY' : 'FAILED';
 
       const readyRow = await store.updateDeployment(project.id, queued.id, {
         status: serverStatus,
@@ -27734,10 +27842,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         productionUrl: ok && body.environment === 'production' ? serverUrl : undefined,
         metadata: {
           ...(queued.metadata as Record<string, unknown>),
-          serverDeploy: { host, ready: ok, readyReplicas: started?.readyReplicas ?? 0 },
+          serverDeploy: {
+            host,
+            ready: ok,
+            readyReplicas: started?.readyReplicas ?? 0,
+            // Marks a row whose k8s manifests are live so reconcile-on-read can
+            // re-check readiness against the manager (BUILDING → READY / teardown).
+            applied: manifestsApplied,
+          },
         },
         logs: [...createDeploymentLogs(body, { ...queued, url: serverUrl }, project), ...liveLog],
-        finishedAt: nowIso(),
+        // A converging (BUILDING) deploy is not finished — leaving finishedAt
+        // unset keeps reconcile's stale-timeout clock running from startedAt.
+        finishedAt: converging ? undefined : nowIso(),
       });
 
       if (shouldRecordDeploymentUsage(readyRow.status)) {
