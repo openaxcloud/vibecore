@@ -51,6 +51,8 @@ describe('user-area product vocabulary', () => {
       source('app/routes/quota-exceeded.tsx'),
       source('app/routes/mobile-workspace.$projectId.tsx'),
       source('app/routes/account-settings.connected.tsx'),
+      source('app/routes/integrations.oauth.$provider.callback.tsx'),
+      source('app/routes/desktop-settings.tsx'),
       source('app/routes/login.tsx'),
     ].join('\n');
 
@@ -67,11 +69,15 @@ describe('user-area product vocabulary', () => {
   it('does not reveal raw route errors or claim that credit packs never expire', () => {
     const projectsNew = source('app/routes/projects.new.tsx');
     const billing = source('app/routes/billing.tsx');
+    const invoices = source('app/routes/invoices.tsx');
 
     expect(projectsNew).not.toContain('<summary>Technical details</summary>');
     expect(projectsNew).not.toContain('{descriptor.detail}');
     expect(billing).not.toContain("'No expiry'");
     expect(billing).toContain('Expiration date unavailable');
+    expect(invoices).toContain("currency: 'EUR'");
+    expect(invoices).toContain('formatInvoiceAmount(invoice.amountPaidCents || invoice.amountDueCents)');
+    expect(invoices).not.toContain('currency.toUpperCase()');
   });
 
   it('uses labelled permission controls instead of requiring API permission keys', () => {
@@ -86,11 +92,16 @@ describe('user-area product vocabulary', () => {
   it('humanizes project and deployment statuses before rendering', () => {
     const projectCards = source('app/components/dashboard/SaaSLayout.tsx');
     const projects = source('app/routes/projects._index.tsx');
+    const recentProjects = source('app/routes/recent-projects.tsx');
     const database = source('app/routes/projects.$projectId.database.tsx');
     const deployments = source('app/routes/projects.$projectId.deployments.tsx');
 
     expect(projectCards).toContain('statusDisplayLabel(project.status ?? fallback)');
     expect(projects).toContain('<ProjectStatusPill project={project} />');
+    expect(projects).toContain('stack: projectStackLabel(project)');
+    expect(recentProjects).toContain('stack: projectStackLabel(project)');
+    expect(projects).not.toContain('stack: project.gitRepositoryUrl ?? project.sourceType');
+    expect(recentProjects).not.toContain('stack: project.gitRepositoryUrl ?? project.sourceType');
     expect(database).toContain('statusDisplayLabel(status)');
     expect(deployments).toContain('statusDisplayLabel(status)');
   });
@@ -112,5 +123,18 @@ describe('user-area product vocabulary', () => {
     expect(connectedAccounts).not.toContain('parsed.error ??');
     expect(organizationMembers).toContain('memberDisplayLabel(');
     expect(organizationMembers).not.toContain('member.userName ?? member.userEmail ?? member.userId');
+
+    const integrationCallback = source('app/routes/integrations.oauth.$provider.callback.tsx');
+    const desktopSettings = source('app/routes/desktop-settings.tsx');
+    const desktopActions = source('app/lib/desktop-settings-actions.ts');
+
+    expect(integrationCallback).toContain('oauthErrorDisplayMessage(outcome.errorCode ?? outcome.errorMessage)');
+    expect(integrationCallback).not.toContain('Code: {outcome.errorCode');
+    expect(integrationCallback).not.toContain("{outcome.errorMessage ?? 'The provider could not complete");
+    expect(desktopSettings).not.toMatch(
+      /Electron preload API|safeStorage-backed session|View raw|Hide raw|JSON\.stringify\(settings\.devicePolicy/,
+    );
+    expect(desktopActions).not.toContain('error.message');
+    expect(desktopActions).not.toContain('String(error)');
   });
 });

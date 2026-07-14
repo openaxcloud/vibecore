@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { data as json, type LoaderFunctionArgs } from 'react-router';
 import { useLoaderData } from 'react-router';
 import { apiRequest } from '~/lib/enterprise-api.server';
+import { oauthErrorDisplayMessage, providerDisplayLabel } from '~/lib/user-facing-labels';
 
 /*
  * Frontend callback page for the IDE Integrations OAuth flow. The popup
@@ -118,6 +119,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
 export default function IntegrationOauthCallbackPage() {
   const outcome = useLoaderData<typeof loader>();
+  const providerLabel = providerDisplayLabel(outcome.provider);
 
   useEffect(() => {
     const opener = window.opener as Window | null;
@@ -166,8 +168,8 @@ export default function IntegrationOauthCallbackPage() {
       >
         <h1 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Connection successful</h1>
         <p style={{ color: 'var(--ecode-text-secondary)' }}>
-          Connected to {outcome.provider} as <strong>{outcome.accountLabel ?? 'your account'}</strong>. You can close
-          this window.
+          Connected to {providerLabel} as <strong>{outcome.accountLabel ?? 'your account'}</strong>. You can close this
+          window.
         </p>
       </main>
     );
@@ -184,12 +186,12 @@ export default function IntegrationOauthCallbackPage() {
         minHeight: '100vh',
       }}
     >
-      <h1 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Connection failed</h1>
+      <h1 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{providerLabel} connection failed</h1>
       <p style={{ color: 'var(--ecode-text-secondary)' }}>
-        {outcome.errorMessage ?? 'The provider could not complete the connection.'}
+        {oauthErrorDisplayMessage(outcome.errorCode ?? outcome.errorMessage)}
       </p>
       <p style={{ color: 'var(--ecode-text-muted)', fontSize: 12, marginTop: 8 }}>
-        Code: {outcome.errorCode ?? 'unknown'}
+        Return to E-Code and try the connection again.
       </p>
     </main>
   );

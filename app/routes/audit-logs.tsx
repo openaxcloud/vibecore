@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { useLoaderData } from 'react-router';
+import { useLoaderData, useRevalidator } from 'react-router';
+import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { EnterpriseFormPage } from '~/components/enterprise/EnterpriseFormPage';
 import {
   apiRequest,
@@ -9,6 +10,7 @@ import {
   redirect,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 import { userFacingLabel } from '~/lib/user-facing-labels';
 
 /*
@@ -88,25 +90,49 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
    */
   let auditLogs: AuditLogRow[] = [];
   let listError = false;
+  let listErrorKind: 'permission' | 'temporary' | null = null;
 
   try {
     const result = await apiRequest<{ auditLogs?: AuditLogRow[] }>(request, `/orgs/${organization.id}/audit-logs`);
     auditLogs = result.auditLogs ?? [];
   } catch (error) {
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
     if (isForbiddenApiResponse(error)) {
-      return json({ orgId: organization.id, auditLogs: [], listError: false, forbidden: true });
+      return json({
+        orgId: organization.id,
+        auditLogs: [],
+        listError: true,
+        listErrorKind: 'permission' as const,
+        forbidden: false,
+      });
     }
 
     listError = true;
+    listErrorKind = 'temporary';
   }
 
   return json({
     orgId: organization.id,
     auditLogs,
     listError,
+    listErrorKind,
     forbidden: url.searchParams.get('forbidden') === '1',
   });
 }
+
+const auditTimestampFormatter = new Intl.DateTimeFormat('en-GB', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+  timeZone: 'UTC',
+  timeZoneName: 'short',
+});
 
 function formatTimestamp(value?: string) {
   if (!value) {
@@ -115,14 +141,16 @@ function formatTimestamp(value?: string) {
 
   const date = new Date(value);
 
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? 'Date unavailable' : auditTimestampFormatter.format(date);
 }
 
 const exportLinkClass =
-  'inline-flex items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3';
+  'inline-flex min-h-[44px] items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3';
 
 export default function AuditLogsPage() {
-  const { auditLogs, listError, forbidden } = useLoaderData<typeof loader>();
+  const { auditLogs, listError, listErrorKind, forbidden } = useLoaderData<typeof loader>();
+  const revalidator = useRevalidator();
+  const retrying = revalidator.state !== 'idle';
 
   /*
    * Distinct action names drive a client-side action filter over the already
@@ -134,6 +162,31 @@ export default function AuditLogsPage() {
     [auditLogs],
   );
 
+  if (listError) {
+    return (
+      <EnterpriseFormPage
+        title="Audit logs"
+        description="Review and export security-relevant organization events to CSV or JSON."
+      >
+        {retrying ? (
+          <AsyncPanelSkeleton label="Loading audit logs" rows={6} />
+        ) : (
+          <AsyncPanelError
+            title={listErrorKind === 'permission' ? 'Audit logs are restricted' : 'Audit logs could not load'}
+            description={
+              listErrorKind === 'permission'
+                ? 'Ask an organization administrator for access to the organization audit trail.'
+                : 'Events and exports are hidden because the latest request failed. No audit data was changed.'
+            }
+            onRetry={revalidator.revalidate}
+            retryLabel="Reload audit logs"
+            tone={listErrorKind === 'permission' ? 'warning' : 'error'}
+          />
+        )}
+      </EnterpriseFormPage>
+    );
+  }
+
   return (
     <EnterpriseFormPage
       title="Audit logs"
@@ -141,9 +194,7 @@ export default function AuditLogsPage() {
       error={
         forbidden
           ? 'You do not have permission to export audit logs. Ask an organization admin for audit log export access.'
-          : listError
-            ? 'Audit logs are temporarily unavailable. Please try again in a moment.'
-            : undefined
+          : undefined
       }
     >
       <div className="flex flex-col gap-6">
@@ -173,7 +224,7 @@ export default function AuditLogsPage() {
               <label className="ml-auto flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
                 Action
                 <select
-                  className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 text-xs outline-none focus:border-bolt-elements-focus"
+                  className="min-h-[44px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 text-xs outline-none focus:border-bolt-elements-focus"
                   onChange={(event) => {
                     const value = event.currentTarget.value;
                     document.querySelectorAll<HTMLTableRowElement>('[data-audit-row]').forEach((row) => {

@@ -1,5 +1,6 @@
 import type { MetaFunction } from 'react-router';
-import { Link, useLoaderData } from 'react-router';
+import { Link, useLoaderData, useRevalidator } from 'react-router';
+import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { EnterpriseFormPage } from '~/components/enterprise/EnterpriseFormPage';
 import { EmptyState } from '~/components/ui/EmptyState';
 import {
@@ -10,6 +11,7 @@ import {
   redirect,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 import { statusDisplayLabel } from '~/lib/user-facing-labels';
 
 type Invoice = {
@@ -31,6 +33,20 @@ type InvoicesResponse = {
 
 export const meta: MetaFunction = () => [{ title: 'Invoices - E-Code' }];
 
+const invoiceEuroFormatter = new Intl.NumberFormat('en-GB', {
+  style: 'currency',
+  currency: 'EUR',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+const invoiceDateFormatter = new Intl.DateTimeFormat('en-GB', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
 
@@ -41,44 +57,75 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   try {
     const data = await apiRequest<InvoicesResponse>(request, `/orgs/${organization.id}/billing/invoices`);
 
-    return json({ invoices: data.invoices, stripeConfigured: data.stripeConfigured, accessLimited: false });
+    return json({
+      invoices: Array.isArray(data.invoices) ? data.invoices : [],
+      stripeConfigured: data.stripeConfigured,
+      accessLimited: false,
+      invoicesUnavailable: false,
+    });
   } catch (error) {
-    if (isForbiddenApiResponse(error)) {
-      return json({ invoices: [], stripeConfigured: false, accessLimited: true });
+    if (isReauthRedirect(error)) {
+      throw error;
     }
 
-    throw error;
+    if (isForbiddenApiResponse(error)) {
+      return json({
+        invoices: [],
+        stripeConfigured: false,
+        accessLimited: true,
+        invoicesUnavailable: false,
+      });
+    }
+
+    return json({
+      invoices: [],
+      stripeConfigured: false,
+      accessLimited: false,
+      invoicesUnavailable: true,
+    });
   }
 }
 
-function formatAmount(cents: number, currency: string) {
-  try {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.toUpperCase() }).format(cents / 100);
-  } catch {
-    return `${(cents / 100).toFixed(2)} ${currency.toUpperCase()}`;
-  }
+function formatInvoiceAmount(cents: number) {
+  return invoiceEuroFormatter.format(cents / 100);
 }
 
 export default function InvoicesPage() {
-  const { invoices, stripeConfigured, accessLimited } = useLoaderData<typeof loader>();
+  const { invoices, stripeConfigured, accessLimited, invoicesUnavailable } = useLoaderData<typeof loader>();
+  const revalidator = useRevalidator();
+  const retrying = revalidator.state !== 'idle';
+  const loadFailed = accessLimited || invoicesUnavailable;
 
   return (
-    <EnterpriseFormPage
-      title="Invoices"
-      description="View invoices, payment status and downloadable receipts."
-      error={accessLimited ? 'Invoices are visible to organization owners and billing administrators.' : undefined}
-    >
-      {invoices.length ? (
+    <EnterpriseFormPage title="Invoices" description="View invoices, payment status and downloadable receipts.">
+      {loadFailed ? (
+        retrying ? (
+          <AsyncPanelSkeleton label="Loading invoices" rows={4} compact />
+        ) : (
+          <AsyncPanelError
+            title={accessLimited ? 'Invoices are restricted' : 'Invoices could not load'}
+            description={
+              accessLimited
+                ? 'Only organization owners and billing administrators can view invoices.'
+                : 'Invoice history is hidden because the latest request failed. Your billing data was not changed.'
+            }
+            onRetry={revalidator.revalidate}
+            retryLabel="Reload invoices"
+            tone={accessLimited ? 'warning' : 'error'}
+            compact
+          />
+        )
+      ) : invoices.length ? (
         <div className="mb-4 flex justify-end">
           <a
             href="/invoices/download"
-            className="inline-flex h-8 items-center rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
+            className="inline-flex min-h-[44px] items-center rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
           >
             Download all (.zip)
           </a>
         </div>
       ) : null}
-      {invoices.length ? (
+      {!loadFailed && invoices.length ? (
         <ul className="divide-y divide-bolt-elements-borderColor">
           {invoices.map((invoice) => {
             const link = invoice.hostedInvoiceUrl ?? invoice.invoicePdf;
@@ -92,8 +139,11 @@ export default function InvoicesPage() {
               invoice.status === 'uncollectible' || (invoice.status === 'open' && invoice.amountDueCents > 0);
 
             return (
-              <li key={invoice.id} className="flex items-center justify-between gap-4 py-3 text-sm">
-                <div>
+              <li
+                key={invoice.id}
+                className="flex flex-col items-start justify-between gap-3 py-3 text-sm sm:flex-row sm:items-center sm:gap-4"
+              >
+                <div className="min-w-0">
                   <p className="font-medium text-bolt-elements-textPrimary">
                     {invoice.number ?? invoice.id}
                     {invoice.status ? (
@@ -115,17 +165,17 @@ export default function InvoicesPage() {
                     ) : null}
                   </p>
                   <p className="text-bolt-elements-textSecondary">
-                    {invoice.createdAt ? new Date(invoice.createdAt).toLocaleDateString() : 'Date pending'} ·{' '}
-                    {formatAmount(invoice.amountPaidCents || invoice.amountDueCents, invoice.currency)}
+                    {invoice.createdAt ? invoiceDateFormatter.format(new Date(invoice.createdAt)) : 'Date pending'} ·{' '}
+                    {formatInvoiceAmount(invoice.amountPaidCents || invoice.amountDueCents)}
                   </p>
                 </div>
-                <span className="flex shrink-0 items-center gap-2">
+                <span className="flex shrink-0 flex-wrap items-center gap-2">
                   {unpaid && invoice.hostedInvoiceUrl ? (
                     <a
                       href={invoice.hostedInvoiceUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                      className="inline-flex min-h-[44px] items-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
                     >
                       Retry payment
                     </a>
@@ -135,7 +185,7 @@ export default function InvoicesPage() {
                       href={link}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-sm font-medium hover:border-bolt-elements-focus"
+                      className="inline-flex min-h-[44px] items-center rounded-md border border-bolt-elements-borderColor px-3 text-sm font-medium hover:border-bolt-elements-focus"
                     >
                       View
                     </a>
@@ -145,7 +195,7 @@ export default function InvoicesPage() {
             );
           })}
         </ul>
-      ) : (
+      ) : !loadFailed ? (
         <EmptyState
           variant="compact"
           icon="i-ph:receipt"
@@ -156,7 +206,7 @@ export default function InvoicesPage() {
               : 'Invoices will appear here when billing is active.'
           }
         />
-      )}
+      ) : null}
       <p className="mt-4 text-sm text-bolt-elements-textSecondary">
         Manage payment details and download receipts in the{' '}
         <Link to="/payment-method" className="underline">

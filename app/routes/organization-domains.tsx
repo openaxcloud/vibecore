@@ -1,6 +1,7 @@
 import { CheckCircle2, Clock, Copy, Globe, Plus, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
-import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation, useRevalidator } from 'react-router';
+import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { EnterpriseFormPage, PrimaryButton } from '~/components/enterprise/EnterpriseFormPage';
 import {
   apiErrorMessage,
@@ -51,6 +52,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
   let domains: DomainVerification[] = [];
   let loadError: string | null = null;
+  let loadErrorKind: 'permission' | 'temporary' | null = null;
 
   try {
     const result = await apiRequest<{ domains: DomainVerification[] }>(request, `/orgs/${organization.id}/domains`);
@@ -62,8 +64,10 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
     if (isApiResponse(error, 403)) {
       loadError = "You don't have permission to manage this organization's domains.";
+      loadErrorKind = 'permission';
     } else {
-      loadError = await apiErrorMessage(error, 'Verified domains are temporarily unavailable.');
+      loadError = 'Verified domains are temporarily unavailable.';
+      loadErrorKind = 'temporary';
     }
   }
 
@@ -72,6 +76,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     orgName: organization.name ?? organization.slug ?? organization.id,
     domains,
     loadError,
+    loadErrorKind,
   });
 }
 
@@ -171,7 +176,7 @@ function CopyField(props: { label: string; value: string }) {
               () => undefined,
             );
           }}
-          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+          className="inline-flex min-h-[44px] shrink-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
           aria-label={`Copy ${props.label}`}
         >
           <Copy className="h-3.5 w-3.5" aria-hidden />
@@ -211,7 +216,7 @@ function StatusBadge({ domain }: { domain: DomainVerification }) {
 
 function CheckboxRow(props: { name: string; label: string; description: string; defaultChecked: boolean }) {
   return (
-    <label className="flex cursor-pointer items-start gap-2">
+    <label className="flex min-h-[44px] cursor-pointer items-start gap-2 py-1">
       <input
         type="checkbox"
         name={props.name}
@@ -227,10 +232,37 @@ function CheckboxRow(props: { name: string; label: string; description: string; 
 }
 
 export default function OrganizationDomainsPage() {
-  const { orgId, orgName, domains, loadError } = useLoaderData<typeof loader>();
+  const { orgId, orgName, domains, loadError, loadErrorKind } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
   const navigation = useNavigation();
+  const revalidator = useRevalidator();
   const busy = navigation.state !== 'idle';
+  const retrying = revalidator.state !== 'idle';
+
+  if (loadError) {
+    return (
+      <EnterpriseFormPage
+        title="Verified domains"
+        description={`Add and verify custom domains for ${orgName}. Publish a DNS TXT record to prove ownership.`}
+      >
+        {retrying ? (
+          <AsyncPanelSkeleton label="Loading verified domains" rows={4} />
+        ) : (
+          <AsyncPanelError
+            title={loadErrorKind === 'permission' ? 'Domain management is restricted' : 'Domains could not load'}
+            description={
+              loadErrorKind === 'permission'
+                ? "You don't have permission to view or change this organization's verified domains."
+                : 'Domain controls are hidden because the latest request failed. No domain was changed.'
+            }
+            onRetry={revalidator.revalidate}
+            retryLabel="Reload domains"
+            tone={loadErrorKind === 'permission' ? 'warning' : 'error'}
+          />
+        )}
+      </EnterpriseFormPage>
+    );
+  }
 
   return (
     <EnterpriseFormPage
@@ -239,15 +271,6 @@ export default function OrganizationDomainsPage() {
       status={actionData?.status}
       error={actionData?.error}
     >
-      {loadError ? (
-        <p
-          role="alert"
-          className="mb-6 rounded-md border border-[var(--status-warning-border)] px-3 py-2 text-sm text-[var(--status-warning-text)]"
-        >
-          {loadError}
-        </p>
-      ) : null}
-
       <div className="space-y-8">
         <section>
           <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Add a domain</h2>
@@ -260,7 +283,7 @@ export default function OrganizationDomainsPage() {
                 name="domain"
                 placeholder="app.example.com"
                 required
-                className="mt-2 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm outline-none focus:border-bolt-elements-focus"
+                className="mt-2 min-h-[44px] w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm outline-none focus:border-bolt-elements-focus"
               />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -330,7 +353,7 @@ export default function OrganizationDomainsPage() {
                           <button
                             type="submit"
                             disabled={busy}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
                             Verify domain
@@ -362,7 +385,7 @@ export default function OrganizationDomainsPage() {
                           type="submit"
                           disabled={busy}
                           className={classNames(
-                            'inline-flex h-8 items-center rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
+                            'inline-flex min-h-[44px] items-center rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
                             'disabled:cursor-not-allowed disabled:opacity-60',
                           )}
                         >

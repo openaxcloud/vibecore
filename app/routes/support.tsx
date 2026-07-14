@@ -1,6 +1,7 @@
 import { Clock, LifeBuoy, MessageSquare, ShieldAlert } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
-import { Form, Link, useActionData, useLoaderData } from 'react-router';
+import { Form, Link, useActionData, useLoaderData, useNavigation, useRevalidator } from 'react-router';
+import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { Badge } from '~/components/ui/Badge';
 import { Button } from '~/components/ui/Button';
@@ -200,7 +201,7 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
       <div className="min-w-0 flex-1">
         <Link
           to={`/support/${ticket.id}`}
-          className="block truncate text-sm font-medium hover:underline focus:underline focus:outline-none"
+          className="inline-flex min-h-[44px] max-w-full items-center truncate text-sm font-medium hover:underline focus:underline focus:outline-none"
         >
           {ticket.subject}
         </Link>
@@ -219,9 +220,13 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
 export default function SupportPage() {
   const { tickets, currentTier, supportAccessLimited } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
+  const navigation = useNavigation();
+  const revalidator = useRevalidator();
   const visibleTickets = (tickets ?? []).filter(Boolean) as Ticket[];
   const openTickets = visibleTickets.filter((ticket) => OPEN_STATUSES.has(ticket.status));
   const pastTickets = visibleTickets.filter((ticket) => !OPEN_STATUSES.has(ticket.status));
+  const retrying = revalidator.state !== 'idle';
+  const openingTicket = navigation.state !== 'idle' && navigation.formMethod?.toLowerCase() === 'post';
 
   return (
     <AppShell title="Support" description="Open support tickets and review enterprise support status.">
@@ -231,16 +236,23 @@ export default function SupportPage() {
             {actionData.error}
           </div>
         ) : null}
-        {supportAccessLimited ? (
-          <div className="rounded-lg border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-4 text-sm text-[var(--status-warning-text)] lg:col-span-2">
-            {supportAccessLimited}
-          </div>
-        ) : null}
-
         <div className="grid content-start gap-6">
           <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
             <h2 className="border-b border-bolt-elements-borderColor p-4 text-sm font-semibold">Your open tickets</h2>
-            {openTickets.length ? (
+            {supportAccessLimited ? (
+              retrying ? (
+                <AsyncPanelSkeleton label="Loading support tickets" rows={3} compact className="m-4" />
+              ) : (
+                <AsyncPanelError
+                  title="Support tickets could not load"
+                  description="Your ticket history is hidden because the latest request failed. No ticket was changed."
+                  onRetry={revalidator.revalidate}
+                  tone="warning"
+                  compact
+                  className="m-4"
+                />
+              )
+            ) : openTickets.length ? (
               <ul>
                 {openTickets.map((ticket) => (
                   <TicketRow key={ticket.id} ticket={ticket} />
@@ -283,7 +295,7 @@ export default function SupportPage() {
             <label className="grid gap-2 text-sm font-medium">
               Subject
               <input
-                className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none"
+                className="h-[44px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none"
                 name="subject"
                 required
               />
@@ -291,7 +303,7 @@ export default function SupportPage() {
             <label className="grid gap-2 text-sm font-medium">
               Category
               <select
-                className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none"
+                className="h-[44px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none"
                 name="category"
                 defaultValue="other"
                 required
@@ -307,7 +319,9 @@ export default function SupportPage() {
               <ShieldAlert className="mr-2 inline h-4 w-4" aria-hidden />
               Your request is logged securely and included in your organization&apos;s audit history.
             </p>
-            <Button type="submit">Open ticket</Button>
+            <Button className="min-h-[44px]" type="submit" disabled={openingTicket} aria-busy={openingTicket}>
+              {openingTicket ? 'Opening ticket…' : 'Open ticket'}
+            </Button>
           </Form>
 
           <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6">

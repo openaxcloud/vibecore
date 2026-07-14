@@ -66,7 +66,7 @@ export function TextField(props: {
       <input
         className={`mt-2 w-full rounded-md border ${
           error ? 'border-[var(--vc-ide-accent-error)]' : 'border-bolt-elements-borderColor'
-        } bg-bolt-elements-background-depth-1 px-3 py-2 text-sm outline-none focus:border-bolt-elements-focus`}
+        } min-h-[44px] bg-bolt-elements-background-depth-1 px-3 py-2 text-sm outline-none focus:border-bolt-elements-focus`}
         id={props.id}
         name={props.name}
         placeholder={props.placeholder}
@@ -85,7 +85,7 @@ export function PrimaryButton({ children, ...props }: React.ButtonHTMLAttributes
   return (
     <button
       {...props}
-      className="rounded-md bg-bolt-elements-button-primary-background px-4 py-2 text-sm font-medium text-bolt-elements-button-primary-text disabled:cursor-not-allowed disabled:opacity-60"
+      className="min-h-[44px] rounded-md bg-bolt-elements-button-primary-background px-4 py-2 text-sm font-medium text-bolt-elements-button-primary-text disabled:cursor-not-allowed disabled:opacity-60"
     >
       {children}
     </button>
@@ -102,7 +102,7 @@ export function SelectField(props: {
     <label className="block text-sm font-medium">
       {props.label}
       <select
-        className="mt-2 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm outline-none focus:border-bolt-elements-focus"
+        className="mt-2 min-h-[44px] w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm outline-none focus:border-bolt-elements-focus"
         name={props.name}
         defaultValue={props.defaultValue}
       >

@@ -1,8 +1,11 @@
 import type { MetaFunction } from 'react-router';
-import { useLoaderData } from 'react-router';
+import { useLoaderData, useRevalidator } from 'react-router';
+import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { AppShell, ProjectGrid } from '~/components/dashboard/SaaSLayout';
+import { projectStackLabel } from '~/lib/dashboard-project-stack';
 import { apiRequest, firstOrganizationOrNull, redirect, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { projectLifecycle, projectLifecycleDisplayLabel } from '~/lib/project-card-presentation';
+import { isReauthRedirect } from '~/lib/route-reauth';
 
 export const meta: MetaFunction = () => [{ title: 'Recent projects - E-Code' }];
 
@@ -22,41 +25,64 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return redirect('/');
   }
 
-  const result = await apiRequest<{ projects: ApiProject[] }>(request, `/orgs/${organization.id}/projects`);
+  try {
+    const result = await apiRequest<{ projects: ApiProject[] }>(request, `/orgs/${organization.id}/projects`);
 
-  const projects = Array.isArray(result?.projects) ? result.projects : [];
+    const projects = Array.isArray(result?.projects) ? result.projects : [];
 
-  return {
-    projects: projects
-      .sort((left, right) => new Date(right.updatedAt ?? 0).getTime() - new Date(left.updatedAt ?? 0).getTime())
-      .map((project) => {
-        const lifecycle = projectLifecycle(project);
+    return {
+      projects: projects
+        .sort((left, right) => new Date(right.updatedAt ?? 0).getTime() - new Date(left.updatedAt ?? 0).getTime())
+        .map((project) => {
+          const lifecycle = projectLifecycle(project);
 
-        return {
-          id: project.id,
-          name: project.name,
-          status: projectLifecycleDisplayLabel(lifecycle),
-          lifecycle,
-          deploymentCount: project.deploymentCount,
-          updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
-          updatedAtIso: project.updatedAt,
-          stack: project.gitRepositoryUrl ?? project.sourceType ?? 'E-Code project',
-          sourceType: project.sourceType,
-          previewImageUrl: `/api/projects/${project.id}/thumbnail`,
-        };
-      }),
-  };
+          return {
+            id: project.id,
+            name: project.name,
+            status: projectLifecycleDisplayLabel(lifecycle),
+            lifecycle,
+            deploymentCount: project.deploymentCount,
+            updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
+            updatedAtIso: project.updatedAt,
+            stack: projectStackLabel(project),
+            sourceType: project.sourceType,
+            previewImageUrl: `/api/projects/${project.id}/thumbnail`,
+          };
+        }),
+      projectsUnavailable: false,
+    };
+  } catch (error) {
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
+    return { projects: [], projectsUnavailable: true };
+  }
 }
 
 export default function RecentProjectsPage() {
-  const { projects } = useLoaderData<typeof loader>();
+  const { projects, projectsUnavailable } = useLoaderData<typeof loader>();
+  const revalidator = useRevalidator();
+  const retrying = revalidator.state !== 'idle';
 
   return (
     <AppShell
       title="Recent projects"
       description="Continue from the projects and workspaces you touched most recently."
     >
-      <ProjectGrid projects={projects} />
+      {projectsUnavailable ? (
+        retrying ? (
+          <AsyncPanelSkeleton label="Loading recent projects" rows={4} />
+        ) : (
+          <AsyncPanelError
+            title="Recent projects could not load"
+            description="The project list is hidden because the latest request failed. No project was changed."
+            onRetry={revalidator.revalidate}
+          />
+        )
+      ) : (
+        <ProjectGrid projects={projects} />
+      )}
     </AppShell>
   );
 }

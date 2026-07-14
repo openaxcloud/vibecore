@@ -13,24 +13,20 @@
 
 type DesktopBridge = NonNullable<typeof globalThis.window.vibecoreDesktop>;
 
-function toMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
 /**
  * Persists desktop settings through the bridge. Returns the status line to
  * display. Never throws: a rejected `settings.set` becomes an error status.
  */
 export async function saveDesktopSettings(bridge: DesktopBridge | undefined, next: unknown): Promise<string> {
   if (!bridge) {
-    return 'Desktop bridge not detected. Settings are staged in this browser session.';
+    return 'Open this page in the E-Code desktop app to change native settings.';
   }
 
   try {
     await bridge.settings.set(next);
     return 'Desktop settings saved.';
-  } catch (error) {
-    return toMessage(error);
+  } catch {
+    return 'Desktop settings could not be saved. Try again.';
   }
 }
 
@@ -40,7 +36,7 @@ export async function saveDesktopSettings(bridge: DesktopBridge | undefined, nex
  */
 export async function showDesktopTestNotification(bridge: DesktopBridge | undefined): Promise<string> {
   if (!bridge) {
-    return 'Desktop bridge not detected. Native notifications require Electron.';
+    return 'Open this page in the E-Code desktop app to test native notifications.';
   }
 
   try {
@@ -49,8 +45,8 @@ export async function showDesktopTestNotification(bridge: DesktopBridge | undefi
       body: 'Native notifications are enabled.',
     });
     return 'Test notification sent.';
-  } catch (error) {
-    return toMessage(error);
+  } catch {
+    return 'The test notification could not be sent. Check system permissions and try again.';
   }
 }
 
@@ -60,14 +56,14 @@ export async function showDesktopTestNotification(bridge: DesktopBridge | undefi
  */
 export async function openDesktopLocalFolder(bridge: DesktopBridge | undefined): Promise<string> {
   if (!bridge) {
-    return 'Desktop bridge not detected. Local folder import requires Electron.';
+    return 'Open this page in the E-Code desktop app to choose a local folder.';
   }
 
   try {
     const folder = await bridge.files.openLocalFolder();
-    return folder ? `Folder selected: ${folder}` : 'Folder selection canceled.';
-  } catch (error) {
-    return toMessage(error);
+    return folder ? 'Folder selected.' : 'Folder selection canceled.';
+  } catch {
+    return 'The folder picker could not open. Try again.';
   }
 }
 

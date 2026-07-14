@@ -1,6 +1,7 @@
 import { CheckCircle2, Clock, Radio, Send, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation, useRevalidator, useSubmit } from 'react-router';
+import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { EnterpriseFormPage, PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import {
@@ -58,6 +59,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
   let webhooks: SiemWebhook[] = [];
   let loadError: string | null = null;
+  let loadErrorKind: 'permission' | 'temporary' | null = null;
 
   try {
     const result = await apiRequest<{ webhooks: SiemWebhook[] }>(request, `/orgs/${organization.id}/siem-webhooks`);
@@ -70,12 +72,14 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     if (isApiResponse(error, 403)) {
       loadError =
         'You do not have permission to view SIEM webhooks. Ask an organization admin for audit export access.';
+      loadErrorKind = 'permission';
     } else {
-      loadError = await apiErrorMessage(error, 'Configured SIEM webhooks are temporarily unavailable.');
+      loadError = 'Configured SIEM webhooks are temporarily unavailable.';
+      loadErrorKind = 'temporary';
     }
   }
 
-  return json({ orgId: organization.id, webhooks, loadError });
+  return json({ orgId: organization.id, webhooks, loadError, loadErrorKind });
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
@@ -198,12 +202,39 @@ function DeliveryStatus({ webhook }: { webhook: SiemWebhook }) {
 }
 
 export default function OrganizationSiemPage() {
-  const { orgId, webhooks, loadError } = useLoaderData<typeof loader>();
+  const { orgId, webhooks, loadError, loadErrorKind } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
   const navigation = useNavigation();
+  const revalidator = useRevalidator();
   const submit = useSubmit();
   const busy = navigation.state !== 'idle';
+  const retrying = revalidator.state !== 'idle';
   const [webhookPendingDelete, setWebhookPendingDelete] = useState<string | null>(null);
+
+  if (loadError) {
+    return (
+      <EnterpriseFormPage
+        title="SIEM webhooks"
+        description="Stream organization security and abuse events to your SIEM. Deliveries are signed so your receiver can verify authenticity."
+      >
+        {retrying ? (
+          <AsyncPanelSkeleton label="Loading SIEM webhooks" rows={4} />
+        ) : (
+          <AsyncPanelError
+            title={loadErrorKind === 'permission' ? 'SIEM settings are restricted' : 'SIEM webhooks could not load'}
+            description={
+              loadErrorKind === 'permission'
+                ? 'Ask an organization administrator for access to security event exports.'
+                : 'Webhook controls are hidden because the latest request failed. No endpoint was changed.'
+            }
+            onRetry={revalidator.revalidate}
+            retryLabel="Reload webhooks"
+            tone={loadErrorKind === 'permission' ? 'warning' : 'error'}
+          />
+        )}
+      </EnterpriseFormPage>
+    );
+  }
 
   return (
     <EnterpriseFormPage
@@ -212,15 +243,6 @@ export default function OrganizationSiemPage() {
       status={actionData?.status}
       error={actionData?.error}
     >
-      {loadError ? (
-        <p
-          role="alert"
-          className="mb-6 rounded-md border border-[var(--status-warning-border)] px-3 py-2 text-sm text-[var(--status-warning-text)]"
-        >
-          {loadError}
-        </p>
-      ) : null}
-
       <div className="space-y-8">
         <section>
           <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Add a webhook</h2>
@@ -308,7 +330,7 @@ export default function OrganizationSiemPage() {
                             <button
                               type="submit"
                               disabled={busy}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:border-[var(--vc-ide-accent-action)] hover:text-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60"
+                              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:border-[var(--vc-ide-accent-action)] hover:text-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60"
                               aria-label={`Send a test event to SIEM webhook ${webhook.url}`}
                             >
                               <Send className="h-3.5 w-3.5" aria-hidden />
@@ -328,7 +350,7 @@ export default function OrganizationSiemPage() {
                             <button
                               type="submit"
                               disabled={busy}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:border-[var(--status-error-border)] hover:text-[var(--status-error-text)] disabled:cursor-not-allowed disabled:opacity-60"
+                              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:border-[var(--status-error-border)] hover:text-[var(--status-error-text)] disabled:cursor-not-allowed disabled:opacity-60"
                               aria-label={`Delete SIEM webhook ${webhook.url}`}
                             >
                               <Trash2 className="h-3.5 w-3.5" aria-hidden />

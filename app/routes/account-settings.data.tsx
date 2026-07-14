@@ -3,7 +3,8 @@ import { AlertTriangle, Download, ShieldAlert, Trash2, Undo2 } from 'lucide-reac
 import { useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { data as json } from 'react-router';
-import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation, useRevalidator } from 'react-router';
+import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { StatusPill } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import { Dialog, DialogTitle } from '~/components/ui/Dialog';
@@ -13,7 +14,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { shouldRethrowActionError } from '~/lib/route-reauth';
+import { isReauthRedirect, shouldRethrowActionError } from '~/lib/route-reauth';
 
 export const meta: MetaFunction = () => [{ title: 'Data & privacy - E-Code' }];
 
@@ -82,12 +83,24 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     });
   }
 
-  const [view, me] = await Promise.all([
-    apiRequest<DeletionView>(request, '/account/deletion'),
-    apiRequest<{ user?: { email?: string } }>(request, '/auth/me'),
-  ]);
+  try {
+    const [view, me] = await Promise.all([
+      apiRequest<DeletionView>(request, '/account/deletion'),
+      apiRequest<{ user?: { email?: string } }>(request, '/auth/me'),
+    ]);
 
-  return json({ view, email: me.user?.email ?? '' });
+    return json({ view, email: me.user?.email ?? '', loadError: null });
+  } catch (error) {
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
+    return json({
+      view: null,
+      email: '',
+      loadError: 'Data and privacy settings are temporarily unavailable.',
+    });
+  }
 }
 
 type ActionResult =
@@ -149,16 +162,17 @@ export async function action({ request }: EnterpriseActionArgs) {
   }
 }
 
-const dateFormat: Intl.DateTimeFormatOptions = {
+const dateFormatter = new Intl.DateTimeFormat('en-GB', {
   year: 'numeric',
   month: 'short',
   day: 'numeric',
   hour: '2-digit',
   minute: '2-digit',
-};
+  timeZone: 'UTC',
+});
 
 function formatDate(value: string | null) {
-  return value ? new Date(value).toLocaleString(undefined, dateFormat) : null;
+  return value ? dateFormatter.format(new Date(value)) : null;
 }
 
 const STATUS_LABEL: Record<DeletionStatus, string> = {
@@ -170,12 +184,30 @@ const STATUS_LABEL: Record<DeletionStatus, string> = {
 };
 
 export default function AccountDataPage() {
-  const { view: loaderView, email } = useLoaderData<typeof loader>();
+  const { view: loaderView, email, loadError } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as ActionResult | undefined;
   const navigation = useNavigation();
+  const revalidator = useRevalidator();
   const busy = navigation.state !== 'idle';
+  const retrying = revalidator.state !== 'idle';
   const [confirmValue, setConfirmValue] = useState('');
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  if (loadError || !loaderView) {
+    return (
+      <div className="space-y-6">
+        {retrying ? (
+          <AsyncPanelSkeleton label="Loading data and privacy settings" rows={5} />
+        ) : (
+          <AsyncPanelError
+            title="Data and privacy settings could not load"
+            description="Account status, exports, and deletion controls are hidden because the latest request failed. No account data was changed."
+            onRetry={revalidator.revalidate}
+          />
+        )}
+      </div>
+    );
+  }
 
   // Prefer the freshest authoritative state returned by the action over the loader snapshot.
   const view = actionData?.ok ? actionData.view : loaderView;
@@ -332,7 +364,7 @@ export default function AccountDataPage() {
             href="/account-data?export=data"
             download
             data-testid="account-data-export"
-            className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+            className="mt-4 inline-flex min-h-[44px] items-center gap-1.5 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
           >
             <Download className="h-4 w-4" aria-hidden />
             Download my data (JSON)
@@ -361,7 +393,7 @@ export default function AccountDataPage() {
                 color: 'var(--status-error-text)',
                 borderColor: 'color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
               }}
-              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-md border px-4 text-sm font-medium transition-colors hover:bg-[var(--status-error-bg)]"
+              className="mt-4 inline-flex min-h-[44px] items-center gap-1.5 rounded-md border px-4 text-sm font-medium transition-colors hover:bg-[var(--status-error-bg)]"
             >
               <Trash2 className="h-4 w-4" aria-hidden />
               Delete account…
@@ -422,7 +454,7 @@ export default function AccountDataPage() {
                     value={confirmValue}
                     onChange={(event) => setConfirmValue(event.target.value)}
                     placeholder={email}
-                    className="mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none"
+                    className="mt-1 min-h-[44px] w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none"
                   />
                 </div>
 
@@ -430,7 +462,7 @@ export default function AccountDataPage() {
                   <button
                     type="button"
                     onClick={() => setDeleteOpen(false)}
-                    className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
                   >
                     Cancel
                   </button>
@@ -443,7 +475,7 @@ export default function AccountDataPage() {
                       color: 'var(--status-error-text)',
                       borderColor: 'color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
                     }}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-md border px-4 text-sm font-medium transition-colors hover:bg-[var(--status-error-bg)] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md border px-4 text-sm font-medium transition-colors hover:bg-[var(--status-error-bg)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Trash2 className="h-4 w-4" aria-hidden />
                     {busy ? 'Requesting…' : 'Request account deletion'}

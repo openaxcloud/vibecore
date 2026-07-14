@@ -33,7 +33,9 @@ function makeBridge(
 
 describe('saveDesktopSettings', () => {
   it('returns staged message when bridge is missing', async () => {
-    expect(await saveDesktopSettings(undefined, { a: 1 })).toMatch(/staged in this browser session/);
+    expect(await saveDesktopSettings(undefined, { a: 1 })).toBe(
+      'Open this page in the E-Code desktop app to change native settings.',
+    );
   });
 
   it('persists and returns saved status on success', async () => {
@@ -43,52 +45,60 @@ describe('saveDesktopSettings', () => {
     expect(set).toHaveBeenCalledWith({ a: 1 });
   });
 
-  it('surfaces the error message instead of rejecting when settings.set fails', async () => {
+  it('returns safe customer copy instead of a system error when settings.set fails', async () => {
     const bridge = makeBridge({
       settingsSet: async () => {
         throw new Error('disk write failed');
       },
     });
-    await expect(saveDesktopSettings(bridge, { a: 1 })).resolves.toBe('disk write failed');
+    await expect(saveDesktopSettings(bridge, { a: 1 })).resolves.toBe(
+      'Desktop settings could not be saved. Try again.',
+    );
   });
 
-  it('stringifies non-Error rejections', async () => {
+  it('does not stringify non-Error rejections into the interface', async () => {
     const bridge = makeBridge({
       settingsSet: async () => {
         throw 'nope';
       },
     });
-    await expect(saveDesktopSettings(bridge, {})).resolves.toBe('nope');
+    await expect(saveDesktopSettings(bridge, {})).resolves.toBe('Desktop settings could not be saved. Try again.');
   });
 });
 
 describe('showDesktopTestNotification', () => {
-  it('returns electron-required message when bridge missing', async () => {
-    expect(await showDesktopTestNotification(undefined)).toMatch(/require Electron/);
+  it('returns a desktop-app message when the bridge is missing', async () => {
+    expect(await showDesktopTestNotification(undefined)).toBe(
+      'Open this page in the E-Code desktop app to test native notifications.',
+    );
   });
 
   it('returns sent status on success', async () => {
     expect(await showDesktopTestNotification(makeBridge())).toBe('Test notification sent.');
   });
 
-  it('surfaces permission errors instead of rejecting', async () => {
+  it('turns permission errors into safe actionable copy', async () => {
     const bridge = makeBridge({
       notificationsShow: async () => {
         throw new Error('permission denied');
       },
     });
-    await expect(showDesktopTestNotification(bridge)).resolves.toBe('permission denied');
+    await expect(showDesktopTestNotification(bridge)).resolves.toBe(
+      'The test notification could not be sent. Check system permissions and try again.',
+    );
   });
 });
 
 describe('openDesktopLocalFolder', () => {
-  it('returns electron-required message when bridge missing', async () => {
-    expect(await openDesktopLocalFolder(undefined)).toMatch(/requires Electron/);
+  it('returns a desktop-app message when the bridge is missing', async () => {
+    expect(await openDesktopLocalFolder(undefined)).toBe(
+      'Open this page in the E-Code desktop app to choose a local folder.',
+    );
   });
 
   it('returns selected folder on success', async () => {
     const bridge = makeBridge({ openLocalFolder: async () => '/home/user/app' });
-    expect(await openDesktopLocalFolder(bridge)).toBe('Folder selected: /home/user/app');
+    expect(await openDesktopLocalFolder(bridge)).toBe('Folder selected.');
   });
 
   it('returns canceled status when no folder chosen', async () => {
@@ -96,13 +106,13 @@ describe('openDesktopLocalFolder', () => {
     expect(await openDesktopLocalFolder(bridge)).toBe('Folder selection canceled.');
   });
 
-  it('surfaces dialog errors instead of rejecting', async () => {
+  it('does not expose dialog errors to the interface', async () => {
     const bridge = makeBridge({
       openLocalFolder: async () => {
         throw new Error('dialog error');
       },
     });
-    await expect(openDesktopLocalFolder(bridge)).resolves.toBe('dialog error');
+    await expect(openDesktopLocalFolder(bridge)).resolves.toBe('The folder picker could not open. Try again.');
   });
 });
 

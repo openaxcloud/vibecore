@@ -1,7 +1,8 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { useState } from 'react';
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation, useRevalidator, useSubmit } from 'react-router';
+import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { PendingInvitationsSection, type PendingInvitation } from '~/components/dashboard/PendingInvitationsSection';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
@@ -16,6 +17,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 import { memberDisplayLabel, userFacingLabel } from '~/lib/user-facing-labels';
 
 export const meta: MetaFunction = () => [{ title: 'Organization members - E-Code' }];
@@ -45,6 +47,8 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
     return json({
       forbidden: false as const,
+      loadError: null,
+      loadErrorKind: null,
       orgId: organization.id,
       orgName: orgResult.organization?.name ?? 'Organization',
       memberships: membersResult.memberships,
@@ -58,6 +62,10 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       ],
     });
   } catch (error) {
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
     /*
      * A member without manage permissions can still reach this route; show a
      * friendly read-only state instead of crashing the loader.
@@ -65,6 +73,8 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     if (isForbiddenApiResponse(error)) {
       return json({
         forbidden: true as const,
+        loadError: "You don't have permission to manage this organization's members.",
+        loadErrorKind: 'permission' as const,
         orgId: organization.id,
         orgName: '',
         memberships: [] as Array<{
@@ -79,7 +89,22 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       });
     }
 
-    throw error;
+    return json({
+      forbidden: false as const,
+      loadError: 'Organization members are temporarily unavailable.',
+      loadErrorKind: 'temporary' as const,
+      orgId: organization.id,
+      orgName: '',
+      memberships: [] as Array<{
+        id: string;
+        userId: string;
+        roleKey: string;
+        userName?: string;
+        userEmail?: string;
+      }>,
+      invitations: [] as PendingInvitation[],
+      roles: [] as Array<{ key: string; name: string }>,
+    });
   }
 }
 
@@ -195,11 +220,13 @@ export async function action({ request }: EnterpriseActionArgs) {
 const LAST_OWNER_HINT = 'The last owner cannot be demoted. Transfer ownership to another member first.';
 
 export default function OrganizationMembersPage() {
-  const { forbidden, orgId, orgName, memberships, invitations, roles } = useLoaderData<typeof loader>();
+  const { orgId, orgName, memberships, invitations, roles, loadError, loadErrorKind } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
   const submit = useSubmit();
   const navigation = useNavigation();
+  const revalidator = useRevalidator();
   const busy = navigation.state !== 'idle';
+  const retrying = revalidator.state !== 'idle';
 
   // userId of the member the transfer-ownership dialog is open for, or null.
   const [transferTarget, setTransferTarget] = useState<string | null>(null);
@@ -235,15 +262,26 @@ export default function OrganizationMembersPage() {
     closeTransferDialog();
   };
 
-  if (forbidden) {
+  if (loadError) {
     return (
       <AppShell
         title="Organization members"
         description="Invite members, assign roles and review access across your organization."
       >
-        <p className="rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-3 py-2 text-sm text-[var(--status-warning-text)]">
-          Member management is available only to organization owners or member managers.
-        </p>
+        {retrying ? (
+          <AsyncPanelSkeleton label="Loading organization members" rows={5} />
+        ) : (
+          <AsyncPanelError
+            title={loadErrorKind === 'permission' ? 'Member management is restricted' : 'Members could not load'}
+            description={
+              loadErrorKind === 'permission'
+                ? "Your role cannot manage this organization's members. Invitations and member controls are hidden."
+                : 'Member and invitation controls are hidden because the latest request failed. No access was changed.'
+            }
+            onRetry={revalidator.revalidate}
+            tone={loadErrorKind === 'permission' ? 'warning' : 'error'}
+          />
+        )}
       </AppShell>
     );
   }
@@ -325,7 +363,7 @@ export default function OrganizationMembersPage() {
                     defaultValue={member.roleKey}
                     disabled={isLastOwner}
                     title={isLastOwner ? LAST_OWNER_HINT : undefined}
-                    className="h-9 min-w-0 flex-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="min-h-[44px] min-w-0 flex-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {roles.map((role) => (
                       <option key={role.key} value={role.key}>
@@ -334,7 +372,7 @@ export default function OrganizationMembersPage() {
                     ))}
                   </select>
                   <button
-                    className="h-9 shrink-0 rounded-md border border-bolt-elements-borderColor px-3 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                    className="min-h-[44px] shrink-0 rounded-md border border-bolt-elements-borderColor px-3 text-xs disabled:cursor-not-allowed disabled:opacity-60"
                     type="submit"
                     disabled={isLastOwner}
                     title={isLastOwner ? LAST_OWNER_HINT : undefined}
@@ -348,7 +386,7 @@ export default function OrganizationMembersPage() {
                     <button
                       type="button"
                       onClick={() => setTransferTarget(member.userId)}
-                      className="h-9 rounded-md border border-bolt-elements-borderColor px-3 text-xs hover:bg-bolt-elements-background-depth-3"
+                      className="min-h-[44px] rounded-md border border-bolt-elements-borderColor px-3 text-xs hover:bg-bolt-elements-background-depth-3"
                       title="Make this member the organization owner. You will be demoted to admin."
                       aria-label={`Transfer ownership to ${displayName}`}
                     >
@@ -367,7 +405,7 @@ export default function OrganizationMembersPage() {
                     <input type="hidden" name="orgId" value={orgId} />
                     <input type="hidden" name="userId" value={member.userId} />
                     <button
-                      className="h-9 rounded-md border border-bolt-elements-borderColor px-3 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                      className="min-h-[44px] rounded-md border border-bolt-elements-borderColor px-3 text-xs disabled:cursor-not-allowed disabled:opacity-60"
                       type="submit"
                       disabled={isLastOwner}
                       title={isLastOwner ? 'The last owner cannot be removed. Transfer ownership first.' : undefined}
@@ -422,7 +460,7 @@ export default function OrganizationMembersPage() {
                 <button
                   type="button"
                   onClick={closeTransferDialog}
-                  className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
                 >
                   Cancel
                 </button>
@@ -433,7 +471,7 @@ export default function OrganizationMembersPage() {
                   aria-busy={busy}
                   style={{ color: 'var(--status-error-text)' }}
                   title={confirmMatches ? undefined : 'Type the organization name exactly to enable the transfer.'}
-                  className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 text-sm font-medium transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 text-sm font-medium transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {busy ? 'Transferring…' : 'Transfer ownership'}
                 </button>
