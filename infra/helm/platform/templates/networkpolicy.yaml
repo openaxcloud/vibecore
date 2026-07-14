@@ -119,6 +119,21 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
+    # Server-deployment pods (Replit-parity durable runtime) carry
+    # `vibecore.ai/server-deploy` (NOT the workspace label) and listen on a
+    # per-deployment app port, so the workspace rule above (workspace label +
+    # fixed :8080) does not let the preview-proxy reach them — the proxy's fetch
+    # to app-<id> was default-denied and the public URL fell back to the "app is
+    # booting" page. Allow egress to any server-deploy pod on all ports (the app
+    # port varies per deployment; the proxy is the only public front door).
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.platformEnv.runtime.workspaceRuntimeNamespace | quote }}
+          podSelector:
+            matchExpressions:
+              - key: vibecore.ai/server-deploy
+                operator: Exists
 {{- $dbEgress := .Values.networkPolicy.databaseRedisEgress | default dict }}
 ---
 # Cloud SQL (Postgres) and Memorystore (Redis) are private-VPC endpoints, NOT

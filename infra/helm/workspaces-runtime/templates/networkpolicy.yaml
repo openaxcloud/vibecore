@@ -83,3 +83,33 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
+---
+# Server deployments (Replit-parity durable runtime). The preview-proxy fronts the
+# PUBLIC app URL `d-<deploymentId>.<previewDomain>` and forwards it to the app-<id>
+# Service/pod. These pods carry `vibecore.ai/server-deploy` (NOT the workspace label)
+# and listen on a per-deployment app port, so the workspace-preview policy above
+# (which matches app.kubernetes.io/name=vibecore-workspace on the fixed agent port
+# 8080) does not cover them — under the namespace default-deny the proxy's fetch to
+# app-<id> failed and the public URL fell back to the "app is booting" page. Allow the
+# preview-proxy IN on all ports (the app port varies per deployment; the proxy is the
+# only front door for public traffic).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: server-deploy-preview-ingress
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: vibecore.ai/server-deploy
+        operator: Exists
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.platformNamespace | quote }}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: preview-proxy
