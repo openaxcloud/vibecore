@@ -878,6 +878,15 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           scheduledWorkflowsDue: (workflowsState.workflows ?? [])
             .filter((workflow: any) => isWorkflowScheduleDue(workflow.schedule, scheduleNow))
             .map((workflow: any) => workflow.id),
+
+          /*
+           * Honesty flag: no cluster/worker scheduler is firing scheduled runs
+           * yet, so an enabled cron only computes `nextRunAt` — it does NOT run
+           * on its own. The panel must show scheduled runs as "manual only" and
+           * must not imply a run will fire at nextRunAt. Flip to true once the
+           * worker-cron executor lands.
+           */
+          scheduledExecutionEnabled: false,
         }),
       );
     } catch (error) {
