@@ -26,6 +26,7 @@ import { classNames } from '~/utils/classNames';
 type EnvData = { envVars: EnvVarRecord[] };
 
 export const meta: MetaFunction = () => [{ title: 'Environment variables - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<EnvData>(args, (projectId) => `/projects/${projectId}/env-vars`);
 export const action = (args: EnterpriseActionArgs) =>

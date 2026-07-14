@@ -57,6 +57,7 @@ type RestoreFetcherData =
  * banner.
  */
 export const meta: MetaFunction = () => [{ title: 'Project snapshots - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<SnapshotsData>(args, (projectId) => `/projects/${projectId}/snapshots`);
 export const action = (args: EnterpriseActionArgs) =>

@@ -19,6 +19,7 @@ import { statusDisplayLabel } from '~/lib/user-facing-labels';
 const LOG_POLL_INTERVAL_MS = 4000;
 
 export const meta: MetaFunction = () => [{ title: 'Project logs - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 export async function loader(args: EnterpriseLoaderArgs) {
   const projectId = args.params.projectId;

@@ -21,6 +21,7 @@ import { isReauthRedirect } from '~/lib/route-reauth';
 import { memberDisplayLabel, userFacingLabel } from '~/lib/user-facing-labels';
 
 export const meta: MetaFunction = () => [{ title: 'Organization members - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const orgIdParam = new URL(request.url).searchParams.get('orgId');

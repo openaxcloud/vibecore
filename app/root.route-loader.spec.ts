@@ -28,7 +28,14 @@ describe('global route loader', () => {
     const loader = globalRouteLoaderSource();
 
     expect(loader).toContain('data-testid="branded-route-loader"');
-    expect(loader).toContain('aria-hidden={!visible}');
-    expect(loader).toContain("visible ? 'opacity-100' : 'opacity-0'");
+    expect(loader).toContain('aria-hidden={!fullScreenVisible}');
+    expect(loader).toContain("fullScreenVisible ? 'opacity-100' : 'opacity-0'");
+  });
+
+  it('lets the local user-area skeleton replace the full-screen splash', () => {
+    const loader = globalRouteLoaderSource();
+
+    expect(loader).toContain('shouldShowUserAreaNavigationSkeleton({');
+    expect(loader).toContain('const fullScreenVisible = visible && !localUserAreaSkeletonVisible;');
   });
 });

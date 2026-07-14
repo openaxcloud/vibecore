@@ -41,6 +41,7 @@ function domainSsl(item: Domain): { label: string; tone: 'ok' | 'pending' | 'err
 }
 
 export const meta: MetaFunction = () => [{ title: 'Custom domains - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 /**
  * apiRequest throws a react-router `redirect()` Response (a 3xx with a Location

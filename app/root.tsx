@@ -14,7 +14,7 @@ import {
   useNavigation,
   useRouteError,
 } from 'react-router';
-import { LinkButton, PublicShell } from './components/dashboard/SaaSLayout';
+import { LinkButton, PublicShell, shouldShowUserAreaNavigationSkeleton } from './components/dashboard/SaaSLayout';
 import {
   ANNOUNCEMENT_DISMISSED_ATTRIBUTE,
   ANNOUNCEMENT_DISMISSED_STORAGE_KEY,
@@ -577,14 +577,24 @@ function AppToastContainer() {
 
 function GlobalRouteLoader() {
   const navigation = useNavigation();
+  const location = useLocation();
   const [visible, setVisible] = useState(false);
 
   /*
    * Background fetchers and route revalidations must not blank an already
-   * rendered page. They own local pending UI; this full-screen surface is
-   * reserved for an actual route navigation.
+   * rendered page. User-area route transitions also own a local skeleton, so
+   * only the slim progress bar remains visible for those navigations.
    */
+
   const loading = navigation.state !== 'idle';
+
+  const localUserAreaSkeletonVisible = shouldShowUserAreaNavigationSkeleton({
+    currentPathname: location.pathname,
+    targetPathname: navigation.location?.pathname,
+    navigationState: navigation.state,
+  });
+
+  const fullScreenVisible = visible && !localUserAreaSkeletonVisible;
 
   useEffect(() => {
     if (!loading) {
@@ -617,10 +627,10 @@ function GlobalRouteLoader() {
        */}
       <div
         className={`pointer-events-none fixed inset-0 z-[9999] flex items-center justify-center bg-bolt-elements-background-depth-1 transition-opacity duration-200 ${
-          visible ? 'opacity-100' : 'opacity-0'
+          fullScreenVisible ? 'opacity-100' : 'opacity-0'
         }`}
         data-testid="branded-route-loader"
-        aria-hidden={!visible}
+        aria-hidden={!fullScreenVisible}
       >
         <div className="flex flex-col items-center gap-5">
           <span className="relative inline-flex h-16 w-16 items-center justify-center">

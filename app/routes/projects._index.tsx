@@ -27,6 +27,7 @@ import {
 import { projectIdePath } from '~/utils/project-url';
 
 export const meta: MetaFunction = () => [{ title: 'Projects - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 type Organization = { id: string; slug?: string };
 type ApiProject = {

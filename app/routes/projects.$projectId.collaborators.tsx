@@ -43,6 +43,7 @@ const EXPIRY_OPTIONS: Array<{ value: number; label: string }> = [
 ];
 
 export const meta: MetaFunction = () => [{ title: 'Project collaborators - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 /*
  * Load collaborators AND the project's invite (share) links from the existing

@@ -13,6 +13,7 @@ import { formatUserAreaDate } from '~/lib/i18n/user-area-locale';
 import { shouldRethrowActionError } from '~/lib/route-reauth';
 
 export const meta: MetaFunction = () => [{ title: 'API keys - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 type ApiKeyScope = 'read' | 'write' | 'admin';
 

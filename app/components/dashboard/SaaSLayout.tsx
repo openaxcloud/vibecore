@@ -69,7 +69,7 @@ import {
   SiTypescript,
   SiVite,
 } from 'react-icons/si';
-import { Form, Link, NavLink, useFetcher, useNavigate } from 'react-router';
+import { Form, Link, NavLink, useFetcher, useLocation, useNavigate, useNavigation } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from './AsyncPanelState';
 import { ProductTour } from './ProductTour';
 import { ProjectCardMenu, ProjectRenameForm } from './ProjectCardMenu';
@@ -101,6 +101,7 @@ import {
 } from '~/lib/project-card-presentation';
 import { profileStore } from '~/lib/stores/profile';
 import { themeStore, toggleTheme } from '~/lib/stores/theme';
+import { resolveUserAreaSurface } from '~/lib/user-area-surface';
 import { statusDisplayLabel } from '~/lib/user-facing-labels';
 import { classNames } from '~/utils/classNames';
 
@@ -300,6 +301,57 @@ export const accountNav = [
   { label: 'Workspace settings', to: '/workspace-settings', icon: SlidersHorizontal },
   { label: 'Data & privacy', to: '/account-settings/data', icon: ShieldAlert },
 ];
+
+const USER_AREA_ROUTE_PREFIXES = [
+  '/account-settings',
+  '/api-keys',
+  '/audit-logs',
+  '/billing',
+  '/dashboard',
+  '/desktop-settings',
+  '/enterprise-sso-settings',
+  '/invoices',
+  '/notifications',
+  '/organization-',
+  '/payment-method',
+  '/projects',
+  '/recent-projects',
+  '/recovery-codes',
+  '/roles-and-permissions',
+  '/scim-token-settings',
+  '/security-settings',
+  '/session-security',
+  '/support',
+  '/usage',
+  '/workspace-settings',
+] as const;
+
+export function isUserAreaDestination(pathname: string): boolean {
+  if (/^\/projects\/[^/]+\/ide(?:\/|$)/u.test(pathname)) {
+    return false;
+  }
+
+  return USER_AREA_ROUTE_PREFIXES.some((prefix) =>
+    prefix.endsWith('-') ? pathname.startsWith(prefix) : pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+export function shouldShowUserAreaNavigationSkeleton({
+  currentPathname,
+  targetPathname,
+  navigationState,
+}: {
+  currentPathname: string;
+  targetPathname?: string;
+  navigationState: 'idle' | 'loading' | 'submitting';
+}): boolean {
+  return (
+    navigationState === 'loading' &&
+    Boolean(targetPathname) &&
+    targetPathname !== currentPathname &&
+    isUserAreaDestination(targetPathname ?? '')
+  );
+}
 
 export const projectNav = [
   { label: 'Overview', suffix: '', icon: Gauge },
@@ -797,7 +849,22 @@ export function AppShell({
 }) {
   const { sidebarCollapsed, toggleSidebar, drawerOpen, openDrawer, closeDrawer } = useSidebarController();
   const navigate = useNavigate();
+  const location = useLocation();
+  const navigation = useNavigation();
+
   const [tourRestartToken, setTourRestartToken] = useState(0);
+
+  const showNavigationSkeleton = shouldShowUserAreaNavigationSkeleton({
+    currentPathname: location.pathname,
+    targetPathname: navigation.location?.pathname,
+    navigationState: navigation.state,
+  });
+
+  const pendingSurface =
+    showNavigationSkeleton && navigation.location ? resolveUserAreaSurface(navigation.location.pathname) : null;
+
+  const displayedTitle = pendingSurface?.title ?? title;
+  const displayedDescription = pendingSurface ? 'Loading the latest workspace data...' : description;
 
   useSidebarShortcuts({
     toggleSidebar,
@@ -820,12 +887,17 @@ export function AppShell({
       >
         <DesktopSidebar collapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
         <MobileSidebarDrawer open={drawerOpen} onClose={closeDrawer} />
-        <section id="main-content" tabIndex={-1} className="min-w-0 outline-none">
+        <section
+          id="main-content"
+          tabIndex={-1}
+          aria-busy={showNavigationSkeleton || undefined}
+          className="min-w-0 outline-none"
+        >
           {!hideTopBar ? (
             <TopBar
               onOpenDrawer={openDrawer}
               onStartTour={() => setTourRestartToken((current) => current + 1)}
-              title={title}
+              title={displayedTitle}
             />
           ) : null}
           <div className={classNames('mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8', contentClassName)}>
@@ -840,15 +912,23 @@ export function AppShell({
                       Workspace console
                     </p>
                     <h1 className="vc-app-shell-title text-[28px] font-semibold leading-[36px] tracking-normal sm:text-[32px] sm:leading-[40px]">
-                      {title}
+                      {displayedTitle}
                     </h1>
-                    <p className="mt-2 max-w-3xl text-sm leading-6 text-bolt-elements-textSecondary">{description}</p>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-bolt-elements-textSecondary">
+                      {displayedDescription}
+                    </p>
                   </div>
-                  {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
+                  {!pendingSurface && actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
                 </div>
               </div>
             ) : null}
-            {children}
+            {showNavigationSkeleton ? (
+              <div data-testid="user-area-navigation-skeleton">
+                <AsyncPanelSkeleton label="Loading workspace page" rows={5} />
+              </div>
+            ) : (
+              children
+            )}
           </div>
         </section>
       </div>

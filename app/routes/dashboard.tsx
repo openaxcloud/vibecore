@@ -217,6 +217,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 }
 
 export const meta: MetaFunction = () => [{ title: 'Dashboard - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 export default function DashboardPage() {
   const { projects, usageSummary, billingAccessLimited, onboarding } = useLoaderData<typeof loader>();

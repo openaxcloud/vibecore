@@ -201,6 +201,7 @@ async function billingActionErrorMessage(error: Response, fallback: string) {
 }
 
 export const meta: MetaFunction = () => [{ title: 'Billing - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
 

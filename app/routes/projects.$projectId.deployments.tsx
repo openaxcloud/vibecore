@@ -87,6 +87,7 @@ type DeploymentsData = { deployments: Deployment[] };
  * body-less redirect into a generic inline "Failed to …" banner.
  */
 export const meta: MetaFunction = () => [{ title: 'Project deployments - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 export type DeployDetect = {
   mode: 'server' | 'static' | 'unknown';

@@ -20,6 +20,7 @@ import { projectAction, projectPageLoader } from '~/lib/project-route.server';
 type SecretsData = { secrets: SecretRecord[] };
 
 export const meta: MetaFunction = () => [{ title: 'Project secrets - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<SecretsData>(args, (projectId) => `/projects/${projectId}/secrets`);
 export const action = (args: EnterpriseActionArgs) =>

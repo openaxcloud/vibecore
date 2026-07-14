@@ -23,6 +23,7 @@ import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from
 import { classNames } from '~/utils/classNames';
 
 export const meta: MetaFunction = () => [{ title: 'Notifications - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 type NotificationCategory = {
   key: string;

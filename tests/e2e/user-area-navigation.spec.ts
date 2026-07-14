@@ -483,6 +483,70 @@ test('updated user-area surfaces remain responsive in light and dark themes', as
   }
 });
 
+test('user-area SPA navigation shows a local skeleton while a real route response is pending', async ({ page }) => {
+  test.setTimeout(180_000);
+
+  await provisionWorkspace(page);
+  await installHydrationObserver(page);
+
+  for (const viewport of [
+    { width: 1440, height: 900, theme: 'light' as const },
+    { width: 390, height: 844, theme: 'dark' as const },
+  ]) {
+    await setTheme(page, viewport.theme);
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await page.goto('/dashboard');
+    await expectDashboardReady(page);
+
+    const webOrigin = new URL(page.url()).origin;
+    let releaseNavigation!: () => void;
+    let intercepted = false;
+    const navigationGate = new Promise<void>((resolve) => {
+      releaseNavigation = resolve;
+    });
+
+    const delayApiKeysData = async (route: import('@playwright/test').Route) => {
+      const request = route.request();
+      const url = new URL(request.url());
+      const isApiKeysDataRequest =
+        request.resourceType() === 'fetch' && url.origin === webOrigin && url.pathname.includes('/api-keys');
+
+      if (!isApiKeysDataRequest) {
+        await route.continue();
+        return;
+      }
+
+      intercepted = true;
+      const response = await route.fetch();
+      await navigationGate;
+      await route.fulfill({ response });
+    };
+
+    await page.route('**/*', delayApiKeysData);
+
+    if (viewport.width < 1024) {
+      await page.getByRole('button', { name: 'Open navigation menu' }).click();
+    }
+
+    await page.getByRole('link', { name: 'API keys', exact: true }).click();
+    await expect.poll(() => intercepted).toBe(true);
+    await expect(page.getByTestId('user-area-navigation-skeleton')).toBeVisible();
+    await expect(page.locator('#main-content')).toHaveAttribute('aria-busy', 'true');
+
+    if (viewport.width < 1024) {
+      await page.keyboard.press('Escape');
+    }
+
+    await expectNoHorizontalOverflow(page);
+    await captureEvidence(page, `user-area-navigation-loading-${viewport.theme}-${viewport.width}.jpg`);
+    releaseNavigation();
+    await expectUserAreaReady(page, 'API keys');
+    await expect(page.getByTestId('user-area-navigation-skeleton')).toHaveCount(0);
+    await expect(page.locator('#main-content')).not.toHaveAttribute('aria-busy', 'true');
+    await page.unroute('**/*', delayApiKeysData);
+  }
+});
+
 test('async user-area panels recover from an unavailable API without exposing fallback controls', async ({ page }) => {
   test.skip(
     process.env.UI_UX_FAULT_API_UNAVAILABLE !== '1',
@@ -494,6 +558,20 @@ test('async user-area panels recover from an unavailable API without exposing fa
   await installHydrationObserver(page);
 
   const surfaces = [
+    {
+      path: '/dashboard',
+      heading: 'Dashboard',
+      errorHeading: 'Dashboard could not load',
+      evidenceName: 'dashboard-error',
+      hiddenControl: () => page.locator('#main-content').getByRole('link', { name: 'New project' }),
+    },
+    {
+      path: '/api-keys',
+      heading: 'API keys',
+      errorHeading: 'API keys could not load',
+      evidenceName: 'api-keys-error',
+      hiddenControl: () => page.getByRole('button', { name: 'Create key' }),
+    },
     {
       path: '/organization-members?orgId=fault-injection',
       heading: 'Organization members',

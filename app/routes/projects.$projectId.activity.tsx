@@ -9,6 +9,7 @@ import { projectPageLoader } from '~/lib/project-route.server';
 type ActivityData = { activity: Array<{ id: string; action: string; createdAt?: string; metadata?: unknown }> };
 
 export const meta: MetaFunction = () => [{ title: 'Project activity - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<ActivityData>(args, (projectId) => `/projects/${projectId}/activity`);
 

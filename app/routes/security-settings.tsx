@@ -8,6 +8,7 @@ import { apiRequest, json, type EnterpriseLoaderArgs } from '~/lib/enterprise-ap
 import { isReauthRedirect } from '~/lib/route-reauth';
 
 export const meta: MetaFunction = () => [{ title: 'Security settings - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const result = await apiRequest<{ user?: { mfaEnabled?: boolean } }>(request, '/auth/me').then(

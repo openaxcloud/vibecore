@@ -6,6 +6,8 @@ import type { EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { formatAbsoluteTime } from '~/lib/format-relative';
 import { projectPageLoader, type ProjectRecord } from '~/lib/project-route.server';
 
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
+
 type DashboardData = {
   project: ProjectRecord;
   workspace: { id: string; status: string; runtimeMode: string } | null;

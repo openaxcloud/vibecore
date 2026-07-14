@@ -27,6 +27,7 @@ type SettingsData = {
 };
 
 export const meta: MetaFunction = () => [{ title: 'Project settings - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<SettingsData>(args, (projectId) => `/projects/${projectId}/settings`);
 export const action = (args: EnterpriseActionArgs) =>

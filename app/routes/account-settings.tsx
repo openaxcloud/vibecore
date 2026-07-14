@@ -4,6 +4,7 @@ import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { classNames } from '~/utils/classNames';
 
 export const meta: MetaFunction = () => [{ title: 'Account settings - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 /*
  * Canonical account settings hub (H23). Profile, connected accounts and data &

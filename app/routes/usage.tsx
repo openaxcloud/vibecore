@@ -46,6 +46,7 @@ type UsageData = {
 };
 
 export const meta: MetaFunction = () => [{ title: 'Usage - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);

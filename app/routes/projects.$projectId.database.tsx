@@ -67,6 +67,7 @@ type LoaderData = {
 };
 
 export const meta: MetaFunction = () => [{ title: 'Database restore - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 export async function loader(args: EnterpriseLoaderArgs) {
   const { request, params } = args;

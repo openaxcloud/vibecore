@@ -9,6 +9,7 @@ import { projectLifecycle, projectLifecycleDisplayLabel } from '~/lib/project-ca
 import { isReauthRedirect } from '~/lib/route-reauth';
 
 export const meta: MetaFunction = () => [{ title: 'Recent projects - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 type ApiProject = {
   id: string;

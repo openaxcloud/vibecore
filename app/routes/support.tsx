@@ -80,6 +80,7 @@ function categoryLabel(category: string | undefined) {
 }
 
 export const meta: MetaFunction = () => [{ title: 'Support - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   try {

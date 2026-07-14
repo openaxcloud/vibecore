@@ -32,6 +32,7 @@ type InvoicesResponse = {
 };
 
 export const meta: MetaFunction = () => [{ title: 'Invoices - E-Code' }];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 const invoiceEuroFormatter = new Intl.NumberFormat('en-GB', {
   style: 'currency',

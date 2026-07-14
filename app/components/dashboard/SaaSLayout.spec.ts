@@ -11,6 +11,7 @@ import {
   publicFooterUtilityLinks,
   publicMarketingMenus,
   publicNav,
+  shouldShowUserAreaNavigationSkeleton,
 } from './SaaSLayout';
 import {
   type CommandPaletteItem,
@@ -110,6 +111,37 @@ describe('public marketing brand', () => {
     expect(extractCssRule(stylesSource, '.vc-keyboard-shortcut')).toContain('display: none');
     expect(projectMenuSource).toContain('className="flex h-[44px] w-[44px]');
     expect(projectMenuSource).toContain('className="min-h-[44px]"');
+  });
+
+  it('shows a local skeleton only while navigating between non-IDE user-area routes', () => {
+    expect(
+      shouldShowUserAreaNavigationSkeleton({
+        currentPathname: '/dashboard',
+        targetPathname: '/api-keys',
+        navigationState: 'loading',
+      }),
+    ).toBe(true);
+    expect(
+      shouldShowUserAreaNavigationSkeleton({
+        currentPathname: '/dashboard',
+        targetPathname: '/projects/project-1/ide',
+        navigationState: 'loading',
+      }),
+    ).toBe(false);
+    expect(
+      shouldShowUserAreaNavigationSkeleton({
+        currentPathname: '/billing',
+        targetPathname: '/billing',
+        navigationState: 'submitting',
+      }),
+    ).toBe(false);
+    expect(
+      shouldShowUserAreaNavigationSkeleton({
+        currentPathname: '/dashboard',
+        targetPathname: '/pricing',
+        navigationState: 'loading',
+      }),
+    ).toBe(false);
   });
 
   it('keeps the guided tour non-modal, resumable from help, and responsive', () => {
