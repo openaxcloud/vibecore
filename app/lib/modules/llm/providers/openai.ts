@@ -217,17 +217,34 @@ export default class OpenAIProvider extends BaseProvider {
       maxCompletionTokens: 4096,
     },
 
-    // o1-preview: 128k context, 32k output limit (reasoning model)
+    /*
+     * Reasoning models. o1-preview / o1-mini were deprecated by OpenAI (they 404);
+     * replaced 2026-07-13 with their live-confirmed successors on the platform key
+     * (drove a real /api/chat turn each, org cmpdblp23…): o1, o3-mini and o3 all
+     * generated. o4-mini was inconclusive on the key so it's intentionally omitted
+     * (no dead ids). 200k context; reasoning-model completion ceilings.
+     */
     {
-      name: 'o1-preview',
-      label: 'o1-preview',
+      name: 'o1',
+      label: 'o1',
       provider: 'OpenAI',
-      maxTokenAllowed: 128000,
-      maxCompletionTokens: 32000,
+      maxTokenAllowed: 200000,
+      maxCompletionTokens: 100000,
     },
-
-    // o1-mini: 128k context, 65k output limit (reasoning model)
-    { name: 'o1-mini', label: 'o1-mini', provider: 'OpenAI', maxTokenAllowed: 128000, maxCompletionTokens: 65000 },
+    {
+      name: 'o3-mini',
+      label: 'o3-mini',
+      provider: 'OpenAI',
+      maxTokenAllowed: 200000,
+      maxCompletionTokens: 100000,
+    },
+    {
+      name: 'o3',
+      label: 'o3',
+      provider: 'OpenAI',
+      maxTokenAllowed: 200000,
+      maxCompletionTokens: 100000,
+    },
   ];
 
   async getDynamicModels(

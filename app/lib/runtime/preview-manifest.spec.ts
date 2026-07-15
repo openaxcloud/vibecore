@@ -125,8 +125,7 @@ describe('preview manifest repair', () => {
         dependencies: { react: '^19.0.0', 'react-dom': '^19.0.0', vite: '^5.4.19' },
       }),
       'index.html': '<div id="root"></div><script type="module" src="/src/main.tsx"></script>',
-      'src/main.tsx':
-        "import { createRoot } from 'react-dom/client';\nimport App from './App';\ncreateRoot(document.getElementById('root')!).render(<App />);\n",
+      'src/main.tsx': "import { createRoot } from 'react-dom/client';\nimport App from './App';\ncreateRoot(document.getElementById('root')!).render(<App />);\n",
       'src/App.tsx': 'export default function App() { return <main>Hi</main>; }\n',
     });
 
@@ -144,10 +143,8 @@ describe('preview manifest repair', () => {
         dependencies: { react: '^17.0.2', 'react-dom': '^17.0.2', vite: '^5.4.19' },
       }),
       'index.html': '<div id="root"></div><script type="module" src="/src/main.tsx"></script>',
-
       // Legacy React 17 entry — ReactDOM.render, no createRoot.
-      'src/main.tsx':
-        "import React from 'react';\nimport ReactDOM from 'react-dom';\nimport App from './App';\nReactDOM.render(<App />, document.getElementById('root'));\n",
+      'src/main.tsx': "import React from 'react';\nimport ReactDOM from 'react-dom';\nimport App from './App';\nReactDOM.render(<App />, document.getElementById('root'));\n",
       'src/App.tsx': 'export default function App() { return <main>Hi</main>; }\n',
     });
 

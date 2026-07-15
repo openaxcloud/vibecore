@@ -1,7 +1,7 @@
 /* eslint-disable import/order */
 import { useStore } from '@nanostores/react';
-import EcodeBrandMark from './components/brand/EcodeBrandMark';
-import type { LinksFunction } from 'react-router';
+import EcodeBootMark from './components/brand/EcodeBootMark';
+import type { LinksFunction, MetaFunction } from 'react-router';
 import {
   isRouteErrorResponse,
   Links,
@@ -10,8 +10,8 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-  useFetchers,
   useLocation,
+  useMatches,
   useNavigation,
   useRouteError,
 } from 'react-router';
@@ -51,6 +51,9 @@ const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
   exit: 'animated fadeOutRight',
 });
+
+/** Fallback metadata for routes that do not publish a more specific title. */
+export const meta: MetaFunction = () => [{ title: 'E-Code — AI application development platform' }];
 
 export const links: LinksFunction = () => [
   {
@@ -364,8 +367,11 @@ const inlineThemeCode = stripIndents`
  * event after React commits so the document is never mutated during hydration.
  */
 export function Layout({ children }: { children: React.ReactNode }) {
+  const matches = useMatches();
+  const language = resolveDocumentLanguage(matches);
+
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning>
+    <html lang={language} dir={language === 'ar' ? 'rtl' : 'ltr'} data-theme="dark" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -398,7 +404,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
  */
 function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const matches = useMatches();
   const showIdeBootFallback = /^\/projects\/[^/]+\/ide(?:\/|$)/.test(location.pathname);
+
+  const serverRendersRoute = matches.some((match) => {
+    const handle = match.handle;
+
+    return Boolean(
+      handle && typeof handle === 'object' && 'serverRenderedMarketing' in handle && handle.serverRenderedMarketing,
+    );
+  });
+
   const editorServiceWorkerInstalled = useRef(false);
 
   /*
@@ -431,13 +447,25 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <ClientOnly fallback={<AppBootFallback ide={showIdeBootFallback} />}>
-        {() => (
-          <I18nextProvider i18n={getI18nInstance()}>
-            <DndProvider backend={HTML5Backend}>{children}</DndProvider>
-          </I18nextProvider>
-        )}
-      </ClientOnly>
+      {serverRendersRoute ? (
+        <>
+          {/*
+           * Marketing routes keep their SSR content for crawlers and no-JS
+           * recovery, while this fixed fallback owns the first painted frame.
+           * ClientOnly removes it immediately after hydration.
+           */}
+          <ClientOnly fallback={<AppBootFallback ide={showIdeBootFallback} overlay />}>{() => null}</ClientOnly>
+          {children}
+        </>
+      ) : (
+        <ClientOnly fallback={<AppBootFallback ide={showIdeBootFallback} />}>
+          {() => (
+            <I18nextProvider i18n={getI18nInstance()}>
+              <DndProvider backend={HTML5Backend}>{children}</DndProvider>
+            </I18nextProvider>
+          )}
+        </ClientOnly>
+      )}
       <ClientOnly>{() => <GlobalRouteLoader />}</ClientOnly>
       <ClientOnly>{() => <AppToastContainer />}</ClientOnly>
       <ClientOnly>{() => <GlobalTooltip />}</ClientOnly>
@@ -445,24 +473,59 @@ function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AppBootFallback({ ide }: { ide: boolean }) {
+function resolveDocumentLanguage(matches: ReturnType<typeof useMatches>): 'en' | 'fr' | 'es' | 'ar' {
+  for (let index = matches.length - 1; index >= 0; index -= 1) {
+    const data = matches[index]?.data;
+
+    if (!data || typeof data !== 'object' || !('language' in data)) {
+      continue;
+    }
+
+    const language = (data as { language?: unknown }).language;
+
+    if (language === 'en' || language === 'fr' || language === 'es' || language === 'ar') {
+      return language;
+    }
+  }
+
+  return 'en';
+}
+
+function AppBootFallback({ ide, overlay = false }: { ide: boolean; overlay?: boolean }) {
   if (!ide) {
     return (
-      <main className="bolt-app-boot-fallback" aria-label="Loading E-Code" role="status">
-        <div className="bolt-app-boot-mark" aria-hidden />
-        <span>Loading E-Code</span>
+      <main
+        className={`ecode-app-boot-splash${overlay ? ' ecode-app-boot-splash--overlay' : ''}`}
+        data-ecode-boot-splash=""
+        aria-label="Loading E-Code"
+        aria-live="polite"
+        role="status"
+      >
+        <span className="ecode-app-boot-content">
+          <span className="ecode-app-boot-logo" aria-hidden="true">
+            <span className="ecode-app-boot-halo" />
+            <EcodeBootMark theme="auto" width={56} height={56} />
+          </span>
+          <span className="ecode-app-boot-label">Loading E-Code</span>
+        </span>
       </main>
     );
   }
 
   return (
-    <main className="bolt-ide-boot-fallback" aria-label="Loading project IDE" role="status">
-      <div className="bolt-ide-boot-topbar">
+    <main
+      className={`ecode-ide-boot-fallback${overlay ? ' ecode-ide-boot-fallback--overlay' : ''}`}
+      data-ecode-ide-boot-splash=""
+      aria-label="Loading E-Code IDE"
+      aria-live="polite"
+      role="status"
+    >
+      <div className="ecode-ide-boot-topbar">
         <span />
         <span />
         <span />
       </div>
-      <div className="bolt-ide-boot-body">
+      <div className="ecode-ide-boot-body">
         <aside>
           <span />
           <span />
@@ -479,7 +542,10 @@ function AppBootFallback({ ide }: { ide: boolean }) {
           <span />
         </aside>
       </div>
-      <span className="bolt-ide-boot-label">Loading project IDE</span>
+      <span className="ecode-ide-boot-brand">
+        <EcodeBootMark theme="auto" width={32} height={32} />
+        <span>Loading E-Code IDE</span>
+      </span>
     </main>
   );
 }
@@ -537,12 +603,14 @@ function AppToastContainer() {
 
 function GlobalRouteLoader() {
   const navigation = useNavigation();
-  const fetchers = useFetchers();
   const [visible, setVisible] = useState(false);
 
-  const loading =
-    navigation.state !== 'idle' ||
-    fetchers.some((fetcher) => fetcher.state === 'loading' || fetcher.state === 'submitting');
+  /*
+   * Background fetchers (for example the global impersonation probe) must not
+   * blank an already-rendered page. The branded splash represents a route
+   * transition only; individual fetcher surfaces own their local async state.
+   */
+  const loading = navigation.state !== 'idle';
 
   useEffect(() => {
     if (!loading) {
@@ -584,7 +652,7 @@ function GlobalRouteLoader() {
           <span className="relative inline-flex h-16 w-16 items-center justify-center">
             <span className="absolute inset-0 animate-ping rounded-full bg-[#F26207]/20" />
             <span className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#F26207]" />
-            <EcodeBrandMark size="lg" showText={false} gradientId="route-loader-gradient" />
+            <EcodeBootMark theme="auto" width={44} height={44} />
           </span>
           <span className="text-sm font-medium text-bolt-elements-textSecondary">Loading E-Code…</span>
         </div>
@@ -621,6 +689,7 @@ export default function App() {
   const location = useLocation();
 
   useEffect(() => {
+    document.documentElement.setAttribute('data-ecode-hydrated', 'true');
     window.dispatchEvent(new Event('ecode:hydrated'));
   }, []);
 
@@ -684,11 +753,11 @@ export default function App() {
     <AppShell>
       {/*
        * Mounted once at the app root so the impersonation indicator persists
-       * across every authenticated route (IDE, chat, project, dashboard). It
-       * self-checks via its own fetcher and renders nothing for normal
-       * sessions, so it's safe to render unconditionally here.
+       * across authenticated routes (IDE, chat, project, dashboard). Public
+       * marketing routes never carry an impersonated session, so they skip the
+       * status fetch entirely instead of leaving a background API probe open.
        */}
-      <ImpersonationBanner />
+      {isPublicMarketingPath(location.pathname) ? null : <ImpersonationBanner />}
       <AppErrorBoundary title="E-Code" boundaryId="app-root">
         <Outlet />
       </AppErrorBoundary>

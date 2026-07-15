@@ -571,6 +571,30 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json({ ok: true, rowId: provider, message: `Provider ${enabled ? 'enabled' : 'disabled'}.` });
     }
 
+    /*
+     * Set a provider's platform API key (write-only). The backend
+     * (POST /admin/providers/:provider/credentials) encrypts it into
+     * ProviderConfig.apiKeyEnc and the runtime resolves it DB-first. This is the UI
+     * that was missing — without it an admin could enable a provider but never give
+     * it a key, so every keyless provider stayed dead.
+     */
+    if (intent === 'provider-credentials') {
+      const provider = String(form.get('provider') ?? '');
+      const apiKey = String(form.get('apiKey') ?? '').trim();
+
+      if (!apiKey) {
+        return json({ ok: false, rowId: provider, error: 'Enter an API key.' }, { status: 400 });
+      }
+
+      await apiRequest(request, `/admin/providers/${encodeURIComponent(provider)}/credentials`, {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({ apiKey }),
+      });
+
+      return json({ ok: true, rowId: provider, message: `${provider} platform key saved.` });
+    }
+
     // F18: persist a new provider fallback order (the full reordered name list).
     if (intent === 'provider-reorder') {
       let order: string[];
@@ -2701,6 +2725,7 @@ type AdminProviderRow = {
   provider: string;
   displayName: string;
   enabled: boolean;
+  keyConfigured?: boolean;
   p95Ms?: number;
   errorPct?: number;
 };
@@ -2832,6 +2857,11 @@ function ProviderRow({
   const toggling = toggle.state !== 'idle';
   const enabled = row.enabled;
 
+  // Platform-key entry (write-only). Was entirely missing from the UI.
+  const saveKey = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const savingKey = saveKey.state !== 'idle';
+  const [keyDraft, setKeyDraft] = useState('');
+
   const p95Label = metricsAvailable && typeof row.p95Ms === 'number' ? `${row.p95Ms} ms` : '—';
   const errPct = metricsAvailable && typeof row.errorPct === 'number' ? row.errorPct : undefined;
   const errTone = errPct === undefined ? 'muted' : errorRateTone(errPct, thresholds);
@@ -2897,6 +2927,38 @@ function ProviderRow({
           <p className="mt-1.5 text-xs text-bolt-elements-textTertiary">Enter your password above first.</p>
         ) : null}
         <RowFeedback data={toggle.data} />
+
+        {/* Platform API key entry — the piece that was missing so no key could ever be set. */}
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <input
+            type="password"
+            value={keyDraft}
+            onChange={(event) => setKeyDraft(event.target.value)}
+            disabled={!password || savingKey}
+            autoComplete="off"
+            placeholder={row.keyConfigured ? 'Replace platform key' : 'Set platform key'}
+            aria-label={`${row.displayName} platform API key`}
+            data-testid={`provider-key-input-${row.provider}`}
+            className="min-h-8 w-44 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-xs text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary"
+          />
+          <button
+            type="button"
+            className={ROW_BTN}
+            disabled={!password || savingKey || !keyDraft.trim()}
+            data-testid={`provider-save-key-${row.provider}`}
+            onClick={() => {
+              saveKey.submit(
+                { intent: 'provider-credentials', provider: row.provider, apiKey: keyDraft, password },
+                { method: 'post' },
+              );
+              setKeyDraft('');
+            }}
+          >
+            {savingKey ? '…' : 'Save key'}
+          </button>
+          <StatusPill tone={row.keyConfigured ? 'ok' : 'muted'}>{row.keyConfigured ? 'key set' : 'no key'}</StatusPill>
+        </div>
+        <RowFeedback data={saveKey.data} />
       </td>
       <td className="px-4 py-3 text-bolt-elements-textSecondary">{p95Label}</td>
       <td className="px-4 py-3">

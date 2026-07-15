@@ -43,6 +43,7 @@ const importedEcodeRoutes = [
   '/solutions/game-builder',
   '/solutions/dashboard-builder',
   '/solutions/chatbot-builder',
+  '/solutions/internal-ai',
   '/solutions/internal-ai-builder',
   '/solutions/enterprise',
   '/solutions/startups',

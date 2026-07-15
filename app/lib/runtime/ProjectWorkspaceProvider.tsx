@@ -4,7 +4,7 @@ import { useEffect, useMemo, type PropsWithChildren } from 'react';
 import { createRuntimeAdapter, getRuntimeMode, RuntimeAdapterProvider } from '~/lib/runtime/RuntimeAdapterProvider';
 import { isTransientRuntimeError, withRuntimeRetry } from '~/lib/runtime/retry';
 import { workspaceQuotaPrompt } from '~/lib/runtime/workspace-quota';
-import { shouldReattachWarmWorkspace } from '~/lib/runtime/workspace-reattach';
+import { reseedWorkspacePreservingOnFailure, shouldReattachWarmWorkspace } from '~/lib/runtime/workspace-reattach';
 import { hasLivePreviewPort } from '~/lib/runtime/workspace-status';
 import { workbenchStore } from '~/lib/stores/workbench';
 
@@ -153,27 +153,41 @@ export function ProjectWorkspaceProvider({
                 : 'Previous preview cleanup skipped',
             );
           });
-          await clearRuntimeProjectTree(runtime).catch((error) => {
-            workbenchStore.appendWorkspaceLog(
-              error instanceof Error
-                ? `Project workspace cleanup skipped: ${error.message}`
-                : 'Project workspace cleanup skipped',
-            );
-          });
 
           try {
             await persistedFilesHydration;
 
             /*
+             * Non-destructive reseed: fetch + VALIDATE the storage archive BEFORE
+             * clearing the pod, so a failed export/import never leaves the pod
+             * wiped-but-unseeded (a reopen that momentarily destroyed the user's
+             * files). The wipe already preserves node_modules/.git (excluded from
+             * the runtime listing), so the whole path is now safe on failure.
+             *
              * The agent can be briefly unreachable right after a (re)provision —
              * slow gVisor startup under node CPU contention, or Service Endpoints
-             * lag — so the first seed call often hits a transient 502/agent-not-
-             * reachable. Retry through that window instead of failing on the first
-             * error (which previously tore the pod down).
+             * lag — so each remote step retries through that window instead of
+             * failing on the first error (which previously tore the pod down).
              */
-            await withRuntimeRetry(() => seedRuntimeFromProjectStorage(projectId, runtime), {
-              attempts: 5,
-              baseDelayMs: 1500,
+            await reseedWorkspacePreservingOnFailure({
+              fetchArchive: () =>
+                withRuntimeRetry(() => fetchProjectStorageArchive(projectId), {
+                  attempts: 5,
+                  baseDelayMs: 1500,
+                }),
+              clearTree: () =>
+                clearRuntimeProjectTree(runtime).catch((error) => {
+                  workbenchStore.appendWorkspaceLog(
+                    error instanceof Error
+                      ? `Project workspace cleanup skipped: ${error.message}`
+                      : 'Project workspace cleanup skipped',
+                  );
+                }),
+              applyArchive: (archive) =>
+                withRuntimeRetry(() => applyProjectStorageArchive(runtime, archive), {
+                  attempts: 5,
+                  baseDelayMs: 1500,
+                }),
             });
           } catch (error) {
             if (cancelled) {
@@ -347,7 +361,13 @@ export function ProjectWorkspaceProvider({
   );
 }
 
-async function seedRuntimeFromProjectStorage(projectId: string, runtime: RuntimeAdapter) {
+/**
+ * Fetch + VALIDATE the authoritative project-storage archive. Throws on a failed
+ * export or an empty archive so the caller can bail BEFORE wiping the pod (see
+ * reseedWorkspacePreservingOnFailure) — a corrupt/empty archive must never be
+ * treated as "the project has no files" and used to blank the workspace.
+ */
+async function fetchProjectStorageArchive(projectId: string): Promise<Uint8Array> {
   const response = await fetch(`/api/projects/${projectId}/project-action?intent=export`, {
     credentials: 'include',
     headers: { accept: 'application/zip' },
@@ -363,6 +383,10 @@ async function seedRuntimeFromProjectStorage(projectId: string, runtime: Runtime
     throw new Error('project export returned an empty archive');
   }
 
+  return archive;
+}
+
+async function applyProjectStorageArchive(runtime: RuntimeAdapter, archive: Uint8Array) {
   await runtime.importZip(archive, '.');
   workbenchStore.appendWorkspaceLog('Project files synced into workspace runtime');
 }

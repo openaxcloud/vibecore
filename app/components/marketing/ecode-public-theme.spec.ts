@@ -26,6 +26,7 @@ describe('E-Code public theme wrappers', () => {
 
   it('pins public marketing chrome to the homepage header theme and Tailwind scale', () => {
     const source = readFileSync(new URL('./ecode-exact/EcodeExactShell.tsx', import.meta.url), 'utf8');
+    const shellCopy = readFileSync(new URL('./ecode-exact/marketing-shell.copy.ts', import.meta.url), 'utf8');
     const styles = readFileSync(new URL('../../styles/index.scss', import.meta.url), 'utf8');
     const root = readFileSync(new URL('../../root.tsx', import.meta.url), 'utf8');
     const themeStore = readFileSync(new URL('../../lib/stores/theme.ts', import.meta.url), 'utf8');
@@ -56,8 +57,10 @@ describe('E-Code public theme wrappers', () => {
      * old inline 'System'/'Dark' string.
      */
     expect(source).toContain('getThemeSwitcherPresentation(theme)');
-    expect(source).toContain('Mobile Navigation Menu');
-    expect(source).toContain('Navigate through E-Code platform sections');
+    expect(source).toContain('{copy.a11y.mobileMenuTitle}');
+    expect(source).toContain('{copy.a11y.mobileMenuDescription}');
+    expect(shellCopy).toContain("mobileMenuTitle: 'Mobile navigation menu'");
+    expect(shellCopy).toContain("mobileMenuDescription: 'Navigate through E-Code platform sections'");
     expect(source).toContain('h-dvh max-h-dvh flex-col overflow-hidden');
     expect(source).toContain('min-h-0 flex-1');
     expect(source).toContain('pb-[calc(1rem+env(safe-area-inset-bottom,0px))]');

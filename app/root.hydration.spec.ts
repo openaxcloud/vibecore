@@ -15,6 +15,12 @@ describe('React Router document hydration contract', () => {
     expect(clientEntrySource).toContain('hydrateRoot(document, <HydratedRouter />)');
   });
 
+  it('keeps background fetchers from covering rendered pages with the route splash', () => {
+    expect(rootSource).not.toContain('useFetchers');
+    expect(rootSource).toContain("const loading = navigation.state !== 'idle'");
+    expect(rootSource).toContain('isPublicMarketingPath(location.pathname) ? null : <ImpersonationBanner />');
+  });
+
   it('defers persisted document preferences until React has hydrated', () => {
     const inlineThemeStart = rootSource.indexOf('const inlineThemeCode');
     const hydrationListenerStart = rootSource.indexOf("window.addEventListener('ecode:hydrated'");
@@ -26,7 +32,7 @@ describe('React Router document hydration contract', () => {
       /(?:setTutorialKitTheme|markDismissedAnnouncement|markSidebarCollapsed)\(\);/,
     );
     expect(rootSource).toMatch(
-      /useEffect\(\(\) => \{\s*window\.dispatchEvent\(new Event\('ecode:hydrated'\)\);\s*\}, \[\]\);/,
+      /useEffect\(\(\) => \{\s*document\.documentElement\.setAttribute\('data-ecode-hydrated', 'true'\);\s*window\.dispatchEvent\(new Event\('ecode:hydrated'\)\);\s*\}, \[\]\);/,
     );
   });
 });

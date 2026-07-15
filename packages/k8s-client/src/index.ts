@@ -145,6 +145,14 @@ export interface WorkspaceRuntimeInput {
   resourceLimits?: WorkspaceResourceLimits;
   tokenSecret?: string;
   storageClassName?: string;
+  /**
+   * Name of the cluster-wide ReadOnlyMany PVC holding the shared, pre-built Nix
+   * store. When set, it is mounted read-only at /nix (see workspacePod). When
+   * unset, the pod spec is unchanged — this is the kill switch: unset it and
+   * every workspace goes back to the pre-Nix behaviour with no redeploy of the
+   * agent image.
+   */
+  nixStorePvcName?: string;
   /** App-facing object storage env injected into the pod (apiUrl + access token). */
   objectStorage?: { apiUrl: string; accessToken: string };
 }
@@ -559,7 +567,30 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
                 valueFrom: { secretKeyRef: { name: input.agentTokenSecretName, key, optional: true } },
               })),
           ],
-          volumeMounts: [{ name: 'workspace', mountPath: '/workspace' }],
+          volumeMounts: [
+            { name: 'workspace', mountPath: '/workspace' },
+
+            /*
+             * Shared, pre-built, READ-ONLY Nix store (candidate E — see
+             * docs/RUNTIME_NIX_PHASE0_SPIKE.md). One disk, built once, attached
+             * read-only to every sandbox node and mounted at the CANONICAL /nix
+             * path — the store paths baked into it are prefixed with /nix/store,
+             * so a relocated store would be cache-invalid and would have to
+             * rebuild everything (fatal under gVisor).
+             *
+             * The store is never written to: the agent resolves package paths out
+             * of it and symlinks them into a per-project link farm on the
+             * workspace's OWN PVC (src/nix-env.ts). So /nix costs ZERO extra
+             * storage quota per project — which is why it must NEVER be given a
+             * PVC of its own (~2Gi x ~384 workspaces = +768Gi, quota blown).
+             *
+             * Absent `nixStorePvcName`, the pod spec is byte-for-byte what it was:
+             * existing Node workspaces are untouched.
+             */
+            ...(input.nixStorePvcName
+              ? [{ name: 'nix-store', mountPath: '/nix', readOnly: true }]
+              : []),
+          ],
           resources: {
             requests: { cpu: resources.cpuRequest, memory: resources.memoryRequest },
             limits: { cpu: resources.cpuLimit, memory: resources.memoryLimit },
@@ -607,7 +638,17 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
           },
         },
       ],
-      volumes: [{ name: 'workspace', persistentVolumeClaim: { claimName: input.pvcName } }],
+      volumes: [
+        { name: 'workspace', persistentVolumeClaim: { claimName: input.pvcName } },
+        ...(input.nixStorePvcName
+          ? [
+              {
+                name: 'nix-store',
+                persistentVolumeClaim: { claimName: input.nixStorePvcName, readOnly: true },
+              },
+            ]
+          : []),
+      ],
     },
   };
 }

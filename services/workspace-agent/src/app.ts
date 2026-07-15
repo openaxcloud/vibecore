@@ -188,7 +188,38 @@ export function sanitizedChildEnv(
     env.NODE_ENV = 'development';
   }
 
+  /*
+   * Put the project's Nix link farm on PATH so `python3` / `uv` / `ffmpeg` — the
+   * packages declared in its ecode.nix and materialised at boot by
+   * bootstrapNixEnv() — resolve for EVERY child: managed commands, terminals, the
+   * AI agent's shell actions. Without this the packages exist on disk and nothing
+   * can find them.
+   *
+   * Gated on the shared store actually being mounted, so on a pod with no /nix
+   * (i.e. every workspace in prod today) PATH is byte-for-byte unchanged.
+   */
+  const binDir = nixLinkFarmBin();
+
+  if (binDir) {
+    env.PATH = `${binDir}:${env.PATH ?? ''}`;
+  }
+
   return env;
+}
+
+/**
+ * The project's link-farm bin dir, or null when the shared Nix store isn't mounted.
+ * Exported for tests; `existsSync` is deliberate — this is on the hot path of every
+ * spawn and must not be async.
+ */
+export function nixLinkFarmBin(root = process.env.WORKSPACE_ROOT ?? '/workspace'): string | null {
+  if (!existsSync('/nix/store')) {
+    return null;
+  }
+
+  const binDir = join(root, '.ecode', 'bin');
+
+  return existsSync(binDir) ? binDir : null;
 }
 
 /*

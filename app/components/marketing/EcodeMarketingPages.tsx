@@ -904,7 +904,7 @@ export const marketingPages = {
       },
       {
         title: 'Next step',
-        body: 'Once a path is clear, E-Code turns the selected pattern into a project that can be edited, run and validated.',
+        body: 'Once a path is clear, E-Code turns the selected pattern into an editable project you run and validate.',
         items: ['Create project', 'Generate code', 'Review changes', 'Preview output'],
       },
     ],
@@ -1010,8 +1010,8 @@ export const solutionPages = {
   'app-builder': makeSolution(
     'app-builder',
     'App Builder',
-    'Rapidly prototype and deploy full-stack applications with AI-guided generation, real files and preview validation.',
-    ['SaaS apps', 'Customer portals', 'Admin dashboards', 'API-backed products'],
+    'Describe a business workflow and turn it into responsive screens, typed application logic, structured data and a deployable codebase.',
+    ['Responsive product screens', 'Typed routes and logic', 'Structured data model', 'Deployable source code'],
   ),
   'website-builder': makeSolution(
     'website-builder',
@@ -1521,7 +1521,7 @@ function makeSolution(
       },
       {
         title: 'Production workflow',
-        body: 'Every generated project should be inspectable, testable and ready for deployment planning.',
+        body: 'Every generated project stays inspectable, testable and ready for deployment planning.',
         items: ['Prompt to project', 'Code review', 'Runtime preview', 'Deployment path'],
       },
     ],

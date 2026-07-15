@@ -95,6 +95,7 @@ import { RelativeTime } from '~/components/ui/RelativeTime';
 import { SkipLink } from '~/components/ui/SkipLink';
 import { profileStore } from '~/lib/stores/profile';
 import { themeStore, toggleTheme } from '~/lib/stores/theme';
+import { statusDisplayLabel } from '~/lib/user-facing-labels';
 import { classNames } from '~/utils/classNames';
 
 type Icon = LucideIcon;
@@ -1281,7 +1282,7 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
               )}
               aria-hidden
             />
-            {project.status ?? 'Ready'}
+            {statusDisplayLabel(project.status ?? 'Ready')}
           </span>
         </div>
         <div className="flex items-center justify-between text-xs text-bolt-elements-textSecondary">

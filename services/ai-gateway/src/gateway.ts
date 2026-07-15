@@ -1,4 +1,5 @@
 import { clampGatewayOutputBudget, estimateGatewayOutputBudget } from './gateway-output-budget.js';
+import { applyGeminiCache, invalidateGeminiCache, logGeminiCacheUsage } from './gemini-cache.js';
 
 export type AiProviderId =
   | 'openai'
@@ -8,6 +9,7 @@ export type AiProviderId =
   | 'mistral'
   | 'groq'
   | 'xai'
+  | 'moonshot'
   | 'ollama';
 
 export type AiPlanKey = 'free' | 'pro' | 'business' | 'enterprise' | 'self-host';
@@ -139,6 +141,13 @@ export function providerConfigs(): ProviderConfig[] {
       defaultModel: 'grok-2-latest',
     },
     {
+      id: 'moonshot',
+      kind: 'openai-compatible',
+      baseUrl: process.env.MOONSHOT_BASE_URL ?? 'https://api.moonshot.ai/v1',
+      apiKeyEnv: 'MOONSHOT_API_KEY',
+      defaultModel: 'moonshot-v1-8k',
+    },
+    {
       id: 'ollama',
       kind: 'ollama',
       baseUrl: process.env.OLLAMA_BASE_URL ?? 'http://127.0.0.1:11434',
@@ -253,6 +262,262 @@ export const modelCatalog: AiModel[] = [
     inputCentsPerMillion: 0,
     outputCentsPerMillion: 0,
     contextWindow: 128_000,
+  },
+
+  /*
+   * Catalogue synced 2026-07-13 with the web providers so a multi-agent lane runs
+   * the EXACT model the user chose (previously an id the gateway didn't know was
+   * silently downgraded via planFallback — a product lie). Pricing is approximate
+   * (cost ESTIMATE only; real billing is computeAiCostCents on the api side).
+   */
+  // --- OpenAI ---
+  {
+    id: 'gpt-4.1-nano',
+    provider: 'openai',
+    displayName: 'GPT-4.1 Nano',
+    plans: ['free', 'pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 10,
+    outputCentsPerMillion: 40,
+    contextWindow: 1_000_000,
+    maxCompletionTokens: 32768,
+  },
+  {
+    id: 'gpt-4o',
+    provider: 'openai',
+    displayName: 'GPT-4o',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 250,
+    outputCentsPerMillion: 1000,
+    contextWindow: 128_000,
+    maxCompletionTokens: 16384,
+  },
+  {
+    id: 'gpt-4o-mini',
+    provider: 'openai',
+    displayName: 'GPT-4o Mini',
+    plans: ['free', 'pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 15,
+    outputCentsPerMillion: 60,
+    contextWindow: 128_000,
+    maxCompletionTokens: 16384,
+  },
+  {
+    id: 'gpt-3.5-turbo',
+    provider: 'openai',
+    displayName: 'GPT-3.5 Turbo',
+    plans: ['free', 'pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 50,
+    outputCentsPerMillion: 150,
+    contextWindow: 16_000,
+    maxCompletionTokens: 4096,
+  },
+  {
+    id: 'o1',
+    provider: 'openai',
+    displayName: 'o1',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 1500,
+    outputCentsPerMillion: 6000,
+    contextWindow: 200_000,
+    maxCompletionTokens: 100000,
+  },
+  {
+    id: 'o3-mini',
+    provider: 'openai',
+    displayName: 'o3-mini',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 110,
+    outputCentsPerMillion: 440,
+    contextWindow: 200_000,
+    maxCompletionTokens: 100000,
+  },
+  {
+    id: 'o3',
+    provider: 'openai',
+    displayName: 'o3',
+    plans: ['business', 'enterprise'],
+    inputCentsPerMillion: 1000,
+    outputCentsPerMillion: 4000,
+    contextWindow: 200_000,
+    maxCompletionTokens: 100000,
+  },
+
+  // --- Anthropic ---
+  {
+    id: 'claude-opus-4-8',
+    provider: 'anthropic',
+    displayName: 'Claude Opus 4.8',
+    plans: ['business', 'enterprise'],
+    inputCentsPerMillion: 1500,
+    outputCentsPerMillion: 7500,
+    contextWindow: 1_000_000,
+    maxCompletionTokens: 128000,
+  },
+  {
+    id: 'claude-sonnet-4-6',
+    provider: 'anthropic',
+    displayName: 'Claude Sonnet 4.6',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 300,
+    outputCentsPerMillion: 1500,
+    contextWindow: 1_000_000,
+    maxCompletionTokens: 64000,
+  },
+  {
+    id: 'claude-sonnet-4-5-20250929',
+    provider: 'anthropic',
+    displayName: 'Claude Sonnet 4.5',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 300,
+    outputCentsPerMillion: 1500,
+    contextWindow: 200_000,
+    maxCompletionTokens: 64000,
+  },
+  {
+    id: 'claude-opus-4-7',
+    provider: 'anthropic',
+    displayName: 'Claude Opus 4.7',
+    plans: ['business', 'enterprise'],
+    inputCentsPerMillion: 1500,
+    outputCentsPerMillion: 7500,
+    contextWindow: 200_000,
+    maxCompletionTokens: 32000,
+  },
+  {
+    id: 'claude-haiku-4-5-20251001',
+    provider: 'anthropic',
+    displayName: 'Claude Haiku 4.5',
+    plans: ['free', 'pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 100,
+    outputCentsPerMillion: 500,
+    contextWindow: 200_000,
+    maxCompletionTokens: 64000,
+  },
+
+  // --- Google ---
+  {
+    id: 'gemini-flash-lite-latest',
+    provider: 'google-gemini',
+    displayName: 'Gemini Flash Lite (latest)',
+    plans: ['free', 'pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 10,
+    outputCentsPerMillion: 40,
+    contextWindow: 1_048_576,
+    maxCompletionTokens: 65536,
+  },
+
+  // --- xAI ---
+  {
+    id: 'grok-4',
+    provider: 'xai',
+    displayName: 'Grok 4',
+    plans: ['business', 'enterprise'],
+    inputCentsPerMillion: 300,
+    outputCentsPerMillion: 1500,
+    contextWindow: 256_000,
+    maxCompletionTokens: 32768,
+  },
+  {
+    id: 'grok-4-07-09',
+    provider: 'xai',
+    displayName: 'Grok 4 (07-09)',
+    plans: ['business', 'enterprise'],
+    inputCentsPerMillion: 300,
+    outputCentsPerMillion: 1500,
+    contextWindow: 256_000,
+    maxCompletionTokens: 32768,
+  },
+  {
+    id: 'grok-3-mini',
+    provider: 'xai',
+    displayName: 'Grok 3 Mini',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 30,
+    outputCentsPerMillion: 50,
+    contextWindow: 131_000,
+    maxCompletionTokens: 16384,
+  },
+  {
+    id: 'grok-3-mini-fast',
+    provider: 'xai',
+    displayName: 'Grok 3 Mini Fast',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 60,
+    outputCentsPerMillion: 100,
+    contextWindow: 131_000,
+    maxCompletionTokens: 16384,
+  },
+  {
+    id: 'grok-code-fast-1',
+    provider: 'xai',
+    displayName: 'Grok Code Fast 1',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 20,
+    outputCentsPerMillion: 150,
+    contextWindow: 131_000,
+    maxCompletionTokens: 16384,
+  },
+
+  // --- Moonshot (openai-compatible) ---
+  {
+    id: 'moonshot-v1-8k',
+    provider: 'moonshot',
+    displayName: 'Moonshot v1 8k',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 120,
+    outputCentsPerMillion: 120,
+    contextWindow: 8_000,
+    maxCompletionTokens: 4096,
+  },
+  {
+    id: 'moonshot-v1-32k',
+    provider: 'moonshot',
+    displayName: 'Moonshot v1 32k',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 240,
+    outputCentsPerMillion: 240,
+    contextWindow: 32_000,
+    maxCompletionTokens: 8192,
+  },
+  {
+    id: 'moonshot-v1-128k',
+    provider: 'moonshot',
+    displayName: 'Moonshot v1 128k',
+    plans: ['business', 'enterprise'],
+    inputCentsPerMillion: 600,
+    outputCentsPerMillion: 600,
+    contextWindow: 128_000,
+    maxCompletionTokens: 8192,
+  },
+  {
+    id: 'kimi-latest',
+    provider: 'moonshot',
+    displayName: 'Kimi (latest)',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 200,
+    outputCentsPerMillion: 500,
+    contextWindow: 128_000,
+    maxCompletionTokens: 8192,
+  },
+  {
+    id: 'kimi-k2-0711-preview',
+    provider: 'moonshot',
+    displayName: 'Kimi K2',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 60,
+    outputCentsPerMillion: 250,
+    contextWindow: 128_000,
+    maxCompletionTokens: 8192,
+  },
+  {
+    id: 'kimi-k2-turbo-preview',
+    provider: 'moonshot',
+    displayName: 'Kimi K2 Turbo',
+    plans: ['pro', 'business', 'enterprise'],
+    inputCentsPerMillion: 120,
+    outputCentsPerMillion: 500,
+    contextWindow: 128_000,
+    maxCompletionTokens: 8192,
   },
 ];
 
@@ -826,6 +1091,60 @@ export function resolveMaxOutputTokens(request: AiChatRequest, model: string): n
   return clampGatewayOutputBudget(estimate, modelCeiling);
 }
 
+/** djb2 hash of a string → short base36. Never for billing; keys the prompt-cache routing hint. */
+function hashString(text: string): string {
+  let h = 5381;
+
+  for (let i = 0; i < text.length; i++) {
+    h = (h * 33) ^ text.charCodeAt(i);
+  }
+
+  return (h >>> 0).toString(36);
+}
+
+/**
+ * Stable `prompt_cache_key` for the OpenAI-compatible path (mirrors the main
+ * chat's stable-head keying that drove OpenAI's 95% cache hit-rate). Keyed to the
+ * SYSTEM prefix (SHARED_AGENT_SYSTEM_PREAMBLE + shared context) — byte-identical
+ * across every lane of a multi-agent run and across turns — so OpenAI routes all
+ * those requests to the same cache node and serves the shared prefix from cache
+ * instead of re-billing it per lane. Org-scoped so two orgs never share a key.
+ * `prompt_cache_key` is NOT part of the cached prefix (routing hint only), so the
+ * prompt bytes are unchanged; unsupported openai-compatible upstreams ignore it.
+ */
+export function openAiPromptCacheKey(request: AiChatRequest): string {
+  /*
+   * Key on the SHARED prefix — every message EXCEPT the last (the per-lane role
+   * instruction) — so all lanes of ONE multi-agent fan-out route to the same cache
+   * node (OpenAI then serves the shared system + shared context from its automatic
+   * prefix cache), while distinct fan-outs with a different shared context don't
+   * collide on one key. Was keyed on the system block only, which missed the large
+   * shared context that rides as user messages.
+   */
+  const shared = request.messages
+    .slice(0, -1)
+    .map((message) => message.content)
+    .join('\n\n');
+
+  const scope = request.organizationId ?? 'anon';
+
+  return `ecode-${scope}-${hashString(shared)}`;
+}
+
+/** chars≈tokens/4 estimate (never for billing) — gates the shared-message breakpoint. */
+function estimateTokensFromText(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * Anthropic minimum cacheable prefix (tokens), per model. Below this Anthropic
+ * silently ignores `cache_control`, so we gate the shared-message breakpoint on it.
+ * Haiku's effective minimum is higher (~2048); Sonnet/Opus 1024.
+ */
+function anthropicCacheMinTokens(model: string): number {
+  return /haiku/i.test(model) ? 2048 : 1024;
+}
+
 function openAiPayload(request: AiChatRequest, model: string, stream: boolean) {
   return {
     model,
@@ -843,33 +1162,68 @@ function openAiPayload(request: AiChatRequest, model: string, stream: boolean) {
      * openai-compatible upstreams (spec-safe `user` field).
      */
     ...(request.organizationId ? { user: request.organizationId } : {}),
+
+    /*
+     * `prompt_cache_key`: finer-grained cache routing than `user` — keyed to the
+     * stable SYSTEM prefix so ALL lanes of a run (and successive turns) land on the
+     * same cache node, the mechanism behind the main chat's 95% OpenAI hit-rate.
+     * Spec-safe extra field: openai-compatible upstreams that don't support it
+     * (incl. xAI) ignore it; it never changes the cached prompt bytes.
+     */
+    prompt_cache_key: openAiPromptCacheKey(request),
     ...optionalTemperature(request, model),
   };
 }
 
-function anthropicPayload(request: AiChatRequest, model: string, stream: boolean) {
+export function anthropicPayload(request: AiChatRequest, model: string, stream: boolean) {
   const system = request.messages
     .filter((message) => message.role === 'system')
     .map((message) => message.content)
     .join('\n\n');
-  const messages = request.messages
+  const messages: Array<{ role: string; content: unknown }> = request.messages
     .filter((message) => message.role !== 'system')
     .map((message) => ({ role: message.role === 'assistant' ? 'assistant' : 'user', content: message.content }));
+
+  /*
+   * SHARED-MESSAGE breakpoint (the multi-agent win). In a fan-out the heavy shared
+   * context rides as USER messages (all but the LAST, which is the per-lane role
+   * instruction), so a system-only breakpoint missed it. Put a second
+   * `cache_control` on the last SHARED message (messages[len-2]) so Anthropic caches
+   * the whole shared prefix (system + shared messages) and re-bills it at ~10% on
+   * lanes 2..N. Default (5-min) TTL: the shared context is per-turn, but all N lanes
+   * fire within seconds. Gated on the shared prefix clearing the per-model minimum
+   * (else Anthropic ignores it) — a no-op for the short api→gateway completion path.
+   * Fail-safe: any issue leaves `messages` as plain strings (no breakpoint, still valid).
+   */
+  try {
+    if (messages.length >= 2) {
+      const sharedText = `${system}\n\n${messages
+        .slice(0, -1)
+        .map((m) => String(m.content))
+        .join('\n\n')}`;
+
+      if (estimateTokensFromText(sharedText) >= anthropicCacheMinTokens(model)) {
+        const boundary = messages.length - 2;
+        messages[boundary] = {
+          role: messages[boundary].role,
+          content: [{ type: 'text', text: String(messages[boundary].content), cache_control: { type: 'ephemeral' } }],
+        };
+      }
+    }
+  } catch {
+    // leave messages untouched — the generation still runs, just without the extra breakpoint
+  }
 
   return {
     model,
 
     /*
-     * Mark the system prefix as a cache breakpoint. The gateway's system is FULLY
-     * stable — either the hoisted SHARED_AGENT_SYSTEM_PREAMBLE (identical across
-     * every lane of a multi-agent run, re-sent each turn) or the short fixed
-     * system of the regular api→gateway completion path (no variable tail, no
-     * sentinel is ever forwarded here). So the whole thing is one cacheable head:
-     * `ttl: '1h'` keeps it warm ACROSS turns (not just the 5-minute default), and
-     * Anthropic serves it from cache (~10% input price) instead of re-billing it.
-     * A string system stays a plain string when there's nothing to cache. Below
-     * Anthropic's ~1024-token minimum this is a silent no-op, never an error; if
-     * the account lacks the extended-ttl beta the ttl is ignored (5min fallback).
+     * System-prefix breakpoint: the hoisted SHARED_AGENT_SYSTEM_PREAMBLE (identical
+     * across lanes, re-sent each turn) or the short api→gateway system. `ttl: '1h'`
+     * keeps it warm across turns; Anthropic serves it at ~10% input price. Below the
+     * ~1024-token minimum this is a silent no-op; missing extended-ttl beta → 5-min
+     * fallback. The shared-MESSAGE breakpoint above extends caching to the shared
+     * user context (the real multi-lane cost).
      */
     system: system ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral', ttl: '1h' } }] : undefined,
     messages,
@@ -932,20 +1286,29 @@ async function providerCompletion(config: ProviderConfig, request: AiChatRequest
   }
 
   if (config.kind === 'gemini') {
-    const key = bearer(config);
-    return extractContent(
-      await readJson(
-        await fetch(
-          `${config.baseUrl.replace(/\/+$/, '')}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key ?? '')}`,
-          {
-            method: 'POST',
-            headers: headers(config),
-            body: JSON.stringify(geminiPayload(request, model)),
-            signal: reqSignal,
-          },
-        ),
-      ),
-    );
+    const key = bearer(config) ?? '';
+    const url = `${config.baseUrl.replace(/\/+$/, '')}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+    const base = geminiPayload(request, model) as Record<string, unknown>;
+
+    // Explicit cachedContents: reference the stable systemInstruction by name (see gemini-cache.ts).
+    const cached = await applyGeminiCache(config.baseUrl, key, model, base);
+
+    const send = (body: Record<string, unknown>) =>
+      fetch(url, { method: 'POST', headers: headers(config), body: JSON.stringify(body), signal: reqSignal });
+
+    let response = await send(cached.payload);
+
+    // Fail-safe: a stale/invalid cachedContent name 4xxs — retry once with the inline-system original.
+    if (cached.usedCache && !response.ok) {
+      invalidateGeminiCache(key, model, cached.keyText);
+      await response.body?.cancel().catch(() => {});
+      response = await send(base);
+    }
+
+    const json = await readJson(response);
+    logGeminiCacheUsage(json);
+
+    return extractContent(json);
   }
 
   return extractContent(
@@ -974,7 +1337,8 @@ async function* providerStream(
         : config.kind === 'ollama'
           ? `${config.baseUrl.replace(/\/+$/, '')}/api/chat`
           : `${config.baseUrl.replace(/\/+$/, '')}/chat/completions`;
-  const body =
+
+  let body: unknown =
     config.kind === 'anthropic'
       ? anthropicPayload(request, model, true)
       : config.kind === 'gemini'
@@ -982,6 +1346,25 @@ async function* providerStream(
         : config.kind === 'ollama'
           ? { model, messages: request.messages, stream: true }
           : openAiPayload(request, model, true);
+
+  /*
+   * Gemini explicit cachedContents (see gemini-cache.ts): swap the inline
+   * systemInstruction for a `cachedContent` reference so the heavy shared
+   * multi-agent prefix is billed once, not per lane. Fail-safe — a stale name
+   * 4xxs and is retried inline below.
+   */
+  let geminiCache: { usedCache: boolean; keyText: string } | undefined;
+
+  if (config.kind === 'gemini') {
+    const applied = await applyGeminiCache(
+      config.baseUrl,
+      bearer(config) ?? '',
+      model,
+      body as Record<string, unknown>,
+    );
+    body = applied.payload;
+    geminiCache = { usedCache: applied.usedCache, keyText: applied.keyText };
+  }
 
   /*
    * Bound only the CONNECT/headers phase with 60s, then clear it. A fixed
@@ -1007,6 +1390,22 @@ async function* providerStream(
     });
   } finally {
     clearTimeout(connectTimer);
+  }
+
+  /*
+   * Gemini cache fail-safe: a stale/invalid cachedContent name 4xxs the whole
+   * generate call — invalidate and retry ONCE with the inline-system original so
+   * the stream always runs (worst case: one wasted round-trip).
+   */
+  if (config.kind === 'gemini' && geminiCache?.usedCache && !response.ok) {
+    invalidateGeminiCache(bearer(config) ?? '', model, geminiCache.keyText);
+    await response.body?.cancel().catch(() => {});
+    response = await fetch(url, {
+      method: 'POST',
+      headers: headers(config),
+      body: JSON.stringify(geminiPayload(request, model)),
+      signal: upstreamSignal,
+    });
   }
 
   if (!response.ok || !response.body) {
@@ -1058,6 +1457,52 @@ async function* providerStream(
   const decoder = new TextDecoder();
 
   let buffer = '';
+
+  /*
+   * Cache-usage observability for the STREAM path (parity with providerCompletion's
+   * logAnthropicCacheUsage / logGeminiCacheUsage). The multi-agent lanes stream, so
+   * without this the shared-context cache-hit was invisible. The provider carries its
+   * cache accounting in the FIRST SSE event — Anthropic `message_start.usage`
+   * (cache_read/creation_input_tokens), Gemini `usageMetadata.cachedContentTokenCount`
+   * — so we scan each full SSE line and log once. Read-only, best-effort.
+   */
+  let streamCacheLogged = false;
+
+  const scanStreamCacheUsage = (rawLine: string): void => {
+    if (streamCacheLogged) {
+      return;
+    }
+
+    try {
+      if (config.kind === 'anthropic') {
+        const read = Number(rawLine.match(/"cache_read_input_tokens"\s*:\s*(\d+)/)?.[1] ?? 0);
+        const write = Number(rawLine.match(/"cache_creation_input_tokens"\s*:\s*(\d+)/)?.[1] ?? 0);
+
+        if (read > 0 || write > 0) {
+          console.info(
+            JSON.stringify({
+              event: 'ai-gateway.anthropic.cache',
+              cacheReadInputTokens: read,
+              cacheCreationInputTokens: write,
+              stream: true,
+            }),
+          );
+          streamCacheLogged = true;
+        }
+      } else if (config.kind === 'gemini') {
+        const cached = Number(rawLine.match(/"cachedContentTokenCount"\s*:\s*(\d+)/)?.[1] ?? 0);
+
+        if (cached > 0) {
+          console.info(
+            JSON.stringify({ event: 'ai-gateway.gemini.cache', cachedContentTokenCount: cached, stream: true }),
+          );
+          streamCacheLogged = true;
+        }
+      }
+    } catch {
+      // observability only — never affect the stream
+    }
+  };
 
   /*
    * Idle (between-chunk) timeout. The connect timeout only bounds time-to-headers;
@@ -1137,6 +1582,8 @@ async function* providerStream(
       buffer = lines.pop() ?? '';
 
       for (const rawLine of lines) {
+        scanStreamCacheUsage(rawLine);
+
         const delta = parseLine(rawLine);
 
         if (delta) {
@@ -1210,9 +1657,30 @@ export class AiGateway {
      */
     if (request.planFallback) {
       const requested = request.model ? modelCatalog.find((model) => model.id === request.model) : undefined;
-      const allowedForPlan = Boolean(requested && requested.plans.includes(plan));
 
-      if (!allowedForPlan) {
+      /*
+       * GUARD-RAIL (2026-07-13): an UNKNOWN model must NEVER be silently downgraded
+       * to a foreign default — that hands the user a different model than they chose
+       * without telling them (a product lie, and it broke the cache measurement).
+       * The catalog is now synced with the web providers, so a real chosen model is
+       * always `requested`; a still-unknown id is genuinely invalid → fail loud.
+       */
+      if (request.model && !requested) {
+        throw Object.assign(new Error(`Model '${request.model}' is not in the gateway catalog`), {
+          statusCode: 400,
+          code: 'AI_MODEL_UNKNOWN',
+        });
+      }
+
+      /*
+       * KNOWN but plan-blocked (e.g. a Free user's lane requested a premium model):
+       * resolve to the plan's default allowed model so the multi-agent run still
+       * succeeds instead of failing the whole consensus. This is legitimate PLAN
+       * gating (the user's plan can't use that tier) — surfaced to the user via the
+       * web `agentModesGated` annotation — not a silent substitution of an available
+       * model. Distinct from the UNKNOWN case above, which now fails loud.
+       */
+      if (requested && !requested.plans.includes(plan)) {
         const planDefault = this.models(plan)[0];
 
         if (planDefault) {

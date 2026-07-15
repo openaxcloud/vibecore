@@ -54,6 +54,7 @@ import {
 } from '~/lib/enterprise-api.server';
 import { projectAction, projectPageLoader } from '~/lib/project-route.server';
 import { isReauthRedirect } from '~/lib/route-reauth';
+import { statusDisplayLabel } from '~/lib/user-facing-labels';
 import { classNames } from '~/utils/classNames';
 
 type DeploymentLog = { timestamp: string; level: 'info' | 'warn' | 'error'; message: string };
@@ -944,7 +945,7 @@ function StatusBadge({ status }: { status: string }) {
       ) : (
         <Rocket className="h-3 w-3" aria-hidden />
       )}
-      {status}
+      {statusDisplayLabel(status)}
     </span>
   );
 }

@@ -1220,7 +1220,10 @@ const packagesInstallSchema = z.object({
   dev: z.boolean().optional(),
 
   // Optional override; when omitted the manager is detected from the lockfile.
-  packageManager: z.enum(['npm', 'pnpm', 'yarn', 'bun']).optional(),
+  // uv/poetry/pip: Python. `uv` is the default for Python because it resolves and
+  // installs ~10x faster than pip, which matters double under gVisor (every syscall
+  // is proxied by the Sentry, so process + file churn dominates install time).
+  packageManager: z.enum(['npm', 'pnpm', 'yarn', 'bun', 'uv', 'poetry', 'pip']).optional(),
   timeoutMs: z.number().int().positive().max(600_000).optional(),
 });
 const domainSchema = z.object({
@@ -6011,7 +6014,14 @@ async function projectFilesFromArchiveBase64(base64: string): Promise<ProjectFil
   return (await filesFromZipBase64(base64)).map((file) => ({ ...file, updatedAt }));
 }
 
-type ProjectPackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
+type ProjectPackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun' | 'uv' | 'poetry' | 'pip';
+
+/** Python managers, kept apart because their manifests are not package.json. */
+const PYTHON_PACKAGE_MANAGERS: readonly ProjectPackageManager[] = ['uv', 'poetry', 'pip'];
+
+export function isPythonPackageManager(manager: ProjectPackageManager): boolean {
+  return PYTHON_PACKAGE_MANAGERS.includes(manager);
+}
 
 interface ProjectPackageDependency {
   name: string;
@@ -6038,6 +6048,9 @@ const packageManifestSections = [
 ] as const;
 
 const packageLockFiles = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock', 'bun.lockb'];
+
+/** Python manifests + lockfiles. Not package.json-shaped, so they get their own list. */
+const pythonManifestFiles = ['requirements.txt', 'pyproject.toml', 'Pipfile', 'uv.lock', 'poetry.lock'];
 
 function safeJsonObject(value: string): Record<string, any> | null {
   try {
@@ -6095,6 +6108,25 @@ function detectPackageManager(files: ProjectFile[], manifests: ProjectPackageMan
     if (manager) {
       return manager;
     }
+  }
+
+  /*
+   * Python is checked AFTER every Node signal on purpose. A project carrying a Node
+   * lockfile or a package.json `packageManager` field keeps resolving to its Node
+   * manager EXACTLY as before — a Flask backend with a Vite frontend still installs
+   * its frontend with npm. Python only wins when there is no Node signal at all, so
+   * this cannot regress a single existing workspace.
+   */
+  if (paths.has('uv.lock')) {
+    return 'uv';
+  }
+
+  if (paths.has('poetry.lock')) {
+    return 'poetry';
+  }
+
+  if (paths.has('pyproject.toml') || paths.has('requirements.txt') || paths.has('Pipfile')) {
+    return 'uv';
   }
 
   return 'npm';
@@ -6156,8 +6188,62 @@ function summarizeProjectPackages(files: ProjectFile[]) {
     });
   }
 
+  /*
+   * Python dependencies, so the Packages panel is not blank on a Python project.
+   * Only requirements.txt is parsed: it is the format `uv pip install` writes and
+   * reads, and a TOML parser for pyproject would be a dependency + a new failure
+   * mode for no extra user-visible value today. A pyproject-only project shows its
+   * manifest with no rows rather than pretending to be empty — visible, not silent.
+   */
+  for (const file of files) {
+    const basename = file.path.split('/').pop() ?? '';
+
+    if (!pythonManifestFiles.includes(basename) || file.path.includes('/.venv/')) {
+      continue;
+    }
+
+    const pythonDependencies: ProjectPackageDependency[] = [];
+
+    if (basename === 'requirements.txt') {
+      for (const rawLine of file.content.split('\n')) {
+        const line = rawLine.split('#')[0].trim();
+
+        // Skip blanks, pip flags (-r, --index-url) and editable installs.
+        if (!line || line.startsWith('-')) {
+          continue;
+        }
+
+        const match = line.match(/^([A-Za-z0-9][A-Za-z0-9._-]*)(\[[^\]]+\])?\s*(.*)$/);
+
+        if (match) {
+          pythonDependencies.push({
+            name: match[1],
+            version: match[3]?.trim() || '*',
+            scope: 'dependencies',
+            manifestPath: file.path,
+          });
+        }
+      }
+    }
+
+    if (basename === 'requirements.txt' || basename === 'pyproject.toml' || basename === 'Pipfile') {
+      dependencies.push(...pythonDependencies);
+      manifests.push({
+        path: file.path,
+        name: file.path,
+        version: '0.0.0',
+        scripts: {},
+        dependencyCount: pythonDependencies.length,
+        devDependencyCount: 0,
+      });
+    }
+  }
+
   const lockfiles = files
-    .filter((file) => packageLockFiles.includes(file.path.split('/').pop() ?? ''))
+    .filter((file) => {
+      const basename = file.path.split('/').pop() ?? '';
+      return packageLockFiles.includes(basename) || basename === 'uv.lock' || basename === 'poetry.lock';
+    })
     .map((file) => ({ path: file.path, sizeBytes: Buffer.byteLength(file.content), updatedAt: file.updatedAt }));
 
   return {
@@ -6177,12 +6263,30 @@ function summarizeProjectPackages(files: ProjectFile[]) {
  */
 const packageSpecPattern = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*(@[^\s]+)?$/i;
 
-function isValidPackageSpec(spec: string): boolean {
+/*
+ * PyPI specs differ from npm's in exactly one way that matters here: the version is
+ * pinned with a comparator (`flask==3.0.0`, `numpy>=1.26`) rather than an `@`. The
+ * comparator characters are inert — the runtime shell-exec runs with shell:false, so
+ * argv is passed straight to execve and `>` is never a redirect. The shell-metachar
+ * rejection above still applies, so nothing dangerous gets through.
+ */
+const pythonPackageSpecPattern = /^[A-Za-z0-9][A-Za-z0-9._-]*(\[[A-Za-z0-9,._-]+\])?((==|>=|<=|~=|!=|>|<)[A-Za-z0-9._*+-]+)?$/;
+
+function isValidPackageSpec(spec: string, manager?: ProjectPackageManager): boolean {
   if (spec.length === 0 || spec.length > 214 || spec.startsWith('-')) {
     return false;
   }
 
-  if (/[\s;&|`$(){}<>\\'"]/.test(spec)) {
+  if (/[\s;&|`$(){}\\'"]/.test(spec)) {
+    return false;
+  }
+
+  if (manager && isPythonPackageManager(manager)) {
+    return pythonPackageSpecPattern.test(spec);
+  }
+
+  // Node specs must not contain the comparator chars at all.
+  if (/[<>]/.test(spec)) {
     return false;
   }
 
@@ -6203,6 +6307,33 @@ function buildInstallCommand(
   options: { dev?: boolean } = {},
 ): { command: string; args: string[] } {
   const hasPackages = packages.length > 0;
+
+  /*
+   * Python. `uv pip install` is argv-compatible with pip, so this drops into the
+   * SAME /commands/run dispatch as every Node manager — no new execution path, which
+   * is the whole point of returning { command, args } here.
+   *
+   * With no explicit packages we materialise the declared env. uv reads pyproject.toml
+   * when present (`uv sync`) and requirements.txt otherwise — picking the wrong one
+   * fails loudly rather than silently installing nothing, which is what we want.
+   */
+  if (manager === 'uv') {
+    if (hasPackages) {
+      return { command: 'uv', args: ['pip', 'install', ...packages] };
+    }
+
+    return { command: 'uv', args: ['pip', 'install', '-r', 'requirements.txt'] };
+  }
+
+  if (manager === 'poetry') {
+    const args = hasPackages ? ['add', ...(options.dev ? ['--group', 'dev'] : []), ...packages] : ['install'];
+    return { command: 'poetry', args };
+  }
+
+  if (manager === 'pip') {
+    const args = hasPackages ? ['install', ...packages] : ['install', '-r', 'requirements.txt'];
+    return { command: 'pip', args };
+  }
 
   if (manager === 'pnpm') {
     const args = hasPackages ? ['add', ...(options.dev ? ['-D'] : []), ...packages] : ['install'];
@@ -18033,10 +18164,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * entry so nothing that could break argv boundaries reaches the shell-exec.
      */
     const packages = (body.packages ?? []).map((entry) => entry.trim()).filter((entry) => entry.length > 0);
-    const invalid = packages.filter((entry) => !isValidPackageSpec(entry));
 
-    if (invalid.length > 0) {
-      throw Object.assign(new Error(`Invalid package name(s): ${invalid.join(', ')}`), {
+    /*
+     * Cheap up-front guard on shell metacharacters. The FULL, manager-aware check
+     * runs below once the package manager is known — a PyPI spec (`flask==3.0.0`)
+     * is not a valid npm spec and vice versa, so the grammar can only be decided
+     * after detection. Nothing reaches the shell-exec before that second check.
+     */
+    const dangerous = packages.filter((entry) => /[\s;&|`$(){}\\'"]/.test(entry) || entry.startsWith('-'));
+
+    if (dangerous.length > 0) {
+      throw Object.assign(new Error(`Invalid package name(s): ${dangerous.join(', ')}`), {
         statusCode: 400,
         code: 'INVALID_PACKAGE_SPEC',
       });
@@ -18072,9 +18210,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const runtimePackageFiles = flattenRuntimeFiles(nodes).filter((file) => {
         const basename = file.path.split('/').pop() ?? '';
         return (
-          (basename === 'package.json' || packageLockFiles.includes(basename)) &&
+          /*
+           * Python markers are pulled from the LIVE pod too, not just package.json.
+           * Without this, a requirements.txt / pyproject.toml created inside the
+           * running workspace (which is how projects are actually built here) is
+           * invisible to detectPackageManager, which then falls back to npm and runs
+           * `npm install` on a Python project.
+           */
+          (basename === 'package.json' ||
+            packageLockFiles.includes(basename) ||
+            pythonManifestFiles.includes(basename)) &&
           !file.path.includes('node_modules/') &&
-          !file.path.includes('.vite/')
+          !file.path.includes('.vite/') &&
+          !file.path.includes('/.venv/') &&
+          !file.path.includes('site-packages/')
         );
       });
 
@@ -18093,6 +18242,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const projectFiles = [...filesByPath.values()];
     const { manifests } = summarizeProjectPackages(projectFiles);
     const manager = body.packageManager ?? detectPackageManager(projectFiles, manifests);
+
+    // Full, manager-aware spec validation (see the metachar guard above).
+    const invalid = packages.filter((entry) => !isValidPackageSpec(entry, manager));
+
+    if (invalid.length > 0) {
+      throw Object.assign(new Error(`Invalid package name(s): ${invalid.join(', ')}`), {
+        statusCode: 400,
+        code: 'INVALID_PACKAGE_SPEC',
+      });
+    }
+
     const { command, args } = buildInstallCommand(manager, packages, { dev: body.dev });
 
     const commandBody: z.infer<typeof runtimeCommandSchema> = {

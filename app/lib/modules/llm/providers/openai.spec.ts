@@ -155,3 +155,20 @@ describe('pinOpenAiSnapshot', () => {
     expect(pinOpenAiSnapshot('gpt-4o')).toBe('gpt-4o-2024-08-06');
   });
 });
+
+const openAIProviderClass = (await import('./openai')).default;
+
+describe('OpenAIProvider.staticModels', () => {
+  const provider = new openAIProviderClass();
+
+  it('exposes live-confirmed reasoning successors, not the deprecated o1-preview/o1-mini', () => {
+    const names = provider.staticModels.map((m) => m.name);
+    expect(names).toContain('o1');
+    expect(names).toContain('o3-mini');
+    expect(names).toContain('o3');
+
+    // Deprecated ids that 404 must not resurface.
+    expect(names).not.toContain('o1-preview');
+    expect(names).not.toContain('o1-mini');
+  });
+});

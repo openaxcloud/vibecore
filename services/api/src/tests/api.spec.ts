@@ -4381,6 +4381,24 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     expect(indexResponse.body).toContain(`/static-deployments/${deploymentId}/assets/main.css`);
     expect(indexResponse.body).toContain(`/static-deployments/${deploymentId}/assets/main.js`);
 
+    /*
+     * Isolation stays intact: the document is a UNIQUE opaque origin (sandbox
+     * without allow-same-origin) so a deployed page can't wield the visitor's
+     * ambient API cookie.
+     */
+    expect(indexResponse.headers['content-security-policy']).toBe(
+      'sandbox allow-scripts allow-forms allow-popups allow-modals',
+    );
+
+    /*
+     * ...but that opaque origin must still be able to load its OWN Vite bundle
+     * (`<script type="module" crossorigin>`), which is now a cross-origin fetch.
+     * CORP must be `cross-origin` and `ACAO: *` must be present or the module is
+     * blocked and the app renders blank. Regression guard for the white-page bug.
+     */
+    expect(indexResponse.headers['cross-origin-resource-policy']).toBe('cross-origin');
+    expect(indexResponse.headers['access-control-allow-origin']).toBe('*');
+
     const cssResponse = await app.inject({
       method: 'GET',
       url: `/static-deployments/${deploymentId}/assets/main.css`,
@@ -4388,6 +4406,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     expect(cssResponse.statusCode).toBe(200);
     expect(cssResponse.headers['content-type']).toContain('text/css');
     expect(cssResponse.body).toContain('tomato');
+    // Subresources (JS/CSS) the opaque-origin document pulls must be loadable cross-origin too.
+    expect(cssResponse.headers['cross-origin-resource-policy']).toBe('cross-origin');
+    expect(cssResponse.headers['access-control-allow-origin']).toBe('*');
 
     const spaResponse = await app.inject({
       method: 'GET',

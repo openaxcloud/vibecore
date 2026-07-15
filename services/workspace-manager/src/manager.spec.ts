@@ -160,6 +160,44 @@ describe('WorkspaceManager', () => {
     expect(events.events.map((event) => event.type)).toContain('workspace.running');
   });
 
+  it('never runs the real agent-reachability fetch under vitest, even without the timeout env (keeps the root `vitest --run` suite fast)', async () => {
+    /*
+     * Regression guard for the CI flake: the repo-root `vitest --run` globs this
+     * spec WITHOUT this package's vitest.config env (WORKSPACE_AGENT_REACHABLE_
+     * TIMEOUT_MS=0), so startWorkspace() used to block the full 45s default on a
+     * real fetch to a cluster DNS that can't resolve — ~16-minute suite, vitest
+     * onTaskUpdate worker timeout, flaky deploys. Simulate that env-less run and
+     * assert no network call happens (the manager auto-disables the probe under
+     * VITEST). If the guard is removed this fails fast instead of going slow.
+     */
+    const previous = process.env.WORKSPACE_AGENT_REACHABLE_TIMEOUT_MS;
+    delete process.env.WORKSPACE_AGENT_REACHABLE_TIMEOUT_MS;
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+    try {
+      const k8s = new TestWorkspaceK8sClient();
+      const manager = new WorkspaceManager(
+        new TestWorkspaceStore(),
+        k8s,
+        new TestEventBus(),
+        'test-workspace-agent-secret',
+      );
+      const workspace = await manager.startWorkspace(input);
+
+      expect(workspace.status).toBe('RUNNING');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+
+      if (previous === undefined) {
+        delete process.env.WORKSPACE_AGENT_REACHABLE_TIMEOUT_MS;
+      } else {
+        process.env.WORKSPACE_AGENT_REACHABLE_TIMEOUT_MS = previous;
+      }
+    }
+  });
+
   it('injects decrypted secret values into the agent Secret and references them as optional pod env', async () => {
     const k8s = new TestWorkspaceK8sClient();
 
@@ -184,6 +222,79 @@ describe('WorkspaceManager', () => {
       key: 'NPM_TOKEN',
       optional: true,
     });
+  });
+
+  it('recreates the pod when reopening with a changed (immutable) spec instead of failing the start', async () => {
+    /*
+     * Reproduces the live bug: a user adds a project secret / DATABASE_URL, the
+     * api folds it into the pod env, and the next start re-applies the Pod. K8s
+     * forbids in-place env edits on a running pod → the whole start used to fail
+     * and the secret never reached the workspace. The manager must instead
+     * delete + recreate the pod so the new env takes effect.
+     */
+    class ImmutableOnUpdateK8sClient extends TestWorkspaceK8sClient {
+      async apply(object: K8sObject) {
+        const key = `${object.metadata.namespace ?? 'default'}:${object.kind}:${object.metadata.name}`;
+
+        if (object.kind === 'Pod' && this.objects.has(key)) {
+          throw Object.assign(
+            new Error(
+              'Command failed: kubectl apply\nThe Pod "workspace-workspace_1" is invalid: spec: Forbidden: ' +
+                'pod updates may not change fields other than `spec.containers[*].image`',
+            ),
+            {
+              stderr:
+                'The Pod "workspace-workspace_1" is invalid: spec: Forbidden: pod updates may not change fields other than `spec.containers[*].image`',
+            },
+          );
+        }
+
+        return super.apply(object);
+      }
+    }
+
+    const k8s = new ImmutableOnUpdateK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    // First open: pod is created normally.
+    await manager.startWorkspace(input);
+
+    // Reopen with a newly-added secret → pod spec (env) changes → apply is forbidden.
+    const reopened = await manager.startWorkspace({
+      ...input,
+      allowedSecrets: { DATABASE_URL: 'postgres://db' },
+    });
+
+    expect(reopened.status).toBe('RUNNING');
+
+    // The pod was recreated (delete then a fresh apply), not left un-updated.
+    const podApplies = k8s.events.filter((event) => event === 'apply:Pod:workspace-workspace_1').length;
+    const podDeletes = k8s.events.filter((event) => event === 'delete:Pod:workspace-workspace_1').length;
+    expect(podDeletes).toBe(1);
+    expect(podApplies).toBe(2);
+
+    // Recreate order: the delete must precede the successful re-apply.
+    const lastDelete = k8s.events.lastIndexOf('delete:Pod:workspace-workspace_1');
+    const lastApply = k8s.events.lastIndexOf('apply:Pod:workspace-workspace_1');
+    expect(lastDelete).toBeLessThan(lastApply);
+
+    // The new secret reached the pod env, and the PVC (data) was never re-applied/deleted.
+    const pod = k8s.objects.get('workspaces:Pod:workspace-workspace_1') as any;
+    const dbEnv = pod.spec.containers[0].env.find((entry: any) => entry.name === 'DATABASE_URL');
+    expect(dbEnv?.valueFrom?.secretKeyRef).toMatchObject({ name: 'agent-token-workspace_1', key: 'DATABASE_URL' });
+    expect(k8s.events.filter((event) => event === 'delete:PersistentVolumeClaim:pvc-workspace_1')).toHaveLength(0);
+  });
+
+  it('leaves the warm pod untouched on an unchanged reopen (apply is a no-op, no recreate)', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const manager = new WorkspaceManager(new TestWorkspaceStore(), k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input);
+    await manager.startWorkspace(input);
+
+    // No immutable change → the fake apply just overwrites; the pod is never deleted.
+    expect(k8s.events.filter((event) => event === 'delete:Pod:workspace-workspace_1')).toHaveLength(0);
   });
 
   it('stops, restarts and fully deletes workspace runtime resources', async () => {
@@ -900,5 +1011,190 @@ describe('JsonWorkspaceStore corrupted registry handling', () => {
     // The corrupted file must be left untouched — create() must not clobber it
     // with just the new record and silently drop every other workspace.
     expect(await readFile(filePath, 'utf8')).toBe(corrupt);
+  });
+});
+
+describe('WorkspaceManager server deployments (Replit-parity durable runtime)', () => {
+  // A Deployment that reports itself Ready so the readiness poll resolves.
+  class ReadyDeploymentK8sClient extends TestWorkspaceK8sClient {
+    override async get(kind: string, namespace: string, name: string) {
+      const object = this.objects.get(`${namespace}:${kind}:${name}`);
+
+      if (!object) {
+        return undefined;
+      }
+
+      if (kind === 'Deployment') {
+        return { ...object, status: { readyReplicas: 1, replicas: 1 } } as K8sObject;
+      }
+
+      return object;
+    }
+  }
+
+  const makeManager = (k8s: TestWorkspaceK8sClient) =>
+    new WorkspaceManager(new TestWorkspaceStore(), k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+  it('applies Secret+Deployment+Service+Ingress, polls ready, returns the public URL', async () => {
+    const k8s = new ReadyDeploymentK8sClient();
+    const manager = makeManager(k8s);
+
+    const result = await manager.startServerDeployment({
+      deploymentId: 'dep1',
+      namespace: 'workspaces',
+      projectId: 'project_1',
+      image: 'agent:test',
+      command: ['node', '-e', 'require("http").createServer().listen(3000)'],
+      port: 3000,
+      host: 'd-dep1.preview.e-code.ai',
+      tlsSecretName: 'vibecore-preview-wildcard-tls',
+      env: { APP_FLAG: 'on' },
+      secrets: { DATABASE_URL: 'postgres://prod/db' },
+      createIngress: true,
+      readyTimeoutMs: 1000,
+    });
+
+    expect(result).toEqual({
+      ready: true,
+      url: 'https://d-dep1.preview.e-code.ai',
+      name: 'app-dep1',
+      readyReplicas: 1,
+    });
+
+    expect(k8s.events).toEqual(
+      expect.arrayContaining([
+        'apply:Secret:app-secrets-dep1',
+        'apply:Deployment:app-dep1',
+        'apply:Service:app-dep1',
+        'apply:Ingress:app-dep1',
+      ]),
+    );
+
+    // The prod DATABASE_URL lives in the Secret, never in plain env, and is wired
+    // into the container via secretKeyRef.
+    const secret = k8s.objects.get('workspaces:Secret:app-secrets-dep1') as any;
+    expect(secret.stringData.DATABASE_URL).toBe('postgres://prod/db');
+
+    const container = (k8s.objects.get('workspaces:Deployment:app-dep1') as any).spec.template.spec.containers[0];
+    const envByName = new Map((container.env as Array<{ name: string }>).map((e) => [e.name, e]));
+    expect(envByName.get('PORT')).toMatchObject({ value: '3000' });
+    expect(envByName.get('APP_FLAG')).toMatchObject({ value: 'on' });
+    expect((envByName.get('DATABASE_URL') as any).valueFrom.secretKeyRef).toMatchObject({
+      name: 'app-secrets-dep1',
+      key: 'DATABASE_URL',
+    });
+
+    // Public routing: exact host under the preview wildcard cert.
+    const ingress = k8s.objects.get('workspaces:Ingress:app-dep1') as any;
+    expect(ingress.spec.rules[0].host).toBe('d-dep1.preview.e-code.ai');
+    expect(ingress.spec.tls[0].secretName).toBe('vibecore-preview-wildcard-tls');
+  });
+
+  it('reports not-ready when the deployment never reaches readyReplicas>=1', async () => {
+    const k8s = new TestWorkspaceK8sClient(); // get() returns the stored object with no status
+    const manager = makeManager(k8s);
+
+    const result = await manager.startServerDeployment({
+      deploymentId: 'dep2',
+      namespace: 'workspaces',
+      image: 'agent:test',
+      port: 3000,
+      host: 'd-dep2.preview.e-code.ai',
+      tlsSecretName: 'tls',
+      readyTimeoutMs: 0, // deadline is now → the first poll returns false
+    });
+
+    expect(result.ready).toBe(false);
+    expect(result.readyReplicas).toBe(0);
+  });
+
+  it('omits the Secret entirely when the deployment has no secrets', async () => {
+    const k8s = new ReadyDeploymentK8sClient();
+    const manager = makeManager(k8s);
+
+    await manager.startServerDeployment({
+      deploymentId: 'dep3',
+      namespace: 'workspaces',
+      image: 'agent:test',
+      port: 8080,
+      host: 'd-dep3.preview.e-code.ai',
+      tlsSecretName: 'tls',
+      readyTimeoutMs: 500,
+    });
+
+    expect(k8s.events.some((e) => e.startsWith('apply:Secret:'))).toBe(false);
+  });
+
+  it('does NOT create an Ingress by default (routing goes through the preview-proxy)', async () => {
+    const k8s = new ReadyDeploymentK8sClient();
+    const manager = makeManager(k8s);
+
+    await manager.startServerDeployment({
+      deploymentId: 'dep6',
+      namespace: 'workspaces',
+      image: 'agent:test',
+      port: 3000,
+      host: 'd-dep6.preview.e-code.ai',
+      tlsSecretName: 'tls',
+      readyTimeoutMs: 500,
+    });
+
+    expect(k8s.events).toEqual(
+      expect.arrayContaining(['apply:Deployment:app-dep6', 'apply:Service:app-dep6']),
+    );
+    expect(k8s.events.some((e) => e.startsWith('apply:Ingress:'))).toBe(false);
+  });
+
+  it('stopServerDeployment tears down all four resources', async () => {
+    const k8s = new ReadyDeploymentK8sClient();
+    const manager = makeManager(k8s);
+
+    await manager.startServerDeployment({
+      deploymentId: 'dep4',
+      namespace: 'workspaces',
+      image: 'agent:test',
+      port: 3000,
+      host: 'd-dep4.preview.e-code.ai',
+      tlsSecretName: 'tls',
+      secrets: { DATABASE_URL: 'postgres://x' },
+      readyTimeoutMs: 500,
+    });
+
+    await manager.stopServerDeployment('workspaces', 'dep4');
+
+    expect(k8s.events).toEqual(
+      expect.arrayContaining([
+        'delete:Ingress:app-dep4',
+        'delete:Service:app-dep4',
+        'delete:Deployment:app-dep4',
+        'delete:Secret:app-secrets-dep4',
+      ]),
+    );
+  });
+
+  it('getServerDeploymentStatus reflects readyReplicas from the live Deployment', async () => {
+    const k8s = new ReadyDeploymentK8sClient();
+    const manager = makeManager(k8s);
+
+    await manager.startServerDeployment({
+      deploymentId: 'dep5',
+      namespace: 'workspaces',
+      image: 'agent:test',
+      port: 3000,
+      host: 'd-dep5.preview.e-code.ai',
+      tlsSecretName: 'tls',
+      readyTimeoutMs: 500,
+    });
+
+    expect(await manager.getServerDeploymentStatus('workspaces', 'dep5')).toEqual({
+      exists: true,
+      readyReplicas: 1,
+      replicas: 1,
+    });
+    expect(await manager.getServerDeploymentStatus('workspaces', 'ghost')).toEqual({
+      exists: false,
+      readyReplicas: 0,
+      replicas: 0,
+    });
   });
 });

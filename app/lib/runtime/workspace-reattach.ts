@@ -56,3 +56,38 @@ export function shouldReattachWarmWorkspace(signals: WarmReattachSignals): boole
 
   return signals.reused && signals.seededThisSession && signals.hasLivePort;
 }
+
+/**
+ * Orchestrate a cold reseed WITHOUT ever leaving the pod wiped-but-unseeded.
+ *
+ * The old order was: clear the whole project tree, THEN fetch the storage
+ * archive and import it. If the fetch/import failed (a transient export 502, an
+ * agent still cold after re-provision), the pod was left with its source tree
+ * DELETED and nothing put back — a reopen that momentarily destroyed the user's
+ * files until a later successful reseed. This inverts the order: fetch + VALIDATE
+ * the authoritative archive first, and only clear once we actually hold it, so a
+ * failed fetch returns with the pod's files fully intact (it never destroys
+ * existing files it cannot yet replace). The wipe itself already preserves
+ * node_modules/.git (they are excluded from the runtime file listing), so this
+ * makes the whole reopen path non-destructive on failure.
+ *
+ * Pure orchestration over injected steps (each may embed its own retry) so the
+ * ordering guarantee is unit-testable without a live pod.
+ */
+export async function reseedWorkspacePreservingOnFailure<TArchive>(steps: {
+  /** Fetch + validate the project-storage archive. MUST throw on failure/empty. */
+  fetchArchive: () => Promise<TArchive>;
+
+  /** Destructively clear the runtime project tree (node_modules/.git already excluded). */
+  clearTree: () => Promise<void>;
+
+  /** Import the fetched archive back into the runtime. */
+  applyArchive: (archive: TArchive) => Promise<void>;
+}): Promise<void> {
+  // Fetch FIRST. If this throws, we return before clearTree — pod files survive.
+  const archive = await steps.fetchArchive();
+
+  // Only now that a valid archive is in hand is it safe to wipe + reimport.
+  await steps.clearTree();
+  await steps.applyArchive(archive);
+}

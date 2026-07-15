@@ -4,8 +4,8 @@
   "description": "AI-powered coding platform",
   "start_url": "/?source=pwa",
   "display": "standalone",
-  "background_color": "#0D0D0D",
-  "theme_color": "#00C896",
+  "background_color": "#0A0F1C",
+  "theme_color": "#0A0F1C",
   "icons": [
     { "src": "/icons/icon-72x72.png", "sizes": "72x72", "type": "image/png" },
     { "src": "/icons/icon-96x96.png", "sizes": "96x96", "type": "image/png" },

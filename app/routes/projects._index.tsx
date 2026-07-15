@@ -10,6 +10,7 @@ import { FilterChip } from '~/components/ui/FilterChip';
 import { RelativeTime } from '~/components/ui/RelativeTime';
 import { SearchInput } from '~/components/ui/SearchInput';
 import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { statusDisplayLabel } from '~/lib/user-facing-labels';
 import { projectIdePath } from '~/utils/project-url';
 
 export const meta: MetaFunction = () => [{ title: 'Projects - E-Code' }];
@@ -326,7 +327,7 @@ function ProjectListRow({ project }: { project: ProjectCard }) {
                 {project.name}
               </h2>
             )}
-            <StatusPill label={project.status ?? 'Ready'} />
+            <StatusPill label={statusDisplayLabel(project.status ?? 'Ready')} />
           </div>
           <p className="mt-1 truncate text-sm text-bolt-elements-textSecondary">
             {project.stack ?? project.sourceType ?? 'Persistent E-Code project'}

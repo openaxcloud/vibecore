@@ -14,7 +14,6 @@ export interface PreviewManifestRepair {
     changed: boolean;
     missingDependencies: string[];
     addedScripts: string[];
-
     /** react/react-dom bumped to a React-18 range because the code uses createRoot (P0-2 guard). */
     upgradedDependencies: string[];
   };
@@ -220,7 +219,9 @@ function usesReact18ClientApi(files: Record<string, string>) {
     }
 
     return (
-      /\breact-dom\/client\b/.test(content) || /\bcreateRoot\s*\(/.test(content) || /\bhydrateRoot\s*\(/.test(content)
+      /\breact-dom\/client\b/.test(content) ||
+      /\bcreateRoot\s*\(/.test(content) ||
+      /\bhydrateRoot\s*\(/.test(content)
     );
   });
 }

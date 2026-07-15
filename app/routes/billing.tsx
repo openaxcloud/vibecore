@@ -16,6 +16,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { userFacingLabel } from '~/lib/user-facing-labels';
 
 type BillingData = {
   plan: { key: string; name: string; monthlyCents: number };
@@ -97,63 +98,12 @@ const billingDateTimeFormatter = new Intl.DateTimeFormat(BILLING_LOCALE, {
   timeZoneName: 'short',
 });
 
-const BILLING_LABELS: Record<string, string> = {
-  active: 'Active',
-  cancelled: 'Cancelled',
-  canceled: 'Cancelled',
-  incomplete: 'Incomplete',
-  incomplete_expired: 'Incomplete - expired',
-  past_due: 'Past due',
-  paused: 'Paused',
-  trialing: 'Trial',
-  unpaid: 'Unpaid',
-  'projects.count': 'Projects',
-  'project.count': 'Projects',
-  'projects.created': 'Projects created',
-  'project.created': 'Projects created',
-  'agent.requests': 'Agent requests',
-  'agent.checkpoints': 'Agent checkpoints',
-  'workspace.minutes': 'Workspace minutes',
-  'compute.seconds': 'Compute time',
-  'storage.bytes': 'Storage used',
-  'deployments.count': 'Deployments',
-  'ai.input_tokens': 'AI input tokens',
-  'ai.output_tokens': 'AI output tokens',
-};
-
-const BILLING_ACRONYMS: Record<string, string> = {
-  ai: 'AI',
-  api: 'API',
-  cpu: 'CPU',
-  eur: 'EUR',
-  gpu: 'GPU',
-  payg: 'Pay-as-you-go',
-};
-
 export function formatEuro(cents: number): string {
   return euroFormatter.format(cents / 100);
 }
 
 export function billingDisplayLabel(value: string): string {
-  const normalized = value.trim().toLowerCase();
-
-  if (!normalized) {
-    return 'Recorded activity';
-  }
-
-  const knownLabel = BILLING_LABELS[normalized];
-
-  if (knownLabel) {
-    return knownLabel;
-  }
-
-  return normalized
-    .split(/[._\s-]+/u)
-    .filter(Boolean)
-    .map(
-      (token, index) => BILLING_ACRONYMS[token] ?? (index === 0 ? `${token[0].toUpperCase()}${token.slice(1)}` : token),
-    )
-    .join(' ');
+  return userFacingLabel(value);
 }
 
 const billingStatusLabel = (status?: string | null) => (status ? billingDisplayLabel(status) : 'No subscription');
@@ -852,7 +802,9 @@ export default function BillingPage() {
                       >
                         <span>{formatEuro(pack.remainingCents)} remaining</span>
                         <span>
-                          {pack.expiresAt ? `Expires ${formatBillingDate(pack.expiresAt)} (UTC)` : 'No expiry'}
+                          {pack.expiresAt
+                            ? `Expires ${formatBillingDate(pack.expiresAt)} (UTC)`
+                            : 'Expiration date unavailable'}
                         </span>
                       </li>
                     ))}

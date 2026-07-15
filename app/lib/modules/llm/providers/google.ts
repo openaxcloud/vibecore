@@ -1,6 +1,7 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import type { LanguageModelV1 } from 'ai';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
+import { createGoogleCachingFetch } from '~/lib/modules/llm/google-cache';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
 
@@ -40,9 +41,17 @@ export default class GoogleProvider extends BaseProvider {
       maxTokenAllowed: 1048576,
       maxCompletionTokens: 65536,
     },
+
+    /*
+     * gemini-2.5-flash-lite was retired by Google ("no longer available to new
+     * users") and gemini-2.0-flash-(lite) are gone too — replaced 2026-07-13 with
+     * the live-confirmed successor on the platform key (drove a real turn, org
+     * cmpdblp23…): gemini-flash-lite-latest generated (promptTokens 3793). The
+     * `-latest` alias auto-tracks Google's current lite model so it can't go stale.
+     */
     {
-      name: 'gemini-2.5-flash-lite',
-      label: 'Gemini 2.5 Flash Lite',
+      name: 'gemini-flash-lite-latest',
+      label: 'Gemini Flash Lite (latest)',
       provider: 'Google',
       maxTokenAllowed: 1048576,
       maxCompletionTokens: 65536,
@@ -159,8 +168,17 @@ export default class GoogleProvider extends BaseProvider {
       throw new Error(`Missing API key for ${this.name} provider`);
     }
 
+    /*
+     * Explicit `cachedContents` caching: wrap fetch so the large, turn-stable
+     * systemInstruction is pinned as a cached resource and referenced by name on
+     * every turn (mirrors the Anthropic wire caching). Fully fail-safe — any error
+     * or a stale cache name falls back to the original inline request (see
+     * google-cache.ts). The wrapper also tees the SSE stream to surface
+     * `cachedContentTokenCount`, which @ai-sdk/google@0.0.52 drops.
+     */
     const google = createGoogleGenerativeAI({
       apiKey,
+      fetch: createGoogleCachingFetch(globalThis.fetch, apiKey),
     });
 
     return google(model);
