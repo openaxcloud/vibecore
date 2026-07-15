@@ -30,14 +30,15 @@ Décisions committées : `docs/DEPLOY_REPRODUCIBLE_PIPELINE.md` (pipeline) + `do
 
 | Point | 📤 | 💻 | ✅ | Notes |
 |---|---|---|---|---|
-| B0. readinessProbe app+workspace : échantillonnage 1 s (baseline mesurée 6-7 s start→Ready) | ✅ | ✅ `b2558c41` | ☐ | fenêtres de panne inchangées (30 s / 15 s) ; mesure post-deploy à faire |
-| B1. Snapshot-révision (source seule, sha256 pod-side, `revisions/server-deploy/<id>.tgz`) | ✅ | ✅ | ☐ | `snapshotWorkspaceRevision` + specs |
-| B2. Pod de build isolé (gVisor, emptyDir, /nix RO optionnel, label egress server-deploy, AUCUNE PVC workspace) | ✅ | ✅ | ☐ | `appBuildPod` (k8s-client) + `runAppBuild` + route manager `/app-builds/run` + specs |
-| B3. Câblage flag-gated `SERVER_DEPLOY_REVISION_PROJECTS` (allowlist projet, vide = chemin A octet pour octet) | ✅ | ✅ | ☐ | `buildImageContextFromRevision` ; Cloud Build ne re-build plus (COPY seul) ; clés chart ajoutées (⚠️ `--reuse-values` : 1er `--set` manuel requis) |
-| B4. Preuve live Node : Publish réel via révision → URL 200 + artefact rejouable | ✅ | ☐ | ☐ | |
-| B5. Store Nix v2 (26.05 pinné) + bundles d'activation + preuve Python | ✅ | ☐ | ☐ | dépend NIX_V2_DECISION §7 |
+| B0. readinessProbe app+workspace : échantillonnage 1 s (baseline mesurée 6-7 s start→Ready) | ✅ | ✅ `b2558c41` | ✅ **15/07** | MESURÉ live : containerStart→Ready 6-7 s → **0 s** ; réveil scale-0→200 **16 s** (vs 22 s). Preuves `docs/deploy-evidence/2026-07-15-phase-b/` |
+| B1. Snapshot-révision (source seule, sha256 pod-side, `revisions/server-deploy/<id>.tgz`) | ✅ | ✅ `98e16a8d` | ✅ **15/07** | objet GCS 489 o + sha256 persistés (deployment `cmrmb34mz…`) |
+| B2. Pod de build isolé (gVisor, emptyDir, /nix RO optionnel, label egress server-deploy, AUCUNE PVC workspace) | ✅ | ✅ `98e16a8d` | ✅ **15/07** | pod `app-build-<id>` observé live ; deps de l'app déployée installées SANS que le workspace n'ait jamais lancé npm |
+| B3. Câblage flag-gated `SERVER_DEPLOY_REVISION_PROJECTS` (allowlist projet, vide = chemin A octet pour octet) | ✅ | ✅ `98e16a8d` | ✅ **15/07** | `--set` fait (rev 840) ; publish hors allowlist inchangé |
+| B4. Preuve live Node : Publish réel via révision → URL 200 + artefact rejouable | ✅ | ✅ | ✅ **15/07** | publish→READY 62 s, URL 200 `builtFrom:revision`, image 163 MB (Cloud Build 26,7 s, COPY seul), fix `fb855095` (skip npm sans package.json) |
+| B5. Store Nix v2 (26.05 pinné) + bundles d'activation + preuve Python | ✅ | ✅ | ✅ **15/07** | store 1,9 Go/2 012 chemins signés ; publish Python réel `cmrmc2v0u…` → URL 200 `python:3.12.13` (toolchain 26.05), venv construit dans le pod isolé, pod app monte `nix-store-v2-pvc` ; fix `fb855095` |
 | B6. Gates policy/scan secrets · B7. Signature d'images (cosign) | ☐ | ☐ | ☐ | |
-| B8. Interface `SandboxRuntime`/RuntimeAdapter (aucun objet métier = Pod ; microVM cible) | ✅ | ☐ | ☐ | |
+| B8. Interface `SandboxRuntime`/RuntimeAdapter (aucun objet métier = Pod ; microVM cible) | ✅ | ✅ `fead062e` | ✅ **15/07** | publish B5 réel passé par `GvisorPodRuntime` (manager `fb85509520`) ; réveil Node re-mesuré **14,5 s** (22 s Phase A) avec le poll 1 s |
 
-⚠️ Capacité : quota régional `SSD_TOTAL_GB` 434/500 (disques pd-balanced de boot) — le scale-up zone-a a déjà échoué une fois (15/07). Demande d'augmentation de quota = action Avi (gratuite).
+⚠️ Capacité : demande de quota `SSD_TOTAL_GB` REFUSÉE par Google (48 h mini). État 15/07 soir : 432/500, dont **400 = boot disks pd-balanced des 4 nœuds gvisor** (aucun pd-ssd n'existe ; pd-balanced compte DANS ce quota). Seule sortie structurelle : recréer le pool gvisor avec boot disks **pd-standard 200 Go** (throughput ≈ équivalent, coût identique, `DISKS_TOTAL_GB` 4,2/20 To) → SSD ~32/500 et autoscale débloqué. GO d'Avi requis (drain = redémarrage des pods workspaces). Ménage fait : spike-workspace-pvc (2 Go SSD) + 19 PVC d'orgs de test E2E supprimées.
 ⚠️ `--reuse-values` : les nouvelles clés chart (`serverDeployImageRepo`, `nixStorePvc`…) n'atteignent la release que via UN `--set` manuel (fait après passage CD), ensuite persistées.
+
