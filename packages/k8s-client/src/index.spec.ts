@@ -421,6 +421,12 @@ describe('server deployment runtime templates', () => {
     // readiness on the app port, TCP liveness.
     expect(c.readinessProbe.httpGet.port).toBe(3000);
     expect(c.livenessProbe.tcpSocket.port).toBe(3000);
+    // Wake latency: 1s sampling from t=0 (a scaled-to-zero app's first visitor
+    // pays this schedule), with the same 30s NotReady window as the old 6×5s.
+    expect(c.readinessProbe.initialDelaySeconds).toBe(0);
+    expect(c.readinessProbe.periodSeconds).toBe(1);
+    expect(c.readinessProbe.failureThreshold).toBe(30);
+    expect(c.readinessProbe.timeoutSeconds).toBe(5);
 
     // Container-level securityContext is MANDATORY: the workspaces namespace enforces
     // the `restricted` Pod Security Standard, which rejects any pod whose container
