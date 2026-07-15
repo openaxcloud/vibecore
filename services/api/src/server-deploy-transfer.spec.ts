@@ -230,8 +230,9 @@ describe('snapshotWorkspaceImageContext', () => {
     active: true,
     ensureBucket: vi.fn(async () => ({ bucket: 'vc-proj1', created: false, location: 'EU' })),
     createUploadUrl: vi.fn(async () => ({
+      // Mirrors the real ObjectStorage.createUploadUrl (capitalized, the signed header).
       url: 'https://storage.googleapis.com/vc-proj1/tmp?sig=abc&x=1',
-      headers: { 'content-type': 'application/gzip' },
+      headers: { 'Content-Type': 'application/gzip' },
     })),
     ...overrides,
   });
@@ -266,7 +267,9 @@ describe('snapshotWorkspaceImageContext', () => {
     const tarScript = scripts[0];
     expect(tarScript).not.toContain('node_modules');
     expect(tarScript).toContain('--exclude=./.git');
-    expect(tarScript).toContain("curl -fsS -X PUT -H 'content-type: application/gzip'");
+    // Exactly the signed headers, once (a duplicated content-type breaks the V4 signature).
+    expect(tarScript).toContain("curl -fsS -X PUT -H 'Content-Type: application/gzip'");
+    expect(tarScript).not.toContain("-H 'content-type:");
     expect(tarScript).toContain("--upload-file .vibecore-src-dep9.tgz 'https://storage.googleapis.com/vc-proj1/tmp?sig=abc&x=1'");
 
     // The tarball is cleaned up from the workspace afterwards (a second pod step).

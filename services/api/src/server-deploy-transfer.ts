@@ -251,11 +251,13 @@ export async function snapshotWorkspaceImageContext(opts: {
   /*
    * Tar WITH dependencies — that is the whole point: the image must capture the
    * workspace as-is so no language-specific install ever runs at deploy time.
-   * A V4 signed PUT is bound to the exact Content-Type it was signed with, so
-   * the curl sends the signed headers verbatim. The URL is querystring-safe
-   * inside single quotes (GCS signed URLs never contain a single quote).
+   * A V4 signed PUT is bound to the EXACT signed headers (content-type + host):
+   * send `upload.headers` verbatim and nothing else. Injecting a second
+   * (lowercase) content-type made curl emit the header twice, so GCS's canonical
+   * request no longer matched the signature → 403 SignatureDoesNotMatch. The URL
+   * is querystring-safe inside single quotes (GCS signed URLs never contain one).
    */
-  const headerFlags = Object.entries({ 'content-type': 'application/gzip', ...upload.headers })
+  const headerFlags = Object.entries(upload.headers)
     .map(([name, value]) => `-H '${name}: ${value}'`)
     .join(' ');
   const script = [
