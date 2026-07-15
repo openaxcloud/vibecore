@@ -66,6 +66,7 @@ COPY packages/rbac/package.json                ./packages/rbac/
 COPY packages/runtime-contract/package.json    ./packages/runtime-contract/
 COPY packages/runtime-remote/package.json      ./packages/runtime-remote/
 COPY packages/runtime-webcontainer/package.json ./packages/runtime-webcontainer/
+COPY packages/sandbox-runtime/package.json     ./packages/sandbox-runtime/
 COPY packages/security/package.json            ./packages/security/
 COPY packages/shared/package.json              ./packages/shared/
 COPY packages/ui/package.json                  ./packages/ui/

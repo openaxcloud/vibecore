@@ -819,6 +819,16 @@ importers:
         specifier: ^3.10.1
         version: 3.10.1
 
+  packages/sandbox-runtime:
+    dependencies:
+      '@vibecore/k8s-client':
+        specifier: workspace:*
+        version: link:../k8s-client
+    devDependencies:
+      vitest:
+        specifier: ^3.2.6
+        version: 3.2.6(@types/debug@4.1.12)(@types/node@25.6.0)(jsdom@26.1.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0)
+
   packages/sdk:
     devDependencies:
       vitest:
@@ -1055,6 +1065,9 @@ importers:
       '@vibecore/k8s-client':
         specifier: workspace:*
         version: link:../../packages/k8s-client
+      '@vibecore/sandbox-runtime':
+        specifier: workspace:*
+        version: link:../../packages/sandbox-runtime
       '@vibecore/workspace-sdk':
         specifier: workspace:*
         version: link:../../packages/workspace-sdk

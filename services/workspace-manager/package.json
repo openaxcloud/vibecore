@@ -5,6 +5,7 @@
   "dependencies": {
     "@vibecore/database": "workspace:*",
     "@vibecore/k8s-client": "workspace:*",
+    "@vibecore/sandbox-runtime": "workspace:*",
     "@vibecore/workspace-sdk": "workspace:*",
     "fastify": "^5.8.5",
     "tsx": "^4.21.0",
