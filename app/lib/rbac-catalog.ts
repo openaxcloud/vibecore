@@ -1,3 +1,5 @@
+import { humanizeTechnicalIdentifier } from './user-facing-labels';
+
 /*
  * Web-side mirror of the RBAC permission catalog. The canonical source of truth
  * is the workspace package `packages/rbac/src/index.ts` (`@vibecore/rbac`), which
@@ -99,7 +101,7 @@ const PERMISSION_LABELS: Record<PermissionKey, string> = Object.fromEntries(
 ) as Record<PermissionKey, string>;
 
 export function permissionLabel(key: string): string {
-  return PERMISSION_LABELS[key as PermissionKey] ?? key;
+  return PERMISSION_LABELS[key as PermissionKey] ?? humanizeTechnicalIdentifier(key, 'Unknown permission');
 }
 
 /*

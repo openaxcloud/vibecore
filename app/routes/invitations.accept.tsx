@@ -10,6 +10,7 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 import { isReauthRedirect } from '~/lib/route-reauth';
+import { userFacingLabel } from '~/lib/user-facing-labels';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const token = new URL(request.url).searchParams.get('token') ?? '';
@@ -29,7 +30,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       body: JSON.stringify({ token: body.token }),
     });
 
-    return json({ status: `Invitation accepted for ${result.organizationId} as ${result.roleKey}.` });
+    return json({ status: `Invitation accepted. You now have ${userFacingLabel(result.roleKey)} access.` });
   } catch (error) {
     /*
      * `/invitations/accept` is a page navigation, not an `/api/` call, so

@@ -31,6 +31,12 @@ interface LoaderData {
   errorKind?: ShareLinkErrorKind;
 }
 
+const MESSAGE_ROLE_LABELS: Readonly<Record<string, string>> = {
+  assistant: 'E-Code',
+  system: 'System',
+  user: 'You',
+};
+
 export const loader = async ({ params }: LoaderFunctionArgs) => {
   const token = params.token ?? '';
 
@@ -141,7 +147,7 @@ export default function ShareRoute() {
           <ol className="bolt-share-view-thread">
             {payload.inlineMessages.map((message) => (
               <li key={message.id} className="bolt-share-view-message" data-role={message.role}>
-                <div className="bolt-share-view-message-role">{message.role}</div>
+                <div className="bolt-share-view-message-role">{MESSAGE_ROLE_LABELS[message.role] ?? 'Message'}</div>
                 <pre className="bolt-share-view-message-content">{message.content}</pre>
               </li>
             ))}

@@ -848,84 +848,16 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   if (panel === 'workflows') {
     try {
-      const [dashboard, envVars, activity, packages, scheduled] = await Promise.all([
+      const [dashboard, envVars, activity, packages] = await Promise.all([
         apiRequest(request, `/projects/${projectId}/dashboard`),
         apiRequest(request, `/projects/${projectId}/env-vars`),
         apiRequest(request, `/projects/${projectId}/activity`),
         apiRequest(request, `/projects/${projectId}/packages`).catch(() => null),
-
-        // The REAL scheduler's view: what is armed, when it next fires, how it went.
-        apiRequest(request, `/projects/${projectId}/scheduled-tasks`).catch(() => null),
       ]);
 
       const packageData = packages as Record<string, any> | null;
       const workflowsState = readWorkflowsState(envVars);
       const scheduleNow = new Date();
-
-      /*
-       * The scheduler row — not the env-var blob — is the source of truth for
-       * cron/nextRunAt/lastRun once a workflow is armed. Overlay it so the panel
-       * can never again show "scheduled" for something that will not run.
-       */
-      const scheduledTasks = ((scheduled as any)?.tasks ?? []).filter(
-        (task: any) => task.kind === 'WORKFLOW' && task.workflowId != null,
-      );
-
-      /*
-       * Real execution history, straight from the executor: status, exit code,
-       * duration and billed compute per run. Full logs are pulled for the LATEST
-       * run only — a run's log can be 256 KB, so shipping every run's output on
-       * every panel read would be gratuitous.
-       */
-      const scheduledHistory = new Map<string, { runs: any[]; latest: any }>();
-
-      await Promise.all(
-        scheduledTasks.map(async (task: any) => {
-          const runs = await apiRequest<{ runs?: any[] }>(
-            request,
-            `/projects/${projectId}/scheduled-tasks/${task.id}/runs`,
-          )
-            .then((response) => (response.runs ?? []).slice(0, 5))
-            .catch(() => []);
-
-          const latest = runs[0]
-            ? await apiRequest<{ run?: any }>(
-                request,
-                `/projects/${projectId}/scheduled-tasks/${task.id}/runs/${runs[0].id}`,
-              )
-                .then((response) => response.run ?? null)
-                .catch(() => null)
-            : null;
-
-          scheduledHistory.set(task.id, { runs, latest });
-        }),
-      );
-
-      workflowsState.workflows = (workflowsState.workflows ?? []).map((workflow: any) => {
-        const task = scheduledTasks.find((candidate: any) => Number(candidate.workflowId) === Number(workflow.id));
-
-        if (!task) {
-          return workflow;
-        }
-
-        const history = scheduledHistory.get(task.id);
-
-        return {
-          ...workflow,
-          schedule: {
-            ...workflow.schedule,
-            enabled: task.enabled,
-            cron: task.cron,
-            timezone: task.timezone,
-            nextRunAt: task.nextRunAt,
-            lastRunAt: task.lastRunAt ?? workflow.schedule?.lastRunAt ?? null,
-          },
-          scheduledTaskId: task.id,
-          lastScheduledStatus: task.lastStatus ?? null,
-          scheduledRuns: history?.runs ?? [],
-          latestScheduledRun: history?.latest ?? null,
-        };
-      });
 
       return json(
         panelEnvelope(panel, project.project, {
@@ -937,12 +869,11 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           packageManager: packageData?.packageManager ?? null,
           dependencies: packageData?.dependencies ?? [],
           workflowsState,
-          scheduledTasks,
-          scheduledLimits: (scheduled as any)?.limits ?? null,
 
           /*
-           * Workflow ids whose enabled cron is due right now. Purely a UI badge —
-           * the executor is the api's scheduler tick, not this loader.
+           * The workflow ids whose enabled cron schedule is now due. The actual
+           * scheduler tick that fires these is cluster/worker-owned; this only
+           * surfaces due-ness so the panel can badge it.
            */
           scheduledWorkflowsDue: (workflowsState.workflows ?? [])
             .filter((workflow: any) => isWorkflowScheduleDue(workflow.schedule, scheduleNow))
@@ -2325,17 +2256,13 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       }));
     } else if (intent === 'set-schedule') {
       /*
-       * Arm (or disarm) the REAL scheduler for this workflow.
-       *
-       * This used to only write a cron string into the env-var blob and compute a
-       * display-only nextRunAt — nothing ever fired it. Now the cron is persisted
-       * as a ScheduledTask row (kind=WORKFLOW) that the api's scheduler tick
-       * claims and executes. The blob is still updated so the panel keeps working
-       * if the scheduler API is unavailable, but the row is the truth.
+       * Persist an optional cron schedule + enabled flag on the workflow. We
+       * VALIDATE the cron and compute nextRunAt here; the actual scheduler tick
+       * that fires the run at nextRunAt is cluster/worker-owned (kube CronJob /
+       * BullMQ) and would call the run-workflow endpoint — it is not built here.
        */
       const scheduleEnabled = body.scheduleEnabled === 'true';
       const cronRaw = typeof body.cron === 'string' ? body.cron.trim() : '';
-      const timezone = typeof body.timezone === 'string' && body.timezone.trim() ? body.timezone.trim() : 'UTC';
       const validation = cronRaw ? validateCron(cronRaw) : { valid: false, error: 'Schedule is empty.' };
 
       if (scheduleEnabled && !validation.valid) {
@@ -2344,85 +2271,21 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
       const cron = validation.valid ? validation.normalized! : cronRaw || null;
       const enabled = scheduleEnabled && Boolean(validation.valid);
-      const workflow = state.workflows.find((candidate: any) => candidate.id === workflowId);
 
-      const existing = await apiRequest<{ tasks?: any[] }>(request, `/projects/${projectId}/scheduled-tasks`)
-        .then((response) =>
-          (response.tasks ?? []).find(
-            (task: any) => task.kind === 'WORKFLOW' && Number(task.workflowId) === Number(workflowId),
-          ),
-        )
-        .catch(() => undefined);
-
-      let scheduled: any;
-
-      if (!cron) {
-        // Cleared: remove the armed schedule entirely rather than leaving a ghost row.
-        if (existing) {
-          await apiRequest(request, `/projects/${projectId}/scheduled-tasks/${existing.id}`, { method: 'DELETE' });
-        }
-      } else if (existing) {
-        scheduled = await apiRequest(request, `/projects/${projectId}/scheduled-tasks/${existing.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            name: String(workflow?.name ?? 'Workflow'),
-            cron,
-            timezone,
-            enabled,
-            machineSize: typeof body.machineSize === 'string' ? body.machineSize : undefined,
-          }),
-        });
-      } else {
-        scheduled = await apiRequest(request, `/projects/${projectId}/scheduled-tasks`, {
-          method: 'POST',
-          body: JSON.stringify({
-            kind: 'WORKFLOW',
-            workflowId,
-            name: String(workflow?.name ?? 'Workflow'),
-            cron,
-            timezone,
-            enabled,
-            ...(typeof body.machineSize === 'string' ? { machineSize: body.machineSize } : {}),
-          }),
-        });
-      }
-
-      const armed = scheduled?.task;
-
-      state.workflows = state.workflows.map((candidate: any) =>
-        candidate.id === workflowId
+      state.workflows = state.workflows.map((workflow: any) =>
+        workflow.id === workflowId
           ? {
-              ...candidate,
+              ...workflow,
               updatedAt: now,
               schedule: {
-                enabled: armed ? armed.enabled : enabled,
-                cron: armed ? armed.cron : cron,
-                timezone,
-
-                // The row's nextRunAt is authoritative; the local computation is a fallback.
-                nextRunAt: armed
-                  ? armed.nextRunAt
-                  : enabled && cron
-                    ? computeNextRunFromCron(cron, new Date(now))
-                    : null,
-                lastRunAt: armed?.lastRunAt ?? candidate.schedule?.lastRunAt ?? null,
+                enabled,
+                cron,
+                nextRunAt: enabled && cron ? computeNextRunFromCron(cron, new Date(now)) : null,
+                lastRunAt: workflow.schedule?.lastRunAt ?? null,
               },
-              scheduledTaskId: armed?.id ?? null,
             }
-          : candidate,
+          : workflow,
       );
-    } else if (intent === 'run-scheduled-now') {
-      /*
-       * "Run now" on an armed schedule: goes through the SAME executor as a cron
-       * tick, so the run lands in the same history with the same logs/billing.
-       */
-      const taskId = String(body.scheduledTaskId ?? '');
-
-      if (!taskId) {
-        throw json({ error: 'This workflow has no armed schedule to run.' }, { status: 400 });
-      }
-
-      await apiRequest(request, `/projects/${projectId}/scheduled-tasks/${taskId}/run`, { method: 'POST' });
     } else if (intent === 'add-task') {
       state.workflows = state.workflows.map((workflow: any) => {
         if (workflow.id !== workflowId) {

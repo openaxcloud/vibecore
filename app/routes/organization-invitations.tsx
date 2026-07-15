@@ -16,6 +16,7 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 import { BUILTIN_ROLE_LABELS, BUILTIN_ROLE_ORDER } from '~/lib/rbac-catalog';
+import { userFacingLabel } from '~/lib/user-facing-labels';
 
 export const meta: MetaFunction = () => [{ title: 'Organization invitations - E-Code' }];
 
@@ -153,6 +154,9 @@ export default function OrganizationInvitationsPage() {
   const submit = useSubmit();
   const [invitePendingExpire, setInvitePendingExpire] = useState<{ id: string; email: string } | null>(null);
 
+  const roleLabel = (roleKey: string) =>
+    roles.find((role) => role.value === roleKey)?.label ?? userFacingLabel(roleKey, 'Member');
+
   if (forbidden) {
     return (
       <AppShell
@@ -232,7 +236,7 @@ export default function OrganizationInvitationsPage() {
                       <div className="truncate font-medium text-bolt-elements-textPrimary">{invite.email}</div>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textSecondary">
                         <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5">
-                          {invite.roleKey}
+                          {roleLabel(invite.roleKey)}
                         </span>
                         <span>Expires {formatDate(invite.expiresAt)}</span>
                         {accepted ? (

@@ -1667,14 +1667,6 @@ export function ErrorBoundary() {
           <h1 className="vc-new-project-title">{descriptor.title}</h1>
           <p className="vc-new-project-subtitle">{descriptor.subtitle}</p>
         </header>
-        {descriptor.detail ? (
-          <details className="vc-new-project-error-details">
-            <summary>Technical details</summary>
-            <p className="vc-new-project-error" role="alert">
-              {descriptor.detail}
-            </p>
-          </details>
-        ) : null}
         <ProjectsNewErrorActions descriptor={descriptor} />
       </div>
     </AppShell>

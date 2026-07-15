@@ -1,6 +1,7 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import type { LanguageModelV1 } from 'ai';
 import { BaseProvider } from '~/lib/modules/llm/base-provider';
+import { createGoogleCachingFetch } from '~/lib/modules/llm/google-cache';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
 
@@ -159,8 +160,17 @@ export default class GoogleProvider extends BaseProvider {
       throw new Error(`Missing API key for ${this.name} provider`);
     }
 
+    /*
+     * Explicit `cachedContents` caching: wrap fetch so the large, turn-stable
+     * systemInstruction is pinned as a cached resource and referenced by name on
+     * every turn (mirrors the Anthropic wire caching). Fully fail-safe — any error
+     * or a stale cache name falls back to the original inline request (see
+     * google-cache.ts). The wrapper also tees the SSE stream to surface
+     * `cachedContentTokenCount`, which @ai-sdk/google@0.0.52 drops.
+     */
     const google = createGoogleGenerativeAI({
       apiKey,
+      fetch: createGoogleCachingFetch(globalThis.fetch, apiKey),
     });
 
     return google(model);

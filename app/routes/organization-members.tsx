@@ -16,6 +16,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { userFacingLabel } from '~/lib/user-facing-labels';
 
 export const meta: MetaFunction = () => [{ title: 'Organization members - E-Code' }];
 
@@ -234,7 +235,7 @@ export default function OrganizationMembersPage() {
     return (
       <AppShell
         title="Organization members"
-        description="Manage members with backend-enforced roles and audit coverage."
+        description="Invite members, assign roles and review access across your organization."
       >
         <p className="rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-3 py-2 text-sm text-[var(--status-warning-text)]">
           Member management is available only to organization owners or member managers.
@@ -244,7 +245,10 @@ export default function OrganizationMembersPage() {
   }
 
   return (
-    <AppShell title="Organization members" description="Manage members with backend-enforced roles and audit coverage.">
+    <AppShell
+      title="Organization members"
+      description="Invite members, assign roles and review access across your organization."
+    >
       <div className="grid gap-6">
         <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
           {actionData?.status ? (
@@ -278,7 +282,7 @@ export default function OrganizationMembersPage() {
           <div className="border-b border-bolt-elements-borderColor px-4 py-3">
             <h2 className="font-semibold text-bolt-elements-textPrimary">Members</h2>
             <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-              Role changes are persisted through the organization membership API.
+              Role changes take effect as soon as you save them.
             </p>
           </div>
           {memberships.map((member) => {
@@ -288,6 +292,9 @@ export default function OrganizationMembersPage() {
              * transferred first.
              */
             const isLastOwner = member.roleKey === 'owner' && ownerCount <= 1;
+
+            const memberRoleLabel =
+              roles.find((role) => role.key === member.roleKey)?.name ?? userFacingLabel(member.roleKey, 'Member');
 
             // Prefer a human identity; fall back to email, then the opaque id.
             const displayName = member.userName ?? member.userEmail ?? member.userId;
@@ -302,7 +309,7 @@ export default function OrganizationMembersPage() {
                   <div className="truncate font-medium text-bolt-elements-textPrimary">{displayName}</div>
                   <div className="truncate text-xs text-bolt-elements-textSecondary">
                     {hasName && member.userEmail ? `${member.userEmail} · ` : ''}
-                    {member.roleKey}
+                    {memberRoleLabel}
                   </div>
                 </div>
                 <Form method="post" className="flex flex-wrap gap-2" title={isLastOwner ? LAST_OWNER_HINT : undefined}>

@@ -10,6 +10,7 @@ import {
   redirect,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { statusDisplayLabel } from '~/lib/user-facing-labels';
 
 type Invoice = {
   id: string;
@@ -64,7 +65,7 @@ export default function InvoicesPage() {
   return (
     <EnterpriseFormPage
       title="Invoices"
-      description="Track invoice lifecycle, successful payments and failed payment events."
+      description="View invoices, payment status and downloadable receipts."
       error={accessLimited ? 'Invoices are visible to organization owners and billing administrators.' : undefined}
     >
       {invoices.length ? (
@@ -108,7 +109,7 @@ export default function InvoicesPage() {
                         </span>
                       ) : (
                         <span className="ml-2 text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
-                          {invoice.status}
+                          {statusDisplayLabel(invoice.status)}
                         </span>
                       )
                     ) : null}
@@ -152,7 +153,7 @@ export default function InvoicesPage() {
           description={
             stripeConfigured
               ? 'Invoices appear here after your first paid billing cycle.'
-              : 'Invoice events are ingested from verified Stripe webhooks once billing is active.'
+              : 'Invoices will appear here when billing is active.'
           }
         />
       )}

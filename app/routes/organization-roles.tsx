@@ -143,10 +143,7 @@ export default function OrganizationRolesPage() {
 
   if (forbidden) {
     return (
-      <AppShell
-        title="Organization roles"
-        description="Define custom roles and inspect the permission matrix. Backend-enforced privilege boundaries."
-      >
+      <AppShell title="Organization roles" description="Define custom roles and see exactly what each role can do.">
         <p className="rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-3 py-2 text-sm text-[var(--status-warning-text)]">
           Role management is available only to organization owners or role managers.
         </p>
@@ -171,10 +168,7 @@ export default function OrganizationRolesPage() {
   const allRows = [...builtinRows, ...customRows];
 
   return (
-    <AppShell
-      title="Organization roles"
-      description="Define custom roles and inspect the permission matrix. Backend-enforced privilege boundaries."
-    >
+    <AppShell title="Organization roles" description="Define custom roles and see exactly what each role can do.">
       <div className="grid gap-6">
         {actionData?.status ? (
           <p
@@ -198,8 +192,8 @@ export default function OrganizationRolesPage() {
           <div className="border-b border-bolt-elements-borderColor px-4 py-3 sm:px-6">
             <h2 className="font-semibold text-bolt-elements-textPrimary">Permission matrix</h2>
             <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-              Built-in roles are read-only. Your role ({callerRoleKey}) determines which permissions you can grant to a
-              new custom role.
+              Built-in roles are read-only. Your role ({BUILTIN_ROLE_LABELS[callerRoleKey] ?? 'Custom role'}) determines
+              which permissions you can grant to a new custom role.
             </p>
           </div>
           <div className="overflow-x-auto">
@@ -240,7 +234,6 @@ export default function OrganizationRolesPage() {
                           title={permission.description}
                         >
                           <span className="font-medium text-bolt-elements-textPrimary">{permission.label}</span>
-                          <span className="ml-2 text-xs text-bolt-elements-textSecondary">{permission.key}</span>
                         </td>
                         {allRows.map((role) => {
                           const held = role.permissions.includes(permission.key);
@@ -278,12 +271,12 @@ export default function OrganizationRolesPage() {
         <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
           <h2 className="mb-1 font-semibold text-bolt-elements-textPrimary">Create custom role</h2>
           <p className="mb-4 text-xs text-bolt-elements-textSecondary">
-            Permissions you do not hold are disabled — the server also rejects any privilege escalation.
+            Permissions outside your own role are unavailable and cannot be added when you save.
           </p>
           <Form method="post" className="grid gap-5">
             <input type="hidden" name="orgId" value={orgId} />
             <div className="grid gap-4 sm:grid-cols-2">
-              <TextField label="Role key" name="key" placeholder="e.g. release-manager" required />
+              <TextField label="Role identifier" name="key" placeholder="e.g. release-manager" required />
               <TextField label="Display name" name="name" placeholder="e.g. Release Manager" required />
             </div>
 
@@ -319,7 +312,9 @@ export default function OrganizationRolesPage() {
                           />
                           <span className="min-w-0">
                             <span className="block font-medium text-bolt-elements-textPrimary">{permission.label}</span>
-                            <span className="block text-xs text-bolt-elements-textSecondary">{permission.key}</span>
+                            <span className="block text-xs text-bolt-elements-textSecondary">
+                              {permission.description}
+                            </span>
                           </span>
                         </label>
                       );
@@ -348,9 +343,7 @@ export default function OrganizationRolesPage() {
                 key={role.id}
                 className="border-b border-bolt-elements-borderColor px-4 py-3 last:border-b-0 sm:px-6"
               >
-                <div className="font-medium text-bolt-elements-textPrimary">
-                  {role.name} <span className="text-xs text-bolt-elements-textSecondary">({role.key})</span>
-                </div>
+                <div className="font-medium text-bolt-elements-textPrimary">{role.name}</div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {role.permissions.map((permission) => (
                     <span

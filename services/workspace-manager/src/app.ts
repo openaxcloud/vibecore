@@ -3,28 +3,6 @@ import { getClusterCapacity } from '@vibecore/k8s-client';
 import Fastify from 'fastify';
 import { z } from 'zod';
 import { WorkspaceManager } from './manager.js';
-import { runScheduledJob } from './scheduled-jobs.js';
-
-/*
- * One disposable run of a scheduled task. `secretValues` are the project's
- * decrypted secrets; they are written to a per-run Secret that is deleted with
- * the pod, so they never outlive the run.
- */
-const scheduledJobSchema = z.object({
-  orgId: z.string().min(1),
-  projectId: z.string().min(1),
-  taskId: z.string().min(1),
-  runId: z.string().min(1),
-  image: z.string().min(1),
-  pvcName: z.string().min(1),
-  command: z.string().min(1),
-  machineSize: z.string().optional(),
-  timeoutSeconds: z.number().int().positive().max(3600).default(900),
-  env: z.record(z.string()).optional(),
-  secretEnv: z.record(z.string()).optional(),
-  secretValues: z.record(z.string()).optional(),
-  workingDir: z.string().optional(),
-});
 
 const startSchema = z.object({
   namespace: z.string().default('workspaces'),
@@ -44,25 +22,6 @@ const startSchema = z.object({
       storageGb: z.number().int().positive().optional(),
     })
     .optional(),
-});
-
-/** Body for POST /server-deployments/start (Replit-parity durable runtime). */
-const serverStartSchema = z.object({
-  deploymentId: z.string().min(1),
-  orgId: z.string().optional(),
-  projectId: z.string().optional(),
-  image: z.string().min(1),
-  command: z.array(z.string()).optional(),
-  args: z.array(z.string()).optional(),
-  port: z.number().int().positive().default(3000),
-  host: z.string().min(1),
-  tlsSecretName: z.string().default('vibecore-preview-wildcard-tls'),
-  env: z.record(z.string()).optional(),
-  secrets: z.record(z.string()).optional(),
-  replicas: z.number().int().positive().optional(),
-  healthPath: z.string().optional(),
-  readyTimeoutMs: z.number().int().positive().optional(),
-  createIngress: z.boolean().optional(),
 });
 
 function runtimeNamespace() {
@@ -217,34 +176,6 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   app.post('/workspaces/start', async (request) =>
     manager.startWorkspace({ ...startSchema.parse(request.body), namespace: runtimeNamespace() }),
   );
-
-  /*
-   * Server deployments (Replit-parity durable runtime): apply Deployment+Service+
-   * Ingress running the built backend, poll readiness, return the public URL. The
-   * namespace is always the manager's runtimeNamespace() (same as workspaces).
-   */
-  app.post('/server-deployments/start', async (request) =>
-    manager.startServerDeployment({ ...serverStartSchema.parse(request.body), namespace: runtimeNamespace() }),
-  );
-  app.get('/server-deployments/:deploymentId/status', async (request) =>
-    manager.getServerDeploymentStatus(runtimeNamespace(), (request.params as any).deploymentId),
-  );
-  app.post('/server-deployments/:deploymentId/stop', async (request) =>
-    manager.stopServerDeployment(runtimeNamespace(), (request.params as any).deploymentId),
-  );
-
-  /*
-   * Scheduled runs ("Scheduled" deployment type): one DISPOSABLE Pod per run.
-   * Synchronous by design — the api's scheduler owns the run row and needs the
-   * exit code + full logs back to close it out. The pod (and its secret) are
-   * always deleted, including on timeout. Nothing durable is created, and this
-   * shares no code with the server-deployment path above.
-   */
-  app.post('/scheduled-jobs/run', async (request) => {
-    const input = scheduledJobSchema.parse(request.body);
-
-    return runScheduledJob(manager.k8s, { ...input, namespace: runtimeNamespace() });
-  });
   app.get('/workspaces/:workspaceId', async (request) => manager.store.get((request.params as any).workspaceId));
   app.get('/workspaces/:workspaceId/agent-token', async (request) => {
     const workspaceId = (request.params as any).workspaceId;
