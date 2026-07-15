@@ -591,10 +591,14 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
            */
           readinessProbe: {
             httpGet: { path: '/health', port: 8080 },
-            initialDelaySeconds: 2,
-            periodSeconds: 5,
+            // 1s sampling so the agent takes traffic ~1s after /health answers
+            // (2s delay + 5s period made every cold open wait for the probe, not
+            // the agent). failureThreshold keeps the same 15s tolerance window as
+            // the previous 3×5s, so a momentarily busy agent still isn't flapped.
+            initialDelaySeconds: 0,
+            periodSeconds: 1,
             timeoutSeconds: 3,
-            failureThreshold: 3,
+            failureThreshold: 15,
           },
 
           /*
@@ -792,12 +796,17 @@ export function serverAppDeployment(input: ServerRuntimeInput): K8sObject {
               },
               readinessProbe: {
                 httpGet: { path: input.healthPath ?? '/', port: input.port },
-                initialDelaySeconds: 3,
-                periodSeconds: 5,
+                // With scale-to-zero the first visitor pays this probe's schedule on
+                // every wake: 3s delay + 5s period measured 6-7s containerStart→Ready
+                // in prod while the app itself answered in ~1s. 1s sampling marks the
+                // pod Ready within ~1s of the app binding; failureThreshold keeps the
+                // same 30s outage window as the previous 6×5s before flipping NotReady.
+                initialDelaySeconds: 0,
+                periodSeconds: 1,
                 // Replit's published rule: the homepage must answer within 5s or the
                 // publish fails — give the probe exactly that budget, no more.
                 timeoutSeconds: 5,
-                failureThreshold: 6,
+                failureThreshold: 30,
               },
               // TCP liveness (a busy app under gVisor can starve an HTTP handler; the bound port still accepts).
               livenessProbe: {
