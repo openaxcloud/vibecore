@@ -1,0 +1,13 @@
+18:22:02 cmrmb34mz00060nbdp80trhzm → HTTP 200 en 1.518247s
+18:22:03 cmrmc2v0u00040ngapqutfreo → HTTP 200 en 1.142315s
+18:32:04 cmrmb34mz00060nbdp80trhzm → HTTP 200 en 0.463456s
+18:32:05 cmrmc2v0u00040ngapqutfreo → HTTP 200 en 6.314658s
+18:42:11 cmrmb34mz00060nbdp80trhzm → HTTP 200 en 1.435372s
+18:42:13 cmrmc2v0u00040ngapqutfreo → HTTP 200 en 0.910165s
+18:52:14 cmrmb34mz00060nbdp80trhzm → HTTP 200 en 0.384667s
+18:52:14 cmrmc2v0u00040ngapqutfreo → HTTP 200 en 0.472103s
+19:02:15 cmrmb34mz00060nbdp80trhzm → HTTP 200 en 0.615662s
+19:02:15 cmrmc2v0u00040ngapqutfreo → HTTP 200 en 2.702469s
+19:12:18 cmrmb34mz00060nbdp80trhzm → HTTP 200 en 0.378713s
+19:12:19 cmrmc2v0u00040ngapqutfreo → HTTP 200 en 0.378547s
+DONE
