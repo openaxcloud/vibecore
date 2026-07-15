@@ -3,10 +3,14 @@
 États par point : 📤 Dispatché · 💻 Codé (commité+poussé sur main) · ✅ Testé live (écran + greps, web/tablette/mobile le cas échéant).
 Un point n'est « fait » QUE quand ✅ est coché.
 
-## Server deploy Phase A — « Publish = snapshot du workspace → image → run » (décision Avi 15/07)
+## Server deploy Phase A — snapshot→image→run (décision Avi 15/07)
 
-Contexte : le chemin boot-script (détection Node → tarball source → install/build au boot) est l'impasse par-langage.
-Cible Replit : le déploiement EST le workspace, imagé. Mesures baseline (15/07, prod) : cold boot boot-script depuis 0 réplique = **91 s** (Next.js « nextproofb2 ») ; réponse chaude 0,45 s.
+🔴 **CORRECTION D'ARCHITECTURE (audit Avi 15/07)** : « snapshot du pod **vivant** → image » est TROP LITTÉRAL et dangereux — capture caches, secrets, état non reproductible ; publication non rejouable, rollback illusoire. **Le pod de dev vivant n'est JAMAIS la source directe de vérité.**
+Pipeline correct : `révision projet + ecode.lock.json + lockfiles → gates policy → build reproductible ISOLÉ → image signée | bundle statique → AR → adapter de promotion → Autoscale | Always-on | Scheduled | Static`.
+→ Ce qui tourne en prod (A1–A11 ci-dessous) est un **PROTOTYPE DE MÉCANISME PROUVÉ** (workspace → image → run, live 200 Node+Python), **PAS la source-de-vérité de production**. Le vrai pipeline est **couplé à Nix v2** : le builder isolé a besoin du toolchain épinglé (Cloud Build n'a pas `/nix` → build reproductible Python impossible sans lui) ; `ecode.lock.json` est le lock partagé Preview/Build/Publish/Scheduled. Vérifié 15/07 : project-storage (`/data/vibecore/projects/<id>`, git par projet) est **DÉSYNCHRONISÉ du workspace** (scaffold seul) → maillon manquant = sync workspace→révision immuable avant build.
+Corrections actées : « Autoscale=Cloud Run / Reserved=GCE » **PAS** un fait (contrats produit connus, backends inconnus → adapter+POC) · Image Streaming = root-fs only, pas le volume /nix, fallback silencieux (vérif par métriques) · modèle **Project → Artifacts** (7 max, 1 mobile, backend/secrets partagés, publication ATOMIQUE).
+
+COLDSTART-01 (fait, `f8f56262`, artefact `docs/server-deploy-evidence/2026-07-15/coldstart-01-decomposition.txt`) : 20 boots décomposés. **Pull image 163 Mo non-caché = 1,155s → PAS le goulot** ; dominant = boot-app→Ready ~6-7s (readinessProbe) ; routage ~2s ; total chaud ~10,5s. **Image Streaming ne gagnerait ~rien** (réfuté). Les **91s** étaient un deploy **boot-script** (npm install au boot), pas le chemin image — comparaison RETIRÉE. Variante nœud-froid (scale-up) non mesurée (bloquée quota SSD).
 
 | Point | 📤 | 💻 | ✅ | Notes |
 |---|---|---|---|---|
