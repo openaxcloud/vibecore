@@ -13,7 +13,7 @@ Cible Replit : le déploiement EST le workspace, imagé. Mesures baseline (15/07
 | A1. serverApp pods : ECODE_DEPLOYMENT=1 + probe 5 s (règle Replit) + montage /nix kill-switch | ✅ | ✅ `1738afc0` | ⬜ | vérif live = env du pod app + probe |
 | A2. Plumbing nixStorePvcName per-request (API→manager→k8s), allowlist projet | ✅ | ✅ `1738afc0`+`f32aa5f6` | ⬜ | flip global NIX_STORE_PVC_NAME intact (off) |
 | A3. Snapshot COMPLET (deps incluses) uploadé depuis le pod (URL signée PUT, plafond 2 Mo contourné) | ✅ | ✅ `43080762` | ⬜ | |
-| A4. Builder Cloud Build : Dockerfile généré générique (FROM base workspace + COPY + RUN build + CMD run), push AR, taille d'image rapportée | ✅ | ✅ `bb1994dc` | ⬜ | limite Replit 8 Gio à surveiller |
+| A4. Builder Cloud Build : Dockerfile généré générique (FROM base workspace + COPY + RUN build + CMD run), push AR, taille d'image rapportée | ✅ | ✅ `ca021f99` | ⬜ | limite Replit 8 Gio à surveiller |
 | A5. Chemin image flag-gated `SERVER_DEPLOY_SNAPSHOT_IMAGE=1` dans le flux server-deploy (flag absent = boot-script octet pour octet) | ✅ | ✅ `f32aa5f6` | ⬜ | |
 | A6. `.ecode/deploy.json` {run,build} générique (équivalent `.replit [deployment]`) honoré par le handler ET /deployments/detect | ✅ | ✅ `f32aa5f6` | ⬜ | zéro code par-langage |
 | A7. Infra : repo AR `vibecore-prod-apps`, IAM (GSA platform cloudbuild.builds.editor + AR reader ; compute SA AR writer), PV nix recréé avec nodeAffinity zone-a, clés chart | ✅ | ✅ `63fdcde1` + fait live | ⬜ | PVC ROX 80Gi bound ; affinité PROUVÉE (scheduler exclut zone b) |
