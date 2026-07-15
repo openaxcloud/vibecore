@@ -198,4 +198,12 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     })) as PrismaRuntimeRow[];
     return rows.map(rowToRecord);
   }
+
+  async listByProject(projectId: string): Promise<WorkspaceRecord[]> {
+    const rows = (await this.prisma.workspaceRuntime.findMany({
+      where: { projectId, status: { not: 'DELETED' } },
+      orderBy: { lastActiveAt: 'desc' },
+    })) as PrismaRuntimeRow[];
+    return rows.map(rowToRecord);
+  }
 }

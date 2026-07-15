@@ -1439,15 +1439,24 @@ export function createDeploymentLogs(
   } else if (deployment.provider === 'static') {
     baseLogs.push('Static export: uploaded immutable artifact bundle');
   } else if (deployment.provider === 'server') {
-    baseLogs.push('Server deploy: applied Deployment + Service in the runtime sandbox');
-    baseLogs.push('Server deploy: routed the public host through the preview wildcard');
+    /*
+     * NO fabricated lines here (BUG-DEPLOY-001): the server pipeline appends
+     * its REAL steps as they happen (revision, isolated build, image, apply,
+     * readiness). Logging "applied … / Deployment ready: <url>" at queue time
+     * made a deploy whose build later FAILED read as live, with a "ready" URL
+     * that 502s.
+     */
   } else {
     baseLogs.push(`${deployment.provider}: provider deployment created through scoped integration`);
   }
 
-  baseLogs.push(
-    `Deployment ready: ${deployment.url ?? deployment.previewUrl ?? deployment.productionUrl ?? 'pending URL'}`,
-  );
+  // Same lie for server deploys: readiness is logged by the pipeline when the
+  // Deployment really answers, never at queue time.
+  if (deployment.provider !== 'server') {
+    baseLogs.push(
+      `Deployment ready: ${deployment.url ?? deployment.previewUrl ?? deployment.productionUrl ?? 'pending URL'}`,
+    );
+  }
 
   return baseLogs.map((message) => ({
     timestamp: new Date().toISOString(),
