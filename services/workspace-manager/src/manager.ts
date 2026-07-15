@@ -1,18 +1,15 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import {
-  serverAppDeployment,
-  serverAppIngress,
-  serverAppService,
   serverDeploymentName,
   workspaceAgentSecret,
   workspacePod,
   workspacePvc,
   workspaceService,
-  type ServerRuntimeInput,
   type WorkspaceK8sClient,
   type WorkspacePlan,
 } from '@vibecore/k8s-client';
+import { resolveSandboxRuntime, type SandboxRuntime } from '@vibecore/sandbox-runtime';
 import { signAgentToken, type WorkspaceEvent } from '@vibecore/workspace-sdk';
 
 export type WorkspaceStatus = 'STARTING' | 'RUNNING' | 'STOPPED' | 'FAILED' | 'DELETED';
@@ -280,6 +277,14 @@ export class WorkspaceManager {
     readonly k8s: WorkspaceK8sClient,
     readonly events: EventBus,
     readonly tokenSecret: string,
+
+    /*
+     * Runtime-isolation adapter (docs/NIX_V2_DECISION.md era architecture rule:
+     * no business object is a Kubernetes Pod). Server-app lifecycle goes
+     * through it; workspaces/scheduled runs migrate next. Selection is
+     * env-driven (SANDBOX_RUNTIME, default gvisor-pod) with no silent fallback.
+     */
+    readonly runtime: SandboxRuntime = resolveSandboxRuntime(k8s),
   ) {}
 
   async startWorkspace(input: StartWorkspaceInput) {
@@ -543,7 +548,6 @@ export class WorkspaceManager {
      */
     nixStorePvcName?: string;
   }): Promise<{ ready: boolean; url: string; name: string; readyReplicas: number }> {
-    const name = serverDeploymentName(input.deploymentId);
     const hasSecrets = Boolean(input.secrets && Object.keys(input.secrets).length > 0);
     const secretName = `app-secrets-${input.deploymentId}`;
 
@@ -561,7 +565,12 @@ export class WorkspaceManager {
       });
     }
 
-    const runtime: ServerRuntimeInput = {
+    /*
+     * Everything Kubernetes-specific (manifests, readiness poll, teardown)
+     * lives behind the SandboxRuntime adapter — the manager only maps the
+     * product request onto the runtime contract.
+     */
+    return this.runtime.startServerApp({
       deploymentId: input.deploymentId,
       namespace: input.namespace,
       orgId: input.orgId,
@@ -581,68 +590,22 @@ export class WorkspaceManager {
         : {}),
       replicas: input.replicas,
       healthPath: input.healthPath,
+      readyTimeoutMs: input.readyTimeoutMs,
+      createIngress: input.createIngress,
       // Per-request opt-in wins; cluster-wide kill switch as fallback (mirrors startWorkspace).
       nixStorePvcName: input.nixStorePvcName ?? process.env.NIX_STORE_PVC_NAME,
-    };
-
-    await this.k8s.apply(serverAppDeployment(runtime));
-    await this.k8s.apply(serverAppService(runtime));
-
-    if (input.createIngress) {
-      await this.k8s.apply(serverAppIngress(runtime));
-    }
-
-    const ready = await this.#pollServerDeploymentReady(input.namespace, name, input.readyTimeoutMs ?? 120_000);
-    const status = await this.getServerDeploymentStatus(input.namespace, input.deploymentId);
-
-    return { ready, url: `https://${input.host}`, name, readyReplicas: status.readyReplicas };
-  }
-
-  async #pollServerDeploymentReady(namespace: string, name: string, timeoutMs: number): Promise<boolean> {
-    const deadline = Date.now() + timeoutMs;
-
-    for (;;) {
-      const dep = (await this.k8s.get('Deployment', namespace, name).catch(() => undefined)) as
-        | { status?: { readyReplicas?: number } }
-        | undefined;
-
-      if ((dep?.status?.readyReplicas ?? 0) >= 1) {
-        return true;
-      }
-
-      if (Date.now() >= deadline) {
-        return false;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-    }
+    });
   }
 
   async getServerDeploymentStatus(
     namespace: string,
     deploymentId: string,
   ): Promise<{ exists: boolean; readyReplicas: number; replicas: number }> {
-    const dep = (await this.k8s
-      .get('Deployment', namespace, serverDeploymentName(deploymentId))
-      .catch(() => undefined)) as { status?: { readyReplicas?: number; replicas?: number } } | undefined;
-
-    return {
-      exists: Boolean(dep),
-      readyReplicas: dep?.status?.readyReplicas ?? 0,
-      replicas: dep?.status?.replicas ?? 0,
-    };
+    return this.runtime.serverAppStatus(namespace, deploymentId);
   }
 
   async stopServerDeployment(namespace: string, deploymentId: string): Promise<{ stopped: true }> {
-    const name = serverDeploymentName(deploymentId);
-
-    // Best-effort teardown of all four resources; a straggler is caught by GC.
-    await Promise.allSettled([
-      this.k8s.delete('Ingress', namespace, name),
-      this.k8s.delete('Service', namespace, name),
-      this.k8s.delete('Deployment', namespace, name),
-      this.k8s.delete('Secret', namespace, `app-secrets-${deploymentId}`),
-    ]);
+    await this.runtime.stopServerApp(namespace, deploymentId);
 
     return { stopped: true };
   }
@@ -701,10 +664,32 @@ export class WorkspaceManager {
       await this.k8s.scale('Deployment', namespace, name, 1);
     }
 
-    const ready = await this.#pollServerDeploymentReady(namespace, name, readyTimeoutMs);
+    const ready = await this.#pollServerDeploymentReady(namespace, deploymentId, readyTimeoutMs);
     const status = await this.getServerDeploymentStatus(namespace, deploymentId);
 
     return { ready, readyReplicas: status.readyReplicas, wokeUp: true };
+  }
+
+  /*
+   * Wake-path readiness poll, expressed against the runtime adapter's status
+   * (never raw Kubernetes) so it stays valid for any future runtime.
+   */
+  async #pollServerDeploymentReady(namespace: string, deploymentId: string, timeoutMs: number): Promise<boolean> {
+    const deadline = Date.now() + timeoutMs;
+
+    for (;;) {
+      const status = await this.runtime.serverAppStatus(namespace, deploymentId).catch(() => undefined);
+
+      if ((status?.readyReplicas ?? 0) >= 1) {
+        return true;
+      }
+
+      if (Date.now() >= deadline) {
+        return false;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
   }
 
   /**
