@@ -125,13 +125,20 @@ import {
   runWorkspaceStaticBuild,
   type WorkspaceStaticBuildResult,
 } from './deploy-workspace-build.js';
-import { buildServerDeployEnv, snapshotWorkspaceAppSource } from './server-deploy-transfer.js';
+import {
+  buildServerDeployEnv,
+  snapshotWorkspaceAppSource,
+  snapshotWorkspaceImageContext,
+} from './server-deploy-transfer.js';
 import {
   buildServerBootScript,
   detectDeployTarget,
+  detectPackageManagerInstall,
   detectServerRuntime,
   isDetectionError,
+  type ServerRuntimePlan,
 } from './server-runtime-detect.js';
+import { runAppImageBuild } from './app-image-build.js';
 import { shouldRecordDeploymentUsage } from './deployment-billing.js';
 import {
   assertDeploymentRequestAllowed,
@@ -6422,6 +6429,36 @@ server.listen(Number(process.env.PORT) || 3000, () => console.log('e-code server
  * Service in the runtime sandbox, polls readiness). Routing to the public host is
  * handled by the preview-proxy (createIngress stays off), so no Ingress is created.
  */
+/*
+ * Per-project rollout gate for the shared RO Nix store (candidate E).
+ * WORKSPACE_NIX_STORE_PVC names the ReadOnlyMany PVC in the runtime namespace;
+ * WORKSPACE_NIX_PROJECTS gates who mounts it: '*' = every project, otherwise a
+ * comma-separated project-id allowlist. Either unset ⇒ off (pod specs
+ * byte-for-byte unchanged — the same kill-switch contract as the manager's
+ * cluster-wide NIX_STORE_PVC_NAME). Applied to BOTH the workspace pod and the
+ * app's server-deploy pod so a published app keeps the toolchain it ran with.
+ */
+function nixStorePvcForProject(projectId: string | undefined): string | undefined {
+  const pvc = process.env.WORKSPACE_NIX_STORE_PVC?.trim();
+  const allow = process.env.WORKSPACE_NIX_PROJECTS?.trim();
+
+  if (!pvc || !allow || !projectId) {
+    return undefined;
+  }
+
+  if (allow === '*') {
+    return pvc;
+  }
+
+  return allow
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .includes(projectId)
+    ? pvc
+    : undefined;
+}
+
 async function startServerDeploymentViaManager(payload: {
   deploymentId: string;
   image: string;
@@ -6436,6 +6473,7 @@ async function startServerDeploymentViaManager(payload: {
   orgId?: string;
   healthPath?: string;
   readyTimeoutMs?: number;
+  nixStorePvcName?: string;
 }): Promise<{ ready: boolean; url: string; name: string; readyReplicas: number }> {
   const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
@@ -12551,6 +12589,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         env,
         allowedSecretKeys,
         allowedSecrets,
+        nixStorePvcName: nixStorePvcForProject(authorized.projectId),
         objectStorage: buildWorkspaceObjectStorage({
           projectId: authorized.projectId,
           userId: request.currentUser?.id,
@@ -12781,7 +12820,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     request: any,
     project: ProjectRecord,
     timeoutSeconds: number,
-  ): Promise<{ ok: true; packageJson: string | null; topLevelFiles: string[] } | { ok: false; reason: string }> => {
+  ): Promise<
+    | { ok: true; packageJson: string | null; topLevelFiles: string[]; declaredRun: string | null }
+    | { ok: false; reason: string }
+  > => {
     const userId = request.currentUser?.id;
     const WebSocketCtor = (globalThis as { WebSocket?: new (url: string) => WsLike }).WebSocket;
 
@@ -12833,7 +12875,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       topLevelFiles = [];
     }
 
-    return { ok: true, packageJson, topLevelFiles };
+    /*
+     * Generic run declaration (.ecode/deploy.json — our `.replit [deployment]`):
+     * a project of ANY runtime that declares {"run": "..."} is a server deploy,
+     * and the panel must show exactly what the deploy handler will execute.
+     */
+    let declaredRun: string | null = null;
+
+    try {
+      const parsed = JSON.parse((await buildAgent.readFile('.ecode/deploy.json')).content) as { run?: unknown };
+      declaredRun = typeof parsed.run === 'string' && parsed.run.trim() ? parsed.run.trim() : null;
+    } catch {
+      declaredRun = null;
+    }
+
+    return { ok: true, packageJson, topLevelFiles, declaredRun };
   };
 
   /*
@@ -14417,6 +14473,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           env,
           allowedSecretKeys,
           allowedSecrets,
+          nixStorePvcName: nixStorePvcForProject(authorized.projectId),
           objectStorage: buildWorkspaceObjectStorage({
             projectId: authorized.projectId,
             userId: request.currentUser?.id,
@@ -26818,6 +26875,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { mode: 'unknown', framework: 'unknown', reason: manifest.reason, pending: true };
     }
 
+    // A declared run command (.ecode/deploy.json) wins — same precedence as the
+    // deploy handler, so the shown mode and the executed mode stay in lockstep.
+    if (manifest.declaredRun) {
+      return {
+        mode: 'server',
+        framework: 'custom',
+        reason: `Run command declared in .ecode/deploy.json ("${manifest.declaredRun}").`,
+        pending: false,
+      };
+    }
+
     const target = detectDeployTarget({
       packageJson: manifest.packageJson,
       topLevelFiles: manifest.topLevelFiles,
@@ -27663,6 +27731,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const userId = request.currentUser?.id;
       const WebSocketCtor = (globalThis as { WebSocket?: new (url: string) => WsLike }).WebSocket;
       let bootCommand: string[] | undefined;
+
+      /*
+       * Snapshot-image path (SERVER_DEPLOY_SNAPSHOT_IMAGE=1): the app runs its
+       * OWN image (workspace imaged via Cloud Build) instead of the generic
+       * runtime + boot script. serverImage set ⇒ no bootCommand, no APP_SRC_*.
+       */
+      let serverImage: string | undefined;
+      let imageBuildInfo:
+        | { imageUri: string; imageSizeBytes?: number; buildId?: string; buildMs?: number }
+        | undefined;
       let serverEnv: Record<string, string> = { DEPLOY_ID: queued.id, PORT: String(serverPort), ...body.envVars };
 
       if (process.env.SERVER_DEPLOY_USE_PROBE === 'true') {
@@ -27725,15 +27803,54 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           const detection = detectServerRuntime({ packageJson, topLevelFiles });
 
-          if (isDetectionError(detection)) {
-            serverError = detection.error;
+          /*
+           * Generic run config — our `.replit [deployment]` table. When the
+           * project declares {"run": "...", "build": "..."} in .ecode/deploy.json
+           * it wins over Node detection, so ANY runtime (python, go, …) states
+           * how it starts without the platform growing per-language code.
+           */
+          let deployConfig: { run: string; build?: string } | null = null;
+
+          try {
+            const parsed = JSON.parse((await buildAgent.readFile('.ecode/deploy.json')).content) as {
+              run?: unknown;
+              build?: unknown;
+            };
+
+            if (parsed && typeof parsed.run === 'string' && parsed.run.trim()) {
+              deployConfig = {
+                run: parsed.run.trim(),
+                ...(typeof parsed.build === 'string' && parsed.build.trim() ? { build: parsed.build.trim() } : {}),
+              };
+            }
+          } catch {
+            deployConfig = null;
+          }
+
+          const runPlan: ServerRuntimePlan | undefined = deployConfig
+            ? {
+                framework: 'node', // label only — the declared commands drive everything
+                install: detectPackageManagerInstall(topLevelFiles),
+                buildCommand: deployConfig.build ?? null,
+                startCommand: deployConfig.run,
+                port: serverPort,
+                staticHint: false,
+                notes: ['Run/build declared by .ecode/deploy.json.'],
+              }
+            : isDetectionError(detection)
+              ? undefined
+              : detection;
+
+          if (!runPlan) {
+            const detectionError = detection as { error: string };
+            serverError = `${detectionError.error} You can also declare {"run": "<command>"} in .ecode/deploy.json.`;
           } else {
             buildProgress.onLog({
               timestamp: nowIso(),
               level: 'info',
-              message: `Server deploy: detected ${detection.framework} — build "${
-                detection.buildCommand ?? '(none)'
-              }", start "${detection.startCommand}"`,
+              message: `Server deploy: ${deployConfig ? 'declared (.ecode/deploy.json)' : `detected ${runPlan.framework}`} — build "${
+                runPlan.buildCommand ?? '(none)'
+              }", start "${runPlan.startCommand}"`,
             });
 
             const objectStorage = (() => {
@@ -27744,37 +27861,122 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               }
             })();
 
-            const snapshot = await snapshotWorkspaceAppSource({
-              agent: buildAgent,
-              deploymentId: queued.id,
-              objectStorage,
-              projectId: project.id,
-              onLog: (level, line) => buildProgress.onLog({ timestamp: nowIso(), level, message: line }),
-            });
+            if (process.env.SERVER_DEPLOY_SNAPSHOT_IMAGE === '1') {
+              /*
+               * Snapshot-image pipeline (Replit's model: the deployment IS the
+               * workspace, imaged). Full snapshot (deps included) uploaded from
+               * the pod → Cloud Build bakes base-image + workspace + build into
+               * an app image → the Deployment runs THAT image. No install at
+               * boot ⇒ cold start is image pull + exec.
+               */
+              const imageRepo = process.env.SERVER_DEPLOY_IMAGE_REPO?.trim();
+              const repoMatch = imageRepo ? /^([a-z0-9-]+)-docker\.pkg\.dev\/([^/]+)\/[^/]+$/.exec(imageRepo) : null;
 
-            if (!snapshot.ok || !snapshot.transfer) {
-              serverError = snapshot.message ?? 'Failed to snapshot the app for deployment.';
+              if (!repoMatch) {
+                serverError =
+                  'Snapshot-image deploys are enabled but SERVER_DEPLOY_IMAGE_REPO is not a valid Artifact Registry repo.';
+              } else {
+                buildProgress.onPhase('imaging');
+
+                const context = await snapshotWorkspaceImageContext({
+                  agent: buildAgent,
+                  deploymentId: queued.id,
+                  objectStorage,
+                  projectId: project.id,
+                  onLog: (level, line) => buildProgress.onLog({ timestamp: nowIso(), level, message: line }),
+                });
+
+                if (!context.ok || !context.bucket || !context.object) {
+                  serverError = context.message ?? 'Failed to snapshot the workspace for the app image.';
+                } else {
+                  const baseImage =
+                    process.env.SERVER_DEPLOY_IMAGE ??
+                    process.env.WORKSPACE_AGENT_IMAGE ??
+                    'vibecore/workspace-agent:2026.04.0';
+                  const imageUri = `${imageRepo}/p-${project.id.toLowerCase()}:${queued.id.toLowerCase()}`;
+                  const buildResult = await runAppImageBuild(
+                    {
+                      gcpProject: repoMatch[2],
+                      region: repoMatch[1],
+                      sourceBucket: context.bucket,
+                      sourceObject: context.object,
+                      imageUri,
+                      baseImage,
+                      buildCommand: runPlan.buildCommand,
+                      startCommand: runPlan.startCommand,
+                      timeoutSeconds: Number(process.env.SERVER_DEPLOY_IMAGE_BUILD_TIMEOUT_S) || 600,
+                    },
+                    {
+                      onLog: (level, message) => buildProgress.onLog({ timestamp: nowIso(), level, message }),
+                    },
+                  );
+
+                  if (!buildResult.ok) {
+                    serverError = buildResult.error;
+                  } else {
+                    serverImage = buildResult.imageUri;
+                    imageBuildInfo = {
+                      imageUri: buildResult.imageUri,
+                      imageSizeBytes: buildResult.imageSizeBytes,
+                      buildId: buildResult.buildId,
+                      buildMs: buildResult.durationMs,
+                    };
+                    buildProgress.onLog({
+                      timestamp: nowIso(),
+                      level: 'info',
+                      message: `Server deploy: image ready ${imageUri}${
+                        buildResult.imageSizeBytes
+                          ? ` (${Math.round(buildResult.imageSizeBytes / 1_000_000)} MB)`
+                          : ''
+                      } in ${Math.round(buildResult.durationMs / 1000)}s`,
+                    });
+
+                    const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(
+                      (): Record<string, string> => ({}),
+                    );
+                    serverEnv = buildServerDeployEnv({
+                      deploymentId: queued.id,
+                      port: serverPort,
+                      environment: body.environment ?? 'preview',
+                      projectSecrets,
+                      envOverrides: body.envVars,
+                    });
+                  }
+                }
+              }
             } else {
-              const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(
-                (): Record<string, string> => ({}),
-              );
-              serverEnv = buildServerDeployEnv({
-                transfer: snapshot.transfer,
+              const snapshot = await snapshotWorkspaceAppSource({
+                agent: buildAgent,
                 deploymentId: queued.id,
-                port: serverPort,
-                environment: body.environment ?? 'preview',
-                projectSecrets,
-                envOverrides: body.envVars,
+                objectStorage,
+                projectId: project.id,
+                onLog: (level, line) => buildProgress.onLog({ timestamp: nowIso(), level, message: line }),
               });
-              bootCommand = [
-                'sh',
-                '-c',
-                buildServerBootScript({
-                  install: detection.install,
-                  buildCommand: detection.buildCommand,
-                  startCommand: detection.startCommand,
-                }),
-              ];
+
+              if (!snapshot.ok || !snapshot.transfer) {
+                serverError = snapshot.message ?? 'Failed to snapshot the app for deployment.';
+              } else {
+                const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(
+                  (): Record<string, string> => ({}),
+                );
+                serverEnv = buildServerDeployEnv({
+                  transfer: snapshot.transfer,
+                  deploymentId: queued.id,
+                  port: serverPort,
+                  environment: body.environment ?? 'preview',
+                  projectSecrets,
+                  envOverrides: body.envVars,
+                });
+                bootCommand = [
+                  'sh',
+                  '-c',
+                  buildServerBootScript({
+                    install: runPlan.install,
+                    buildCommand: runPlan.buildCommand,
+                    startCommand: runPlan.startCommand,
+                  }),
+                ];
+              }
             }
           }
         } catch (error) {
@@ -27782,15 +27984,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
       }
 
-      if (bootCommand && !serverError) {
+      if ((bootCommand || serverImage) && !serverError) {
         try {
           started = await startServerDeploymentViaManager({
             deploymentId: queued.id,
             image:
+              serverImage ??
               process.env.SERVER_DEPLOY_IMAGE ??
               process.env.WORKSPACE_AGENT_IMAGE ??
               'vibecore/workspace-agent:2026.04.0',
-            command: bootCommand,
+            // Snapshot-image deploys run the image's own baked CMD.
+            ...(serverImage ? {} : { command: bootCommand }),
             port: serverPort,
             host,
             projectId: project.id,
@@ -27799,6 +28003,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             // Real apps rarely expose /health; the readiness probe defaults to `/`,
             // which every real web app answers (overridable per install).
             healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+            // A Nix-enabled project keeps its /nix toolchain at runtime.
+            nixStorePvcName: nixStorePvcForProject(project.id),
           });
         } catch (error) {
           serverError = (error as Error).message ?? 'server deploy failed to start';
@@ -27849,6 +28055,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             // Marks a row whose k8s manifests are live so reconcile-on-read can
             // re-check readiness against the manager (BUILDING → READY / teardown).
             applied: manifestsApplied,
+            // Snapshot-image deploys: which image runs + its size (Replit cap: 8GiB).
+            ...(imageBuildInfo ? { image: imageBuildInfo } : {}),
           },
         },
         logs: [...createDeploymentLogs(body, { ...queued, url: serverUrl }, project), ...liveLog],
