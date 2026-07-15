@@ -224,3 +224,127 @@ describe('buildServerDeployEnv', () => {
     expect(env.BAR).toBe('b');
   });
 });
+
+describe('snapshotWorkspaceImageContext', () => {
+  const storage = (overrides: Partial<import('./server-deploy-transfer.js').ImageContextStorage> = {}) => ({
+    active: true,
+    ensureBucket: vi.fn(async () => ({ bucket: 'vc-proj1', created: false, location: 'EU' })),
+    createUploadUrl: vi.fn(async () => ({
+      url: 'https://storage.googleapis.com/vc-proj1/tmp?sig=abc&x=1',
+      headers: { 'content-type': 'application/gzip' },
+    })),
+    ...overrides,
+  });
+
+  it('tars WITH dependencies and uploads from the pod via the signed PUT URL', async () => {
+    const { snapshotWorkspaceImageContext, serverDeployContextObjectKey } = await import('./server-deploy-transfer.js');
+    const scripts: string[] = [];
+    const agent = fakeAgent({
+      runStep: vi.fn(async ({ args, onLine }: { args: string[]; onLine?: (l: 'info' | 'error', s: string) => void }) => {
+        scripts.push(args[1]);
+        onLine?.('info', '[snapshot] image context: 123456 bytes (deps included)');
+
+        return { exitCode: 0, timedOut: false };
+      }),
+    });
+
+    const result = await snapshotWorkspaceImageContext({
+      agent,
+      deploymentId: 'dep9',
+      objectStorage: storage(),
+      projectId: 'proj1',
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      bucket: 'vc-proj1',
+      object: serverDeployContextObjectKey('dep9'),
+      bytes: 123456,
+    });
+
+    // The tar must NOT exclude node_modules (deps ride in the image) — only VCS/internal paths.
+    const tarScript = scripts[0];
+    expect(tarScript).not.toContain('node_modules');
+    expect(tarScript).toContain('--exclude=./.git');
+    expect(tarScript).toContain("curl -fsS -X PUT -H 'content-type: application/gzip'");
+    expect(tarScript).toContain("--upload-file .vibecore-src-dep9.tgz 'https://storage.googleapis.com/vc-proj1/tmp?sig=abc&x=1'");
+
+    // The tarball is cleaned up from the workspace afterwards (a second pod step).
+    expect(scripts.length).toBe(2);
+    expect(scripts[1]).toContain('rm -f .vibecore-src-dep9.tgz');
+  });
+
+  it('is a typed error without object storage (image deploys require it)', async () => {
+    const { snapshotWorkspaceImageContext } = await import('./server-deploy-transfer.js');
+    const result = await snapshotWorkspaceImageContext({
+      agent: fakeAgent(),
+      deploymentId: 'dep9',
+      objectStorage: null,
+      projectId: 'proj1',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe('STORAGE_UNAVAILABLE');
+  });
+
+  it('maps a failing pod step to SNAPSHOT_FAILED (no bytes seen) and reports agent unreachability', async () => {
+    const { snapshotWorkspaceImageContext } = await import('./server-deploy-transfer.js');
+
+    const failed = await snapshotWorkspaceImageContext({
+      agent: fakeAgent({ runStep: vi.fn(async () => ({ exitCode: 1, timedOut: false })) }),
+      deploymentId: 'dep9',
+      objectStorage: storage(),
+      projectId: 'proj1',
+    });
+    expect(failed.ok).toBe(false);
+    expect(failed.error).toBe('SNAPSHOT_FAILED');
+
+    const unreachable = await snapshotWorkspaceImageContext({
+      agent: fakeAgent({
+        runStep: vi.fn(async () => ({ exitCode: null, timedOut: false, error: 'WORKSPACE_AGENT_REQUEST_FAILED' })),
+      }),
+      deploymentId: 'dep9',
+      objectStorage: storage(),
+      projectId: 'proj1',
+    });
+    expect(unreachable.ok).toBe(false);
+    expect(unreachable.error).toBe('AGENT_UNREACHABLE');
+  });
+
+  it('flags UPLOAD_FAILED when tar succeeded (bytes logged) but the step still exited non-zero', async () => {
+    const { snapshotWorkspaceImageContext } = await import('./server-deploy-transfer.js');
+    const result = await snapshotWorkspaceImageContext({
+      agent: fakeAgent({
+        runStep: vi.fn(
+          async ({ onLine }: { onLine?: (l: 'info' | 'error', s: string) => void }) => {
+            onLine?.('info', '[snapshot] image context: 999 bytes (deps included)');
+
+            return { exitCode: 22, timedOut: false };
+          },
+        ),
+      }),
+      deploymentId: 'dep9',
+      objectStorage: storage(),
+      projectId: 'proj1',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe('UPLOAD_FAILED');
+  });
+});
+
+describe('buildServerDeployEnv (image deploys)', () => {
+  it('emits no APP_SRC_* when there is no transfer (app baked into the image)', () => {
+    const env = buildServerDeployEnv({
+      deploymentId: 'd',
+      port: 3000,
+      environment: 'preview',
+      projectSecrets: { FOO: 'x' },
+    });
+
+    expect(env.APP_SRC_URL).toBeUndefined();
+    expect(env.APP_SRC_B64).toBeUndefined();
+    expect(env.FOO).toBe('x');
+    expect(env.PORT).toBe('3000');
+  });
+});

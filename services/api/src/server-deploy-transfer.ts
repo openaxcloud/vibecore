@@ -171,6 +171,139 @@ export async function snapshotWorkspaceAppSource(opts: {
   return { ok: true, transfer: { kind: 'inline', base64 }, bytes: raw.byteLength };
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Snapshot-image context (Replit-parity: "Publish = the workspace, imaged").
+ *
+ * Unlike snapshotWorkspaceAppSource (SOURCE only, deps reinstalled at boot),
+ * this captures the workspace WITH its installed dependencies (node_modules,
+ * .venv, …) so the app image needs no per-language install step at all. The
+ * tarball is far too large for the agent /files/read path (~2MB cap), so the
+ * POD uploads it straight to object storage through a signed PUT URL (workspace
+ * egress to storage.googleapis.com is open — verified live). The resulting
+ * bucket/object pair is handed to Cloud Build as the docker build context.
+ * ---------------------------------------------------------------------------
+ */
+
+/** GCS object key of a deployment's image-build context tarball. */
+export const serverDeployContextObjectKey = (deploymentId: string) => `tmp/server-deploy/${deploymentId}-context.tgz`;
+
+export interface ImageContextResult {
+  ok: boolean;
+  bucket?: string;
+  object?: string;
+  bytes?: number;
+  error?: 'AGENT_UNREACHABLE' | 'SNAPSHOT_FAILED' | 'UPLOAD_FAILED' | 'STORAGE_UNAVAILABLE';
+  message?: string;
+}
+
+/** The subset of ObjectStorage the image-context snapshot needs. */
+export interface ImageContextStorage {
+  readonly active: boolean;
+  ensureBucket(projectId: string): Promise<{ bucket: string; created: boolean; location: string }>;
+  createUploadUrl(
+    projectId: string,
+    input: { key: string; contentType?: string },
+  ): Promise<{ url: string; headers: Record<string, string> }>;
+}
+
+/**
+ * Tar the FULL workspace (deps included; only VCS/platform-internal paths are
+ * excluded) inside the pod and upload it from the pod to object storage.
+ * Returns the GCS bucket/object of the build context, or a typed error.
+ */
+export async function snapshotWorkspaceImageContext(opts: {
+  agent: SnapshotAgent;
+  deploymentId: string;
+  cwd?: string;
+  objectStorage: ImageContextStorage | null;
+  projectId: string;
+  onLog?: (level: 'info' | 'error', line: string) => void;
+}): Promise<ImageContextResult> {
+  const cwd = opts.cwd ?? '.';
+  const onLog = opts.onLog ?? (() => undefined);
+
+  if (!opts.objectStorage || !opts.objectStorage.active) {
+    return {
+      ok: false,
+      error: 'STORAGE_UNAVAILABLE',
+      message: 'Snapshot-image deploys need object storage (the full app snapshot is uploaded to it).',
+    };
+  }
+
+  const key = assertValidObjectKey(serverDeployContextObjectKey(opts.deploymentId));
+  const tarPath = serverDeploySourceTarPath(opts.deploymentId);
+
+  let bucket: string;
+  let upload: { url: string; headers: Record<string, string> };
+
+  try {
+    bucket = (await opts.objectStorage.ensureBucket(opts.projectId)).bucket;
+    upload = await opts.objectStorage.createUploadUrl(opts.projectId, { key, contentType: 'application/gzip' });
+  } catch (error) {
+    return {
+      ok: false,
+      error: 'STORAGE_UNAVAILABLE',
+      message: `Could not prepare object storage for the app snapshot (${(error as Error).message ?? 'unknown error'}).`,
+    };
+  }
+
+  /*
+   * Tar WITH dependencies — that is the whole point: the image must capture the
+   * workspace as-is so no language-specific install ever runs at deploy time.
+   * A V4 signed PUT is bound to the exact Content-Type it was signed with, so
+   * the curl sends the signed headers verbatim. The URL is querystring-safe
+   * inside single quotes (GCS signed URLs never contain a single quote).
+   */
+  const headerFlags = Object.entries({ 'content-type': 'application/gzip', ...upload.headers })
+    .map(([name, value]) => `-H '${name}: ${value}'`)
+    .join(' ');
+  const script = [
+    `tar czf ${tarPath} --exclude=./.git --exclude='./.vibecore-deploy-*' --exclude='./.vibecore-src-*' .`,
+    `SNAPSHOT_BYTES=$(wc -c < ${tarPath})`,
+    `echo "[snapshot] image context: $SNAPSHOT_BYTES bytes (deps included)"`,
+    `curl -fsS -X PUT ${headerFlags} --upload-file ${tarPath} '${upload.url}'`,
+    `echo "[snapshot] uploaded $SNAPSHOT_BYTES bytes to object storage"`,
+  ].join(' && ');
+
+  let uploadedBytes: number | undefined;
+  const step = await opts.agent.runStep({
+    command: 'sh',
+    args: ['-c', script],
+    cwd,
+    onLine: (level, line) => {
+      const match = /^\[snapshot\] image context: (\d+) bytes/.exec(line);
+
+      if (match) {
+        uploadedBytes = Number(match[1]);
+      }
+
+      onLog(level, line);
+    },
+  });
+
+  await cleanupTarball(opts.agent, tarPath, cwd);
+
+  if (step.error === 'WORKSPACE_AGENT_REQUEST_FAILED') {
+    return {
+      ok: false,
+      error: 'AGENT_UNREACHABLE',
+      message: 'The workspace could not be reached to snapshot the app.',
+    };
+  }
+
+  if (step.timedOut || step.exitCode !== 0) {
+    // tar and curl share one exit code; the log line tells them apart in the UI.
+    return {
+      ok: false,
+      error: uploadedBytes === undefined ? 'SNAPSHOT_FAILED' : 'UPLOAD_FAILED',
+      message: `Could not snapshot + upload the app (exit ${step.exitCode ?? 'timeout'}).`,
+    };
+  }
+
+  return { ok: true, bucket, object: key, bytes: uploadedBytes };
+}
+
 /** Best-effort removal of the workspace-root tarball; never throws. */
 async function cleanupTarball(agent: SnapshotAgent, tarPath: string, cwd: string): Promise<void> {
   try {
@@ -194,7 +327,8 @@ async function cleanupTarball(agent: SnapshotAgent, tarPath: string, cwd: string
  * code that reads `process.env.DATABASE_URL` talks to the production database.
  */
 export function buildServerDeployEnv(input: {
-  transfer: SnapshotTransfer;
+  /** Absent for snapshot-image deploys: the app is baked into the image, no APP_SRC_* fetch. */
+  transfer?: SnapshotTransfer;
   deploymentId: string;
   port: number;
   environment: string;
@@ -206,9 +340,9 @@ export function buildServerDeployEnv(input: {
     PORT: String(input.port),
   };
 
-  if (input.transfer.kind === 'objectStorage') {
+  if (input.transfer?.kind === 'objectStorage') {
     env.APP_SRC_URL = input.transfer.url;
-  } else {
+  } else if (input.transfer) {
     env.APP_SRC_B64 = input.transfer.base64;
   }
 
