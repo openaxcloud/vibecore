@@ -27969,7 +27969,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       orgId: project.organizationId,
                       objectStorage,
                       image: baseImage,
-                      installCommand: `${runPlan.install.command} ${runPlan.install.args.join(' ')}`,
+
+                      // No package.json ⇒ no Node install: a non-Node project
+                      // (declared via .ecode/deploy.json) drives its own install
+                      // through its build command — never a silent npm fallback.
+                      installCommand: packageJson ? `${runPlan.install.command} ${runPlan.install.args.join(' ')}` : '',
                       buildCommand: runPlan.buildCommand,
                       nixStorePvcName: nixStorePvcForProject(project.id),
                       timeoutSeconds: Number(process.env.SERVER_DEPLOY_APP_BUILD_TIMEOUT_S) || 600,
