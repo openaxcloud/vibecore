@@ -44,6 +44,13 @@ const startSchema = z.object({
       storageGb: z.number().int().positive().optional(),
     })
     .optional(),
+
+  /*
+   * Per-request shared RO Nix store opt-in (candidate E rollout gate). The api
+   * decides WHICH workspaces get /nix (project allowlist) without flipping the
+   * cluster-wide NIX_STORE_PVC_NAME kill switch. Omitted ⇒ manager default.
+   */
+  nixStorePvcName: z.string().min(1).optional(),
 });
 
 /** Body for POST /server-deployments/start (Replit-parity durable runtime). */
@@ -63,6 +70,8 @@ const serverStartSchema = z.object({
   healthPath: z.string().optional(),
   readyTimeoutMs: z.number().int().positive().optional(),
   createIngress: z.boolean().optional(),
+  // Same /nix RO mount as the workspace the app was snapshotted from (see startSchema).
+  nixStorePvcName: z.string().min(1).optional(),
 });
 
 function runtimeNamespace() {

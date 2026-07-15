@@ -534,6 +534,14 @@ export class WorkspaceManager {
      * cluster where the wildcard TLS secret is mirrored into the runtime namespace.
      */
     createIngress?: boolean;
+
+    /*
+     * Shared RO Nix store for the app pod (same kill switch as workspaces): a
+     * snapshot-image deploy from a Nix-enabled workspace needs the same /nix at
+     * runtime. Per-request wins; falls back to the cluster-wide env; undefined ⇒
+     * pod spec unchanged.
+     */
+    nixStorePvcName?: string;
   }): Promise<{ ready: boolean; url: string; name: string; readyReplicas: number }> {
     const name = serverDeploymentName(input.deploymentId);
     const hasSecrets = Boolean(input.secrets && Object.keys(input.secrets).length > 0);
@@ -573,6 +581,8 @@ export class WorkspaceManager {
         : {}),
       replicas: input.replicas,
       healthPath: input.healthPath,
+      // Per-request opt-in wins; cluster-wide kill switch as fallback (mirrors startWorkspace).
+      nixStorePvcName: input.nixStorePvcName ?? process.env.NIX_STORE_PVC_NAME,
     };
 
     await this.k8s.apply(serverAppDeployment(runtime));

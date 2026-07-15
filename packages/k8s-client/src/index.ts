@@ -681,6 +681,14 @@ export interface ServerRuntimeInput {
   healthPath?: string;
   /** Disable gVisor scheduling (tests / non-sandbox clusters). */
   disableSandboxScheduling?: boolean;
+
+  /*
+   * Shared RO Nix store PVC (same kill switch as workspacePod): a published app
+   * snapshotted from a Nix-enabled workspace needs the SAME /nix toolchain at
+   * runtime (python, etc. live in the store, not in the image). Undefined ⇒ the
+   * pod spec is byte-for-byte the pre-Nix shape (no volumes key at all).
+   */
+  nixStorePvcName?: string;
 }
 
 /** Stable resource name for a server deployment's Deployment/Service/Ingress. */
@@ -703,15 +711,22 @@ function serverEnvVars(input: ServerRuntimeInput) {
 
   return [
     { name: 'PORT', value: String(input.port) },
+    /*
+     * Replit-parity deployment marker (their REPLIT_DEPLOYMENT=1): every published
+     * app can branch on "am I the deployed instance?" (analytics, config, CORS…).
+     * Kept out of user control below — k8s keeps the LAST duplicate env entry, so
+     * an appended user value named ECODE_DEPLOYMENT would otherwise win.
+     */
+    { name: 'ECODE_DEPLOYMENT', value: '1' },
     ...(input.projectId ? [{ name: 'PROJECT_ID', value: input.projectId }] : []),
     // Plain user env (reserved platform names stripped so a tenant can't spoof them).
     ...Object.entries(env)
-      .filter(([name]) => !RESERVED_WORKSPACE_ENV.has(name) && name !== 'PORT')
+      .filter(([name]) => !RESERVED_WORKSPACE_ENV.has(name) && name !== 'PORT' && name !== 'ECODE_DEPLOYMENT')
       .map(([name, value]) => ({ name, value })),
     // Secret-backed env (optional so a not-yet-synced key can't brick startup).
     ...(input.secretName
       ? Object.entries(secretEnv)
-          .filter(([name]) => !RESERVED_WORKSPACE_ENV.has(name))
+          .filter(([name]) => !RESERVED_WORKSPACE_ENV.has(name) && name !== 'ECODE_DEPLOYMENT')
           .map(([name, key]) => ({
             name,
             valueFrom: { secretKeyRef: { name: input.secretName as string, key, optional: true } },
@@ -767,6 +782,10 @@ export function serverAppDeployment(input: ServerRuntimeInput): K8sObject {
               ...(input.args ? { args: input.args } : {}),
               ports: [{ containerPort: input.port, name: 'http' }],
               env: serverEnvVars(input),
+              // Same kill switch as workspacePod: no nix PVC ⇒ no volumeMounts key at all.
+              ...(input.nixStorePvcName
+                ? { volumeMounts: [{ name: 'nix-store', mountPath: '/nix', readOnly: true }] }
+                : {}),
               resources: {
                 requests: { cpu: input.cpuRequest ?? '250m', memory: input.memoryRequest ?? '512Mi' },
                 limits: { cpu: input.cpuLimit ?? '1', memory: input.memoryLimit ?? '1Gi' },
@@ -775,7 +794,9 @@ export function serverAppDeployment(input: ServerRuntimeInput): K8sObject {
                 httpGet: { path: input.healthPath ?? '/', port: input.port },
                 initialDelaySeconds: 3,
                 periodSeconds: 5,
-                timeoutSeconds: 3,
+                // Replit's published rule: the homepage must answer within 5s or the
+                // publish fails — give the probe exactly that budget, no more.
+                timeoutSeconds: 5,
                 failureThreshold: 6,
               },
               // TCP liveness (a busy app under gVisor can starve an HTTP handler; the bound port still accepts).
@@ -804,6 +825,14 @@ export function serverAppDeployment(input: ServerRuntimeInput): K8sObject {
               },
             },
           ],
+          // Kill switch mirrors the volumeMounts above — absent unless opted in.
+          ...(input.nixStorePvcName
+            ? {
+                volumes: [
+                  { name: 'nix-store', persistentVolumeClaim: { claimName: input.nixStorePvcName, readOnly: true } },
+                ],
+              }
+            : {}),
         },
       },
     },

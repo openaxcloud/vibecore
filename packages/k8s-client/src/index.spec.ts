@@ -434,6 +434,31 @@ describe('server deployment runtime templates', () => {
     expect(c.securityContext.capabilities.drop).toEqual(['ALL']);
   });
 
+  it('serverAppDeployment sets ECODE_DEPLOYMENT=1 and strips a user spoof of it', async () => {
+    const { serverAppDeployment } = await import('./index');
+    const dep = serverAppDeployment({ ...input, env: { ...input.env, ECODE_DEPLOYMENT: '0' } }) as any;
+    const env = dep.spec.template.spec.containers[0].env as Array<{ name: string; value?: string }>;
+
+    expect(env.filter((e) => e.name === 'ECODE_DEPLOYMENT')).toHaveLength(1);
+    expect(env.find((e) => e.name === 'ECODE_DEPLOYMENT')?.value).toBe('1');
+  });
+
+  it('serverAppDeployment has NO volumes/volumeMounts without a nix PVC, and mounts /nix RO with one', async () => {
+    const { serverAppDeployment } = await import('./index');
+
+    const plain = serverAppDeployment(input) as any;
+    expect(plain.spec.template.spec.volumes).toBeUndefined();
+    expect(plain.spec.template.spec.containers[0].volumeMounts).toBeUndefined();
+
+    const nix = serverAppDeployment({ ...input, nixStorePvcName: 'nix-store-spike-pvc' }) as any;
+    expect(nix.spec.template.spec.volumes).toEqual([
+      { name: 'nix-store', persistentVolumeClaim: { claimName: 'nix-store-spike-pvc', readOnly: true } },
+    ]);
+    expect(nix.spec.template.spec.containers[0].volumeMounts).toEqual([
+      { name: 'nix-store', mountPath: '/nix', readOnly: true },
+    ]);
+  });
+
   it('serverAppService exposes port 80 → the app targetPort', async () => {
     const { serverAppService } = await import('./index');
     const svc = serverAppService(input) as any;
