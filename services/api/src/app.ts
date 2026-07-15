@@ -126,6 +126,11 @@ import {
   type WorkspaceStaticBuildResult,
 } from './deploy-workspace-build.js';
 import {
+  buildImageContextFromRevision,
+  type AppBuildRunPayload,
+  type RevisionImageContextResult,
+} from './server-deploy-revision.js';
+import {
   buildServerDeployEnv,
   snapshotWorkspaceAppSource,
   snapshotWorkspaceImageContext,
@@ -6457,6 +6462,62 @@ function nixStorePvcForProject(projectId: string | undefined): string | undefine
     .includes(projectId)
     ? pvc
     : undefined;
+}
+
+/*
+ * Per-project rollout gate for REVISION-based (reproducible) server deploys:
+ * SERVER_DEPLOY_REVISION_PROJECTS is '*' or a comma-separated project-id
+ * allowlist. Off (unset/empty) ⇒ the Phase-A live-pod snapshot path runs,
+ * byte-for-byte unchanged — the same kill-switch contract as the Nix gate above.
+ */
+function serverDeployRevisionEnabledForProject(projectId: string | undefined): boolean {
+  const allow = process.env.SERVER_DEPLOY_REVISION_PROJECTS?.trim();
+
+  if (!allow || !projectId) {
+    return false;
+  }
+
+  return (
+    allow === '*' ||
+    allow
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .includes(projectId)
+  );
+}
+
+/*
+ * Run ONE isolated build pod via the workspace-manager (synchronous, like the
+ * scheduled-jobs transport): revision in, docker-context artifact out. The HTTP
+ * timeout tracks the build's own budget plus slack so the manager's poll — not
+ * this fetch — decides the outcome.
+ */
+async function runAppBuildViaManager(
+  payload: AppBuildRunPayload,
+): Promise<{ exitCode: number; output: string; timedOut: boolean; phase: string }> {
+  const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+  const response = await fetch(`${workspaceManagerUrl()}/app-builds/run`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      accept: 'application/json',
+      ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}),
+    },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(payload.timeoutSeconds * 1000 + 30_000),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw Object.assign(new Error(`app build failed to run: ${response.status} ${text}`), {
+      statusCode: 502,
+      code: 'SERVER_DEPLOY_BUILD_FAILED',
+    });
+  }
+
+  return (await response.json()) as { exitCode: number; output: string; timedOut: boolean; phase: string };
 }
 
 async function startServerDeploymentViaManager(payload: {
@@ -27739,7 +27800,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       let serverImage: string | undefined;
       let imageBuildInfo:
-        | { imageUri: string; imageSizeBytes?: number; buildId?: string; buildMs?: number }
+        | {
+            imageUri: string;
+            imageSizeBytes?: number;
+            buildId?: string;
+            buildMs?: number;
+
+            // Revision-based (reproducible) builds: the replayable input.
+            revisionObject?: string;
+            revisionSha256?: string;
+          }
         | undefined;
       let serverEnv: Record<string, string> = { DEPLOY_ID: queued.id, PORT: String(serverPort), ...body.envVars };
 
@@ -27878,21 +27948,45 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               } else {
                 buildProgress.onPhase('imaging');
 
-                const context = await snapshotWorkspaceImageContext({
-                  agent: buildAgent,
-                  deploymentId: queued.id,
-                  objectStorage,
-                  projectId: project.id,
-                  onLog: (level, line) => buildProgress.onLog({ timestamp: nowIso(), level, message: line }),
-                });
+                const baseImage =
+                  process.env.SERVER_DEPLOY_IMAGE ??
+                  process.env.WORKSPACE_AGENT_IMAGE ??
+                  'vibecore/workspace-agent:2026.04.0';
+
+                /*
+                 * Reproducible pipeline (docs/DEPLOY_REPRODUCIBLE_PIPELINE.md),
+                 * per-project rollout: the docker-build context comes from an
+                 * ISOLATED build pod fed by the source revision — never from the
+                 * live dev pod. Gate off ⇒ Phase-A snapshot, byte-for-byte.
+                 */
+                const revisionMode = serverDeployRevisionEnabledForProject(project.id);
+
+                const context: RevisionImageContextResult = revisionMode
+                  ? await buildImageContextFromRevision({
+                      agent: buildAgent,
+                      deploymentId: queued.id,
+                      projectId: project.id,
+                      orgId: project.organizationId,
+                      objectStorage,
+                      image: baseImage,
+                      installCommand: `${runPlan.install.command} ${runPlan.install.args.join(' ')}`,
+                      buildCommand: runPlan.buildCommand,
+                      nixStorePvcName: nixStorePvcForProject(project.id),
+                      timeoutSeconds: Number(process.env.SERVER_DEPLOY_APP_BUILD_TIMEOUT_S) || 600,
+                      runAppBuild: runAppBuildViaManager,
+                      onLog: (level, line) => buildProgress.onLog({ timestamp: nowIso(), level, message: line }),
+                    })
+                  : await snapshotWorkspaceImageContext({
+                      agent: buildAgent,
+                      deploymentId: queued.id,
+                      objectStorage,
+                      projectId: project.id,
+                      onLog: (level, line) => buildProgress.onLog({ timestamp: nowIso(), level, message: line }),
+                    });
 
                 if (!context.ok || !context.bucket || !context.object) {
                   serverError = context.message ?? 'Failed to snapshot the workspace for the app image.';
                 } else {
-                  const baseImage =
-                    process.env.SERVER_DEPLOY_IMAGE ??
-                    process.env.WORKSPACE_AGENT_IMAGE ??
-                    'vibecore/workspace-agent:2026.04.0';
                   const imageUri = `${imageRepo}/p-${project.id.toLowerCase()}:${queued.id.toLowerCase()}`;
                   const buildResult = await runAppImageBuild(
                     {
@@ -27902,7 +27996,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       sourceObject: context.object,
                       imageUri,
                       baseImage,
-                      buildCommand: runPlan.buildCommand,
+
+                      // Revision mode already ran the build in the isolated pod;
+                      // Cloud Build must only COPY, never re-run a toolchain.
+                      buildCommand: revisionMode ? null : runPlan.buildCommand,
                       startCommand: runPlan.startCommand,
                       timeoutSeconds: Number(process.env.SERVER_DEPLOY_IMAGE_BUILD_TIMEOUT_S) || 600,
                     },
@@ -27920,6 +28017,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       imageSizeBytes: buildResult.imageSizeBytes,
                       buildId: buildResult.buildId,
                       buildMs: buildResult.durationMs,
+                      ...(context.revisionSha256
+                        ? { revisionObject: context.revisionObject, revisionSha256: context.revisionSha256 }
+                        : {}),
                     };
                     buildProgress.onLog({
                       timestamp: nowIso(),

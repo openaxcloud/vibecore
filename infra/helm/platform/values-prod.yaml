@@ -137,6 +137,9 @@ platformEnv:
     # one-time manual `--set platformEnv.runtime.serverDeployImageRepo=...`.
     serverDeployImageRepo: 'europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps'
     serverDeploySnapshotImage: '1'
+    # Reproducible pipeline: per-project allowlist ('*' = all). Rolled out
+    # project-by-project after live proof; empty = Phase-A snapshot path.
+    serverDeployRevisionProjects: ''
     # Shared RO Nix store (candidate E) rollout gate: PVC in ns `workspaces`
     # (PV pinned to europe-west9-a — zonal disk). Allowlist starts empty;
     # add project ids (or '*') to give workspaces + published apps /nix.

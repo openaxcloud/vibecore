@@ -306,6 +306,152 @@ export async function snapshotWorkspaceImageContext(opts: {
   return { ok: true, bucket, object: key, bytes: uploadedBytes };
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Revision snapshot (reproducible pipeline — docs/DEPLOY_REPRODUCIBLE_PIPELINE.md).
+ *
+ * Unlike snapshotWorkspaceImageContext (the FULL live pod, deps + caches — the
+ * Phase-A prototype, non-replayable by construction), this captures the project
+ * SOURCE only: what the user authored plus their language lockfiles. Dependency
+ * dirs and derivable caches are excluded — they are reinstalled from lockfiles
+ * by the isolated build pod, which is the whole point: (revision, lock) ⇒ the
+ * same artifact, every time. The pod computes the tarball's sha256 so the build
+ * pod can verify integrity before running anything.
+ * ---------------------------------------------------------------------------
+ */
+
+/** GCS object key of a deployment's revision tarball (kept, not tmp/ — it IS the replayable input). */
+export const serverDeployRevisionObjectKey = (deploymentId: string) =>
+  `revisions/server-deploy/${deploymentId}.tgz`;
+
+/*
+ * Derivable-state exclusions. Aligned with the workspace agent's
+ * SNAPSHOT_IGNORED_DIRS semantics (what file listings treat as non-project
+ * state), plus Python venvs and the platform's own transient files. `dist` is
+ * deliberately NOT excluded: an app that ships a prebuilt dist with no build
+ * command must keep working.
+ */
+const REVISION_EXCLUDES = [
+  './.git',
+  './node_modules',
+  './.venv',
+  './venv',
+  './__pycache__',
+  './.cache',
+  './.npm',
+  './.npm-cache',
+  './.vite',
+  './.next',
+  './.turbo',
+  './.vibecore-deploy-*',
+  './.vibecore-src-*',
+];
+
+export interface RevisionSnapshotResult {
+  ok: boolean;
+  bucket?: string;
+  object?: string;
+  bytes?: number;
+  sha256?: string;
+  error?: 'AGENT_UNREACHABLE' | 'SNAPSHOT_FAILED' | 'UPLOAD_FAILED' | 'STORAGE_UNAVAILABLE';
+  message?: string;
+}
+
+/**
+ * Tar the project SOURCE (deps excluded) inside the pod, hash it, and upload it
+ * from the pod to object storage. Returns bucket/object/sha256 of the revision,
+ * or a typed error. Same pod-side signed-PUT transport as the image context.
+ */
+export async function snapshotWorkspaceRevision(opts: {
+  agent: SnapshotAgent;
+  deploymentId: string;
+  cwd?: string;
+  objectStorage: ImageContextStorage | null;
+  projectId: string;
+  onLog?: (level: 'info' | 'error', line: string) => void;
+}): Promise<RevisionSnapshotResult> {
+  const cwd = opts.cwd ?? '.';
+  const onLog = opts.onLog ?? (() => undefined);
+
+  if (!opts.objectStorage || !opts.objectStorage.active) {
+    return {
+      ok: false,
+      error: 'STORAGE_UNAVAILABLE',
+      message: 'Revision-based deploys need object storage (the project revision is uploaded to it).',
+    };
+  }
+
+  const key = assertValidObjectKey(serverDeployRevisionObjectKey(opts.deploymentId));
+  const tarPath = serverDeploySourceTarPath(opts.deploymentId);
+
+  let bucket: string;
+  let upload: { url: string; headers: Record<string, string> };
+
+  try {
+    bucket = (await opts.objectStorage.ensureBucket(opts.projectId)).bucket;
+    upload = await opts.objectStorage.createUploadUrl(opts.projectId, { key, contentType: 'application/gzip' });
+  } catch (error) {
+    return {
+      ok: false,
+      error: 'STORAGE_UNAVAILABLE',
+      message: `Could not prepare object storage for the revision (${(error as Error).message ?? 'unknown error'}).`,
+    };
+  }
+
+  // Signed headers verbatim, nothing else (V4 signature binds them — see the
+  // image-context comment above for the duplicate-Content-Type 403 story).
+  const headerFlags = Object.entries(upload.headers)
+    .map(([name, value]) => `-H '${name}: ${value}'`)
+    .join(' ');
+  const excludeFlags = REVISION_EXCLUDES.map((path) => `--exclude='${path}'`).join(' ');
+  const script = [
+    `tar czf ${tarPath} ${excludeFlags} .`,
+    `REVISION_SHA256=$(sha256sum ${tarPath} | cut -d' ' -f1)`,
+    `REVISION_BYTES=$(wc -c < ${tarPath})`,
+    `echo "[revision] $REVISION_BYTES bytes sha256=$REVISION_SHA256"`,
+    `curl -fsS -X PUT ${headerFlags} --upload-file ${tarPath} '${upload.url}'`,
+    `echo "[revision] uploaded"`,
+  ].join(' && ');
+
+  let bytes: number | undefined;
+  let sha256: string | undefined;
+  const step = await opts.agent.runStep({
+    command: 'sh',
+    args: ['-c', script],
+    cwd,
+    onLine: (level, line) => {
+      const match = /^\[revision\] (\d+) bytes sha256=([0-9a-f]{64})/.exec(line);
+
+      if (match) {
+        bytes = Number(match[1]);
+        sha256 = match[2];
+      }
+
+      onLog(level, line);
+    },
+  });
+
+  await cleanupTarball(opts.agent, tarPath, cwd);
+
+  if (step.error === 'WORKSPACE_AGENT_REQUEST_FAILED') {
+    return {
+      ok: false,
+      error: 'AGENT_UNREACHABLE',
+      message: 'The workspace could not be reached to capture the project revision.',
+    };
+  }
+
+  if (step.timedOut || step.exitCode !== 0) {
+    return {
+      ok: false,
+      error: bytes === undefined ? 'SNAPSHOT_FAILED' : 'UPLOAD_FAILED',
+      message: `Could not capture + upload the project revision (exit ${step.exitCode ?? 'timeout'}).`,
+    };
+  }
+
+  return { ok: true, bucket, object: key, bytes, sha256 };
+}
+
 /** Best-effort removal of the workspace-root tarball; never throws. */
 async function cleanupTarball(agent: SnapshotAgent, tarPath: string, cwd: string): Promise<void> {
   try {

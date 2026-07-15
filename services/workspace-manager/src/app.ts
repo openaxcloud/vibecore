@@ -3,6 +3,7 @@ import { getClusterCapacity } from '@vibecore/k8s-client';
 import Fastify from 'fastify';
 import { z } from 'zod';
 import { WorkspaceManager } from './manager.js';
+import { runAppBuild } from './app-builds.js';
 import { runScheduledJob } from './scheduled-jobs.js';
 
 /*
@@ -50,6 +51,27 @@ const startSchema = z.object({
    * decides WHICH workspaces get /nix (project allowlist) without flipping the
    * cluster-wide NIX_STORE_PVC_NAME kill switch. Omitted ⇒ manager default.
    */
+  nixStorePvcName: z.string().min(1).optional(),
+});
+
+/*
+ * Body for POST /app-builds/run — ONE isolated server-deploy build (reproducible
+ * pipeline): fetch the project revision, install+build in a throwaway gVisor
+ * pod, upload the artifact. Synchronous like /scheduled-jobs/run: the api owns
+ * the deployment row and needs the exit code + full logs back to proceed.
+ */
+const appBuildSchema = z.object({
+  deploymentId: z.string().min(1),
+  orgId: z.string().optional(),
+  projectId: z.string().optional(),
+  image: z.string().min(1),
+  revisionUrl: z.string().min(1),
+  revisionSha256: z.string().length(64).optional(),
+  artifactUrl: z.string().min(1),
+  artifactHeaders: z.record(z.string()),
+  buildCommand: z.string().min(1).optional(),
+  timeoutSeconds: z.number().int().positive().max(3600).default(600),
+  // Same /nix RO mount contract as workspaces + app pods (kill-switch gated).
   nixStorePvcName: z.string().min(1).optional(),
 });
 
@@ -245,6 +267,15 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
    */
   app.post('/server-deployments/start', async (request) =>
     manager.startServerDeployment({ ...serverStartSchema.parse(request.body), namespace: runtimeNamespace() }),
+  );
+
+  /*
+   * Isolated server-deploy build (reproducible pipeline): revision in, built
+   * docker-context artifact out, disposable gVisor pod in between. Synchronous —
+   * returns { exitCode, output, timedOut, phase } once the pod terminates.
+   */
+  app.post('/app-builds/run', async (request) =>
+    runAppBuild(manager.k8s, { ...appBuildSchema.parse(request.body), namespace: runtimeNamespace() }),
   );
   app.get('/server-deployments/:deploymentId/status', async (request) =>
     manager.getServerDeploymentStatus(runtimeNamespace(), (request.params as any).deploymentId),
