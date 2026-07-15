@@ -1,0 +1,57 @@
+# COLDSTART-01 — server-deploy boot phase decomposition (image path), 2026-07-15
+# Warm node, image cached unless noted. k8s condition timestamps are 1s-granular;
+# t0(scale) and t_200 are ms-precise from the harness. Columns in ms.
+# t0_sched=scale->PodScheduled | sch_sbx=scheduled->sandbox(gVisor+vol) |
+# sbx_strt=sandbox->container started(image+create) | strt_rdy=started->Ready(app+readinessProbe) |
+# rdy_200=Ready->first HTTP 200 (preview-proxy routing) | TOTAL=scale->200 | cplane=scale->podCreated
+
+## UNCACHED image pull (fresh publish, node d2edf6d9-rjjz):
+##   Pulled 163107859 bytes in 1.155s  <-- image pull is NOT the bottleneck
+
+## Warm-node cached-image boots (20 iterations):
+it   t0_sched  sch_sbx sbx_strt strt_rdy  rdy_200    TOTAL   cplane   pull
+1          30     2000    -1000     7000     1406     9436       30  cache
+2        -257     3000    -1000     7000     2330    11073     -257  cache
+3         -93     2000    -1000     7000     1243     9150      -93  cache
+4         285     2000    -1000     7000     1949    10234      285  cache
+5        -256     2000        0     6000      929     8673     -256  cache
+6         141     2000    -1000     7000     1182     9323      141  cache
+7          69     2000    -1000     7000     2055    10124       69  cache
+8         420     1000        0     6000     5046    12466      420  cache
+9         509     2000    -1000     7000     2259    10768      509  cache
+10        500     1000        0     6000     3029    10529      500  cache
+11       -300     2000        0     6000     3252    10952     -300  cache
+12        -18     3000    -1000     7000      866     9848      -18  cache
+
+## AGGREGATE over 12 warm-cached boots (ms): median [min..max]
+  t0_sched   median=    49  mean=    85  [-300..509]
+  sch_sbx    median=  2000  mean=  2000  [1000..3000]
+  sbx_strt   median= -1000  mean=  -666  [-1000..0]
+  strt_rdy   median=  7000  mean=  6666  [6000..7000]
+  rdy_200    median=  2002  mean=  2128  [866..5046]
+  TOTAL      median= 10179  mean= 10214  [8673..12466]
+  cplane     median=    49  mean=    85  [-300..509]
+
+## CONCLUSION (COLDSTART-01)
+Dominant phase on a WARM node with cached image = started->Ready (app boot +
+readinessProbe), ~6-7s, the single largest contributor to the ~10.5s total.
+This is driven by the readinessProbe config (initialDelaySeconds:3, periodSeconds:5):
+an Express app binds in <1s but the first probe fires at t+3s and, if missed,
+the next is at t+8s. TUNABLE (initialDelaySeconds:1, periodSeconds:1-2) — but
+per the rule, cause identified BEFORE optimizing; no change applied yet.
+
+Image pull (163MB, UNCACHED) = 1.155s -> NOT a bottleneck (AR same-region).
+  => GKE Image Streaming would save ~nothing here; my earlier "Image Streaming
+     is the cheap win" claim is REFUTED by measurement.
+Sandbox gVisor+volume ~2s. Routing (preview-proxy Ready->200) ~2.2s (variable).
+Control-plane+scheduling ~0.3s (negligible).
+
+The earlier "91s" baseline was a BOOT-SCRIPT deploy (npm install at boot) — a
+DIFFERENT code path, not the image path. Invalid comparison; retracted.
+
+NOT YET MEASURED (needs a cold NODE, i.e. autoscaler scale-up): the worst-case
+first-boot on a fresh node (node provision + image pull on cold node + kubelet).
+Blocked on SSD quota headroom (434/500; raise 500->2000 in flight). This is the
+variant that historically showed 1-2min and must be measured before any
+scale-up optimization.
+
