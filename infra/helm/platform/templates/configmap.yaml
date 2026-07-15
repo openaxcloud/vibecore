@@ -183,6 +183,28 @@ data:
   # of 404ing because the path prefix `/p/<ws>/<port>/` is dropped.
   PREVIEW_DOMAIN: {{ .Values.global.previewDomain | quote }}
 
+  {{- if .Values.platformEnv.runtime.serverDeployImageRepo }}
+  # Snapshot-image server deploys (Replit-parity: Publish = the workspace,
+  # imaged). The api snapshots the FULL workspace (deps included), Cloud Build
+  # bakes it onto the workspace base image, and the app Deployment runs that
+  # image — no install at boot. Repo is the Artifact Registry docker repo the
+  # app images are pushed to; the flag rides the same key so ONE `--set`
+  # enables the pipeline (NOTE: CD runs `helm upgrade --reuse-values`, which
+  # ignores newly-added values keys until they are `--set` once by hand).
+  SERVER_DEPLOY_SNAPSHOT_IMAGE: {{ .Values.platformEnv.runtime.serverDeploySnapshotImage | default "1" | quote }}
+  SERVER_DEPLOY_IMAGE_REPO: {{ .Values.platformEnv.runtime.serverDeployImageRepo | quote }}
+  {{- end }}
+
+  {{- if .Values.platformEnv.runtime.nixStorePvc }}
+  # Shared RO Nix store (candidate E) — per-project rollout gate. The api
+  # threads the PVC into workspace pods AND published-app pods for the projects
+  # in WORKSPACE_NIX_PROJECTS ('*' = all). The PVC is zonal (its PV carries the
+  # zone-a node affinity); the cluster-wide NIX_STORE_PVC_NAME kill switch
+  # stays untouched.
+  WORKSPACE_NIX_STORE_PVC: {{ .Values.platformEnv.runtime.nixStorePvc | quote }}
+  WORKSPACE_NIX_PROJECTS: {{ .Values.platformEnv.runtime.nixProjects | default "" | quote }}
+  {{- end }}
+
   {{- if .Values.platformEnv.email.httpEndpoint }}
   EMAIL_HTTP_ENDPOINT: {{ .Values.platformEnv.email.httpEndpoint | quote }}
   {{- end }}
