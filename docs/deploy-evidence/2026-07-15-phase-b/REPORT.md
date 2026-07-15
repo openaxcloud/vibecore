@@ -35,7 +35,7 @@ provider=server → deployment `cmrmb34mz00060nbdp80trhzm` :
 - Disque `nix-store-v2` 80 Go pd-standard zone-a ; store **1,9 Go / 2 012 chemins**, tous signés
   (`nix store sign`, clé `ecode-nix-1:J/eP9X5r7KWkjAVGioyGv79KFmnHTDCo+qGDoy3LoVk=`).
 - Catalogue v0 signé (ed25519, sig détachée) : python312 → **Python 3.12.13** (+pip 25.3, uv 0.11.21),
-  nodejs22 → **v22.23.1** (npm 10.9.8), go → **go1.26.4**. (`nix-store-v2-populate.log`)
+  nodejs22 → **v22.23.1** (npm 10.9.8), go → **go1.26.4**. (`nix-store-v2-populate.txt`)
 - Bundles d'activation (`profile` buildEnv + `env.sh` + `manifest.json`) prouvés sous gVisor +
   PSS restricted + montage RO : les 3 toolchains s'exécutent en sourçant `env.sh` ; store immuable
   (`touch /nix/store/x` → Permission denied).
@@ -88,3 +88,33 @@ les 2 URLs restent des preuves live. Overrides quota QA : `deployments.count=100
 sans être déclarés au registre (`a41239eb`/`bdce73d0`) → throw `Unknown metric`. Le pod workspace
 est créé quand même ; l'UI voit 500 au lieu de `starting`. Compteurs déclarés ; retest live après
 déploiement.
+
+## SCHEDULED-01 — cron prouvé de bout en bout (21:58 UTC après fix `523795af`)
+
+Tâche `sched_31b5127…` (cron `58 20 * * *` UTC) : tir à l'heure exacte (`scheduledFor
+2026-07-15T20:58:00Z`, `startedAt 20:58:02.670Z`), pod jetable `scheduled-run-*` créé puis
+nettoyé, **SUCCESS exit 0 en 13,9 s**, logs réels du pod (« scheduled run OK, run id: srun_e3166… »),
+**costCents 1 / computeUnits 180,089**, `nextRunAt` avancé à 2026-07-16T20:58:00Z, `UsageEvent
+type=deployment.compute {"kind":"scheduled"}` écrit à l'instant du `meteredAt`
+(`scheduled-01-run-success.json`). Le 1er tir (19:57, à l'heure aussi) avait révélé 3 défauts
+corrigés par `523795af` : PVC legacy fantôme → résolution du vrai volume runtime via le manager
++ fail-fast si PVC absente ; timeout API 15 s sur run synchrone → budget propre.
+
+## BUG-DEPLOY-001/002 — prouvés corrigés live
+
+- 001 : deploy volontairement cassé (`build: exit 1`, deployment `cmrmkmfck…`) → FAILED avec
+  UNIQUEMENT les étapes réelles dans les logs (révision, sha vérifié, build, échec) — zéro
+  « Deployment ready » / « applied Deployment + Service » fabriqué
+  (`bug-deploy-001-failed-deploy-honest-logs.json`).
+- 002 : `d-cmrmb9igi…` (1er essai Python FAILED — l'URL testée par erreur comme « preuve morte »)
+  et `d-cmrmkmfck…` servent désormais **410** : JSON `SERVER_DEPLOY_NOT_LIVE` en API, page HTML
+  « This deployment is not live » en navigation document. Fini le 502 brut / « starting » infini.
+
+## Migration pool gvisor → pd-standard (GO exécuté, 3/4 nœuds)
+
+`sandbox-gvisor-std` (pd-standard 200 Go + image streaming) : nœud Ready ~80 s, replanification
+d'apps <30 s images comprises. **SSD_TOTAL_GB 432 → 132/500** (3 nœuds pd-balanced supprimés,
+drains gracieux, 4/4 URLs 200). Dernier nœud zone-a bloqué par **stockout GCE** (« GCE out of
+resources », famille e2 west9-a — cause distincte des quotas, retry autoscaler + guetteur actif).
+Découverte : **`CPUS_ALL_REGIONS` = 32** plafonne le cluster à 8 nœuds — à inclure dans la
+resoumission quota.
