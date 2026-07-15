@@ -26,6 +26,14 @@ const MAX_INJECT_BYTES = 4 * 1024 * 1024;
 const PREVIEW_STARTING_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="2"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Starting your app…</title><style>html,body{height:100%;margin:0}body{display:flex;align-items:center;justify-content:center;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:#0d1117;color:#c9d1d9}.box{text-align:center;max-width:420px;padding:24px}.s{width:28px;height:28px;border:3px solid #30363d;border-top-color:#F26207;border-radius:50%;margin:0 auto 16px;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}h1{font-size:15px;font-weight:600;margin:0 0 6px}p{font-size:13px;color:#8b949e;margin:0}</style></head><body><div class="box"><div class="s"></div><h1>Starting your app…</h1><p>The dev server is booting. This page refreshes automatically.</p></div></body></html>`;
 
 /*
+ * Terminal state page (BUG-DEPLOY-002): the deployment host exists but nothing
+ * is (or will be) behind it — the build failed or the deployment was deleted.
+ * A raw 502 JSON here read as an outage; this states the truth, without the
+ * auto-refresh loop of the starting page (nothing will come up).
+ */
+const DEPLOY_NOT_LIVE_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Deployment not live</title><style>html,body{height:100%;margin:0}body{display:flex;align-items:center;justify-content:center;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:#0d1117;color:#c9d1d9}.box{text-align:center;max-width:440px;padding:24px}.i{width:28px;height:28px;border:3px solid #30363d;border-radius:50%;margin:0 auto 16px;position:relative}.i:after{content:"";position:absolute;inset:6px;border-radius:50%;background:#f85149}h1{font-size:15px;font-weight:600;margin:0 0 6px}p{font-size:13px;color:#8b949e;margin:0}</style></head><body><div class="box"><div class="i"></div><h1>This deployment is not live</h1><p>Its last publish failed or it was deleted. Publish the project again to bring it back.</p></div></body></html>`;
+
+/*
  * True when the request is the iframe's top-level document navigation (vs an asset
  * or XHR sub-request). Only document navigations should get the HTML holding page.
  */
@@ -580,9 +588,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    * error (manager unset/unreachable, deployment gone) resolves false so the
    * caller falls back to the starting page rather than throwing.
    */
-  const wakeServerDeploy = async (deploymentId: string): Promise<boolean> => {
+  /*
+   * Tri-state wake: 'ready' → retry the forward; 'starting' → holding page;
+   * 'gone' → the manager says the Deployment does not exist (build failed and
+   * was torn down, or deleted) — a terminal state page, never a wake loop.
+   */
+  const wakeServerDeploy = async (deploymentId: string): Promise<'ready' | 'starting' | 'gone'> => {
     if (!serverDeployManagerUrl) {
-      return false;
+      return 'starting';
     }
 
     try {
@@ -599,14 +612,18 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         },
       );
 
+      if (response.status === 404) {
+        return 'gone';
+      }
+
       if (!response.ok) {
-        return false;
+        return 'starting';
       }
 
       const body = (await response.json().catch(() => ({}))) as { ready?: boolean };
-      return Boolean(body.ready);
+      return body.ready ? 'ready' : 'starting';
     } catch {
-      return false;
+      return 'starting';
     }
   };
 
@@ -785,8 +802,20 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
         const woke = await wakeServerDeploy(deploymentId);
 
-        if (woke) {
+        if (woke === 'ready') {
           return handleServerDeployRequest(request, reply, deploymentId, true);
+        }
+
+        if (woke === 'gone') {
+          // Terminal: nothing is behind this host and nothing will come up
+          // (failed build torn down, or deployment deleted) — BUG-DEPLOY-002.
+          if (wantsHtmlDocument(request)) {
+            return reply.code(410).type('text/html').header('cache-control', 'no-store').send(DEPLOY_NOT_LIVE_HTML);
+          }
+
+          return reply
+            .code(410)
+            .send({ error: 'Deployment is not live (failed or deleted)', code: 'SERVER_DEPLOY_NOT_LIVE' });
         }
 
         // Couldn't wake it in time — fall through to the starting page below so a

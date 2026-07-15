@@ -332,6 +332,16 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     return runScheduledJob(manager.k8s, { ...input, namespace: runtimeNamespace() });
   });
   app.get('/workspaces/:workspaceId', async (request) => manager.store.get((request.params as any).workspaceId));
+
+  /*
+   * The project's runtime workspaces, most recently active first. The api's
+   * scheduled-run executor resolves the REAL workspace pvcName here — deriving
+   * it from legacy project fields produced volumes that never existed, leaving
+   * the disposable run pod Pending forever (proven live 2026-07-15).
+   */
+  app.get('/projects/:projectId/runtime-workspaces', async (request) =>
+    manager.store.listByProject((request.params as any).projectId),
+  );
   app.get('/workspaces/:workspaceId/agent-token', async (request) => {
     const workspaceId = (request.params as any).workspaceId;
 

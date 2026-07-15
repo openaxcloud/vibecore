@@ -62,6 +62,13 @@ export interface WorkspaceStore {
   listNonDeleted(): Promise<WorkspaceRecord[]>;
 
   /*
+   * The project's runtime workspaces (non-DELETED), most recently active first.
+   * Powers PVC resolution for scheduled runs: the disposable pod must mount a
+   * volume that actually exists, and only this store knows the real pvcName.
+   */
+  listByProject(projectId: string): Promise<WorkspaceRecord[]>;
+
+  /*
    * Atomic compare-and-set of the metering marker: advance lastMeteredAt to
    * `next` only if it currently equals `expected`. Returns true if this caller
    * won the claim. Used so only ONE GC replica meters a given stop window —
@@ -129,6 +136,12 @@ export class JsonWorkspaceStore implements WorkspaceStore {
 
   async listNonDeleted() {
     return [...(await this.read()).values()].filter((workspace) => workspace.status !== 'DELETED');
+  }
+
+  async listByProject(projectId: string) {
+    return (await this.listNonDeleted())
+      .filter((workspace) => workspace.projectId === projectId)
+      .sort((a, b) => b.lastActiveAt.localeCompare(a.lastActiveAt));
   }
 
   private async read() {

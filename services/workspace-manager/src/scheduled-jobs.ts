@@ -63,6 +63,24 @@ export async function runScheduledJob(
   // The manifest builder is dependency-free, so the allowlist is enforced here.
   assertWorkspaceImageAllowed(input.image);
 
+  /*
+   * Fail FAST on a missing project volume. A pod referencing a nonexistent PVC
+   * is unschedulable forever (Pending, never started, activeDeadline never
+   * arms) — proven live 2026-07-15: a legacy-derived pvcName left the run pod
+   * Pending while the run row mis-reported a manager failure. A clear, typed
+   * failure beats an eternal hang.
+   */
+  const pvc = await k8s.get('pvc', input.namespace, input.pvcName).catch(() => undefined);
+
+  if (!pvc) {
+    return {
+      exitCode: 1,
+      output: `[scheduled] project volume not found: PersistentVolumeClaim "${input.pvcName}" does not exist in namespace "${input.namespace}" — the run cannot see the project files.`,
+      timedOut: false,
+      phase: 'Failed',
+    };
+  }
+
   const podName = scheduledJobPodName(input.runId);
   const secretName = scheduledJobSecretName(input.runId);
   const pollIntervalMs = input.pollIntervalMs ?? 1500;

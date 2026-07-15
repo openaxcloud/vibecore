@@ -12385,9 +12385,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const RUNTIME_PROXY_TIMEOUT_MS = 15000;
 
-  const withRequestTimeout = (init: RequestInit): { init: RequestInit; done: () => void } => {
+  const withRequestTimeout = (init: RequestInit, timeoutMs = RUNTIME_PROXY_TIMEOUT_MS): { init: RequestInit; done: () => void } => {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), RUNTIME_PROXY_TIMEOUT_MS);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     // Respect a caller-supplied signal too: aborting it aborts our fetch.
     if (init.signal) {
@@ -12401,7 +12401,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { init: { ...init, signal: controller.signal }, done: () => clearTimeout(timer) };
   };
 
-  const managerRequest = async <T = unknown>(path: string, init: RequestInit = {}) => {
+  const managerRequest = async <T = unknown>(
+    path: string,
+    init: RequestInit = {},
+
+    /*
+     * The 15s default fits proxy-style calls; a SYNCHRONOUS call that runs a
+     * whole job inside the request (scheduled runs: apply pod → poll → logs)
+     * must be given the job's own budget or it mis-reports a healthy manager
+     * as unavailable at t+15s (proven live 2026-07-15).
+     */
+    timeoutMs?: number,
+  ) => {
     let response: Response;
 
     /*
@@ -12412,7 +12423,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
-    const { init: timedInit, done } = withRequestTimeout(init);
+    const { init: timedInit, done } = withRequestTimeout(init, timeoutMs);
 
     try {
       response = await fetch(`${workspaceManagerUrl()}${path}`, {
@@ -13366,6 +13377,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const secretValues = await resolveProjectSecretValues(store, input.projectId).catch(() => ({}));
 
+    /*
+     * Resolve the REAL runtime volume from the workspace-manager, which is the
+     * only source that knows actual pvcNames. The legacy fields
+     * (project.persistentVolumeClaim / pvc-<workspaceRow.id>) routinely named
+     * volumes that were never provisioned, leaving the disposable run pod
+     * unschedulable forever (proven live 2026-07-15). Fallbacks are kept only
+     * for projects with no runtime workspace yet.
+     */
+    const runtimeWorkspaces = await managerRequest<Array<{ pvcName?: string }>>(
+      `/projects/${encodeURIComponent(input.projectId)}/runtime-workspaces`,
+    ).catch(() => [] as Array<{ pvcName?: string }>);
+    const runtimePvcName = runtimeWorkspaces.find((entry) => entry.pvcName)?.pvcName;
+
     const result = await managerRequest<{ exitCode: number; output: string; timedOut: boolean; phase: string }>(
       '/scheduled-jobs/run',
       {
@@ -13378,7 +13402,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
 
           // The project's existing volume — same files the IDE sees.
-          pvcName: project?.persistentVolumeClaim || `pvc-${workspace.id}`,
+          pvcName: runtimePvcName || project?.persistentVolumeClaim || `pvc-${workspace.id}`,
           command: input.command,
           machineSize: input.machineSize,
           timeoutSeconds: Math.max(10, Math.round(input.timeoutMs / 1000)),
@@ -13389,6 +13413,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           secretValues,
         }),
       },
+
+      // Synchronous run: the manager polls the pod to completion inside this
+      // request — give it the run's own budget plus scheduling slack.
+      input.timeoutMs + 60_000,
     );
 
     return { exitCode: result.exitCode ?? 0, output: result.output ?? '' };
