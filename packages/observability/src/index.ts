@@ -31,6 +31,16 @@ export const platformMetricDefinitions: MetricDefinition[] = [
     buckets: defaultBuckets,
   },
   { name: 'workspace_failures_total', help: 'Workspace failures.', type: 'counter' },
+  {
+    name: 'workspace_cold_start_pending_total',
+    help: 'Workspace opens that returned "starting" while a cold start was still provisioning.',
+    type: 'counter',
+  },
+  {
+    name: 'workspace_cold_start_write_recovered_total',
+    help: 'Workspace file writes that self-recovered after waiting out a cold start.',
+    type: 'counter',
+  },
   { name: 'active_workspaces', help: 'Active workspaces.', type: 'gauge' },
   { name: 'terminal_sessions', help: 'Open terminal sessions.', type: 'gauge' },
   { name: 'preview_requests_total', help: 'Preview proxy requests.', type: 'counter' },
