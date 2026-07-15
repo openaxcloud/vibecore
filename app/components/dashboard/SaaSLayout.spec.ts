@@ -96,8 +96,13 @@ describe('public marketing brand', () => {
     expect(layoutSource).not.toContain("classNames('grid w-full gap-1', collapsed");
     expect(layoutSource).toContain('vc-user-area-shell min-h-[100dvh]');
     expect(layoutSource).toContain('vc-app-shell-title text-[28px] font-semibold leading-[36px]');
-    expect(layoutSource).toContain('md:grid-cols-2 2xl:grid-cols-3');
-    expect(layoutSource).toContain('line-clamp-2 min-h-[56px] text-lg');
+    expect(layoutSource).toContain('repeat(auto-fit, minmax(min(100%, 19rem), 1fr))');
+    expect(layoutSource).toContain('max-w-[26rem]');
+    expect(layoutSource).toContain('line-clamp-2 min-h-12 text-base leading-6');
+    expect(layoutSource).toContain('inline-flex min-h-[44px] w-full items-center justify-between');
+    expect(layoutSource).toContain(
+      '<span className="block text-[11px] text-bolt-elements-textTertiary">Activity</span>',
+    );
     expect(stylesSource).toContain('.vc-user-area-shell .vc-app-shell-title');
     expect(stylesSource).toContain('font-size: 28px !important');
     expect(stylesSource).toContain('.vc-user-area-shell {\n  --vc-ide-bg-app: #111315;');

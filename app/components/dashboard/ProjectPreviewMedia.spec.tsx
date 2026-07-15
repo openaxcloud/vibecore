@@ -3,8 +3,9 @@
  */
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
-import { ProjectPreviewMedia, ProjectStatusPill, type ProjectCard } from './SaaSLayout';
+import { ProjectGrid, ProjectPreviewMedia, ProjectStatusPill, type ProjectCard } from './SaaSLayout';
 
 afterEach(cleanup);
 
@@ -38,5 +39,27 @@ describe('project card media', () => {
     render(<ProjectStatusPill project={project} />);
 
     expect(screen.getByText('Deployed').className).toContain('status-success');
+  });
+
+  it('keeps the project grid compact while surfacing real activity and the primary IDE action', () => {
+    const router = createMemoryRouter([
+      {
+        path: '/',
+        element: <ProjectGrid projects={[{ ...project, updatedAtIso: '2026-07-14T12:00:00.000Z' }]} />,
+      },
+    ]);
+
+    render(<RouterProvider router={router} />);
+
+    expect(screen.getByTestId('project-grid').getAttribute('style')).toContain(
+      'repeat(auto-fit, minmax(min(100%, 19rem), 1fr))',
+    );
+    expect(screen.getByText('Activity')).toBeTruthy();
+    expect(screen.getByText('Deployments')).toBeTruthy();
+
+    const openIde = screen.getByRole('link', { name: 'Open IDE' });
+    expect(openIde.className).toContain('min-h-[44px]');
+    expect(openIde.className).toContain('button-primary-background');
+    expect(openIde.getAttribute('href')).toBe('/projects/project-1/ide');
   });
 });
