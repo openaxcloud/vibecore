@@ -193,6 +193,13 @@ data:
   # ignores newly-added values keys until they are `--set` once by hand).
   SERVER_DEPLOY_SNAPSHOT_IMAGE: {{ .Values.platformEnv.runtime.serverDeploySnapshotImage | default "1" | quote }}
   SERVER_DEPLOY_IMAGE_REPO: {{ .Values.platformEnv.runtime.serverDeployImageRepo | quote }}
+  {{- if .Values.platformEnv.runtime.serverDeployRevisionProjects }}
+  # Reproducible pipeline rollout gate (docs/DEPLOY_REPRODUCIBLE_PIPELINE.md):
+  # for the listed project ids ('*' = all) the docker-build context is produced
+  # by an isolated build pod from the SOURCE revision instead of the live dev
+  # pod. Unset ⇒ the Phase-A snapshot path, byte-for-byte.
+  SERVER_DEPLOY_REVISION_PROJECTS: {{ .Values.platformEnv.runtime.serverDeployRevisionProjects | quote }}
+  {{- end }}
   {{- end }}
 
   {{- if .Values.platformEnv.runtime.nixStorePvc }}

@@ -351,3 +351,100 @@ describe('buildServerDeployEnv (image deploys)', () => {
     expect(env.PORT).toBe('3000');
   });
 });
+
+describe('snapshotWorkspaceRevision', () => {
+  const storage = (overrides: Partial<import('./server-deploy-transfer.js').ImageContextStorage> = {}) => ({
+    active: true,
+    ensureBucket: vi.fn(async () => ({ bucket: 'vc-proj1', created: false, location: 'EU' })),
+    createUploadUrl: vi.fn(async () => ({
+      url: 'https://storage.googleapis.com/vc-proj1/rev?sig=abc',
+      headers: { 'Content-Type': 'application/gzip' },
+    })),
+    ...overrides,
+  });
+
+  it('tars SOURCE ONLY (deps/caches excluded), hashes it pod-side, and uploads via the signed PUT', async () => {
+    const { snapshotWorkspaceRevision, serverDeployRevisionObjectKey } = await import('./server-deploy-transfer.js');
+    const scripts: string[] = [];
+    const sha = 'f'.repeat(64);
+    const agent = fakeAgent({
+      runStep: vi.fn(async ({ args, onLine }: { args: string[]; onLine?: (l: 'info' | 'error', s: string) => void }) => {
+        scripts.push(args[1]);
+        onLine?.('info', `[revision] 4242 bytes sha256=${sha}`);
+
+        return { exitCode: 0, timedOut: false };
+      }),
+    });
+
+    const result = await snapshotWorkspaceRevision({
+      agent,
+      deploymentId: 'dep9',
+      objectStorage: storage(),
+      projectId: 'proj1',
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      bucket: 'vc-proj1',
+      object: serverDeployRevisionObjectKey('dep9'),
+      bytes: 4242,
+      sha256: sha,
+    });
+
+    // The revision is the REPLAYABLE input: derivable state must not ride along.
+    const tarScript = scripts[0];
+    expect(tarScript).toContain("--exclude='./node_modules'");
+    expect(tarScript).toContain("--exclude='./.venv'");
+    expect(tarScript).toContain("--exclude='./.git'");
+    expect(tarScript).toContain("--exclude='./.cache'");
+    expect(tarScript).toContain('sha256sum');
+    // dist ships: a prebuilt app with no build command must keep working.
+    expect(tarScript).not.toContain("--exclude='./dist'");
+    expect(tarScript).toContain("curl -fsS -X PUT -H 'Content-Type: application/gzip'");
+
+    // Cleanup step removes the workspace-root tarball.
+    expect(scripts.length).toBe(2);
+    expect(scripts[1]).toContain('rm -f .vibecore-src-dep9.tgz');
+  });
+
+  it('is a typed error without object storage', async () => {
+    const { snapshotWorkspaceRevision } = await import('./server-deploy-transfer.js');
+    const result = await snapshotWorkspaceRevision({
+      agent: fakeAgent(),
+      deploymentId: 'dep9',
+      objectStorage: null,
+      projectId: 'proj1',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe('STORAGE_UNAVAILABLE');
+  });
+
+  it('distinguishes SNAPSHOT_FAILED (no bytes seen) from UPLOAD_FAILED (bytes seen, non-zero exit)', async () => {
+    const { snapshotWorkspaceRevision } = await import('./server-deploy-transfer.js');
+
+    const snapshotFailed = await snapshotWorkspaceRevision({
+      agent: fakeAgent({ runStep: vi.fn(async () => ({ exitCode: 1, timedOut: false })) }),
+      deploymentId: 'dep9',
+      objectStorage: storage(),
+      projectId: 'proj1',
+    });
+    expect(snapshotFailed.error).toBe('SNAPSHOT_FAILED');
+
+    const uploadFailed = await snapshotWorkspaceRevision({
+      agent: fakeAgent({
+        runStep: vi.fn(
+          async ({ onLine }: { onLine?: (l: 'info' | 'error', s: string) => void }) => {
+            onLine?.('info', `[revision] 10 bytes sha256=${'a'.repeat(64)}`);
+
+            return { exitCode: 22, timedOut: false };
+          },
+        ),
+      }),
+      deploymentId: 'dep9',
+      objectStorage: storage(),
+      projectId: 'proj1',
+    });
+    expect(uploadFailed.error).toBe('UPLOAD_FAILED');
+  });
+});

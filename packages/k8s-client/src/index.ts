@@ -15,6 +15,12 @@ export * from './cluster-capacity.js';
  */
 export * from './scheduled-job.js';
 
+/*
+ * Ephemeral per-deploy build Pod (reproducible pipeline): revision in, built
+ * artifact out, throwaway sandbox. Its own symbols (appBuild*).
+ */
+export * from './app-build.js';
+
 const execFile = promisify(execFileCallback);
 
 /*

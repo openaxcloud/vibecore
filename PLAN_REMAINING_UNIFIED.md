@@ -24,5 +24,20 @@ Cible Replit : le déploiement EST le workspace, imagé. Mesures baseline (15/07
 Règles dures Replit déjà en place : port externe unique (Service 80→PORT), health `/` budget 5 s (A1), FS non persistant par publish (image immuable), idle 15 min par défaut (`SERVER_DEPLOY_IDLE_MINUTES`), `ECODE_DEPLOYMENT=1` (A1).
 Reste hors Phase A : unités de facturation Autoscale (1 CPU-s=18 / 1 GoRAM-s=2), tiers Reserved VM ($20/$40/$80/$160), changement de type en place.
 
+## Server deploy Phase B — pipeline reproductible + Nix v2 (15/07, correction d'architecture `d013e5fd`)
+
+Décisions committées : `docs/DEPLOY_REPRODUCIBLE_PIPELINE.md` (pipeline) + `docs/NIX_V2_DECISION.md` (Nix v2 : nixpkgs 26.05 rev `8eeec934ae0d`, Nix 2.34.8, store partagé RO, compilateur d'env central, `ecode.lock.json`, build via Job in-cluster — le blocage « Cloud Build n'a pas /nix » est dissous par design).
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|---|---|---|---|
+| B0. readinessProbe app+workspace : échantillonnage 1 s (baseline mesurée 6-7 s start→Ready) | ✅ | ✅ `b2558c41` | ☐ | fenêtres de panne inchangées (30 s / 15 s) ; mesure post-deploy à faire |
+| B1. Snapshot-révision (source seule, sha256 pod-side, `revisions/server-deploy/<id>.tgz`) | ✅ | ✅ | ☐ | `snapshotWorkspaceRevision` + specs |
+| B2. Pod de build isolé (gVisor, emptyDir, /nix RO optionnel, label egress server-deploy, AUCUNE PVC workspace) | ✅ | ✅ | ☐ | `appBuildPod` (k8s-client) + `runAppBuild` + route manager `/app-builds/run` + specs |
+| B3. Câblage flag-gated `SERVER_DEPLOY_REVISION_PROJECTS` (allowlist projet, vide = chemin A octet pour octet) | ✅ | ✅ | ☐ | `buildImageContextFromRevision` ; Cloud Build ne re-build plus (COPY seul) ; clés chart ajoutées (⚠️ `--reuse-values` : 1er `--set` manuel requis) |
+| B4. Preuve live Node : Publish réel via révision → URL 200 + artefact rejouable | ✅ | ☐ | ☐ | |
+| B5. Store Nix v2 (26.05 pinné) + bundles d'activation + preuve Python | ✅ | ☐ | ☐ | dépend NIX_V2_DECISION §7 |
+| B6. Gates policy/scan secrets · B7. Signature d'images (cosign) | ☐ | ☐ | ☐ | |
+| B8. Interface `SandboxRuntime`/RuntimeAdapter (aucun objet métier = Pod ; microVM cible) | ✅ | ☐ | ☐ | |
+
 ⚠️ Capacité : quota régional `SSD_TOTAL_GB` 434/500 (disques pd-balanced de boot) — le scale-up zone-a a déjà échoué une fois (15/07). Demande d'augmentation de quota = action Avi (gratuite).
 ⚠️ `--reuse-values` : les nouvelles clés chart (`serverDeployImageRepo`, `nixStorePvc`…) n'atteignent la release que via UN `--set` manuel (fait après passage CD), ensuite persistées.
