@@ -26,3 +26,14 @@ Reste hors Phase A : unités de facturation Autoscale (1 CPU-s=18 / 1 GoRAM-s=2)
 
 ⚠️ Capacité : quota régional `SSD_TOTAL_GB` 434/500 (disques pd-balanced de boot) — le scale-up zone-a a déjà échoué une fois (15/07). Demande d'augmentation de quota = action Avi (gratuite).
 ⚠️ `--reuse-values` : les nouvelles clés chart (`serverDeployImageRepo`, `nixStorePvc`…) n'atteignent la release que via UN `--set` manuel (fait après passage CD), ensuite persistées.
+
+## UI/UX hors IDE — séquence validée le 2026-07-15
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|:---:|:---:|:---:|---|
+| UX1. Récupération locale des actions async de notifications (préférences, tout marquer lu, marquer lu) | ✅ | ✅ | ✅ | Rollback et retry réels couverts par 3 tests de composant. Playwright avec API réelle : panne PATCH injectée puis retry et persistance après reload à 390/768/1024/1440, clair/sombre, sans overflow. |
+| UX2. i18n exhaustif hors IDE, zéro clé ou texte technique exposé | ☐ | ☐ | ☐ | Différé explicitement par Avi. |
+| UX3. Cartes projet enrichies et grille responsive compacte | ✅ | ✅ | ✅ | Aperçu réel/fallback honnête, statut, activité, déploiements et CTA Open IDE ≥44 px. Matrice Playwright réelle verte à 390/768/1024/1440, clair/sombre, avec 1 colonne mobile, 2 colonnes tablette/web et zéro overflow. |
+| UX4. Sélecteur de fuseau horaire IANA | ☐ | ☐ | ☐ | Différé explicitement par Avi. |
+| UX5. Réduction du bleu-nuit, orange réservé aux actions, nettoyage typographique | ☐ | ☐ | ☐ | Aucun changement de palette ou de typographie appliqué. Présenter d'abord des captures comparatives avant/après pour validation d'Avi. |
+| UX6. Visite guidée non bloquante | ☐ | ☐ | ☐ | Différé explicitement par Avi. |
