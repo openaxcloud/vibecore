@@ -42,6 +42,7 @@ const REQUIRED_REGISTRIES = [
 const KNOWN_SERVICE_IDS = ['web', 'api', 'worker', 'runtime', 'admin'];
 
 const require = createRequire(import.meta.url);
+
 function loadYamlModule() {
   try {
     return require('yaml');
@@ -49,6 +50,7 @@ function loadYamlModule() {
     return createRequire(join(process.env.PARITY_DEPS ?? '/tmp/parity-deps', 'noop.js'))('yaml');
   }
 }
+
 const YAML = loadYamlModule();
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -72,17 +74,22 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
 
   const nowMs = Date.parse(now);
 
-  // P0 rollup: a P0 is only CLOSED with commit+reviewer+proof; PROVEN has
-  // evidence but no human reviewer yet; OPEN otherwise.
+  /*
+   * P0 rollup: a P0 is only CLOSED with commit+reviewer+proof; PROVEN has
+   * evidence but no human reviewer yet; OPEN otherwise.
+   */
   const p0Rollup = (p0.p0s ?? []).map((item) => {
     const hasProof = Boolean(item.commit && item.proof && item.evidenceId);
     const reviewed = Boolean(item.reviewer && item.reviewer !== 'UNKNOWN');
+
     let derived = 'OPEN';
+
     if (hasProof && reviewed) {
       derived = 'CLOSED';
     } else if (hasProof) {
       derived = 'PROVEN';
     }
+
     return { p0Id: item.p0Id, priority: item.priority, declared: item.status, derived, hasProof, reviewed };
   });
 
@@ -98,12 +105,20 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
     })
     .map((c) => c.claimId);
 
-  // Surfaces: a surface referencing e2e proofs is DONE only if each referenced
-  // proof is PROVEN and has an evidenceId.
+  /*
+   * Surfaces: a surface referencing e2e proofs is DONE only if each referenced
+   * proof is PROVEN and has an evidenceId.
+   */
   const surfaceRollup = (surfaces.surfaces ?? []).map((s) => {
     const refs = s.e2eProofIds ?? [];
     const proven = refs.filter((id) => isProven(proofById.get(id)));
-    return { surfaceId: s.surfaceId, proofsReferenced: refs.length, proofsProven: proven.length, done: refs.length > 0 && proven.length === refs.length };
+
+    return {
+      surfaceId: s.surfaceId,
+      proofsReferenced: refs.length,
+      proofsProven: proven.length,
+      done: refs.length > 0 && proven.length === refs.length,
+    };
   });
 
   /* ===== The exact 6-condition approval algorithm (audit v4 H) ===== */
@@ -111,6 +126,7 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
   // (1) No P0 OPEN or BLOCKED.
   const openP0 = p0Rollup.filter((p) => p.derived === 'OPEN');
   const blockedP0 = (p0.p0s ?? []).filter((p) => p.status === 'BLOCKED').map((p) => p.p0Id);
+
   const cond1 = {
     id: 1,
     description: 'no P0 OPEN or BLOCKED',
@@ -124,14 +140,18 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
   // (2) Every required registry exists and carries a schemaVersion.
   const missingFiles = [];
   const noSchemaVersion = [];
+
   for (const name of REQUIRED_REGISTRIES) {
     const path = join(parityRoot, name);
+
     if (!existsSync(path)) {
       missingFiles.push(name);
       continue;
     }
+
     try {
       const doc = YAML.parse(readFileSync(path, 'utf8'));
+
       if (doc?.schemaVersion === undefined) {
         noSchemaVersion.push(name);
       }
@@ -139,6 +159,7 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
       noSchemaVersion.push(`${name} (parse error: ${error.message})`);
     }
   }
+
   const cond2 = {
     id: 2,
     description: 'all required registries exist and validate schemaVersion',
@@ -149,26 +170,32 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
     ],
   };
 
-  // (3) No orphan reference: e2eProofId → E2E_PROOFS; PROVEN proof evidenceId →
-  //     on disk; surface serviceId → known services.
+  /*
+   * (3) No orphan reference: e2eProofId → E2E_PROOFS; PROVEN proof evidenceId →
+   *     on disk; surface serviceId → known services.
+   */
   const orphans = [];
+
   for (const s of surfaces.surfaces ?? []) {
     for (const id of s.e2eProofIds ?? []) {
       if (!proofById.has(id)) {
         orphans.push(`${s.surfaceId} → unknown e2eProofId ${id}`);
       }
     }
+
     for (const svc of s.serviceIds ?? []) {
       if (!KNOWN_SERVICE_IDS.includes(svc)) {
         orphans.push(`${s.surfaceId} → unknown serviceId ${svc}`);
       }
     }
   }
+
   for (const proof of e2e.proofs ?? []) {
     if (proof.status === 'PROVEN' && proof.evidenceId && !existsSync(join(repoRoot, proof.evidenceId))) {
       orphans.push(`${proof.proofId} → evidenceId path missing on disk (${proof.evidenceId})`);
     }
   }
+
   const cond3 = {
     id: 3,
     description: 'no orphan claimId / surfaceId / serviceId / evidenceId reference',
@@ -183,7 +210,9 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
     );
     return { stage, green: proofs.length > 0, proofIds: proofs.map((p) => p.proofId) };
   });
+
   const missingStages = verticalStages.filter((v) => !v.green).map((v) => v.stage);
+
   const cond4 = {
     id: 4,
     description: 'vertical créer→modifier→exécuter→preview→publier→observer→rollback is green',
@@ -207,7 +236,9 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
       return Number.isFinite(t) && t < nowMs && d.status === 'OPEN';
     })
     .map((d) => d.decisionId);
+
   const p0Unknowns = (unknowns.unknowns ?? []).filter((u) => u.p0Id || u.blocksP0);
+
   const p0UnknownGaps = p0Unknowns
     .filter((u) => !u.owner || u.owner === 'UNKNOWN' || !u.targetDate || u.targetDate === 'UNKNOWN')
     .map((u) => `${u.unknownId} (P0-linked) lacks owner or targetDate`);
@@ -215,13 +246,11 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
     id: 6,
     description: 'no expired decision; no P0-linked unknown without owner + targetDate',
     passed: expiredDecisions.length === 0 && p0UnknownGaps.length === 0,
-    reasons: [
-      ...expiredDecisions.map((d) => `decision ${d} is OPEN past its expiration`),
-      ...p0UnknownGaps,
-    ],
+    reasons: [...expiredDecisions.map((d) => `decision ${d} is OPEN past its expiration`), ...p0UnknownGaps],
   };
 
   const conditions = [cond1, cond2, cond3, cond4, cond5, cond6];
+
   const blocking = conditions
     .filter((c) => !c.passed)
     .map((c) => `condition ${c.id} (${c.description}) FAILED: ${c.reasons.join('; ')}`);
@@ -258,8 +287,10 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
   };
 }
 
-// Only run the CLI when executed directly — importing this module (e.g. from the
-// validator's drift check) must have NO side effect.
+/*
+ * Only run the CLI when executed directly — importing this module (e.g. from the
+ * validator's drift check) must have NO side effect.
+ */
 const isDirectRun = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (isDirectRun) {
@@ -268,10 +299,14 @@ if (isDirectRun) {
 
   if (process.argv.includes('--check')) {
     const current = existsSync(outPath) ? readFileSync(outPath, 'utf8') : '';
+
     if (current !== computed) {
-      console.error('[approval-status] STALE — APPROVAL_STATUS.json differs from the computed value. Run the generator.');
+      console.error(
+        '[approval-status] STALE — APPROVAL_STATUS.json differs from the computed value. Run the generator.',
+      );
       process.exit(1);
     }
+
     console.log('[approval-status] up to date');
   } else {
     writeFileSync(outPath, computed);

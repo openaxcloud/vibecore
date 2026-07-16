@@ -59,3 +59,17 @@ unknowns:
     nextAction: "Aucune mention de licence sur le rendu détail ; chercher CGU Replit ou rester UNKNOWN"
     targetDate: UNKNOWN
     expiration: "2026-10-31"
+  - unknownId: UNK-AUTH-ACCESS-LIVE
+    question: "Les 4 modes d'accès déploiement (Public/Password/Workspace/Invite) + sign-in forcé + gouvernance admin sont-ils implémentés et prouvés live côté E-Code ?"
+    owner: claude
+    priority: 2
+    nextAction: "Implémenter accessPolicyVersion sur ReleaseManifest + parcours e2e (mode Private → login forcé) ; cf. AUTH_ACCESS_CONTRACT.md"
+    targetDate: UNKNOWN
+    expiration: "2026-09-30"
+  - unknownId: UNK-REGRESSION-HARNESS
+    question: "Existe-t-il un harnais de rejeu automatisé (cron) des preuves e2e pour détecter les régressions de parité ?"
+    owner: claude
+    priority: 2
+    nextAction: "Câbler un RegressionRun rejouant les proofs PROVEN + verdict GREEN/RED ; cf. REGRESSION_RUN_CONTRACT.md"
+    targetDate: UNKNOWN
+    expiration: "2026-10-31"

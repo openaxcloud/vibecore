@@ -13,9 +13,9 @@
  * the validator enforces structure, never invents data.
  */
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 
@@ -78,7 +78,24 @@ function checkHeader(file, doc) {
   const CLAIM_STATUS = ['VERIFIED', 'CONFIRMED', 'INTERNAL_AUDIT', 'UNVERIFIED', 'STALE'];
 
   for (const claim of doc.claims ?? []) {
-    requireFields(file, claim, ['claimId', 'statement', 'sourceId', 'observedAt', 'firstSeen', 'lastVerified', 'plan', 'rollout', 'region', 'client', 'status'], claim?.claimId ?? 'claim');
+    requireFields(
+      file,
+      claim,
+      [
+        'claimId',
+        'statement',
+        'sourceId',
+        'observedAt',
+        'firstSeen',
+        'lastVerified',
+        'plan',
+        'rollout',
+        'region',
+        'client',
+        'status',
+      ],
+      claim?.claimId ?? 'claim',
+    );
 
     if (claim.status && !CLAIM_STATUS.includes(claim.status)) {
       fail(file, `${claim.claimId}: invalid status "${claim.status}"`);
@@ -99,7 +116,12 @@ function checkHeader(file, doc) {
   const sourceIds = new Set();
 
   for (const source of sources.sources ?? []) {
-    requireFields(srcFile, source, ['sourceId', 'url', 'title', 'publishedAt', 'accessedAt', 'contentHash', 'snapshot'], source?.sourceId ?? 'source');
+    requireFields(
+      srcFile,
+      source,
+      ['sourceId', 'url', 'title', 'publishedAt', 'accessedAt', 'contentHash', 'snapshot'],
+      source?.sourceId ?? 'source',
+    );
 
     if (source.contentHash && !/^sha256:[a-f0-9]{64}$/.test(source.contentHash)) {
       fail(srcFile, `${source.sourceId}: contentHash must be sha256:<64 hex>`);
@@ -165,13 +187,20 @@ function checkHeader(file, doc) {
     );
 
     if (surface?.availability && !SURFACE_AVAILABILITY.includes(surface.availability)) {
-      fail(file, `${surface?.surfaceId}: availability "${surface.availability}" not in {${SURFACE_AVAILABILITY.join('|')}}`);
+      fail(
+        file,
+        `${surface?.surfaceId}: availability "${surface.availability}" not in {${SURFACE_AVAILABILITY.join('|')}}`,
+      );
     }
 
     for (const dim of ['web', 'tablet', 'mobile']) {
       const v = surface?.responsiveContract?.[dim];
+
       if (v !== true && v !== false && v !== 'UNKNOWN') {
-        fail(file, `${surface?.surfaceId}: responsiveContract.${dim} must be true|false|UNKNOWN, got ${JSON.stringify(v)}`);
+        fail(
+          file,
+          `${surface?.surfaceId}: responsiveContract.${dim} must be true|false|UNKNOWN, got ${JSON.stringify(v)}`,
+        );
       }
     }
   }
@@ -188,7 +217,12 @@ function checkHeader(file, doc) {
   const PROOF_STATUS = ['PROVEN', 'PENDING', 'FAILED'];
 
   for (const proof of doc.proofs ?? []) {
-    requireFields(file, proof, ['proofId', 'title', 'fixtures', 'steps', 'expected', 'evidenceId', 'status'], proof?.proofId ?? 'proof');
+    requireFields(
+      file,
+      proof,
+      ['proofId', 'title', 'fixtures', 'steps', 'expected', 'evidenceId', 'status'],
+      proof?.proofId ?? 'proof',
+    );
     requireFields(file, proof.fixtures ?? {}, ['account', 'plan', 'region', 'client'], `${proof?.proofId}.fixtures`);
 
     if (proof.status && !PROOF_STATUS.includes(proof.status)) {
@@ -235,6 +269,22 @@ function checkHeader(file, doc) {
     'PARITY_STATUS.md',
     'CHANGELOG_AUDIT.md',
     'SERVICE_CONTRACTS/README.md',
+
+    // audit v4 I — the 14 missing contract files (17 groups, not 12).
+    'AUTH_ACCESS_CONTRACT.md',
+    'GALLERY_COMMUNITY_CONTRACT.md',
+    'RELEASE_PUBLISH_CONTRACT.md',
+    'PROJECT_FACTORY_CONTRACT.md',
+    'IAM_POLICY_BASELINE.md',
+    'EDGE_CONTRACT.md',
+    'WORKSPACE_STORAGE_CONTRACT.md',
+    'CHECKPOINT_CONTRACT.md',
+    'IMPORT_REMIX_CONTRACT.md',
+    'AGENT_TOOL_BROKER_CONTRACT.md',
+    'DATABASE_CONTRACT.md',
+    'APP_STORAGE_CONTRACT.md',
+    'EVIDENCE_ARTIFACT_CONTRACT.md',
+    'REGRESSION_RUN_CONTRACT.md',
   ];
 
   for (const relative of mdFiles) {
@@ -262,6 +312,7 @@ function checkHeader(file, doc) {
 /* ---- 7. JSON schemas parse and carry x-schemaVersion ------------------- */
 {
   const schemaDirs = [join(parityRoot, 'schemas'), join(parityRoot, 'schemas', 'domain')];
+
   let count = 0;
 
   for (const dir of schemaDirs) {
@@ -355,7 +406,12 @@ function checkHeader(file, doc) {
   checkHeader('UNKNOWN_REGISTRY.yaml', unknowns);
 
   for (const item of p0.p0s ?? []) {
-    requireFields('P0_REGISTRY.yaml', item, ['p0Id', 'title', 'priority', 'owner', 'status', 'nextAction'], item?.p0Id ?? 'p0');
+    requireFields(
+      'P0_REGISTRY.yaml',
+      item,
+      ['p0Id', 'title', 'priority', 'owner', 'status', 'nextAction'],
+      item?.p0Id ?? 'p0',
+    );
 
     // CI RULE: no P0 CLOSED without commit + reviewer + proof.
     if (item.status === 'CLOSED' && (!item.commit || !item.reviewer || item.reviewer === 'UNKNOWN' || !item.proof)) {
@@ -371,14 +427,26 @@ function checkHeader(file, doc) {
   }
 
   for (const decision of decisions.decisions ?? []) {
-    requireFields('DECISION_REGISTRY.yaml', decision, ['decisionId', 'title', 'rationale', 'owner', 'priority', 'status', 'nextAction'], decision?.decisionId ?? 'decision');
+    requireFields(
+      'DECISION_REGISTRY.yaml',
+      decision,
+      ['decisionId', 'title', 'rationale', 'owner', 'priority', 'status', 'nextAction'],
+      decision?.decisionId ?? 'decision',
+    );
   }
 
   for (const unknown of unknowns.unknowns ?? []) {
-    requireFields('UNKNOWN_REGISTRY.yaml', unknown, ['unknownId', 'question', 'owner', 'priority', 'nextAction', 'targetDate', 'expiration'], unknown?.unknownId ?? 'unknown');
+    requireFields(
+      'UNKNOWN_REGISTRY.yaml',
+      unknown,
+      ['unknownId', 'question', 'owner', 'priority', 'nextAction', 'targetDate', 'expiration'],
+      unknown?.unknownId ?? 'unknown',
+    );
   }
 
-  checked.push(`P0/DECISION/UNKNOWN registries (${(p0.p0s ?? []).length}/${(decisions.decisions ?? []).length}/${(unknowns.unknowns ?? []).length})`);
+  checked.push(
+    `P0/DECISION/UNKNOWN registries (${(p0.p0s ?? []).length}/${(decisions.decisions ?? []).length}/${(unknowns.unknowns ?? []).length})`,
+  );
 }
 
 /* ---- 9b. OBSERVATION_REGISTRY (audit v4 A) ----------------------------- */
@@ -394,7 +462,12 @@ function checkHeader(file, doc) {
   const TRIAGE = ['PENDING', 'TRIAGED', 'ACCEPTED', 'REJECTED', 'DUPLICATE'];
 
   for (const obs of doc.observations ?? []) {
-    requireFields(file, obs, ['observationId', 'sourceType', 'observedAt', 'detectionDate', 'triageState'], obs?.observationId ?? 'obs');
+    requireFields(
+      file,
+      obs,
+      ['observationId', 'sourceType', 'observedAt', 'detectionDate', 'triageState'],
+      obs?.observationId ?? 'obs',
+    );
 
     if (obs.triageState && !TRIAGE.includes(obs.triageState)) {
       fail(file, `${obs.observationId}: invalid triageState "${obs.triageState}"`);
@@ -403,8 +476,12 @@ function checkHeader(file, doc) {
     // blindnessGapDays must be consistent with eventDate→detectionDate when both are dates.
     if (obs.eventDate && obs.eventDate !== 'UNKNOWN' && obs.detectionDate && typeof obs.blindnessGapDays === 'number') {
       const gap = Math.round((Date.parse(obs.detectionDate) - Date.parse(obs.eventDate)) / 86_400_000);
+
       if (Number.isFinite(gap) && Math.abs(gap - obs.blindnessGapDays) > 1) {
-        fail(file, `${obs.observationId}: blindnessGapDays=${obs.blindnessGapDays} inconsistent with eventDate→detectionDate (${gap})`);
+        fail(
+          file,
+          `${obs.observationId}: blindnessGapDays=${obs.blindnessGapDays} inconsistent with eventDate→detectionDate (${gap})`,
+        );
       }
     }
   }
@@ -428,6 +505,7 @@ function checkHeader(file, doc) {
 
       // A surface that claims a PROVEN proof requires that proof to have evidence.
       const proof = proofById.get(proofId);
+
       if (proof.status === 'PROVEN' && !proof.evidenceId) {
         fail('SURFACE_REGISTRY.yaml', `${surface.surfaceId}: proof ${proofId} is PROVEN but has no evidenceId`);
       }
@@ -450,20 +528,34 @@ function checkHeader(file, doc) {
     const current = existsSync(statusPath) ? readFileSync(statusPath, 'utf8') : '';
 
     if (current !== computed) {
-      fail('APPROVAL_STATUS.json', 'DRIFT — the committed file differs from the computed value. Status must never be hand-written; run generate-approval-status.mjs.');
+      fail(
+        'APPROVAL_STATUS.json',
+        'DRIFT — the committed file differs from the computed value. Status must never be hand-written; run generate-approval-status.mjs.',
+      );
     } else {
-      // Consistency of the 6-condition algorithm (audit v4 H): approvalReady must
-      // equal "every condition passed" — no other path to APPROVED.
+      /*
+       * Consistency of the 6-condition algorithm (audit v4 H): approvalReady must
+       * equal "every condition passed" — no other path to APPROVED.
+       */
       const status = JSON.parse(computed);
       const conds = status.conditions ?? [];
+
       if (conds.length !== 6) {
         fail('APPROVAL_STATUS.json', `expected exactly 6 approval conditions, got ${conds.length}`);
       }
+
       const allPass = conds.every((c) => c.passed === true);
+
       if (status.approvalReady !== allPass) {
-        fail('APPROVAL_STATUS.json', `approvalReady (${status.approvalReady}) ≠ all-conditions-pass (${allPass}) — the algorithm is inconsistent`);
+        fail(
+          'APPROVAL_STATUS.json',
+          `approvalReady (${status.approvalReady}) ≠ all-conditions-pass (${allPass}) — the algorithm is inconsistent`,
+        );
       }
-      checked.push(`APPROVAL_STATUS.json is up to date (computed; 6-condition algorithm consistent, approvalReady=${status.approvalReady})`);
+
+      checked.push(
+        `APPROVAL_STATUS.json is up to date (computed; 6-condition algorithm consistent, approvalReady=${status.approvalReady})`,
+      );
     }
   }
 }

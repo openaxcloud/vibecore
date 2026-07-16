@@ -129,3 +129,15 @@ claims:
     client: web
     status: VERIFIED
     triageState: PENDING
+  - claimId: RPL-23
+    statement: "Replit deployments — accès contrôlé par 4 modes (« Who can access your app ») : Public, Password protected, Workspace only, Invite only. Les deux options Private (Workspace only / Invite only) forcent une connexion Replit avant l'accès ; sans changement de code. Gouvernance admin : exiger des déploiements privés, bannir les apps publiques."
+    sourceId: SRC-LLMS-FULL-TXT           # snapshot hashé, l. 8501/8545/8560/14927
+    observedAt: "2026-07-16T12:56:16Z"
+    firstSeen: "2026-07-16"
+    lastVerified: "2026-07-16"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+    triageState: PENDING
