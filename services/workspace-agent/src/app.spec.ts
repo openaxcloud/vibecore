@@ -238,6 +238,43 @@ describe('injectViteDevArgs', () => {
   });
 });
 
+describe('nixToolchainBinDirs', () => {
+  it('returns [] when the catalog is absent (non-Nix workspace)', async () => {
+    const { nixToolchainBinDirs } = await import('./app.js');
+    expect(nixToolchainBinDirs(join(tmpdir(), 'no-such-catalog.json'))).toEqual([]);
+  });
+
+  it('resolves the per-runtime profile bin dirs from the signed catalog', async () => {
+    const { nixToolchainBinDirs } = await import('./app.js');
+    const { mkdtemp: mk, writeFile: wf, mkdir: md } = await import('node:fs/promises');
+    const dir = await mk(join(tmpdir(), 'nix-catalog-'));
+    const pyProfile = join(dir, 'py');
+    const goProfile = join(dir, 'go');
+    await md(join(pyProfile, 'bin'), { recursive: true });
+    await md(join(goProfile, 'bin'), { recursive: true });
+    const catalog = join(dir, 'catalog.json');
+    await wf(
+      catalog,
+      JSON.stringify({
+        schemaVersion: 1,
+        envs: {
+          python312: { resolved: '3.12.13', profile: pyProfile },
+          go: { resolved: 'go1.26.4', profile: goProfile },
+          // a profile whose bin dir does not exist is skipped, not thrown on
+          missing: { resolved: 'x', profile: join(dir, 'gone') },
+        },
+      }),
+    );
+
+    const bins = nixToolchainBinDirs(catalog);
+    expect(bins).toContain(join(pyProfile, 'bin'));
+    expect(bins).toContain(join(goProfile, 'bin'));
+    expect(bins).not.toContain(join(dir, 'gone', 'bin'));
+
+    await rm(dir, { recursive: true, force: true });
+  });
+});
+
 describe('sanitizedChildEnv', () => {
   it('coerces a leaked NODE_ENV=production to development for a dev server (fixes the _jsxDEV blank)', () => {
     const env = sanitizedChildEnv({ NODE_ENV: 'production', PATH: '/usr/bin' }, { command: 'vite', args: [] });

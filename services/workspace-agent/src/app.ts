@@ -188,7 +188,75 @@ export function sanitizedChildEnv(
     env.NODE_ENV = 'development';
   }
 
+  /*
+   * Activate the shared Nix toolchain (Nix v2 signed catalog) so a Python/Go
+   * project's `python`, `uv`, `pip`, `virtualenv`, `go` resolve automatically —
+   * no manual venv-path munging, no per-project setup. The alpine base image has
+   * none of these; the RO /nix store bundles them per-runtime under
+   * /nix/ecode/catalog.json's `envs[].profile`. We APPEND the profile bin dirs so
+   * the base image's own tools (node/npm) keep priority and behavior is unchanged
+   * for Node projects — Nix only ADDS the runtimes the base lacks. No-op when
+   * /nix isn't mounted (the mount is gated upstream), so this is byte-for-byte
+   * inert on a non-Nix workspace.
+   */
+  const nixBins = nixToolchainBinDirs();
+
+  if (nixBins.length > 0) {
+    const current = env.PATH ?? '';
+    const parts = current ? current.split(':') : [];
+    const toAppend = nixBins.filter((dir) => !parts.includes(dir));
+
+    if (toAppend.length > 0) {
+      env.PATH = current ? `${current}:${toAppend.join(':')}` : toAppend.join(':');
+    }
+  }
+
   return env;
+}
+
+/*
+ * Resolve the Nix v2 activation-bundle bin dirs from the signed catalog, once.
+ * Returns [] (cached) when /nix isn't mounted or the catalog is absent/malformed,
+ * so a non-Nix workspace pays nothing and behaves exactly as before.
+ */
+let nixToolchainBinDirsCache: string[] | undefined;
+const NIX_CATALOG_PATH = '/nix/ecode/catalog.json';
+
+export function nixToolchainBinDirs(catalogPath: string = NIX_CATALOG_PATH): string[] {
+  // Cache ONLY the real production path (read once per agent process). An explicit
+  // path is a test override and is always recomputed so tests stay isolated.
+  const useCache = catalogPath === NIX_CATALOG_PATH;
+
+  if (useCache && nixToolchainBinDirsCache !== undefined) {
+    return nixToolchainBinDirsCache;
+  }
+
+  let bins: string[] = [];
+
+  try {
+    if (existsSync(catalogPath)) {
+      const catalog = JSON.parse(readFileSync(catalogPath, 'utf8')) as {
+        envs?: Record<string, { profile?: string }>;
+      };
+
+      for (const entry of Object.values(catalog.envs ?? {})) {
+        const bin = entry.profile ? `${entry.profile}/bin` : undefined;
+
+        if (bin && existsSync(bin) && !bins.includes(bin)) {
+          bins.push(bin);
+        }
+      }
+    }
+  } catch {
+    // A malformed/unreadable catalog must never break spawning a shell.
+    bins = [];
+  }
+
+  if (useCache) {
+    nixToolchainBinDirsCache = bins;
+  }
+
+  return bins;
 }
 
 /*
