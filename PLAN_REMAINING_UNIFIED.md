@@ -30,7 +30,7 @@ Décision produit validée par audit Replit : Replit n'a AUCUN sélecteur de mod
 | AGM-9. Simulateur avant application + historique complet (qui/quoi/quand, marge avant/après) + versionnage effectiveFrom/effectiveTo/sourceDate | ✅ | ✅ `d0b302fa`+`fee92bd0` | ⬜ | |
 | AGM-10. Ligne classifieur harness (rapide/cheap, non facturé, revient visible) | ✅ | ✅ `dc2d6c9d`+`7abcb045` | ⬜ | Coût d'exploitation |
 | AGM-11. Nudge Economy→Power si boucle, max 1×/projet | ✅ | ✅ `84c860b5` | ⬜ | |
-| AGM-12. Preuves live (a)–(f) : DOM sans nom de modèle, 3 modes IDE, mode change le modèle appelé (log), coût diffère, refus par plan, alerte marge | ✅ | ⬜ | ⬜ | Artefacts bruts `docs/deploy-evidence/` |
+| AGM-12. Preuves live (a)–(f) : DOM sans nom de modèle, 3 modes IDE, mode change le modèle appelé (log), coût diffère, refus par plan, alerte marge | ✅ | ✅ (`c94f2fdf`) | ✅ **16/07** — (a) scan DOM 3 surfaces × 3 formats hits=[] ; (b) segmented IDE Economy défaut ; (c) economy→opus-4-8, lite→haiku-4-5 (agent-mode.routed live) ; (d) AgentCallLog revient 651 vs 129 mc ; (e) 403 HIGH_EFFORT/TURBO_NOT_ALLOWED ; (f) marges live + 409 AGENT_ROUTING_NEGATIVE_MARGIN | Artefacts bruts `docs/deploy-evidence/` |
 
 ## Server deploy Phase A — « Publish = snapshot du workspace → image → run » (décision Avi 15/07)
 

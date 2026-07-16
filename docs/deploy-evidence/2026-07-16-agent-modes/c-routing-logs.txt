@@ -1,0 +1,15 @@
+# (c) Le mode change RÉELLEMENT le modèle appelé — logs prod live (pod web, image web:c94f2fdf70)
+# projet cmrnhp99b00070ndn39c0i2h1 (qa-agm-free1, plan free)
+
+# Envoi 1 — mode Economy (défaut) :
+{"event":"agent-mode.routed","projectId":"cmrnhp99b00070ndn39c0i2h1","mode":"economy","highEffort":false,"turbo":false,"escalated":false,"lineKey":"economy","provider":"anthropic","model":"claude-opus-4-8","routingVersion":1}
+{"event":"chat.completion.usage","chatMode":"build","finishReason":"stop","provider":"Anthropic","model":"claude-opus-4-8","promptTokens":1212,"completionTokens":18,"totalTokens":1230,"timestamp":"2026-07-16T14:44:47.765Z"}
+POST /api/chat 200
+
+# Envoi 2 — mode Lite (segmented cliqué, aria-checked lite=true) :
+{"event":"agent-mode.routed","projectId":"cmrnhp99b00070ndn39c0i2h1","mode":"lite","highEffort":false,"turbo":false,"escalated":false,"lineKey":"lite","provider":"anthropic","model":"claude-haiku-4-5","routingVersion":1}
+{"event":"chat.completion.usage","chatMode":"build","finishReason":"stop","provider":"Anthropic","model":"claude-haiku-4-5","promptTokens":1200,"completionTokens":18,"totalTokens":1218,"timestamp":"2026-07-16T14:45:47.132Z"}
+
+# → Economy ⇒ claude-opus-4-8 ; Lite ⇒ claude-haiku-4-5. Le modèle réellement
+#   appelé (provider Anthropic, PAS le legacy AmazonBedrock/sonnet-4.5) suit le mode.
+# Bug resolve-401→legacy PROUVÉ MORT : agent-mode.routed fire + modèle concret par mode.
