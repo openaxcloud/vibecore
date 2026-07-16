@@ -1,0 +1,115 @@
+# Artifact Registry retention — protection-tag refresher.
+#
+# The prod repos enforce cleanup policies (see infra/artifact-registry/*.json):
+#   vibecore-prod-containers: KEEP 20 most-recent per image
+#                             + KEEP tags running-*/helm-active-*
+#                             + DELETE older than 7 days
+#   vibecore-prod-apps:       KEEP 10 most-recent per app
+#                             + KEEP tags active-*
+#                             + DELETE older than 60 days
+#
+# The DELETE policies are only safe because the KEEP tag prefixes always cover
+# what production actually uses. This workflow keeps that promise true: every
+# 6 hours (and on demand) it re-tags
+#   * every image a pod is RUNNING right now        -> running-<package>
+#   * every image the active Helm release references -> helm-active-<package>
+#     (incl. WORKSPACE_AGENT_IMAGE from the platform configmap — no pod runs it
+#     permanently, but every workspace start pulls it)
+#   * every image referenced by an app-* k8s Deployment (even scaled to zero —
+#     the wake path needs the image)                 -> active-<deploymentId>
+#
+# Tags are moved, never deleted here: a tag that stops matching simply gets
+# re-pointed on the next run; versions it leaves behind age out via the DELETE
+# policy once they are genuinely unreferenced.
+
+name: AR Protect Running Images
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ar-protect-images
+  cancel-in-progress: false
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: europe-west9
+  CLUSTER: vibecore-prod-app
+  NAMESPACE: vibecore
+  REPO_CONTAINERS: europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers
+  REPO_APPS: europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps
+
+jobs:
+  protect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_ARTIFACT_WRITER_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Get cluster credentials via Connect Gateway
+        run: |
+          set -euo pipefail
+          gcloud components install gke-gcloud-auth-plugin --quiet
+          gcloud container fleet memberships get-credentials "$CLUSTER" \
+            --project "$GCP_PROJECT_ID" --location "$REGION"
+
+      - name: Tag running platform images (running-*)
+        run: |
+          set -euo pipefail
+          kubectl get pods -A \
+            -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.image}{"\n"}{end}{end}' \
+            | grep "$REPO_CONTAINERS" | sort -u | while read -r img; do
+            pkg="${img#"$REPO_CONTAINERS"/}"; pkg="${pkg%%:*}"
+            gcloud artifacts docker tags add "$img" "$REPO_CONTAINERS/$pkg:running-$pkg" --quiet
+          done
+
+      - name: Tag Helm-active images (helm-active-*)
+        run: |
+          set -euo pipefail
+          # imageTags from the live release values; tier keys are camelCase,
+          # image package names are the kebab-case `image` field next to them.
+          helm -n "$NAMESPACE" get values vibecore -a -o json \
+            | jq -r '(.services // {}) | to_entries[]
+                     | select((.value | type == "object") and .value.imageTag and .value.image)
+                     | "\(.value.image) \(.value.imageTag)"' \
+            | while read -r pkg tag; do
+            gcloud artifacts docker tags add "$REPO_CONTAINERS/$pkg:$tag" \
+              "$REPO_CONTAINERS/$pkg:helm-active-$pkg" --quiet
+          done
+
+          # The workspace-agent image is referenced by env, not by a Deployment.
+          agent_img=$(kubectl -n "$NAMESPACE" get configmap \
+            vibecore-vibecore-platform-platform-env \
+            -o jsonpath='{.data.WORKSPACE_AGENT_IMAGE}' || true)
+          if [ -n "$agent_img" ]; then
+            gcloud artifacts docker tags add "$agent_img" \
+              "$REPO_CONTAINERS/workspace-agent:helm-active-workspace-agent" --quiet
+          fi
+
+      - name: Tag app images referenced by k8s Deployments (active-*)
+        run: |
+          set -euo pipefail
+          # Includes scaled-to-zero apps: their Deployment object still carries
+          # the image, and the scale-to-zero wake path must be able to pull it.
+          kubectl -n workspaces get deploy \
+            -o jsonpath='{range .items[*]}{.spec.template.spec.containers[0].image}{"\n"}{end}' \
+            | grep "$REPO_APPS" | sort -u | while read -r img; do
+            pkg="${img#"$REPO_APPS"/}"; pkg="${pkg%%:*}"
+            tag="${img##*:}"
+            gcloud artifacts docker tags add "$img" "$REPO_APPS/$pkg:active-$tag" --quiet
+          done
