@@ -31,3 +31,31 @@ unknowns:
     nextAction: "Mesurer le débit réel de création de folders en prod GCP"
     targetDate: UNKNOWN
     expiration: "2026-09-30"
+  - unknownId: UNK-GALLERY-SELF-PUBLISH
+    question: "Existe-t-il un Publish/Unpublish self-service DANS l'IDE Replit (vs Typeform externe curé) ?"
+    owner: avi
+    priority: 2
+    nextAction: "Observer un compte auteur Replit ; sinon rester UNKNOWN — ne jamais présumer un self-service (cf. DEC-GALLERY-NO-SELF-PUBLISH)"
+    targetDate: UNKNOWN
+    expiration: "2026-09-30"
+  - unknownId: UNK-GALLERY-EMBED-PREVIEW
+    question: "La carte Gallery embarque-t-elle une preview live (iframe) ou seulement un lien sortant ?"
+    owner: claude
+    priority: 2
+    nextAction: "Capturer le DOM de la carte détail ; le rendu actuel ne montre qu'un lien"
+    targetDate: UNKNOWN
+    expiration: "2026-09-30"
+  - unknownId: UNK-GALLERY-REVIEW-WORKFLOW
+    question: "Quel est le workflow interne de revue / sanctions / appels d'une soumission Gallery ?"
+    owner: avi
+    priority: 3
+    nextAction: "Back-office non observable ; documenter si Replit publie sa politique, sinon rester UNKNOWN"
+    targetDate: UNKNOWN
+    expiration: "2026-10-31"
+  - unknownId: UNK-GALLERY-REMIX-LICENSE
+    question: "Quelle licence / attribution s'applique au remix d'une app Gallery ?"
+    owner: avi
+    priority: 3
+    nextAction: "Aucune mention de licence sur le rendu détail ; chercher CGU Replit ou rester UNKNOWN"
+    targetDate: UNKNOWN
+    expiration: "2026-10-31"
