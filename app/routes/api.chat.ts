@@ -56,6 +56,15 @@ import { classifyStreamError } from '~/types/context';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
+import {
+  decideTaskHardness,
+  boltProviderName,
+  isAgentModeRoutingDisabled,
+  normalizeAgentSelection,
+  resolveAgentRoute,
+  type AgentRouteLine,
+  type AgentRouteResolution,
+} from '~/lib/.server/llm/agent-mode';
 import { WORK_DIR } from '~/utils/constants';
 import { responseEmittedFileAction } from '~/utils/response-file-actions';
 import {
@@ -243,6 +252,54 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
   const apiKeys = safeParseCookieJson<Record<string, string>>(parsedCookies.apiKeys, 'apiKeys');
   const providerSettings = safeParseCookieJson<Record<string, IProviderSetting>>(parsedCookies.providers, 'providers');
+
+  /*
+   * AGM mode routing (control plane): resolve (mode, High effort, Turbo) into
+   * the concrete provider+model from the api's ACTIVE routing card BEFORE any
+   * streaming starts, so an unauthorized mode is refused with a clean 403 (never
+   * a silent downgrade) and the model decision comes from config, not the client.
+   */
+  const agentSelection = normalizeAgentSelection(agentPower);
+
+  let agentRoute: AgentRouteResolution | undefined;
+
+  if (!isAgentModeRoutingDisabled()) {
+    const routeResult = await resolveAgentRoute({
+      projectId,
+      selection: agentSelection,
+      cookieHeader: cookieHeader ?? undefined,
+    });
+
+    if (routeResult.ok === false) {
+      logger.info(
+        JSON.stringify({ event: 'agent-mode.refused', projectId, code: routeResult.code, mode: agentSelection.mode }),
+      );
+
+      return new Response(JSON.stringify({ error: true, code: routeResult.code, message: routeResult.message }), {
+        status: routeResult.statusCode,
+        headers: { 'Content-Type': 'application/json' },
+        statusText: 'Forbidden',
+      });
+    }
+
+    if (routeResult.ok === true) {
+      agentRoute = routeResult.route;
+    }
+
+    // ok === 'unavailable' → legacy fallback: tags/DEFAULT_MODEL keep working.
+  }
+
+  /*
+   * Escalation + final target: High effort only escalates on genuinely hard
+   * tasks (heuristic gate + the card's classifier line as confirmer), so the
+   * surcharge is never systematic. Decided once per request; continuations
+   * reuse the same line.
+   */
+  let agentTargetLine: AgentRouteLine | undefined = agentRoute?.base;
+  let agentEscalated = false;
+  let agentHardnessDecidedBy: 'heuristic' | 'llm' | undefined;
+
+  let agentClassifierUsage: { provider: string; model: string; inputTokens: number; outputTokens: number } | undefined;
 
   const cumulativeUsage = {
     completionTokens: 0,
@@ -1286,9 +1343,20 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             const flushUsage = async (terminalFinishReason: string) => {
               const lastUserMessageForUsage = processedMessages.filter((x) => x.role === 'user').slice(-1)[0];
 
-              const { provider: completionProvider, model: completionModel } = lastUserMessageForUsage
+              /*
+               * AGM: when mode routing decided the model, report THAT (the model
+               * actually called — captured via onModelDecision) instead of the
+               * client's message tags.
+               */
+              const tagged = lastUserMessageForUsage
                 ? extractPropertiesFromMessage(lastUserMessageForUsage)
                 : { provider: 'unknown', model: 'unknown' };
+
+              const completionProvider = agentTargetLine
+                ? (routedTurnProvider ?? boltProviderName(agentTargetLine.provider))
+                : tagged.provider;
+
+              const completionModel = agentTargetLine ? (routedTurnModel ?? agentTargetLine.model) : tagged.model;
 
               /*
                * Fold in the off-wire Anthropic cache tokens when the SDK surfaced
@@ -1346,6 +1414,18 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                     finishReason: terminalFinishReason,
                     cookieHeader: request.headers.get('Cookie') ?? undefined,
                     source: 'remix-chat',
+                    ...(agentRoute && agentTargetLine
+                      ? {
+                          agentRouting: {
+                            mode: agentSelection.mode,
+                            highEffort: agentSelection.highEffort,
+                            escalated: agentEscalated,
+                            turbo: agentSelection.turbo,
+                            lineKey: agentTargetLine.lineKey,
+                            source: 'chat',
+                          },
+                        }
+                      : {}),
                   });
                 } catch (error) {
                   logger.error(`failed to record chat usage: ${error instanceof Error ? error.message : error}`);
@@ -1511,6 +1591,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
                 const result = await streamText({
                   messages: [...processedMessages],
+                  forcedRoute: agentTargetLine
+                    ? { provider: boltProviderName(agentTargetLine.provider), model: agentTargetLine.model }
+                    : undefined,
                   env: context.cloudflare?.env,
                   options,
                   apiKeys,
@@ -1579,10 +1662,106 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           message: 'Generating Response',
         } satisfies ProgressAnnotation);
 
+        /*
+         * AGM: settle High effort escalation for THIS request, then announce the
+         * routing to the client (mode, multiplier, and the "+0 credit" signal
+         * when High effort did NOT need to escalate). Model names never appear
+         * in the annotation.
+         */
+        if (agentRoute) {
+          if (agentSelection.highEffort && agentRoute.escalation) {
+            const lastUserTextForHardness = (() => {
+              const lastUser = [...processedMessages].reverse().find((message) => message.role === 'user');
+              return typeof lastUser?.content === 'string' ? lastUser.content : '';
+            })();
+
+            const hardness = await decideTaskHardness({
+              task: {
+                chatMode,
+                lastUserMessage: lastUserTextForHardness,
+                contextFileCount: filteredFiles ? Object.keys(filteredFiles).length : 0,
+                planFirst: orchestrationPlan.enabled,
+                isReasoningModel: false,
+              },
+              lastUserMessage: lastUserTextForHardness,
+              classifier: agentRoute.classifier,
+              apiKeys,
+              providerSettings,
+              serverEnv: context.cloudflare?.env as unknown as Record<string, string>,
+            });
+
+            agentEscalated = hardness.hard;
+            agentHardnessDecidedBy = hardness.decidedBy;
+            agentClassifierUsage = hardness.classifierUsage;
+            agentTargetLine = hardness.hard ? agentRoute.escalation : agentRoute.base;
+
+            /*
+             * The classifier's own tokens are OUR operating cost: logged to the
+             * admin call log (billedToUser=false on the classifier line), never
+             * billed to the user. Fire-and-forget.
+             */
+            if (agentClassifierUsage && projectId) {
+              void recordChatUsage({
+                projectId,
+                provider: agentClassifierUsage.provider,
+                model: agentClassifierUsage.model,
+                inputTokens: agentClassifierUsage.inputTokens,
+                outputTokens: agentClassifierUsage.outputTokens,
+                finishReason: 'classifier',
+                cookieHeader: request.headers.get('Cookie') ?? undefined,
+                source: 'agent-classifier',
+                agentRouting: {
+                  mode: agentSelection.mode,
+                  highEffort: true,
+                  escalated: agentEscalated,
+                  turbo: agentSelection.turbo,
+                  lineKey: 'classifier',
+                  source: 'classifier',
+                },
+              }).catch(() => undefined);
+            }
+          }
+
+          logger.info(
+            JSON.stringify({
+              event: 'agent-mode.routed',
+              projectId,
+              mode: agentSelection.mode,
+              highEffort: agentSelection.highEffort,
+              turbo: agentSelection.turbo,
+              escalated: agentEscalated,
+              decidedBy: agentHardnessDecidedBy,
+              lineKey: agentTargetLine?.lineKey,
+              provider: agentTargetLine?.provider,
+              model: agentTargetLine?.model,
+              routingVersion: agentRoute.routingVersion,
+            }),
+          );
+
+          dataStream.writeMessageAnnotation({
+            type: 'agentModeRouting',
+            mode: agentSelection.mode,
+            highEffort: agentSelection.highEffort,
+            turbo: agentSelection.turbo,
+            escalated: agentEscalated,
+            multiplier: agentTargetLine?.multiplier ?? 1,
+            routingVersion: agentRoute.routingVersion,
+
+            /*
+             * High effort transparency: when ON but the task did not need the
+             * escalation, say so — the surcharge is NOT systematic.
+             */
+            extraCharge: agentSelection.highEffort ? agentEscalated : undefined,
+          } as unknown as ContextAnnotation);
+        }
+
         providerCallStartedAt = Date.now();
 
         const result = await streamText({
           messages: [...processedMessages],
+          forcedRoute: agentTargetLine
+            ? { provider: boltProviderName(agentTargetLine.provider), model: agentTargetLine.model }
+            : undefined,
           env: context.cloudflare?.env,
           options,
           apiKeys,

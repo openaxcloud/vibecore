@@ -330,6 +330,15 @@ export async function streamText(props: {
    * re-classifying the CONTINUE_PROMPT and risking a mid-stream flip.
    */
   onModelDecision?: (decidedModel: string, decidedProvider: string) => void;
+
+  /*
+   * AGM mode routing: when the chat route resolved a mode (Lite/Economy/Power
+   * + switches) against the api's routing card, the concrete provider+model
+   * land here and OVERRIDE whatever the message tags said — the mode, not the
+   * client, decides the model. Credential fallback (resolveUsableProvider)
+   * still applies afterwards.
+   */
+  forcedRoute?: { provider: string; model: string };
 }) {
   const {
     messages,
@@ -409,6 +418,12 @@ export async function streamText(props: {
 
     return hasContent || hasNonTextParts;
   });
+
+  // AGM: the mode-routed decision beats any client-suggested model tags.
+  if (props.forcedRoute) {
+    currentModel = props.forcedRoute.model;
+    currentProvider = props.forcedRoute.provider;
+  }
 
   /*
    * If the user picked a provider we have no credential for (e.g. AmazonBedrock

@@ -87,6 +87,19 @@ export interface RecordChatUsageInput {
   /** Tag in the AiCostLedger reason field; defaults to "remix-chat". */
   source?: string;
 
+  /*
+   * AGM mode-routing metadata → api writes the admin-only AgentCallLog row
+   * (credits + margin are recomputed server-side from the active routing card).
+   */
+  agentRouting?: {
+    mode: 'lite' | 'economy' | 'power';
+    highEffort: boolean;
+    escalated: boolean;
+    turbo: boolean;
+    lineKey: string;
+    source?: string;
+  };
+
   /** Browser cookies forwarded so the api can authenticate the user. */
   cookieHeader?: string;
 
@@ -293,6 +306,7 @@ export async function recordChatUsage(input: RecordChatUsageInput): Promise<void
         conversationId: input.conversationId,
         messageId: input.messageId,
         source: input.source ?? 'remix-chat',
+        ...(input.agentRouting ? { agentRouting: input.agentRouting } : {}),
       }),
       signal: AbortSignal.timeout(15_000),
     });
