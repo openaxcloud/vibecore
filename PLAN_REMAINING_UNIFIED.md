@@ -3,6 +3,18 @@
 États par point : 📤 Dispatché · 💻 Codé (commité+poussé sur main) · ✅ Testé live (écran + greps, web/tablette/mobile le cas échéant).
 Un point n'est « fait » QUE quand ✅ est coché.
 
+## AUDIT V4 — 4 chantiers + statut calculé (décision Avi 16/07)
+
+Audit externe v4 (15 P0). Priorité 4 (sécu) → 3 (échelle) → 2 → 1. Statut CALCULÉ (jamais écrit à la main).
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|:---:|:---:|:---:|---|
+| V4-P4. Promotion Artifact Registry : découvrir referrers → copier+relier → vérifier subjectDigest tenant → BinAuthz ; échec ⇒ bloqué | ✅ | ✅ `07ced1c5` | 🟡 partiel | `artifact-promotion.ts` 7 tests dont 4 NÉGATIFS (SBOM manquant, relink échoué, BinAuthz refusé, source absente) ; adapter AR live = follow-up (UNK-AR-LIVE-PROMOTION) |
+| V4-P3. Hiérarchie GCP : pas de folder-per-tenant (300 cap + 0,1 req/s), shards<300, CapacityPolicy quotas+rate | ✅ | ✅ `07ced1c5` | ✅ 16/07 | `capacity-policy.ts` 6 tests : 1000 tenants sharded=4/~40s vs folder-per-tenant=2,78h inadmissible ; DOMAIN_MODEL §3 corrigé |
+| V4-P2. Gallery requalifiée (mesures rendues+hashées) : RPL-17/18/19 ; conséquence self-publish=dépassement | ✅ | ✅ `b42459fc` | ✅ 16/07 | `SRC-GALLERY-RENDERED` sha256 fad9ec75… ; DEC-GALLERY-NO-SELF-PUBLISH. `docs/deploy-evidence/2026-07-16-collector-gallery/` |
+| V4-P1. Collecteur voyant : routes produit rendues JS + canal lancement ; retrouve Community Profiles | ✅ | ✅ `b42459fc` | ✅ 16/07 | collect-baseline v2 (3 familles) ; watchHits["Community Profiles"]==["community"] ; 🟡 rendu JS en CI = UNK-COLLECTOR-CI-RENDER |
+| V4-STATUS. APPROVAL_STATUS.json CALCULÉ + P0/DECISION/UNKNOWN registres + CI (refs croisées, freshness, no-DONE-sans-preuve, no-CLOSED-sans-reviewer) | ✅ | ✅ `b42459fc` | ✅ 16/07 | generate-approval-status.mjs ; validateur échoue sur dérive ; 3 tests négatifs prouvent les refus |
+
 ## REMIX — pipeline de fork sécurisé (décision Avi 16/07)
 
 Contrat `DOMAIN_MODEL.md §1`. Machine à états NORMATIVE : SNAPSHOT_PINNED → **CREDENTIALS_DETACHED** → CLONING → DB_FORKING → STORAGE_POLICY_APPLIED → SCANNING → INDEXING. Invariant SÉCURITÉ : une **valeur** de secret n'entre JAMAIS dans l'artefact de clone (secrets = références) ; le détachement précède le clone. Preuve exigée : remix réel d'un projet CONTENANT un secret + démonstration que le secret est introuvable (FS, DB, env, logs) — le test doit CHERCHER le secret et échouer à le trouver. App Storage : 3 modes DETACH / CLONE / SHARE_WITH_CONSENT testés (bucket account-level partageable — « nouveau bucket » est NOTRE décision, explicite).
