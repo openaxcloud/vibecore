@@ -9,7 +9,7 @@ Audit externe : 19 P0. P0-02 = 12 registres/contrats sous `docs/parity/` (chaque
 
 | Point | 📤 | 💻 | ✅ | Notes |
 |---|:---:|:---:|:---:|---|
-| P002-1. Les 12 fichiers/dossiers sous docs/parity/ (baseline, sources, surfaces, contrats service, domain model, e2e proofs, rate card+ledger, nix contract, ops DR, sécurité, parity status, changelog audit) | ✅ | ✅ (ce commit) | ⬜ | Domaines tranchés reflétés : Remix/Import/CloudTenant/IAM/Rollback/Checkpoint |
+| P002-1. Les 12 fichiers/dossiers sous docs/parity/ (baseline, sources, surfaces, contrats service, domain model, e2e proofs, rate card+ledger, nix contract, ops DR, sécurité, parity status, changelog audit) | ✅ | ✅ `97759a77`+`afd741d5` | ✅ 16/07 (validateur exit 0 + CI parity-registries verte sur HEAD `2b421a45`) | Le validateur prouve structure/hash/snapshots, PAS la complétude fonctionnelle. Domaines tranchés reflétés : Remix/Import/CloudTenant/IAM/Rollback/Checkpoint |
 | P002-2. scripts/parity/validate-registries.mjs + cible CI qui ÉCHOUE sur violation de schéma | ✅ | ✅ (ce commit) | ✅ 16/07 (run réel: 8 OK exit 0; test négatif: 3 violations exit 1) | Sortie réelle du run exigée |
 | P004-1. scripts/parity/collect-baseline.mjs quotidien (hash SHA-256 de llms.txt, llms-full.txt, sitemap, changelog, blog, pricing ; diff trié ; nb de liens = propriété du snapshot) | ✅ | ✅ (ce commit) | ✅ 16/07 (run réel 6/6 sources, snapshot 2026-07-16 commité, llms.txt 51 169 o/299 liens sha256 03cbdb07…) | Premier snapshot réel commité avec hash |
 
@@ -19,17 +19,17 @@ Décision produit validée par audit Replit : Replit n'a AUCUN sélecteur de mod
 
 | Point | 📤 | 💻 | ✅ | Notes |
 |---|:---:|:---:|:---:|---|
-| AGM-1. Supprimer le menu « 147 modèles » de la landing (aucun nom de modèle sur marketing) | ✅ | ✅ `84c860b5` | ⬜ | Preuve : mesure DOM e-code.ai, zéro nom de modèle |
-| AGM-2. Supprimer tout sélecteur modèle/provider de la création de projet | ✅ | ✅ `84c860b5` | ⬜ | Aucune question modèle avant la création |
-| AGM-3. Supprimer le sélecteur modèle/provider de l'IDE (chat Bolt) | ✅ | ✅ `84c860b5` | ⬜ | Aucun nom de modèle dans l'IDE |
-| AGM-4. Segmented control 3 modes dans l'IDE + ⌘⇧I (Lite / Economy défaut / Power) + garde-fou Lite | ✅ | ✅ `84c860b5` | ⬜ | Libellés : Lite « Rapide et économique… », Economy « Le bon équilibre. », Power « Pour les tâches complexes. » |
-| AGM-5. Advanced settings : High effort (Economy+Power, jamais Lite, escalade seulement sur tâches dures + « +0 credit » sinon) ; Turbo (Power only, OFF, activable admin org) | ✅ | ✅ `84c860b5` | ⬜ | Réglages par UTILISATEUR, pas par projet |
-| AGM-6. Routage serveur mode→modèle (config versionnée, PAS un déploiement) + refus mode non autorisé par plan | ✅ | ✅ `d0b302fa`+`9ec04adf`+`7abcb045` | ⬜ | Défauts : Economy=Claude Opus 4.8 ×1, High effort=Fable ×2 (tâches dures only), Turbo=OpenAI 5.6 ×2 |
-| AGM-7. Log par appel admin-only { userId, projectId, mode, highEffort, escaladeDeclenchee, providerReel, modeleReel, tokensIn/Out, coutRevient, creditsFactures, marge } | ✅ | ✅ `d0b302fa`+`7abcb045` | ⬜ | Invisible client |
-| AGM-8. Écran Admin → Agent → Routage des modèles (revient /1M in/out, multiplicateur, prix crédits, marge % et €, volume 30j, dispo plan, actif) + alerte marge négative bloquante | ✅ | ✅ `d0b302fa`+`fee92bd0` | ⬜ | Réutilise Rate Card versionné `packages/billing` (`1ea573b4`) |
-| AGM-9. Simulateur avant application + historique complet (qui/quoi/quand, marge avant/après) + versionnage effectiveFrom/effectiveTo/sourceDate | ✅ | ✅ `d0b302fa`+`fee92bd0` | ⬜ | |
-| AGM-10. Ligne classifieur harness (rapide/cheap, non facturé, revient visible) | ✅ | ✅ `dc2d6c9d`+`7abcb045` | ⬜ | Coût d'exploitation |
-| AGM-11. Nudge Economy→Power si boucle, max 1×/projet | ✅ | ✅ `84c860b5` | ⬜ | |
+| AGM-1. Supprimer le menu « 147 modèles » de la landing (aucun nom de modèle sur marketing) | ✅ | ✅ `84c860b5` | ✅ 16/07 | `a-dom-scan.txt` landing 3 formats hits=[] |
+| AGM-2. Supprimer tout sélecteur modèle/provider de la création de projet | ✅ | ✅ `84c860b5` | ✅ 16/07 | `a-dom-scan.txt` projects-new desktop+mobile hits=[] |
+| AGM-3. Supprimer le sélecteur modèle/provider de l'IDE (chat Bolt) | ✅ | ✅ `84c860b5` | ✅ 16/07 | `b-ide-modes-desktop.png` oldModelCombobox=false, hits=[] |
+| AGM-4. Segmented control 3 modes dans l'IDE + ⌘⇧I (Lite / Economy défaut / Power) + garde-fou Lite | ✅ | ✅ `84c860b5` | 🟡 partiel | segmented+Economy défaut prouvés (`b-ide-modes-desktop.png`) ; ⌘⇧I + texte garde-fou Lite NON capturés live ⬜ |
+| AGM-5. Advanced settings : High effort (Economy+Power, jamais Lite, escalade seulement sur tâches dures + « +0 credit » sinon) ; Turbo (Power only, OFF, activable admin org) | ✅ | ✅ `84c860b5` | 🟡 partiel | refus 403 prouvés (`e-refus-plan.txt`) ; popover Advanced + escalade + « +0 credit » NON capturés (High effort indispo en free) ⬜ |
+| AGM-6. Routage serveur mode→modèle (config versionnée, PAS un déploiement) + refus mode non autorisé par plan | ✅ | ✅ `d0b302fa`+`9ec04adf`+`7abcb045` | ✅ 16/07 | `c-routing-logs.txt` economy→opus-4-8, lite→haiku-4-5 (log agent-mode.routed) + `e-refus-plan.txt` |
+| AGM-7. Log par appel admin-only { userId, projectId, mode, highEffort, escaladeDeclenchee, providerReel, modeleReel, tokensIn/Out, coutRevient, creditsFactures, marge } | ✅ | ✅ `d0b302fa`+`7abcb045` | ✅ 16/07 | `d-agent-call-log.json` (2 lignes, revient 651 vs 129 mc) |
+| AGM-8. Écran Admin → Agent → Routage des modèles (revient /1M in/out, multiplicateur, prix crédits, marge % et €, volume 30j, dispo plan, actif) + alerte marge négative bloquante | ✅ | ✅ `d0b302fa`+`fee92bd0` | ✅ 16/07 | `f-admin-spa-table.png` + `f-admin-spa-negative-alert.png` + `f-409-negative-margin.json` |
+| AGM-9. Simulateur avant application + historique complet (qui/quoi/quand, marge avant/après) + versionnage effectiveFrom/effectiveTo/sourceDate | ✅ | ✅ `d0b302fa`+`fee92bd0` | 🟡 partiel | simulateur prouvé (`f-simulate.json`) + historique v1 affiché ; publication d'une v2 live NON exécutée ⬜ |
+| AGM-10. Ligne classifieur harness (rapide/cheap, non facturé, revient visible) | ✅ | ✅ `dc2d6c9d`+`7abcb045` | 🟡 partiel | ligne « not billed » prouvée (`f-admin-spa-table.png`) ; appel classifieur réel loggé NON déclenché (High effort indispo en free) ⬜ |
+| AGM-11. Nudge Economy→Power si boucle, max 1×/projet | ✅ | ✅ `84c860b5` | ⬜ | NON testé live (boucle 4 envois Economy non déclenchée) |
 | AGM-12. Preuves live (a)–(f) : DOM sans nom de modèle, 3 modes IDE, mode change le modèle appelé (log), coût diffère, refus par plan, alerte marge | ✅ | ✅ (`c94f2fdf`) | ✅ **16/07** — (a) scan DOM 3 surfaces × 3 formats hits=[] ; (b) segmented IDE Economy défaut ; (c) economy→opus-4-8, lite→haiku-4-5 (agent-mode.routed live) ; (d) AgentCallLog revient 651 vs 129 mc ; (e) 403 HIGH_EFFORT/TURBO_NOT_ALLOWED ; (f) marges live + 409 AGENT_ROUTING_NEGATIVE_MARGIN | Artefacts bruts `docs/deploy-evidence/` |
 
 ## Server deploy Phase A — « Publish = snapshot du workspace → image → run » (décision Avi 15/07)
