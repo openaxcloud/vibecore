@@ -162,7 +162,7 @@ export const Markdown = memo(
                       content: [
                         {
                           type: 'text',
-                          text: `[Model: ${model}]\n\n[Provider: ${provider?.name}]\n\n${message}`,
+                          text: message,
                         },
                       ] as any,
                       role: 'user',
@@ -175,7 +175,7 @@ export const Markdown = memo(
                       content: [
                         {
                           type: 'text',
-                          text: `[Model: ${model}]\n\n[Provider: ${provider?.name}]\n\n${message}`,
+                          text: message,
                         },
                       ] as any,
                       role: 'user',

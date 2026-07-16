@@ -2,7 +2,12 @@
 import React from 'react';
 import { toast } from 'react-toastify';
 import { ClientOnly } from 'remix-utils/client-only';
-import { AgentPowerControls, type AgentPowerControlsValue } from './AgentPowerControls';
+import { AgentPowerControls, type AgentModeAvailability, type AgentPowerControlsValue } from './AgentPowerControls';
+import {
+  coerceAgentModeSettings,
+  readAgentModeSettingsFromStorage,
+  setAgentModeSettings,
+} from '~/lib/hooks/useAgentModeSettings';
 import { estimateAgentPowerCents } from './agentPowerEstimate';
 import { APIKeyManager } from './APIKeyManager';
 import { ChatBoxModeDropdown } from './ChatBoxModeDropdown';
@@ -20,7 +25,6 @@ import { ScreenshotStateManager } from './ScreenshotStateManager';
 import { SendButton } from './SendButton.client';
 import { SupabaseConnection } from './SupabaseConnection';
 import { WebSearch } from './WebSearch.client';
-import { ModelSelector } from '~/components/chat/ModelSelector';
 import { ColorSchemeDialog } from '~/components/ui/ColorSchemeDialog';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
@@ -30,6 +34,7 @@ import { PROVIDER_LIST } from '~/utils/constants';
 import { normalizeModelList } from './modelList';
 
 const DEFAULT_AGENT_POWER: AgentPowerControlsValue = {
+  highEffort: false,
   highPowerModel: false,
   extendedThinking: false,
   turboMode: false,
@@ -160,17 +165,38 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
       return DEFAULT_AGENT_POWER;
     }
 
+    /*
+     * AGM: the mode + switches are a USER setting (never per project). Seed
+     * from the per-user store; the legacy per-browser key stays as fallback so
+     * an existing choice survives the migration.
+     */
+    const userSettings = readAgentModeSettingsFromStorage();
+
+    let legacy: Partial<AgentPowerControlsValue> = {};
+
     try {
       const raw = window.localStorage.getItem(AGENT_POWER_STORAGE_KEY);
 
       if (raw) {
-        return { ...DEFAULT_AGENT_POWER, ...(JSON.parse(raw) as Partial<AgentPowerControlsValue>) };
+        legacy = JSON.parse(raw) as Partial<AgentPowerControlsValue>;
       }
     } catch {
       // ignore malformed/blocked storage
     }
 
-    return DEFAULT_AGENT_POWER;
+    const merged = coerceAgentModeSettings({
+      mode: userSettings.mode ?? legacy.buildTier,
+      highEffort: userSettings.highEffort || legacy.highEffort || legacy.highPowerModel,
+      turbo: userSettings.turbo || legacy.turboMode,
+    });
+
+    return {
+      ...DEFAULT_AGENT_POWER,
+      buildTier: merged.mode,
+      highEffort: merged.highEffort,
+      highPowerModel: merged.highEffort,
+      turboMode: merged.turbo,
+    };
   });
 
   const agentPower = props.agentPower ?? localAgentPower;
@@ -194,12 +220,50 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         // ignore blocked storage / SSR
       }
 
+      // AGM: persist per USER (server preferences blob) — never per project.
+      setAgentModeSettings({
+        mode: next.buildTier,
+        highEffort: next.highEffort || next.highPowerModel,
+        turbo: next.turboMode,
+      });
+
       props.onAgentPowerChange?.(next);
     },
     [props.agentPower, props.onAgentPowerChange],
   );
 
   const agentPowerEstimateCents = React.useMemo(() => estimateAgentPowerCents(agentPower), [agentPower]);
+
+  /*
+   * AGM: which modes/switches the caller's plan+org may use. Server-enforced
+   * regardless; this only drives the locked UI states. Model-name free.
+   */
+  const [agentModeAvailability, setAgentModeAvailability] = React.useState<AgentModeAvailability | undefined>(
+    undefined,
+  );
+
+  React.useEffect(() => {
+    if (!props.projectIdeMode || !props.projectId) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    fetch(`/api/agent-routing?projectId=${encodeURIComponent(props.projectId)}`, {
+      headers: { accept: 'application/json' },
+    })
+      .then((response) => (response.ok ? response.json() : undefined))
+      .then((payload) => {
+        if (!cancelled && payload && Array.isArray((payload as AgentModeAvailability).modes)) {
+          setAgentModeAvailability(payload as AgentModeAvailability);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [props.projectIdeMode, props.projectId]);
 
   React.useEffect(() => {
     if (!isToolsMenuOpen) {
@@ -290,17 +354,11 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         <ClientOnly>
           {() => (
             <div className={props.isModelSettingsCollapsed ? 'hidden' : ''}>
-              <ModelSelector
-                model={props.model}
-                setModel={props.setModel}
-                modelList={modelList}
-                provider={props.provider}
-                setProvider={props.setProvider}
-                providerList={providerList}
-                apiKeys={props.apiKeys}
-                modelLoading={props.isModelLoading}
-                modelError={props.modelError}
-              />
+              {/*
+               * AGM: the model selector is GONE — the agent MODE (Lite/Economy/
+               * Power) is the only choice, and the platform routes it to a model
+               * server-side. Only the BYOK key manager remains behind this panel.
+               */}
               {/*
                * Managed (Replit-parity) model: the platform admin provides the
                * provider keys, so end users don't enter their own. Set
@@ -340,6 +398,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 onChange={handleAgentPowerChange}
                 estimatedCents={agentPowerEstimateCents}
                 disabled={props.isStreaming}
+                availability={agentModeAvailability}
               />
               {/* Replit parity: the Plan-first toggle sits directly beside the
                   effort/Power control (shares the projectPlanFirst state — no

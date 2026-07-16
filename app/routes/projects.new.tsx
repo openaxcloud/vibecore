@@ -2,13 +2,11 @@ import { useStore } from '@nanostores/react';
 import {
   BarChart3,
   ChevronDown,
-  Code2,
   Cog,
   Gamepad2,
   Github,
   Globe2,
   ImagePlus,
-  Layers,
   Loader2,
   Palette,
   Paperclip,
@@ -17,14 +15,10 @@ import {
   Presentation,
   RefreshCw,
   Rocket,
-  Search,
   SlidersHorizontal,
   Smartphone,
   Sparkles,
-  Star,
   Table2,
-  Terminal,
-  Zap,
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -32,15 +26,7 @@ import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useLoaderData, useNavigation, useRouteError, useSubmit } from 'react-router';
 import { AppShell, TemplateGallery } from '~/components/dashboard/SaaSLayout';
 import { readPersistedModelId } from '~/components/marketing/ecode-exact/resolve-preferred-model';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  ToggleGroup,
-  ToggleGroupItem,
-} from '~/components/ui';
+import { ToggleGroup, ToggleGroupItem } from '~/components/ui';
 import { ECODE_PROJECT_REQUIREMENT_LINES } from '~/lib/common/prompts/ecode-requirements';
 import {
   apiErrorMessage,
@@ -287,33 +273,6 @@ const preferredProviderOrder = [
   'OpenAILike',
 ];
 
-const providerIconByName: Record<string, LucideIcon> = {
-  Anthropic: Sparkles,
-  OpenAI: Zap,
-  Google: Star,
-  Github,
-  OpenRouter: Globe2,
-  Mistral: Terminal,
-  Deepseek: Code2,
-  Groq: Zap,
-  Together: Layers,
-  Cerebras: Cog,
-  Fireworks: Rocket,
-  xAI: Star,
-  XAI: Star,
-  Moonshot: Globe2,
-  'Z.ai': Sparkles,
-  ZAI: Sparkles,
-  Cohere: Layers,
-  HuggingFace: Sparkles,
-  Hyperbolic: Zap,
-  Perplexity: Search,
-  AmazonBedrock: Layers,
-  Ollama: Terminal,
-  LMStudio: Terminal,
-  OpenAILike: Code2,
-};
-
 const providerOptions = PROVIDER_LIST.filter((provider) => provider.staticModels?.length > 0).sort((left, right) => {
   const leftIndex = preferredProviderOrder.indexOf(left.name);
   const rightIndex = preferredProviderOrder.indexOf(right.name);
@@ -334,132 +293,11 @@ function knownProviderForName(providerName?: string) {
   return PROVIDER_LIST.find((provider) => provider.name === providerName) ?? fallbackProvider ?? DEFAULT_PROVIDER;
 }
 
-function formatContextWindow(tokens: number): string {
-  if (tokens >= 1_000_000) {
-    return `${(tokens / 1_000_000).toFixed(tokens % 1_000_000 === 0 ? 0 : 1)}M`;
-  }
-
-  if (tokens >= 1_000) {
-    return `${Math.round(tokens / 1_000)}k`;
-  }
-
-  return String(tokens);
-}
-
-/*
- * A short "when to use" hint for a model, derived from its real context-window
- * metadata (maxTokenAllowed) — no per-model claims are invented. The tiers map the
- * context size to the practical trade-off (fast/economical vs deep reasoning vs
- * very large context for whole codebases / long documents).
- */
-function modelUsageHint(maxTokenAllowed?: number): string {
-  if (!maxTokenAllowed || maxTokenAllowed <= 0) {
-    return 'General-purpose model';
-  }
-
-  if (maxTokenAllowed >= 400_000) {
-    return 'Very large context — whole codebases & long documents';
-  }
-
-  if (maxTokenAllowed >= 128_000) {
-    return 'Large context — big files, long chats & deep reasoning';
-  }
-
-  if (maxTokenAllowed >= 32_000) {
-    return 'Balanced — everyday coding & reasoning';
-  }
-
-  return 'Fast & economical — quick edits and short tasks';
-}
-
 type ModelsPayload = {
   modelList: ModelInfo[];
   providers: ProviderInfo[];
   defaultProvider: ProviderInfo;
 };
-
-type CreateDropdownOption = {
-  value: string;
-  label: string;
-  description?: string;
-  meta?: string;
-  icon?: LucideIcon;
-};
-
-function CreateDropdown({
-  label,
-  value,
-  options,
-  onChange,
-  disabled,
-  loading,
-  testId,
-}: {
-  label: string;
-  value: string;
-  options: CreateDropdownOption[];
-  onChange: (value: string) => void;
-  disabled?: boolean;
-  loading?: boolean;
-  testId?: string;
-}) {
-  const selected = options.find((option) => option.value === value) ?? options[0];
-  const SelectedIcon = selected?.icon;
-
-  return (
-    <div className="vc-create-dropdown relative" data-testid={testId}>
-      <Select value={selected?.value ?? ''} onValueChange={onChange} disabled={disabled || options.length === 0}>
-        <SelectTrigger className="vc-create-dropdown-trigger" aria-label={label}>
-          <span className="flex min-w-0 items-center gap-2">
-            {loading ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--vc-ide-accent-action)]" aria-hidden />
-            ) : SelectedIcon ? (
-              <SelectedIcon className="h-4 w-4 shrink-0 text-[var(--vc-ide-accent-action)]" aria-hidden />
-            ) : null}
-            <span className="min-w-0">
-              <span className="block truncate text-[12px] font-semibold">
-                {selected?.label ?? 'No option available'}
-              </span>
-              {selected?.meta ? <span className="block truncate text-[10px]">{selected.meta}</span> : null}
-            </span>
-          </span>
-        </SelectTrigger>
-
-        <SelectContent className="vc-create-dropdown-content" aria-label={`${label} options`}>
-          <SelectGroup className="vc-create-dropdown-list">
-            {loading ? (
-              <div className="vc-create-dropdown-empty flex items-center justify-center gap-2">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                Syncing configured models
-              </div>
-            ) : options.length > 0 ? (
-              options.map((option) => {
-                const Icon = option.icon;
-
-                return (
-                  <SelectItem key={option.value} value={option.value} className="vc-create-dropdown-option">
-                    {Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden /> : null}
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[12px] font-semibold">{option.label}</span>
-                      {option.description ? (
-                        <span className="block text-[10px] leading-4 text-bolt-elements-textTertiary">
-                          {option.description}
-                        </span>
-                      ) : null}
-                    </span>
-                    {option.meta ? <span className="vc-create-dropdown-meta">{option.meta}</span> : null}
-                  </SelectItem>
-                );
-              })
-            ) : (
-              <div className="vc-create-dropdown-empty">No matching option</div>
-            )}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
 
 const ROTATING_PLACEHOLDERS = [
   'Build a SaaS dashboard with…',
@@ -887,8 +725,8 @@ export default function NewProjectPage() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [modelsPayload, setModelsPayload] = useState<ModelsPayload>(initialModelsPayload);
-  const [modelsLoading, setModelsLoading] = useState(false);
-  const [modelsError, setModelsError] = useState<string | null>(null);
+  const [, setModelsLoading] = useState(false);
+  const [, setModelsError] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
   const submit = useSubmit();
@@ -1130,9 +968,6 @@ export default function NewProjectPage() {
     activeModels[0] ??
     fallbackModel;
 
-  const ActiveProviderIcon = providerIconByName[activeProvider?.name ?? ''] ?? Sparkles;
-  const ActiveCategoryIcon = activeCategory.icon;
-
   const promptValidation = useMemo(() => validateProjectPrompt(prompt, { allowEmpty: true }), [prompt]);
   const promptWordCount = promptValidation.wordCount;
   const promptCharacterCount = promptValidation.characterCount;
@@ -1158,10 +993,6 @@ export default function NewProjectPage() {
   }, []);
 
   const submitShortcutLabel = resolveSubmitShortcutLabel(isAppleHost);
-
-  const configuredProviderCount = availableProviders.filter((provider) =>
-    enabledProviderNames.has(provider.name),
-  ).length;
 
   useEffect(() => {
     if (prompt.trim()) {
@@ -1190,33 +1021,6 @@ export default function NewProjectPage() {
 
     setSelectedModel(activeModel.name);
   }, [activeModel?.name, selectedModel]);
-
-  const providerDropdownOptions = useMemo<CreateDropdownOption[]>(() => {
-    return availableProviders.map((provider) => {
-      const Icon = providerIconByName[provider.name] ?? Sparkles;
-      const modelCount = modelsByProvider.get(provider.name)?.length ?? provider.staticModels?.length ?? 0;
-      const enabled = enabledProviderNames.has(provider.name);
-
-      return {
-        value: provider.name,
-        label: provider.name,
-        description: enabled ? 'Enabled in Settings' : 'Available fallback provider',
-        meta: `${modelCount} model${modelCount === 1 ? '' : 's'}`,
-        icon: Icon,
-      };
-    });
-  }, [availableProviders, enabledProviderNames, modelsByProvider]);
-
-  const modelDropdownOptions = useMemo<CreateDropdownOption[]>(() => {
-    return activeModels.map((model) => ({
-      value: model.name,
-      label: model.label || model.name,
-
-      // "When to use" hint + readable context size, both from real model metadata.
-      description: modelUsageHint(model.maxTokenAllowed),
-      meta: model.maxTokenAllowed ? `${formatContextWindow(model.maxTokenAllowed)} ctx` : undefined,
-    }));
-  }, [activeModels]);
 
   const examplePrompts = useMemo(() => {
     const prompts = activeCategory.prompts;
@@ -1254,8 +1058,7 @@ export default function NewProjectPage() {
         </header>
 
         <Form method="post" className="vc-new-project-form" aria-label="Create project form">
-          <input type="hidden" name="model" value={activeModel?.name ?? DEFAULT_MODEL} />
-          <input type="hidden" name="provider" value={activeProvider?.name ?? DEFAULT_PROVIDER.name} />
+          {/* AGM: no model/provider in the create form — the server resolves the default. */}
           <input type="hidden" name="artifactType" value={selectedCategory} />
           <input type="hidden" name="framework" value={activeCategory.framework} />
 
@@ -1378,8 +1181,8 @@ export default function NewProjectPage() {
                 className="vc-new-project-prompt-estimate"
                 title={
                   promptCostEstimate.hasPricing
-                    ? `Estimate: ~${formatUserAreaNumber(promptCostEstimate.tokens)} input tokens at $${promptCostEstimate.pricing!.inputPer1MUsd}/M for ${selectedModel}`
-                    : 'No published pricing for this model — only the token estimate is shown.'
+                    ? `Estimate: ~${formatUserAreaNumber(promptCostEstimate.tokens)} input tokens`
+                    : 'Token estimate only.'
                 }
               >
                 {' · '}
@@ -1457,48 +1260,10 @@ export default function NewProjectPage() {
                 </ToggleGroup>
               </div>
 
-              <div className="vc-new-project-meta-row vc-new-project-meta-row--models">
-                <label className="vc-new-project-meta-field">
-                  <span className="vc-new-project-meta-label">
-                    <ActiveProviderIcon className="h-3.5 w-3.5" aria-hidden />
-                    Provider
-                  </span>
-                  <CreateDropdown
-                    label="AI provider"
-                    value={activeProvider?.name ?? ''}
-                    options={providerDropdownOptions}
-                    onChange={(nextProvider) => {
-                      setSelectedProvider(nextProvider);
-                      setSelectedModel('');
-                    }}
-                    disabled={isSubmitting}
-                    loading={modelsLoading}
-                    testId="ai-provider-dropdown"
-                  />
-                </label>
-                <label className="vc-new-project-meta-field">
-                  <span className="vc-new-project-meta-label">
-                    <ActiveCategoryIcon className="h-3.5 w-3.5" aria-hidden />
-                    Model
-                  </span>
-                  <CreateDropdown
-                    label="AI model"
-                    value={activeModel?.name ?? ''}
-                    options={modelDropdownOptions}
-                    onChange={setSelectedModel}
-                    disabled={isSubmitting || activeModels.length === 0}
-                    loading={modelsLoading}
-                    testId="ai-model-dropdown"
-                  />
-                </label>
-              </div>
-
-              <p className="vc-new-project-meta-hint">
-                {configuredProviderCount > 0
-                  ? `${configuredProviderCount} provider${configuredProviderCount === 1 ? '' : 's'} available`
-                  : 'Default provider available. Add providers in Settings to expand model choices.'}
-                {modelsError ? ` · ${modelsError}` : ''}
-              </p>
+              {/*
+               * AGM: no provider/model choice at project creation — the only
+               * question is what to build. The agent MODE lives in the IDE.
+               */}
             </section>
 
             <section className="vc-new-project-examples" aria-label="Example prompts">

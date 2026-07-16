@@ -212,6 +212,40 @@ export const AssistantMessage = memo(
      * finished response; every part is optional so the chip only shows what
      * the stream actually reported, and hides entirely when nothing did.
      */
+    /*
+     * AGM routing chip: which MODE served this response (never a model name)
+     * and the High-effort transparency signal — "+0 credit" when the switch was
+     * on but the task did not need the escalation.
+     */
+    const agentModeRouting = filteredAnnotations.find((annotation) => annotation.type === 'agentModeRouting') as
+      | {
+          type: 'agentModeRouting';
+          mode?: string;
+          highEffort?: boolean;
+          turbo?: boolean;
+          escalated?: boolean;
+          multiplier?: number;
+          extraCharge?: boolean;
+        }
+      | undefined;
+
+    const agentModeChipText = agentModeRouting
+      ? [
+          agentModeRouting.mode ? agentModeRouting.mode[0].toUpperCase() + agentModeRouting.mode.slice(1) : null,
+          agentModeRouting.turbo ? 'Turbo' : null,
+          typeof agentModeRouting.multiplier === 'number' && agentModeRouting.multiplier !== 1
+            ? `×${agentModeRouting.multiplier}`
+            : null,
+          agentModeRouting.highEffort
+            ? agentModeRouting.escalated
+              ? 'High effort: escalated'
+              : 'High effort: +0 credit on this task (no escalation needed)'
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : '';
+
     const usageChipText = usage
       ? [
           typeof usage.cost === 'number' ? `$${usage.cost.toFixed(2)}` : (usage.cost ?? null),
@@ -773,6 +807,16 @@ export const AssistantMessage = memo(
             addToolResult={addToolResult}
           />
         )}
+        {agentModeChipText ? (
+          <div
+            className="mt-2 inline-flex items-center gap-1 text-[11px] text-bolt-elements-textTertiary"
+            style={{ fontFamily: 'var(--vc-font-code)' }}
+            data-testid="agent-mode-chip"
+            title="Agent mode used for this response"
+          >
+            {agentModeChipText}
+          </div>
+        ) : null}
         {usageChipText ? (
           <Link
             to="/usage"
