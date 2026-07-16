@@ -93,3 +93,39 @@ claims:
     region: UNKNOWN
     client: web
     status: VERIFIED                 # rendu JS mesuré + hashé ; retrouvé par le collecteur (watchHits)
+  - claimId: RPL-20
+    statement: "Replit changelog 2026-07-10 : « Buy a domain right inside Replit » — recherche + achat de domaine sans quitter Replit (checkout intégré, connexion auto à l'app publiée)."
+    sourceId: SRC-CHANGELOG-2026-07-10
+    observedAt: "2026-07-16T16:56:05Z"
+    firstSeen: "2026-07-10"
+    lastVerified: "2026-07-16"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+    triageState: PENDING
+  - claimId: RPL-21
+    statement: "Replit changelog 2026-07-10 : « Connect Excalidraw to Agent » — l'Agent crée/édite diagrammes et whiteboards Excalidraw via Connectors (OAuth, aucun credential à coller)."
+    sourceId: SRC-CHANGELOG-2026-07-10
+    observedAt: "2026-07-16T16:56:05Z"
+    firstSeen: "2026-07-10"
+    lastVerified: "2026-07-16"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+    triageState: PENDING
+  - claimId: RPL-22
+    statement: "Replit changelog 2026-07-10 : « Editors can answer Agent's questions » — dans une app partagée, tout editor répond aux questions ROUTINE de l'Agent ; les étapes sensibles (intégration, secret) restent réservées à l'owner."
+    sourceId: SRC-CHANGELOG-2026-07-10
+    observedAt: "2026-07-16T16:56:05Z"
+    firstSeen: "2026-07-10"
+    lastVerified: "2026-07-16"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+    triageState: PENDING

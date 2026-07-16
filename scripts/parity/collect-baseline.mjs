@@ -54,6 +54,11 @@ const SOURCES = [
   { id: 'pricing', url: 'https://replit.com/pricing', kind: 'html', file: 'pricing.rendered.html', family: 'product-route', render: true },
   { id: 'gallery', url: 'https://replit.com/gallery', kind: 'html', file: 'gallery.rendered.html', family: 'product-route', render: true },
   { id: 'community', url: 'https://replit.com/community', kind: 'html', file: 'community.rendered.html', family: 'product-route', render: true },
+  // --- governance / operational channels (audit v4 A) ---
+  { id: 'status', url: 'https://status.replit.com/', kind: 'html', file: 'status.html', family: 'status' },
+  { id: 'trust-safety', url: 'https://docs.replit.com/legal-and-security-info/misuse-and-trust-safety-policies', kind: 'html', file: 'trust-safety.html', family: 'trust-safety' },
+  { id: 'security', url: 'https://docs.replit.com/legal-and-security-info/security', kind: 'html', file: 'security.html', family: 'security' },
+  { id: 'legal-terms', url: 'https://replit.com/site/terms', kind: 'html', file: 'legal-terms.html', family: 'legal' },
 ];
 
 /** Notable strings whose presence in any snapshot is recorded in the manifest. */
@@ -257,12 +262,18 @@ for (const result of results) {
   manifest.sources[source.id] = {
     url: source.url,
     family: source.family,
+    sourceType: source.family, // observation field
     status: 'OK',
     rendered: Boolean(source.render),
     httpStatus: result.httpStatus,
     file: source.file,
     sha256: sha256(result.body),
     bytes: result.body.length,
+
+    // eventDate is UNKNOWN for a page snapshot (no publish date on a route);
+    // detectionDate is when WE saw it — the pair makes blindness measurable.
+    eventDate: 'UNKNOWN',
+    detectionDate: manifest.collectedAt,
 
     // A property of THIS snapshot — never a constant.
     linkCount: links.length,

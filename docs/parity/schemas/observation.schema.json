@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecode/parity/observation",
+  "x-schemaVersion": 1,
+  "x-repoCommit": "fbaad79956096db0d66bcb6e894268438dfcb842",
+  "title": "Observation",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "observationId",
+    "sourceType",
+    "observedAt",
+    "detectionDate",
+    "triageState"
+  ],
+  "properties": {
+    "observationId": {
+      "type": "string"
+    },
+    "sourceType": {
+      "enum": [
+        "docs",
+        "changelog",
+        "blog",
+        "product-route",
+        "trust-safety",
+        "security",
+        "legal",
+        "status",
+        "pricing",
+        "client-release-notes"
+      ]
+    },
+    "observedAt": {
+      "type": "string"
+    },
+    "eventDate": {
+      "description": "quand le fait a eu lieu (peut \u00eatre UNKNOWN)"
+    },
+    "detectionDate": {
+      "type": "string",
+      "description": "quand NOUS l'avons vu"
+    },
+    "contentHash": {
+      "type": "string"
+    },
+    "archiveUri": {
+      "type": "string"
+    },
+    "plan": {},
+    "region": {},
+    "client": {},
+    "rollout": {},
+    "triageState": {
+      "enum": [
+        "PENDING",
+        "TRIAGED",
+        "ACCEPTED",
+        "REJECTED",
+        "DUPLICATE"
+      ]
+    },
+    "blindnessGapDays": {
+      "description": "detectionDate - eventDate en jours (mesure de notre aveuglement)"
+    }
+  }
+}

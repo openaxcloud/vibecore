@@ -74,3 +74,10 @@ sources:
     accessedAt: "2026-07-16T16:45:51Z"
     contentHash: "sha256:e9b562a2fc35a3e712717b2bc302767dd2cd3bef9519281f5894b997e16117e0"
     snapshot: docs/parity/baseline/snapshots/2026-07-16/community.rendered.html
+  - sourceId: SRC-CHANGELOG-2026-07-10
+    url: https://docs.replit.com/updates/2026/07/10/changelog.md
+    title: "Replit Changelog — July 10, 2026 (Buy a domain; Connect Excalidraw to Agent; Editors can answer Agent's questions)"
+    publishedAt: "2026-07-10"
+    accessedAt: "2026-07-16T16:56:05Z"
+    contentHash: "sha256:010fb57a8c421f2f4351569033abd0843df7452df6a075ff78ac55b773420f57"
+    snapshot: docs/parity/baseline/sources/2026-07-10-changelog.md

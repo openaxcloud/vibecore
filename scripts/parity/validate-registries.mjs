@@ -341,6 +341,37 @@ function checkHeader(file, doc) {
   checked.push(`P0/DECISION/UNKNOWN registries (${(p0.p0s ?? []).length}/${(decisions.decisions ?? []).length}/${(unknowns.unknowns ?? []).length})`);
 }
 
+/* ---- 9b. OBSERVATION_REGISTRY (audit v4 A) ----------------------------- */
+{
+  const file = 'OBSERVATION_REGISTRY.yaml';
+  const doc = loadYaml(join(parityRoot, file));
+  checkHeader(file, doc);
+
+  if (!doc.triageSla || typeof doc.triageSla !== 'object') {
+    fail(file, 'missing triageSla (SLA de triage par criticité)');
+  }
+
+  const TRIAGE = ['PENDING', 'TRIAGED', 'ACCEPTED', 'REJECTED', 'DUPLICATE'];
+
+  for (const obs of doc.observations ?? []) {
+    requireFields(file, obs, ['observationId', 'sourceType', 'observedAt', 'detectionDate', 'triageState'], obs?.observationId ?? 'obs');
+
+    if (obs.triageState && !TRIAGE.includes(obs.triageState)) {
+      fail(file, `${obs.observationId}: invalid triageState "${obs.triageState}"`);
+    }
+
+    // blindnessGapDays must be consistent with eventDate→detectionDate when both are dates.
+    if (obs.eventDate && obs.eventDate !== 'UNKNOWN' && obs.detectionDate && typeof obs.blindnessGapDays === 'number') {
+      const gap = Math.round((Date.parse(obs.detectionDate) - Date.parse(obs.eventDate)) / 86_400_000);
+      if (Number.isFinite(gap) && Math.abs(gap - obs.blindnessGapDays) > 1) {
+        fail(file, `${obs.observationId}: blindnessGapDays=${obs.blindnessGapDays} inconsistent with eventDate→detectionDate (${gap})`);
+      }
+    }
+  }
+
+  checked.push(`OBSERVATION_REGISTRY (${(doc.observations ?? []).length} observations, triage SLA present)`);
+}
+
 /* ---- 10. Surfaces DONE must carry evidenceId (audit v4) ---------------- */
 {
   const surfaces = loadYaml(join(parityRoot, 'SURFACE_REGISTRY.yaml'));

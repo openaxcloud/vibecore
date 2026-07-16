@@ -1,0 +1,76 @@
+# OBSERVATION_REGISTRY — observations horodatées du collecteur (audit v4 A).
+# Chaque observation porte sourceType/observedAt/eventDate/detectionDate/
+# contentHash/archiveUri/plan/region/client/rollout/triageState. L'écart
+# eventDate→detectionDate (blindnessGapDays) rend NOTRE aveuglement mesurable.
+# Schéma : docs/parity/schemas/observation.schema.json
+schemaVersion: 1
+repoCommit: fbaad79956096db0d66bcb6e894268438dfcb842
+
+# SLA de triage par criticité (jours ouvrés max entre detectionDate et TRIAGED).
+triageSla:
+  security: 1
+  trust-safety: 1
+  legal: 2
+  product: 3
+  docs: 5
+
+# Cadence : quotidienne ET événementielle (webhook/déclencheur sur nouveau
+# changelog/blog/status). Familles surveillées : docs, changelog, blog, status,
+# pricing, product-route (rendu JS), trust-safety, security, legal,
+# client-release-notes (clients natifs Replit).
+
+observations:
+  - observationId: OBS-COMMUNITY-PROFILES
+    sourceType: product-route
+    observedAt: "2026-07-16T16:45:51Z"
+    eventDate: "2026-07-14"          # lancé la semaine du 16/07 (estimé, à affiner)
+    detectionDate: "2026-07-16"
+    blindnessGapDays: 2              # NOTRE aveuglement, mesuré (eventDate estimé)
+    contentHash: "sha256:e9b562a2fc35a3e712717b2bc302767dd2cd3bef9519281f5894b997e16117e0"
+    archiveUri: docs/parity/baseline/snapshots/2026-07-16/community.rendered.html
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: TRIAGED
+
+  # --- Changelog 10/07/2026, jamais trié (audit v4 B) — triageState PENDING ---
+  - observationId: OBS-2026-07-10-DOMAIN-PURCHASE
+    sourceType: changelog
+    observedAt: "2026-07-16T16:56:05Z"
+    eventDate: "2026-07-10"
+    detectionDate: "2026-07-16"
+    blindnessGapDays: 6              # changelog antérieur à notre baseline, non trié = DÉFAUT collecteur
+    contentHash: "sha256:010fb57a8c421f2f4351569033abd0843df7452df6a075ff78ac55b773420f57"
+    archiveUri: docs/parity/baseline/sources/2026-07-10-changelog.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+  - observationId: OBS-2026-07-10-EXCALIDRAW-AGENT
+    sourceType: changelog
+    observedAt: "2026-07-16T16:56:05Z"
+    eventDate: "2026-07-10"
+    detectionDate: "2026-07-16"
+    blindnessGapDays: 6
+    contentHash: "sha256:010fb57a8c421f2f4351569033abd0843df7452df6a075ff78ac55b773420f57"
+    archiveUri: docs/parity/baseline/sources/2026-07-10-changelog.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+  - observationId: OBS-2026-07-10-EDITORS-ANSWER-AGENT
+    sourceType: changelog
+    observedAt: "2026-07-16T16:56:05Z"
+    eventDate: "2026-07-10"
+    detectionDate: "2026-07-16"
+    blindnessGapDays: 6
+    contentHash: "sha256:010fb57a8c421f2f4351569033abd0843df7452df6a075ff78ac55b773420f57"
+    archiveUri: docs/parity/baseline/sources/2026-07-10-changelog.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
