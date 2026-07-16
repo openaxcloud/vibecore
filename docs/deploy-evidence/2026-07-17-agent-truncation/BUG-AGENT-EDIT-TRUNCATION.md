@@ -88,6 +88,27 @@ Preuve que le test échoue sans le fix (parser remis à `origin/main` = sans fix
 
 Avec le fix : **63/63** specs message-parser + **3** enhanced-parser verts, lint clean.
 
+## Chaîne write-path — confirmée en lisant le code (pas supposée)
+
+Le contenu streamé atteint bien le DISQUE, ce qui fait de ce bug une perte de données réelle :
+
+- `app/lib/hooks/useMessageParser.ts` — `onActionStream → workbenchStore.runAction(data, true)`.
+- `app/lib/runtime/action-runner.ts:395` — le garde `if (isStreaming && action.type !== 'file') return;`
+  **ne skippe QUE les actions non-file** → une action `file` s'exécute même en streaming.
+- `:427` — `#runFileAction(action, isStreaming)` appelé avec `isStreaming=true`.
+- `:732` — `sanitizeFileContent(action.content, …, { throwOnInvalidJson: !isStreaming })` → en streaming,
+  `throwOnInvalidJson:false` : le contenu partiel/invalide **passe** sans lever.
+- `:765` — `if (!isStreaming) payload = await this.#repairWithSelfRepairLoop(…)` → la validation AST +
+  self-repair (le seul filet qui attraperait du JS cassé) est **skippée en streaming**.
+- `:782` — `await this.#runtime.writeFile(relativePath, payload)` — écrit **inconditionnellement**,
+  streaming ou non (pas gardé par `!isStreaming`).
+
+Donc, avant le fix : chaque chunk streamé — y compris celui qui portait `</bo` — était écrit sur disque.
+Sur troncature du modèle en pleine balise, `onActionClose` (écriture non-streaming faisant autorité,
+avec self-repair) ne se déclenche jamais → le dernier `writeFile` streamé (`…\n</bo`) reste sur disque,
+et le filet AST ne tourne jamais. Le fix retire `</bo` d'`action.content` À LA SOURCE (parser), donc
+`:782` ne peut plus le persister — même sous troncature.
+
 ## États (règle CLAUDE.md)
 
 - 📤 Dispatché : n/a (pris directement)
