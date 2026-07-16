@@ -1,0 +1,78 @@
+# E2E_PROOFS — registre des preuves bout-en-bout. Une preuve = fixtures +
+# étapes + attendu + evidenceId pointant des artefacts BRUTS committés.
+# status ∈ PROVEN | PENDING | FAILED. Un test unitaire n'est PAS une preuve e2e.
+schemaVersion: 1
+repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+proofs:
+  - proofId: E2E-PHASEB-NODE
+    title: "Publish Node via pipeline révision → URL 200, artefact rejouable"
+    fixtures: { account: qa, plan: pro-override, region: europe-west9, client: api }
+    steps: ["POST /projects/:id/deployments (provider=server, allowlist révision)", "attendre READY", "GET URL publique"]
+    expected: "READY ≤ 90s; 200; builtFrom: revision"
+    evidenceId: docs/deploy-evidence/2026-07-15-phase-b/
+    screenshots: partial
+    logs: yes
+    traceIds: "deployment cmrmb34mz… (publish→READY 62s, image 163MB)"
+    status: PROVEN
+    provenAt: "2026-07-15"
+  - proofId: E2E-AUTOSCALE-Z
+    title: "Machine sizes + metering runtime + cron (zone autoscale Z2–Z5)"
+    fixtures: { account: qa, plan: pro-override, region: europe-west9, client: api+kubectl }
+    steps: ["publish dedicated-1", "vérifier requests==limits kubectl", "cycles sleep/wake", "événement billing"]
+    expected: "resources exactes; événement 6830u = 26u/s × 262,7s; cron costCents=1"
+    evidenceId: docs/deploy-evidence/2026-07-16-zone-autoscale/
+    screenshots: yes
+    logs: yes
+    traceIds: "helm rev live; runs cron réels"
+    status: PROVEN
+    provenAt: "2026-07-16"
+  - proofId: E2E-AGM-A
+    title: "AGM (a): mesure DOM e-code.ai — plus aucun nom de modèle (landing, création, IDE)"
+    fixtures: { account: qa-agm-free1@e-code.ai, plan: free, region: europe-west9, client: web }
+    steps: ["ouvrir /", "/projects/new", "IDE", "scanner le DOM (innerText+attributs) pour tout nom de modèle"]
+    expected: "0 occurrence de nom de modèle sur les 3 surfaces, web/tablette/mobile"
+    evidenceId: docs/deploy-evidence/2026-07-16-agent-modes/
+    screenshots: pending
+    logs: pending
+    traceIds: null
+    status: PENDING          # bloqué sur le déploiement fee92bd0 (in_progress à 12:33Z)
+  - proofId: E2E-AGM-B
+    title: "AGM (b): les 3 modes visibles dans l'IDE (segmented + Advanced)"
+    fixtures: { account: qa-agm-free1@e-code.ai, plan: free, region: europe-west9, client: web }
+    steps: ["ouvrir l'IDE", "vérifier agent-mode-segmented (Lite/Economy/Power)", "ouvrir Advanced"]
+    expected: "3 modes, Economy par défaut, High effort/Turbo verrouillés (plan free)"
+    evidenceId: docs/deploy-evidence/2026-07-16-agent-modes/
+    screenshots: pending
+    logs: pending
+    traceIds: null
+    status: PENDING
+  - proofId: E2E-AGM-C
+    title: "AGM (c)+(d): changer de mode change le modèle appelé (log) et le coût"
+    fixtures: { account: qa-agm-free1@e-code.ai, plan: free, region: europe-west9, client: web }
+    steps: ["send en economy", "send en lite", "lire agent-mode.routed (pod web) et AgentCallLog (admin)"]
+    expected: "modèles réels ≠ par mode; creditCents ≠ à tokens comparables; classifieur non facturé"
+    evidenceId: docs/deploy-evidence/2026-07-16-agent-modes/
+    screenshots: pending
+    logs: pending
+    traceIds: null
+    status: PENDING
+  - proofId: E2E-AGM-E
+    title: "AGM (e): mode/interrupteur hors plan → refus explicite 403"
+    fixtures: { account: qa-agm-free1@e-code.ai, plan: free, region: europe-west9, client: api }
+    steps: ["GET /agent/routing/resolve?mode=economy&highEffort=true (org free)", "idem turbo sans flag org"]
+    expected: "403 AGENT_HIGH_EFFORT_NOT_ALLOWED / AGENT_TURBO_NOT_ALLOWED — jamais de downgrade silencieux"
+    evidenceId: docs/deploy-evidence/2026-07-16-agent-modes/
+    screenshots: n/a
+    logs: pending
+    traceIds: null
+    status: PENDING
+  - proofId: E2E-AGM-F
+    title: "AGM (f): marge live affichée + alerte négative bloquante (admin)"
+    fixtures: { account: platform-admin, plan: n/a, region: europe-west9, client: admin-spa (port-forward) }
+    steps: ["ouvrir agent-routing", "mettre un revient > prix", "vérifier alerte + 409 sans confirmation"]
+    expected: "alerte visuelle rouge; publish bloqué; 409 AGENT_ROUTING_NEGATIVE_MARGIN"
+    evidenceId: docs/deploy-evidence/2026-07-16-agent-modes/
+    screenshots: pending
+    logs: pending
+    traceIds: null
+    status: PENDING

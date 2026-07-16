@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecode/parity/domain/runtime-identity",
+  "x-schemaVersion": 1,
+  "x-repoCommit": "fee92bd0b09159247383814023ae63db8875dd7d",
+  "title": "RuntimeIdentity",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "app",
+    "environment",
+    "privilegeBoundary",
+    "kind",
+    "persistentKeys"
+  ],
+  "properties": {
+    "app": {
+      "type": "string"
+    },
+    "environment": {
+      "type": "string"
+    },
+    "privilegeBoundary": {
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "BuildIdentity",
+        "PromotionIdentity",
+        "RuntimeIdentity"
+      ]
+    },
+    "persistentKeys": {
+      "const": 0
+    },
+    "perDeployment": {
+      "const": false
+    }
+  }
+}

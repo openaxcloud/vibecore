@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "repoCommit": "fee92bd0b09159247383814023ae63db8875dd7d",
+  "generatedFrom": "packages/billing/src/rate-card.ts + packages/billing/src/agent-routing.ts (source of truth; DB rows RateCard/AgentRoutingCard override at runtime)",
+  "generatedAt": "2026-07-16T12:56:16Z",
+  "deployCompute": {
+    "version": 1,
+    "effectiveAt": "2026-07-16T00:00:00.000Z",
+    "currency": "usd",
+    "compute": {
+      "cpuSecondUnits": 18,
+      "gbSecondUnits": 2,
+      "unitCents": 0.00032,
+      "requestCents": 0.00012,
+      "baseCentsPerMonth": 100,
+      "egressCentsPerGib": 10
+    },
+    "machineSizes": [
+      {
+        "key": "shared-0.25",
+        "label": "0.25 vCPU · 1 GiB",
+        "vcpu": 0.25,
+        "ramGb": 1,
+        "cpuMillicores": 250,
+        "ramMb": 1024,
+        "computeUnitsPerSecond": 6.5
+      },
+      {
+        "key": "shared-0.5",
+        "label": "0.5 vCPU · 2 GiB",
+        "vcpu": 0.5,
+        "ramGb": 2,
+        "cpuMillicores": 500,
+        "ramMb": 2048,
+        "computeUnitsPerSecond": 13
+      },
+      {
+        "key": "dedicated-1",
+        "label": "1 vCPU · 4 GiB",
+        "vcpu": 1,
+        "ramGb": 4,
+        "cpuMillicores": 1000,
+        "ramMb": 4096,
+        "computeUnitsPerSecond": 26
+      },
+      {
+        "key": "dedicated-2",
+        "label": "2 vCPU · 8 GiB",
+        "vcpu": 2,
+        "ramGb": 8,
+        "cpuMillicores": 2000,
+        "ramMb": 8192,
+        "computeUnitsPerSecond": 52
+      },
+      {
+        "key": "dedicated-4",
+        "label": "4 vCPU · 16 GiB",
+        "vcpu": 4,
+        "ramGb": 16,
+        "cpuMillicores": 4000,
+        "ramMb": 16384,
+        "computeUnitsPerSecond": 104
+      },
+      {
+        "key": "dedicated-8",
+        "label": "8 vCPU · 32 GiB",
+        "vcpu": 8,
+        "ramGb": 32,
+        "cpuMillicores": 8000,
+        "ramMb": 32768,
+        "computeUnitsPerSecond": 208
+      }
+    ],
+    "planMaxMachineVcpu": {
+      "free": 4,
+      "starter": 8,
+      "core": 8,
+      "pro": 8,
+      "team": 8,
+      "enterprise": 8
+    }
+  },
+  "agentRouting": {
+    "version": 1,
+    "effectiveFrom": "2026-07-16T00:00:00.000Z",
+    "sourceDate": "2026-07-16",
+    "currency": "usd",
+    "baseUserInCentsPerM": 650,
+    "baseUserOutCentsPerM": 3250,
+    "lines": [
+      {
+        "key": "lite",
+        "label": "Lite",
+        "provider": "anthropic",
+        "model": "claude-haiku-4-5",
+        "costInCentsPerM": 100,
+        "costOutCentsPerM": 500,
+        "multiplier": 0.5,
+        "billedToUser": true,
+        "availablePlans": [
+          "free",
+          "starter",
+          "core",
+          "pro",
+          "team",
+          "enterprise"
+        ],
+        "active": true
+      },
+      {
+        "key": "economy",
+        "label": "Economy",
+        "provider": "anthropic",
+        "model": "claude-opus-4-8",
+        "costInCentsPerM": 500,
+        "costOutCentsPerM": 2500,
+        "multiplier": 1,
+        "billedToUser": true,
+        "availablePlans": [
+          "free",
+          "starter",
+          "core",
+          "pro",
+          "team",
+          "enterprise"
+        ],
+        "active": true
+      },
+      {
+        "key": "power",
+        "label": "Power",
+        "provider": "anthropic",
+        "model": "claude-fable-5",
+        "costInCentsPerM": 1000,
+        "costOutCentsPerM": 5000,
+        "multiplier": 2,
+        "billedToUser": true,
+        "availablePlans": [
+          "free",
+          "starter",
+          "core",
+          "pro",
+          "team",
+          "enterprise"
+        ],
+        "active": true
+      },
+      {
+        "key": "high-effort",
+        "label": "High effort (escalation)",
+        "provider": "anthropic",
+        "model": "claude-fable-5",
+        "costInCentsPerM": 1000,
+        "costOutCentsPerM": 5000,
+        "multiplier": 2,
+        "billedToUser": true,
+        "availablePlans": [
+          "core",
+          "pro",
+          "team",
+          "enterprise"
+        ],
+        "active": true
+      },
+      {
+        "key": "turbo",
+        "label": "Turbo",
+        "provider": "openai",
+        "model": "gpt-5.6-sol",
+        "costInCentsPerM": 500,
+        "costOutCentsPerM": 3000,
+        "multiplier": 2,
+        "billedToUser": true,
+        "availablePlans": [
+          "core",
+          "pro",
+          "team",
+          "enterprise"
+        ],
+        "active": true
+      },
+      {
+        "key": "classifier",
+        "label": "Harness classifier",
+        "provider": "anthropic",
+        "model": "claude-haiku-4-5",
+        "costInCentsPerM": 100,
+        "costOutCentsPerM": 500,
+        "multiplier": 0,
+        "billedToUser": false,
+        "availablePlans": [
+          "free",
+          "starter",
+          "core",
+          "pro",
+          "team",
+          "enterprise"
+        ],
+        "active": true
+      }
+    ]
+  }
+}

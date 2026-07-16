@@ -1,0 +1,62 @@
+# PUBLIC_BASELINE_REPLIT_2026 — claims publics Replit vérifiés, avec provenance.
+# Un claim sans source vérifiable est status: UNVERIFIED. Rien n'est inventé.
+# status ∈ VERIFIED (source publique hashée) | INTERNAL_AUDIT (audit humain
+# interne, non rejouable par URL) | UNVERIFIED | STALE
+schemaVersion: 1
+repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+claims:
+  - claimId: RPL-2026-001
+    statement: "Power mode runs on Anthropic's Claude Opus 4.7 (verbatim: 'Power mode now runs on Anthropic's Claude Opus 4.7')."
+    sourceId: SRC-CHANGELOG-2026-04-17
+    observedAt: "2026-07-16T12:56:16Z"
+    firstSeen: "2026-04-17"
+    lastVerified: "2026-07-16"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-2026-002
+    statement: "Agent mode selector is a segmented control (Lite / Economy / Power) in the chat toolbar; Turbo lives in Advanced settings (verbatim: 'Pick between Lite, Economy, and Power right from the toolbar, and reach Turbo through Advanced settings')."
+    sourceId: SRC-CHANGELOG-2026-04-17
+    observedAt: "2026-07-16T12:56:16Z"
+    firstSeen: "2026-04-17"
+    lastVerified: "2026-07-16"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-2026-003
+    statement: "The changelog publishes on arbitrary weekdays, NOT weekly-Friday: the official index lists 'November 16, 2025' (Sunday) and 'November 26, 2025' (Wednesday)."
+    sourceId: SRC-LLMS-TXT
+    observedAt: "2026-07-16T12:56:16Z"
+    firstSeen: "2025-11-16"
+    lastVerified: "2026-07-16"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-2026-004
+    statement: "No model selector exists anywhere in the product (landing, project creation, IDE, Enterprise); Lite and Economy models are never named in any of the 83 changelogs reviewed."
+    sourceId: SRC-CHANGELOG-INDEX
+    observedAt: "2026-07-16T00:00:00Z"
+    firstSeen: UNKNOWN
+    lastVerified: "2026-07-16"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: INTERNAL_AUDIT           # audit humain exhaustif (Avi, 2026-07-16); non rejouable par une seule URL
+  - claimId: RPL-2026-005
+    statement: "Replit's own docs contradict on Turbo cost: JSX says 'up to 2.5x speed and 6x cost', prose says 'about 2x more'."
+    sourceId: SRC-LLMS-FULL-TXT
+    observedAt: "2026-07-16T00:00:00Z"
+    firstSeen: UNKNOWN
+    lastVerified: "2026-07-16"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: INTERNAL_AUDIT           # repéré à l'audit; l'extrait exact reste à ancrer sur une URL+hash

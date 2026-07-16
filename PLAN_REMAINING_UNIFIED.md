@@ -3,23 +3,33 @@
 États par point : 📤 Dispatché · 💻 Codé (commité+poussé sur main) · ✅ Testé live (écran + greps, web/tablette/mobile le cas échéant).
 Un point n'est « fait » QUE quand ✅ est coché.
 
+## DOC NORMATIVE — P0-02 registres parité + P0-04 collecteur baseline (décision Avi 16/07)
+
+Audit externe : 19 P0. P0-02 = 12 registres/contrats sous `docs/parity/` (chaque fichier porte `schemaVersion` + `repoCommit` ; `status: UNKNOWN` explicite plutôt qu'inventer). P0-04 = collecteur baseline QUOTIDIEN (le changelog Replit n'est PAS hebdo-vendredi : l'index contient un dimanche 16/11/2025 et un mercredi 26/11/2025 — toute automatisation « vendredi » interdite). Preuve = validateur qui passe + collecteur qui tourne en réel.
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|:---:|:---:|:---:|---|
+| P002-1. Les 12 fichiers/dossiers sous docs/parity/ (baseline, sources, surfaces, contrats service, domain model, e2e proofs, rate card+ledger, nix contract, ops DR, sécurité, parity status, changelog audit) | ✅ | ✅ (ce commit) | ⬜ | Domaines tranchés reflétés : Remix/Import/CloudTenant/IAM/Rollback/Checkpoint |
+| P002-2. scripts/parity/validate-registries.mjs + cible CI qui ÉCHOUE sur violation de schéma | ✅ | ✅ (ce commit) | ✅ 16/07 (run réel: 8 OK exit 0; test négatif: 3 violations exit 1) | Sortie réelle du run exigée |
+| P004-1. scripts/parity/collect-baseline.mjs quotidien (hash SHA-256 de llms.txt, llms-full.txt, sitemap, changelog, blog, pricing ; diff trié ; nb de liens = propriété du snapshot) | ✅ | ✅ (ce commit) | ✅ 16/07 (run réel 6/6 sources, snapshot 2026-07-16 commité, llms.txt 51 169 o/299 liens sha256 03cbdb07…) | Premier snapshot réel commité avec hash |
+
 ## AGENT — 3 modes + routage admin avec marge (décision Avi 16/07)
 
 Décision produit validée par audit Replit : Replit n'a AUCUN sélecteur de modèle nulle part ; nous en affichons 147 (« AI Model Selection — 147 available », incl. `Gemini Robotics-ER 1.6` = modèle robotique). Cible : 3 modes (Lite / **Economy = défaut** / Power) dans l'IDE uniquement, aucun nom de modèle dans l'UI, réglages par UTILISATEUR ; table de routage admin versionnée avec coût de revient + marge. Preuve = parcours réel UI → control plane → modèle → réponse ; artefacts dans `docs/deploy-evidence/`.
 
 | Point | 📤 | 💻 | ✅ | Notes |
 |---|:---:|:---:|:---:|---|
-| AGM-1. Supprimer le menu « 147 modèles » de la landing (aucun nom de modèle sur marketing) | ✅ | ⬜ | ⬜ | Preuve : mesure DOM e-code.ai, zéro nom de modèle |
-| AGM-2. Supprimer tout sélecteur modèle/provider de la création de projet | ✅ | ⬜ | ⬜ | Aucune question modèle avant la création |
-| AGM-3. Supprimer le sélecteur modèle/provider de l'IDE (chat Bolt) | ✅ | ⬜ | ⬜ | Aucun nom de modèle dans l'IDE |
-| AGM-4. Segmented control 3 modes dans l'IDE + ⌘⇧I (Lite / Economy défaut / Power) + garde-fou Lite | ✅ | ⬜ | ⬜ | Libellés : Lite « Rapide et économique… », Economy « Le bon équilibre. », Power « Pour les tâches complexes. » |
-| AGM-5. Advanced settings : High effort (Economy+Power, jamais Lite, escalade seulement sur tâches dures + « +0 credit » sinon) ; Turbo (Power only, OFF, activable admin org) | ✅ | ⬜ | ⬜ | Réglages par UTILISATEUR, pas par projet |
-| AGM-6. Routage serveur mode→modèle (config versionnée, PAS un déploiement) + refus mode non autorisé par plan | ✅ | ⬜ | ⬜ | Défauts : Economy=Claude Opus 4.8 ×1, High effort=Fable ×2 (tâches dures only), Turbo=OpenAI 5.6 ×2 |
-| AGM-7. Log par appel admin-only { userId, projectId, mode, highEffort, escaladeDeclenchee, providerReel, modeleReel, tokensIn/Out, coutRevient, creditsFactures, marge } | ✅ | ⬜ | ⬜ | Invisible client |
-| AGM-8. Écran Admin → Agent → Routage des modèles (revient /1M in/out, multiplicateur, prix crédits, marge % et €, volume 30j, dispo plan, actif) + alerte marge négative bloquante | ✅ | ⬜ | ⬜ | Réutilise Rate Card versionné `packages/billing` (`1ea573b4`) |
-| AGM-9. Simulateur avant application + historique complet (qui/quoi/quand, marge avant/après) + versionnage effectiveFrom/effectiveTo/sourceDate | ✅ | ⬜ | ⬜ | |
-| AGM-10. Ligne classifieur harness (rapide/cheap, non facturé, revient visible) | ✅ | ⬜ | ⬜ | Coût d'exploitation |
-| AGM-11. Nudge Economy→Power si boucle, max 1×/projet | ✅ | ⬜ | ⬜ | |
+| AGM-1. Supprimer le menu « 147 modèles » de la landing (aucun nom de modèle sur marketing) | ✅ | ✅ `84c860b5` | ⬜ | Preuve : mesure DOM e-code.ai, zéro nom de modèle |
+| AGM-2. Supprimer tout sélecteur modèle/provider de la création de projet | ✅ | ✅ `84c860b5` | ⬜ | Aucune question modèle avant la création |
+| AGM-3. Supprimer le sélecteur modèle/provider de l'IDE (chat Bolt) | ✅ | ✅ `84c860b5` | ⬜ | Aucun nom de modèle dans l'IDE |
+| AGM-4. Segmented control 3 modes dans l'IDE + ⌘⇧I (Lite / Economy défaut / Power) + garde-fou Lite | ✅ | ✅ `84c860b5` | ⬜ | Libellés : Lite « Rapide et économique… », Economy « Le bon équilibre. », Power « Pour les tâches complexes. » |
+| AGM-5. Advanced settings : High effort (Economy+Power, jamais Lite, escalade seulement sur tâches dures + « +0 credit » sinon) ; Turbo (Power only, OFF, activable admin org) | ✅ | ✅ `84c860b5` | ⬜ | Réglages par UTILISATEUR, pas par projet |
+| AGM-6. Routage serveur mode→modèle (config versionnée, PAS un déploiement) + refus mode non autorisé par plan | ✅ | ✅ `d0b302fa`+`9ec04adf`+`7abcb045` | ⬜ | Défauts : Economy=Claude Opus 4.8 ×1, High effort=Fable ×2 (tâches dures only), Turbo=OpenAI 5.6 ×2 |
+| AGM-7. Log par appel admin-only { userId, projectId, mode, highEffort, escaladeDeclenchee, providerReel, modeleReel, tokensIn/Out, coutRevient, creditsFactures, marge } | ✅ | ✅ `d0b302fa`+`7abcb045` | ⬜ | Invisible client |
+| AGM-8. Écran Admin → Agent → Routage des modèles (revient /1M in/out, multiplicateur, prix crédits, marge % et €, volume 30j, dispo plan, actif) + alerte marge négative bloquante | ✅ | ✅ `d0b302fa`+`fee92bd0` | ⬜ | Réutilise Rate Card versionné `packages/billing` (`1ea573b4`) |
+| AGM-9. Simulateur avant application + historique complet (qui/quoi/quand, marge avant/après) + versionnage effectiveFrom/effectiveTo/sourceDate | ✅ | ✅ `d0b302fa`+`fee92bd0` | ⬜ | |
+| AGM-10. Ligne classifieur harness (rapide/cheap, non facturé, revient visible) | ✅ | ✅ `dc2d6c9d`+`7abcb045` | ⬜ | Coût d'exploitation |
+| AGM-11. Nudge Economy→Power si boucle, max 1×/projet | ✅ | ✅ `84c860b5` | ⬜ | |
 | AGM-12. Preuves live (a)–(f) : DOM sans nom de modèle, 3 modes IDE, mode change le modèle appelé (log), coût diffère, refus par plan, alerte marge | ✅ | ⬜ | ⬜ | Artefacts bruts `docs/deploy-evidence/` |
 
 ## Server deploy Phase A — « Publish = snapshot du workspace → image → run » (décision Avi 15/07)

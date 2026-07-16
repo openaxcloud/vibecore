@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecode/parity/domain/cloud-tenant",
+  "x-schemaVersion": 1,
+  "x-repoCommit": "fee92bd0b09159247383814023ae63db8875dd7d",
+  "title": "CloudTenant",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tenantId",
+    "bindings"
+  ],
+  "properties": {
+    "tenantId": {
+      "type": "string"
+    },
+    "bindings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "projectId",
+          "role"
+        ],
+        "properties": {
+          "projectId": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "PRIMARY",
+              "REGION_SHARD",
+              "QUOTA_SHARD",
+              "MIGRATION_TARGET"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

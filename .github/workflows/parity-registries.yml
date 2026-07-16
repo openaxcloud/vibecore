@@ -1,0 +1,75 @@
+name: Parity registries
+
+# P0-02: the registry validator FAILS the build when any docs/parity/ registry
+# violates its schema. P0-04: the baseline collector runs DAILY (the Replit
+# changelog publishes on arbitrary weekdays — llms.txt lists Sunday 2025-11-16
+# and Wednesday 2025-11-26 — so Friday-keyed automation is forbidden) and
+# commits the day's snapshot with its SHA-256 hashes.
+
+on:
+  pull_request:
+    paths:
+      - 'docs/parity/**'
+      - 'scripts/parity/**'
+      - '.github/workflows/parity-registries.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/parity/**'
+      - 'scripts/parity/**'
+      - '.github/workflows/parity-registries.yml'
+  schedule:
+    # DAILY at 05:17 UTC — deliberately not Friday-anything.
+    - cron: '17 5 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: parity-registries-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate registries (fails on schema violation)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # The validator's only dependency is `yaml`, installed standalone so the
+      # job doesn't need the full pnpm workspace install.
+      - run: npm install --no-save yaml@2
+      - run: node scripts/parity/validate-registries.mjs
+
+  collect-baseline:
+    name: Daily baseline snapshot (schedule only)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/parity/collect-baseline.mjs | tee /tmp/collect.log
+      - run: npm install --no-save yaml@2 && node scripts/parity/validate-registries.mjs
+      - name: Commit the day's snapshot
+        run: |
+          git config user.name "parity-baseline-bot"
+          git config user.email "noreply@e-code.ai"
+          git add docs/parity/baseline/snapshots
+          if git diff --cached --quiet; then
+            echo "no snapshot change to commit"
+          else
+            DAY=$(date -u +%F)
+            git commit -m "chore(parity): baseline snapshot ${DAY} (P0-04 daily collector)" \
+                       -m "$(tail -20 /tmp/collect.log)"
+            git push origin HEAD:main
+          fi

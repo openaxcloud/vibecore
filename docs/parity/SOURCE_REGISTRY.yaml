@@ -1,0 +1,55 @@
+# SOURCE_REGISTRY — registre des sources publiques citées par le baseline.
+# Chaque source: URL exacte, titre, publishedAt, accessedAt, contentHash SHA-256,
+# snapshot local. Règle d'or: rien d'inventé — un champ inconnu est UNKNOWN.
+schemaVersion: 1
+repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+sources:
+  - sourceId: SRC-LLMS-TXT
+    url: https://docs.replit.com/llms.txt
+    title: "Replit Docs — llms.txt index"
+    publishedAt: UNKNOWN            # page générée, pas de date de publication exposée
+    accessedAt: "2026-07-16T12:56:16Z"
+    contentHash: "sha256:03cbdb0706d90455550d13a63b48dedd9f0ced46532408ec1a3c9e2b4bf8a601"
+    snapshot: docs/parity/baseline/snapshots/2026-07-16/llms.txt
+  - sourceId: SRC-LLMS-FULL-TXT
+    url: https://docs.replit.com/llms-full.txt
+    title: "Replit Docs — llms-full.txt"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-16T12:56:16Z"
+    contentHash: "sha256:a7d6f513fbe6e53916c9214f6beb508be3e7c0ed838bcc1570c39d2db7981314"
+    snapshot: docs/parity/baseline/snapshots/2026-07-16/llms-full.txt
+  - sourceId: SRC-SITEMAP
+    url: https://docs.replit.com/sitemap.xml
+    title: "Replit Docs — sitemap"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-16T12:56:16Z"
+    contentHash: "sha256:5fd7b34100c8f3a10200d55e80568448cdc80106b0981fa00b9074c3f38f4f7e"
+    snapshot: docs/parity/baseline/snapshots/2026-07-16/sitemap.xml
+  - sourceId: SRC-CHANGELOG-INDEX
+    url: https://docs.replit.com/updates
+    title: "Replit Changelog index"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-16T12:56:16Z"
+    contentHash: "sha256:a0860256c55ba9f77a0b0613e5b375745143980a6d79d6fbd10919b11b4676da"
+    snapshot: docs/parity/baseline/snapshots/2026-07-16/changelog-index.html
+  - sourceId: SRC-BLOG
+    url: https://blog.replit.com/
+    title: "Replit product blog"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-16T12:56:16Z"
+    contentHash: "sha256:94ec5c75547bf39b3e5e0833e7a0fb9c7da1516c364f34d39a3fc4850a4de090"
+    snapshot: docs/parity/baseline/snapshots/2026-07-16/product-blog.html
+  - sourceId: SRC-PRICING
+    url: https://replit.com/pricing
+    title: "Replit pricing"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-16T12:56:16Z"
+    contentHash: "sha256:ebf2013a406b0db0c2429825da98523b90f47adf2f3980b57fd0660e61f6ea2e"
+    snapshot: docs/parity/baseline/snapshots/2026-07-16/pricing.html
+  - sourceId: SRC-CHANGELOG-2026-04-17
+    url: https://docs.replit.com/updates/2026/04/17/changelog.md
+    title: "Replit Changelog — April 17, 2026 (Claude Opus 4.7 powers Power mode; segmented Agent mode selector)"
+    publishedAt: "2026-04-17"
+    accessedAt: "2026-07-16T12:56:16Z"
+    contentHash: "sha256:c1f1dd962c8be057afa3460be54f3a352f625dbda7ed31b6b1e99d1d769de8f5"
+    snapshot: docs/parity/baseline/sources/2026-04-17-changelog.md

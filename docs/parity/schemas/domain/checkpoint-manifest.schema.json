@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecode/parity/domain/checkpoint-manifest",
+  "x-schemaVersion": 1,
+  "x-repoCommit": "fee92bd0b09159247383814023ae63db8875dd7d",
+  "title": "CheckpointManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "checkpointId",
+    "projectId",
+    "volumeSnapshotRef",
+    "dbSnapshotRef",
+    "signature"
+  ],
+  "properties": {
+    "checkpointId": {
+      "type": "string"
+    },
+    "projectId": {
+      "type": "string"
+    },
+    "volumeSnapshotRef": {
+      "type": "string",
+      "description": "CSI VolumeSnapshot \u2014 OBLIGATOIRE (un PodSnapshot seul n'est jamais un checkpoint projet)"
+    },
+    "dbSnapshotRef": {
+      "type": "string"
+    },
+    "podSnapshotRef": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "optionnel"
+    },
+    "signature": {
+      "type": "string"
+    }
+  }
+}

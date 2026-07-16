@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecode/parity/domain/remix",
+  "x-schemaVersion": 1,
+  "x-repoCommit": "fee92bd0b09159247383814023ae63db8875dd7d",
+  "title": "RemixJob",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "remixId",
+    "sourceProjectId",
+    "targetProjectId",
+    "state",
+    "secretsPolicy"
+  ],
+  "properties": {
+    "remixId": {
+      "type": "string"
+    },
+    "sourceProjectId": {
+      "type": "string"
+    },
+    "targetProjectId": {
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "SNAPSHOT_PINNED",
+        "CREDENTIALS_DETACHED",
+        "CLONING",
+        "DB_FORKING",
+        "STORAGE_POLICY_APPLIED",
+        "SCANNING",
+        "INDEXING"
+      ]
+    },
+    "secretsPolicy": {
+      "const": "REFERENCES_ONLY_NEVER_EXPORTED"
+    },
+    "provenanceLink": {
+      "type": "string"
+    }
+  }
+}
