@@ -1,0 +1,437 @@
+.trigger {
+  display: inline-flex;
+  height: 30px;
+  flex: 0 0 auto;
+  cursor: pointer;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--vc-ide-text-secondary);
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition:
+    border-color 120ms ease-out,
+    background 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.trigger svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.trigger:hover,
+.trigger:focus-visible,
+.trigger[aria-expanded='true'] {
+  border-color: color-mix(in srgb, var(--vc-ide-border-visible), transparent 18%);
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+  outline: none;
+}
+
+.trigger:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-accent-action), transparent 68%);
+}
+
+.popover {
+  z-index: 10010;
+  box-sizing: border-box;
+  width: min(372px, calc(100vw - 24px));
+  max-height: min(620px, calc(100dvh - 24px));
+  overflow: auto;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  padding: 0;
+  box-shadow: var(--vc-ui-shadow-xl);
+}
+
+.popover:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 38%);
+  outline-offset: 2px;
+}
+
+.arrow {
+  fill: var(--vc-ide-bg-card);
+}
+
+.panel {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  padding: 14px;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: 9px;
+  padding-bottom: 11px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+}
+
+.headerIcon,
+.metricIcon,
+.errorIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.headerIcon {
+  width: 32px;
+  height: 32px;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 68%);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%);
+  color: var(--vc-ide-accent-action);
+}
+
+.headerIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.header h2 {
+  margin: 0;
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1.2;
+}
+
+.header p {
+  margin: 3px 0 0;
+  color: var(--vc-ide-text-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.refreshButton {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--vc-ide-text-muted);
+}
+
+.refreshButton:hover:not(:disabled),
+.refreshButton:focus-visible {
+  border-color: var(--vc-ide-border-visible);
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+  outline: none;
+}
+
+.refreshButton:focus-visible,
+.retryButton:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-accent-action), transparent 68%);
+}
+
+.refreshButton:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.refreshButton svg {
+  width: 14px;
+  height: 14px;
+}
+
+.sourceStatus {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 10px;
+}
+
+.sourceStatus code {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  color: var(--vc-ide-text-muted);
+  font-family: var(--vc-font-mono, ui-monospace, monospace);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sourceDot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 999px;
+  background: var(--vc-ide-text-muted);
+}
+
+.sourceStatus[data-available='true'] .sourceDot {
+  background: var(--vc-ide-accent-success, #3fb950);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vc-ide-accent-success, #3fb950), transparent 84%);
+}
+
+.metricGrid,
+.skeleton {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.metricCard,
+.skeletonCard {
+  min-width: 0;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--vc-ide-bg-panel), transparent 12%);
+  padding: 9px;
+}
+
+.metricCard[data-availability='available'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-success, #3fb950), transparent 66%);
+}
+
+.metricHeading {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.metricIcon {
+  color: var(--vc-ide-text-muted);
+}
+
+.metricIcon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.metricValue {
+  display: block;
+  margin-top: 9px;
+  overflow: hidden;
+  color: var(--vc-ide-text-primary);
+  font-family: var(--vc-font-mono, ui-monospace, monospace);
+  font-size: 13px;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metricCard[data-availability='unavailable'] .metricValue {
+  color: var(--vc-ide-text-muted);
+  font-size: 10px;
+  letter-spacing: 0;
+}
+
+.metricCard p {
+  margin: 7px 0 0;
+  color: var(--vc-ide-text-muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.skeletonCard {
+  display: grid;
+  gap: 8px;
+}
+
+.skeletonIcon,
+.skeletonLine,
+.skeletonValue,
+.skeletonDetail {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--vc-ide-bg-hover) 20%,
+    color-mix(in srgb, var(--vc-ide-bg-hover), white 7%) 50%,
+    var(--vc-ide-bg-hover) 80%
+  );
+  background-size: 220% 100%;
+  animation: resources-shimmer 1.25s ease-in-out infinite;
+}
+
+.skeletonIcon {
+  width: 14px;
+  height: 14px;
+}
+
+.skeletonLine {
+  width: 52%;
+  height: 7px;
+}
+
+.skeletonValue {
+  width: 76%;
+  height: 13px;
+}
+
+.skeletonDetail {
+  width: 94%;
+  height: 18px;
+  border-radius: 5px;
+}
+
+.errorState {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 9px;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error), transparent 62%);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 91%);
+  padding: 11px;
+}
+
+.errorIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 82%);
+  color: var(--vc-ide-accent-error);
+}
+
+.errorIcon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.errorState strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 11px;
+}
+
+.errorState p {
+  margin: 4px 0 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.retryButton {
+  display: inline-flex;
+  grid-column: 2;
+  width: max-content;
+  height: 28px;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 7px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+  padding: 0 9px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.retryButton:hover,
+.retryButton:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  outline: none;
+}
+
+.retryButton svg {
+  width: 12px;
+  height: 12px;
+}
+
+.disclosure {
+  margin: 0;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  padding-top: 9px;
+  color: var(--vc-ide-text-muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.spinning {
+  animation: resources-spin 850ms linear infinite;
+}
+
+@keyframes resources-shimmer {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+@keyframes resources-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 767px) {
+  .trigger {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+    justify-content: center;
+    border-radius: 10px;
+    padding: 0;
+  }
+
+  .trigger span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 420px) {
+  .panel {
+    padding: 12px;
+  }
+
+  .metricGrid,
+  .skeleton {
+    grid-template-columns: 1fr;
+  }
+
+  .metricCard {
+    display: grid;
+    grid-template-columns: minmax(72px, 0.8fr) minmax(0, 1fr);
+    column-gap: 8px;
+  }
+
+  .metricValue {
+    margin-top: 0;
+    text-align: right;
+  }
+
+  .metricCard p {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trigger,
+  .skeletonIcon,
+  .skeletonLine,
+  .skeletonValue,
+  .skeletonDetail,
+  .spinning {
+    animation: none;
+    transition: none;
+  }
+}

@@ -1,0 +1,79 @@
+.trigger {
+  display: inline-flex;
+  width: 28px;
+  height: 30px;
+  flex: 0 0 28px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--vc-ide-text-muted);
+  transition:
+    border-color 120ms ease-out,
+    background 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.trigger:hover,
+.trigger:focus-visible,
+.trigger[aria-expanded='true'] {
+  border-color: color-mix(in srgb, var(--vc-ide-border-visible), transparent 18%);
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+  outline: none;
+}
+
+.trigger:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-accent-action), transparent 68%);
+}
+
+.chevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 120ms ease-out;
+}
+
+.chevron[data-open='true'] {
+  transform: rotate(180deg);
+}
+
+.content {
+  z-index: 10010;
+  box-sizing: border-box;
+  width: min(224px, calc(100vw - 24px));
+  max-height: min(420px, calc(100dvh - 24px));
+  overflow: auto;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  padding: 6px;
+  box-shadow: var(--vc-ui-shadow-xl);
+}
+
+.content:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 38%);
+  outline-offset: 2px;
+}
+
+.arrow {
+  fill: var(--vc-ide-bg-card);
+}
+
+@media (max-width: 767px) {
+  .trigger {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+    border-radius: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron,
+  .trigger {
+    transition: none;
+  }
+}
