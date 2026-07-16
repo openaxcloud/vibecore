@@ -1,0 +1,31 @@
+=== SCHEDULED re-preuve (2026-07-16T06:36:02Z) ===
+{
+    "runs": [
+        {
+            "id": "srun_1d5e9f4d989b4ca69175755dc3a4de53",
+            "taskId": "sched_273460edcc564159ae26e0fe909ebbf7",
+            "status": "SUCCESS",
+            "trigger": "schedule",
+            "attempt": 1,
+            "scheduledFor": "2026-07-16T06:35:00.000Z",
+            "startedAt": "2026-07-16T06:35:06.933Z",
+            "finishedAt": "2026-07-16T06:35:14.658Z",
+            "durationMs": 7725,
+            "exitCode": 0,
+            "error": null,
+            "machineSize": "shared-0.5",
+            "computeUnits": 100.42499999999998,
+            "costCents": 1,
+            "meteredAt": "2026-07-16T06:35:14.658Z"
+        }
+    ]
+}
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+KeyError: 'task'
+st recent call last):
+  File "<string>", line 1, in <module>
+KeyError: 'task'
+lastStatus: SUCCESS | lastRunAt: 2026-07-16T06:35:14.658Z | nextRunAt: 2026-07-17T06:35:00.000Z
+--- logs du run :
+        "logs": "$ # scheduled task \"qa-cron-reproof-0716\" (deployment) \u2014 1 step(s)\n\n$ echo cron reproof 1784183593 && date -u\ncron reproof 1784183593Thu Jul 16 06:35:10 UTC 2026"
