@@ -9,13 +9,13 @@ Contrat `DOMAIN_MODEL.md §1`. Machine à états NORMATIVE : SNAPSHOT_PINNED →
 
 | Point | 📤 | 💻 | ✅ | Notes |
 |---|:---:|:---:|:---:|---|
-| RMX-1. Machine à états typée + persistée (SNAPSHOT_PINNED→…→INDEXING), CREDENTIALS_DETACHED prérequis dur de CLONING | ✅ | ⬜ | ⬜ | Ordre inverse = erreur de conception refusée |
-| RMX-2. Secrets = références seules dans l'artefact de clone ; valeur jamais exportée (snapshot, archive, env, logs) | ✅ | ⬜ | ⬜ | Invariant sécurité |
-| RMX-3. Clone : nouveau projet/propriétaire/repo/workspace/locks, données isolées, lien source (provenance) | ✅ | ⬜ | ⬜ | |
-| RMX-4. DB_FORKING : nouvelle base isolée, DATABASE_URL re-seedé, aucune donnée partagée | ✅ | ⬜ | ⬜ | |
-| RMX-5. STORAGE_POLICY_APPLIED : 3 modes DETACH / CLONE / SHARE_WITH_CONSENT | ✅ | ⬜ | ⬜ | Bucket account-level ; « nouveau bucket » = décision explicite |
-| RMX-6. SCANNING : scan de secrets sur l'artefact cloné (échoue si un secret matérialisé est trouvé) | ✅ | ⬜ | ⬜ | |
-| RMX-7. Preuve live : remix d'un projet AVEC secret → secret introuvable (FS+DB+env+logs), test qui CHERCHE le secret | ✅ | ⬜ | ⬜ | Artefacts `docs/deploy-evidence/` |
+| RMX-1. Machine à états typée + persistée (SNAPSHOT_PINNED→…→INDEXING), CREDENTIALS_DETACHED prérequis dur de CLONING | ✅ | ✅ `bd4c334e` | ✅ 16/07 | assertRemixTransition refuse CLONING avant DETACH (REMIX_CLONE_BEFORE_DETACH) ; 11 tests module pur |
+| RMX-2. Secrets = références seules dans l'artefact de clone ; valeur jamais exportée (snapshot, archive, env, logs) | ✅ | ✅ `bd4c334e` | ✅ 16/07 | preuve : secret cherché dans fichiers+base+job du clone → introuvable (`docs/deploy-evidence/2026-07-16-remix/`) |
+| RMX-3. Clone : nouveau projet/propriétaire/repo/workspace/locks, données isolées, lien source (provenance) | ✅ | ✅ `bd4c334e` | 🟡 partiel | nouveau projet + provenance (audit project.remix sourceProjectId) prouvés ; repo/workspace/locks non re-testés |
+| RMX-4. DB_FORKING : nouvelle base isolée, DATABASE_URL re-seedé, aucune donnée partagée | ✅ | ✅ `bd4c334e` | 🟡 partiel | isolation prouvée (dbForked=false, DATABASE_URL source NON copié) ; fork physique CNPG = follow-up infra |
+| RMX-5. STORAGE_POLICY_APPLIED : 3 modes DETACH / CLONE / SHARE_WITH_CONSENT | ✅ | ✅ `bd4c334e` | 🟡 partiel | 3 modes modélisés+validés, DETACH prouvé (défaut) ; copie/partage objets réelle = reconcile Object Storage flag-gated |
+| RMX-6. SCANNING : scan de secrets sur l'artefact cloné (échoue si un secret matérialisé est trouvé) | ✅ | ✅ `bd4c334e` | ✅ 16/07 | scanClonedFilesForSecrets trouve la valeur matérialisée → 409 REMIX_SECRET_LEAK (test dédié) |
+| RMX-7. Preuve : remix d'un projet AVEC secret → secret introuvable (FS+DB+job), test qui CHERCHE le secret | ✅ | ✅ `bd4c334e` | ✅ 16/07 | remix-routes.spec 14/14 ; `docs/deploy-evidence/2026-07-16-remix/README.md` (preuve = test intégration, pas encore parcours UI prod) |
 
 ## DOC NORMATIVE — P0-02 registres parité + P0-04 collecteur baseline (décision Avi 16/07)
 
