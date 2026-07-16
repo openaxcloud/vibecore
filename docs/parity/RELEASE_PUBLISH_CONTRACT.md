@@ -30,8 +30,33 @@ Promotion→Release) et la machine à états `PROMOTION_PREPARED→…→PROMOTI
 - **I-PUB-4** : l'accès de l'app publiée est porté par `accessPolicyVersion`
   (AUTH_ACCESS_CONTRACT) — fail-closed sur mode inconnu.
 
+## Rollback — écart MESURÉ (audit v4, vertical rollback)
+
+**Constat mesuré 16/07 (code lu, pas de mémoire)** : pour un déploiement
+`provider='server'`, le handler `POST /projects/:id/deployments/:id/rollback`
+**recopie l'URL/metadata** du déploiement précédent dans une nouvelle ligne
+`READY` et **ne re-déploie AUCUNE image** (`willTriggerProviderRollback=false`
+pour server). Il n'existe **ni table `ReleaseCatalog` ni digest d'image persisté**
+sur `Deployment`. Donc si la révision/l'image sous-jacente a disparu, l'URL
+« rollbackée » est **morte** : I-REL-1 est **non tenu** pour les server deploys.
+Un rollback réel n'a jamais été possible, encore moins prouvé.
+
+**Cœur du correctif (prouvé unitaire)** : `services/api/src/release-rollback.ts`
+— `retainRelease()` épingle `imageRef@sha256` immuable du build ;
+`resolveRollbackImage()` dérive le plan **entièrement du digest retenu** (résout
+v1 même si la révision courante est supprimée) et **REFUSE** un rollback sans
+digest (`ROLLBACK_NO_RETAINED_DIGEST`) au lieu de pointer une URL morte. 7 tests
+dont les négatifs révision-supprimée + sans-digest.
+
+**Reste ⬜ (non fait, honnête)** : persistance du digest sur la release +
+câblage dans le reconcile `serverAppDeployment` + **preuve e2e live** exigée
+(déployer v1 → v2 → **supprimer la révision de v1** → rollback → l'app sert v1
+depuis le digest retenu). Tracé `UNK-ROLLBACK-LIVE`. Le stage `rollback` du
+vertical d'approbation reste **RED**.
+
 ## Preuves
 
 - E2E-PHASEB-NODE (PROVEN, vertical: publish) — Publish Node → URL 200,
   artefact rejouable, 62s.
 - 🟡 Promotion réelle contre AR live (referrers) = follow-up (UNK-AR-LIVE-PROMOTION).
+- ⬜ Rollback live = non exécuté (UNK-ROLLBACK-LIVE) — mécanisme prouvé unitaire only.

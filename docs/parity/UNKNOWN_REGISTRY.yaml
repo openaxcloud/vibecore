@@ -73,3 +73,10 @@ unknowns:
     nextAction: "Câbler un RegressionRun rejouant les proofs PROVEN + verdict GREEN/RED ; cf. REGRESSION_RUN_CONTRACT.md"
     targetDate: UNKNOWN
     expiration: "2026-10-31"
+  - unknownId: UNK-ROLLBACK-LIVE
+    question: "Le rollback server-deploy re-déploie-t-il RÉELLEMENT depuis le digest retenu quand la révision de v1 est supprimée (preuve e2e live) ?"
+    owner: claude
+    priority: 1
+    nextAction: "Persister imageRef@digest sur la release + câbler resolveRollbackImage dans le reconcile serverAppDeployment + preuve live v1→v2→delete-révision→rollback→sert v1 ; cf. release-rollback.ts + RELEASE_PUBLISH_CONTRACT.md"
+    targetDate: UNKNOWN
+    expiration: "2026-09-15"
