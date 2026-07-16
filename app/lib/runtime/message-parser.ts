@@ -20,6 +20,31 @@ const BOLT_QUICK_ACTIONS_CLOSE = '</bolt-quick-actions>';
 
 const logger = createScopedLogger('MessageParser');
 
+/**
+ * When an action's content is streamed before its `</boltAction>` closing tag
+ * has fully arrived, the tail of the current buffer can be a PARTIAL close tag
+ * split across chunk boundaries (e.g. `…});\n</bo`). Emitting that tail into the
+ * streamed editor preview — or worse, autosaving it — corrupts the file with a
+ * stray `</bo` and, when the model's output is truncated mid-tag, `onActionClose`
+ * (which strips the real tag) never fires, so the garbage is what lands on disk.
+ *
+ * This trims the longest trailing suffix of `content` that is a proper prefix of
+ * `</boltAction>` so a split close tag is held back until the next chunk resolves
+ * it (the closing-tag path re-scans the full buffer and emits the exact slice).
+ * The delimiter is pure ASCII, so this never splits a multi-byte UTF-8 character.
+ */
+function withoutTrailingCloseTagPrefix(content: string): string {
+  const max = Math.min(content.length, ARTIFACT_ACTION_TAG_CLOSE.length - 1);
+
+  for (let k = max; k > 0; k--) {
+    if (content.endsWith(ARTIFACT_ACTION_TAG_CLOSE.slice(0, k))) {
+      return content.slice(0, content.length - k);
+    }
+  }
+
+  return content;
+}
+
 export interface ArtifactCallbackData extends BoltArtifactData {
   messageId: string;
   artifactId?: string;
@@ -275,7 +300,14 @@ export class StreamingMessageParser {
             i = closeIndex + ARTIFACT_ACTION_TAG_CLOSE.length;
           } else {
             if ('type' in currentAction && currentAction.type === 'file') {
-              let content = input.slice(i);
+              /*
+               * Hold back a trailing PARTIAL close tag (`</bo`, `</`, `<`, …) so a
+               * `</boltAction>` split across chunk boundaries never leaks into the
+               * streamed editor preview or an autosave-before-close. Without this,
+               * a model whose output is truncated mid-tag leaves the file with a
+               * stray `</bo` and no `onActionClose` ever fires to strip it.
+               */
+              let content = withoutTrailingCloseTagPrefix(input.slice(i));
 
               if (!currentAction.filePath?.endsWith('.md')) {
                 content = cleanFileActionContent(content, currentAction.filePath);
@@ -317,7 +349,12 @@ export class StreamingMessageParser {
                 actionId: String(state.actionId - 1),
                 action: {
                   ...(currentAction as DiffAction),
-                  content: input.slice(i),
+
+                  /*
+                   * Hold back a trailing partial `</boltAction>` (see file branch above);
+                   * the byte-exact final content is emitted by the closing-tag path.
+                   */
+                  content: withoutTrailingCloseTagPrefix(input.slice(i)),
                   filePath: currentAction.filePath,
                 },
               });

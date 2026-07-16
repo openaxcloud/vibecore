@@ -1123,6 +1123,174 @@ describe('diff (anchored search/replace) actions — increment 2/5 parser wiring
   });
 });
 
+/*
+ * Regression: a `</boltAction>` close tag split across streaming chunk boundaries
+ * must NEVER leak a partial `</bo` into the streamed editor preview / autosave.
+ *
+ * This is the exact data-loss defect observed in prod: an in-place file edit was
+ * saved with a stray `</bo` and the real file tail missing. The model's output
+ * was truncated MID-CLOSE-TAG (it stopped at `</bo`), so `onActionClose` — which
+ * strips the real `</boltAction>` — never fired, and the last streamed payload
+ * (which included `</bo`) is what landed on disk. Every assertion below FAILS
+ * against the pre-fix parser, which emitted `input.slice(i)` verbatim.
+ */
+describe('streaming close-tag split across chunks — no partial `</bo` leak (data-loss regression)', () => {
+  const mkCallbacks = () => ({
+    onArtifactOpen: vi.fn(),
+    onArtifactClose: vi.fn(),
+    onActionOpen: vi.fn(),
+    onActionStream: vi.fn(),
+    onActionClose: vi.fn(),
+  });
+
+  const lastStreamedContent = (callbacks: ReturnType<typeof mkCallbacks>): string => {
+    const calls = callbacks.onActionStream.mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+
+    return calls[calls.length - 1][0].action.content as string;
+  };
+
+  // Assert `src` is syntactically valid JS (throws SyntaxError otherwise).
+  const expectParses = (src: string) => {
+    expect(() => new Function(src)).not.toThrow();
+  };
+
+  it('truncated mid-close-tag: the streamed/saved content excludes `</bo` and still parses', () => {
+    const callbacks = mkCallbacks();
+    const parser = new StreamingMessageParser({ callbacks });
+
+    // A real callback-style file whose tail is the very thing that went missing (`});`).
+    const body = [
+      'function setup(app) {',
+      '  app.listen(3000, () => {',
+      "    console.log('ready');",
+      '  });',
+      '}',
+      'setup(server);',
+    ].join('\n');
+
+    const head =
+      '<boltArtifact title="Server" id="a1" type="bundled"><boltAction type="file" filePath="src/server.js">';
+
+    /*
+     * The model streamed the whole body, then began the close tag but was cut off
+     * after `</bo`. The stream ENDS here — `onActionClose` never fires. Feed the
+     * parser cumulative snapshots exactly as the runtime does.
+     */
+    const truncated = head + body + '\n</bo';
+
+    for (let cut = head.length; cut <= truncated.length; cut += 5) {
+      parser.parse('trunc', truncated.slice(0, cut));
+    }
+    parser.parse('trunc', truncated);
+
+    /*
+     * The close tag never completed, so no onActionClose — the streamed content IS
+     * what a save-before-close would persist.
+     */
+    expect(callbacks.onActionClose).not.toHaveBeenCalled();
+
+    const streamed = lastStreamedContent(callbacks);
+
+    // The partial close tag must be held back — no `</bo`, no lone trailing `<`.
+    expect(streamed).not.toContain('</bo');
+    expect(streamed).not.toContain('</boltAction>');
+    expect(streamed.endsWith('<')).toBe(false);
+
+    // Everything the model actually emitted before the partial tag is preserved…
+    expect(streamed).toContain("console.log('ready');");
+    expect(streamed).toContain('});');
+    expect(streamed).toContain('setup(server);');
+
+    // …and the saved file is valid JavaScript, not a truncated fragment.
+    expectParses(streamed);
+  });
+
+  it('harder case — long file + multi-byte UTF-8, close tag split across two chunks: byte-exact final content', () => {
+    const callbacks = mkCallbacks();
+    const parser = new StreamingMessageParser({ callbacks });
+
+    // Longer file with multi-byte characters (accents, CJK, emoji) in string literals.
+    const lines: string[] = [];
+    lines.push('const messages = {');
+    lines.push("  fr: 'Déploiement terminé — félicitations ✅',");
+    lines.push("  jp: 'デプロイが完了しました 🚀',");
+    lines.push("  emoji: '🌍🌎🌏',");
+
+    for (let n = 0; n < 40; n++) {
+      lines.push(`  item_${n}: 'valeur ${n} — café ☕',`);
+    }
+
+    lines.push('};');
+    lines.push('function render(locale) {');
+    lines.push('  return messages[locale] || messages.fr;');
+    lines.push('}');
+    lines.push("render('jp');");
+
+    const body = lines.join('\n');
+    const head = '<boltArtifact title="I18n" id="a1" type="bundled"><boltAction type="file" filePath="src/i18n.js">';
+    const full = head + body + '</boltAction></boltArtifact>';
+
+    /*
+     * Split the close tag EXACTLY across two cumulative snapshots: the first ends
+     * mid-tag at `</bo`, the second completes it.
+     */
+    const closeStart = head.length + body.length;
+    const splitAt = closeStart + 4; // right after `</bo`
+
+    const snapshots = [full.slice(0, splitAt), full];
+
+    for (const snap of snapshots) {
+      parser.parse('multibyte', snap);
+
+      // No streamed payload may ever contain a partial close tag.
+      for (const call of callbacks.onActionStream.mock.calls) {
+        expect(call[0].action.content as string).not.toContain('</bo');
+      }
+    }
+
+    /*
+     * The close tag completed on the second snapshot → onActionClose fires once with
+     * byte-exact content (multi-byte chars intact, no `</bo`, trailing '\n' added).
+     */
+    expect(callbacks.onActionClose).toHaveBeenCalledTimes(1);
+
+    const finalContent = callbacks.onActionClose.mock.calls[0][0].action.content as string;
+
+    expect(finalContent).toBe(body + '\n');
+    expect(finalContent).not.toContain('</bo');
+    expect(finalContent).toContain('Déploiement terminé — félicitations ✅');
+    expect(finalContent).toContain('デプロイが完了しました 🚀');
+    expect(finalContent).toContain('🌍🌎🌏');
+    expect(finalContent).toContain('item_39');
+    expectParses(finalContent);
+  });
+
+  it('a legitimate `</bo` in file content is NOT lost once the following bytes prove it is not the close tag', () => {
+    const callbacks = mkCallbacks();
+    const parser = new StreamingMessageParser({ callbacks });
+
+    // The file content itself legitimately contains `</bo...>` (e.g. as a string).
+    const body = "const marker = '</body>';\nconsole.log(marker);";
+    const head = '<boltArtifact title="Edge" id="a1" type="bundled"><boltAction type="file" filePath="src/edge.js">';
+    const full = head + body + '</boltAction></boltArtifact>';
+
+    for (let cut = head.length; cut <= full.length; cut += 3) {
+      parser.parse('legit', full.slice(0, cut));
+    }
+    parser.parse('legit', full);
+
+    /*
+     * Final content preserves the legit `</body>` verbatim — only the REAL close
+     * tag is stripped.
+     */
+    const finalContent = callbacks.onActionClose.mock.calls[0][0].action.content as string;
+    expect(finalContent).toBe(body + '\n');
+    expect(finalContent).toContain("'</body>'");
+    expect(finalContent).not.toContain('boltAction');
+  });
+});
+
 function runTest(input: string | string[], outputOrExpectedResult: string | ExpectedResult) {
   let expected: ExpectedResult;
 
