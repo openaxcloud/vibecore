@@ -1,0 +1,61 @@
+# PUBLISH-UI-01 — real Publish click in the product UI → live server deploy (2026-07-16)
+
+## What was done (genuine loop, no hand-mounting)
+- Drove Avi's real Chrome (logged into app.e-code.ai).
+- New project via prompt -> the E-Code agent BUILT an Express app (package.json + server.js):
+    package.json: {"name":"publish-ui-01-express","scripts":{"start":"node server.js"},"dependencies":{"express":"^4.19.2"}}
+- Clicked the real **Publish** button on the project Deployments page
+  (reached via Dashboard -> 'Deploy' CTA -> /projects/<id>/deployments).
+  The page auto-detected: 'express -> server deployment' and ran OUR pipeline.
+
+## IDs / correlation
+  projectId    = cmrnmteqm000g0n96ercq2t8s
+  deploymentId = cmrnneabs00490n96os1u37l9
+  live URL     = https://d-cmrnneabs00490n96os1u37l9.preview.e-code.ai/
+  image        = europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmrnmteqm000g0n96ercq2t8s:cmrnneabs00490n96os1u37l9
+
+## UI build & deploy logs (transcribed from the Deployments > Logs panel, status: Deployed)
+[info] Queued server deployment for Build a minimal Node js
+[info] Environment: preview
+[info] Framework detected: vite            <-- cosmetic mislabel; the deploy path below is server
+[info] Build command: npm run build
+[info] Output directory: dist
+[info] Server deploy: starting runtime for d-cmrnneabs00490n96os1u37l9.preview.e-code.ai
+[info] Server deploy: detected express — build "(none)", start "node server.js"
+[info] [snapshot] image context: 693123 bytes (deps included)
+[info] [snapshot] uploaded 693123 bytes to object storage
+[info] [image] build e81a7a4c-fcee-4641-8862-f522bac676a3 queued (context gs://vc-cmrnmteqm000g0n96ercq2t8s/tmp/server-deploy/cmrnneabs00490n96os1u37l9-context.tgz)
+[info] [image] build e81a7a4c-fcee-4641-8862-f522bac676a3: WORKING
+[info] [image] build e81a7a4c-fcee-4641-8862-f522bac676a3: SUCCESS
+[info] Server deploy: image ready .../vibecore-prod-apps/p-cmrnmteqm000g0n96ercq2t8s:cmrnneabs00490n96os1u37l9
+[info] Server deploy: ready with 1 replica(s) at https://d-cmrnneabs00490n96os1u37l9.preview.e-code.ai
+
+## Runtime correlation (GKE, workspaces ns) — the UI release IS this running pod:
+NAME                            READY   IMAGE
+app-cmrnneabs00490n96os1u37l9   1       europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmrnmteqm000g0n96ercq2t8s:cmrnneabs00490n96os1u37l9
+
+## Live URL raw response (curl -si):
+HTTP/2 200 
+date: Thu, 16 Jul 2026 15:16:16 GMT
+content-type: text/plain; charset=utf-8
+content-length: 29
+etag: W/"1d-6b4sfih8wlBLpLNfHrRIYvGbsrg"
+x-powered-by: Express
+cross-origin-resource-policy: cross-origin
+cross-origin-embedder-policy: credentialless
+referrer-policy: no-referrer
+strict-transport-security: max-age=31536000; includeSubDomains
+
+PUBLISH-UI-01 OK from Express
+## Browser render: the page displayed 'PUBLISH-UI-01 OK from Express' in Avi's Chrome.
+
+## HONEST UX NOTE (product gap)
+  The IDE's own top-right 'Publish' button opens the IDE Deployments PANEL whose
+  provider list (BOLT_DEPLOY_PROVIDERS in app/components/deploy/deployUtils.ts) is
+  static + external only: Static export, Vercel, Netlify, GitHub Pages, Cloudflare
+  Pages, Google Cloud Run, Custom Dockerfile — NO internal 'server' option.
+  Our server-deploy (provider='server') is only reachable from the project
+  Deployments PAGE (/projects/<id>/deployments, linked from the Dashboard 'Deploy'
+  CTA), which is where the Publish above was clicked. The IDE Publish button and the
+  Dashboard deploy page are two different surfaces; the server path lives only on the
+  latter. Worth unifying.
