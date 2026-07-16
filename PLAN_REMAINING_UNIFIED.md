@@ -3,6 +3,38 @@
 États par point : 📤 Dispatché · 💻 Codé (commité+poussé sur main) · ✅ Testé live (écran + greps, web/tablette/mobile le cas échéant).
 Un point n'est « fait » QUE quand ✅ est coché.
 
+## TÂCHE 3 — File History + standard ouvert Agent Skills (décision Avi 15/07)
+
+Sources vérifiées le 2026-07-15 : documentation Replit `features/version-control/file-history` et spécification ouverte `agentskills.io/specification`. File History reste indépendant de l'interface Git ; les skills interopérables vivent dans `.agents/skills/<name>/SKILL.md` et suivent un chargement progressif. Tout catalogue externe est soumis à audit avant activation.
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|:---:|:---:|:---:|---|
+| TASK3-FH-1. Historique persistant par fichier, automatique et indépendant de Git | ✅ | ⬜ | ⬜ | Isolation projet/tenant, pagination et rétention documentée |
+| TASK3-FH-2. Bouton History + panneau autonome + navigation slider/flèches/clavier | ✅ | ⬜ | ⬜ | Fichier texte ouvert uniquement ; loading/error/empty explicites |
+| TASK3-FH-3. Compare Latest inline + restore append-only non destructif | ✅ | ⬜ | ⬜ | Restore crée une nouvelle version et ne supprime aucun historique |
+| TASK3-FH-4. Playback réel des modifications | ✅ | ⬜ | ⬜ | Play/pause, vitesse, progression et respect reduced-motion |
+| TASK3-SK-1. Compatibilité Agent Skills `.agents/skills/<name>/SKILL.md` | ✅ | ⬜ | ⬜ | Frontmatter conforme au standard ouvert, ressources relatives conservées |
+| TASK3-SK-2. Progressive disclosure catalogue → activation → ressources | ✅ | ⬜ | ⬜ | Seuls name+description au démarrage ; corps chargé à la demande |
+| TASK3-SK-3. Pipeline d'audit anti-prompt-injection pour catalogue externe | ✅ | ⬜ | ⬜ | Quarantaine, provenance, hash, findings, approbation/révocation et audit log |
+| TASK3-QA-1. Tests API/UI/sécurité + validation live web/tablette/mobile | ✅ | ⬜ | ⬜ | Aucune coche ✅ avant preuve écran + greps |
+
+## Project Editor — layout Replit Window → Panes → Tabs (décision Avi 15/07)
+
+Source : documentation Replit `editor-and-tools.md`. Le modèle doit préserver l'IDE Bolt existant et exclut strictement le déploiement, Kubernetes, `workspace-manager` et le runtime Nix.
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|:---:|:---:|:---:|---|
+| IDE-LAYOUT-1. Inventaire Bolt + captures avant web/tablette/mobile | ✅ | ⬜ | ⬜ | Grep avant création ; captures avant obligatoires |
+| IDE-LAYOUT-2. Modèle typé et persistant Window → Panes → Tabs | ✅ | ⬜ | ⬜ | Un tab = exactement un outil |
+| IDE-LAYOUT-3. Split H/V redimensionnable + tab déplacé entre panes + pane flottant | ✅ | ⬜ | ⬜ | Preuves d'interaction réelles exigées |
+| IDE-LAYOUT-4. Tools dock gauche + popup All tools recherchable | ✅ | ⬜ | ⬜ | Ouverture d'un outil réel dans un tab |
+| IDE-LAYOUT-5. Menu Options du tab actif : actions window/pane/tab | ✅ | ⬜ | ⬜ | Actions réelles + clavier |
+| IDE-LAYOUT-6. Resources panel RAM/CPU/Storage | ✅ | ⬜ | ⬜ | Données réelles + skeleton + erreur récupérable |
+| IDE-LAYOUT-7. Spotlight page au clic sur le nom du projet | ✅ | ⬜ | ⬜ | Ouverture/fermeture réelle |
+| IDE-LAYOUT-8. Terminologie Project Editor / Workspace organisationnel | ✅ | ⬜ | ⬜ | Vérification UI + greps ciblés |
+| IDE-LAYOUT-9. Responsive et accessibilité web/tablette/mobile | ✅ | ⬜ | ⬜ | À valider à l'écran + greps + captures après |
+| IDE-LAYOUT-10. Présentation des captures avant/après à Avi avant tout push | ✅ | ⬜ | ⬜ | Aucun commit/push sans décision explicite d'Avi |
+
 ## Server deploy Phase A — « Publish = snapshot du workspace → image → run » (décision Avi 15/07)
 
 Contexte : le chemin boot-script (détection Node → tarball source → install/build au boot) est l'impasse par-langage.
@@ -10,16 +42,16 @@ Cible Replit : le déploiement EST le workspace, imagé. Mesures baseline (15/07
 
 | Point | 📤 | 💻 | ✅ | Notes |
 |---|---|---|---|---|
-| A1. serverApp pods : ECODE_DEPLOYMENT=1 + probe 5 s (règle Replit) + montage /nix kill-switch | ✅ | ✅ `1738afc0` | ⬜ | vérif live = env du pod app + probe |
-| A2. Plumbing nixStorePvcName per-request (API→manager→k8s), allowlist projet | ✅ | ✅ `1738afc0`+`f32aa5f6` | ⬜ | flip global NIX_STORE_PVC_NAME intact (off) |
-| A3. Snapshot COMPLET (deps incluses) uploadé depuis le pod (URL signée PUT, plafond 2 Mo contourné) | ✅ | ✅ `43080762` | ⬜ | |
-| A4. Builder Cloud Build : Dockerfile généré générique (FROM base workspace + COPY + RUN build + CMD run), push AR, taille d'image rapportée | ✅ | ✅ `ca021f99` | ⬜ | limite Replit 8 Gio à surveiller |
-| A5. Chemin image flag-gated `SERVER_DEPLOY_SNAPSHOT_IMAGE=1` dans le flux server-deploy (flag absent = boot-script octet pour octet) | ✅ | ✅ `f32aa5f6` | ⬜ | |
-| A6. `.ecode/deploy.json` {run,build} générique (équivalent `.replit [deployment]`) honoré par le handler ET /deployments/detect | ✅ | ✅ `f32aa5f6` | ⬜ | zéro code par-langage |
-| A7. Infra : repo AR `vibecore-prod-apps`, IAM (GSA platform cloudbuild.builds.editor + AR reader ; compute SA AR writer), PV nix recréé avec nodeAffinity zone-a, clés chart | ✅ | ✅ `63fdcde1` + fait live | ⬜ | PVC ROX 80Gi bound ; affinité PROUVÉE (scheduler exclut zone b) |
-| A8. Preuve live Node : app publiée PAR LE BOUTON UI → 200, chemin image | ✅ | — | ⬜ | mesurer publish + cold boot + taille image |
-| A9. Preuve live Python : app publiée PAR LE BOUTON UI → 200, zéro code par-langage (nix /python 3.12.8 du store prouvé sous gVisor le 15/07) | ✅ | — | ⬜ | nécessite allowlist nix du projet |
-| A10. Mesures jour-1 : cold boot image-path (cible ressentie < 30 s ; 4 min = cassé) + taille d'image à chaque publish | ✅ | 💻 (loggé métadonnées) | ⬜ | baseline boot-script = 91 s |
+| A1. serverApp pods : ECODE_DEPLOYMENT=1 + probe 5 s (règle Replit) + montage /nix kill-switch | ✅ | ✅ `1738afc0` | ✅ **15/07** | pod app : env `ECODE_DEPLOYMENT=1`, volume `nix-store` présent (Python) |
+| A2. Plumbing nixStorePvcName per-request (API→manager→k8s), allowlist projet | ✅ | ✅ `1738afc0`+`f32aa5f6` | ✅ **15/07** | allowlist `WORKSPACE_NIX_PROJECTS`; workspace+app Python montent /nix ; flip global intact |
+| A3. Snapshot COMPLET (deps incluses) uploadé depuis le pod (URL signée PUT) | ✅ | ✅ `43080762`+`abc3f282` | ✅ **15/07** | ⚠️ fix `abc3f282` : Content-Type dupliqué → 403 signature V4 GCS ; corrigé, upload 703 Ko/5,4 Mo OK |
+| A4. Builder Cloud Build : Dockerfile généré générique, push AR, taille rapportée | ✅ | ✅ `ca021f99` | ✅ **15/07** | builds 27s/56s, images 163/168 MB, digest+taille lus depuis AR |
+| A5. Chemin image flag-gated `SERVER_DEPLOY_SNAPSHOT_IMAGE=1` (flag absent = boot-script octet pour octet) | ✅ | ✅ `f32aa5f6` | ✅ **15/07** | flag live via `helm --set` (rev 834) |
+| A6. `.ecode/deploy.json` {run,build} générique (équivalent `.replit [deployment]`) | ✅ | ✅ `f32aa5f6` | ✅ **15/07** | Python publié via run déclaré, **zéro code par-langage** |
+| A7. Infra : repo AR `vibecore-prod-apps`, IAM, PV nix zone-a, clés chart | ✅ | ✅ `63fdcde1` + live | ✅ **15/07** | + fix IAM live : GSA platform `serviceAccountUser` (actAs) sur compute SA 267592214411 (sinon Cloud Build 403). PV nix zone-a PROUVÉ. |
+| A8. Preuve live Node : app publiée PAR L'ENDPOINT RÉEL du bouton → 200 | ✅ | ✅ | ✅ **15/07** | Express, `POST /projects/:id/deployments` provider=server. Snapshot 703 Ko → GCS, image **163 MB** en **27s**, **publish→READY 44s**, **cold boot 22s** (scale-0→200), chaud 0,43s, corps `ECODE_DEPLOYMENT=1`. img `p-<proj>:<dep>` |
+| A9. Preuve live Python : app publiée PAR L'ENDPOINT RÉEL du bouton → 200, zéro code par-langage | ✅ | ✅ | ✅ **15/07** | `.ecode/deploy.json` run=`.venv/bin/python app.py` honoré. venv nix-python 3.12.8 + flask 3.0.3. Snapshot 5,4 Mo → GCS, image **168 MB** en **56s**, READY 71s, **cold boot 23s**, corps `ECODE_DEPLOYMENT=1`. Pod app monte `/nix` RO (zone-a). |
+| A10. Mesures jour-1 : cold boot image-path + taille d'image | ✅ | ✅ | ✅ **15/07** | **cold boot 22s (Node) / 23s (Python)** < cible 30s (vs 91s boot-script) ; tailles 163/168 MB « 8 Gio Replit ; build 27/56s ; taille+build+durée persistés en métadonnées + loggés |
 
 Règles dures Replit déjà en place : port externe unique (Service 80→PORT), health `/` budget 5 s (A1), FS non persistant par publish (image immuable), idle 15 min par défaut (`SERVER_DEPLOY_IDLE_MINUTES`), `ECODE_DEPLOYMENT=1` (A1).
 Reste hors Phase A : unités de facturation Autoscale (1 CPU-s=18 / 1 GoRAM-s=2), tiers Reserved VM ($20/$40/$80/$160), changement de type en place.
@@ -39,6 +71,16 @@ Décisions committées : `docs/DEPLOY_REPRODUCIBLE_PIPELINE.md` (pipeline) + `do
 | B6. Gates policy/scan secrets · B7. Signature d'images (cosign) | ☐ | ☐ | ☐ | |
 | B8. Interface `SandboxRuntime`/RuntimeAdapter (aucun objet métier = Pod ; microVM cible) | ✅ | ✅ `fead062e` | ✅ **15/07** | publish B5 réel passé par `GvisorPodRuntime` (manager `fb85509520`) ; réveil Node re-mesuré **14,5 s** (22 s Phase A) avec le poll 1 s |
 
-⚠️ Capacité : demande de quota `SSD_TOTAL_GB` REPORTÉE par Google (« resubmit après 48 h ou avec plus d'historique billing » — pas un refus définitif). État 15/07 soir : 432/500, dont **400 = boot disks pd-balanced des 4 nœuds gvisor** (aucun pd-ssd n'existe ; pd-balanced compte DANS ce quota). Seule sortie structurelle : recréer le pool gvisor avec boot disks **pd-standard 200 Go** (throughput ≈ équivalent, coût identique, `DISKS_TOTAL_GB` 4,2/20 To) → SSD ~32/500 et autoscale débloqué. GO d'Avi requis (drain = redémarrage des pods workspaces). Ménage fait : spike-workspace-pvc (2 Go SSD) + 19 PVC d'orgs de test E2E supprimées.
+⚠️ Capacité : quota régional `SSD_TOTAL_GB` 434/500 (disques pd-balanced de boot) — le scale-up zone-a a déjà échoué une fois (15/07). Demande d'augmentation de quota = action Avi (gratuite).
 ⚠️ `--reuse-values` : les nouvelles clés chart (`serverDeployImageRepo`, `nixStorePvc`…) n'atteignent la release que via UN `--set` manuel (fait après passage CD), ensuite persistées.
 
+## TÂCHE 2 — Gallery d'applications publiées et remixables
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|---|---|---|---|
+| TPL-02.1 Gallery communautaire d'applications publiées/remixables | ✅ | ☐ | ☐ | Cartes riches, recherche, catégorie, type, technologies, tri, featured, modération, signalement, aperçu fonctionnel, permissions et provenance. |
+| TPL-02.2 Remix/Fork isolé et analysé par l'Agent | ✅ | ☐ | ☐ | Nouveau projet/propriétaire/repo/workspace/locks ; aucun secret ; données isolées ; lien source. |
+| TPL-02.3 Hub Import — 12 sources documentées | ✅ | ☐ | ☐ | GitHub/express, Bitbucket, Vercel, Figma, Claude, Bolt, Lovable, Base44, ZIP, Spreadsheet, Previous Agent export, Empty. Screenshot exclu. |
+| TPL-02.4 Projet vide sans Agent/framework/scaffolding | ✅ | ☐ | ☐ | Voie power-user conservée. |
+| TPL-02.5 Six starters historiques → démos publiées/remixables et/ou fixtures E2E | ✅ | ☐ | ☐ | Aucune carte Python/Go/Rust. |
+| TPL-02.PROOF Prompt, import et remix créent chacun un projet publiable | ✅ | ☐ | ☐ | Pour chacun : vrai projectId → IDE → runtime → Preview → publish. Captures avant/après soumises à Avi avant tout push. |

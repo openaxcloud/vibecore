@@ -228,7 +228,7 @@ const categoryCopy = {
   },
   integration: {
     eyebrow: 'Integration surface',
-    primaryAction: ['Connect GitHub', '/import-github'],
+    primaryAction: ['Open Import Hub', '/dashboard/templates?section=import&source=github'],
     secondaryAction: ['View integrations', '/integrations'],
     stats: [
       { label: 'Source', value: 'Importable' },
@@ -237,7 +237,11 @@ const categoryCopy = {
     ],
     controls: ['Repository import', 'Provider adapters', 'API contracts', 'Connection health'],
     relatedRoutes: [
-      { label: 'GitHub import', to: '/import-github', description: 'Import repositories into E-Code.' },
+      {
+        label: 'Import Hub',
+        to: '/dashboard/templates?section=import&source=github',
+        description: 'Validate repositories and other supported sources before creating a project.',
+      },
       { label: 'Integrations', to: '/integrations', description: 'Connect approved product tools.' },
       { label: 'API SDK', to: '/api-sdk', description: 'Build against typed platform interfaces.' },
     ],
@@ -1107,7 +1111,11 @@ export function createProjectImportSurfacePage(projectId: string, source: string
     icon: Upload,
     highlights: [`${label} source mapping`, 'Project context', 'Dependency planning', 'Preview validation'],
     relatedRoutes: [
-      { label: 'GitHub import', to: '/import-github', description: 'Import repository-backed projects.' },
+      {
+        label: 'Import Hub',
+        to: '/dashboard/templates?section=import&source=github',
+        description: 'Validate repository-backed projects before creation.',
+      },
       { label: 'Project overview', to: `/projects/${projectId}`, description: 'Return to the project workspace.' },
       { label: 'Preview', to: `/projects/${projectId}/preview`, description: 'Validate the imported app visually.' },
     ],

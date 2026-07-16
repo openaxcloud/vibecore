@@ -60,6 +60,10 @@ function titleCase(value?: string) {
     .join(' ');
 }
 
+function projectRuntimeStatus(value?: string) {
+  return titleCase(value).replace(/\bWorkspace\b/gi, 'Project Runtime');
+}
+
 function fallbackOverview(data: ProjectOverviewPanelProps['data'], project: ProjectOverviewPanelProps['project']) {
   const commits = data.commits ?? [];
   const collaborators = data.collaborators ?? [];
@@ -70,7 +74,7 @@ function fallbackOverview(data: ProjectOverviewPanelProps['data'], project: Proj
       projectCreatedAt: project.createdAt,
       projectUpdatedAt: project.updatedAt,
       sourceType: project.sourceType,
-      workspaceStatus: data.workspace?.status ?? 'No workspace',
+      workspaceStatus: data.workspace?.status ?? 'No runtime',
       runtimeMode: data.workspace?.runtimeMode ?? 'unavailable',
       branch: data.git?.branch ?? project.gitDefaultBranch ?? 'main',
       fileCount: data.files?.length ?? 0,
@@ -286,8 +290,8 @@ export function ProjectOverviewPanel({ data, project }: ProjectOverviewPanelProp
           <OverviewMetric label="Files" value={overview.summary.fileCount} detail="Tracked project files" />
           <OverviewMetric label="Branch" value={overview.summary.branch} detail="Current Git branch" />
           <OverviewMetric
-            label="Workspace"
-            value={titleCase(overview.summary.workspaceStatus)}
+            label="Runtime"
+            value={projectRuntimeStatus(overview.summary.workspaceStatus)}
             detail={overview.summary.runtimeMode}
           />
           <OverviewMetric

@@ -96,10 +96,6 @@ export type PreviewServerState = {
 };
 
 export type WorkbenchViewType = 'code' | 'diff' | 'preview' | 'git';
-export type ProjectFilesPanelRequest = {
-  open?: boolean;
-  requestId: number;
-};
 export type AgentPatchProposalStatus = 'pending' | 'applying' | 'accepted' | 'rejected' | 'failed' | 'reverted';
 export interface AgentPatchProposal {
   id: string;
@@ -256,9 +252,6 @@ export class WorkbenchStore {
    * regenerate over an existing app on reopen).
    */
   filesHydrated: WritableAtom<boolean> = hotData.filesHydrated ?? atom(false);
-  projectFilesPanelOpen: WritableAtom<boolean> = hotData.projectFilesPanelOpen ?? atom(true);
-  projectFilesPanelRequest: WritableAtom<ProjectFilesPanelRequest | undefined> =
-    hotData.projectFilesPanelRequest ?? atom<ProjectFilesPanelRequest | undefined>(undefined);
   agentPatchReviewRequired: WritableAtom<boolean> = hotData.agentPatchReviewRequired ?? atom<boolean>(false);
 
   /*
@@ -308,8 +301,6 @@ export class WorkbenchStore {
       writableHotData.workspaceLogs = this.workspaceLogs;
       writableHotData.previewServerState = this.previewServerState;
       writableHotData.filesHydrated = this.filesHydrated;
-      writableHotData.projectFilesPanelOpen = this.projectFilesPanelOpen;
-      writableHotData.projectFilesPanelRequest = this.projectFilesPanelRequest;
       writableHotData.quotaWarning = this.quotaWarning;
       writableHotData.billingUpgradePrompt = this.billingUpgradePrompt;
 
@@ -383,7 +374,15 @@ export class WorkbenchStore {
   }
 
   requestProjectFilesPanel(open?: boolean) {
-    this.projectFilesPanelRequest.set({ open, requestId: Date.now() });
+    if (open === false || typeof window === 'undefined') {
+      return;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent('vibecore:open-project-ide-panel', {
+        detail: { panel: 'files' },
+      }),
+    );
   }
 
   configureRuntime(runtime: RuntimeAdapter) {
@@ -925,14 +924,16 @@ export class WorkbenchStore {
       return;
     }
 
-    this.appendWorkspaceLog('Workspace is stopped; reprovisioning before starting the preview…');
+    this.appendWorkspaceLog('Project runtime is stopped; reprovisioning before starting the preview…');
 
     try {
       const session = await withRuntimeRetry(() => this.#runtime.startWorkspace());
       this.workspaceStatus.set(session);
     } catch (error) {
       this.appendWorkspaceLog(
-        error instanceof Error ? `Workspace reprovision failed: ${error.message}` : 'Workspace reprovision failed',
+        error instanceof Error
+          ? `Project runtime reprovision failed: ${error.message}`
+          : 'Project runtime reprovision failed',
       );
     }
   }
@@ -1698,6 +1699,10 @@ export class WorkbenchStore {
     return this.#editorStore.currentDocument;
   }
 
+  get documents() {
+    return this.#editorStore.documents;
+  }
+
   get selectedFile(): ReadableAtom<string | undefined> {
     return this.#editorStore.selectedFile;
   }
@@ -1795,26 +1800,30 @@ export class WorkbenchStore {
       return;
     }
 
+    this.setDocumentContent(filePath, newContent);
+  }
+
+  setDocumentContent(filePath: string, newContent: string) {
     const originalContent = this.#filesStore.getFile(filePath)?.content;
     const unsavedChanges = originalContent !== undefined && originalContent !== newContent;
 
     this.#editorStore.updateFile(filePath, newContent);
 
-    const currentDocument = this.currentDocument.get();
+    const document = this.#editorStore.documents.get()[filePath];
 
-    if (currentDocument) {
+    if (document?.value === newContent) {
       const previousUnsavedFiles = this.unsavedFiles.get();
 
-      if (unsavedChanges && previousUnsavedFiles.has(currentDocument.filePath)) {
+      if (unsavedChanges && previousUnsavedFiles.has(filePath)) {
         return;
       }
 
       const newUnsavedFiles = new Set(previousUnsavedFiles);
 
       if (unsavedChanges) {
-        newUnsavedFiles.add(currentDocument.filePath);
+        newUnsavedFiles.add(filePath);
       } else {
-        newUnsavedFiles.delete(currentDocument.filePath);
+        newUnsavedFiles.delete(filePath);
       }
 
       this.unsavedFiles.set(newUnsavedFiles);

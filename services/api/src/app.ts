@@ -54,6 +54,7 @@ import {
 import { evaluateCapacityAlerts, DEFAULT_CAPACITY_ALERT_THRESHOLDS, type ClusterCapacity } from '@vibecore/k8s-client';
 import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSeconds } from '@vibecore/observability';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import { listGalleryDemoApps, materializeGalleryDemoApp } from '@vibecore/template-catalog/server';
 import {
   redactSecrets,
   redactSecretString,
@@ -254,6 +255,26 @@ import {
   type ProjectStorage,
   type StoredArchive,
 } from './project-storage.js';
+import {
+  ProjectGalleryError,
+  registerProjectGalleryRoutes,
+  type GalleryAppRecord,
+  type GalleryAppVersionRecord,
+  type GalleryArtifactType,
+  type GalleryDataRequirement,
+  type GalleryRuntimeConfiguration,
+  type GallerySnapshotFile,
+} from './project-gallery.js';
+import { prepareGallerySnapshot } from './project-gallery-validation.js';
+import { createGalleryPublishedAppResolver } from './project-gallery-resolver.js';
+import { probeGalleryFunctionalPreview } from './gallery-preview-probe.js';
+import {
+  ProjectImportHubError,
+  registerProjectImportHubRoutes,
+  type ProjectImportHubInput,
+  type ProjectImportHubSource,
+} from './project-import-hub.js';
+import { createProjectImportSourceService } from './project-import-source-service.js';
 import { aggregateProviderMetrics } from './provider-metrics.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
@@ -576,8 +597,6 @@ const createProjectSchema = z.object({
   description: z.string().optional(),
 });
 
-const createProjectFromTemplateSchema = createProjectSchema.extend({ templateName: z.string().min(1) });
-
 const createProjectFromAiSchema = z.object({
   prompt: z.string().min(1),
   name: z.string().min(1).optional(),
@@ -586,35 +605,7 @@ const createProjectFromAiSchema = z.object({
   framework: z.string().min(1).max(120).optional(),
   model: z.string().min(1).max(120).optional(),
 });
-const githubImportSchema = z.object({
-  /*
-   * z.string().url() accepts file:// and arbitrary internal hosts, which are
-   * then handed to `git clone` on the API host (local-file disclosure / SSRF).
-   * Constrain to the same HTTPS/SSH safe-URL check used by configure-remote.
-   */
-  repositoryUrl: z
-    .string()
-    .trim()
-    .min(1)
-    .max(2048)
-    .refine(isSafeGitRemoteUrl, 'Repository URL must be an HTTPS or SSH URL.'),
-  branch: z
-    .string()
-    .min(1)
-    .max(255)
-    .regex(/^[^\s"'`\\]+$/, 'Invalid branch name.')
-    /*
-     * Reject leading-dash refs (e.g. "--upload-pack=...") that could be parsed as
-     * a git CLI flag downstream — matches gitRefField used elsewhere.
-     */
-    .refine((value) => !value.startsWith('-'), 'Git ref must not start with "-".')
-    .optional(),
-  name: z.string().min(1).optional(),
-  slug: z.string().min(2).optional(),
-});
 const zipImportSchema = z.object({
-  name: z.string().min(1).optional(),
-  slug: z.string().min(2).optional(),
   zipBase64: z.string().min(1),
   replaceExisting: z.boolean().optional(),
 });
@@ -1008,7 +999,6 @@ const collaborationWebSocketTicketSchema = z.object({
 
 const transferProjectSchema = z.object({ targetOrganizationId: z.string().min(1) });
 const duplicateProjectSchema = z.object({ name: z.string().min(1), slug: z.string().min(2).optional() });
-const templateFromProjectSchema = z.object({ name: z.string().min(1), description: z.string().optional() });
 
 const createWorkspaceSchema = z.object({
   name: z.string().min(1),
@@ -5638,24 +5628,11 @@ function bootstrapPlatformAdmin(email: string) {
 function starterFiles(input: {
   sourceType: ProjectRecord['sourceType'];
   name: string;
-  templateName?: string;
   prompt?: string;
   artifactType?: string;
   framework?: string;
   model?: string;
 }): Array<{ path: string; content: string }> {
-  if (input.sourceType === 'template') {
-    return [
-      { path: 'README.md', content: `# ${input.name}\n\nCreated from Bolt template \`${input.templateName}\`.\n` },
-      { path: 'package.json', content: vitePackageJson(input.name) },
-      { path: 'vite.config.ts', content: viteConfigTs() },
-      { path: 'index.html', content: viteIndexHtml(input.name) },
-      { path: 'src/main.tsx', content: viteMainTsx() },
-      { path: 'src/App.tsx', content: viteAppTsx(input.name, `Created from Bolt template ${input.templateName}.`) },
-      { path: 'src/styles.css', content: viteStylesCss() },
-    ];
-  }
-
   if (input.sourceType === 'ai') {
     const generationContext = [
       input.artifactType ? `Artifact type: ${input.artifactType}` : undefined,
@@ -5758,6 +5735,189 @@ async function commitInitialScaffold(gitProvider: GitProvider, projectId: string
     message: 'chore: initial scaffold',
     files: [],
   });
+}
+
+const GALLERY_BUILTIN_ENV_NAMES = new Set(['NODE_ENV', 'PORT', 'HOST', 'CI', 'PWD', 'HOME']);
+
+function galleryRequiredSecretNames(files: readonly ProjectFile[]): string[] {
+  const names = new Set<string>();
+  const patterns = [
+    /\bprocess\.env\.([A-Z][A-Z0-9_]*)\b/g,
+    /\bimport\.meta\.env\.([A-Z][A-Z0-9_]*)\b/g,
+    /\b(?:env|requiredEnv|getEnv)\(\s*['"]([A-Z][A-Z0-9_]*)['"]\s*\)/g,
+  ];
+
+  for (const file of files) {
+    if (file.encoding === 'base64') continue;
+    for (const pattern of patterns) {
+      for (const match of file.content.matchAll(pattern)) {
+        const name = match[1];
+        if (name && !GALLERY_BUILTIN_ENV_NAMES.has(name)) names.add(name);
+      }
+    }
+  }
+
+  return [...names].sort();
+}
+
+function galleryRuntimeFromFiles(files: readonly ProjectFile[]): GalleryRuntimeConfiguration {
+  const byPath = new Map(files.map((file) => [file.path.toLowerCase(), file]));
+  const packageFile = byPath.get('package.json');
+  const packageManager: GalleryRuntimeConfiguration['packageManager'] = byPath.has('pnpm-lock.yaml')
+    ? 'pnpm'
+    : byPath.has('yarn.lock')
+      ? 'yarn'
+      : byPath.has('bun.lock') || byPath.has('bun.lockb')
+        ? 'bun'
+        : 'npm';
+  let scripts: Record<string, string> = {};
+  let packageManagerHint = '';
+
+  if (packageFile && packageFile.encoding !== 'base64') {
+    try {
+      const parsed = JSON.parse(packageFile.content) as {
+        packageManager?: unknown;
+        scripts?: Record<string, unknown>;
+      };
+      packageManagerHint = typeof parsed.packageManager === 'string' ? parsed.packageManager : '';
+      scripts = Object.fromEntries(
+        Object.entries(parsed.scripts ?? {}).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+      );
+    } catch {
+      throw new ProjectGalleryError('package.json is not valid JSON', 422, 'GALLERY_RUNTIME_INVALID');
+    }
+  }
+
+  const hintedManager = packageManagerHint.split('@')[0];
+  const resolvedManager = ['npm', 'pnpm', 'yarn', 'bun'].includes(hintedManager)
+    ? (hintedManager as GalleryRuntimeConfiguration['packageManager'])
+    : packageManager;
+  const devScript = scripts.dev ? 'dev' : scripts.start ? 'start' : undefined;
+
+  if (packageFile && !devScript) {
+    throw new ProjectGalleryError(
+      'The app needs a dev or start script before it can be published',
+      422,
+      'GALLERY_RUNTIME_COMMAND_MISSING',
+    );
+  }
+
+  const devCommand = packageFile
+    ? `${resolvedManager === 'npm' ? 'npm run' : resolvedManager} ${devScript}`
+    : 'npx --yes vite@8.1.4 --host 0.0.0.0';
+  const portMatch = devCommand.match(/(?:--port\s+|PORT=)(\d{4,5})/);
+  const nextLike = Boolean(packageFile && /\bnext\b/.test(packageFile.content));
+
+  return {
+    packageManager: resolvedManager,
+    installCommand: packageFile
+      ? resolvedManager === 'npm'
+        ? 'npm install'
+        : `${resolvedManager} install`
+      : 'npm --version',
+    devCommand,
+    ...(scripts.build ? { buildCommand: `${resolvedManager === 'npm' ? 'npm run' : resolvedManager} build` } : {}),
+    ...(scripts.start ? { startCommand: `${resolvedManager === 'npm' ? 'npm run' : resolvedManager} start` } : {}),
+    previewPort: portMatch ? Number(portMatch[1]) : nextLike ? 3000 : 5173,
+    requiredSecretNames: galleryRequiredSecretNames(files),
+  };
+}
+
+function galleryDataRequirements(files: readonly ProjectFile[]): GalleryDataRequirement[] {
+  const searchable = files
+    .filter((file) => file.encoding !== 'base64')
+    .map((file) => `${file.path}\n${file.content}`)
+    .join('\n')
+    .toLowerCase();
+  const requirements: GalleryDataRequirement[] = [];
+
+  if (/\b(?:@prisma\/client|drizzle-orm|postgres|pg|database_url)\b|schema\.prisma/.test(searchable)) {
+    requirements.push({ key: 'primary-database', kind: 'POSTGRES', required: true });
+  }
+  if (/\b(?:object[_-]?storage|@aws-sdk\/client-s3|s3client|blob\.put)\b/.test(searchable)) {
+    requirements.push({ key: 'app-storage', kind: 'OBJECT_STORAGE', required: true });
+  }
+  if (/\b(?:ioredis|redis_url|createclient\(.*redis)\b/.test(searchable)) {
+    requirements.push({ key: 'cache', kind: 'REDIS', required: true });
+  }
+
+  return requirements;
+}
+
+async function regenerateGalleryDependencyLock(input: {
+  projectId: string;
+  packageManager: GalleryRuntimeConfiguration['packageManager'];
+  projectStorage: ProjectStorage;
+}): Promise<ProjectFile[]> {
+  const files = await input.projectStorage.listFiles(input.projectId);
+  const packageFile = files.find((file) => file.path === 'package.json' && file.encoding !== 'base64');
+
+  if (!packageFile) return files;
+
+  const tempRoot = await mkdtemp(join(tmpdir(), 'vibecore-gallery-lock-'));
+  const commands: Record<
+    GalleryRuntimeConfiguration['packageManager'],
+    { command: string; args: string[]; lock: string }
+  > = {
+    npm: {
+      command: 'npm',
+      args: ['install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund'],
+      lock: 'package-lock.json',
+    },
+    pnpm: { command: 'pnpm', args: ['install', '--lockfile-only', '--ignore-scripts'], lock: 'pnpm-lock.yaml' },
+    yarn: { command: 'yarn', args: ['install', '--mode=skip-build'], lock: 'yarn.lock' },
+    bun: { command: 'bun', args: ['install', '--lockfile-only', '--ignore-scripts'], lock: 'bun.lock' },
+  };
+  const selected = commands[input.packageManager];
+
+  try {
+    await writeFile(join(tempRoot, 'package.json'), packageFile.content, 'utf8');
+
+    await new Promise<void>((resolvePromise, rejectPromise) => {
+      const child = spawn(selected.command, selected.args, {
+        cwd: tempRoot,
+        shell: false,
+        env: {
+          ...process.env,
+          CI: '1',
+          npm_config_audit: 'false',
+          npm_config_fund: 'false',
+          npm_config_ignore_scripts: 'true',
+        },
+        stdio: ['ignore', 'ignore', 'pipe'],
+      });
+      let stderr = '';
+      const timeout = setTimeout(() => {
+        child.kill('SIGTERM');
+        rejectPromise(
+          Object.assign(new Error('Dependency lock generation timed out'), { code: 'GALLERY_LOCK_TIMEOUT' }),
+        );
+      }, 120_000);
+
+      child.stderr.on('data', (chunk: Buffer) => {
+        stderr = `${stderr}${chunk.toString('utf8')}`.slice(-4_000);
+      });
+      child.on('error', (error) => {
+        clearTimeout(timeout);
+        rejectPromise(Object.assign(error, { code: 'GALLERY_LOCK_COMMAND_UNAVAILABLE' }));
+      });
+      child.on('close', (code) => {
+        clearTimeout(timeout);
+        if (code === 0) resolvePromise();
+        else
+          rejectPromise(
+            Object.assign(new Error(`Dependency lock generation failed (${code}): ${redactSecretString(stderr)}`), {
+              code: 'GALLERY_LOCK_GENERATION_FAILED',
+            }),
+          );
+      });
+    });
+
+    const lockContent = await readFile(join(tempRoot, selected.lock), 'utf8');
+    return input.projectStorage.writeFiles(input.projectId, [{ path: selected.lock, content: lockContent }]);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
 }
 
 function vitePackageJson(name: string) {
@@ -7866,7 +8026,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   await app.register(cors, {
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['authorization', 'content-type', 'accept', 'x-org-id', 'x-csrf-token'],
+    allowedHeaders: ['authorization', 'content-type', 'accept', 'idempotency-key', 'x-org-id', 'x-csrf-token'],
     origin(origin, callback) {
       callback(null, assertStrictCorsOrigin(origin, allowedOrigins));
     },
@@ -9283,6 +9443,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/') ||
+      /*
+       * Published Gallery discovery is public. Mutations and every
+       * organization-scoped draft route remain behind normal user auth.
+       */
+      (request.method === 'GET' &&
+        (request.url === '/gallery/apps' ||
+          request.url.startsWith('/gallery/apps?') ||
+          request.url.startsWith('/gallery/apps/'))) ||
       /*
        * Service-to-service internal endpoints (metering ingest, inactivity GC).
        * Exempt from user auth; each route self-authenticates with the shared
@@ -12385,7 +12553,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const RUNTIME_PROXY_TIMEOUT_MS = 15000;
 
-  const withRequestTimeout = (init: RequestInit, timeoutMs = RUNTIME_PROXY_TIMEOUT_MS): { init: RequestInit; done: () => void } => {
+  const withRequestTimeout = (
+    init: RequestInit,
+    timeoutMs = RUNTIME_PROXY_TIMEOUT_MS,
+  ): { init: RequestInit; done: () => void } => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -17966,148 +18137,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         sourceType: 'blank',
       });
     });
-    const files = await projectStorage.writeFiles(
-      project.id,
-      starterFiles({ sourceType: 'blank', name: project.name }),
-    );
-    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
-    await commitInitialScaffold(gitProvider, project.id);
-    await recordUsage(request, orgId, 'projects.count');
-    await store.recordProjectActivity({
-      projectId: project.id,
-      actorUserId: request.currentUser!.id,
-      action: 'project.create',
-      metadata: { sourceType: 'blank' },
-    });
-    await audit(request, store, {
-      organizationId: orgId,
-      action: 'project.create',
-      resourceType: 'project',
-      resourceId: project.id,
-    });
-
-    return reply.code(201).send({ project });
-  });
-
-  /*
-   * Contextualised "next steps" welcome the agent shows when a template project is
-   * opened (so the agent panel isn't empty). Derived from the template id — no made-up
-   * claims; a generic-but-useful message covers any template not in the map.
-   */
-  const templateWelcomeMessage = (templateName: string | undefined, projectName: string): string => {
-    const perTemplate: Record<string, { is: string; steps: string[] }> = {
-      'react-saas': {
-        is: 'a React + Vite + TypeScript SaaS starter with a landing page and a routing-ready structure',
-        steps: [
-          'Update the hero copy and app name in `src/App.tsx`',
-          'Add your first page/route',
-          'Wire up auth and your data/API',
-        ],
-      },
-      'next-dashboard': {
-        is: 'a Next.js dashboard starter with layout, navigation and example pages',
-        steps: ['Edit the dashboard layout and cards', 'Add a new dashboard page', 'Connect a data source'],
-      },
-      'fastify-api': {
-        is: 'a Fastify + TypeScript API starter with example routes and validation',
-        steps: ['Add a new route/handler', 'Define request/response schemas', 'Connect a database'],
-      },
-      'ai-agent': {
-        is: 'an AI agent starter wired for tool calls and streaming',
-        steps: ['Define your agent’s tools', 'Adjust the system prompt', 'Try a prompt in the preview'],
-      },
-      'landing-page': {
-        is: 'a polished landing-page starter with sections and responsive styles',
-        steps: ['Edit the hero and feature sections', 'Swap in your brand colors and copy', 'Add a contact/CTA form'],
-      },
-      'mobile-starter': {
-        is: 'a mobile-first (Expo/React Native compatible) starter with touch-friendly navigation',
-        steps: ['Edit the home screen', 'Add a new screen/tab', 'Hook up your data'],
-      },
-    };
-    const info = (templateName && perTemplate[templateName]) || {
-      is: 'a ready-to-run starter project',
-      steps: [
-        'Describe the first change you want and I’ll edit the files',
-        'Edit files directly in the editor',
-        'Deploy from the Deployments tab',
-      ],
-    };
-
-    return [
-      `👋 Welcome to **${projectName}** — ${info.is}.`,
-      '',
-      'The dev server starts automatically and the app appears in the **Webview** (Preview) — no clicking needed. Your files save automatically.',
-      '',
-      'To make changes, just describe what you want here and I’ll edit the files for you, or edit them directly in the editor on the left.',
-      '',
-      '**Next steps:**',
-      ...info.steps.map((step, index) => `${index + 1}. ${step}`),
-    ].join('\n');
-  };
-
-  app.post('/orgs/:orgId/projects/from-template', async (request, reply) => {
-    const { orgId } = parse(orgParams, request.params);
-    const body = parse(createProjectFromTemplateSchema, request.body);
-    await requireOrg(request, store, orgId, 'projects:write');
-    await requireOrganizationNotSuspended(store, orgId);
-
-    // Serialize quota + create (projects.count TOCTOU).
-    const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
-      await ensureQuota(request, orgId, 'projects.count');
-
-      return store.createProject({
-        organizationId: orgId,
-        name: body.name,
-        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        description: body.description,
-        sourceType: 'template',
-        templateName: body.templateName,
-      });
-    });
-    const files = await projectStorage.writeFiles(
-      project.id,
-      starterFiles({ sourceType: 'template', name: project.name, templateName: body.templateName }),
-    );
-    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
-    await commitInitialScaffold(gitProvider, project.id);
-    await recordUsage(request, orgId, 'projects.count');
-
     /*
-     * Seed a contextualised agent welcome so the IDE opens with "next steps", not an
-     * empty agent panel. Non-fatal — never fail project creation on a seeding hiccup.
+     * A blank project is deliberately blank: no Agent, framework, package
+     * manifest, README or generated scaffold. Initialising Git still gives the
+     * IDE its own repository while leaving the working tree empty for power
+     * users. The first real file edit becomes the first commit.
      */
-    try {
-      const conversation = await store.createAiConversation({
-        projectId: project.id,
-        userId: request.currentUser!.id,
-        title: `${project.name} — getting started`,
-      });
-      await store.createAiMessage({
-        conversationId: conversation.id,
-        role: 'assistant',
-        content: templateWelcomeMessage(body.templateName, project.name),
-      });
-    } catch (error) {
-      request.log.warn({ err: error, projectId: project.id }, 'failed to seed template welcome message');
-    }
-
+    await gitProvider.status(project.id);
+    await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
-      action: 'project.create_from_template',
-      metadata: { templateName: body.templateName },
+      action: 'project.create',
+      metadata: { sourceType: 'blank', scaffolded: false },
     });
     await audit(request, store, {
       organizationId: orgId,
-      action: 'project.create_from_template',
+      action: 'project.create',
       resourceType: 'project',
       resourceId: project.id,
-      metadata: { templateName: body.templateName },
     });
 
     return reply.code(201).send({ project });
   });
+
   app.post('/orgs/:orgId/projects/from-ai', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     const body = parse(createProjectFromAiSchema, request.body);
@@ -18155,173 +18208,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ project });
   });
-  app.post('/orgs/:orgId/projects/import/github', async (request, reply) => {
-    const { orgId } = parse(orgParams, request.params);
-    const body = parse(githubImportSchema, request.body);
-    await requireOrg(request, store, orgId, 'projects:write');
-    await requireOrganizationNotSuspended(store, orgId);
-
-    /*
-     * Cheap pre-check to reject an over-quota org before the (slow) clone; the
-     * authoritative atomic check is inside the serialized block below.
-     */
-    await ensureQuota(request, orgId, 'projects.count');
-
-    const imported = await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch });
-
-    const name =
-      body.name ??
-      body.repositoryUrl
-        .split('/')
-        .pop()
-        ?.replace(/\.git$/, '') ??
-      'Imported project';
-
-    /*
-     * Re-check quota + create atomically (the slow clone is intentionally OUTSIDE
-     * the advisory-lock transaction).
-     */
-    const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
-      await ensureQuota(request, orgId, 'projects.count');
-
-      return store.createProject({
-        organizationId: orgId,
-        name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        sourceType: 'github',
-        gitRepositoryUrl: imported.remoteUrl,
-        gitDefaultBranch: imported.defaultBranch,
-      });
-    });
-
-    const files = await projectStorage.writeFiles(project.id, imported.files);
-    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
-    await recordUsage(request, orgId, 'projects.count');
-    await store.recordProjectActivity({
-      projectId: project.id,
-      actorUserId: request.currentUser!.id,
-      action: 'project.import_github',
-      metadata: { repositoryUrl: body.repositoryUrl },
-    });
-    await audit(request, store, {
-      organizationId: orgId,
-      action: 'project.import_github',
-      resourceType: 'project',
-      resourceId: project.id,
-      metadata: { repositoryUrl: body.repositoryUrl },
-    });
-
-    return reply.code(201).send({ project, files: publicFiles(files) });
-  });
-
-  /*
-   * GitLab / Bitbucket repo import — parity with the GitHub import above so these
-   * connectors create a real, persistent project (not deploy-only). Reuses the
-   * same SSRF-safe githubImportSchema (HTTPS/SSH only, blocks file://+internal
-   * hosts) and the same gitProvider.importRepository → createProject → writeFiles
-   * chain, org-scoped and quota-gated. sourceType records the origin per provider.
-   */
-  async function importRepositoryIntoProject(
+  async function rejectDirectProjectImport(
     request: FastifyRequest,
     reply: FastifyReply,
-    provider: 'gitlab' | 'bitbucket',
+    source: ProjectImportHubSource,
   ) {
     const { orgId } = parse(orgParams, request.params);
-    const body = parse(githubImportSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
-    await ensureQuota(request, orgId, 'projects.count');
-
-    const imported = await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch });
-
-    const name =
-      body.name ??
-      body.repositoryUrl
-        .split('/')
-        .pop()
-        ?.replace(/\.git$/, '') ??
-      'Imported project';
-
-    const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
-      await ensureQuota(request, orgId, 'projects.count');
-
-      return store.createProject({
-        organizationId: orgId,
-        name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        sourceType: provider,
-        gitRepositoryUrl: imported.remoteUrl,
-        gitDefaultBranch: imported.defaultBranch,
-      });
+    return reply.code(410).send({
+      error: 'Validate this source in the Import Hub before creating a project.',
+      code: 'PROJECT_IMPORT_HUB_REQUIRED',
+      recoverable: true,
+      importHubPath: `/dashboard/templates?section=import&source=${encodeURIComponent(source)}`,
     });
-
-    const files = await projectStorage.writeFiles(project.id, imported.files);
-    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
-    await recordUsage(request, orgId, 'projects.count');
-    await store.recordProjectActivity({
-      projectId: project.id,
-      actorUserId: request.currentUser!.id,
-      action: `project.import_${provider}`,
-      metadata: { repositoryUrl: body.repositoryUrl },
-    });
-    await audit(request, store, {
-      organizationId: orgId,
-      action: `project.import_${provider}`,
-      resourceType: 'project',
-      resourceId: project.id,
-      metadata: { repositoryUrl: body.repositoryUrl },
-    });
-
-    return reply.code(201).send({ project, files: publicFiles(files) });
   }
 
-  app.post('/orgs/:orgId/projects/import/gitlab', (request, reply) =>
-    importRepositoryIntoProject(request, reply, 'gitlab'),
+  app.post('/orgs/:orgId/projects/import/github', (request, reply) =>
+    rejectDirectProjectImport(request, reply, 'github'),
   );
   app.post('/orgs/:orgId/projects/import/bitbucket', (request, reply) =>
-    importRepositoryIntoProject(request, reply, 'bitbucket'),
+    rejectDirectProjectImport(request, reply, 'bitbucket'),
   );
 
-  app.post('/orgs/:orgId/projects/import/zip', async (request, reply) => {
-    const { orgId } = parse(orgParams, request.params);
-    const body = parse(zipImportSchema, request.body);
-    await requireOrg(request, store, orgId, 'projects:write');
-    await requireOrganizationNotSuspended(store, orgId);
-
-    const name = body.name ?? 'Imported zip project';
-
-    // Serialize quota + create (projects.count TOCTOU).
-    const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
-      await ensureQuota(request, orgId, 'projects.count');
-
-      return store.createProject({
-        organizationId: orgId,
-        name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        sourceType: 'zip',
-      });
-    });
-
-    const files = await projectStorage.importZip(project.id, body.zipBase64);
-    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
-    await commitInitialScaffold(gitProvider, project.id);
-    await recordUsage(request, orgId, 'projects.count');
-    await store.recordProjectActivity({
-      projectId: project.id,
-      actorUserId: request.currentUser!.id,
-      action: 'project.import_zip',
-      metadata: { files: files.length },
-    });
-    await audit(request, store, {
-      organizationId: orgId,
-      action: 'project.import_zip',
-      resourceType: 'project',
-      resourceId: project.id,
-      metadata: { files: files.length },
-    });
-
-    return reply.code(201).send({ project, files: publicFiles(files) });
-  });
+  app.post('/orgs/:orgId/projects/import/zip', (request, reply) => rejectDirectProjectImport(request, reply, 'zip'));
   app.get('/projects/resolve', async (request) => {
     const query = parse(projectResolveQuerySchema, request.query);
     const organizationSlug = slugifyRouteSegment(query.accountSlug);
@@ -19319,7 +19229,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
     );
 
-    const body = parse(zipImportSchema.pick({ zipBase64: true, replaceExisting: true }), request.body);
+    const body = parse(zipImportSchema, request.body);
 
     const files = await projectStorage.importZip(project.id, body.zipBase64, {
       replaceExisting: body.replaceExisting === true,
@@ -21011,38 +20921,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ project: duplicate });
   });
-  app.post('/projects/:projectId/template', async (request, reply) => {
-    const project = await requireProject(
-      request,
-      store,
-      parse(projectParams, request.params).projectId,
-      'projects:read',
-    );
-
-    /*
-     * Creating an org-scoped template is a write to the org — require real
-     * membership, not a read-only/collaborator pass.
-     */
-    await requireOrg(request, store, project.organizationId, 'projects:write');
-
-    const body = parse(templateFromProjectSchema, request.body);
-
-    const template = await store.createProjectTemplate({
-      sourceProjectId: project.id,
-      organizationId: project.organizationId,
-      name: body.name,
-      description: body.description,
-    });
-    await audit(request, store, {
-      organizationId: project.organizationId,
-      action: 'project.template.create',
-      resourceType: 'projectTemplate',
-      resourceId: template.id,
-    });
-
-    return reply.code(201).send({ template });
-  });
-
   app.get('/projects/:projectId/workspaces', async (request) => {
     const project = await requireProject(
       request,
@@ -28057,9 +27935,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       timestamp: nowIso(),
                       level: 'info',
                       message: `Server deploy: image ready ${imageUri}${
-                        buildResult.imageSizeBytes
-                          ? ` (${Math.round(buildResult.imageSizeBytes / 1_000_000)} MB)`
-                          : ''
+                        buildResult.imageSizeBytes ? ` (${Math.round(buildResult.imageSizeBytes / 1_000_000)} MB)` : ''
                       } in ${Math.round(buildResult.durationMs / 1000)}s`,
                     });
 
@@ -30159,6 +30035,635 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return reply.code(204).send();
+  });
+
+  const activeImportConnectionToken = async (userId: string, provider: 'github' | 'bitbucket' | 'vercel') => {
+    const connections = await store.listUserConnectionsByUser(userId, { provider });
+    const connection = connections.find((candidate) => candidate.status === 'active' && candidate.accessTokenEncrypted);
+    if (!connection?.accessTokenEncrypted) return undefined;
+
+    try {
+      return {
+        token: decryptJson<{ value: string }>(connection.accessTokenEncrypted).value,
+        externalAccountId: connection.externalAccountId,
+      };
+    } catch {
+      return undefined;
+    }
+  };
+
+  const projectImportSourceService = (userId: string) =>
+    createProjectImportSourceService({
+      gitProvider: {
+        async importRepository(input) {
+          try {
+            return await gitProvider.importRepository(input);
+          } catch (publicCloneError) {
+            const url = new URL(input.repositoryUrl);
+            const provider =
+              url.hostname === 'github.com' ? 'github' : url.hostname === 'bitbucket.org' ? 'bitbucket' : null;
+            if (!provider) throw publicCloneError;
+            const connection = await activeImportConnectionToken(userId, provider);
+            if (!connection?.token) throw publicCloneError;
+
+            const [owner, repositoryWithGit] = url.pathname.split('/').filter(Boolean);
+            const repository = repositoryWithGit?.replace(/\.git$/i, '');
+            if (!owner || !repository) throw publicCloneError;
+            const headers = {
+              authorization: `Bearer ${connection.token}`,
+              accept: provider === 'github' ? 'application/vnd.github+json' : 'application/json',
+              'user-agent': 'e-code-import-hub',
+            };
+            const metadataUrl =
+              provider === 'github'
+                ? `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}`
+                : `https://api.bitbucket.org/2.0/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}`;
+            const metadataResponse = await fetch(metadataUrl, { headers, signal: AbortSignal.timeout(15_000) });
+            if (!metadataResponse.ok) throw publicCloneError;
+            const metadata = (await metadataResponse.json()) as {
+              default_branch?: string;
+              mainbranch?: { name?: string };
+            };
+            const defaultBranch = input.branch ?? metadata.default_branch ?? metadata.mainbranch?.name ?? 'main';
+            const archiveUrl =
+              provider === 'github'
+                ? `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/zipball/${encodeURIComponent(defaultBranch)}`
+                : `https://api.bitbucket.org/2.0/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/src/${encodeURIComponent(defaultBranch)}.zip`;
+            const archiveResponse = await fetch(archiveUrl, {
+              headers,
+              redirect: 'follow',
+              signal: AbortSignal.timeout(30_000),
+            });
+            if (!archiveResponse.ok) throw publicCloneError;
+            const declaredLength = Number(archiveResponse.headers.get('content-length') ?? 0);
+            if (declaredLength > 50 * 1024 * 1024) {
+              throw Object.assign(new Error('Repository archive is too large'), {
+                code: 'PROJECT_IMPORT_ARCHIVE_TOO_LARGE',
+              });
+            }
+            const archive = Buffer.from(await archiveResponse.arrayBuffer());
+            if (archive.byteLength > 50 * 1024 * 1024) {
+              throw Object.assign(new Error('Repository archive is too large'), {
+                code: 'PROJECT_IMPORT_ARCHIVE_TOO_LARGE',
+              });
+            }
+            return {
+              files: (await filesFromZipBase64(archive.toString('base64'))).map((file) => ({
+                ...file,
+                updatedAt: new Date().toISOString(),
+              })),
+              defaultBranch,
+              remoteUrl: input.repositoryUrl,
+            };
+          }
+        },
+      },
+      resolveVercelConnection: async ({ sourceUrl }) => {
+        const connection = await activeImportConnectionToken(userId, 'vercel');
+        if (!connection?.token) return null;
+        const teamSlug = new URL(sourceUrl).pathname.split('/').filter(Boolean)[0];
+        let teamId: string | undefined;
+
+        if (teamSlug) {
+          const teamsResponse = await fetch(`https://api.vercel.com/v2/teams?slug=${encodeURIComponent(teamSlug)}`, {
+            headers: { authorization: `Bearer ${connection.token}`, accept: 'application/json' },
+            signal: AbortSignal.timeout(15_000),
+          }).catch(() => undefined);
+          if (teamsResponse?.ok) {
+            const teams = (await teamsResponse.json()) as { teams?: Array<{ id?: string }> };
+            teamId = teams.teams?.[0]?.id;
+          }
+        }
+
+        return { accessToken: connection.token, ...(teamId ? { teamId } : {}) };
+      },
+      validateHostedSource: async ({ sourceUrl }) => {
+        try {
+          const response = await fetch(sourceUrl, {
+            method: 'GET',
+            redirect: 'manual',
+            signal: AbortSignal.timeout(10_000),
+            headers: { accept: 'text/html,application/json;q=0.8' },
+          });
+          const contentType = (response.headers.get('content-type') ?? '').toLowerCase();
+          return {
+            accessible:
+              response.ok && (contentType.includes('text/html') || contentType.includes('application/json')),
+          };
+        } catch {
+          return { accessible: false };
+        }
+      },
+    });
+
+  const galleryPublishedApps = createGalleryPublishedAppResolver(store);
+
+  await registerProjectGalleryRoutes(app, {
+    store,
+    publishedApps: galleryPublishedApps,
+    authenticate: async (request) => (request.currentUser ? { userId: request.currentUser.id } : null),
+    authorizeOrganization: async ({ request, userId, organizationId, permission }) => {
+      if (request.currentUser?.id !== userId) return false;
+
+      try {
+        await requireOrg(request, store, organizationId, permission);
+        if (permission === 'projects:write') await requireOrganizationNotSuspended(store, organizationId);
+        return true;
+      } catch (error) {
+        if ([401, 403, 404].includes((error as { statusCode?: number }).statusCode ?? 0)) return false;
+        throw error;
+      }
+    },
+    authorizeModeration: async ({ request, userId }) =>
+      request.currentUser?.id === userId && request.currentUser.platformAdmin === true,
+    /* Every route is already protected by the API-wide Fastify rate limiter. */
+    consumeRateLimit: async () => undefined,
+    sourceProjects: {
+      async findProject(projectId) {
+        const project = await store.getProject(projectId);
+        return project
+          ? {
+              id: project.id,
+              organizationId: project.organizationId,
+              deletedAt: project.deletedAt,
+            }
+          : undefined;
+      },
+      async loadPublicationSnapshot({ projectId }) {
+        const files = await listProjectFilesIncludingIdeState(store, projectStorage, projectId);
+        return {
+          files: files.map((file) => ({
+            path: file.path,
+            content: file.content,
+            ...(file.encoding === 'base64' ? { encoding: 'base64' as const } : {}),
+          })),
+          runtime: galleryRuntimeFromFiles(files),
+          dataRequirements: galleryDataRequirements(files),
+        };
+      },
+      async verifyFunctionalPreview({ projectId, versionHash }) {
+        const files = await listProjectFilesIncludingIdeState(store, projectStorage, projectId);
+        const current = prepareGallerySnapshot({
+          files: files.map((file) => ({
+            path: file.path,
+            content: file.content,
+            ...(file.encoding === 'base64' ? { encoding: 'base64' as const } : {}),
+          })),
+          runtime: galleryRuntimeFromFiles(files),
+          dataRequirements: galleryDataRequirements(files),
+        });
+
+        if (current.contentHash !== versionHash) {
+          throw new ProjectGalleryError(
+            'The project changed after its Gallery snapshot was created',
+            409,
+            'GALLERY_SOURCE_CHANGED',
+          );
+        }
+
+        const status = await gitProvider.status(projectId);
+        if (status.changedFiles.length > 0) {
+          throw new ProjectGalleryError(
+            'Commit the current project before publishing it to the Gallery',
+            409,
+            'GALLERY_SOURCE_NOT_COMMITTED',
+          );
+        }
+
+        const head = (await gitProvider.logGraph(projectId, 1))[0]?.sha;
+        const deployments = await store.listDeployments(projectId, { take: 20 });
+        const deployment = deployments.find((candidate) => {
+          const url = candidate.previewUrl ?? candidate.productionUrl ?? candidate.url;
+          return candidate.status === 'READY' && Boolean(url) && Boolean(head) && candidate.commitSha === head;
+        });
+        const previewUrl = deployment?.previewUrl ?? deployment?.productionUrl ?? deployment?.url;
+
+        if (!previewUrl || !isSafeWebhookUrl(previewUrl)) {
+          throw new ProjectGalleryError(
+            'Publish the current commit successfully before submitting it to the Gallery',
+            422,
+            'GALLERY_PREVIEW_NOT_DEPLOYED',
+          );
+        }
+
+        return probeGalleryFunctionalPreview(previewUrl);
+      },
+    },
+    remixProvisioner: {
+      async createDestinationProject(input) {
+        if (!input.request) {
+          throw Object.assign(new Error('Remix request context is missing'), {
+            code: 'GALLERY_REQUEST_CONTEXT_MISSING',
+          });
+        }
+
+        const baseSlug = slugifyRouteSegment(input.slug ?? input.name) || 'remixed-app';
+        const slug = `${baseSlug.slice(0, 140)}-${input.provisioningKey.slice(-10).toLowerCase()}`;
+
+        return store.withSerializedMutation(`projects:${input.organizationId}`, async () => {
+          const existing = (await store.listProjects(input.organizationId, { includeArchived: true })).find(
+            (project) => project.slug === slug,
+          );
+
+          if (existing) {
+            if (existing.sourceType !== 'gallery-remix') {
+              throw Object.assign(new Error('The deterministic remix slug is already in use'), {
+                code: 'GALLERY_REMIX_SLUG_CONFLICT',
+              });
+            }
+            return { projectId: existing.id };
+          }
+
+          await ensureQuota(input.request, input.organizationId, 'projects.count');
+          const project = await store.createProject({
+            organizationId: input.organizationId,
+            name: input.name,
+            slug,
+            sourceType: 'gallery-remix',
+          });
+          await recordUsage(input.request, input.organizationId, 'projects.count');
+          await store.recordProjectActivity({
+            projectId: project.id,
+            actorUserId: input.ownerUserId,
+            action: 'project.remix.create',
+            metadata: {
+              provisioningKey: input.provisioningKey,
+              sourceGalleryAppId: input.provenance.sourceGalleryAppId,
+              sourceGalleryAppVersionId: input.provenance.sourceGalleryAppVersionId,
+              sourceProjectId: input.provenance.sourceProjectId,
+            },
+          });
+          return { projectId: project.id };
+        });
+      },
+      async createInternalRepository({ projectId }) {
+        await gitProvider.status(projectId);
+        return { repositoryId: `internal:${projectId}` };
+      },
+      async writeSourceFiles({ projectId, files }) {
+        const written = await projectStorage.writeFiles(
+          projectId,
+          files.map((file) => ({
+            path: file.path,
+            content: file.content,
+            ...(file.encoding === 'base64' ? { encoding: 'base64' as const } : {}),
+          })),
+        );
+        await persistProjectFileManifest(store, projectId, written);
+      },
+      async createWorkspace(input) {
+        const workspaceId = runtimeWorkspaceId(input.projectId, input.ownerUserId);
+        const existing = await store.getWorkspace(workspaceId);
+        if (existing) return { workspaceId: existing.id };
+
+        if (!input.request) {
+          throw Object.assign(new Error('Remix request context is missing'), {
+            code: 'GALLERY_REQUEST_CONTEXT_MISSING',
+          });
+        }
+
+        const workspace = await store.withSerializedMutation(`workspaces:${input.organizationId}`, async () => {
+          const raced = await store.getWorkspace(workspaceId);
+          if (raced) return raced;
+          await ensureQuota(input.request, input.organizationId, 'workspaces.active');
+          const created = await store.createWorkspace({
+            id: workspaceId,
+            projectId: input.projectId,
+            name: 'Remix workspace',
+            runtimeMode: process.env.WORKSPACE_DEFAULT_RUNTIME_MODE ?? 'remote-kubernetes',
+          });
+          await recordUsage(input.request, input.organizationId, 'workspaces.active');
+          return created;
+        });
+
+        return { workspaceId: workspace.id };
+      },
+      async provisionIsolatedDataResources({ projectId, requirements }) {
+        const project = await store.getProject(projectId);
+        if (!project) throw Object.assign(new Error('Remix project not found'), { code: 'PROJECT_NOT_FOUND' });
+        const dataResourceIds: string[] = [];
+
+        for (const requirement of requirements) {
+          if (requirement.kind === 'POSTGRES') {
+            const provisioner = resolveDefaultDatabaseProvisioner();
+            if (!provisioner.active) {
+              throw Object.assign(new Error('Managed Postgres is not configured'), {
+                code: 'GALLERY_DATABASE_UNAVAILABLE',
+              });
+            }
+            const state = await billingState(project.organizationId).catch(() => undefined);
+            const tier = resolveDatabaseTier(state?.plan.key);
+            const existing = await store.getDatabaseInstanceByProject(projectId, 'development');
+            const instance =
+              existing ??
+              (await store.createDatabaseInstance({
+                projectId,
+                organizationId: project.organizationId,
+                retentionDays: 7,
+                environment: 'development',
+              }));
+            await provisioner.provisionInstance({
+              projectId,
+              organizationId: project.organizationId,
+              retentionDays: instance.retentionDays,
+              tier,
+              environment: 'development',
+            });
+            let databaseUrl: string | undefined;
+            for (let attempt = 0; attempt < 30 && !databaseUrl; attempt += 1) {
+              databaseUrl = await provisioner.getConnectionUri({
+                projectId,
+                tier,
+                environment: 'development',
+              });
+              if (!databaseUrl) await new Promise((resolvePromise) => setTimeout(resolvePromise, 2_000));
+            }
+            if (!databaseUrl) {
+              throw Object.assign(new Error('Managed Postgres did not become ready'), {
+                code: 'GALLERY_DATABASE_NOT_READY',
+              });
+            }
+            await store.upsertProjectSecret({
+              projectId,
+              key: 'DATABASE_URL',
+              valueEncrypted: encryptJson({ value: databaseUrl }),
+            });
+            await store.updateDatabaseInstance(instance.id, { status: 'ACTIVE' });
+            dataResourceIds.push(instance.id);
+          } else if (requirement.kind === 'OBJECT_STORAGE') {
+            if (!isObjectStorageEnabled()) {
+              throw Object.assign(new Error('Object storage is not configured'), {
+                code: 'GALLERY_OBJECT_STORAGE_UNAVAILABLE',
+              });
+            }
+            dataResourceIds.push(`object-storage:${projectId}`);
+          } else {
+            throw Object.assign(new Error('Redis remix resources are not available'), {
+              code: 'GALLERY_REDIS_UNAVAILABLE',
+            });
+          }
+        }
+
+        return { dataResourceIds };
+      },
+      async regenerateDependencyLocks({ projectId, packageManager }) {
+        await regenerateGalleryDependencyLock({ projectId, packageManager, projectStorage });
+        const files = await projectStorage.listFiles(projectId);
+        await persistProjectFileManifest(store, projectId, files);
+      },
+      async initializeGitRepository({ projectId, initialCommitMessage }) {
+        const status = await gitProvider.status(projectId);
+        if (status.changedFiles.length > 0) {
+          await gitProvider.commit({ projectId, message: initialCommitMessage, files: [] });
+        }
+      },
+      async enqueueAgentAnalysis(input) {
+        const agentAnalysisId = randomUUID();
+        const missingSecrets = input.missingSecretNames.length
+          ? `\nMissing secret names (values were intentionally not copied): ${input.missingSecretNames.join(', ')}.`
+          : '';
+        await mutateProjectIdeState(store, input.projectId, input.ownerUserId, ({ root }) =>
+          mergeProjectIdeState(root, {
+            chat: {
+              pendingPrompt: {
+                id: agentAnalysisId,
+                prompt: [
+                  'Analyze this remixed application copy. Do not replace working code.',
+                  'Explain the architecture, run the existing checks, verify the Preview, then propose the three highest-value next changes.',
+                  `Source Gallery app: ${input.sourceGalleryAppId} (${input.sourceGalleryAppVersionId}).${missingSecrets}`,
+                ].join('\n'),
+                createdAt: new Date().toISOString(),
+              },
+            },
+          }),
+        );
+        return { agentAnalysisId };
+      },
+      async rollbackRemix(resources) {
+        const databaseProvisioner = resolveDefaultDatabaseProvisioner();
+        if (databaseProvisioner.active) await databaseProvisioner.teardown({ projectId: resources.projectId });
+        if (projectStorage.deleteProject) await projectStorage.deleteProject(resources.projectId);
+        else await projectStorage.restoreSnapshot({ projectId: resources.projectId, files: [] });
+        await store.hardDeleteProject(resources.projectId).catch(() => undefined);
+      },
+    },
+  });
+
+  await registerProjectImportHubRoutes(app, {
+    store,
+    authenticate: async (request) => (request.currentUser ? { userId: request.currentUser.id } : null),
+    authorizeOrganization: async ({ request, userId, organizationId, permission }) => {
+      if (request.currentUser?.id !== userId) return false;
+
+      try {
+        await requireOrg(request, store, organizationId, permission);
+        if (permission === 'projects:write') await requireOrganizationNotSuspended(store, organizationId);
+        return true;
+      } catch (error) {
+        if ([401, 403, 404].includes((error as { statusCode?: number }).statusCode ?? 0)) return false;
+        throw error;
+      }
+    },
+    inspectSource: async ({ organizationId, userId, source, input }) =>
+      projectImportSourceService(userId).inspectSource({ organizationId, userId, source, input }),
+    materializeImport: async ({ request, organizationId, userId, source, input, job, materializationKey, policy }) => {
+      const providerValidation =
+        job.validation.provider &&
+        typeof job.validation.provider === 'object' &&
+        !Array.isArray(job.validation.provider)
+          ? (job.validation.provider as Record<string, unknown>)
+          : {};
+      const expectedContentHash =
+        typeof providerValidation.contentHash === 'string' ? providerValidation.contentHash : undefined;
+      const materialized = await projectImportSourceService(userId).materializeSource({
+        organizationId,
+        userId,
+        source,
+        input,
+        policy,
+        expectedContentHash,
+      });
+      const requestedName = typeof input.name === 'string' ? input.name : job.sourceLabel;
+      const name = requestedName?.trim() || 'Imported project';
+      const requestedSlug = typeof input.slug === 'string' ? input.slug : slugifyRouteSegment(name);
+      const slugBase = slugifyRouteSegment(requestedSlug) || 'imported-project';
+      const slug = `${slugBase.slice(0, 140)}-${job.id.slice(-10).toLowerCase()}`;
+      const projectSourceType: ProjectRecord['sourceType'] =
+        source === 'previous-agent-export' ? 'previous-agent' : source === 'empty' ? 'blank' : source;
+      const repositoryUrl =
+        (source === 'github' || source === 'bitbucket') && typeof input.repositoryUrl === 'string'
+          ? input.repositoryUrl
+          : undefined;
+      let createdProject = false;
+      let project = (await store.listProjects(organizationId, { includeArchived: true })).find(
+        (candidate) => candidate.slug === slug,
+      );
+
+      if (project && project.sourceType !== projectSourceType) {
+        throw new ProjectImportHubError(
+          'The deterministic import destination is already in use',
+          409,
+          'PROJECT_IMPORT_DESTINATION_CONFLICT',
+        );
+      }
+
+      try {
+        if (!project) {
+          project = await store.withSerializedMutation(`projects:${organizationId}`, async () => {
+            const raced = (await store.listProjects(organizationId, { includeArchived: true })).find(
+              (candidate) => candidate.slug === slug,
+            );
+            if (raced) return raced;
+
+            await ensureQuota(request, organizationId, 'projects.count');
+            const created = await store.createProject({
+              organizationId,
+              name,
+              slug,
+              sourceType: projectSourceType,
+              ...(repositoryUrl ? { gitRepositoryUrl: repositoryUrl } : {}),
+              ...(materialized.metadata.defaultBranch ? { gitDefaultBranch: materialized.metadata.defaultBranch } : {}),
+            });
+            await recordUsage(request, organizationId, 'projects.count');
+            createdProject = true;
+            return created;
+          });
+        }
+
+        if (project.sourceType !== projectSourceType) {
+          throw new ProjectImportHubError(
+            'The deterministic import destination is already in use',
+            409,
+            'PROJECT_IMPORT_DESTINATION_CONFLICT',
+          );
+        }
+
+        /*
+         * Provider files arrive already sanitized. System-generated runtime and
+         * provenance files deliberately win path collisions so an imported
+         * archive cannot replace the trusted import configuration.
+         */
+        const filesByPath = new Map<string, { path: string; content: string; encoding?: FileEncoding }>();
+        for (const file of materialized.files) {
+          filesByPath.set(file.path, {
+            path: file.path,
+            content: file.content,
+            ...(file.encoding === 'base64' ? { encoding: 'base64' as const } : {}),
+          });
+        }
+        for (const file of [...materialized.generatedConfig, ...job.generatedConfig]) {
+          filesByPath.set(file.path, { path: file.path, content: file.content });
+        }
+        const projectFiles = source === 'empty' ? [] : [...filesByPath.values()];
+        if (source === 'empty' && (projectFiles.length > 0 || policy.scaffold || policy.useAgent)) {
+          throw new ProjectImportHubError(
+            'Empty project materialization attempted to scaffold files',
+            500,
+            'PROJECT_IMPORT_EMPTY_POLICY_INVALID',
+          );
+        }
+
+        if (projectFiles.length > 0) {
+          const written = await projectStorage.writeFiles(project.id, projectFiles);
+          await persistProjectFileManifest(store, project.id, written, userId);
+        }
+
+        /* Initializing status creates a dedicated internal repository. */
+        await gitProvider.status(project.id);
+        const workspaceId = runtimeWorkspaceId(project.id, userId);
+        let workspace = await store.getWorkspace(workspaceId);
+        if (!workspace) {
+          workspace = await store.withSerializedMutation(`workspaces:${organizationId}`, async () => {
+            const raced = await store.getWorkspace(workspaceId);
+            if (raced) return raced;
+            await ensureQuota(request, organizationId, 'workspaces.active');
+            const created = await store.createWorkspace({
+              id: workspaceId,
+              projectId: project!.id,
+              name: source === 'empty' ? 'Empty workspace' : 'Imported workspace',
+              runtimeMode: process.env.WORKSPACE_DEFAULT_RUNTIME_MODE ?? 'remote-kubernetes',
+            });
+            await recordUsage(request, organizationId, 'workspaces.active');
+            return created;
+          });
+        }
+
+        const gitStatus = await gitProvider.status(project.id);
+        if (gitStatus.changedFiles.length > 0) {
+          await gitProvider.commit({
+            projectId: project.id,
+            message: source === 'empty' ? 'chore: initialize empty project' : `chore: import from ${source}`,
+            files: [],
+          });
+        }
+
+        let agentQueued = false;
+        if (policy.useAgent && materialized.agentPrompt) {
+          await mutateProjectIdeState(store, project.id, userId, ({ root }) =>
+            mergeProjectIdeState(root, {
+              chat: {
+                pendingPrompt: {
+                  id: `project-import-agent:${job.id}`,
+                  prompt: [
+                    materialized.agentPrompt,
+                    'Work only inside this imported project. Preserve all usable imported files.',
+                    'Produce a complete runnable JavaScript or TypeScript application, install dependencies, run checks, start the runtime, verify that Preview renders, and leave it ready to publish.',
+                    job.missingSecretNames.length
+                      ? `Ask the owner for these missing secret names without inventing or exposing values: ${job.missingSecretNames.join(', ')}.`
+                      : undefined,
+                  ]
+                    .filter((line): line is string => Boolean(line))
+                    .join('\n\n'),
+                  createdAt: new Date().toISOString(),
+                },
+              },
+            }),
+          );
+          agentQueued = true;
+        }
+
+        await store.recordProjectActivity({
+          projectId: project.id,
+          actorUserId: userId,
+          action: 'project.import_hub.complete',
+          metadata: {
+            source,
+            importJobId: job.id,
+            materializationKey,
+            fileCount: projectFiles.length,
+            workspaceId: workspace.id,
+            secretValuesCopied: false,
+            databaseDataCopied: false,
+            agentQueued,
+          },
+        });
+        await audit(request, store, {
+          organizationId,
+          action: 'project.import_hub.complete',
+          resourceType: 'project',
+          resourceId: project.id,
+          metadata: { source, importJobId: job.id, fileCount: projectFiles.length, agentQueued },
+        });
+
+        return {
+          projectId: project.id,
+          metadata: {
+            source,
+            workspaceId: workspace.id,
+            repositoryId: `internal:${project.id}`,
+            fileCount: projectFiles.length,
+            agentQueued,
+            databaseDataCopied: false,
+          },
+        };
+      } catch (error) {
+        if (createdProject && project) {
+          if (projectStorage.deleteProject) await projectStorage.deleteProject(project.id).catch(() => undefined);
+          await store.hardDeleteProject(project.id).catch(() => undefined);
+        }
+        throw error;
+      }
+    },
   });
 
   /*

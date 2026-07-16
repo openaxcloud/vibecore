@@ -51,24 +51,6 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type React from 'react';
-import type { IconType } from 'react-icons';
-import {
-  SiAnthropic,
-  SiExpo,
-  SiFastify,
-  SiFramer,
-  SiGithub,
-  SiNextdotjs,
-  SiNodedotjs,
-  SiOpenai,
-  SiPostgresql,
-  SiPrisma,
-  SiReact,
-  SiRemix,
-  SiTailwindcss,
-  SiTypescript,
-  SiVite,
-} from 'react-icons/si';
 import { Form, Link, NavLink, useFetcher, useLocation, useNavigate, useNavigation } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from './AsyncPanelState';
 import { ProductTour } from './ProductTour';
@@ -105,19 +87,9 @@ import { resolveUserAreaSurface } from '~/lib/user-area-surface';
 import { statusDisplayLabel } from '~/lib/user-facing-labels';
 import { classNames } from '~/utils/classNames';
 
+export { TemplateGallery } from './TemplateGallery';
+
 type Icon = LucideIcon;
-type TemplateProvider = {
-  name: string;
-  Logo: IconType;
-  color: string;
-};
-type TemplateCard = {
-  id: string;
-  name: string;
-  stack: string;
-  tag: string;
-  providers: TemplateProvider[];
-};
 
 type MarketingMenuItem = readonly [title: string, to: string, description: string];
 type FooterLink = readonly [label: string, to: string];
@@ -366,75 +338,6 @@ export const projectNav = [
   { label: 'Logs', suffix: '/logs', icon: Terminal },
   { label: 'Activity', suffix: '/activity', icon: Activity },
   { label: 'Git', suffix: '/git', icon: GitBranch },
-];
-
-export const templates: TemplateCard[] = [
-  {
-    id: 'react-saas',
-    name: 'React SaaS',
-    stack: 'React, Vite, TypeScript',
-    tag: 'Web app',
-    providers: [
-      { name: 'React', Logo: SiReact, color: '#61DAFB' },
-      { name: 'Vite', Logo: SiVite, color: '#41D1FF' },
-      { name: 'TypeScript', Logo: SiTypescript, color: '#3178C6' },
-    ],
-  },
-  {
-    id: 'next-dashboard',
-    name: 'Next dashboard',
-    stack: 'Next.js, Prisma, Tailwind',
-    tag: 'Full stack',
-    providers: [
-      { name: 'Next.js', Logo: SiNextdotjs, color: 'var(--vc-ide-text-primary)' },
-      { name: 'Prisma', Logo: SiPrisma, color: '#B8C4D9' },
-      { name: 'Tailwind CSS', Logo: SiTailwindcss, color: '#06B6D4' },
-    ],
-  },
-  {
-    id: 'fastify-api',
-    name: 'Fastify API',
-    stack: 'Node.js, Fastify, PostgreSQL',
-    tag: 'Backend',
-    providers: [
-      { name: 'Node.js', Logo: SiNodedotjs, color: '#5FA04E' },
-      { name: 'Fastify', Logo: SiFastify, color: 'var(--vc-ide-text-primary)' },
-      { name: 'PostgreSQL', Logo: SiPostgresql, color: '#4169E1' },
-    ],
-  },
-  {
-    id: 'ai-agent',
-    name: 'AI agent',
-    stack: 'RuntimeAdapter, tools, streaming',
-    tag: 'AI',
-    providers: [
-      { name: 'OpenAI', Logo: SiOpenai, color: 'var(--vc-ide-text-primary)' },
-      { name: 'Anthropic', Logo: SiAnthropic, color: '#D97757' },
-      { name: 'GitHub', Logo: SiGithub, color: 'var(--vc-ide-text-primary)' },
-    ],
-  },
-  {
-    id: 'landing-page',
-    name: 'Landing page',
-    stack: 'Remix, responsive content',
-    tag: 'Marketing',
-    providers: [
-      { name: 'Remix', Logo: SiRemix, color: 'var(--vc-ide-text-primary)' },
-      { name: 'Tailwind CSS', Logo: SiTailwindcss, color: '#06B6D4' },
-      { name: 'Framer', Logo: SiFramer, color: '#0055FF' },
-    ],
-  },
-  {
-    id: 'mobile-starter',
-    name: 'Mobile starter',
-    stack: 'Expo, shared packages',
-    tag: 'Mobile',
-    providers: [
-      { name: 'Expo', Logo: SiExpo, color: 'var(--vc-ide-text-primary)' },
-      { name: 'React', Logo: SiReact, color: '#61DAFB' },
-      { name: 'TypeScript', Logo: SiTypescript, color: '#3178C6' },
-    ],
-  },
 ];
 
 export interface ProjectCard {
@@ -1461,89 +1364,6 @@ export function ProjectStatusPill({ project }: { project: ProjectCard }) {
   );
 }
 
-export function TemplateGallery({
-  compact = false,
-  mode = 'public',
-}: {
-  compact?: boolean;
-  mode?: 'public' | 'authenticated';
-}) {
-  return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {templates.map((template) => (
-        <Card
-          key={template.name}
-          className="group overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3"
-        >
-          <div className="vc-template-preview relative m-3 mb-0 overflow-hidden p-3">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,color-mix(in_srgb,var(--vc-ide-accent-action)_18%,transparent),transparent_34%),radial-gradient(circle_at_85%_10%,color-mix(in_srgb,var(--vc-ide-accent-success)_16%,transparent),transparent_32%)]" />
-            <div className="relative flex h-20 items-center justify-center gap-3">
-              {template.providers.map((provider, index) => {
-                const Logo = provider.Logo;
-
-                return (
-                  <div
-                    key={provider.name}
-                    className="vc-template-provider-logo flex h-12 w-12 items-center justify-center rounded-lg shadow-[var(--vc-ui-shadow-md)] transition-transform duration-150 group-hover:-translate-y-0.5"
-                    style={{ transitionDelay: `${index * 35}ms` }}
-                    title={provider.name}
-                    aria-label={`${provider.name} logo`}
-                  >
-                    <Logo className="h-6 w-6" style={{ color: provider.color }} aria-hidden />
-                  </div>
-                );
-              })}
-            </div>
-            <div className="relative mt-2 flex items-center justify-center gap-1.5">
-              {template.providers.map((provider) => (
-                <span
-                  key={provider.name}
-                  className="vc-template-provider-pill rounded-full px-2 py-0.5 text-[10px] font-medium"
-                >
-                  {provider.name}
-                </span>
-              ))}
-            </div>
-          </div>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-lg">{template.name}</CardTitle>
-              <StatusPill label={template.tag} />
-            </div>
-            <CardDescription>{template.stack}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between">
-            <span className="text-sm text-bolt-elements-textSecondary">Production starter</span>
-            {/*
-              Authenticated "Use template" creates the project from this template and goes
-              straight to the IDE from wherever the card renders (Dashboard included): POST to
-              the /dashboard/templates action, which creates via /projects/from-template and
-              redirects to the project IDE — no /templates detour.
-            */}
-            {mode === 'authenticated' ? (
-              <Form method="post" action="/dashboard/templates">
-                <input type="hidden" name="templateName" value={template.id} />
-                <input type="hidden" name="name" value={template.name} />
-                <Button type="submit" variant="outline" className="min-h-[44px]">
-                  Use template
-                </Button>
-              </Form>
-            ) : compact ? (
-              <LinkButton to="/templates" variant="outline">
-                Use template
-              </LinkButton>
-            ) : (
-              <LinkButton to="/login" variant="outline">
-                Sign in to use
-              </LinkButton>
-            )}
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
 /**
  * @deprecated Use `EmptyState` from `~/components/ui/EmptyState` — this alias
  * only remains so stray imports keep compiling until they migrate, and will be
@@ -1723,7 +1543,11 @@ export function ActivityList({ items }: { items: Array<{ title: string; detail: 
 const COMMAND_PALETTE_ACTIONS: CommandPaletteItem[] = [
   { label: 'Create project', to: '/projects/new', hint: 'Action' },
   { label: 'Open recent projects', to: '/recent-projects', hint: 'Action' },
-  { label: 'Import GitHub repository', to: '/import-github', hint: 'Action' },
+  {
+    label: 'Open Import Hub',
+    to: '/dashboard/templates?section=import&source=github',
+    hint: '12 sources',
+  },
   { label: 'View usage', to: '/usage', hint: 'Action' },
   { label: 'Invite teammate', to: '/invitations', hint: 'Action' },
   { label: 'Rotate API key', to: '/api-keys', hint: 'Action' },
@@ -2461,14 +2285,14 @@ export const projectActivity = [
 export const importOptions = [
   {
     title: 'Import GitHub',
-    description: 'Connect a repository, choose a branch and create a persistent project.',
-    to: '/import-github',
+    description: 'Validate a repository, inspect its runtime and create an isolated project.',
+    to: '/dashboard/templates?section=import&source=github',
     icon: Github,
   },
   {
     title: 'Import zip',
-    description: 'Upload an archive and extract it into a managed workspace volume.',
-    to: '/import-zip',
+    description: 'Validate a source archive before creating its managed workspace.',
+    to: '/dashboard/templates?section=import&source=zip',
     icon: FileArchive,
   },
   {
@@ -2478,8 +2302,8 @@ export const importOptions = [
     icon: Sparkles,
   },
   {
-    title: 'Use template',
-    description: 'Pick a curated starter with runtime and deployment defaults.',
+    title: 'Remix a published app',
+    description: 'Preview a working community application, then create an isolated copy.',
     to: '/dashboard/templates',
     icon: Upload,
   },

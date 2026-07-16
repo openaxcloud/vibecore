@@ -18,10 +18,11 @@ Persistent SaaS projects wrap the existing Bolt IDE with durable project metadat
 Project creation:
 
 - `POST /orgs/:orgId/projects`
-- `POST /orgs/:orgId/projects/from-template`
 - `POST /orgs/:orgId/projects/from-ai`
-- `POST /orgs/:orgId/projects/import/github`
-- `POST /orgs/:orgId/projects/import/zip`
+- `POST /organizations/:orgId/gallery/apps/:galleryAppId/remix`
+- `POST /organizations/:orgId/project-imports/preflight`
+- `POST /organizations/:orgId/project-imports/:importJobId/create`
+- `POST /organizations/:orgId/project-imports/:importJobId/retry`
 
 Project operations:
 

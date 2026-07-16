@@ -1,9 +1,15 @@
-import { STARTER_TEMPLATES } from '~/utils/constants';
+import { listGalleryDemoAppSummaries, type GalleryDemoAppSummary } from '@vibecore/template-catalog';
 
-type StarterTemplate = (typeof STARTER_TEMPLATES)[number];
-
+/**
+ * Compatibility projection for the existing public marketplace/search APIs.
+ *
+ * The source is the published-app Gallery: these records describe working,
+ * previewable applications that can be remixed. They are not framework or
+ * language starter templates, and this module owns no second registry.
+ */
 export interface EcodeTemplateAuthor {
   id: string;
+  handle: string;
   name: string;
   verified: boolean;
 }
@@ -22,19 +28,25 @@ export interface EcodeTemplate {
   slug: string;
   description: string;
   author: EcodeTemplateAuthor;
+  artifactType: string;
   category: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   featured: boolean;
-  framework?: string;
   githubRepo?: string;
   isOfficial: boolean;
-  language: string;
+  language: 'javascript' | 'typescript';
+  moderationStatus: 'approved';
   price: number;
+  previewUrl: string;
+  publishedAt: string;
+  remixAllowed: boolean;
+  remixCount: number;
   stats: EcodeTemplateStats;
   stars: number;
   forks: number;
   tags: string[];
   technologies: string[];
+  thumbnailUrl: string;
   trending: boolean;
   updatedAt: string;
   users: number;
@@ -62,151 +74,68 @@ export interface ListTemplatesOptions {
   tags?: string[];
 }
 
-const AUTHOR: EcodeTemplateAuthor = {
-  id: 'vibecore',
-  name: 'E-Code',
-  verified: true,
-};
-
-const UPDATED_AT = '2026-06-09T00:00:00.000Z';
-
-const WORKSPACE_TEMPLATES: Array<{
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  difficulty: EcodeTemplate['difficulty'];
-  tags: string[];
-  technologies: string[];
-}> = [
-  {
-    id: 'react-saas',
-    name: 'React SaaS',
-    description:
-      'Production SaaS starter with React, Vite, TypeScript, authenticated dashboard surfaces and deploy-ready structure.',
-    category: 'web',
-    difficulty: 'intermediate',
-    tags: ['react', 'vite', 'typescript', 'saas', 'dashboard'],
-    technologies: ['React', 'Vite', 'TypeScript'],
-  },
-  {
-    id: 'next-dashboard',
-    name: 'Next dashboard',
-    description:
-      'Full-stack dashboard starter with Next.js, Prisma, Tailwind CSS and database-backed operational screens.',
-    category: 'web',
-    difficulty: 'intermediate',
-    tags: ['nextjs', 'prisma', 'tailwind', 'dashboard', 'fullstack'],
-    technologies: ['Next.js', 'Prisma', 'Tailwind CSS'],
-  },
-  {
-    id: 'fastify-api',
-    name: 'Fastify API',
-    description:
-      'Backend service starter with Node.js, Fastify, PostgreSQL-style persistence boundaries and production API conventions.',
-    category: 'api',
-    difficulty: 'advanced',
-    tags: ['node', 'fastify', 'postgresql', 'api', 'backend'],
-    technologies: ['Node.js', 'Fastify', 'PostgreSQL'],
-  },
-  {
-    id: 'ai-agent',
-    name: 'AI agent',
-    description:
-      'Agent runtime starter with tool orchestration, streaming events, provider routing and IDE integration points.',
-    category: 'ml-ai',
-    difficulty: 'advanced',
-    tags: ['ai', 'agents', 'tools', 'streaming', 'typescript'],
-    technologies: ['OpenAI', 'Anthropic', 'TypeScript'],
-  },
-  {
-    id: 'landing-page',
-    name: 'Landing page',
-    description:
-      'Responsive marketing starter for conversion pages, polished content sections and production-ready routing.',
-    category: 'web',
-    difficulty: 'beginner',
-    tags: ['remix', 'tailwind', 'marketing', 'landing-page'],
-    technologies: ['Remix', 'Tailwind CSS', 'Framer Motion'],
-  },
-  {
-    id: 'mobile-starter',
-    name: 'Mobile starter',
-    description:
-      'Mobile app starter with Expo, React and TypeScript for shared frontend packages and device-first flows.',
-    category: 'mobile',
-    difficulty: 'intermediate',
-    tags: ['expo', 'react', 'typescript', 'mobile'],
-    technologies: ['Expo', 'React', 'TypeScript'],
-  },
-];
-
 const CATEGORY_LABELS: Record<string, string> = {
-  api: 'APIs & Backend',
-  mobile: 'Mobile',
-  'ml-ai': 'AI & ML',
-  starter: 'Starter Kits',
-  web: 'Web Apps',
+  booking: 'Booking',
+  'developer-tools': 'Developer Tools',
+  'field-service': 'Field Service',
+  operations: 'Operations',
+  productivity: 'Productivity',
+  sales: 'Sales',
 };
 
-const SIMPLE_CATEGORY_ALIASES: Record<string, string> = {
-  ai: 'ml-ai',
-  data: 'ml-ai',
-  game: 'web',
-  webapp: 'web',
-};
+const PUBLISHED_APP_CATALOG = Object.freeze(listGalleryDemoAppSummaries().map(mapPublishedApp));
 
 export function listEcodeTemplates(options: ListTemplatesOptions = {}) {
   const query = normalize(options.query);
-  const category = normalizeCategory(options.category);
+  const category = normalize(options.category);
   const tags = (options.tags ?? []).map(normalize).filter(Boolean);
   const languages = (options.languages ?? []).map(normalize).filter(Boolean);
   const difficulties = (options.difficulty ?? []).map(normalize).filter(Boolean);
   const maxPrice = options.maxPrice;
 
-  let templates = getEcodeTemplateCatalog().filter((template) => {
-    if (category && template.category !== category) {
+  let apps = getEcodeTemplateCatalog().filter((app) => {
+    if (category && app.category !== category) {
       return false;
     }
 
-    if (query && !templateSearchText(template).includes(query)) {
+    if (query && !appSearchText(app).includes(query)) {
       return false;
     }
 
-    if (options.featured === true && !template.featured) {
+    if (options.featured === true && !app.featured) {
       return false;
     }
 
-    if (options.official === true && !template.isOfficial) {
+    if (options.official === true && !app.isOfficial) {
       return false;
     }
 
-    if (options.community === true) {
+    if (options.official === false && app.isOfficial) {
       return false;
     }
 
-    if (difficulties.length > 0 && !difficulties.includes(template.difficulty)) {
+    if (difficulties.length > 0 && !difficulties.includes(app.difficulty)) {
       return false;
     }
 
-    if (languages.length > 0 && !languages.includes(template.language)) {
+    if (languages.length > 0 && !languages.includes(app.language)) {
       return false;
     }
 
-    if (tags.length > 0 && !tags.every((tag) => template.tags.map(normalize).includes(tag))) {
+    if (tags.length > 0 && !tags.every((tag) => app.tags.map(normalize).includes(tag))) {
       return false;
     }
 
-    if (typeof maxPrice === 'number' && template.price > maxPrice) {
+    if (typeof maxPrice === 'number' && app.price > maxPrice) {
       return false;
     }
 
     return true;
   });
 
-  templates = sortTemplates(templates, options.sortBy);
+  apps = sortApps(apps, options.sortBy);
 
-  return templates;
+  return apps;
 }
 
 export function paginateTemplates(
@@ -231,8 +160,8 @@ export function paginateTemplates(
 export function getEcodeTemplateCategories(): EcodeTemplateCategory[] {
   const counts = new Map<string, number>();
 
-  for (const template of getEcodeTemplateCatalog()) {
-    counts.set(template.category, (counts.get(template.category) ?? 0) + 1);
+  for (const app of getEcodeTemplateCatalog()) {
+    counts.set(app.category, (counts.get(app.category) ?? 0) + 1);
   }
 
   return [...counts.entries()]
@@ -248,8 +177,8 @@ export function getEcodeTemplateCategories(): EcodeTemplateCategory[] {
 export function getEcodeTemplateTags(limit = 30): string[] {
   const counts = new Map<string, number>();
 
-  for (const template of getEcodeTemplateCatalog()) {
-    for (const tag of template.tags) {
+  for (const app of getEcodeTemplateCatalog()) {
+    for (const tag of app.tags) {
       counts.set(tag, (counts.get(tag) ?? 0) + 1);
     }
   }
@@ -264,10 +193,11 @@ export function getEcodeTemplateSuggestions(query: string | null, limit = 5): st
   const normalizedQuery = normalize(query);
   const values = new Set<string>();
 
-  for (const template of getEcodeTemplateCatalog()) {
-    values.add(template.name);
-    template.technologies.forEach((technology) => values.add(technology));
-    template.tags.forEach((tag) => values.add(tag));
+  for (const app of getEcodeTemplateCatalog()) {
+    values.add(app.name);
+    values.add(app.artifactType);
+    app.technologies.forEach((technology) => values.add(technology));
+    app.tags.forEach((tag) => values.add(tag));
   }
 
   return [...values]
@@ -280,239 +210,104 @@ export function getEcodeTemplateById(templateId: string) {
   const normalizedId = normalize(templateId);
 
   return getEcodeTemplateCatalog().find(
-    (template) => normalize(template.id) === normalizedId || normalize(template.slug) === normalizedId,
+    (app) => normalize(app.id) === normalizedId || normalize(app.slug) === normalizedId,
   );
 }
 
 export function getEcodeTemplateCatalog(): EcodeTemplate[] {
-  const starterTemplates = STARTER_TEMPLATES.map(mapStarterTemplate);
-  const workspaceTemplates = WORKSPACE_TEMPLATES.map(mapWorkspaceTemplate);
-
-  return [...workspaceTemplates, ...starterTemplates];
+  return PUBLISHED_APP_CATALOG.map(cloneApp);
 }
 
-function mapWorkspaceTemplate(template: (typeof WORKSPACE_TEMPLATES)[number], index: number): EcodeTemplate {
-  return buildTemplate({
-    id: template.id,
-    name: template.name,
-    description: template.description,
-    category: template.category,
-    difficulty: template.difficulty,
-    featured: index < 4,
-    githubRepo: undefined,
-    tags: template.tags,
-    technologies: template.technologies,
-    trending: index < 2,
-  });
-}
-
-function mapStarterTemplate(template: StarterTemplate, index: number): EcodeTemplate {
-  const tags = [...(template.tags ?? [])].map((tag) => tag.toLowerCase());
-  const category = inferCategory(tags);
-
-  return buildTemplate({
-    id: slugify(template.name),
-    name: template.label || template.name,
-    description: template.description,
-    category,
-    difficulty: inferDifficulty(tags),
-    featured: index < 6,
-    githubRepo: template.githubRepo,
-    tags,
-    technologies: inferTechnologies(template),
-    trending: ['react', 'nextjs', 'vite', 'expo'].some((tag) => tags.includes(tag)),
-  });
-}
-
-function buildTemplate(input: {
-  category: string;
-  description: string;
-  difficulty: EcodeTemplate['difficulty'];
-  featured: boolean;
-  githubRepo?: string;
-  id: string;
-  name: string;
-  tags: string[];
-  technologies: string[];
-  trending: boolean;
-}): EcodeTemplate {
-  const slug = slugify(input.id || input.name);
-  const normalizedTags = unique(input.tags.map((tag) => tag.toLowerCase()));
-  const technologies = unique(input.technologies);
-  const stats = emptyStats();
-
-  return {
-    id: slug,
-    name: input.name,
-    slug,
-    description: input.description,
-    author: AUTHOR,
-    category: input.category,
-    difficulty: input.difficulty,
-    featured: input.featured,
-    framework: inferFramework(normalizedTags),
-    githubRepo: input.githubRepo,
-    isOfficial: true,
-    language: inferLanguage(normalizedTags),
-    price: 0,
-    stats,
-    stars: stats.stars,
-    forks: stats.forks,
-    tags: normalizedTags,
-    technologies,
-    trending: input.trending,
-    updatedAt: UPDATED_AT,
-    users: 0,
-  };
-}
-
-function emptyStats(): EcodeTemplateStats {
-  return {
-    downloads: 0,
-    forks: 0,
+function mapPublishedApp(app: GalleryDemoAppSummary): EcodeTemplate {
+  const stats: EcodeTemplateStats = {
+    downloads: app.remixCount,
+    forks: app.remixCount,
     rating: 0,
     reviewCount: 0,
     stars: 0,
   };
+
+  const language = app.technologies.includes('JavaScript') ? 'javascript' : 'typescript';
+  const tags = [app.artifactType, app.category, ...app.technologies.map((technology) => normalize(technology))];
+
+  return {
+    id: app.id,
+    name: app.name,
+    slug: app.slug,
+    description: app.description,
+    author: {
+      id: app.author.id,
+      handle: app.author.handle,
+      name: app.author.displayName,
+      verified: app.author.verified,
+    },
+    artifactType: app.artifactType,
+    category: app.category,
+    difficulty: 'intermediate',
+    featured: app.featured,
+    githubRepo: undefined,
+    isOfficial: app.author.verified,
+    language,
+    moderationStatus: app.moderationStatus,
+    price: 0,
+    previewUrl: app.previewUrl,
+    publishedAt: app.publishedAt,
+    remixAllowed: app.remixAllowed,
+    remixCount: app.remixCount,
+    stats,
+    stars: stats.stars,
+    forks: stats.forks,
+    tags,
+    technologies: [...app.technologies],
+    thumbnailUrl: app.thumbnailUrl,
+    trending: app.featured,
+    updatedAt: app.publishedAt,
+    users: app.remixCount,
+  };
 }
 
-function inferCategory(tags: string[]) {
-  if (tags.some((tag) => ['android', 'expo', 'iphone', 'mobile', 'mobile-app'].includes(tag))) {
-    return 'mobile';
-  }
-
-  if (tags.some((tag) => ['api', 'backend', 'fastify', 'node'].includes(tag))) {
-    return 'api';
-  }
-
-  if (tags.some((tag) => ['ai', 'ml'].includes(tag))) {
-    return 'ml-ai';
-  }
-
-  return 'web';
+function cloneApp(app: EcodeTemplate): EcodeTemplate {
+  return {
+    ...app,
+    author: { ...app.author },
+    stats: { ...app.stats },
+    tags: [...app.tags],
+    technologies: [...app.technologies],
+  };
 }
 
-function inferDifficulty(tags: string[]): EcodeTemplate['difficulty'] {
-  if (tags.some((tag) => ['fullstack', 'nextjs', 'remix', 'qwik'].includes(tag))) {
-    return 'intermediate';
-  }
-
-  return 'beginner';
-}
-
-function inferFramework(tags: string[]) {
-  return tags.find((tag) =>
-    [
-      'angular',
-      'astro',
-      'expo',
-      'nextjs',
-      'qwik',
-      'react',
-      'remix',
-      'solidjs',
-      'svelte',
-      'sveltekit',
-      'vite',
-      'vue',
-    ].includes(tag),
-  );
-}
-
-function inferLanguage(tags: string[]) {
-  if (tags.includes('python')) {
-    return 'python';
-  }
-
-  if (tags.includes('java')) {
-    return 'java';
-  }
-
-  if (tags.includes('typescript') || tags.includes('ts')) {
-    return 'typescript';
-  }
-
-  return 'javascript';
-}
-
-function inferTechnologies(template: StarterTemplate) {
-  const technologies = new Set<string>();
-  const text = `${template.name} ${template.label} ${(template.tags ?? []).join(' ')}`.toLowerCase();
-
-  const knownTechnologies: Array<[string, string]> = [
-    ['angular', 'Angular'],
-    ['astro', 'Astro'],
-    ['expo', 'Expo'],
-    ['nextjs', 'Next.js'],
-    ['qwik', 'Qwik'],
-    ['react', 'React'],
-    ['remix', 'Remix'],
-    ['shadcn', 'shadcn/ui'],
-    ['solidjs', 'SolidJS'],
-    ['svelte', 'SvelteKit'],
-    ['tailwind', 'Tailwind CSS'],
-    ['typescript', 'TypeScript'],
-    ['vite', 'Vite'],
-    ['vue', 'Vue.js'],
-  ];
-
-  for (const [needle, label] of knownTechnologies) {
-    if (text.includes(needle)) {
-      technologies.add(label);
-    }
-  }
-
-  return technologies.size > 0 ? [...technologies] : ['JavaScript'];
-}
-
-function sortTemplates(templates: EcodeTemplate[], sortBy?: string | null) {
+function sortApps(apps: EcodeTemplate[], sortBy?: string | null) {
   const normalizedSort = normalize(sortBy);
-  const sorted = [...templates];
+  const sorted = [...apps];
 
   if (normalizedSort === 'recent') {
-    return sorted.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.name.localeCompare(b.name));
+    return sorted.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt) || a.name.localeCompare(b.name));
   }
 
-  if (normalizedSort === 'trending') {
-    return sorted.sort((a, b) => Number(b.trending) - Number(a.trending) || a.name.localeCompare(b.name));
+  if (['trending', 'popularity', 'remixes'].includes(normalizedSort)) {
+    return sorted.sort((a, b) => b.remixCount - a.remixCount || b.publishedAt.localeCompare(a.publishedAt));
   }
 
   if (normalizedSort === 'rating') {
     return sorted.sort((a, b) => b.stats.rating - a.stats.rating || a.name.localeCompare(b.name));
   }
 
-  return sorted.sort((a, b) => Number(b.featured) - Number(a.featured) || a.name.localeCompare(b.name));
-}
-
-function templateSearchText(template: EcodeTemplate) {
-  return normalize(
-    [
-      template.name,
-      template.description,
-      template.category,
-      template.language,
-      ...template.tags,
-      ...template.technologies,
-    ].join(' '),
+  return sorted.sort(
+    (a, b) =>
+      Number(b.featured) - Number(a.featured) ||
+      b.remixCount - a.remixCount ||
+      b.publishedAt.localeCompare(a.publishedAt),
   );
 }
 
-function normalizeCategory(category?: string | null) {
-  const normalized = normalize(category);
-
-  return SIMPLE_CATEGORY_ALIASES[normalized] ?? normalized;
+function appSearchText(app: EcodeTemplate) {
+  return normalize(
+    [app.name, app.description, app.artifactType, app.category, ...app.tags, ...app.technologies].join(' '),
+  );
 }
 
 function normalize(value?: string | null) {
   return (value ?? '').trim().toLowerCase();
-}
-
-function slugify(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
 }
 
 function titleCase(value: string) {
@@ -521,8 +316,4 @@ function titleCase(value: string) {
     .filter(Boolean)
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(' ');
-}
-
-function unique(values: string[]) {
-  return [...new Set(values.filter(Boolean))];
 }

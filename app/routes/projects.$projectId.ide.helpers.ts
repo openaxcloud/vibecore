@@ -5,8 +5,8 @@ export type IdeNotificationKind = 'success' | 'warning' | 'error' | 'info';
 
 /*
  * A notification can offer a recovery action in addition to (or instead of) a
- * navigation href. The crashed-runtime notification uses 'restart-workspace' so
- * a user whose pod was GC'd / crashed has a one-click path back instead of a
+ * navigation href. The crashed-runtime notification uses 'restart-workspace'
+ * internally so a user whose runtime was GC'd / crashed has a one-click path back instead of a
  * dead-end link to the logs panel.
  */
 export type IdeNotificationAction = { kind: 'restart-workspace'; label: string };
@@ -41,15 +41,15 @@ export function buildIdeNotifications({
 }): IdeNotification[] {
   const runtimeNotification: IdeNotification = {
     id: `runtime-${runtimeState}`,
-    title: `Workspace ${runtimeStatusLabel.toLowerCase()}`,
+    title: `Project runtime ${runtimeStatusLabel.toLowerCase()}`,
     detail:
       runtimeState === 'crashed'
-        ? runtimeError || 'The workspace runtime reported an error.'
+        ? runtimeError || 'The project runtime reported an error.'
         : runtimeState === 'running'
           ? 'The IDE runtime is connected and ready for commands.'
           : runtimeState === 'building'
-            ? 'The workspace is starting and preparing project services.'
-            : 'The workspace runtime is currently idle.',
+            ? 'The project runtime is starting and preparing project services.'
+            : 'The project runtime is currently idle.',
     timeLabel: 'Live',
     source: 'Runtime',
     kind: runtimeState === 'crashed' ? 'error' : runtimeState === 'building' ? 'warning' : 'info',
@@ -59,7 +59,7 @@ export function buildIdeNotifications({
      * A crashed runtime is the most common production failure (pod GC'd / boot
      * 502). Surface a real re-provision affordance, not just a link to logs.
      */
-    action: runtimeState === 'crashed' ? { kind: 'restart-workspace', label: 'Restart workspace' } : undefined,
+    action: runtimeState === 'crashed' ? { kind: 'restart-workspace', label: 'Restart runtime' } : undefined,
   };
 
   const previewNotification: IdeNotification | null = previewPorts.length
@@ -124,14 +124,14 @@ export function activityDetail(action: string, metadata: unknown) {
   }
 
   if (action.includes('ai.tool')) {
-    return 'An AI tool action changed the workspace.';
+    return 'An AI tool action changed the project.';
   }
 
   return 'Project activity recorded by the backend.';
 }
 
 /*
- * Re-provision a crashed/GC'd workspace. The provisioning lifecycle lives in
+ * Re-provision a crashed/GC'd project runtime. The provisioning lifecycle lives in
  * ProjectWorkspaceProvider's effect (boot + startWorkspace + seed), which the
  * crash recovery cannot call directly. Reloading the route remounts the
  * provider: its cleanup tears down the stale session id (configureProject) and

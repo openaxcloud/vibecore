@@ -7,6 +7,7 @@ const CRITICAL_USER_AREA_ROUTES = [
   'api-keys.tsx',
   'billing.tsx',
   'dashboard.tsx',
+  'dashboard_.templates.tsx',
   'invoices.tsx',
   'notifications.tsx',
   'organization-members.tsx',

@@ -172,6 +172,9 @@ export type ApiRequestInit = RequestInit & {
    * form error instead of looping the user back through the sign-in flow.
    */
   redirectOn401?: boolean;
+
+  /** Preserve the Import Hub's explicitly public recovery envelope on errors. */
+  includeProjectImportFailure?: boolean;
 };
 
 export function safeReturnTo(value: string | null | undefined): string | undefined {
@@ -252,7 +255,7 @@ function isPageNavigation(request: Request) {
 }
 
 export async function apiRequest<T = unknown>(request: Request, path: string, init: ApiRequestInit = {}) {
-  const { redirectOn401 = true, ...fetchInit } = init;
+  const { redirectOn401 = true, includeProjectImportFailure = false, ...fetchInit } = init;
   const token = readSessionToken(request);
   const headers = new Headers(fetchInit.headers);
   headers.set('accept', 'application/json');
@@ -334,6 +337,12 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
             ? ((payload as { error?: string }).error ?? 'Request failed')
             : String(payload),
         code: payloadCode,
+        ...(includeProjectImportFailure && typeof payload === 'object' && payload
+          ? {
+              recoverable: (payload as { recoverable?: unknown }).recoverable === true,
+              job: (payload as { job?: unknown }).job,
+            }
+          : {}),
       },
       { status: response.status, headers: retryAfter ? { 'retry-after': retryAfter } : undefined },
     );
