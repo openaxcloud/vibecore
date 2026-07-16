@@ -1993,6 +1993,23 @@ export class TestApiStore implements ApiStore {
     return this.importJobs.get(id);
   }
 
+  async reapExpiredImportJobs(nowIso: string): Promise<string[]> {
+    const now = new Date(nowIso).getTime();
+    const terminal = new Set(['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED']);
+    const ids: string[] = [];
+
+    for (const row of this.importJobs.values()) {
+      if (!terminal.has(row.state) && row.expiresAt && new Date(row.expiresAt).getTime() < now) {
+        row.state = 'EXPIRED';
+        row.error = 'Import staging expired before it was committed.';
+        // targetProjectId is intentionally left untouched (never mounted).
+        ids.push(row.id);
+      }
+    }
+
+    return ids;
+  }
+
   async countAgentRoutingCards(): Promise<number> {
     return this.agentRoutingCards.length;
   }

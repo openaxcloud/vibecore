@@ -1300,6 +1300,31 @@ export class PrismaApiStore implements ApiStore {
     };
   }
 
+  async reapExpiredImportJobs(nowIso: string): Promise<string[]> {
+    const now = new Date(nowIso);
+    // Non-terminal jobs only: COMMITTED/ROLLING_BACK/EXPIRED/CANCELLED are done.
+    const stale = await this.prisma.importJob.findMany({
+      where: {
+        state: { notIn: ['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED'] },
+        expiresAt: { not: null, lt: now },
+      },
+      select: { id: true },
+    });
+
+    if (stale.length === 0) {
+      return [];
+    }
+
+    const ids = stale.map((row) => row.id);
+    // updateMany never sets targetProjectId — the target stays unmounted.
+    await this.prisma.importJob.updateMany({
+      where: { id: { in: ids } },
+      data: { state: 'EXPIRED', error: 'Import staging expired before it was committed.' },
+    });
+
+    return ids;
+  }
+
   async deleteProjectSecret(projectId: string, key: string) {
     /*
      * find-then-delete raced a concurrent delete into an unhandled P2025; use a

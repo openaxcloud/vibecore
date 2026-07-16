@@ -18267,6 +18267,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   /*
+   * IMP-4 timeout sweeper: an import abandoned in a non-terminal state (user
+   * never resolved findings, closed the tab, …) must not linger forever holding
+   * staged files. Expire every job past its expiresAt to EXPIRED (the store move
+   * NEVER writes targetProjectId, so the target is still untouched) and dispose
+   * this process's staging for the reaped ids. Exposed for tests + driven by a
+   * periodic timer in production.
+   */
+  const reapExpiredImports = async (nowIso: string = new Date().toISOString()): Promise<string[]> => {
+    const expired = await store.reapExpiredImportJobs(nowIso).catch((): string[] => []);
+
+    for (const id of expired) {
+      importStaging.delete(id);
+    }
+
+    return expired;
+  };
+
+  const importReaper = setInterval(() => {
+    void reapExpiredImports().catch(() => undefined);
+  }, 60_000);
+  importReaper.unref();
+
+  /*
    * Secure import (DOMAIN_MODEL §2): RECEIVED → STAGING_ISOLATED → SCANNING →
    * QUARANTINED (if findings). Never touches a target workspace here — files go
    * into the disposable staging map. Findings are PRESENTED (redacted) and

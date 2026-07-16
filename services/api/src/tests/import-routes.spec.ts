@@ -156,6 +156,57 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
     expect(job?.state).toBe('CANCELLED');
   });
 
+  it('TIMEOUT: an abandoned import past its expiry is swept to EXPIRED → target NEVER touched', async () => {
+    const { app, store, org, projectStorage } = await setup();
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports`,
+      headers: auth('imp-token'),
+      payload: { provider: 'github', files: stagedFiles() },
+    });
+    const importJobId = created.json().import.importJobId;
+    expect(created.json().import.state).toBe('AWAITING_USER_ACTION'); // staged, never resolved
+
+    // The sweeper runs LATER than the staging's expiresAt (route sets +60min).
+    const later = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    const reaped = await store.reapExpiredImportJobs(later);
+    expect(reaped).toContain(importJobId);
+
+    const job = await store.getImportJob(importJobId);
+    expect(job?.state).toBe('EXPIRED');
+    expect(job?.targetProjectId).toBeUndefined(); // target was NEVER mounted, not "cleaned after"
+    expect(projectStorage.writeCalls).toEqual([]); // no target write, ever
+    expect(projectStorage.files.size).toBe(0);
+
+    // And a late commit on the expired job is refused — EXPIRED is terminal.
+    const lateCommit = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports/${importJobId}/commit`,
+      headers: auth('imp-token'),
+      payload: { consent: {} },
+    });
+    expect(lateCommit.statusCode).toBeGreaterThanOrEqual(400);
+    expect(projectStorage.writeCalls).toEqual([]); // still no target touch after the refused commit
+  });
+
+  it('TIMEOUT sweeper leaves terminal + not-yet-expired jobs alone', async () => {
+    const { app, store, org } = await setup();
+
+    // A fresh import (expires in ~60min) must NOT be reaped by a sweep running now.
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports`,
+      headers: auth('imp-token'),
+      payload: { provider: 'github', files: stagedFiles() },
+    });
+    const freshId = created.json().import.importJobId;
+
+    const reapedNow = await store.reapExpiredImportJobs(new Date().toISOString());
+    expect(reapedNow).not.toContain(freshId);
+    expect((await store.getImportJob(freshId))?.state).toBe('AWAITING_USER_ACTION');
+  });
+
   it('commit WITHOUT resolving findings is BLOCKED (409, no silent write)', async () => {
     const { app, org, projectStorage } = await setup();
 

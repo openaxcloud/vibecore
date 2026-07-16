@@ -1335,6 +1335,14 @@ export interface ApiStore {
       }
     | undefined
   >;
+  /*
+   * IMP-4 timeout sweeper: move every NON-terminal import job whose expiresAt has
+   * passed to EXPIRED. targetProjectId is NEVER written (the target is only mounted
+   * at COMMITTED), so an abandoned import can never leave a partial target — the
+   * same target-never-touched invariant as cancel/rollback, now for timeout too.
+   * Returns the ids it expired so the caller can dispose their in-process staging.
+   */
+  reapExpiredImportJobs(nowIso: string): Promise<string[]>;
   deleteProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
   addProjectCollaborator(input: {
     projectId: string;
