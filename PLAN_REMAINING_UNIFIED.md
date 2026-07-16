@@ -3,6 +3,20 @@
 États par point : 📤 Dispatché · 💻 Codé (commité+poussé sur main) · ✅ Testé live (écran + greps, web/tablette/mobile le cas échéant).
 Un point n'est « fait » QUE quand ✅ est coché.
 
+## REMIX — pipeline de fork sécurisé (décision Avi 16/07)
+
+Contrat `DOMAIN_MODEL.md §1`. Machine à états NORMATIVE : SNAPSHOT_PINNED → **CREDENTIALS_DETACHED** → CLONING → DB_FORKING → STORAGE_POLICY_APPLIED → SCANNING → INDEXING. Invariant SÉCURITÉ : une **valeur** de secret n'entre JAMAIS dans l'artefact de clone (secrets = références) ; le détachement précède le clone. Preuve exigée : remix réel d'un projet CONTENANT un secret + démonstration que le secret est introuvable (FS, DB, env, logs) — le test doit CHERCHER le secret et échouer à le trouver. App Storage : 3 modes DETACH / CLONE / SHARE_WITH_CONSENT testés (bucket account-level partageable — « nouveau bucket » est NOTRE décision, explicite).
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|:---:|:---:|:---:|---|
+| RMX-1. Machine à états typée + persistée (SNAPSHOT_PINNED→…→INDEXING), CREDENTIALS_DETACHED prérequis dur de CLONING | ✅ | ⬜ | ⬜ | Ordre inverse = erreur de conception refusée |
+| RMX-2. Secrets = références seules dans l'artefact de clone ; valeur jamais exportée (snapshot, archive, env, logs) | ✅ | ⬜ | ⬜ | Invariant sécurité |
+| RMX-3. Clone : nouveau projet/propriétaire/repo/workspace/locks, données isolées, lien source (provenance) | ✅ | ⬜ | ⬜ | |
+| RMX-4. DB_FORKING : nouvelle base isolée, DATABASE_URL re-seedé, aucune donnée partagée | ✅ | ⬜ | ⬜ | |
+| RMX-5. STORAGE_POLICY_APPLIED : 3 modes DETACH / CLONE / SHARE_WITH_CONSENT | ✅ | ⬜ | ⬜ | Bucket account-level ; « nouveau bucket » = décision explicite |
+| RMX-6. SCANNING : scan de secrets sur l'artefact cloné (échoue si un secret matérialisé est trouvé) | ✅ | ⬜ | ⬜ | |
+| RMX-7. Preuve live : remix d'un projet AVEC secret → secret introuvable (FS+DB+env+logs), test qui CHERCHE le secret | ✅ | ⬜ | ⬜ | Artefacts `docs/deploy-evidence/` |
+
 ## DOC NORMATIVE — P0-02 registres parité + P0-04 collecteur baseline (décision Avi 16/07)
 
 Audit externe : 19 P0. P0-02 = 12 registres/contrats sous `docs/parity/` (chaque fichier porte `schemaVersion` + `repoCommit` ; `status: UNKNOWN` explicite plutôt qu'inventer). P0-04 = collecteur baseline QUOTIDIEN (le changelog Replit n'est PAS hebdo-vendredi : l'index contient un dimanche 16/11/2025 et un mercredi 26/11/2025 — toute automatisation « vendredi » interdite). Preuve = validateur qui passe + collecteur qui tourne en réel.
