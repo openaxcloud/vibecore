@@ -36,6 +36,7 @@ import {
   machineSizeFromCard,
   billingPlans,
   ceilCents,
+  computeAgentCallBilling,
   computeAiCostCents,
   computeUnitsCents,
   creditPackCatalog,
@@ -43,11 +44,21 @@ import {
   databaseStorageCents,
   findCreditPack,
   gatePremiumAgentModes,
+  availableAgentModes,
+  lineMargins,
+  lineUserPrice,
+  negativeMarginLineKeys,
+  routingLine,
+  switchAvailableForPlan,
+  validateAgentRoutingCard,
+  DEFAULT_AGENT_MODE,
   objectStorageCents,
   planByKey,
   planCreditConfig,
   toCreditPlanKey,
   verifyStripeSignature,
+  type AgentRoutingCard,
+  type AgentRoutingLineKey,
   type AiPlanKey,
   type CreditPlanKey,
   type PlanKey,
@@ -241,6 +252,12 @@ import {
   type StoredArchive,
 } from './project-storage.js';
 import { aggregateProviderMetrics } from './provider-metrics.js';
+import {
+  agentRoutingCardSchema,
+  getActiveAgentRoutingCard,
+  resetAgentRoutingCache,
+  seedAgentRoutingCard,
+} from './agent-routing-service.js';
 import {
   MachineSizeError,
   getActiveRateCard,
@@ -1539,6 +1556,22 @@ const aiRecordUsageSchema = z.object({
   extendedThinking: z.boolean().optional(),
   buildTier: z.enum(['lite', 'economy', 'power']).optional(),
   turboMode: z.boolean().optional(),
+
+  /*
+   * Agent mode routing metadata (AGM): which mode/switch line actually served
+   * this call. Credits + margin are recomputed server-side from the ACTIVE
+   * routing card — the client payload is descriptive, never authoritative.
+   */
+  agentRouting: z
+    .object({
+      mode: z.enum(['lite', 'economy', 'power']),
+      highEffort: z.boolean().default(false),
+      escalated: z.boolean().default(false),
+      turbo: z.boolean().default(false),
+      lineKey: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier']),
+      source: z.string().min(1).default('chat'),
+    })
+    .optional(),
 });
 
 const aiCheckQuotaSchema = z.object({
@@ -7852,6 +7885,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   await seedBillingPlans(store);
   await reloadStripeConfig();
   await seedProviderRegistry(store);
+  await seedAgentRoutingCard(store);
 
   await app.register(helmet, {
     contentSecurityPolicy: {
@@ -21861,6 +21895,48 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.send({ recorded: true });
   });
 
+  /*
+   * AGM: mode availability for the IDE — which of Lite/Economy/Power the
+   * caller's plan may use, whether High effort / Turbo are unlockable, and the
+   * billing multiplier per mode. Deliberately contains NO provider and NO
+   * model id: the client never learns model names from this surface.
+   */
+  app.get('/projects/:projectId/agent/routing', async (request) => {
+    const { projectId } = parse(projectParams, request.params);
+    const project = await requireProject(request, store, projectId, 'workspaces:read');
+
+    const card = await getActiveAgentRoutingCard(store);
+
+    let planKey = 'free';
+
+    try {
+      const subscription = await store.getSubscription(project.organizationId);
+      planKey = subscription?.planKey ?? 'free';
+    } catch {
+      planKey = 'free';
+    }
+
+    const turboLineOk = switchAvailableForPlan(card, 'turbo', planKey);
+
+    /*
+     * Turbo is additionally org-gated: an org admin turns it on via the
+     * `agent_turbo` feature flag (admin > feature flags). OFF by default.
+     */
+    const turboOrgEnabled = await evaluateFeatureFlag(store, 'agent_turbo', {
+      userId: request.currentUser?.id,
+      organizationId: project.organizationId,
+    }).catch(() => false);
+
+    return {
+      defaultMode: DEFAULT_AGENT_MODE,
+      plan: planKey,
+      routingVersion: card.version,
+      modes: availableAgentModes(card, planKey),
+      highEffort: { available: switchAvailableForPlan(card, 'high-effort', planKey) },
+      turbo: { available: turboLineOk && turboOrgEnabled, planAllowed: turboLineOk, orgEnabled: turboOrgEnabled },
+    };
+  });
+
   app.post('/projects/:projectId/ai/record-usage', async (request) => {
     const { projectId } = parse(projectParams, request.params);
     const project = await requireProject(request, store, projectId, 'workspaces:read');
@@ -21893,6 +21969,48 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       costCents,
       reason: `chat.completion.${body.source}`,
     });
+
+    /*
+     * AGM per-call log (admin-only): stamp the REAL provider+model this call
+     * used, the mode/switch that routed it, and card-priced cost/credit/margin.
+     * Best-effort — the log must never break usage recording.
+     */
+    if (body.agentRouting) {
+      try {
+        const routingCard = await getActiveAgentRoutingCard(store);
+        const callBilling = computeAgentCallBilling(
+          routingCard,
+          body.agentRouting.lineKey,
+          body.inputTokens,
+          body.outputTokens,
+        );
+
+        if (callBilling) {
+          await store.recordAgentCall({
+            userId: request.currentUser?.id,
+            organizationId: project.organizationId,
+            projectId: project.id,
+            mode: body.agentRouting.mode,
+            highEffort: body.agentRouting.highEffort ?? false,
+            escalated: body.agentRouting.escalated ?? false,
+            turbo: body.agentRouting.turbo ?? false,
+            lineKey: body.agentRouting.lineKey,
+            provider: body.provider,
+            model: body.model,
+            tokensIn: body.inputTokens,
+            tokensOut: body.outputTokens,
+            costMillicents: Math.round(callBilling.costCents * 1000),
+            creditCents: callBilling.creditCents,
+            marginMillicents: Math.round(callBilling.marginCents * 1000),
+            billedToUser: callBilling.billedToUser,
+            routingCardVersion: callBilling.routingCardVersion,
+            source: body.agentRouting.source ?? 'chat',
+          });
+        }
+      } catch (error) {
+        request.log?.warn?.({ err: error }, 'agent call log failed (non-fatal)');
+      }
+    }
 
     await recordUsage(request, project.organizationId, 'ai.messages');
 
@@ -23805,6 +23923,248 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { model: updated };
+  });
+
+  /*
+   * AGM — Admin > Agent > Model routing. One line per mode/switch with cost of
+   * revenue, user price (base x multiplier), LIVE margins, 30-day volume and
+   * plan availability. Versioned: publishing is an INSERT + active flip.
+   */
+  app.get('/admin/agent-routing', async (request) => {
+    await requirePlatformAdmin(request);
+
+    const card = await getActiveAgentRoutingCard(store);
+    const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+    const volume = await store.aggregateAgentCallVolume(since).catch(() => []);
+    const volumeByLine = new Map(volume.map((row) => [row.lineKey, row]));
+
+    const lines = card.lines.map((line) => {
+      const rowVolume = volumeByLine.get(line.key);
+
+      return {
+        ...line,
+        userPrice: lineUserPrice(card, line),
+        margins: lineMargins(card, line),
+        volume30d: rowVolume
+          ? {
+              calls: rowVolume.calls,
+              tokensIn: rowVolume.tokensIn,
+              tokensOut: rowVolume.tokensOut,
+              costCents: rowVolume.costMillicents / 1000,
+              creditCents: rowVolume.creditCents,
+              marginCents: rowVolume.marginMillicents / 1000,
+            }
+          : { calls: 0, tokensIn: 0, tokensOut: 0, costCents: 0, creditCents: 0, marginCents: 0 },
+      };
+    });
+
+    return {
+      card,
+      lines,
+      negativeLines: negativeMarginLineKeys(card),
+      history: await store.listAgentRoutingCards(50).catch(() => []),
+    };
+  });
+
+  app.get('/admin/agent-routing/calls', async (request) => {
+    await requirePlatformAdmin(request);
+
+    const query = parse(z.object({ limit: z.coerce.number().int().positive().max(500).default(100) }), request.query ?? {});
+
+    return { calls: await store.listAgentCalls(query.limit) };
+  });
+
+  const adminAgentRoutingLineSchema = z.object({
+    key: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier']),
+    label: z.string().min(1),
+    provider: z.string().min(1),
+    model: z.string().min(1),
+    costInCentsPerM: z.number().nonnegative(),
+    costOutCentsPerM: z.number().nonnegative(),
+    multiplier: z.number().nonnegative(),
+    billedToUser: z.boolean(),
+    availablePlans: z.array(z.string()),
+    active: z.boolean(),
+  });
+
+  const adminAgentRoutingDraftSchema = z.object({
+    sourceDate: z.string().min(1),
+    baseUserInCentsPerM: z.number().nonnegative(),
+    baseUserOutCentsPerM: z.number().nonnegative(),
+    lines: z.array(adminAgentRoutingLineSchema).min(1),
+  });
+
+  const buildCandidateRoutingCard = (draft: z.infer<typeof adminAgentRoutingDraftSchema>): AgentRoutingCard => ({
+    version: 1, // placeholder; the store assigns the real monotonic version
+    effectiveFrom: new Date().toISOString(),
+    sourceDate: draft.sourceDate,
+    currency: 'usd',
+    baseUserInCentsPerM: draft.baseUserInCentsPerM,
+    baseUserOutCentsPerM: draft.baseUserOutCentsPerM,
+    lines: draft.lines as AgentRoutingCard['lines'],
+  });
+
+  app.post('/admin/agent-routing', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const body = parse(
+      z.object({ card: adminAgentRoutingDraftSchema, confirmNegativeMargin: z.boolean().default(false) }),
+      request.body ?? {},
+    );
+
+    const candidate = buildCandidateRoutingCard(body.card);
+    const structural = validateAgentRoutingCard(candidate);
+
+    if (structural.length > 0) {
+      return reply
+        .status(400)
+        .send({ error: 'Invalid routing card', code: 'AGENT_ROUTING_INVALID', issues: structural });
+    }
+
+    /*
+     * The margin gate: a line priced below its cost of revenue blocks the save
+     * unless the admin explicitly confirms losing money on that line.
+     */
+    const negative = negativeMarginLineKeys(candidate);
+
+    if (negative.length > 0 && !body.confirmNegativeMargin) {
+      return reply.status(409).send({
+        error: `Negative margin on: ${negative.join(', ')}. Confirm explicitly to publish anyway.`,
+        code: 'AGENT_ROUTING_NEGATIVE_MARGIN',
+        negativeLines: negative,
+      });
+    }
+
+    const previous = await getActiveAgentRoutingCard(store);
+
+    /*
+     * The store assigns the real monotonic version and stamps it (plus
+     * effectiveFrom) into the JSON inside the same transaction that closes the
+     * previous version.
+     */
+    const created = await store.createAgentRoutingCardVersion({
+      data: candidate,
+      sourceDate: body.card.sourceDate,
+      createdByUserId: request.currentUser?.id,
+    });
+
+    const published: AgentRoutingCard = {
+      ...candidate,
+      version: created.version,
+      effectiveFrom: created.effectiveFrom,
+    };
+
+    resetAgentRoutingCache();
+
+    const marginSnapshot = (routing: AgentRoutingCard) =>
+      routing.lines.map((line) => ({ key: line.key, model: line.model, margins: lineMargins(routing, line) }));
+
+    await audit(request, store, {
+      action: 'admin.agent-routing.publish',
+      resourceType: 'agentRoutingCard',
+      resourceId: String(created.version),
+      metadata: {
+        version: created.version,
+        sourceDate: body.card.sourceDate,
+        confirmNegativeMargin: body.confirmNegativeMargin,
+        negativeLines: negative,
+        marginBefore: marginSnapshot(previous),
+        marginAfter: marginSnapshot(published),
+      },
+    });
+
+    return { published: true, version: created.version, effectiveFrom: created.effectiveFrom };
+  });
+
+  /*
+   * AGM simulator: before applying a draft card, replay the LAST 30 DAYS of
+   * real volume against it — "at this volume, this config would have cost X
+   * and earned Y" — next to what actually happened.
+   */
+  app.post('/admin/agent-routing/simulate', async (request, reply) => {
+    await requirePlatformAdmin(request);
+
+    const body = parse(z.object({ card: adminAgentRoutingDraftSchema }), request.body ?? {});
+    const candidate = buildCandidateRoutingCard(body.card);
+    const structural = validateAgentRoutingCard(candidate);
+
+    if (structural.length > 0) {
+      return reply
+        .status(400)
+        .send({ error: 'Invalid routing card', code: 'AGENT_ROUTING_INVALID', issues: structural });
+    }
+
+    const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+    const volume = await store.aggregateAgentCallVolume(since).catch(() => []);
+
+    const perLine = volume.map((row) => {
+      const line = routingLine(candidate, row.lineKey as AgentRoutingLineKey);
+      const actualCostCents = row.costMillicents / 1000;
+      const actualMarginCents = row.marginMillicents / 1000;
+
+      if (!line) {
+        return {
+          lineKey: row.lineKey,
+          calls: row.calls,
+          tokensIn: row.tokensIn,
+          tokensOut: row.tokensOut,
+          actualCostCents,
+          actualCreditCents: row.creditCents,
+          actualMarginCents,
+          simulatedCostCents: 0,
+          simulatedCreditCents: 0,
+          simulatedMarginCents: 0,
+          missingInDraft: true,
+        };
+      }
+
+      const price = lineUserPrice(candidate, line);
+      const simulatedCostCents = (row.tokensIn * line.costInCentsPerM + row.tokensOut * line.costOutCentsPerM) / 1_000_000;
+      const simulatedCreditCents = line.billedToUser
+        ? (row.tokensIn * price.inCentsPerM + row.tokensOut * price.outCentsPerM) / 1_000_000
+        : 0;
+
+      return {
+        lineKey: row.lineKey,
+        calls: row.calls,
+        tokensIn: row.tokensIn,
+        tokensOut: row.tokensOut,
+        actualCostCents,
+        actualCreditCents: row.creditCents,
+        actualMarginCents,
+        simulatedCostCents,
+        simulatedCreditCents,
+        simulatedMarginCents: simulatedCreditCents - simulatedCostCents,
+        missingInDraft: false,
+      };
+    });
+
+    const totals = perLine.reduce(
+      (acc, row) => ({
+        actualCostCents: acc.actualCostCents + row.actualCostCents,
+        actualCreditCents: acc.actualCreditCents + row.actualCreditCents,
+        actualMarginCents: acc.actualMarginCents + row.actualMarginCents,
+        simulatedCostCents: acc.simulatedCostCents + row.simulatedCostCents,
+        simulatedCreditCents: acc.simulatedCreditCents + row.simulatedCreditCents,
+        simulatedMarginCents: acc.simulatedMarginCents + row.simulatedMarginCents,
+      }),
+      {
+        actualCostCents: 0,
+        actualCreditCents: 0,
+        actualMarginCents: 0,
+        simulatedCostCents: 0,
+        simulatedCreditCents: 0,
+        simulatedMarginCents: 0,
+      },
+    );
+
+    return {
+      windowDays: 30,
+      negativeLines: negativeMarginLineKeys(candidate),
+      lines: perLine,
+      totals,
+    };
   });
 
   app.post('/admin/providers/toggle', async (request) => {

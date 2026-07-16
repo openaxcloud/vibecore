@@ -1821,6 +1821,153 @@ export class TestApiStore implements ApiStore {
     return undefined;
   }
 
+  /*
+   * AGM agent routing — in-memory versioned cards + call log, enough for the
+   * admin endpoints and the record-usage AGM branch to run in tests.
+   */
+  agentRoutingCards: Array<{
+    version: number;
+    active: boolean;
+    data: unknown;
+    effectiveFrom: string;
+    effectiveTo?: string;
+    sourceDate?: string;
+    createdAt: string;
+    createdByUserId?: string;
+    createdByEmail?: string;
+  }> = [];
+
+  agentCalls: Array<{
+    id: string;
+    createdAt: string;
+    userId?: string;
+    organizationId?: string;
+    projectId?: string;
+    mode: string;
+    highEffort: boolean;
+    escalated: boolean;
+    turbo: boolean;
+    lineKey: string;
+    provider: string;
+    model: string;
+    tokensIn: number;
+    tokensOut: number;
+    costMillicents: number;
+    creditCents: number;
+    marginMillicents: number;
+    billedToUser: boolean;
+    routingCardVersion: number;
+    source: string;
+  }> = [];
+
+  async getActiveAgentRoutingCard(): Promise<{ version: number; data: unknown } | undefined> {
+    const active = this.agentRoutingCards.filter((card) => card.active).sort((a, b) => b.version - a.version)[0];
+    return active ? { version: active.version, data: active.data } : undefined;
+  }
+
+  async countAgentRoutingCards(): Promise<number> {
+    return this.agentRoutingCards.length;
+  }
+
+  async insertAgentRoutingCard(input: {
+    version: number;
+    data: unknown;
+    sourceDate?: string;
+    effectiveFrom?: string;
+    active: boolean;
+    createdByUserId?: string;
+  }): Promise<void> {
+    this.agentRoutingCards.push({
+      version: input.version,
+      active: input.active,
+      data: input.data,
+      effectiveFrom: input.effectiveFrom ?? now(),
+      sourceDate: input.sourceDate,
+      createdAt: now(),
+      createdByUserId: input.createdByUserId,
+    });
+  }
+
+  async createAgentRoutingCardVersion(input: {
+    data: unknown;
+    sourceDate?: string;
+    createdByUserId?: string;
+  }): Promise<{ version: number; effectiveFrom: string }> {
+    const effectiveFrom = now();
+    const version = Math.max(0, ...this.agentRoutingCards.map((card) => card.version)) + 1;
+
+    for (const card of this.agentRoutingCards) {
+      if (card.active) {
+        card.active = false;
+        card.effectiveTo = effectiveFrom;
+      }
+    }
+
+    this.agentRoutingCards.push({
+      version,
+      active: true,
+      data: { ...(input.data as Record<string, unknown>), version, effectiveFrom },
+      effectiveFrom,
+      sourceDate: input.sourceDate,
+      createdAt: effectiveFrom,
+      createdByUserId: input.createdByUserId,
+    });
+
+    return { version, effectiveFrom };
+  }
+
+  async listAgentRoutingCards(limit = 50) {
+    return [...this.agentRoutingCards].sort((a, b) => b.version - a.version).slice(0, limit);
+  }
+
+  async recordAgentCall(input: Omit<(typeof this.agentCalls)[number], 'id' | 'createdAt'>): Promise<void> {
+    this.agentCalls.push({ id: id('agentcall'), createdAt: now(), ...input });
+  }
+
+  async aggregateAgentCallVolume(sinceIso: string) {
+    const byLine = new Map<
+      string,
+      {
+        lineKey: string;
+        calls: number;
+        tokensIn: number;
+        tokensOut: number;
+        costMillicents: number;
+        creditCents: number;
+        marginMillicents: number;
+      }
+    >();
+
+    for (const call of this.agentCalls) {
+      if (call.createdAt < sinceIso) {
+        continue;
+      }
+
+      const entry = byLine.get(call.lineKey) ?? {
+        lineKey: call.lineKey,
+        calls: 0,
+        tokensIn: 0,
+        tokensOut: 0,
+        costMillicents: 0,
+        creditCents: 0,
+        marginMillicents: 0,
+      };
+      entry.calls += 1;
+      entry.tokensIn += call.tokensIn;
+      entry.tokensOut += call.tokensOut;
+      entry.costMillicents += call.costMillicents;
+      entry.creditCents += call.creditCents;
+      entry.marginMillicents += call.marginMillicents;
+      byLine.set(call.lineKey, entry);
+    }
+
+    return [...byLine.values()];
+  }
+
+  async listAgentCalls(limit = 100) {
+    return [...this.agentCalls].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)).slice(0, limit);
+  }
+
   async createSupportTicket(input: { organizationId: string; userId: string; subject: string; category?: string }) {
     const ticket: SupportTicketRecord = { id: id('ticket'), ...input, status: 'OPEN', createdAt: now() };
     this.supportTickets.set(ticket.id, ticket);

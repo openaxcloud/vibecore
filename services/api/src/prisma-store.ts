@@ -2370,6 +2370,195 @@ export class PrismaApiStore implements ApiStore {
     return card ? { version: card.version, data: card.data as unknown } : undefined;
   }
 
+  async getActiveAgentRoutingCard() {
+    const card = await this.prisma.agentRoutingCard.findFirst({
+      where: { active: true },
+      orderBy: { version: 'desc' },
+      select: { version: true, data: true },
+    });
+
+    return card ? { version: card.version, data: card.data as unknown } : undefined;
+  }
+
+  async countAgentRoutingCards() {
+    return this.prisma.agentRoutingCard.count();
+  }
+
+  async insertAgentRoutingCard(input: {
+    version: number;
+    data: unknown;
+    sourceDate?: string;
+    effectiveFrom?: string;
+    active: boolean;
+    createdByUserId?: string;
+  }) {
+    await this.prisma.agentRoutingCard.create({
+      data: {
+        version: input.version,
+        data: input.data as object,
+        sourceDate: input.sourceDate ?? null,
+        effectiveFrom: input.effectiveFrom ? new Date(input.effectiveFrom) : new Date(),
+        active: input.active,
+        createdByUserId: input.createdByUserId ?? null,
+      },
+    });
+  }
+
+  async createAgentRoutingCardVersion(input: { data: unknown; sourceDate?: string; createdByUserId?: string }) {
+    return this.prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const latest = await tx.agentRoutingCard.findFirst({ orderBy: { version: 'desc' }, select: { version: true } });
+      const version = (latest?.version ?? 0) + 1;
+
+      await tx.agentRoutingCard.updateMany({
+        where: { active: true },
+        data: { active: false, effectiveTo: now },
+      });
+
+      /*
+       * Stamp the assigned version + effectiveFrom into the JSON document too,
+       * inside the same transaction, so the stored data is self-describing.
+       */
+      const stamped = {
+        ...(input.data as Record<string, unknown>),
+        version,
+        effectiveFrom: now.toISOString(),
+      };
+
+      await tx.agentRoutingCard.create({
+        data: {
+          version,
+          data: stamped,
+          sourceDate: input.sourceDate ?? null,
+          effectiveFrom: now,
+          active: true,
+          createdByUserId: input.createdByUserId ?? null,
+        },
+      });
+
+      return { version, effectiveFrom: now.toISOString() };
+    });
+  }
+
+  async listAgentRoutingCards(limit = 50) {
+    const rows = await this.prisma.agentRoutingCard.findMany({
+      orderBy: { version: 'desc' },
+      take: Math.min(Math.max(limit, 1), 200),
+      include: { createdBy: { select: { email: true } } },
+    });
+
+    return rows.map((row) => ({
+      version: row.version,
+      active: row.active,
+      data: row.data as unknown,
+      effectiveFrom: row.effectiveFrom.toISOString(),
+      effectiveTo: row.effectiveTo?.toISOString(),
+      sourceDate: row.sourceDate ?? undefined,
+      createdAt: row.createdAt.toISOString(),
+      createdByUserId: row.createdByUserId ?? undefined,
+      createdByEmail: row.createdBy?.email ?? undefined,
+    }));
+  }
+
+  async recordAgentCall(input: {
+    userId?: string;
+    organizationId?: string;
+    projectId?: string;
+    mode: string;
+    highEffort: boolean;
+    escalated: boolean;
+    turbo: boolean;
+    lineKey: string;
+    provider: string;
+    model: string;
+    tokensIn: number;
+    tokensOut: number;
+    costMillicents: number;
+    creditCents: number;
+    marginMillicents: number;
+    billedToUser: boolean;
+    routingCardVersion: number;
+    source: string;
+  }) {
+    await this.prisma.agentCallLog.create({
+      data: {
+        userId: input.userId ?? null,
+        organizationId: input.organizationId ?? null,
+        projectId: input.projectId ?? null,
+        mode: input.mode,
+        highEffort: input.highEffort,
+        escalated: input.escalated,
+        turbo: input.turbo,
+        lineKey: input.lineKey,
+        provider: input.provider,
+        model: input.model,
+        tokensIn: input.tokensIn,
+        tokensOut: input.tokensOut,
+        costMillicents: input.costMillicents,
+        creditCents: input.creditCents,
+        marginMillicents: input.marginMillicents,
+        billedToUser: input.billedToUser,
+        routingCardVersion: input.routingCardVersion,
+        source: input.source,
+      },
+    });
+  }
+
+  async aggregateAgentCallVolume(sinceIso: string) {
+    const rows = await this.prisma.agentCallLog.groupBy({
+      by: ['lineKey'],
+      where: { createdAt: { gte: new Date(sinceIso) } },
+      _count: { _all: true },
+      _sum: {
+        tokensIn: true,
+        tokensOut: true,
+        costMillicents: true,
+        creditCents: true,
+        marginMillicents: true,
+      },
+    });
+
+    return rows.map((row) => ({
+      lineKey: row.lineKey,
+      calls: row._count._all,
+      tokensIn: row._sum.tokensIn ?? 0,
+      tokensOut: row._sum.tokensOut ?? 0,
+      costMillicents: row._sum.costMillicents ?? 0,
+      creditCents: row._sum.creditCents ?? 0,
+      marginMillicents: row._sum.marginMillicents ?? 0,
+    }));
+  }
+
+  async listAgentCalls(limit = 100) {
+    const rows = await this.prisma.agentCallLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(Math.max(limit, 1), 500),
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      createdAt: row.createdAt.toISOString(),
+      userId: row.userId ?? undefined,
+      organizationId: row.organizationId ?? undefined,
+      projectId: row.projectId ?? undefined,
+      mode: row.mode,
+      highEffort: row.highEffort,
+      escalated: row.escalated,
+      turbo: row.turbo,
+      lineKey: row.lineKey,
+      provider: row.provider,
+      model: row.model,
+      tokensIn: row.tokensIn,
+      tokensOut: row.tokensOut,
+      costMillicents: row.costMillicents,
+      creditCents: row.creditCents,
+      marginMillicents: row.marginMillicents,
+      billedToUser: row.billedToUser,
+      routingCardVersion: row.routingCardVersion,
+      source: row.source,
+    }));
+  }
+
   async listStaleDeployments(cutoffIso: string) {
     return (
       await this.prisma.deployment.findMany({
