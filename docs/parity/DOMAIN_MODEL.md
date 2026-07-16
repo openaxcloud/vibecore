@@ -48,6 +48,30 @@ Invariants:
   projet→tenant est unique).
 - Défaut: 1 projet primaire par tenant.
 
+### Hiérarchie GCP — le folder-per-tenant est mort (audit v4 P0-#3)
+
+**Faits vérifiés (Resource Manager, mot pour mot)** : « A parent folder cannot
+contain more than 300 folders » (enfants directs) ; profondeur max 10 ; et le
+**vrai mur** : la **création de folders est plafonnée à ~0,1 req/s = 6/min**
+(quota d'écriture Resource Manager).
+
+- Le cap de 300 se **contourne par sharding** ; le **débit de création, NON** —
+  c'est un plafond série dur. À 1 000 clients, un folder par tenant = 1000/6 ≈
+  **167 min ≈ 2,8 h** de rate-limit pur, avant tout travail réel.
+- I-TEN-2: **pas de folder par tenant par défaut**. Les tenants se mappent sur un
+  petit ensemble FIXE de partitions `shard-<n>`, chacune dimensionnée **sous
+  300** enfants (marge 10%). Un folder dédié par tenant n'est créé que sur
+  **exigence contractuelle/policy mesurée** (et refusé si le coût-temps dépasse
+  le seuil).
+- I-TEN-3: `CapacityPolicy` porte à la fois les **quotas** (enfants/parent,
+  profondeur) ET les **rate limits de création** — le provisioning se cadence
+  au lieu de heurter un mur de 429.
+- Implémentation prouvée : `services/api/src/capacity-policy.ts`
+  (`requiredShardCount`, `shardForTenant` déterministe, `estimateProvisioning`).
+  6 tests : 1000 tenants → **4 shards** (~40 s) admissibles ; folder-per-tenant
+  1000 = **10 000 s (2,78 h)** INADMISSIBLE par défaut ; un petit
+  folder-per-tenant contractuel (30) reste admissible.
+
 ## 4. IAM (identités d'exécution)
 
 Identités SÉPARÉES: `BuildIdentity` / `PromotionIdentity` / `RuntimeIdentity`.
@@ -60,7 +84,7 @@ Identités SÉPARÉES: `BuildIdentity` / `PromotionIdentity` / `RuntimeIdentity`
 - I-IAM-3: BuildIdentity ne peut pas promouvoir; PromotionIdentity ne peut pas
   builder; séparation vérifiable par IAM policy.
 
-## 5. Rollback / ReleaseCatalog
+## 5. Rollback / ReleaseCatalog / Promotion
 
 - `ReleaseCatalog` = **source de vérité** des releases.
 - Retient par release: image **par digest** + bundle + SBOM + provenance + config.
@@ -68,6 +92,31 @@ Identités SÉPARÉES: `BuildIdentity` / `PromotionIdentity` / `RuntimeIdentity`
 - I-REL-1: le rollback doit fonctionner **même si la révision Cloud Run a
   disparu** (Cloud Run supprime au-delà de 1000 révisions/service) — le
   catalogue est suffisant pour re-déployer, il ne dépend d'aucun état runtime.
+
+### Promotion d'image vers un tenant — invariant sécurité (audit v4 P0-#4)
+
+**Fait vérifié** : Artifact Registry stocke la **signature, le SBOM et la
+provenance comme referrers/attachments OCI SÉPARÉS** liés au digest de l'image.
+Une copie par digest (`gcloud … copy` ou équivalent) copie **uniquement le
+manifeste d'image** — les attachments NE SUIVENT PAS. Promouvoir par digest seul
+livre une image **non vérifiable** chez le tenant (Binary Authorization n'a rien
+à contrôler).
+
+- I-PROMO-1: la promotion doit **découvrir TOUS les referrers** du digest source,
+  **copier ET re-lier** chaque attachment dans le repo tenant, puis **VÉRIFIER
+  présence + subjectDigest dans le contexte tenant**, enfin passer la barrière
+  **Binary Authorization**. Un attachment manquant/désaligné à N'IMPORTE quelle
+  étape ⇒ **promotion BLOQUÉE** + rollback (le tenant ne reçoit jamais d'image
+  non vérifiable).
+- I-PROMO-2: une image dont les attestations sont **déjà incomplètes à la
+  source** n'est **jamais** promue (non vérifiable par construction).
+- Implémentation prouvée : `services/api/src/artifact-promotion.ts`
+  (`promoteArtifact` + `RegistryAdapter`). 7 tests dont **4 négatifs** (SBOM
+  source manquant → `PROMOTION_SOURCE_INCOMPLETE` ; relink silencieux échoué →
+  `PROMOTION_TARGET_UNVERIFIED` ; BinAuthz refusé → `PROMOTION_BINAUTHZ_DENIED` ;
+  image source absente). L'adapter live Artifact Registry (API OCI referrers) est
+  un follow-up infra — la logique de sécurité vit et est prouvée dans le module.
+  🟡 Promotion réelle contre un AR live = non exécutée (nécessite creds infra).
 
 ## 6. Checkpoint projet
 
