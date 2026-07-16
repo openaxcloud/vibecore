@@ -1,0 +1,44 @@
+# Nix v2 toolchain auto-activation — python/uv/go on PATH with zero setup (2026-07-16, fix 83459fff)
+
+## The gap
+The gen-2 Nix store ships a signed catalog (/nix/ecode/catalog.json: nix 2.34.8,
+nixpkgs nixos-26.05) mapping each runtime to a profile bin with python3/pip/uv/
+virtualenv/go — but NO code put them on the workspace PATH. So on a nix workspace,
+bare 'uv'/'python3' resolved to nothing (alpine base has neither); PY-PREVIEW-01
+only worked because I hand-munged the venv path.
+
+## The fix (services/workspace-agent/src/app.ts, commit 83459fff)
+sanitizedChildEnv (the common env for terminals + run_command + streamed dev
+servers) now APPENDS the catalog's profile bin dirs to PATH: base tools (node/npm)
+keep priority, nix ADDS the runtimes the base lacks. Cached once; inert when /nix
+absent. Unit tests: nixToolchainBinDirs (catalog parse + missing-profile skip).
+
+## Deployed
+workspace-agent:sha-83459fff87 -> WORKSPACE_AGENT_IMAGE (helm rev 859).
+reprovisioned pod image = europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/workspace-agent:sha-83459fff87
+volumes = workspace nix-store 
+
+## Proof — with the exact PATH the activation appends, bare tools resolve:
+  which uv      -> /nix/store/vyv024fnqmzz1aklrysgd3vmwixgplgg-ecode-env-python-3.12/bin/uv
+  which python3 -> /nix/store/vyv024fnqmzz1aklrysgd3vmwixgplgg-ecode-env-python-3.12/bin/python3
+  which go      -> /nix/store/wj08cpff4x0fql7mkvp01jfs8lvik2wj-ecode-env-go/bin/go
+  uv --version  -> uv 0.11.21 (x86_64-unknown-linux-gnu)
+  python3 -V    -> Python 3.12.13
+
+## HONEST STATUS vs the 'zero-manual Python' bar
+- DONE: toolchain on PATH is automatic (uv/python/go), no venv-path munging. uv is
+  the nix-built 0.11.21 (runs via the store's glibc — the musl-incompatible PyPI
+  wheel is no longer needed).
+- NOT YET: the nix MOUNT is still gated by WORKSPACE_NIX_PROJECTS (a manual
+  allowlist). A truly fresh Python project still needs the project added. Making the
+  mount automatic (detect-and-mount, or default-for-all) is the remaining piece, and
+  default-for-all is GATED on multi-zone nix (OPERATIONS_DR SPOF-1, Option A ~$10/mo,
+  awaiting Avi's go) to avoid the zonal outage.
+- Browser terminal visual not captured: the Chrome extension went unresponsive on the
+  reprovisioned IDE tab; activation proven deterministically instead (above) + unit tests.
+
+## Helm incident (resolved)
+My earlier nixProjects upgrade orphaned as rev 857 pending-upgrade (~96min, blocking
+all deploys). Diagnosed: v856==v857 imageTags (bd4c334e21), pods healthy, only helm
+bookkeeping stuck. Fixed: helm rollback 856 (rev 858, no pod change) then re-upgrade
+(rev 859). Prod stayed 200 throughout.
