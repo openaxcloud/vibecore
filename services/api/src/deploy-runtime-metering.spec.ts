@@ -159,6 +159,45 @@ describe('meterServerDeploymentRuntime', () => {
     expect(usageEvents).toHaveLength(1);
   });
 
+  it('bills the request DELTA above the watermark and advances it', async () => {
+    const row = deployment({
+      metadata: { serverDeploy: { host: 'd-dep1.preview.e-code.ai', meteredRequests: 100 } },
+    });
+
+    const { store, usageEvents, state } = makeStore([row]);
+
+    const result = await meterServerDeploymentRuntime(store, {
+      card: BUILTIN_RATE_CARD,
+      getLiveStatus: vi.fn(async () => ({ exists: true, replicas: 1, readyReplicas: 1, requestCount: 350 })),
+      nowMs: NOW,
+      shadow: true,
+    });
+
+    expect(result.requests).toBe(250);
+    expect((usageEvents[0].metadata as Record<string, unknown>).requests).toBe(250);
+
+    const meta = state.get('dep1')!.metadata as { serverDeploy: { meteredRequests: number } };
+    expect(meta.serverDeploy.meteredRequests).toBe(350);
+  });
+
+  it('a reset counter (Deployment recreated) never bills negative', async () => {
+    const row = deployment({
+      metadata: { serverDeploy: { host: 'd-dep1.preview.e-code.ai', meteredRequests: 5000 } },
+    });
+
+    const { store, usageEvents } = makeStore([row]);
+
+    const result = await meterServerDeploymentRuntime(store, {
+      card: BUILTIN_RATE_CARD,
+      getLiveStatus: vi.fn(async () => ({ exists: true, replicas: 1, readyReplicas: 1, requestCount: 12 })),
+      nowMs: NOW,
+      shadow: true,
+    });
+
+    expect(result.requests).toBe(0);
+    expect((usageEvents[0].metadata as Record<string, unknown>).requests).toBe(0);
+  });
+
   it('multiplies by live replicas (rolling surge bills what actually ran)', async () => {
     const { store } = makeStore([deployment()]);
 

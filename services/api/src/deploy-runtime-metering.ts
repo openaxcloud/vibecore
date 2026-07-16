@@ -22,6 +22,9 @@ export interface ServerDeployLiveStatus {
   exists: boolean;
   replicas: number;
   readyReplicas: number;
+
+  /** Cumulative proxied-request counter (manager annotation), when known. */
+  requestCount?: number;
 }
 
 /**
@@ -50,13 +53,31 @@ function runtimeWatermarkIso(deployment: DeploymentRecord): string {
   return deployment.finishedAt ?? deployment.createdAt;
 }
 
-async function stampWatermark(store: ApiStore, deployment: DeploymentRecord, nowIso: string) {
+async function stampWatermark(store: ApiStore, deployment: DeploymentRecord, nowIso: string, meteredRequests?: number) {
   const metadata = (deployment.metadata as Record<string, unknown> | undefined) ?? {};
   const serverMeta = (metadata.serverDeploy as Record<string, unknown> | undefined) ?? {};
 
   await store.updateDeployment(deployment.projectId, deployment.id, {
-    metadata: { ...metadata, serverDeploy: { ...serverMeta, runtimeMeteredAt: nowIso } },
+    metadata: {
+      ...metadata,
+      serverDeploy: {
+        ...serverMeta,
+        runtimeMeteredAt: nowIso,
+        ...(meteredRequests !== undefined ? { meteredRequests } : {}),
+      },
+    },
   });
+}
+
+/** Already-billed request watermark (cumulative counter position). */
+function meteredRequestsWatermark(deployment: DeploymentRecord): number {
+  const serverMeta = (deployment.metadata as Record<string, unknown> | undefined)?.serverDeploy as
+    | { meteredRequests?: unknown }
+    | undefined;
+
+  const value = Number(serverMeta?.meteredRequests);
+
+  return Number.isFinite(value) && value >= 0 ? value : 0;
 }
 
 export interface RuntimeMeteringResult {
@@ -64,6 +85,7 @@ export interface RuntimeMeteringResult {
   billed: number;
   slept: number;
   computeUnits: number;
+  requests: number;
 }
 
 export async function meterServerDeploymentRuntime(
@@ -76,7 +98,7 @@ export async function meterServerDeploymentRuntime(
   },
 ): Promise<RuntimeMeteringResult> {
   const rows = await store.listActiveServerDeployments();
-  const result: RuntimeMeteringResult = { scanned: rows.length, billed: 0, slept: 0, computeUnits: 0 };
+  const result: RuntimeMeteringResult = { scanned: rows.length, billed: 0, slept: 0, computeUnits: 0, requests: 0 };
 
   for (const row of rows) {
     try {
@@ -102,10 +124,23 @@ export async function meterServerDeploymentRuntime(
           return;
         }
 
+        /*
+         * Request billing: the manager reports the CUMULATIVE proxied-request
+         * counter; bill the delta above our per-row watermark. A counter reset
+         * (Deployment recreated) shows as live < watermark → re-anchor without
+         * billing, never a negative charge.
+         */
+        const requestsSeen = Number.isFinite(live.requestCount) ? (live.requestCount as number) : undefined;
+        const requestsWatermark = meteredRequestsWatermark(fresh);
+
+        const requestsDelta =
+          requestsSeen !== undefined && requestsSeen > requestsWatermark ? requestsSeen - requestsWatermark : 0;
+
         if (live.replicas === 0) {
           /*
            * Asleep — idle time is free; advance the watermark so a later wake
-           * never back-bills the sleep window.
+           * never back-bills the sleep window. (Requests seen while asleep were
+           * wake-triggering; they are billed on the next ACTIVE sweep.)
            */
           await stampWatermark(store, fresh, new Date(input.nowMs).toISOString());
           result.slept += 1;
@@ -130,6 +165,7 @@ export async function meterServerDeploymentRuntime(
           organizationId: project.organizationId,
           kind: 'autoscale',
           computeUnits: units,
+          requests: requestsDelta,
           shadow: input.shadow,
           nowMs: input.nowMs,
 
@@ -143,9 +179,15 @@ export async function meterServerDeploymentRuntime(
           },
         });
 
-        await stampWatermark(store, fresh, new Date(input.nowMs).toISOString());
+        await stampWatermark(
+          store,
+          fresh,
+          new Date(input.nowMs).toISOString(),
+          requestsSeen !== undefined ? Math.max(requestsSeen, requestsWatermark) : undefined,
+        );
         result.billed += 1;
         result.computeUnits += units;
+        result.requests += requestsDelta;
       });
     } catch (error) {
       console.error('deploy runtime metering failed for deployment; continuing', {

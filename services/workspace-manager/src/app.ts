@@ -313,9 +313,15 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     }
   });
 
-  /* Record live traffic (throttled) so the idle controller can measure inactivity. */
+  /*
+   * Record live traffic (throttled) so the idle controller can measure
+   * inactivity. The optional `requests` delta (accumulated by the proxy since
+   * its last flush) feeds the cumulative request counter used for billing.
+   */
   app.post('/server-deployments/:deploymentId/touch', async (request) => {
-    await manager.touchServerDeployment(runtimeNamespace(), (request.params as any).deploymentId);
+    const requests = Number((request.body as { requests?: number } | undefined)?.requests) || 0;
+    await manager.touchServerDeployment(runtimeNamespace(), (request.params as any).deploymentId, requests);
+
     return { ok: true };
   });
 

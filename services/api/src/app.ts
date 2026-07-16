@@ -96,6 +96,31 @@ import {
   type AgentMemoryScope,
   type AgentMemoryType,
 } from './agent-memory.js';
+import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
+import {
+  detectPodPackageManager,
+  runWorkspaceStaticBuild,
+  type WorkspaceStaticBuildResult,
+} from './deploy-workspace-build.js';
+import {
+  buildImageContextFromRevision,
+  type AppBuildRunPayload,
+  type RevisionImageContextResult,
+} from './server-deploy-revision.js';
+import {
+  buildServerDeployEnv,
+  snapshotWorkspaceAppSource,
+  snapshotWorkspaceImageContext,
+} from './server-deploy-transfer.js';
+import {
+  buildServerBootScript,
+  detectDeployTarget,
+  detectPackageManagerInstall,
+  detectServerRuntime,
+  isDetectionError,
+  type ServerRuntimePlan,
+} from './server-runtime-detect.js';
+import { runAppImageBuild } from './app-image-build.js';
 import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
 import {
@@ -122,38 +147,6 @@ import {
 import { enqueueDeployBuildJob } from './deploy-queue.js';
 import { reapStaleDeployments, resolveDeployBuildTimeoutMs } from './deploy-reaper.js';
 import { meterServerDeploymentRuntime } from './deploy-runtime-metering.js';
-import {
-  MachineSizeError,
-  getActiveRateCard,
-  machineSizeResources,
-  maxSchedulableVcpu,
-  resolveDeployMachineSize,
-} from './rate-card-service.js';
-import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
-import {
-  detectPodPackageManager,
-  runWorkspaceStaticBuild,
-  type WorkspaceStaticBuildResult,
-} from './deploy-workspace-build.js';
-import {
-  buildImageContextFromRevision,
-  type AppBuildRunPayload,
-  type RevisionImageContextResult,
-} from './server-deploy-revision.js';
-import {
-  buildServerDeployEnv,
-  snapshotWorkspaceAppSource,
-  snapshotWorkspaceImageContext,
-} from './server-deploy-transfer.js';
-import {
-  buildServerBootScript,
-  detectDeployTarget,
-  detectPackageManagerInstall,
-  detectServerRuntime,
-  isDetectionError,
-  type ServerRuntimePlan,
-} from './server-runtime-detect.js';
-import { runAppImageBuild } from './app-image-build.js';
 import { shouldRecordDeploymentUsage } from './deployment-billing.js';
 import {
   assertDeploymentRequestAllowed,
@@ -235,6 +228,27 @@ import {
   resolveDefaultObjectStorage,
 } from './object-storage.js';
 import { PrismaApiStore } from './prisma-store.js';
+import {
+  decodeFileContent,
+  filesFromZip,
+  filesFromZipBase64,
+  GitCliProvider,
+  LocalProjectStorage,
+  type FileEncoding,
+  type GitProvider,
+  type ProjectFile,
+  type ProjectStorage,
+  type StoredArchive,
+} from './project-storage.js';
+import { aggregateProviderMetrics } from './provider-metrics.js';
+import {
+  MachineSizeError,
+  getActiveRateCard,
+  machineSizeResources,
+  maxSchedulableVcpu,
+  resolveDeployMachineSize,
+} from './rate-card-service.js';
+import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { describeCron } from './scheduled-tasks-cron.js';
 import {
   PostgresScheduledTaskRepository,
@@ -252,20 +266,6 @@ import {
   type SandboxExec,
   type WorkflowResolver,
 } from './scheduled-tasks.js';
-import {
-  decodeFileContent,
-  filesFromZip,
-  filesFromZipBase64,
-  GitCliProvider,
-  LocalProjectStorage,
-  type FileEncoding,
-  type GitProvider,
-  type ProjectFile,
-  type ProjectStorage,
-  type StoredArchive,
-} from './project-storage.js';
-import { aggregateProviderMetrics } from './provider-metrics.js';
-import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
 import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
 import { SKILL_REPO_CATALOG, findRepoEntry, normalizeOwnerRepo } from './skills-repo-catalog.js';
@@ -6596,7 +6596,7 @@ async function stopServerDeploymentViaManager(deploymentId: string): Promise<voi
  */
 async function getServerDeploymentStatusViaManager(
   deploymentId: string,
-): Promise<{ exists: boolean; readyReplicas: number; replicas: number } | undefined> {
+): Promise<{ exists: boolean; readyReplicas: number; replicas: number; requestCount?: number } | undefined> {
   const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
   try {
@@ -6613,7 +6613,12 @@ async function getServerDeploymentStatusViaManager(
       return undefined;
     }
 
-    return (await response.json()) as { exists: boolean; readyReplicas: number; replicas: number };
+    return (await response.json()) as {
+      exists: boolean;
+      readyReplicas: number;
+      replicas: number;
+      requestCount?: number;
+    };
   } catch {
     return undefined;
   }
@@ -12401,7 +12406,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const RUNTIME_PROXY_TIMEOUT_MS = 15000;
 
-  const withRequestTimeout = (init: RequestInit, timeoutMs = RUNTIME_PROXY_TIMEOUT_MS): { init: RequestInit; done: () => void } => {
+  const withRequestTimeout = (
+    init: RequestInit,
+    timeoutMs = RUNTIME_PROXY_TIMEOUT_MS,
+  ): { init: RequestInit; done: () => void } => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -13345,6 +13353,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const scheduledTaskProjectWorkspace = async (projectId: string) => {
     const workspaces = await store.listWorkspaces(projectId).catch(() => []);
+
     const existing =
       workspaces.find((workspace) => (workspace.environment ?? 'development') === 'development') ?? workspaces[0];
 
@@ -13404,6 +13413,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const runtimeWorkspaces = await managerRequest<Array<{ pvcName?: string }>>(
       `/projects/${encodeURIComponent(input.projectId)}/runtime-workspaces`,
     ).catch(() => [] as Array<{ pvcName?: string }>);
+
     const runtimePvcName = runtimeWorkspaces.find((entry) => entry.pvcName)?.pvcName;
 
     const result = await managerRequest<{ exitCode: number; output: string; timedOut: boolean; phase: string }>(
@@ -13430,8 +13440,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }),
       },
 
-      // Synchronous run: the manager polls the pod to completion inside this
-      // request — give it the run's own budget plus scheduling slack.
+      /*
+       * Synchronous run: the manager polls the pod to completion inside this
+       * request — give it the run's own budget plus scheduling slack.
+       */
       input.timeoutMs + 60_000,
     );
 
@@ -23672,6 +23684,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           provider: name,
           displayName: byName.get(name)?.displayName ?? name,
           enabled: byName.get(name)?.enabled ?? false,
+
           // Non-secret: whether a platform key (apiKeyEnc) is stored — never the value.
           keyConfigured: Boolean(byName.get(name)?.apiKeyEnc),
           sampleCount: metric?.sampleCount ?? 0,
@@ -26980,8 +26993,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { mode: 'unknown', framework: 'unknown', reason: manifest.reason, pending: true };
     }
 
-    // A declared run command (.ecode/deploy.json) wins — same precedence as the
-    // deploy handler, so the shown mode and the executed mode stay in lockstep.
+    /*
+     * A declared run command (.ecode/deploy.json) wins — same precedence as the
+     * deploy handler, so the shown mode and the executed mode stay in lockstep.
+     */
     if (manifest.declaredRun) {
       return {
         mode: 'server',
@@ -27819,6 +27834,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       let started: { ready: boolean; url: string; name: string; readyReplicas: number } | undefined;
       let serverError: string | undefined;
+
       const serverPort = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
 
       /*
@@ -27835,6 +27851,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       const userId = request.currentUser?.id;
       const WebSocketCtor = (globalThis as { WebSocket?: new (url: string) => WsLike }).WebSocket;
+
       let bootCommand: string[] | undefined;
 
       /*
@@ -27843,6 +27860,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * runtime + boot script. serverImage set ⇒ no bootCommand, no APP_SRC_*.
        */
       let serverImage: string | undefined;
+
       let imageBuildInfo:
         | {
             imageUri: string;
@@ -27855,6 +27873,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             revisionSha256?: string;
           }
         | undefined;
+
       let serverEnv: Record<string, string> = { DEPLOY_ID: queued.id, PORT: String(serverPort), ...body.envVars };
 
       if (process.env.SERVER_DEPLOY_USE_PROBE === 'true') {
@@ -27885,7 +27904,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         try {
           await ensureWorkspaceReachable(request, authorized);
+
           const token = await agentToken(workspaceId);
+
           const buildAgent = createWorkspaceBuildAgent({
             agentWsBaseUrl: agentBaseUrl(workspaceId).replace(/^http/i, 'ws'),
             token,
@@ -28014,9 +28035,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       objectStorage,
                       image: baseImage,
 
-                      // No package.json ⇒ no Node install: a non-Node project
-                      // (declared via .ecode/deploy.json) drives its own install
-                      // through its build command — never a silent npm fallback.
+                      /*
+                       * No package.json ⇒ no Node install: a non-Node project
+                       * (declared via .ecode/deploy.json) drives its own install
+                       * through its build command — never a silent npm fallback.
+                       */
                       installCommand: packageJson ? `${runPlan.install.command} ${runPlan.install.args.join(' ')}` : '',
                       buildCommand: runPlan.buildCommand,
                       nixStorePvcName: nixStorePvcForProject(project.id),
@@ -28036,6 +28059,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   serverError = context.message ?? 'Failed to snapshot the workspace for the app image.';
                 } else {
                   const imageUri = `${imageRepo}/p-${project.id.toLowerCase()}:${queued.id.toLowerCase()}`;
+
                   const buildResult = await runAppImageBuild(
                     {
                       gcpProject: repoMatch[2],
@@ -28045,8 +28069,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       imageUri,
                       baseImage,
 
-                      // Revision mode already ran the build in the isolated pod;
-                      // Cloud Build must only COPY, never re-run a toolchain.
+                      /*
+                       * Revision mode already ran the build in the isolated pod;
+                       * Cloud Build must only COPY, never re-run a toolchain.
+                       */
                       buildCommand: revisionMode ? null : runPlan.buildCommand,
                       startCommand: runPlan.startCommand,
                       timeoutSeconds: Number(process.env.SERVER_DEPLOY_IMAGE_BUILD_TIMEOUT_S) || 600,
@@ -28073,9 +28099,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       timestamp: nowIso(),
                       level: 'info',
                       message: `Server deploy: image ready ${imageUri}${
-                        buildResult.imageSizeBytes
-                          ? ` (${Math.round(buildResult.imageSizeBytes / 1_000_000)} MB)`
-                          : ''
+                        buildResult.imageSizeBytes ? ` (${Math.round(buildResult.imageSizeBytes / 1_000_000)} MB)` : ''
                       } in ${Math.round(buildResult.durationMs / 1000)}s`,
                     });
 
@@ -28151,6 +28175,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               process.env.SERVER_DEPLOY_IMAGE ??
               process.env.WORKSPACE_AGENT_IMAGE ??
               'vibecore/workspace-agent:2026.04.0',
+
             // Snapshot-image deploys run the image's own baked CMD.
             ...(serverImage ? {} : { command: bootCommand }),
             port: serverPort,
@@ -28158,9 +28183,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             projectId: project.id,
             orgId: project.organizationId,
             env: serverEnv,
-            // Real apps rarely expose /health; the readiness probe defaults to `/`,
-            // which every real web app answers (overridable per install).
+
+            /*
+             * Real apps rarely expose /health; the readiness probe defaults to `/`,
+             * which every real web app answers (overridable per install).
+             */
             healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+
             // A Nix-enabled project keeps its /nix toolchain at runtime.
             nixStorePvcName: nixStorePvcForProject(project.id),
           });
@@ -28210,16 +28239,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             host,
             ready: ok,
             readyReplicas: started?.readyReplicas ?? 0,
-            // Marks a row whose k8s manifests are live so reconcile-on-read can
-            // re-check readiness against the manager (BUILDING → READY / teardown).
+
+            /*
+             * Marks a row whose k8s manifests are live so reconcile-on-read can
+             * re-check readiness against the manager (BUILDING → READY / teardown).
+             */
             applied: manifestsApplied,
+
             // Snapshot-image deploys: which image runs + its size (Replit cap: 8GiB).
             ...(imageBuildInfo ? { image: imageBuildInfo } : {}),
           },
         },
         logs: [...createDeploymentLogs(body, { ...queued, url: serverUrl }, project), ...liveLog],
-        // A converging (BUILDING) deploy is not finished — leaving finishedAt
-        // unset keeps reconcile's stale-timeout clock running from startedAt.
+
+        /*
+         * A converging (BUILDING) deploy is not finished — leaving finishedAt
+         * unset keeps reconcile's stale-timeout clock running from startedAt.
+         */
         finishedAt: converging ? undefined : nowIso(),
       });
 
@@ -28797,6 +28833,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const { subscription } = await billingState(project.organizationId);
+
     const planKey =
       subscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(subscription.status) ? subscription.planKey : 'free';
 
@@ -28808,8 +28845,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       currency: card.currency,
       compute: card.compute,
       planKey,
-      defaultMachineSize:
-        card.machineSizes.some((size) => size.key === 'shared-0.5') ? 'shared-0.5' : card.machineSizes[0]?.key,
+      defaultMachineSize: card.machineSizes.some((size) => size.key === 'shared-0.5')
+        ? 'shared-0.5'
+        : card.machineSizes[0]?.key,
       machineSizes: availableMachineSizes(card, planKey, maxSchedulableVcpu()),
     };
   });
@@ -28919,6 +28957,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/projects/:projectId/scheduled-tasks', async (request, reply) => {
     const { projectId } = parse(scheduledTaskParams, request.params);
+
     /*
      * `parse`'s generic collapses zod input/output, so defaulted fields (cron
      * timezone/machineSize/enabled/…) surface as `T | undefined`. They are always
@@ -29541,6 +29580,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           branch: source.branch,
           commitSha: source.commitSha,
           customDomain: source.customDomain,
+
           // A redeploy runs on the SAME machine the original was priced for.
           machineSize: source.machineSize,
           metadata: { ...source.metadata, redeployedFromId: source.id },
