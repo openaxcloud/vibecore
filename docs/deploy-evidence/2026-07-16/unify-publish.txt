@@ -1,0 +1,41 @@
+# UNIFY-PUBLISH — IDE Publish button now reaches our server pipeline (2026-07-16, fix 1a4d46ad)
+
+## Before the fix
+  IDE top Publish -> panel=deployments (ProjectDeploymentsPanel), providers =
+  BOLT_DEPLOY_PROVIDERS (static, Vercel, Netlify, GitHub Pages, Cloudflare, Cloud
+  Run, Custom Dockerfile) — NO server option. The most-visible button never
+  touched our server-deploy pipeline.
+
+## The fix (app/routes/projects.$projectId.ide.tsx)
+  IDE Publish/Republish <Link> now -> /projects/<id>/deployments (the auto-detect
+  page). External providers demoted to that page's Manage tab (advanced).
+  Web image web:1a4d46adbb, helm rev 855.
+
+## Proof (real click in Avi's Chrome, web bundle 1a4d46adbb)
+  1. Opened project IDE, clicked the top-right Publish/Republish button.
+     -> navigated to https://app.e-code.ai/projects/cmrnmteqm000g0n96ercq2t8s/deployments
+     -> page shows 'Detected: express -> server deployment', Type: Autoscale.
+  2. Clicked Publish on that page -> NEW server deploy (deploymentId cmrnpxe33000m0n9jh7b88je6):
+     [info] Server deploy: detected express — build "(none)", start "node server.js"
+     [info] [snapshot] image context: 693360 bytes (deps included) -> uploaded to object storage
+     [info] [image] build 1f97cb20-f35e-43d6-a62f-2b8fddd9e821: WORKING -> SUCCESS
+     [info] Server deploy: image ready .../vibecore-prod-apps/p-cmrnmteqm000g0n96ercq2t8s:cmrnpxe33000m0n9jh7b88je6
+     [info] Server deploy: ready with 1 replica(s) at https://d-cmrnpxe33000m0n9jh7b88je6.preview.e-code.ai
+
+## Runtime correlation (GKE):
+NAME                            READY   IMAGE
+app-cmrnpxe33000m0n9jh7b88je6   1       europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmrnmteqm000g0n96ercq2t8s:cmrnpxe33000m0n9jh7b88je6
+
+## Live URL raw (curl -si):
+HTTP/2 200 
+date: Thu, 16 Jul 2026 16:25:17 GMT
+content-type: text/plain; charset=utf-8
+content-length: 29
+etag: W/"1d-6b4sfih8wlBLpLNfHrRIYvGbsrg"
+x-powered-by: Express
+cross-origin-resource-policy: cross-origin
+cross-origin-embedder-policy: credentialless
+referrer-policy: no-referrer
+strict-transport-security: max-age=31536000; includeSubDomains
+
+PUBLISH-UI-01 OK from Express
