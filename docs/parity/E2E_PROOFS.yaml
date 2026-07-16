@@ -15,6 +15,7 @@ proofs:
     traceIds: "deployment cmrmb34mz… (publish→READY 62s, image 163MB)"
     status: PROVEN
     provenAt: "2026-07-15"
+    vertical: publish        # audit v4 H — approval vertical stage
   - proofId: E2E-AUTOSCALE-Z
     title: "Machine sizes + metering runtime + cron (zone autoscale Z2–Z5)"
     fixtures: { account: qa, plan: pro-override, region: europe-west9, client: api+kubectl }
@@ -59,6 +60,7 @@ proofs:
     traceIds: "economy->claude-opus-4-8 / lite->claude-haiku-4-5 ; agent-mode.routed + chat.completion.usage ; AgentCallLog coutRevient 651 vs 129 mc (c-routing-logs.txt, d-agent-call-log.json)"
     status: PROVEN
     provenAt: "2026-07-16"
+    vertical: execute        # audit v4 H — agent send executes a routed run
   - proofId: E2E-AGM-E
     title: "AGM (e): mode/interrupteur hors plan → refus explicite 403"
     fixtures: { account: qa-agm-free1@e-code.ai, plan: free, region: europe-west9, client: api }

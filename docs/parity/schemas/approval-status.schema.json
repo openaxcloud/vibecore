@@ -1,22 +1,27 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "ecode/parity/approval-status",
-  "x-schemaVersion": 1,
-  "x-repoCommit": "07ced1c56bdbcb3ce77e883704342b71a2ad0961",
+  "x-schemaVersion": 2,
+  "x-repoCommit": "b8186f2f",
   "title": "APPROVAL_STATUS",
   "type": "object",
   "additionalProperties": true,
   "required": [
     "schemaVersion",
     "generatedFrom",
+    "algorithm",
     "approvalReady",
     "blocking",
+    "conditions",
     "counts",
     "p0"
   ],
   "properties": {
     "schemaVersion": {
-      "const": 1
+      "const": 2
+    },
+    "algorithm": {
+      "type": "string"
     },
     "approvalReady": {
       "type": "boolean"
@@ -25,6 +30,22 @@
       "type": "array",
       "items": {
         "type": "string"
+      }
+    },
+    "conditions": {
+      "description": "The 6 approval conditions (audit v4 H). approvalReady iff every condition passed.",
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "passed", "reasons"],
+        "properties": {
+          "id": { "type": "integer", "minimum": 1, "maximum": 6 },
+          "description": { "type": "string" },
+          "passed": { "type": "boolean" },
+          "reasons": { "type": "array", "items": { "type": "string" } }
+        }
       }
     },
     "counts": {

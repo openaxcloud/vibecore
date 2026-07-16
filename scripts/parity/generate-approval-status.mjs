@@ -18,6 +18,29 @@ import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+/**
+ * The end-to-end vertical that MUST be green for approval (audit v4 H, cond. 4):
+ * créer → modifier → exécuter → preview → publier → observer → rollback. Each
+ * stage is green only if at least one PROVEN e2e proof (with evidence) is tagged
+ * for it via `vertical: <stage>` in E2E_PROOFS.yaml.
+ */
+const APPROVAL_VERTICAL = ['create', 'modify', 'execute', 'preview', 'publish', 'observe', 'rollback'];
+
+/** Registries that must exist and carry a schemaVersion (audit v4 H, cond. 2). */
+const REQUIRED_REGISTRIES = [
+  'P0_REGISTRY.yaml',
+  'DECISION_REGISTRY.yaml',
+  'UNKNOWN_REGISTRY.yaml',
+  'PUBLIC_BASELINE_REPLIT_2026.yaml',
+  'SURFACE_REGISTRY.yaml',
+  'E2E_PROOFS.yaml',
+  'OBSERVATION_REGISTRY.yaml',
+  'SOURCE_REGISTRY.yaml',
+];
+
+/** Services a surface may legitimately reference (orphan check, cond. 3). */
+const KNOWN_SERVICE_IDS = ['web', 'api', 'worker', 'runtime', 'admin'];
+
 const require = createRequire(import.meta.url);
 function loadYamlModule() {
   try {
@@ -63,6 +86,9 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
     return { p0Id: item.p0Id, priority: item.priority, declared: item.status, derived, hasProof, reviewed };
   });
 
+  const proofById = new Map((e2e.proofs ?? []).map((p) => [p.proofId, p]));
+  const isProven = (proof) => proof?.status === 'PROVEN' && proof?.evidenceId;
+
   // Source freshness against the SLA.
   const staleSources = (baseline.claims ?? [])
     .map((c) => ({ claimId: c.claimId, lastVerified: c.lastVerified }))
@@ -74,12 +100,131 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
 
   // Surfaces: a surface referencing e2e proofs is DONE only if each referenced
   // proof is PROVEN and has an evidenceId.
-  const proofById = new Map((e2e.proofs ?? []).map((p) => [p.proofId, p]));
   const surfaceRollup = (surfaces.surfaces ?? []).map((s) => {
     const refs = s.e2eProofIds ?? [];
-    const proven = refs.filter((id) => proofById.get(id)?.status === 'PROVEN' && proofById.get(id)?.evidenceId);
+    const proven = refs.filter((id) => isProven(proofById.get(id)));
     return { surfaceId: s.surfaceId, proofsReferenced: refs.length, proofsProven: proven.length, done: refs.length > 0 && proven.length === refs.length };
   });
+
+  /* ===== The exact 6-condition approval algorithm (audit v4 H) ===== */
+
+  // (1) No P0 OPEN or BLOCKED.
+  const openP0 = p0Rollup.filter((p) => p.derived === 'OPEN');
+  const blockedP0 = (p0.p0s ?? []).filter((p) => p.status === 'BLOCKED').map((p) => p.p0Id);
+  const cond1 = {
+    id: 1,
+    description: 'no P0 OPEN or BLOCKED',
+    passed: openP0.length === 0 && blockedP0.length === 0,
+    reasons: [
+      ...openP0.map((p) => `${p.p0Id} is OPEN (no reviewer yet)`),
+      ...blockedP0.map((id) => `${id} is BLOCKED`),
+    ],
+  };
+
+  // (2) Every required registry exists and carries a schemaVersion.
+  const missingFiles = [];
+  const noSchemaVersion = [];
+  for (const name of REQUIRED_REGISTRIES) {
+    const path = join(parityRoot, name);
+    if (!existsSync(path)) {
+      missingFiles.push(name);
+      continue;
+    }
+    try {
+      const doc = YAML.parse(readFileSync(path, 'utf8'));
+      if (doc?.schemaVersion === undefined) {
+        noSchemaVersion.push(name);
+      }
+    } catch (error) {
+      noSchemaVersion.push(`${name} (parse error: ${error.message})`);
+    }
+  }
+  const cond2 = {
+    id: 2,
+    description: 'all required registries exist and validate schemaVersion',
+    passed: missingFiles.length === 0 && noSchemaVersion.length === 0,
+    reasons: [
+      ...missingFiles.map((f) => `missing file: ${f}`),
+      ...noSchemaVersion.map((f) => `no schemaVersion: ${f}`),
+    ],
+  };
+
+  // (3) No orphan reference: e2eProofId → E2E_PROOFS; PROVEN proof evidenceId →
+  //     on disk; surface serviceId → known services.
+  const orphans = [];
+  for (const s of surfaces.surfaces ?? []) {
+    for (const id of s.e2eProofIds ?? []) {
+      if (!proofById.has(id)) {
+        orphans.push(`${s.surfaceId} → unknown e2eProofId ${id}`);
+      }
+    }
+    for (const svc of s.serviceIds ?? []) {
+      if (!KNOWN_SERVICE_IDS.includes(svc)) {
+        orphans.push(`${s.surfaceId} → unknown serviceId ${svc}`);
+      }
+    }
+  }
+  for (const proof of e2e.proofs ?? []) {
+    if (proof.status === 'PROVEN' && proof.evidenceId && !existsSync(join(repoRoot, proof.evidenceId))) {
+      orphans.push(`${proof.proofId} → evidenceId path missing on disk (${proof.evidenceId})`);
+    }
+  }
+  const cond3 = {
+    id: 3,
+    description: 'no orphan claimId / surfaceId / serviceId / evidenceId reference',
+    passed: orphans.length === 0,
+    reasons: orphans,
+  };
+
+  // (4) The end-to-end vertical is green (each stage has a PROVEN proof).
+  const verticalStages = APPROVAL_VERTICAL.map((stage) => {
+    const proofs = (e2e.proofs ?? []).filter(
+      (p) => isProven(p) && (p.vertical === stage || (Array.isArray(p.vertical) && p.vertical.includes(stage))),
+    );
+    return { stage, green: proofs.length > 0, proofIds: proofs.map((p) => p.proofId) };
+  });
+  const missingStages = verticalStages.filter((v) => !v.green).map((v) => v.stage);
+  const cond4 = {
+    id: 4,
+    description: 'vertical créer→modifier→exécuter→preview→publier→observer→rollback is green',
+    passed: missingStages.length === 0,
+    reasons: missingStages.map((s) => `stage "${s}" has no PROVEN e2e proof (tag a proof with vertical: ${s})`),
+    stages: verticalStages,
+  };
+
+  // (5) Critical sources within the freshness SLA.
+  const cond5 = {
+    id: 5,
+    description: `critical sources within the ${SOURCE_FRESHNESS_SLA_DAYS}-day freshness SLA`,
+    passed: staleSources.length === 0,
+    reasons: staleSources.map((c) => `${c} past the ${SOURCE_FRESHNESS_SLA_DAYS}-day SLA`),
+  };
+
+  // (6) No expired decision; no P0-linked unknown without owner + concrete targetDate.
+  const expiredDecisions = (decisions.decisions ?? [])
+    .filter((d) => {
+      const t = Date.parse(d.expiration ?? '');
+      return Number.isFinite(t) && t < nowMs && d.status === 'OPEN';
+    })
+    .map((d) => d.decisionId);
+  const p0Unknowns = (unknowns.unknowns ?? []).filter((u) => u.p0Id || u.blocksP0);
+  const p0UnknownGaps = p0Unknowns
+    .filter((u) => !u.owner || u.owner === 'UNKNOWN' || !u.targetDate || u.targetDate === 'UNKNOWN')
+    .map((u) => `${u.unknownId} (P0-linked) lacks owner or targetDate`);
+  const cond6 = {
+    id: 6,
+    description: 'no expired decision; no P0-linked unknown without owner + targetDate',
+    passed: expiredDecisions.length === 0 && p0UnknownGaps.length === 0,
+    reasons: [
+      ...expiredDecisions.map((d) => `decision ${d} is OPEN past its expiration`),
+      ...p0UnknownGaps,
+    ],
+  };
+
+  const conditions = [cond1, cond2, cond3, cond4, cond5, cond6];
+  const blocking = conditions
+    .filter((c) => !c.passed)
+    .map((c) => `condition ${c.id} (${c.description}) FAILED: ${c.reasons.join('; ')}`);
 
   const counts = {
     p0: {
@@ -92,33 +237,20 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
       total: (decisions.decisions ?? []).length,
       open: (decisions.decisions ?? []).filter((d) => d.status === 'OPEN').length,
     },
-    unknowns: { total: (unknowns.unknowns ?? []).length },
+    unknowns: { total: (unknowns.unknowns ?? []).length, p0Linked: p0Unknowns.length },
     claims: { total: (baseline.claims ?? []).length, stale: staleSources.length },
     surfaces: { total: surfaceRollup.length, done: surfaceRollup.filter((s) => s.done).length },
     e2e: { total: (e2e.proofs ?? []).length, proven: (e2e.proofs ?? []).filter((p) => p.status === 'PROVEN').length },
   };
 
-  const blocking = [];
-  if (counts.p0.open > 0) {
-    blocking.push(`${counts.p0.open} P0 still OPEN`);
-  }
-  if (staleSources.length > 0) {
-    blocking.push(`${staleSources.length} source(s) past the ${SOURCE_FRESHNESS_SLA_DAYS}-day freshness SLA: ${staleSources.join(', ')}`);
-  }
-
   return {
-    schemaVersion: 1,
-    generatedFrom: [
-      'P0_REGISTRY.yaml',
-      'DECISION_REGISTRY.yaml',
-      'UNKNOWN_REGISTRY.yaml',
-      'PUBLIC_BASELINE_REPLIT_2026.yaml',
-      'SURFACE_REGISTRY.yaml',
-      'E2E_PROOFS.yaml',
-    ],
+    schemaVersion: 2,
+    generatedFrom: REQUIRED_REGISTRIES,
     note: 'COMPUTED by scripts/parity/generate-approval-status.mjs — never edit by hand. The validator fails the build on drift.',
+    algorithm: 'APPROVED iff all 6 conditions pass (audit v4 H). See conditions[].',
     approvalReady: blocking.length === 0,
     blocking,
+    conditions,
     counts,
     p0: p0Rollup,
     surfaces: surfaceRollup,

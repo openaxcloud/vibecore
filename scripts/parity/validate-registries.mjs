@@ -452,7 +452,18 @@ function checkHeader(file, doc) {
     if (current !== computed) {
       fail('APPROVAL_STATUS.json', 'DRIFT — the committed file differs from the computed value. Status must never be hand-written; run generate-approval-status.mjs.');
     } else {
-      checked.push('APPROVAL_STATUS.json is up to date (computed, not hand-written)');
+      // Consistency of the 6-condition algorithm (audit v4 H): approvalReady must
+      // equal "every condition passed" — no other path to APPROVED.
+      const status = JSON.parse(computed);
+      const conds = status.conditions ?? [];
+      if (conds.length !== 6) {
+        fail('APPROVAL_STATUS.json', `expected exactly 6 approval conditions, got ${conds.length}`);
+      }
+      const allPass = conds.every((c) => c.passed === true);
+      if (status.approvalReady !== allPass) {
+        fail('APPROVAL_STATUS.json', `approvalReady (${status.approvalReady}) ≠ all-conditions-pass (${allPass}) — the algorithm is inconsistent`);
+      }
+      checked.push(`APPROVAL_STATUS.json is up to date (computed; 6-condition algorithm consistent, approvalReady=${status.approvalReady})`);
     }
   }
 }

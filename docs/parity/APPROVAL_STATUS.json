@@ -1,16 +1,106 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "generatedFrom": [
     "P0_REGISTRY.yaml",
     "DECISION_REGISTRY.yaml",
     "UNKNOWN_REGISTRY.yaml",
     "PUBLIC_BASELINE_REPLIT_2026.yaml",
     "SURFACE_REGISTRY.yaml",
-    "E2E_PROOFS.yaml"
+    "E2E_PROOFS.yaml",
+    "OBSERVATION_REGISTRY.yaml",
+    "SOURCE_REGISTRY.yaml"
   ],
   "note": "COMPUTED by scripts/parity/generate-approval-status.mjs — never edit by hand. The validator fails the build on drift.",
-  "approvalReady": true,
-  "blocking": [],
+  "algorithm": "APPROVED iff all 6 conditions pass (audit v4 H). See conditions[].",
+  "approvalReady": false,
+  "blocking": [
+    "condition 4 (vertical créer→modifier→exécuter→preview→publier→observer→rollback is green) FAILED: stage \"create\" has no PROVEN e2e proof (tag a proof with vertical: create); stage \"modify\" has no PROVEN e2e proof (tag a proof with vertical: modify); stage \"preview\" has no PROVEN e2e proof (tag a proof with vertical: preview); stage \"observe\" has no PROVEN e2e proof (tag a proof with vertical: observe); stage \"rollback\" has no PROVEN e2e proof (tag a proof with vertical: rollback)"
+  ],
+  "conditions": [
+    {
+      "id": 1,
+      "description": "no P0 OPEN or BLOCKED",
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "id": 2,
+      "description": "all required registries exist and validate schemaVersion",
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "id": 3,
+      "description": "no orphan claimId / surfaceId / serviceId / evidenceId reference",
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "id": 4,
+      "description": "vertical créer→modifier→exécuter→preview→publier→observer→rollback is green",
+      "passed": false,
+      "reasons": [
+        "stage \"create\" has no PROVEN e2e proof (tag a proof with vertical: create)",
+        "stage \"modify\" has no PROVEN e2e proof (tag a proof with vertical: modify)",
+        "stage \"preview\" has no PROVEN e2e proof (tag a proof with vertical: preview)",
+        "stage \"observe\" has no PROVEN e2e proof (tag a proof with vertical: observe)",
+        "stage \"rollback\" has no PROVEN e2e proof (tag a proof with vertical: rollback)"
+      ],
+      "stages": [
+        {
+          "stage": "create",
+          "green": false,
+          "proofIds": []
+        },
+        {
+          "stage": "modify",
+          "green": false,
+          "proofIds": []
+        },
+        {
+          "stage": "execute",
+          "green": true,
+          "proofIds": [
+            "E2E-AGM-C"
+          ]
+        },
+        {
+          "stage": "preview",
+          "green": false,
+          "proofIds": []
+        },
+        {
+          "stage": "publish",
+          "green": true,
+          "proofIds": [
+            "E2E-PHASEB-NODE"
+          ]
+        },
+        {
+          "stage": "observe",
+          "green": false,
+          "proofIds": []
+        },
+        {
+          "stage": "rollback",
+          "green": false,
+          "proofIds": []
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "description": "critical sources within the 30-day freshness SLA",
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "id": 6,
+      "description": "no expired decision; no P0-linked unknown without owner + targetDate",
+      "passed": true,
+      "reasons": []
+    }
+  ],
   "counts": {
     "p0": {
       "total": 4,
@@ -23,7 +113,8 @@
       "open": 2
     },
     "unknowns": {
-      "total": 8
+      "total": 8,
+      "p0Linked": 0
     },
     "claims": {
       "total": 11,
