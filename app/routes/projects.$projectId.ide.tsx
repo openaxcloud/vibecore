@@ -740,8 +740,20 @@ function IdeProjectTopBar({
               )}
             </button>
           )}
+          {/*
+           * Unify publish on ONE path (Replit-parity: a single publish flow).
+           * The most-visible Publish button MUST reach our auto-detecting deploy
+           * pipeline (server/static, provider='server' included) — NOT the
+           * external-provider wizard (Vercel/Netlify/…). That wizard used to be
+           * the default here (panel=deployments -> ProjectDeploymentsPanel), so a
+           * user clicking the top Publish never touched our server-deploy. Point
+           * it at the project Deployments PAGE, whose DeployPublishCard detects
+           * "express -> server deployment" and runs the snapshot->image->run
+           * pipeline; the external providers live under that page's Manage tab as
+           * an advanced option, no longer the default.
+           */}
           <Link
-            to={withProjectSearch(projectUrl, { panel: 'deployments' })}
+            to={`/projects/${projectId}/deployments`}
             className="bolt-project-publish-button"
             title={
               (project.deploymentCount ?? 0) > 0
