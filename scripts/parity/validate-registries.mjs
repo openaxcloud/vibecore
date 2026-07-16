@@ -18,7 +18,23 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const YAML = require('yaml');
+
+/*
+ * `yaml` resolves from the workspace root locally; in CI (pnpm workspace —
+ * plain `npm install` at the root fails on workspace: protocols) it is
+ * installed into an isolated dir passed via PARITY_DEPS.
+ */
+function loadYamlModule() {
+  try {
+    return require('yaml');
+  } catch {
+    const depsDir = process.env.PARITY_DEPS ?? '/tmp/parity-deps';
+
+    return createRequire(join(depsDir, 'noop.js'))('yaml');
+  }
+}
+
+const YAML = loadYamlModule();
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..', '..');
