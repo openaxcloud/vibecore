@@ -1,0 +1,14 @@
+# E2E vertical: OBSERVE — the published app's logs show REAL data, not an empty panel (2026-07-17)
+Project cmrnmteqm000g0n96ercq2t8s (published Node/Express app), Deployments → Logs tab (status: Deployed).
+Screenshot (in-session): ss_12589mh7x. Overview also real: Status READY · 2026-07-16T16:23:59.557Z,
+Visibility Public, Domain https://d-cmrnpxe33000m0n9jh7b88je6.preview.e-code.ai. Raw build & deploy logs:
+
+[info] Queued server deployment for Build a minimal Node js
+[info] Server deploy: starting runtime for d-cmrnpxe33000m0n9jh7b88je6.preview.e-code.ai
+[info] Server deploy: detected express — build "(none)", start "node server.js"
+[info] [snapshot] image context: 693360 bytes (deps included)
+[info] [snapshot] uploaded 693360 bytes to object storage
+[info] [image] build 1f97cb20-f35e-43d6-a62f-2b8fddd9e821: WORKING
+[info] [image] build 1f97cb20-f35e-43d6-a62f-2b8fddd9e821: SUCCESS
+[info] Server deploy: image ready .../vibecore-prod-apps/p-cmrnmteqm000g0n96ercq2t8s:cmrnpxe33000m0n9jh7b88je6 (163 MB) in 27s
+[info] Server deploy: ready with 1 replica(s) at https://d-cmrnpxe33000m0n9jh7b88je6.preview.e-code.ai

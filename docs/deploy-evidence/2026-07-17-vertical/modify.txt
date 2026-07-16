@@ -1,0 +1,14 @@
+# E2E vertical: MODIFY — a real modification is visible in the workspace (2026-07-17)
+Same project (cmro0cl6b…). Asked the agent (IDE assistant) to edit server.js and change the
+GET / response to 'E2E-MODIFY applied'. The workspace file changed — verified via the running pod:
+
+## BEFORE (agent's initial scaffold, truncated): sha256[:16]=a4d824e6dd7c795d
+  app.get('/', ...).send('E2E-CREATE ok'); + console.log truncated (SyntaxError)
+## AFTER the agent edit: sha256[:16]=127ddfd1584d16e6, line count 11 -> 13, response text changed:
+8:  res.type('text/plain').send('E2E-MODIFY applied');
+  -> res.type('text/plain').send('E2E-MODIFY applied');  (visible in the editor, screenshot ss_6668l4fb5)
+
+## HONEST agent-quality note
+The agent's successive file edits TRUNCATE server.js (dropped the closing '});' / left a stray '</bo').
+The MODIFICATION is real and visible (E2E-CREATE ok -> E2E-MODIFY applied, sha changed); but the agent's
+edit-in-place reliability is a genuine defect worth a bug (a modify that leaves invalid JS).

@@ -83,3 +83,51 @@ proofs:
     traceIds: "table marges live + alerte rouge SPA (f-admin-spa-table.png, f-admin-spa-negative-alert.png) ; 409 AGENT_ROUTING_NEGATIVE_MARGIN (f-admin-margin.txt)"
     status: PROVEN
     provenAt: "2026-07-16"
+  - proofId: E2E-VERTICAL-CREATE
+    title: "Créer: nouveau projet via l'UI → l'app existe et l'IDE s'ouvre"
+    fixtures: { account: avi (real Chrome), plan: enterprise, region: europe-west9, client: web }
+    steps: ["/projects/new", "saisir un prompt", "cliquer Create", "l'IDE s'ouvre sur le projet"]
+    expected: "l'IDE ouvre; le projet existe avec ses fichiers (package.json, server.js, README)"
+    evidenceId: docs/deploy-evidence/2026-07-17-vertical/
+    screenshots: yes
+    logs: n/a
+    traceIds: "projectId cmro0cl6b00060ng4vu5lxzb6, ws-f030d73378f97179; IDE /@org-dzj1djmz/build-a-minimal-node-js-2; 3 files (create.txt, ss_1549lq2hd)"
+    status: PROVEN
+    provenAt: "2026-07-17"
+    vertical: create
+  - proofId: E2E-VERTICAL-MODIFY
+    title: "Modifier: une modification (agent) est visible dans le workspace"
+    fixtures: { account: avi (real Chrome), plan: enterprise, region: europe-west9, client: web }
+    steps: ["agent IDE: éditer server.js", "changer la réponse GET / en 'E2E-MODIFY applied'", "vérifier le fichier dans le pod"]
+    expected: "server.js change dans le workspace (contenu + sha), visible dans l'éditeur"
+    evidenceId: docs/deploy-evidence/2026-07-17-vertical/
+    screenshots: yes
+    logs: yes
+    traceIds: "before sha a4d824e6 (E2E-CREATE ok) -> after sha 127ddfd1 (E2E-MODIFY applied), ligne 8; ss_6668l4fb5; note honnête: éditions agent tronquent (défaut)"
+    status: PROVEN
+    provenAt: "2026-07-17"
+    vertical: modify
+  - proofId: E2E-VERTICAL-PREVIEW
+    title: "Preview: la preview REND à l'écran (Flask h1)"
+    fixtures: { account: avi (real Chrome), plan: enterprise, region: europe-west9, client: web }
+    steps: ["projet Python/Flask", "serveur sur :5000", "/ports détecte", "ouvrir l'URL preview → rend"]
+    expected: "la preview affiche <h1>PY-PREVIEW-01 Flask renders</h1> — page rendue, pas juste 200"
+    evidenceId: docs/deploy-evidence/2026-07-17-vertical/
+    screenshots: yes
+    logs: yes
+    traceIds: "ws-8dd9e2748dfa343f-5000.preview.e-code.ai rend h1 (ss_1837b92cn); détail docs/deploy-evidence/2026-07-16/py-preview-01.txt (preview.txt)"
+    status: PROVEN
+    provenAt: "2026-07-17"
+    vertical: preview
+  - proofId: E2E-VERTICAL-OBSERVE
+    title: "Observer: les logs de l'app publiée affichent du réel (pas un panneau vide)"
+    fixtures: { account: avi (real Chrome), plan: enterprise, region: europe-west9, client: web }
+    steps: ["ouvrir Deployments → Logs de l'app publiée", "lire les logs build & deploy réels"]
+    expected: "logs réels: detected express, snapshot bytes, build id WORKING→SUCCESS, image ready, ready 1 replica"
+    evidenceId: docs/deploy-evidence/2026-07-17-vertical/
+    screenshots: yes
+    logs: yes
+    traceIds: "projet cmrnmteqm…; build 1f97cb20 WORKING→SUCCESS, image 163MB en 27s, ready @ d-cmrnpxe33…preview; status READY 2026-07-16T16:23:59Z (observe.txt, ss_12589mh7x)"
+    status: PROVEN
+    provenAt: "2026-07-17"
+    vertical: observe

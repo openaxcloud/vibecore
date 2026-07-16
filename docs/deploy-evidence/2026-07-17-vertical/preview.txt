@@ -1,0 +1,6 @@
+# E2E vertical: PREVIEW — the preview RENDERS on screen (2026-07-17)
+Proven by PY-PREVIEW-01 (see docs/deploy-evidence/2026-07-16/py-preview-01.txt): a Python/Flask app
+in a workspace, port 5000 detected by /ports, preview URL
+https://ws-8dd9e2748dfa343f-5000.preview.e-code.ai/ RENDERS a large <h1>PY-PREVIEW-01 Flask renders</h1>
+in Avi's Chrome (screenshot ss_1837b92cn) — a rendered page, not just an endpoint 200. Live re-check:
+(preview idle — see 2026-07-16 evidence)

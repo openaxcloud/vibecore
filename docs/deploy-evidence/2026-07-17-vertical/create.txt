@@ -1,0 +1,7 @@
+# E2E vertical: CREATE — new project via the UI → app exists and opens (2026-07-17)
+Driven in Avi's real Chrome (logged into app.e-code.ai).
+- /projects/new → typed a prompt → clicked "Create project".
+- IDE opened at https://app.e-code.ai/@org-dzj1djmz/build-a-minimal-node-js-2
+- projectId=cmro0cl6b00060ng4vu5lxzb6, workspace=ws-f030d73378f97179 (running).
+- The app EXISTS: Library shows 3 files (package.json, server.js, README.md); agent "Done 100%".
+Screenshot (in-session): ss_1549lq2hd (IDE opened, 3 files in Library).

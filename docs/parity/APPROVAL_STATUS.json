@@ -14,7 +14,7 @@
   "algorithm": "APPROVED iff all 6 conditions pass (audit v4 H). See conditions[].",
   "approvalReady": false,
   "blocking": [
-    "condition 4 (vertical créer→modifier→exécuter→preview→publier→observer→rollback is green) FAILED: stage \"create\" has no PROVEN e2e proof (tag a proof with vertical: create); stage \"modify\" has no PROVEN e2e proof (tag a proof with vertical: modify); stage \"preview\" has no PROVEN e2e proof (tag a proof with vertical: preview); stage \"observe\" has no PROVEN e2e proof (tag a proof with vertical: observe); stage \"rollback\" has no PROVEN e2e proof (tag a proof with vertical: rollback)"
+    "condition 4 (vertical créer→modifier→exécuter→preview→publier→observer→rollback is green) FAILED: stage \"rollback\" has no PROVEN e2e proof (tag a proof with vertical: rollback)"
   ],
   "conditions": [
     {
@@ -40,22 +40,22 @@
       "description": "vertical créer→modifier→exécuter→preview→publier→observer→rollback is green",
       "passed": false,
       "reasons": [
-        "stage \"create\" has no PROVEN e2e proof (tag a proof with vertical: create)",
-        "stage \"modify\" has no PROVEN e2e proof (tag a proof with vertical: modify)",
-        "stage \"preview\" has no PROVEN e2e proof (tag a proof with vertical: preview)",
-        "stage \"observe\" has no PROVEN e2e proof (tag a proof with vertical: observe)",
         "stage \"rollback\" has no PROVEN e2e proof (tag a proof with vertical: rollback)"
       ],
       "stages": [
         {
           "stage": "create",
-          "green": false,
-          "proofIds": []
+          "green": true,
+          "proofIds": [
+            "E2E-VERTICAL-CREATE"
+          ]
         },
         {
           "stage": "modify",
-          "green": false,
-          "proofIds": []
+          "green": true,
+          "proofIds": [
+            "E2E-VERTICAL-MODIFY"
+          ]
         },
         {
           "stage": "execute",
@@ -66,8 +66,10 @@
         },
         {
           "stage": "preview",
-          "green": false,
-          "proofIds": []
+          "green": true,
+          "proofIds": [
+            "E2E-VERTICAL-PREVIEW"
+          ]
         },
         {
           "stage": "publish",
@@ -78,8 +80,10 @@
         },
         {
           "stage": "observe",
-          "green": false,
-          "proofIds": []
+          "green": true,
+          "proofIds": [
+            "E2E-VERTICAL-OBSERVE"
+          ]
         },
         {
           "stage": "rollback",
@@ -125,8 +129,8 @@
       "done": 4
     },
     "e2e": {
-      "total": 7,
-      "proven": 7
+      "total": 11,
+      "proven": 11
     }
   },
   "p0": [
