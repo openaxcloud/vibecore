@@ -1810,6 +1810,17 @@ export class TestApiStore implements ApiStore {
     );
   }
 
+  async listActiveServerDeployments() {
+    return [...this.deployments.values()].filter(
+      (deployment) => deployment.provider === 'server' && deployment.status === 'READY',
+    );
+  }
+
+  /** No DB-backed rate card in tests: callers fall back to the built-in card. */
+  async getActiveRateCard(): Promise<{ version: number; data: unknown } | undefined> {
+    return undefined;
+  }
+
   async createSupportTicket(input: { organizationId: string; userId: string; subject: string; category?: string }) {
     const ticket: SupportTicketRecord = { id: id('ticket'), ...input, status: 'OPEN', createdAt: now() };
     this.supportTickets.set(ticket.id, ticket);
