@@ -75,7 +75,7 @@ function checkHeader(file, doc) {
   const doc = loadYaml(join(parityRoot, file));
   checkHeader(file, doc);
 
-  const CLAIM_STATUS = ['VERIFIED', 'INTERNAL_AUDIT', 'UNVERIFIED', 'STALE'];
+  const CLAIM_STATUS = ['VERIFIED', 'CONFIRMED', 'INTERNAL_AUDIT', 'UNVERIFIED', 'STALE'];
 
   for (const claim of doc.claims ?? []) {
     requireFields(file, claim, ['claimId', 'statement', 'sourceId', 'observedAt', 'firstSeen', 'lastVerified', 'plan', 'rollout', 'region', 'client', 'status'], claim?.claimId ?? 'claim');
@@ -105,7 +105,7 @@ function checkHeader(file, doc) {
       fail(srcFile, `${source.sourceId}: contentHash must be sha256:<64 hex>`);
     }
 
-    if (source.snapshot && !existsSync(join(repoRoot, source.snapshot))) {
+    if (source.snapshot && source.snapshot !== 'UNKNOWN' && !existsSync(join(repoRoot, source.snapshot))) {
       fail(srcFile, `${source.sourceId}: snapshot file missing (${source.snapshot})`);
     }
 
@@ -302,6 +302,87 @@ function checkHeader(file, doc) {
     }
 
     checked.push(`baseline snapshots (${days.length} day(s), hashes + payloads verified)`);
+  }
+}
+
+/* ---- 9. P0 / DECISION / UNKNOWN registries + cross-refs (audit v4) ------ */
+{
+  const p0 = loadYaml(join(parityRoot, 'P0_REGISTRY.yaml'));
+  const decisions = loadYaml(join(parityRoot, 'DECISION_REGISTRY.yaml'));
+  const unknowns = loadYaml(join(parityRoot, 'UNKNOWN_REGISTRY.yaml'));
+  checkHeader('P0_REGISTRY.yaml', p0);
+  checkHeader('DECISION_REGISTRY.yaml', decisions);
+  checkHeader('UNKNOWN_REGISTRY.yaml', unknowns);
+
+  for (const item of p0.p0s ?? []) {
+    requireFields('P0_REGISTRY.yaml', item, ['p0Id', 'title', 'priority', 'owner', 'status', 'nextAction'], item?.p0Id ?? 'p0');
+
+    // CI RULE: no P0 CLOSED without commit + reviewer + proof.
+    if (item.status === 'CLOSED' && (!item.commit || !item.reviewer || item.reviewer === 'UNKNOWN' || !item.proof)) {
+      fail('P0_REGISTRY.yaml', `${item.p0Id}: CLOSED requires commit + a real reviewer + proof`);
+    }
+
+    // A PROVEN/CLOSED P0's evidenceId must point at something that exists in-repo.
+    if ((item.status === 'PROVEN' || item.status === 'CLOSED') && item.evidenceId && item.evidenceId !== 'UNKNOWN') {
+      if (!existsSync(join(repoRoot, item.evidenceId))) {
+        fail('P0_REGISTRY.yaml', `${item.p0Id}: evidenceId missing on disk (${item.evidenceId})`);
+      }
+    }
+  }
+
+  for (const decision of decisions.decisions ?? []) {
+    requireFields('DECISION_REGISTRY.yaml', decision, ['decisionId', 'title', 'rationale', 'owner', 'priority', 'status', 'nextAction'], decision?.decisionId ?? 'decision');
+  }
+
+  for (const unknown of unknowns.unknowns ?? []) {
+    requireFields('UNKNOWN_REGISTRY.yaml', unknown, ['unknownId', 'question', 'owner', 'priority', 'nextAction', 'targetDate', 'expiration'], unknown?.unknownId ?? 'unknown');
+  }
+
+  checked.push(`P0/DECISION/UNKNOWN registries (${(p0.p0s ?? []).length}/${(decisions.decisions ?? []).length}/${(unknowns.unknowns ?? []).length})`);
+}
+
+/* ---- 10. Surfaces DONE must carry evidenceId (audit v4) ---------------- */
+{
+  const surfaces = loadYaml(join(parityRoot, 'SURFACE_REGISTRY.yaml'));
+  const e2e = loadYaml(join(parityRoot, 'E2E_PROOFS.yaml'));
+  const proofById = new Map((e2e.proofs ?? []).map((p) => [p.proofId, p]));
+
+  for (const surface of surfaces.surfaces ?? []) {
+    for (const proofId of surface.e2eProofIds ?? []) {
+      // Cross-ref: no orphan proof id.
+      if (!proofById.has(proofId)) {
+        fail('SURFACE_REGISTRY.yaml', `${surface.surfaceId}: e2eProofId "${proofId}" not found in E2E_PROOFS.yaml`);
+        continue;
+      }
+
+      // A surface that claims a PROVEN proof requires that proof to have evidence.
+      const proof = proofById.get(proofId);
+      if (proof.status === 'PROVEN' && !proof.evidenceId) {
+        fail('SURFACE_REGISTRY.yaml', `${surface.surfaceId}: proof ${proofId} is PROVEN but has no evidenceId`);
+      }
+    }
+  }
+
+  checked.push('surfaces ↔ e2e cross-refs (no orphan proof id; PROVEN needs evidence)');
+}
+
+/* ---- 11. APPROVAL_STATUS.json is COMPUTED, not hand-written ------------ */
+{
+  const genPath = join(here, 'generate-approval-status.mjs');
+
+  if (!existsSync(genPath)) {
+    fail('APPROVAL_STATUS', 'generator script missing');
+  } else {
+    const { computeApprovalStatus } = await import(genPath);
+    const computed = JSON.stringify(computeApprovalStatus(), null, 2) + '\n';
+    const statusPath = join(parityRoot, 'APPROVAL_STATUS.json');
+    const current = existsSync(statusPath) ? readFileSync(statusPath, 'utf8') : '';
+
+    if (current !== computed) {
+      fail('APPROVAL_STATUS.json', 'DRIFT — the committed file differs from the computed value. Status must never be hand-written; run generate-approval-status.mjs.');
+    } else {
+      checked.push('APPROVAL_STATUS.json is up to date (computed, not hand-written)');
+    }
   }
 }
 

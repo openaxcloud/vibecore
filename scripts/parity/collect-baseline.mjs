@@ -22,6 +22,7 @@
  */
 import { createHash } from 'node:crypto';
 import { mkdirSync, readdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -29,15 +30,34 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..', '..');
 const snapshotsRoot = join(repoRoot, 'docs', 'parity', 'baseline', 'snapshots');
 
-/** The six tracked public surfaces. Keys are stable ids used in diffs. */
+/*
+ * Tracked public surfaces, in THREE families (audit v4 P0-#1 — the collector was
+ * blind to Community Profiles because it watched docs only):
+ *  - docs: plain fetch (text/xml/html).
+ *  - product-route: JS-RENDERED via a headless browser + hashed. A raw fetch of
+ *    replit.com/community returns only a shell (or a Cloudflare block) — you'd
+ *    read "nothing" and conclude "nothing". These pages are archived RENDERED.
+ *  - launch-channel: the official launch surfaces (blog, changelog, release notes).
+ *
+ * `watchTerms` are notable strings whose appearance in a snapshot is surfaced in
+ * the manifest — this is what proves Community Profiles is now detected.
+ */
 const SOURCES = [
-  { id: 'llms-txt', url: 'https://docs.replit.com/llms.txt', kind: 'text', file: 'llms.txt' },
-  { id: 'llms-full-txt', url: 'https://docs.replit.com/llms-full.txt', kind: 'text', file: 'llms-full.txt' },
-  { id: 'sitemap-xml', url: 'https://docs.replit.com/sitemap.xml', kind: 'xml', file: 'sitemap.xml' },
-  { id: 'changelog-index', url: 'https://docs.replit.com/updates', kind: 'html', file: 'changelog-index.html' },
-  { id: 'product-blog', url: 'https://blog.replit.com/', kind: 'html', file: 'product-blog.html' },
-  { id: 'pricing', url: 'https://replit.com/pricing', kind: 'html', file: 'pricing.html' },
+  // --- docs (fetch) ---
+  { id: 'llms-txt', url: 'https://docs.replit.com/llms.txt', kind: 'text', file: 'llms.txt', family: 'docs' },
+  { id: 'llms-full-txt', url: 'https://docs.replit.com/llms-full.txt', kind: 'text', file: 'llms-full.txt', family: 'docs' },
+  { id: 'sitemap-xml', url: 'https://docs.replit.com/sitemap.xml', kind: 'xml', file: 'sitemap.xml', family: 'docs' },
+  // --- launch-channel (fetch/html) ---
+  { id: 'changelog-index', url: 'https://docs.replit.com/updates', kind: 'html', file: 'changelog-index.html', family: 'launch-channel' },
+  { id: 'product-blog', url: 'https://blog.replit.com/', kind: 'html', file: 'product-blog.html', family: 'launch-channel' },
+  // --- product-route (JS-RENDERED) ---
+  { id: 'pricing', url: 'https://replit.com/pricing', kind: 'html', file: 'pricing.rendered.html', family: 'product-route', render: true },
+  { id: 'gallery', url: 'https://replit.com/gallery', kind: 'html', file: 'gallery.rendered.html', family: 'product-route', render: true },
+  { id: 'community', url: 'https://replit.com/community', kind: 'html', file: 'community.rendered.html', family: 'product-route', render: true },
 ];
+
+/** Notable strings whose presence in any snapshot is recorded in the manifest. */
+const WATCH_TERMS = ['Community Profiles', 'Community Profile', 'Claim your profile', 'Buildathons', 'Submit your App'];
 
 function sha256(buffer) {
   return createHash('sha256').update(buffer).digest('hex');
@@ -77,6 +97,89 @@ async function fetchSource(source) {
   }
 }
 
+/*
+ * Resolve Playwright without depending on a bare 'playwright' being on the
+ * module path (pnpm hoists it under .pnpm). Returns null if unavailable — the
+ * collector then records RENDER_UNAVAILABLE rather than faking a render.
+ */
+async function loadChromium() {
+  const req = createRequire(import.meta.url);
+  const candidates = [
+    'playwright',
+    join(repoRoot, 'node_modules/playwright/index.js'),
+    join(repoRoot, 'node_modules/.pnpm/playwright@1.59.1/node_modules/playwright/index.js'),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      return req(candidate).chromium;
+    } catch {
+      // try next
+    }
+  }
+
+  return null;
+}
+
+const REALISTIC_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+
+/**
+ * JS-render the product-route sources with a headless browser. A plain fetch of
+ * these pages returns only a shell (or a Cloudflare block); rendering is the
+ * only faithful archive. Returns per-source results with the rendered HTML.
+ */
+async function renderSources(renderSources) {
+  const chromium = await loadChromium();
+
+  if (!chromium) {
+    return renderSources.map((source) => ({
+      source,
+      status: 'RENDER_UNAVAILABLE',
+      httpStatus: 0,
+      error: 'playwright not installed (rendered families need a browser)',
+      body: null,
+    }));
+  }
+
+  const browser = await chromium.launch({ headless: true, args: ['--disable-blink-features=AutomationControlled'] });
+  const results = [];
+
+  try {
+    const context = await browser.newContext({ userAgent: REALISTIC_UA, viewport: { width: 1280, height: 900 }, locale: 'en-US' });
+
+    for (const source of renderSources) {
+      try {
+        const page = await context.newPage();
+        await page.goto(source.url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+        await page.waitForTimeout(6_000); // let client render settle
+
+        for (let i = 1; i <= 4; i++) {
+          await page.evaluate((f) => window.scrollTo(0, document.body.scrollHeight * f / 4), i);
+          await page.waitForTimeout(600);
+        }
+
+        const html = await page.evaluate(() => document.documentElement.outerHTML);
+        const text = await page.evaluate(() => document.body.innerText);
+        await page.close();
+
+        if (/been blocked|security service to protect/i.test(text)) {
+          results.push({ source, status: 'BLOCKED', httpStatus: 403, error: 'bot-detection block', body: null });
+          continue;
+        }
+
+        results.push({ source, status: 'OK', httpStatus: 200, body: Buffer.from(html, 'utf8'), renderedText: text });
+      } catch (error) {
+        results.push({ source, status: 'FAILED', httpStatus: 0, error: String(error?.message ?? error), body: null });
+      }
+    }
+  } finally {
+    await browser.close();
+  }
+
+  return results;
+}
+
 function latestPreviousSnapshotDir(todayDir) {
   if (!existsSync(snapshotsRoot)) {
     return undefined;
@@ -98,14 +201,24 @@ const today =
 const outDir = join(snapshotsRoot, today);
 mkdirSync(outDir, { recursive: true });
 
-const results = await Promise.all(SOURCES.map((source) => fetchSource(source)));
+const fetchSources = SOURCES.filter((source) => !source.render);
+const jsRenderSources = SOURCES.filter((source) => source.render);
+
+const [fetched, rendered] = await Promise.all([
+  Promise.all(fetchSources.map((source) => fetchSource(source))),
+  renderSources(jsRenderSources),
+]);
+const results = [...fetched, ...rendered];
 
 const manifest = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   collectedAt: new Date().toISOString(),
   cadence: 'daily',
   cadenceNote:
     'Replit changelog publishes on ARBITRARY weekdays (llms.txt index includes Sunday 2025-11-16 and Wednesday 2025-11-26). Friday-keyed automation is forbidden.',
+  families: ['docs', 'launch-channel', 'product-route'],
+  watchTerms: WATCH_TERMS,
+  watchHits: {}, // term -> [sourceId, ...]
   sources: {},
 };
 
@@ -117,11 +230,12 @@ for (const result of results) {
   if (result.status !== 'OK') {
     manifest.sources[source.id] = {
       url: source.url,
-      status: 'FAILED',
+      family: source.family,
+      status: result.status, // FAILED | BLOCKED | RENDER_UNAVAILABLE
       httpStatus: result.httpStatus,
       error: result.error ?? null,
     };
-    console.error(`[collect-baseline] FAILED ${source.id} (${source.url}) http=${result.httpStatus}`);
+    console.error(`[collect-baseline] ${result.status} ${source.id} (${source.url}) http=${result.httpStatus}`);
     continue;
   }
 
@@ -132,9 +246,19 @@ for (const result of results) {
   writeFileSync(join(outDir, source.file), result.body);
   writeFileSync(join(outDir, `${source.id}.links.txt`), links.slice().sort().join('\n') + '\n');
 
+  // Watch-term detection: search the rendered TEXT (falls back to raw for docs).
+  // This is how Community Profiles is surfaced — a property of the snapshot.
+  const haystack = result.renderedText ?? text;
+  const termsHere = WATCH_TERMS.filter((term) => haystack.toLowerCase().includes(term.toLowerCase()));
+  for (const term of termsHere) {
+    (manifest.watchHits[term] ??= []).push(source.id);
+  }
+
   manifest.sources[source.id] = {
     url: source.url,
+    family: source.family,
     status: 'OK',
+    rendered: Boolean(source.render),
     httpStatus: result.httpStatus,
     file: source.file,
     sha256: sha256(result.body),
@@ -142,10 +266,11 @@ for (const result of results) {
 
     // A property of THIS snapshot — never a constant.
     linkCount: links.length,
+    watchTerms: termsHere,
   };
 
   console.log(
-    `[collect-baseline] OK ${source.id} bytes=${result.body.length} links=${links.length} sha256=${manifest.sources[source.id].sha256.slice(0, 16)}…`,
+    `[collect-baseline] OK ${source.id} [${source.family}${source.render ? '/rendered' : ''}] bytes=${result.body.length} links=${links.length}${termsHere.length ? ` watch=${termsHere.join('|')}` : ''} sha256=${manifest.sources[source.id].sha256.slice(0, 16)}…`,
   );
 }
 

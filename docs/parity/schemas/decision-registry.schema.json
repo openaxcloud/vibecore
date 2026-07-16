@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecode/parity/decision-registry",
+  "x-schemaVersion": 1,
+  "x-repoCommit": "07ced1c56bdbcb3ce77e883704342b71a2ad0961",
+  "title": "DecisionRegistry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "repoCommit",
+    "decisions"
+  ],
+  "properties": {
+    "schemaVersion": {},
+    "repoCommit": {
+      "type": "string"
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "decisionId",
+          "title",
+          "rationale",
+          "owner",
+          "priority",
+          "status",
+          "nextAction"
+        ],
+        "properties": {
+          "status": {
+            "enum": [
+              "OPEN",
+              "DECIDED",
+              "REJECTED"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

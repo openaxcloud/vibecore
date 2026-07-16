@@ -1,0 +1,33 @@
+# UNKNOWN_REGISTRY — ce qu'on ne sait pas, explicitement, avec owner + expiration.
+# Un UNKNOWN sans owner ni date d'expiration est lui-même une dette.
+schemaVersion: 1
+repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
+unknowns:
+  - unknownId: UNK-AR-LIVE-PROMOTION
+    question: "La promotion réelle contre un Artifact Registry live copie-t-elle bien signature+SBOM+provenance ?"
+    owner: claude
+    priority: 4
+    nextAction: "Implémenter l'adapter AR live (API OCI referrers) + une promotion réelle + test négatif attachment manquant"
+    targetDate: UNKNOWN
+    expiration: "2026-08-31"
+  - unknownId: UNK-GALLERY-REPORT-FLOW
+    question: "Le flux de signalement Trust & Safety d'une app Gallery a-t-il une URL/archive rejouable ?"
+    owner: avi
+    priority: 2
+    nextAction: "Capturer le flux de report (rendu) si accessible ; sinon garder CONFIRMED via canal"
+    targetDate: UNKNOWN
+    expiration: "2026-09-30"
+  - unknownId: UNK-COLLECTOR-CI-RENDER
+    question: "Le rendu JS (playwright) tourne-t-il en CI GitHub sans blocage bot ?"
+    owner: claude
+    priority: 1
+    nextAction: "Installer chromium en CI + run réel ; sinon renderer via service dédié"
+    targetDate: UNKNOWN
+    expiration: "2026-08-15"
+  - unknownId: UNK-CAPACITY-RATE-MEASURED
+    question: "Le 0,1 req/s de création de folders est-il stable par projet/région (mesure live) ?"
+    owner: avi
+    priority: 3
+    nextAction: "Mesurer le débit réel de création de folders en prod GCP"
+    targetDate: UNKNOWN
+    expiration: "2026-09-30"

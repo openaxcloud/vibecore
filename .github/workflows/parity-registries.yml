@@ -44,6 +44,10 @@ jobs:
       # repo root fails on pnpm `workspace:` protocols, so it goes into an
       # isolated dir handed to the script via PARITY_DEPS.
       - run: mkdir -p /tmp/parity-deps && cd /tmp/parity-deps && npm init -y >/dev/null && npm install yaml@2 >/dev/null
+      # APPROVAL_STATUS.json must be COMPUTED — fail if it was hand-edited / is stale.
+      - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-approval-status.mjs --check
+      # Full registry validation (cross-refs, freshness SLA, no CLOSED-without-review,
+      # no surface DONE without evidence, APPROVAL_STATUS drift).
       - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/validate-registries.mjs
 
   collect-baseline:

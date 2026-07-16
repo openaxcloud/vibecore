@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "generatedFrom": [
+    "P0_REGISTRY.yaml",
+    "DECISION_REGISTRY.yaml",
+    "UNKNOWN_REGISTRY.yaml",
+    "PUBLIC_BASELINE_REPLIT_2026.yaml",
+    "SURFACE_REGISTRY.yaml",
+    "E2E_PROOFS.yaml"
+  ],
+  "note": "COMPUTED by scripts/parity/generate-approval-status.mjs — never edit by hand. The validator fails the build on drift.",
+  "approvalReady": true,
+  "blocking": [],
+  "counts": {
+    "p0": {
+      "total": 4,
+      "closed": 0,
+      "proven": 4,
+      "open": 0
+    },
+    "decisions": {
+      "total": 3,
+      "open": 2
+    },
+    "unknowns": {
+      "total": 4
+    },
+    "claims": {
+      "total": 8,
+      "stale": 0
+    },
+    "surfaces": {
+      "total": 4,
+      "done": 4
+    },
+    "e2e": {
+      "total": 7,
+      "proven": 7
+    }
+  },
+  "p0": [
+    {
+      "p0Id": "P0-V4-1",
+      "priority": 1,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V4-2",
+      "priority": 2,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V4-3",
+      "priority": 3,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V4-4",
+      "priority": 4,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    }
+  ],
+  "surfaces": [
+    {
+      "surfaceId": "SRF-LANDING",
+      "proofsReferenced": 1,
+      "proofsProven": 1,
+      "done": true
+    },
+    {
+      "surfaceId": "SRF-PROJECT-CREATE",
+      "proofsReferenced": 1,
+      "proofsProven": 1,
+      "done": true
+    },
+    {
+      "surfaceId": "SRF-IDE-COMPOSER",
+      "proofsReferenced": 2,
+      "proofsProven": 2,
+      "done": true
+    },
+    {
+      "surfaceId": "SRF-ADMIN-AGENT-ROUTING",
+      "proofsReferenced": 1,
+      "proofsProven": 1,
+      "done": true
+    }
+  ],
+  "staleSources": []
+}

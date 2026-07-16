@@ -1,0 +1,49 @@
+# P0_REGISTRY — les P0 de l'audit externe, avec owner/priority/nextAction/preuve.
+# Un P0 n'est CLOSED que s'il porte commit + reviewer + evidenceId (vérifié par CI).
+schemaVersion: 1
+repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
+p0s:
+  - p0Id: P0-V4-1
+    title: "Collecteur aveugle : ajouter routes produit (rendu JS) + canal de lancement"
+    priority: 1
+    owner: claude
+    status: PROVEN
+    commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
+    reviewer: UNKNOWN
+    evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
+    proof: "collecteur retrouve Community Profiles (watchHits.community) ; gallery/community rendus+hashés"
+    nextAction: "Aucun — closable après revue"
+    targetDate: "2026-07-16"
+  - p0Id: P0-V4-2
+    title: "Gallery : requalifier la table (mesures réelles, archive rendue)"
+    priority: 2
+    owner: claude
+    status: PROVEN
+    commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
+    reviewer: UNKNOWN
+    evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
+    proof: "RPL-17/18/19 VERIFIED/CONFIRMED avec SRC-GALLERY-RENDERED (sha256 fad9ec75…) ; conséquence DEC-GALLERY-NO-SELF-PUBLISH"
+    nextAction: "Décision produit DEC-GALLERY-NO-SELF-PUBLISH à trancher"
+    targetDate: "2026-07-16"
+  - p0Id: P0-V4-3
+    title: "Hiérarchie GCP : folder-per-tenant mort (300 cap + 0,1 req/s)"
+    priority: 3
+    owner: claude
+    status: PROVEN
+    commit: "07ced1c5"
+    reviewer: UNKNOWN
+    evidenceId: services/api/src/capacity-policy.spec.ts
+    proof: "capacity-policy.ts : 1000 tenants sharded=4/~40s admissible, folder-per-tenant=2,78h inadmissible ; DOMAIN_MODEL §3 corrigé"
+    nextAction: "Aucun — appliqué"
+    targetDate: "2026-07-16"
+  - p0Id: P0-V4-4
+    title: "Promotion Artifact Registry : referrers/attachments non copiés par digest"
+    priority: 4
+    owner: claude
+    status: PROVEN
+    commit: "07ced1c5"
+    reviewer: UNKNOWN
+    evidenceId: services/api/src/artifact-promotion.spec.ts
+    proof: "promoteArtifact découvre+relie+vérifie+BinAuthz ; 4 tests négatifs (SBOM manquant, relink échoué, BinAuthz refusé, source absente) prouvent le blocage. Adapter AR live = follow-up (🟡)"
+    nextAction: "Implémenter l'adapter Artifact Registry live + promotion réelle"
+    targetDate: UNKNOWN

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecode/parity/unknown-registry",
+  "x-schemaVersion": 1,
+  "x-repoCommit": "07ced1c56bdbcb3ce77e883704342b71a2ad0961",
+  "title": "UnknownRegistry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "repoCommit",
+    "unknowns"
+  ],
+  "properties": {
+    "schemaVersion": {},
+    "repoCommit": {
+      "type": "string"
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "unknownId",
+          "question",
+          "owner",
+          "priority",
+          "nextAction",
+          "targetDate",
+          "expiration"
+        ]
+      }
+    }
+  }
+}

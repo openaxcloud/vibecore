@@ -60,3 +60,36 @@ claims:
     region: UNKNOWN
     client: web
     status: INTERNAL_AUDIT           # repéré à l'audit; l'extrait exact reste à ancrer sur une URL+hash
+  - claimId: RPL-17
+    statement: "Replit Gallery (replit.com/gallery) : auteurs affichés (ex. Mark Mathson, Manny Bernabe), stats par app « Views 20,650 » / « Used 79 times », ~22 catégories, « 82 Results », pages détail (/gallery/work/product-and-design/journey-mapper), et « Submit your App » → form.typeform.com/to/yVYAWg79 (Typeform EXTERNE = intake humaine curée, PAS un self-service in-product)."
+    sourceId: SRC-GALLERY-RENDERED
+    observedAt: "2026-07-16T16:45:51Z"
+    firstSeen: "2026-07-16"
+    lastVerified: "2026-07-16"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED                 # rendu JS mesuré + hashé (voir SRC-GALLERY-RENDERED)
+  - claimId: RPL-18
+    statement: "Le signalement d'une app de la Gallery passe par Trust & Safety (pas de bouton de modération in-product self-service côté auteur)."
+    sourceId: SRC-GALLERY-RENDERED
+    observedAt: "2026-07-16T16:45:51Z"
+    firstSeen: "2026-07-16"
+    lastVerified: "2026-07-16"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: CONFIRMED                # via Trust & Safety
+  - claimId: RPL-19
+    statement: "Replit Community (replit.com/community) expose « Community Profiles » / « Claim your profile » + Buildathons/Hackathon/Meetups — lancé la semaine du 16/07/2026, INVISIBLE à un collecteur qui ne surveille que la doc."
+    sourceId: SRC-COMMUNITY-RENDERED
+    observedAt: "2026-07-16T16:45:51Z"
+    firstSeen: "2026-07-16"
+    lastVerified: "2026-07-16"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED                 # rendu JS mesuré + hashé ; retrouvé par le collecteur (watchHits)

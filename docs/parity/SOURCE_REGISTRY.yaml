@@ -53,3 +53,24 @@ sources:
     accessedAt: "2026-07-16T12:56:16Z"
     contentHash: "sha256:c1f1dd962c8be057afa3460be54f3a352f625dbda7ed31b6b1e99d1d769de8f5"
     snapshot: docs/parity/baseline/sources/2026-04-17-changelog.md
+  - sourceId: SRC-GALLERY-RENDERED
+    url: https://replit.com/gallery
+    title: "Replit Gallery (rendu JS)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-16T16:45:51Z"
+    contentHash: "sha256:fad9ec75ed95273ba3632391edf5025af5c95eb78258790f3931260f65b09b20"
+    snapshot: docs/parity/baseline/snapshots/2026-07-16/gallery.rendered.html
+  - sourceId: SRC-GALLERY-DETAIL-JOURNEY-MAPPER
+    url: https://replit.com/gallery/work/product-and-design/journey-mapper
+    title: "Replit Gallery — page détail Journey Mapper (rendu JS)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-16T16:45:51Z"
+    contentHash: "sha256:5e1d57296d5c035518f3423cddc3c00a294f1b135269698b79533df517691b28"
+    snapshot: docs/parity/baseline/snapshots/2026-07-16/gallery-detail-journey-mapper.rendered.html
+  - sourceId: SRC-COMMUNITY-RENDERED
+    url: https://replit.com/community
+    title: "Replit Community — Community Profiles (rendu JS)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-16T16:45:51Z"
+    contentHash: "sha256:e9b562a2fc35a3e712717b2bc302767dd2cd3bef9519281f5894b997e16117e0"
+    snapshot: docs/parity/baseline/snapshots/2026-07-16/community.rendered.html

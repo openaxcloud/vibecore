@@ -1,62 +1,143 @@
 {
-  "schemaVersion": 1,
-  "collectedAt": "2026-07-16T12:55:41.600Z",
+  "schemaVersion": 2,
+  "collectedAt": "2026-07-16T16:45:26.332Z",
   "cadence": "daily",
   "cadenceNote": "Replit changelog publishes on ARBITRARY weekdays (llms.txt index includes Sunday 2025-11-16 and Wednesday 2025-11-26). Friday-keyed automation is forbidden.",
+  "families": [
+    "docs",
+    "launch-channel",
+    "product-route"
+  ],
+  "watchTerms": [
+    "Community Profiles",
+    "Community Profile",
+    "Claim your profile",
+    "Buildathons",
+    "Submit your App"
+  ],
+  "watchHits": {
+    "Submit your App": [
+      "llms-full-txt",
+      "gallery"
+    ],
+    "Community Profiles": [
+      "community"
+    ],
+    "Community Profile": [
+      "community"
+    ],
+    "Claim your profile": [
+      "community"
+    ],
+    "Buildathons": [
+      "community"
+    ]
+  },
   "sources": {
     "llms-txt": {
       "url": "https://docs.replit.com/llms.txt",
+      "family": "docs",
       "status": "OK",
+      "rendered": false,
       "httpStatus": 200,
       "file": "llms.txt",
       "sha256": "03cbdb0706d90455550d13a63b48dedd9f0ced46532408ec1a3c9e2b4bf8a601",
       "bytes": 51169,
-      "linkCount": 299
+      "linkCount": 299,
+      "watchTerms": []
     },
     "llms-full-txt": {
       "url": "https://docs.replit.com/llms-full.txt",
+      "family": "docs",
       "status": "OK",
+      "rendered": false,
       "httpStatus": 200,
       "file": "llms-full.txt",
       "sha256": "a7d6f513fbe6e53916c9214f6beb508be3e7c0ed838bcc1570c39d2db7981314",
       "bytes": 1529562,
-      "linkCount": 6
+      "linkCount": 6,
+      "watchTerms": [
+        "Submit your App"
+      ]
     },
     "sitemap-xml": {
       "url": "https://docs.replit.com/sitemap.xml",
+      "family": "docs",
       "status": "OK",
+      "rendered": false,
       "httpStatus": 200,
       "file": "sitemap.xml",
       "sha256": "5fd7b34100c8f3a10200d55e80568448cdc80106b0981fa00b9074c3f38f4f7e",
       "bytes": 254372,
-      "linkCount": 1804
+      "linkCount": 1804,
+      "watchTerms": []
     },
     "changelog-index": {
       "url": "https://docs.replit.com/updates",
+      "family": "launch-channel",
       "status": "OK",
+      "rendered": false,
       "httpStatus": 200,
       "file": "changelog-index.html",
       "sha256": "a0860256c55ba9f77a0b0613e5b375745143980a6d79d6fbd10919b11b4676da",
       "bytes": 811920,
-      "linkCount": 9
+      "linkCount": 9,
+      "watchTerms": []
     },
     "product-blog": {
       "url": "https://blog.replit.com/",
+      "family": "launch-channel",
       "status": "OK",
+      "rendered": false,
       "httpStatus": 200,
       "file": "product-blog.html",
-      "sha256": "94ec5c75547bf39b3e5e0833e7a0fb9c7da1516c364f34d39a3fc4850a4de090",
+      "sha256": "b8625f007ee58bbff279de1bbd7c69becb947499ead19bed7d2db716d5c3aedb",
       "bytes": 276213,
-      "linkCount": 22
+      "linkCount": 22,
+      "watchTerms": []
     },
     "pricing": {
       "url": "https://replit.com/pricing",
+      "family": "product-route",
       "status": "OK",
+      "rendered": true,
       "httpStatus": 200,
-      "file": "pricing.html",
-      "sha256": "ebf2013a406b0db0c2429825da98523b90f47adf2f3980b57fd0660e61f6ea2e",
-      "bytes": 267047,
-      "linkCount": 42
+      "file": "pricing.rendered.html",
+      "sha256": "1202f9dd1fd0985808b4266db365a62da67da8c96fce64ea854c4aa4ef2e6734",
+      "bytes": 284403,
+      "linkCount": 47,
+      "watchTerms": []
+    },
+    "gallery": {
+      "url": "https://replit.com/gallery",
+      "family": "product-route",
+      "status": "OK",
+      "rendered": true,
+      "httpStatus": 200,
+      "file": "gallery.rendered.html",
+      "sha256": "fad9ec75ed95273ba3632391edf5025af5c95eb78258790f3931260f65b09b20",
+      "bytes": 1499556,
+      "linkCount": 27,
+      "watchTerms": [
+        "Submit your App"
+      ]
+    },
+    "community": {
+      "url": "https://replit.com/community",
+      "family": "product-route",
+      "status": "OK",
+      "rendered": true,
+      "httpStatus": 200,
+      "file": "community.rendered.html",
+      "sha256": "e9b562a2fc35a3e712717b2bc302767dd2cd3bef9519281f5894b997e16117e0",
+      "bytes": 63685,
+      "linkCount": 32,
+      "watchTerms": [
+        "Community Profiles",
+        "Community Profile",
+        "Claim your profile",
+        "Buildathons"
+      ]
     }
   }
 }

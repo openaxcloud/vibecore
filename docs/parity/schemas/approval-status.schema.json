@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecode/parity/approval-status",
+  "x-schemaVersion": 1,
+  "x-repoCommit": "07ced1c56bdbcb3ce77e883704342b71a2ad0961",
+  "title": "APPROVAL_STATUS",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schemaVersion",
+    "generatedFrom",
+    "approvalReady",
+    "blocking",
+    "counts",
+    "p0"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "approvalReady": {
+      "type": "boolean"
+    },
+    "blocking": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "counts": {
+      "type": "object"
+    },
+    "p0": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "p0Id",
+          "derived"
+        ],
+        "properties": {
+          "derived": {
+            "enum": [
+              "OPEN",
+              "PROVEN",
+              "CLOSED"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

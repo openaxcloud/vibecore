@@ -1,0 +1,47 @@
+# DECISION_REGISTRY — décisions E-CODE explicites (PAS de la parité Replit).
+# Chaque décision porte owner, priorité, rationale, coût, statut.
+schemaVersion: 1
+repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
+decisions:
+  - decisionId: DEC-GALLERY-NO-SELF-PUBLISH
+    title: "Pas de bouton « Publish to Gallery » self-service"
+    rationale: >
+      Replit n'a PAS de publication self-service : « Submit your App » pointe sur
+      un Typeform EXTERNE (form.typeform.com/to/yVYAWg79) = intake humaine curée
+      (RPL-17, vérifié+hashé). Un bouton « Publish to Gallery » in-product serait
+      un DÉPASSEMENT, pas de la parité.
+    consequence: >
+      Soit on l'assume comme décision E-CODE AVEC son coût de modération
+      (Trust & Safety, revue humaine, anti-abus), soit on ne le fait pas. Ne pas
+      le présenter comme « parité Replit ».
+    owner: avi
+    priority: 2
+    cost: "modération humaine + anti-abus (non chiffré)"
+    status: OPEN
+    nextAction: "Trancher : intake curé (parité) vs self-service modéré (décision E-CODE chiffrée)"
+    targetDate: UNKNOWN
+  - decisionId: DEC-IMPORT-CREDIT-RESERVE
+    title: "Réservation de crédits Agent idempotente avant import"
+    rationale: >
+      Certaines migrations Replit consomment des crédits Agent (confirmé). Notre
+      réservation idempotente (clé = importJobId) avant démarrage est une décision
+      E-CODE anti-double-charge, pas de la parité.
+    consequence: "Marqueur creditsReserved ; débit réel = follow-up."
+    owner: avi
+    priority: 2
+    cost: "néant (marqueur) ; débit réel à câbler"
+    status: OPEN
+    nextAction: "Câbler le débit réel ou garder shadow"
+    targetDate: UNKNOWN
+  - decisionId: DEC-TENANT-NO-FOLDER-PER-TENANT
+    title: "Pas de folder GCP par tenant par défaut"
+    rationale: >
+      Création de folders = 0,1 req/s = 6/min (vérifié). 1000 tenants
+      folder-per-tenant = 2,78 h de rate-limit pur. Sharding sous 300 enfants.
+    consequence: "Folder dédié uniquement sur exigence contractuelle/policy mesurée."
+    owner: avi
+    priority: 3
+    cost: "néant (sharding) ; folder dédié = coût-temps mesuré"
+    status: DECIDED
+    nextAction: "Aucun — appliqué dans capacity-policy.ts + DOMAIN_MODEL §3"
+    targetDate: "2026-07-16"
