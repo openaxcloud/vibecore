@@ -21975,13 +21975,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       planKey = 'free';
     }
 
-    const modeLine = routingLine(card, query.mode);
+    /*
+     * The strict per-service build (from src/server.ts) infers the defaulted
+     * enum as possibly-undefined; resolve the default explicitly.
+     */
+    const requestedMode = query.mode ?? DEFAULT_AGENT_MODE;
+
+    const modeLine = routingLine(card, requestedMode);
 
     if (!modeLine || !modeLine.active || !modeLine.availablePlans.includes(planKey)) {
       return reply.status(403).send({
-        error: `The ${query.mode} mode is not available on the ${planKey} plan.`,
+        error: `The ${requestedMode} mode is not available on the ${planKey} plan.`,
         code: 'AGENT_MODE_NOT_ALLOWED',
-        mode: query.mode,
+        mode: requestedMode,
         plan: planKey,
       });
     }
@@ -21992,11 +21998,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (query.turbo) {
       // Turbo: Power only, plan-gated AND org-gated (agent_turbo flag, OFF by default).
-      if (query.mode !== 'power') {
+      if (requestedMode !== 'power') {
         return reply.status(403).send({
           error: 'Turbo is only available in Power mode.',
           code: 'AGENT_TURBO_POWER_ONLY',
-          mode: query.mode,
+          mode: requestedMode,
         });
       }
 
@@ -22019,11 +22025,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (query.highEffort) {
       // High effort: Economy and Power only — NEVER Lite — and plan-gated.
-      if (query.mode === 'lite') {
+      if (requestedMode === 'lite') {
         return reply.status(403).send({
           error: 'High effort is not available in Lite mode.',
           code: 'AGENT_HIGH_EFFORT_LITE',
-          mode: query.mode,
+          mode: requestedMode,
         });
       }
 
@@ -22053,7 +22059,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return {
       routingVersion: card.version,
-      mode: query.mode,
+      mode: requestedMode,
       plan: planKey,
       base,
       escalation,
