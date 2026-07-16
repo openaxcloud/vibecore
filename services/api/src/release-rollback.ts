@@ -15,8 +15,11 @@
  * revision is deleted. It also REFUSES to fake a rollback when no digest was
  * retained, instead of silently pointing at a dead URL.
  *
- * Pure — no I/O — so the invariants are unit-testable. Persistence + wiring into
- * the live serverAppDeployment reconcile is the flag-gated follow-up.
+ * Pure — no I/O — so the invariants are unit-testable. WIRED into the real deploy
+ * path in app.ts: the build persists imageRef@digest into the deployment metadata,
+ * and the rollback endpoint (flag SERVER_DEPLOY_ROLLBACK_FROM_DIGEST) re-deploys
+ * that digest via the workspace manager. The handler wiring is proven by
+ * deployment-rollback-digest.spec.ts (real endpoint + mocked manager).
  */
 
 export class RollbackError extends Error {

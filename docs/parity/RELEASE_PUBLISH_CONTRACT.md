@@ -41,18 +41,27 @@ sur `Deployment`. Donc si la révision/l'image sous-jacente a disparu, l'URL
 « rollbackée » est **morte** : I-REL-1 est **non tenu** pour les server deploys.
 Un rollback réel n'a jamais été possible, encore moins prouvé.
 
-**Cœur du correctif (prouvé unitaire)** : `services/api/src/release-rollback.ts`
-— `retainRelease()` épingle `imageRef@sha256` immuable du build ;
-`resolveRollbackImage()` dérive le plan **entièrement du digest retenu** (résout
-v1 même si la révision courante est supprimée) et **REFUSE** un rollback sans
-digest (`ROLLBACK_NO_RETAINED_DIGEST`) au lieu de pointer une URL morte. 7 tests
-dont les négatifs révision-supprimée + sans-digest.
+**Correctif — mécanisme + câblage (prouvés)** :
+- `services/api/src/release-rollback.ts` (pur) : `resolveRollbackImage()` dérive
+  le plan **entièrement du digest retenu** (résout v1 même si la révision courante
+  est supprimée, I-REL-1) et **REFUSE** un rollback sans digest
+  (`ROLLBACK_NO_RETAINED_DIGEST`) ; `resolveRollbackSecrets()` applique la policy
+  déclarée (CURRENT flux la valeur rotée ; PINNED sans snapshot →
+  `ROLLBACK_SECRET_POLICY_UNSATISFIABLE`, jamais faussé). 10 tests.
+- **Câblage `app.ts`** : le build persiste `imageRef@sha256` dans
+  `metadata.serverDeploy.image` ; le handler rollback (flag
+  `SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=1`) re-déploie ce digest via
+  `startServerDeploymentViaManager`. **Prouvé au niveau handler** :
+  `deployment-rollback-digest.spec.ts` (endpoint réel + manager mocké) — 4 tests :
+  re-déploie par digest, refuse sans digest (409), refuse PINNED sans snapshot
+  (409), providers externes intacts.
 
-**Reste ⬜ (non fait, honnête)** : persistance du digest sur la release +
-câblage dans le reconcile `serverAppDeployment` + **preuve e2e live** exigée
-(déployer v1 → v2 → **supprimer la révision de v1** → rollback → l'app sert v1
-depuis le digest retenu). Tracé `UNK-ROLLBACK-LIVE`. Le stage `rollback` du
-vertical d'approbation reste **RED**.
+**Reste ⬜ (preuve e2e LIVE)** : déployer v1 → v2 → **supprimer la révision de
+v1** → rollback → l'app sert v1 depuis le digest retenu, en prod. Prérequis :
+`SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=1` sur l'api (le flag n'est pas encore dans le
+configmap prod). Tracé `UNK-ROLLBACK-LIVE`. Le stage `rollback` du vertical reste
+**RED** tant que ce cycle live n'est pas exécuté — le câblage est prouvé, le
+parcours prod ne l'est pas encore.
 
 ## Preuves
 
