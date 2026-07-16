@@ -285,7 +285,7 @@ import {
   maxSchedulableVcpu,
   resolveDeployMachineSize,
 } from './rate-card-service.js';
-import { resolveRollbackImage, resolveRollbackSecrets, retainRelease, type SecretPolicy } from './release-rollback.js';
+import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { describeCron } from './scheduled-tasks-cron.js';
 import {
@@ -30926,17 +30926,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         const image = serverMeta?.image ?? {};
 
-        const retained = retainRelease({
+        const retained = {
           deploymentId: target.id,
           projectId: project.id,
-          imageUri: image.imageRef ?? image.imageUri ?? '',
-          digest: image.imageDigest,
+          imageRef: (image.imageRef ?? image.imageUri ?? '').replace(/:[^:/]+$/, ''),
+          imageDigest: image.imageDigest ?? '',
           createdAt: new Date().toISOString(),
-        });
+        };
 
         /*
          * The whole point of the fix: resolve ENTIRELY from the retained digest,
-         * independent of whether the current revision still exists.
+         * independent of whether the current revision still exists. This is the
+         * single gate — a missing digest throws ROLLBACK_NO_RETAINED_DIGEST.
          */
         const plan = resolveRollbackImage(retained, { revisionExists: false });
 

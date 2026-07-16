@@ -1,0 +1,218 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildApiApp, type ApiAppOptions } from '../app.js';
+import type { EmailProvider } from '../email.js';
+import { TestApiStore } from './test-api-store.js';
+
+/*
+ * Audit v4 rollback vertical — the WIRING (not just the pure module).
+ *
+ * Proves that the real POST /projects/:id/deployments/:id/rollback endpoint, for
+ * a provider='server' target, re-deploys the RETAINED image BY DIGEST via the
+ * workspace manager (I-REL-1) — independent of whether the current revision
+ * still exists — and REFUSES loudly (never a dead-URL row) when no digest was
+ * retained or the declared secret policy can't be honoured.
+ */
+
+class QuietEmailProvider implements EmailProvider {
+  async send() {}
+}
+
+const IMAGE_REF = 'europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-proj';
+const DIGEST = 'sha256:' + 'b'.repeat(64);
+
+describe('server rollback re-deploys the retained image by digest (wiring)', () => {
+  const prevManagerUrl = process.env.WORKSPACE_MANAGER_URL;
+  const prevFlag = process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST;
+  const realFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    process.env.WORKSPACE_MANAGER_URL = 'http://workspace-manager.test';
+    process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST = '1';
+  });
+
+  afterEach(() => {
+    if (prevManagerUrl === undefined) {
+      delete process.env.WORKSPACE_MANAGER_URL;
+    } else {
+      process.env.WORKSPACE_MANAGER_URL = prevManagerUrl;
+    }
+
+    if (prevFlag === undefined) {
+      delete process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST;
+    } else {
+      process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST = prevFlag;
+    }
+
+    globalThis.fetch = realFetch;
+    vi.restoreAllMocks();
+  });
+
+  /** Capture every manager /server-deployments/start body; report the app ready. */
+  function stubManagerStart(): { starts: Array<Record<string, unknown>> } {
+    const starts: Array<Record<string, unknown>> = [];
+    globalThis.fetch = vi.fn(async (url: unknown, init?: { body?: string }) => {
+      const href = typeof url === 'string' ? url : String(url);
+
+      if (href.includes('/server-deployments/start')) {
+        const body = init?.body ? (JSON.parse(init.body) as Record<string, unknown>) : {};
+        starts.push(body);
+
+        return new Response(
+          JSON.stringify({ ready: true, url: `https://${body.host as string}`, name: 'app', readyReplicas: 1 }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
+
+      return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+    }) as unknown as typeof fetch;
+
+    return { starts };
+  }
+
+  async function setup(options: ApiAppOptions = {}) {
+    const store = new TestApiStore();
+    const app = await buildApiApp({ emailProvider: new QuietEmailProvider(), store, ...options });
+
+    const register = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: {
+        email: 'rollback-digest@example.com',
+        password: 'password123',
+        name: 'Rollback Digest',
+        organizationName: 'Rollback Digest Org',
+      },
+    });
+    expect(register.statusCode).toBe(201);
+
+    const auth = register.json() as { token: string; organization: { id: string } };
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Rollback Digest Project' },
+    });
+
+    const projectId = (project.json() as { project: { id: string } }).project.id;
+
+    return { app, store, auth, projectId };
+  }
+
+  /** A READY server release with a retained image digest (the v1 to roll back to). */
+  async function createRetainedRelease(
+    store: TestApiStore,
+    projectId: string,
+    over: { image?: unknown; secretPolicy?: string } = {},
+  ) {
+    return store.createDeployment({
+      projectId,
+      provider: 'server',
+      environment: 'preview',
+      status: 'READY',
+      url: 'https://d-v1.preview.e-code.ai',
+      metadata: {
+        serverDeploy: {
+          host: 'd-v1.preview.e-code.ai',
+          ready: true,
+          applied: true,
+          image: 'image' in over ? over.image : { imageRef: IMAGE_REF, imageDigest: DIGEST },
+          ...(over.secretPolicy ? { secretPolicy: over.secretPolicy } : {}),
+        },
+      },
+    });
+  }
+
+  it('re-deploys the target by digest (revision-independent, I-REL-1)', async () => {
+    const { app, store, auth, projectId } = await setup();
+    const captured = stubManagerStart();
+    const v1 = await createRetainedRelease(store, projectId);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${v1.id}/rollback`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(res.statusCode).toBe(201);
+
+    // The manager was actually asked to run the immutable pull-by-digest ref.
+    const start = captured.starts.find((s) => String(s.image).includes('@sha256:'));
+    expect(start).toBeDefined();
+    expect(start!.image).toBe(`${IMAGE_REF}@${DIGEST}`);
+
+    const row = res.json().deployment;
+    expect(row.status).toBe('READY');
+    expect((row.metadata.serverDeploy as Record<string, unknown>).rolledBackFromDigest).toBe(DIGEST);
+
+    await app.close();
+  });
+
+  it('REFUSES (409) when the target retained no digest — never a dead-URL row', async () => {
+    const { app, store, auth, projectId } = await setup();
+    const captured = stubManagerStart();
+
+    // v1 shipped BEFORE digests were retained: image present but no imageDigest.
+    const v1 = await createRetainedRelease(store, projectId, { image: { imageRef: IMAGE_REF } });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${v1.id}/rollback`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.json().code).toBe('ROLLBACK_NO_RETAINED_DIGEST');
+
+    // It must NOT have re-deployed anything.
+    expect(captured.starts.some((s) => String(s.image).includes('@sha256:'))).toBe(false);
+
+    await app.close();
+  });
+
+  it('REFUSES (409) a PINNED secret policy with no retained snapshot — never fakes it', async () => {
+    const { app, store, auth, projectId } = await setup();
+    stubManagerStart();
+
+    const v1 = await createRetainedRelease(store, projectId, { secretPolicy: 'PINNED' });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${v1.id}/rollback`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.json().code).toBe('ROLLBACK_SECRET_POLICY_UNSATISFIABLE');
+
+    await app.close();
+  });
+
+  it('leaves external-provider rollback untouched (no digest re-deploy path)', async () => {
+    const { app, store, auth, projectId } = await setup();
+    const captured = stubManagerStart();
+
+    const v1 = await store.createDeployment({
+      projectId,
+      provider: 'static',
+      environment: 'preview',
+      status: 'READY',
+      url: 'https://static-v1.example.com',
+      metadata: {},
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${v1.id}/rollback`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(res.statusCode).toBe(201);
+
+    // No server-deploy manager start for a static rollback.
+    expect(captured.starts.length).toBe(0);
+
+    await app.close();
+  });
+});
