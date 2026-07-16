@@ -23,5 +23,11 @@ export function formatRailBadgeValue(value: number): string {
     return String(rounded);
   }
 
-  return COMPACT_FORMATTER.format(rounded);
+  /*
+   * Normalize the compact suffix to uppercase: some ICU builds render the
+   * en-GB compact thousand marker as "1k" (lowercase), others "1K" — the CI
+   * runner and local Node disagreed. The badge contract is the GitHub-style
+   * uppercase "1.2K", independent of the host's ICU data.
+   */
+  return COMPACT_FORMATTER.format(rounded).toUpperCase();
 }
