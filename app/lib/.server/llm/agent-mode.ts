@@ -146,9 +146,36 @@ export async function resolveAgentRoute(input: {
     `${apiBaseUrl().replace(/\/+$/, '')}/projects/${encodeURIComponent(input.projectId)}/agent/routing/resolve` +
     `?mode=${input.selection.mode}&highEffort=${input.selection.highEffort}&turbo=${input.selection.turbo}`;
 
+  /*
+   * Same auth bridge as ai-usage.ts: the api authenticates a Bearer token, not
+   * a raw browser Cookie header — extract vc_session and send it as
+   * Authorization (a raw cookie pass-through 401s and silently downgraded
+   * every request to the legacy path).
+   */
+  const sessionToken = (() => {
+    const match = input.cookieHeader
+      .split(';')
+      .map((part) => part.trim())
+      .find((part) => part.startsWith('vc_session='));
+
+    if (!match) {
+      return undefined;
+    }
+
+    try {
+      return decodeURIComponent(match.slice('vc_session='.length));
+    } catch {
+      return undefined;
+    }
+  })();
+
+  if (!sessionToken) {
+    return { ok: 'unavailable' };
+  }
+
   try {
     const response = await fetch(url, {
-      headers: { accept: 'application/json', cookie: input.cookieHeader },
+      headers: { accept: 'application/json', authorization: `Bearer ${sessionToken}` },
       signal: AbortSignal.timeout(10_000),
     });
 

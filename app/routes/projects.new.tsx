@@ -1217,9 +1217,8 @@ export default function NewProjectPage() {
               <SlidersHorizontal className="h-4 w-4" aria-hidden />
               Advanced options
             </span>
-            <span className="vc-new-project-advanced-summary">
-              {activeCategory.label} · {activeModel?.label || activeModel?.name || 'Default model'}
-            </span>
+            {/* AGM: no model name anywhere — the summary shows the artifact type only. */}
+            <span className="vc-new-project-advanced-summary">{activeCategory.label}</span>
             <ChevronDown className="vc-new-project-advanced-chevron h-4 w-4" aria-hidden />
           </button>
 
