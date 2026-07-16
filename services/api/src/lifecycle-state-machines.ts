@@ -1,7 +1,8 @@
 /**
- * Lifecycle state machines for Checkpoint and DB migration (audit v4 D + E).
+ * Lifecycle state machines for Checkpoint, DB migration, and Promotion→Release
+ * (audit v4 C + D + E).
  *
- * Both encode invariants that are SECURITY / data-loss properties, not
+ * All encode invariants that are SECURITY / data-loss properties, not
  * convenience:
  *  - Checkpoint: `BARRIER_ESTABLISHED` MUST precede any snapshot — without a
  *    logical barrier first, components snapshot at different instants and
@@ -204,4 +205,131 @@ export interface MigrationExecution {
  */
 export function migrationMayStart(active: MigrationExecution[], environment: string): boolean {
   return !active.some((m) => m.environment === environment && !MIGRATION_TERMINAL.includes(m.state));
+}
+
+/* ==================== Promotion → Release (audit v4 C) ==================== */
+
+/**
+ * State machine layering the security mechanics of `artifact-promotion.ts`.
+ *
+ * Invariants:
+ *  - I-PROMO-STATE-1: only a `PROMOTION_COMMITTED` promotion may be referenced by
+ *    a `ReleaseManifest`. An incomplete promotion is CLEANED and can NEVER become
+ *    a release ("une promotion incomplète est nettoyée et ne peut jamais devenir
+ *    une release").
+ *  - I-PROMO-STATE-2: the linear path enforces referrers-copied BEFORE
+ *    target-verified BEFORE binauthz — a promotion can't be "committed" while
+ *    skipping a gate.
+ */
+export type PromotionState =
+  | 'PROMOTION_PREPARED'
+  | 'PROMOTION_REFERRERS_COPIED'
+  | 'PROMOTION_TARGET_VERIFIED'
+  | 'PROMOTION_BINAUTHZ_PASSED'
+  | 'PROMOTION_COMMITTED'
+  | 'PROMOTION_ABORTED'
+  | 'PROMOTION_CLEANED';
+
+export const PROMOTION_ORDER: PromotionState[] = [
+  'PROMOTION_PREPARED',
+  'PROMOTION_REFERRERS_COPIED',
+  'PROMOTION_TARGET_VERIFIED',
+  'PROMOTION_BINAUTHZ_PASSED',
+  'PROMOTION_COMMITTED',
+];
+
+const PROMOTION_TERMINAL: PromotionState[] = ['PROMOTION_COMMITTED', 'PROMOTION_CLEANED'];
+
+export function assertPromotionTransition(from: PromotionState, to: PromotionState): void {
+  if (PROMOTION_TERMINAL.includes(from)) {
+    throw new LifecycleError(`Cannot leave terminal promotion state ${from}`, 'PROMOTION_TERMINAL');
+  }
+
+  // A promotion may abort from any non-terminal state, then only be CLEANED.
+  if (to === 'PROMOTION_ABORTED') {
+    return;
+  }
+
+  if (from === 'PROMOTION_ABORTED') {
+    if (to === 'PROMOTION_CLEANED') {
+      return;
+    }
+
+    throw new LifecycleError(
+      `An aborted promotion may only be CLEANED, not ${to} — it can never become a release`,
+      'PROMOTION_ABORTED_CANNOT_COMMIT',
+    );
+  }
+
+  const fromIdx = PROMOTION_ORDER.indexOf(from);
+  const toIdx = PROMOTION_ORDER.indexOf(to);
+
+  if (toIdx !== fromIdx + 1) {
+    if (to === 'PROMOTION_COMMITTED' && from !== 'PROMOTION_BINAUTHZ_PASSED') {
+      throw new LifecycleError(
+        'PROMOTION_COMMITTED requires PROMOTION_BINAUTHZ_PASSED first — cannot commit a promotion that skipped referrer copy, target verification, or Binary Authorization.',
+        'PROMOTION_COMMIT_SKIPPED_GATE',
+      );
+    }
+
+    throw new LifecycleError(`Illegal promotion transition ${from}→${to}`, 'PROMOTION_BAD_TRANSITION');
+  }
+}
+
+export interface PromotionManifest {
+  promotionId: string;
+  sourceRepo: string;
+  sourceDigest: string;
+  targetRepo: string;
+  targetTenant: string;
+
+  /** Every OCI referrer copied+relinked (signature/SBOM/provenance/…). */
+  attachments: Array<{ type: string; digest: string; subjectDigest: string; relinked: boolean }>;
+  binaryAuthorizationResult: 'PASSED' | 'DENIED' | 'UNKNOWN';
+  state: PromotionState;
+  preparedAt: string;
+  committedAt?: string;
+}
+
+export interface ReleaseManifest {
+  releaseId: string;
+
+  /** Provenance: the committed promotion this release was cut from. */
+  promotionId: string;
+  imageDigest: string;
+  bundleDigest: string;
+  sbomDigest: string;
+  provenanceDigest: string;
+  configDigest: string;
+
+  /** Ties the release to the access policy in force (AUTH_ACCESS_CONTRACT). */
+  accessPolicyVersion: string;
+  createdAt: string;
+  retentionExpiresAt: string;
+  referenceCount: number;
+}
+
+/**
+ * I-PROMO-STATE-1 gate: a ReleaseManifest may ONLY be cut from a promotion that
+ * reached PROMOTION_COMMITTED. Returns the reason it is refused otherwise.
+ */
+export function releaseMayBeCut(promotion: PromotionManifest): { allowed: boolean; reason?: string } {
+  if (promotion.state !== 'PROMOTION_COMMITTED') {
+    return {
+      allowed: false,
+      reason: `promotion ${promotion.promotionId} is ${promotion.state}, not PROMOTION_COMMITTED — an incomplete promotion can never become a release`,
+    };
+  }
+
+  const missing = promotion.attachments.filter((a) => !a.relinked);
+
+  if (missing.length > 0) {
+    return { allowed: false, reason: `${missing.length} attachment(s) not relinked into the tenant repo` };
+  }
+
+  if (promotion.binaryAuthorizationResult !== 'PASSED') {
+    return { allowed: false, reason: `Binary Authorization is ${promotion.binaryAuthorizationResult}, not PASSED` };
+  }
+
+  return { allowed: true };
 }

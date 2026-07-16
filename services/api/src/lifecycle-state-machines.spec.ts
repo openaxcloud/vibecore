@@ -4,11 +4,14 @@ import {
   LifecycleError,
   assertCheckpointTransition,
   assertMigrationTransition,
+  assertPromotionTransition,
   checkpointManifestVisible,
   migrationMayStart,
   quiesceAdmissible,
+  releaseMayBeCut,
   type CheckpointComponentSnapshot,
   type MigrationExecution,
+  type PromotionManifest,
 } from './lifecycle-state-machines.js';
 
 describe('checkpoint two-phase barrier (audit v4 D)', () => {
@@ -124,5 +127,72 @@ describe('DB migration execution (audit v4 E)', () => {
     // Once the prod one is terminal, a new one may start.
     active[0].state = 'COMMITTED';
     expect(migrationMayStart(active, 'production')).toBe(true);
+  });
+});
+
+describe('promotion → release (audit v4 C)', () => {
+  it('accepts PROMOTION_PREPARED→…→PROMOTION_COMMITTED', () => {
+    const path = [
+      ['PROMOTION_PREPARED', 'PROMOTION_REFERRERS_COPIED'],
+      ['PROMOTION_REFERRERS_COPIED', 'PROMOTION_TARGET_VERIFIED'],
+      ['PROMOTION_TARGET_VERIFIED', 'PROMOTION_BINAUTHZ_PASSED'],
+      ['PROMOTION_BINAUTHZ_PASSED', 'PROMOTION_COMMITTED'],
+    ] as const;
+
+    for (const [from, to] of path) {
+      expect(() => assertPromotionTransition(from, to)).not.toThrow();
+    }
+  });
+
+  it('REFUSES committing a promotion that skipped a gate', () => {
+    try {
+      assertPromotionTransition('PROMOTION_TARGET_VERIFIED', 'PROMOTION_COMMITTED');
+      throw new Error('should have thrown');
+    } catch (error) {
+      expect((error as LifecycleError).code).toBe('PROMOTION_COMMIT_SKIPPED_GATE');
+    }
+  });
+
+  it('an aborted promotion may only be CLEANED — never committed (never becomes a release)', () => {
+    expect(() => assertPromotionTransition('PROMOTION_REFERRERS_COPIED', 'PROMOTION_ABORTED')).not.toThrow();
+    expect(() => assertPromotionTransition('PROMOTION_ABORTED', 'PROMOTION_CLEANED')).not.toThrow();
+    expect(() => assertPromotionTransition('PROMOTION_ABORTED', 'PROMOTION_COMMITTED')).toThrowError(
+      /never become a release/,
+    );
+  });
+
+  const manifest = (over: Partial<PromotionManifest>): PromotionManifest => ({
+    promotionId: 'promo-1',
+    sourceRepo: 'src',
+    sourceDigest: 'sha256:aaa',
+    targetRepo: 'tenant-repo',
+    targetTenant: 't1',
+    attachments: [{ type: 'signature', digest: 'sha256:sig', subjectDigest: 'sha256:aaa', relinked: true }],
+    binaryAuthorizationResult: 'PASSED',
+    state: 'PROMOTION_COMMITTED',
+    preparedAt: '2026-07-16T00:00:00Z',
+    committedAt: '2026-07-16T00:01:00Z',
+    ...over,
+  });
+
+  it('a release may be cut ONLY from a committed, fully-attested promotion', () => {
+    expect(releaseMayBeCut(manifest({})).allowed).toBe(true);
+
+    // Incomplete promotion → never a release.
+    const notCommitted = releaseMayBeCut(manifest({ state: 'PROMOTION_TARGET_VERIFIED' }));
+    expect(notCommitted.allowed).toBe(false);
+    expect(notCommitted.reason).toMatch(/never become a release/);
+
+    // Committed but an attachment never relinked → refused.
+    expect(
+      releaseMayBeCut(
+        manifest({
+          attachments: [{ type: 'sbom', digest: 'sha256:s', subjectDigest: 'sha256:aaa', relinked: false }],
+        }),
+      ).allowed,
+    ).toBe(false);
+
+    // Committed but BinAuthz not passed → refused.
+    expect(releaseMayBeCut(manifest({ binaryAuthorizationResult: 'UNKNOWN' })).allowed).toBe(false);
   });
 });

@@ -118,18 +118,96 @@ livre une image **non vérifiable** chez le tenant (Binary Authorization n'a rie
   un follow-up infra — la logique de sécurité vit et est prouvée dans le module.
   🟡 Promotion réelle contre un AR live = non exécutée (nécessite creds infra).
 
-## 6. Checkpoint projet
+### Machine à états Promotion → Release (audit v4 C)
 
-Pipeline: quiesce → flush → CSI VolumeSnapshot → DB snapshot/branch →
-PodSnapshot (optionnel) → manifest signé.
+Au-dessus des mécaniques de copie, une **machine à états** (prouvée dans
+`services/api/src/lifecycle-state-machines.ts`, `assertPromotionTransition` +
+`releaseMayBeCut`, 4 tests) porte l'ordre et le nettoyage :
+
+```
+PROMOTION_PREPARED → PROMOTION_REFERRERS_COPIED → PROMOTION_TARGET_VERIFIED
+                   → PROMOTION_BINAUTHZ_PASSED → PROMOTION_COMMITTED
+échec (n'importe quel état) → PROMOTION_ABORTED → PROMOTION_CLEANED
+```
+
+- **I-PROMO-STATE-1** : **seule** une promotion `PROMOTION_COMMITTED` peut être
+  référencée par une `ReleaseManifest`. *Une promotion incomplète est nettoyée et
+  ne peut jamais devenir une release* — `PROMOTION_ABORTED` ne va **que** vers
+  `PROMOTION_CLEANED` (jamais `PROMOTION_COMMITTED`), et `releaseMayBeCut` refuse
+  toute promotion non committée, tout attachment non re-lié, ou BinAuthz ≠ PASSED.
+- **I-PROMO-STATE-2** : `PROMOTION_COMMITTED` exige `PROMOTION_BINAUTHZ_PASSED`
+  d'abord → impossible de committer une promotion qui a sauté la copie des
+  referrers, la vérification tenant, ou Binary Authorization
+  (`PROMOTION_COMMIT_SKIPPED_GATE`).
+
+**`PromotionManifest`** (schéma dans le module) : `promotionId`, `sourceRepo`,
+`sourceDigest`, `targetRepo`, `targetTenant`, `attachments[{type, digest,
+subjectDigest, relinked}]`, `binaryAuthorizationResult ∈ {PASSED|DENIED|UNKNOWN}`,
+`state`, `preparedAt`, `committedAt?`.
+
+**`ReleaseManifest`** : `releaseId`, `promotionId` (provenance = la promotion
+committée d'où la release est tirée), `imageDigest`, `bundleDigest`, `sbomDigest`,
+`provenanceDigest`, `configDigest`, `accessPolicyVersion` (lie la release à la
+politique d'accès en vigueur — cf. AUTH_ACCESS_CONTRACT / RPL-23), `createdAt`,
+`retentionExpiresAt`, `referenceCount`.
+
+- I-REL-2 (rollback DB) : *la base de données n'est jamais supposée inversée par
+  un rollback*. Un rollback re-déploie une **image** depuis le `ReleaseCatalog` ;
+  il ne réécrit pas l'état DB. La compatibilité schéma est portée par la machine
+  de migration (§ ci-dessous, `backwardCompatible`/`forwardCompatible`), pas par
+  le rollback.
+
+## 6. Checkpoint projet — barrière en deux phases (audit v4 D)
+
+Pipeline: quiesce → **établir la barrière logique** → CSI VolumeSnapshot → DB
+snapshot/branch → PodSnapshot (optionnel) → vérifier tous les snapshots →
+manifest signé. Machine à états prouvée dans
+`services/api/src/lifecycle-state-machines.ts`
+(`assertCheckpointTransition` + `checkpointManifestVisible` + `quiesceAdmissible`) :
+
+```
+PREPARING → QUIESCING → BARRIER_ESTABLISHED → SNAPSHOTTING → VERIFYING → COMMITTED
+échec → ABORTING → CLEANED | MANUAL_INTERVENTION
+```
 
 - I-CKP-1: **un PodSnapshot seul n'est JAMAIS un checkpoint projet** — la doc
   GKE dit mot pour mot que les volumes persistants ne sont pas checkpointés.
 - I-CKP-2: le manifest signé liste chaque artefact (snapshot volume, snapshot
   DB, éventuel PodSnapshot) avec digest; un manifest incomplet est invalide.
 - I-CKP-3: restauration = transaction: tout ou rien.
+- **I-CKP-4 (barrière avant snapshot)** : `SNAPSHOTTING` exige
+  `BARRIER_ESTABLISHED` d'abord (`CHECKPOINT_SNAPSHOT_BEFORE_BARRIER`). Sans
+  barrière logique établie EN PREMIER, les composants ne snapshotent pas le même
+  instant et la « cohérence » est une illusion.
+- **I-CKP-5 (manifest visible après vérif)** : `checkpointManifestVisible` ne
+  renvoie `visible` que si **tous** les composants sont `verified` ET partagent le
+  **même** `logicalBarrierId` — jamais de manifest à moitié visible.
+- **I-CKP-6 (quiesce = timeout + dégel)** : `quiesceAdmissible` exige un
+  `timeoutMs` fini > 0 ET `thawGuaranteed === true`. Un quiesce sans dégel garanti
+  gèle le projet du client.
 
-## 7. Entités billing (implémentées — voir BILLING_LEDGER_CONTRACT.md)
+## 7. Migration DB (audit v4 E)
+
+Machine à états prouvée dans `services/api/src/lifecycle-state-machines.ts`
+(`assertMigrationTransition` + `migrationMayStart`) :
+
+```
+PLANNED → LOCK_ACQUIRED → BACKUP_VERIFIED → APPLYING → VALIDATING → COMMITTED
+échec → FAILED_SAFE | FORWARD_FIX_REQUIRED | MANUAL_RECOVERY
+```
+
+- **I-MIG-1 (backup avant apply)** : `APPLYING` exige `BACKUP_VERIFIED` d'abord
+  (`MIGRATION_APPLY_BEFORE_BACKUP`). Appliquer sans backup vérifié risque une
+  perte de données irrécupérable.
+- **I-MIG-2 (une seule active par env)** : `migrationMayStart` refuse une seconde
+  migration active dans le même `environment` (une active à la fois par
+  environnement).
+- **I-MIG-3** : `MigrationExecution` porte `backwardCompatible` /
+  `forwardCompatible` (`boolean | 'UNKNOWN'`) — la compatibilité schéma est
+  explicite, jamais supposée. Couplé à I-REL-2 : un rollback d'**image** ne
+  suppose jamais la DB inversée.
+
+## 8. Entités billing (implémentées — voir BILLING_LEDGER_CONTRACT.md)
 
 RateCard (compute, versionnée), AgentRoutingCard (LLM, versionnée),
 AiCostLedger, CreditWallet/CreditPack/CreditLedger (append-only),
