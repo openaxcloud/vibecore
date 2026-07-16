@@ -1,0 +1,42 @@
+# PY-PREVIEW-01 — Python/Flask dev preview RENDERS in the browser (2026-07-16)
+
+## Genuine loop (Avi's Chrome)
+- New project via prompt -> agent built a Flask app (app.py, requirements.txt, .ecode/deploy.json).
+  projectId=cmrnoqluq004z0n96yhzteoyv, workspace=ws-8dd9e2748dfa343f.
+- app.py: GET / returns an HTML page with <h1>PY-PREVIEW-01 Flask renders</h1>.
+
+## Nix / zone (the real constraint)
+- Workspace base image is node-alpine: NO python. Added the project to WORKSPACE_NIX_PROJECTS
+  (helm), deleted the zone-b pod+PVC, reprovisioned -> fresh workspace in zone-a with the RO
+  /nix store mounted (nix PV is zonal-a; a zone-b file-PVC deadlocks). Pod:
+workspace-ws-8dd9e2748dfa343f zone=gke-vibecore-prod-app-sandbox-gvisor-bd5d9a1e-p2pl
+workspace nix-store   <- volumes (nix-store present)
+- Nix store is gen-2 (store v2): Python 3.12.13 at /nix/store/*-python3-3.12.13 (was 3.12.8-env).
+- venv + pip install flask (uv is a glibc wheel, won't exec on the musl base -> Nix-v2 gap; used pip).
+
+## /ports detection + preview
+- flask running: process, listener:
+tcp        0      0 0.0.0.0:5000            0.0.0.0:*               LISTEN      
+  113 node      0:00 .venv/bin/python app.py
+- /ports detected port 5000; preview URL = https://ws-8dd9e2748dfa343f-5000.preview.e-code.ai/
+
+## Preview RENDERS (not just an endpoint)
+- Raw preview URL:
+HTTP/2 200 
+date: Thu, 16 Jul 2026 16:52:18 GMT
+content-type: text/html; charset=utf-8
+content-length: 1259
+cross-origin-resource-policy: cross-origin
+cross-origin-embedder-policy: credentialless
+- Body heading served:
+<title>PY-PREVIEW-01</title>
+<h1>PY-PREVIEW-01 Flask renders</h1>
+- Rendered in Avi's Chrome: a large white h1 'PY-PREVIEW-01 Flask renders' on a dark page (screenshot ss_1837b92cn).
+
+## HONEST NOTES
+- uv blocked (glibc vs musl) -> pip used; Nix v2 will ship a runnable uv.
+- The platform dev-preview AUTO-RUN tried 'npx vite' for a Python project (wrong toolchain);
+  the actual serving process here is flask, started explicitly. The auto-run's per-language
+  detection for non-Node runtimes is a gap worth fixing.
+- Dev preview for Python requires the workspace in zone-a (nix PV is zonal); a project that
+  first provisioned in zone-b must be recreated. Multi-zone nix store is the durable fix (Nix v2).
