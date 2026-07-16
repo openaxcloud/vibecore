@@ -614,6 +614,24 @@ export type ScheduledTask = $Result.DefaultSelection<Prisma.$ScheduledTaskPayloa
  * real duration, and the billing outcome for that duration.
  */
 export type ScheduledTaskRun = $Result.DefaultSelection<Prisma.$ScheduledTaskRunPayload>
+/**
+ * Model AgentRoutingCard
+ * Versioned Agent Routing Card: maps agent modes (Lite/Economy/Power) and
+ * switches (High effort/Turbo) + the harness classifier to concrete provider
+ * models with cost-of-revenue and user pricing. `data` is the serialized
+ * AgentRoutingCard document (packages/billing agent-routing.ts). A config
+ * change inserts a NEW version and closes the previous one (effectiveTo) —
+ * never a deployment, never a mutation of history.
+ */
+export type AgentRoutingCard = $Result.DefaultSelection<Prisma.$AgentRoutingCardPayload>
+/**
+ * Model AgentCallLog
+ * One row per routed agent LLM call (admin-only, never shown to the client):
+ * who called, which mode/switches, whether high-effort escalated, the REAL
+ * provider+model used, tokens, cost-of-revenue, credits billed and margin.
+ * Cents are stored as millicents (Int) to keep fractional cost exact.
+ */
+export type AgentCallLog = $Result.DefaultSelection<Prisma.$AgentCallLogPayload>
 
 /**
  * Enums
@@ -2051,6 +2069,26 @@ export class PrismaClient<
     * ```
     */
   get scheduledTaskRun(): Prisma.ScheduledTaskRunDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.agentRoutingCard`: Exposes CRUD operations for the **AgentRoutingCard** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AgentRoutingCards
+    * const agentRoutingCards = await prisma.agentRoutingCard.findMany()
+    * ```
+    */
+  get agentRoutingCard(): Prisma.AgentRoutingCardDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.agentCallLog`: Exposes CRUD operations for the **AgentCallLog** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AgentCallLogs
+    * const agentCallLogs = await prisma.agentCallLog.findMany()
+    * ```
+    */
+  get agentCallLog(): Prisma.AgentCallLogDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -2590,7 +2628,9 @@ export namespace Prisma {
     DatabaseSnapshot: 'DatabaseSnapshot',
     DatabaseRestore: 'DatabaseRestore',
     ScheduledTask: 'ScheduledTask',
-    ScheduledTaskRun: 'ScheduledTaskRun'
+    ScheduledTaskRun: 'ScheduledTaskRun',
+    AgentRoutingCard: 'AgentRoutingCard',
+    AgentCallLog: 'AgentCallLog'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2606,7 +2646,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -10438,6 +10478,154 @@ export namespace Prisma {
           }
         }
       }
+      AgentRoutingCard: {
+        payload: Prisma.$AgentRoutingCardPayload<ExtArgs>
+        fields: Prisma.AgentRoutingCardFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AgentRoutingCardFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRoutingCardPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AgentRoutingCardFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRoutingCardPayload>
+          }
+          findFirst: {
+            args: Prisma.AgentRoutingCardFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRoutingCardPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AgentRoutingCardFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRoutingCardPayload>
+          }
+          findMany: {
+            args: Prisma.AgentRoutingCardFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRoutingCardPayload>[]
+          }
+          create: {
+            args: Prisma.AgentRoutingCardCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRoutingCardPayload>
+          }
+          createMany: {
+            args: Prisma.AgentRoutingCardCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AgentRoutingCardCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRoutingCardPayload>[]
+          }
+          delete: {
+            args: Prisma.AgentRoutingCardDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRoutingCardPayload>
+          }
+          update: {
+            args: Prisma.AgentRoutingCardUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRoutingCardPayload>
+          }
+          deleteMany: {
+            args: Prisma.AgentRoutingCardDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AgentRoutingCardUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AgentRoutingCardUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRoutingCardPayload>[]
+          }
+          upsert: {
+            args: Prisma.AgentRoutingCardUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRoutingCardPayload>
+          }
+          aggregate: {
+            args: Prisma.AgentRoutingCardAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAgentRoutingCard>
+          }
+          groupBy: {
+            args: Prisma.AgentRoutingCardGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AgentRoutingCardGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AgentRoutingCardCountArgs<ExtArgs>
+            result: $Utils.Optional<AgentRoutingCardCountAggregateOutputType> | number
+          }
+        }
+      }
+      AgentCallLog: {
+        payload: Prisma.$AgentCallLogPayload<ExtArgs>
+        fields: Prisma.AgentCallLogFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AgentCallLogFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentCallLogPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AgentCallLogFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentCallLogPayload>
+          }
+          findFirst: {
+            args: Prisma.AgentCallLogFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentCallLogPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AgentCallLogFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentCallLogPayload>
+          }
+          findMany: {
+            args: Prisma.AgentCallLogFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentCallLogPayload>[]
+          }
+          create: {
+            args: Prisma.AgentCallLogCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentCallLogPayload>
+          }
+          createMany: {
+            args: Prisma.AgentCallLogCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AgentCallLogCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentCallLogPayload>[]
+          }
+          delete: {
+            args: Prisma.AgentCallLogDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentCallLogPayload>
+          }
+          update: {
+            args: Prisma.AgentCallLogUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentCallLogPayload>
+          }
+          deleteMany: {
+            args: Prisma.AgentCallLogDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AgentCallLogUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AgentCallLogUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentCallLogPayload>[]
+          }
+          upsert: {
+            args: Prisma.AgentCallLogUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentCallLogPayload>
+          }
+          aggregate: {
+            args: Prisma.AgentCallLogAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAgentCallLog>
+          }
+          groupBy: {
+            args: Prisma.AgentCallLogGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AgentCallLogGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AgentCallLogCountArgs<ExtArgs>
+            result: $Utils.Optional<AgentCallLogCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -10652,6 +10840,8 @@ export namespace Prisma {
     databaseRestore?: DatabaseRestoreOmit
     scheduledTask?: ScheduledTaskOmit
     scheduledTaskRun?: ScheduledTaskRunOmit
+    agentRoutingCard?: AgentRoutingCardOmit
+    agentCallLog?: AgentCallLogOmit
   }
 
   /* Types for Logging */
@@ -10762,6 +10952,7 @@ export namespace Prisma {
     notifications: number
     aiMessageFeedback: number
     spendLimits: number
+    agentRoutingCards: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -10795,6 +10986,7 @@ export namespace Prisma {
     notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
     aiMessageFeedback?: boolean | UserCountOutputTypeCountAiMessageFeedbackArgs
     spendLimits?: boolean | UserCountOutputTypeCountSpendLimitsArgs
+    agentRoutingCards?: boolean | UserCountOutputTypeCountAgentRoutingCardsArgs
   }
 
   // Custom InputTypes
@@ -11016,6 +11208,13 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountSpendLimitsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: UserSpendLimitWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountAgentRoutingCardsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentRoutingCardWhereInput
   }
 
 
@@ -12366,6 +12565,7 @@ export namespace Prisma {
     notifications?: boolean | User$notificationsArgs<ExtArgs>
     aiMessageFeedback?: boolean | User$aiMessageFeedbackArgs<ExtArgs>
     spendLimits?: boolean | User$spendLimitsArgs<ExtArgs>
+    agentRoutingCards?: boolean | User$agentRoutingCardsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -12453,6 +12653,7 @@ export namespace Prisma {
     notifications?: boolean | User$notificationsArgs<ExtArgs>
     aiMessageFeedback?: boolean | User$aiMessageFeedbackArgs<ExtArgs>
     spendLimits?: boolean | User$spendLimitsArgs<ExtArgs>
+    agentRoutingCards?: boolean | User$agentRoutingCardsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -12492,6 +12693,7 @@ export namespace Prisma {
       notifications: Prisma.$NotificationPayload<ExtArgs>[]
       aiMessageFeedback: Prisma.$AiMessageFeedbackPayload<ExtArgs>[]
       spendLimits: Prisma.$UserSpendLimitPayload<ExtArgs>[]
+      agentRoutingCards: Prisma.$AgentRoutingCardPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -12933,6 +13135,7 @@ export namespace Prisma {
     notifications<T extends User$notificationsArgs<ExtArgs> = {}>(args?: Subset<T, User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     aiMessageFeedback<T extends User$aiMessageFeedbackArgs<ExtArgs> = {}>(args?: Subset<T, User$aiMessageFeedbackArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     spendLimits<T extends User$spendLimitsArgs<ExtArgs> = {}>(args?: Subset<T, User$spendLimitsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    agentRoutingCards<T extends User$agentRoutingCardsArgs<ExtArgs> = {}>(args?: Subset<T, User$agentRoutingCardsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -14105,6 +14308,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: UserSpendLimitScalarFieldEnum | UserSpendLimitScalarFieldEnum[]
+  }
+
+  /**
+   * User.agentRoutingCards
+   */
+  export type User$agentRoutingCardsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRoutingCard
+     */
+    select?: AgentRoutingCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRoutingCard
+     */
+    omit?: AgentRoutingCardOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRoutingCardInclude<ExtArgs> | null
+    where?: AgentRoutingCardWhereInput
+    orderBy?: AgentRoutingCardOrderByWithRelationInput | AgentRoutingCardOrderByWithRelationInput[]
+    cursor?: AgentRoutingCardWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AgentRoutingCardScalarFieldEnum | AgentRoutingCardScalarFieldEnum[]
   }
 
   /**
@@ -134005,6 +134232,2443 @@ export namespace Prisma {
 
 
   /**
+   * Model AgentRoutingCard
+   */
+
+  export type AggregateAgentRoutingCard = {
+    _count: AgentRoutingCardCountAggregateOutputType | null
+    _avg: AgentRoutingCardAvgAggregateOutputType | null
+    _sum: AgentRoutingCardSumAggregateOutputType | null
+    _min: AgentRoutingCardMinAggregateOutputType | null
+    _max: AgentRoutingCardMaxAggregateOutputType | null
+  }
+
+  export type AgentRoutingCardAvgAggregateOutputType = {
+    version: number | null
+  }
+
+  export type AgentRoutingCardSumAggregateOutputType = {
+    version: number | null
+  }
+
+  export type AgentRoutingCardMinAggregateOutputType = {
+    id: string | null
+    version: number | null
+    active: boolean | null
+    effectiveFrom: Date | null
+    effectiveTo: Date | null
+    sourceDate: string | null
+    createdByUserId: string | null
+    createdAt: Date | null
+  }
+
+  export type AgentRoutingCardMaxAggregateOutputType = {
+    id: string | null
+    version: number | null
+    active: boolean | null
+    effectiveFrom: Date | null
+    effectiveTo: Date | null
+    sourceDate: string | null
+    createdByUserId: string | null
+    createdAt: Date | null
+  }
+
+  export type AgentRoutingCardCountAggregateOutputType = {
+    id: number
+    version: number
+    active: number
+    data: number
+    effectiveFrom: number
+    effectiveTo: number
+    sourceDate: number
+    createdByUserId: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type AgentRoutingCardAvgAggregateInputType = {
+    version?: true
+  }
+
+  export type AgentRoutingCardSumAggregateInputType = {
+    version?: true
+  }
+
+  export type AgentRoutingCardMinAggregateInputType = {
+    id?: true
+    version?: true
+    active?: true
+    effectiveFrom?: true
+    effectiveTo?: true
+    sourceDate?: true
+    createdByUserId?: true
+    createdAt?: true
+  }
+
+  export type AgentRoutingCardMaxAggregateInputType = {
+    id?: true
+    version?: true
+    active?: true
+    effectiveFrom?: true
+    effectiveTo?: true
+    sourceDate?: true
+    createdByUserId?: true
+    createdAt?: true
+  }
+
+  export type AgentRoutingCardCountAggregateInputType = {
+    id?: true
+    version?: true
+    active?: true
+    data?: true
+    effectiveFrom?: true
+    effectiveTo?: true
+    sourceDate?: true
+    createdByUserId?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type AgentRoutingCardAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentRoutingCard to aggregate.
+     */
+    where?: AgentRoutingCardWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentRoutingCards to fetch.
+     */
+    orderBy?: AgentRoutingCardOrderByWithRelationInput | AgentRoutingCardOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AgentRoutingCardWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentRoutingCards from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentRoutingCards.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AgentRoutingCards
+    **/
+    _count?: true | AgentRoutingCardCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: AgentRoutingCardAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: AgentRoutingCardSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AgentRoutingCardMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AgentRoutingCardMaxAggregateInputType
+  }
+
+  export type GetAgentRoutingCardAggregateType<T extends AgentRoutingCardAggregateArgs> = {
+        [P in keyof T & keyof AggregateAgentRoutingCard]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAgentRoutingCard[P]>
+      : GetScalarType<T[P], AggregateAgentRoutingCard[P]>
+  }
+
+
+
+
+  export type AgentRoutingCardGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentRoutingCardWhereInput
+    orderBy?: AgentRoutingCardOrderByWithAggregationInput | AgentRoutingCardOrderByWithAggregationInput[]
+    by: AgentRoutingCardScalarFieldEnum[] | AgentRoutingCardScalarFieldEnum
+    having?: AgentRoutingCardScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AgentRoutingCardCountAggregateInputType | true
+    _avg?: AgentRoutingCardAvgAggregateInputType
+    _sum?: AgentRoutingCardSumAggregateInputType
+    _min?: AgentRoutingCardMinAggregateInputType
+    _max?: AgentRoutingCardMaxAggregateInputType
+  }
+
+  export type AgentRoutingCardGroupByOutputType = {
+    id: string
+    version: number
+    active: boolean
+    data: JsonValue
+    effectiveFrom: Date
+    effectiveTo: Date | null
+    sourceDate: string | null
+    createdByUserId: string | null
+    createdAt: Date
+    _count: AgentRoutingCardCountAggregateOutputType | null
+    _avg: AgentRoutingCardAvgAggregateOutputType | null
+    _sum: AgentRoutingCardSumAggregateOutputType | null
+    _min: AgentRoutingCardMinAggregateOutputType | null
+    _max: AgentRoutingCardMaxAggregateOutputType | null
+  }
+
+  type GetAgentRoutingCardGroupByPayload<T extends AgentRoutingCardGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AgentRoutingCardGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AgentRoutingCardGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AgentRoutingCardGroupByOutputType[P]>
+            : GetScalarType<T[P], AgentRoutingCardGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AgentRoutingCardSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    version?: boolean
+    active?: boolean
+    data?: boolean
+    effectiveFrom?: boolean
+    effectiveTo?: boolean
+    sourceDate?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    createdBy?: boolean | AgentRoutingCard$createdByArgs<ExtArgs>
+  }, ExtArgs["result"]["agentRoutingCard"]>
+
+  export type AgentRoutingCardSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    version?: boolean
+    active?: boolean
+    data?: boolean
+    effectiveFrom?: boolean
+    effectiveTo?: boolean
+    sourceDate?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    createdBy?: boolean | AgentRoutingCard$createdByArgs<ExtArgs>
+  }, ExtArgs["result"]["agentRoutingCard"]>
+
+  export type AgentRoutingCardSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    version?: boolean
+    active?: boolean
+    data?: boolean
+    effectiveFrom?: boolean
+    effectiveTo?: boolean
+    sourceDate?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    createdBy?: boolean | AgentRoutingCard$createdByArgs<ExtArgs>
+  }, ExtArgs["result"]["agentRoutingCard"]>
+
+  export type AgentRoutingCardSelectScalar = {
+    id?: boolean
+    version?: boolean
+    active?: boolean
+    data?: boolean
+    effectiveFrom?: boolean
+    effectiveTo?: boolean
+    sourceDate?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+  }
+
+  export type AgentRoutingCardOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "version" | "active" | "data" | "effectiveFrom" | "effectiveTo" | "sourceDate" | "createdByUserId" | "createdAt", ExtArgs["result"]["agentRoutingCard"]>
+  export type AgentRoutingCardInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    createdBy?: boolean | AgentRoutingCard$createdByArgs<ExtArgs>
+  }
+  export type AgentRoutingCardIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    createdBy?: boolean | AgentRoutingCard$createdByArgs<ExtArgs>
+  }
+  export type AgentRoutingCardIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    createdBy?: boolean | AgentRoutingCard$createdByArgs<ExtArgs>
+  }
+
+  export type $AgentRoutingCardPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AgentRoutingCard"
+    objects: {
+      createdBy: Prisma.$UserPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      version: number
+      active: boolean
+      data: Prisma.JsonValue
+      effectiveFrom: Date
+      effectiveTo: Date | null
+      /**
+       * Date the cost-of-revenue figures were sourced from provider pricing.
+       */
+      sourceDate: string | null
+      createdByUserId: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["agentRoutingCard"]>
+    composites: {}
+  }
+
+  type AgentRoutingCardGetPayload<S extends boolean | null | undefined | AgentRoutingCardDefaultArgs> = $Result.GetResult<Prisma.$AgentRoutingCardPayload, S>
+
+  type AgentRoutingCardCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AgentRoutingCardFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AgentRoutingCardCountAggregateInputType | true
+    }
+
+  export interface AgentRoutingCardDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AgentRoutingCard'], meta: { name: 'AgentRoutingCard' } }
+    /**
+     * Find zero or one AgentRoutingCard that matches the filter.
+     * @param {AgentRoutingCardFindUniqueArgs} args - Arguments to find a AgentRoutingCard
+     * @example
+     * // Get one AgentRoutingCard
+     * const agentRoutingCard = await prisma.agentRoutingCard.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AgentRoutingCardFindUniqueArgs>(args: SelectSubset<T, AgentRoutingCardFindUniqueArgs<ExtArgs>>): Prisma__AgentRoutingCardClient<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AgentRoutingCard that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AgentRoutingCardFindUniqueOrThrowArgs} args - Arguments to find a AgentRoutingCard
+     * @example
+     * // Get one AgentRoutingCard
+     * const agentRoutingCard = await prisma.agentRoutingCard.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AgentRoutingCardFindUniqueOrThrowArgs>(args: SelectSubset<T, AgentRoutingCardFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AgentRoutingCardClient<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AgentRoutingCard that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRoutingCardFindFirstArgs} args - Arguments to find a AgentRoutingCard
+     * @example
+     * // Get one AgentRoutingCard
+     * const agentRoutingCard = await prisma.agentRoutingCard.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AgentRoutingCardFindFirstArgs>(args?: SelectSubset<T, AgentRoutingCardFindFirstArgs<ExtArgs>>): Prisma__AgentRoutingCardClient<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AgentRoutingCard that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRoutingCardFindFirstOrThrowArgs} args - Arguments to find a AgentRoutingCard
+     * @example
+     * // Get one AgentRoutingCard
+     * const agentRoutingCard = await prisma.agentRoutingCard.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AgentRoutingCardFindFirstOrThrowArgs>(args?: SelectSubset<T, AgentRoutingCardFindFirstOrThrowArgs<ExtArgs>>): Prisma__AgentRoutingCardClient<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AgentRoutingCards that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRoutingCardFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AgentRoutingCards
+     * const agentRoutingCards = await prisma.agentRoutingCard.findMany()
+     * 
+     * // Get first 10 AgentRoutingCards
+     * const agentRoutingCards = await prisma.agentRoutingCard.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const agentRoutingCardWithIdOnly = await prisma.agentRoutingCard.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AgentRoutingCardFindManyArgs>(args?: SelectSubset<T, AgentRoutingCardFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AgentRoutingCard.
+     * @param {AgentRoutingCardCreateArgs} args - Arguments to create a AgentRoutingCard.
+     * @example
+     * // Create one AgentRoutingCard
+     * const AgentRoutingCard = await prisma.agentRoutingCard.create({
+     *   data: {
+     *     // ... data to create a AgentRoutingCard
+     *   }
+     * })
+     * 
+     */
+    create<T extends AgentRoutingCardCreateArgs>(args: SelectSubset<T, AgentRoutingCardCreateArgs<ExtArgs>>): Prisma__AgentRoutingCardClient<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AgentRoutingCards.
+     * @param {AgentRoutingCardCreateManyArgs} args - Arguments to create many AgentRoutingCards.
+     * @example
+     * // Create many AgentRoutingCards
+     * const agentRoutingCard = await prisma.agentRoutingCard.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AgentRoutingCardCreateManyArgs>(args?: SelectSubset<T, AgentRoutingCardCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AgentRoutingCards and returns the data saved in the database.
+     * @param {AgentRoutingCardCreateManyAndReturnArgs} args - Arguments to create many AgentRoutingCards.
+     * @example
+     * // Create many AgentRoutingCards
+     * const agentRoutingCard = await prisma.agentRoutingCard.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AgentRoutingCards and only return the `id`
+     * const agentRoutingCardWithIdOnly = await prisma.agentRoutingCard.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AgentRoutingCardCreateManyAndReturnArgs>(args?: SelectSubset<T, AgentRoutingCardCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AgentRoutingCard.
+     * @param {AgentRoutingCardDeleteArgs} args - Arguments to delete one AgentRoutingCard.
+     * @example
+     * // Delete one AgentRoutingCard
+     * const AgentRoutingCard = await prisma.agentRoutingCard.delete({
+     *   where: {
+     *     // ... filter to delete one AgentRoutingCard
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AgentRoutingCardDeleteArgs>(args: SelectSubset<T, AgentRoutingCardDeleteArgs<ExtArgs>>): Prisma__AgentRoutingCardClient<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AgentRoutingCard.
+     * @param {AgentRoutingCardUpdateArgs} args - Arguments to update one AgentRoutingCard.
+     * @example
+     * // Update one AgentRoutingCard
+     * const agentRoutingCard = await prisma.agentRoutingCard.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AgentRoutingCardUpdateArgs>(args: SelectSubset<T, AgentRoutingCardUpdateArgs<ExtArgs>>): Prisma__AgentRoutingCardClient<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AgentRoutingCards.
+     * @param {AgentRoutingCardDeleteManyArgs} args - Arguments to filter AgentRoutingCards to delete.
+     * @example
+     * // Delete a few AgentRoutingCards
+     * const { count } = await prisma.agentRoutingCard.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AgentRoutingCardDeleteManyArgs>(args?: SelectSubset<T, AgentRoutingCardDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentRoutingCards.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRoutingCardUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AgentRoutingCards
+     * const agentRoutingCard = await prisma.agentRoutingCard.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AgentRoutingCardUpdateManyArgs>(args: SelectSubset<T, AgentRoutingCardUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentRoutingCards and returns the data updated in the database.
+     * @param {AgentRoutingCardUpdateManyAndReturnArgs} args - Arguments to update many AgentRoutingCards.
+     * @example
+     * // Update many AgentRoutingCards
+     * const agentRoutingCard = await prisma.agentRoutingCard.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more AgentRoutingCards and only return the `id`
+     * const agentRoutingCardWithIdOnly = await prisma.agentRoutingCard.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends AgentRoutingCardUpdateManyAndReturnArgs>(args: SelectSubset<T, AgentRoutingCardUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AgentRoutingCard.
+     * @param {AgentRoutingCardUpsertArgs} args - Arguments to update or create a AgentRoutingCard.
+     * @example
+     * // Update or create a AgentRoutingCard
+     * const agentRoutingCard = await prisma.agentRoutingCard.upsert({
+     *   create: {
+     *     // ... data to create a AgentRoutingCard
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AgentRoutingCard we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AgentRoutingCardUpsertArgs>(args: SelectSubset<T, AgentRoutingCardUpsertArgs<ExtArgs>>): Prisma__AgentRoutingCardClient<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AgentRoutingCards.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRoutingCardCountArgs} args - Arguments to filter AgentRoutingCards to count.
+     * @example
+     * // Count the number of AgentRoutingCards
+     * const count = await prisma.agentRoutingCard.count({
+     *   where: {
+     *     // ... the filter for the AgentRoutingCards we want to count
+     *   }
+     * })
+    **/
+    count<T extends AgentRoutingCardCountArgs>(
+      args?: Subset<T, AgentRoutingCardCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AgentRoutingCardCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AgentRoutingCard.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRoutingCardAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AgentRoutingCardAggregateArgs>(args: Subset<T, AgentRoutingCardAggregateArgs>): Prisma.PrismaPromise<GetAgentRoutingCardAggregateType<T>>
+
+    /**
+     * Group by AgentRoutingCard.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRoutingCardGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AgentRoutingCardGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AgentRoutingCardGroupByArgs['orderBy'] }
+        : { orderBy?: AgentRoutingCardGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AgentRoutingCardGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAgentRoutingCardGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AgentRoutingCard model
+   */
+  readonly fields: AgentRoutingCardFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AgentRoutingCard.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AgentRoutingCardClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    createdBy<T extends AgentRoutingCard$createdByArgs<ExtArgs> = {}>(args?: Subset<T, AgentRoutingCard$createdByArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AgentRoutingCard model
+   */
+  interface AgentRoutingCardFieldRefs {
+    readonly id: FieldRef<"AgentRoutingCard", 'String'>
+    readonly version: FieldRef<"AgentRoutingCard", 'Int'>
+    readonly active: FieldRef<"AgentRoutingCard", 'Boolean'>
+    readonly data: FieldRef<"AgentRoutingCard", 'Json'>
+    readonly effectiveFrom: FieldRef<"AgentRoutingCard", 'DateTime'>
+    readonly effectiveTo: FieldRef<"AgentRoutingCard", 'DateTime'>
+    readonly sourceDate: FieldRef<"AgentRoutingCard", 'String'>
+    readonly createdByUserId: FieldRef<"AgentRoutingCard", 'String'>
+    readonly createdAt: FieldRef<"AgentRoutingCard", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AgentRoutingCard findUnique
+   */
+  export type AgentRoutingCardFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRoutingCard
+     */
+    select?: AgentRoutingCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRoutingCard
+     */
+    omit?: AgentRoutingCardOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRoutingCardInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRoutingCard to fetch.
+     */
+    where: AgentRoutingCardWhereUniqueInput
+  }
+
+  /**
+   * AgentRoutingCard findUniqueOrThrow
+   */
+  export type AgentRoutingCardFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRoutingCard
+     */
+    select?: AgentRoutingCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRoutingCard
+     */
+    omit?: AgentRoutingCardOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRoutingCardInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRoutingCard to fetch.
+     */
+    where: AgentRoutingCardWhereUniqueInput
+  }
+
+  /**
+   * AgentRoutingCard findFirst
+   */
+  export type AgentRoutingCardFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRoutingCard
+     */
+    select?: AgentRoutingCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRoutingCard
+     */
+    omit?: AgentRoutingCardOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRoutingCardInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRoutingCard to fetch.
+     */
+    where?: AgentRoutingCardWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentRoutingCards to fetch.
+     */
+    orderBy?: AgentRoutingCardOrderByWithRelationInput | AgentRoutingCardOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AgentRoutingCards.
+     */
+    cursor?: AgentRoutingCardWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentRoutingCards from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentRoutingCards.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentRoutingCards.
+     */
+    distinct?: AgentRoutingCardScalarFieldEnum | AgentRoutingCardScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRoutingCard findFirstOrThrow
+   */
+  export type AgentRoutingCardFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRoutingCard
+     */
+    select?: AgentRoutingCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRoutingCard
+     */
+    omit?: AgentRoutingCardOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRoutingCardInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRoutingCard to fetch.
+     */
+    where?: AgentRoutingCardWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentRoutingCards to fetch.
+     */
+    orderBy?: AgentRoutingCardOrderByWithRelationInput | AgentRoutingCardOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AgentRoutingCards.
+     */
+    cursor?: AgentRoutingCardWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentRoutingCards from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentRoutingCards.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentRoutingCards.
+     */
+    distinct?: AgentRoutingCardScalarFieldEnum | AgentRoutingCardScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRoutingCard findMany
+   */
+  export type AgentRoutingCardFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRoutingCard
+     */
+    select?: AgentRoutingCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRoutingCard
+     */
+    omit?: AgentRoutingCardOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRoutingCardInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRoutingCards to fetch.
+     */
+    where?: AgentRoutingCardWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentRoutingCards to fetch.
+     */
+    orderBy?: AgentRoutingCardOrderByWithRelationInput | AgentRoutingCardOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AgentRoutingCards.
+     */
+    cursor?: AgentRoutingCardWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentRoutingCards from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentRoutingCards.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentRoutingCards.
+     */
+    distinct?: AgentRoutingCardScalarFieldEnum | AgentRoutingCardScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRoutingCard create
+   */
+  export type AgentRoutingCardCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRoutingCard
+     */
+    select?: AgentRoutingCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRoutingCard
+     */
+    omit?: AgentRoutingCardOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRoutingCardInclude<ExtArgs> | null
+    /**
+     * The data needed to create a AgentRoutingCard.
+     */
+    data: XOR<AgentRoutingCardCreateInput, AgentRoutingCardUncheckedCreateInput>
+  }
+
+  /**
+   * AgentRoutingCard createMany
+   */
+  export type AgentRoutingCardCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AgentRoutingCards.
+     */
+    data: AgentRoutingCardCreateManyInput | AgentRoutingCardCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AgentRoutingCard createManyAndReturn
+   */
+  export type AgentRoutingCardCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRoutingCard
+     */
+    select?: AgentRoutingCardSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRoutingCard
+     */
+    omit?: AgentRoutingCardOmit<ExtArgs> | null
+    /**
+     * The data used to create many AgentRoutingCards.
+     */
+    data: AgentRoutingCardCreateManyInput | AgentRoutingCardCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRoutingCardIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AgentRoutingCard update
+   */
+  export type AgentRoutingCardUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRoutingCard
+     */
+    select?: AgentRoutingCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRoutingCard
+     */
+    omit?: AgentRoutingCardOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRoutingCardInclude<ExtArgs> | null
+    /**
+     * The data needed to update a AgentRoutingCard.
+     */
+    data: XOR<AgentRoutingCardUpdateInput, AgentRoutingCardUncheckedUpdateInput>
+    /**
+     * Choose, which AgentRoutingCard to update.
+     */
+    where: AgentRoutingCardWhereUniqueInput
+  }
+
+  /**
+   * AgentRoutingCard updateMany
+   */
+  export type AgentRoutingCardUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AgentRoutingCards.
+     */
+    data: XOR<AgentRoutingCardUpdateManyMutationInput, AgentRoutingCardUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentRoutingCards to update
+     */
+    where?: AgentRoutingCardWhereInput
+    /**
+     * Limit how many AgentRoutingCards to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentRoutingCard updateManyAndReturn
+   */
+  export type AgentRoutingCardUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRoutingCard
+     */
+    select?: AgentRoutingCardSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRoutingCard
+     */
+    omit?: AgentRoutingCardOmit<ExtArgs> | null
+    /**
+     * The data used to update AgentRoutingCards.
+     */
+    data: XOR<AgentRoutingCardUpdateManyMutationInput, AgentRoutingCardUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentRoutingCards to update
+     */
+    where?: AgentRoutingCardWhereInput
+    /**
+     * Limit how many AgentRoutingCards to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRoutingCardIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AgentRoutingCard upsert
+   */
+  export type AgentRoutingCardUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRoutingCard
+     */
+    select?: AgentRoutingCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRoutingCard
+     */
+    omit?: AgentRoutingCardOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRoutingCardInclude<ExtArgs> | null
+    /**
+     * The filter to search for the AgentRoutingCard to update in case it exists.
+     */
+    where: AgentRoutingCardWhereUniqueInput
+    /**
+     * In case the AgentRoutingCard found by the `where` argument doesn't exist, create a new AgentRoutingCard with this data.
+     */
+    create: XOR<AgentRoutingCardCreateInput, AgentRoutingCardUncheckedCreateInput>
+    /**
+     * In case the AgentRoutingCard was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AgentRoutingCardUpdateInput, AgentRoutingCardUncheckedUpdateInput>
+  }
+
+  /**
+   * AgentRoutingCard delete
+   */
+  export type AgentRoutingCardDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRoutingCard
+     */
+    select?: AgentRoutingCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRoutingCard
+     */
+    omit?: AgentRoutingCardOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRoutingCardInclude<ExtArgs> | null
+    /**
+     * Filter which AgentRoutingCard to delete.
+     */
+    where: AgentRoutingCardWhereUniqueInput
+  }
+
+  /**
+   * AgentRoutingCard deleteMany
+   */
+  export type AgentRoutingCardDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentRoutingCards to delete
+     */
+    where?: AgentRoutingCardWhereInput
+    /**
+     * Limit how many AgentRoutingCards to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentRoutingCard.createdBy
+   */
+  export type AgentRoutingCard$createdByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * AgentRoutingCard without action
+   */
+  export type AgentRoutingCardDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRoutingCard
+     */
+    select?: AgentRoutingCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRoutingCard
+     */
+    omit?: AgentRoutingCardOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRoutingCardInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AgentCallLog
+   */
+
+  export type AggregateAgentCallLog = {
+    _count: AgentCallLogCountAggregateOutputType | null
+    _avg: AgentCallLogAvgAggregateOutputType | null
+    _sum: AgentCallLogSumAggregateOutputType | null
+    _min: AgentCallLogMinAggregateOutputType | null
+    _max: AgentCallLogMaxAggregateOutputType | null
+  }
+
+  export type AgentCallLogAvgAggregateOutputType = {
+    tokensIn: number | null
+    tokensOut: number | null
+    costMillicents: number | null
+    creditCents: number | null
+    marginMillicents: number | null
+    routingCardVersion: number | null
+  }
+
+  export type AgentCallLogSumAggregateOutputType = {
+    tokensIn: number | null
+    tokensOut: number | null
+    costMillicents: number | null
+    creditCents: number | null
+    marginMillicents: number | null
+    routingCardVersion: number | null
+  }
+
+  export type AgentCallLogMinAggregateOutputType = {
+    id: string | null
+    createdAt: Date | null
+    userId: string | null
+    organizationId: string | null
+    projectId: string | null
+    mode: string | null
+    highEffort: boolean | null
+    escalated: boolean | null
+    turbo: boolean | null
+    lineKey: string | null
+    provider: string | null
+    model: string | null
+    tokensIn: number | null
+    tokensOut: number | null
+    costMillicents: number | null
+    creditCents: number | null
+    marginMillicents: number | null
+    billedToUser: boolean | null
+    routingCardVersion: number | null
+    source: string | null
+  }
+
+  export type AgentCallLogMaxAggregateOutputType = {
+    id: string | null
+    createdAt: Date | null
+    userId: string | null
+    organizationId: string | null
+    projectId: string | null
+    mode: string | null
+    highEffort: boolean | null
+    escalated: boolean | null
+    turbo: boolean | null
+    lineKey: string | null
+    provider: string | null
+    model: string | null
+    tokensIn: number | null
+    tokensOut: number | null
+    costMillicents: number | null
+    creditCents: number | null
+    marginMillicents: number | null
+    billedToUser: boolean | null
+    routingCardVersion: number | null
+    source: string | null
+  }
+
+  export type AgentCallLogCountAggregateOutputType = {
+    id: number
+    createdAt: number
+    userId: number
+    organizationId: number
+    projectId: number
+    mode: number
+    highEffort: number
+    escalated: number
+    turbo: number
+    lineKey: number
+    provider: number
+    model: number
+    tokensIn: number
+    tokensOut: number
+    costMillicents: number
+    creditCents: number
+    marginMillicents: number
+    billedToUser: number
+    routingCardVersion: number
+    source: number
+    _all: number
+  }
+
+
+  export type AgentCallLogAvgAggregateInputType = {
+    tokensIn?: true
+    tokensOut?: true
+    costMillicents?: true
+    creditCents?: true
+    marginMillicents?: true
+    routingCardVersion?: true
+  }
+
+  export type AgentCallLogSumAggregateInputType = {
+    tokensIn?: true
+    tokensOut?: true
+    costMillicents?: true
+    creditCents?: true
+    marginMillicents?: true
+    routingCardVersion?: true
+  }
+
+  export type AgentCallLogMinAggregateInputType = {
+    id?: true
+    createdAt?: true
+    userId?: true
+    organizationId?: true
+    projectId?: true
+    mode?: true
+    highEffort?: true
+    escalated?: true
+    turbo?: true
+    lineKey?: true
+    provider?: true
+    model?: true
+    tokensIn?: true
+    tokensOut?: true
+    costMillicents?: true
+    creditCents?: true
+    marginMillicents?: true
+    billedToUser?: true
+    routingCardVersion?: true
+    source?: true
+  }
+
+  export type AgentCallLogMaxAggregateInputType = {
+    id?: true
+    createdAt?: true
+    userId?: true
+    organizationId?: true
+    projectId?: true
+    mode?: true
+    highEffort?: true
+    escalated?: true
+    turbo?: true
+    lineKey?: true
+    provider?: true
+    model?: true
+    tokensIn?: true
+    tokensOut?: true
+    costMillicents?: true
+    creditCents?: true
+    marginMillicents?: true
+    billedToUser?: true
+    routingCardVersion?: true
+    source?: true
+  }
+
+  export type AgentCallLogCountAggregateInputType = {
+    id?: true
+    createdAt?: true
+    userId?: true
+    organizationId?: true
+    projectId?: true
+    mode?: true
+    highEffort?: true
+    escalated?: true
+    turbo?: true
+    lineKey?: true
+    provider?: true
+    model?: true
+    tokensIn?: true
+    tokensOut?: true
+    costMillicents?: true
+    creditCents?: true
+    marginMillicents?: true
+    billedToUser?: true
+    routingCardVersion?: true
+    source?: true
+    _all?: true
+  }
+
+  export type AgentCallLogAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentCallLog to aggregate.
+     */
+    where?: AgentCallLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentCallLogs to fetch.
+     */
+    orderBy?: AgentCallLogOrderByWithRelationInput | AgentCallLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AgentCallLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentCallLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentCallLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AgentCallLogs
+    **/
+    _count?: true | AgentCallLogCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: AgentCallLogAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: AgentCallLogSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AgentCallLogMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AgentCallLogMaxAggregateInputType
+  }
+
+  export type GetAgentCallLogAggregateType<T extends AgentCallLogAggregateArgs> = {
+        [P in keyof T & keyof AggregateAgentCallLog]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAgentCallLog[P]>
+      : GetScalarType<T[P], AggregateAgentCallLog[P]>
+  }
+
+
+
+
+  export type AgentCallLogGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentCallLogWhereInput
+    orderBy?: AgentCallLogOrderByWithAggregationInput | AgentCallLogOrderByWithAggregationInput[]
+    by: AgentCallLogScalarFieldEnum[] | AgentCallLogScalarFieldEnum
+    having?: AgentCallLogScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AgentCallLogCountAggregateInputType | true
+    _avg?: AgentCallLogAvgAggregateInputType
+    _sum?: AgentCallLogSumAggregateInputType
+    _min?: AgentCallLogMinAggregateInputType
+    _max?: AgentCallLogMaxAggregateInputType
+  }
+
+  export type AgentCallLogGroupByOutputType = {
+    id: string
+    createdAt: Date
+    userId: string | null
+    organizationId: string | null
+    projectId: string | null
+    mode: string
+    highEffort: boolean
+    escalated: boolean
+    turbo: boolean
+    lineKey: string
+    provider: string
+    model: string
+    tokensIn: number
+    tokensOut: number
+    costMillicents: number
+    creditCents: number
+    marginMillicents: number
+    billedToUser: boolean
+    routingCardVersion: number
+    source: string
+    _count: AgentCallLogCountAggregateOutputType | null
+    _avg: AgentCallLogAvgAggregateOutputType | null
+    _sum: AgentCallLogSumAggregateOutputType | null
+    _min: AgentCallLogMinAggregateOutputType | null
+    _max: AgentCallLogMaxAggregateOutputType | null
+  }
+
+  type GetAgentCallLogGroupByPayload<T extends AgentCallLogGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AgentCallLogGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AgentCallLogGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AgentCallLogGroupByOutputType[P]>
+            : GetScalarType<T[P], AgentCallLogGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AgentCallLogSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    createdAt?: boolean
+    userId?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    mode?: boolean
+    highEffort?: boolean
+    escalated?: boolean
+    turbo?: boolean
+    lineKey?: boolean
+    provider?: boolean
+    model?: boolean
+    tokensIn?: boolean
+    tokensOut?: boolean
+    costMillicents?: boolean
+    creditCents?: boolean
+    marginMillicents?: boolean
+    billedToUser?: boolean
+    routingCardVersion?: boolean
+    source?: boolean
+  }, ExtArgs["result"]["agentCallLog"]>
+
+  export type AgentCallLogSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    createdAt?: boolean
+    userId?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    mode?: boolean
+    highEffort?: boolean
+    escalated?: boolean
+    turbo?: boolean
+    lineKey?: boolean
+    provider?: boolean
+    model?: boolean
+    tokensIn?: boolean
+    tokensOut?: boolean
+    costMillicents?: boolean
+    creditCents?: boolean
+    marginMillicents?: boolean
+    billedToUser?: boolean
+    routingCardVersion?: boolean
+    source?: boolean
+  }, ExtArgs["result"]["agentCallLog"]>
+
+  export type AgentCallLogSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    createdAt?: boolean
+    userId?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    mode?: boolean
+    highEffort?: boolean
+    escalated?: boolean
+    turbo?: boolean
+    lineKey?: boolean
+    provider?: boolean
+    model?: boolean
+    tokensIn?: boolean
+    tokensOut?: boolean
+    costMillicents?: boolean
+    creditCents?: boolean
+    marginMillicents?: boolean
+    billedToUser?: boolean
+    routingCardVersion?: boolean
+    source?: boolean
+  }, ExtArgs["result"]["agentCallLog"]>
+
+  export type AgentCallLogSelectScalar = {
+    id?: boolean
+    createdAt?: boolean
+    userId?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    mode?: boolean
+    highEffort?: boolean
+    escalated?: boolean
+    turbo?: boolean
+    lineKey?: boolean
+    provider?: boolean
+    model?: boolean
+    tokensIn?: boolean
+    tokensOut?: boolean
+    costMillicents?: boolean
+    creditCents?: boolean
+    marginMillicents?: boolean
+    billedToUser?: boolean
+    routingCardVersion?: boolean
+    source?: boolean
+  }
+
+  export type AgentCallLogOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "createdAt" | "userId" | "organizationId" | "projectId" | "mode" | "highEffort" | "escalated" | "turbo" | "lineKey" | "provider" | "model" | "tokensIn" | "tokensOut" | "costMillicents" | "creditCents" | "marginMillicents" | "billedToUser" | "routingCardVersion" | "source", ExtArgs["result"]["agentCallLog"]>
+
+  export type $AgentCallLogPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AgentCallLog"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      createdAt: Date
+      userId: string | null
+      organizationId: string | null
+      projectId: string | null
+      /**
+       * lite | economy | power
+       */
+      mode: string
+      highEffort: boolean
+      /**
+       * true when high-effort actually escalated this call to the escalation line
+       */
+      escalated: boolean
+      turbo: boolean
+      /**
+       * Routing line that priced the call: mode key, high-effort, turbo or classifier.
+       */
+      lineKey: string
+      provider: string
+      model: string
+      tokensIn: number
+      tokensOut: number
+      /**
+       * Coût de revient in millicents (1/1000 cent).
+       */
+      costMillicents: number
+      /**
+       * Credits billed to the user, in cents (0 when billedToUser=false).
+       */
+      creditCents: number
+      /**
+       * creditCents*1000 - costMillicents (negative = platform absorbed cost).
+       */
+      marginMillicents: number
+      billedToUser: boolean
+      routingCardVersion: number
+      /**
+       * chat | classifier | continuation…
+       */
+      source: string
+    }, ExtArgs["result"]["agentCallLog"]>
+    composites: {}
+  }
+
+  type AgentCallLogGetPayload<S extends boolean | null | undefined | AgentCallLogDefaultArgs> = $Result.GetResult<Prisma.$AgentCallLogPayload, S>
+
+  type AgentCallLogCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AgentCallLogFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AgentCallLogCountAggregateInputType | true
+    }
+
+  export interface AgentCallLogDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AgentCallLog'], meta: { name: 'AgentCallLog' } }
+    /**
+     * Find zero or one AgentCallLog that matches the filter.
+     * @param {AgentCallLogFindUniqueArgs} args - Arguments to find a AgentCallLog
+     * @example
+     * // Get one AgentCallLog
+     * const agentCallLog = await prisma.agentCallLog.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AgentCallLogFindUniqueArgs>(args: SelectSubset<T, AgentCallLogFindUniqueArgs<ExtArgs>>): Prisma__AgentCallLogClient<$Result.GetResult<Prisma.$AgentCallLogPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AgentCallLog that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AgentCallLogFindUniqueOrThrowArgs} args - Arguments to find a AgentCallLog
+     * @example
+     * // Get one AgentCallLog
+     * const agentCallLog = await prisma.agentCallLog.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AgentCallLogFindUniqueOrThrowArgs>(args: SelectSubset<T, AgentCallLogFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AgentCallLogClient<$Result.GetResult<Prisma.$AgentCallLogPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AgentCallLog that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentCallLogFindFirstArgs} args - Arguments to find a AgentCallLog
+     * @example
+     * // Get one AgentCallLog
+     * const agentCallLog = await prisma.agentCallLog.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AgentCallLogFindFirstArgs>(args?: SelectSubset<T, AgentCallLogFindFirstArgs<ExtArgs>>): Prisma__AgentCallLogClient<$Result.GetResult<Prisma.$AgentCallLogPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AgentCallLog that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentCallLogFindFirstOrThrowArgs} args - Arguments to find a AgentCallLog
+     * @example
+     * // Get one AgentCallLog
+     * const agentCallLog = await prisma.agentCallLog.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AgentCallLogFindFirstOrThrowArgs>(args?: SelectSubset<T, AgentCallLogFindFirstOrThrowArgs<ExtArgs>>): Prisma__AgentCallLogClient<$Result.GetResult<Prisma.$AgentCallLogPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AgentCallLogs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentCallLogFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AgentCallLogs
+     * const agentCallLogs = await prisma.agentCallLog.findMany()
+     * 
+     * // Get first 10 AgentCallLogs
+     * const agentCallLogs = await prisma.agentCallLog.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const agentCallLogWithIdOnly = await prisma.agentCallLog.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AgentCallLogFindManyArgs>(args?: SelectSubset<T, AgentCallLogFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentCallLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AgentCallLog.
+     * @param {AgentCallLogCreateArgs} args - Arguments to create a AgentCallLog.
+     * @example
+     * // Create one AgentCallLog
+     * const AgentCallLog = await prisma.agentCallLog.create({
+     *   data: {
+     *     // ... data to create a AgentCallLog
+     *   }
+     * })
+     * 
+     */
+    create<T extends AgentCallLogCreateArgs>(args: SelectSubset<T, AgentCallLogCreateArgs<ExtArgs>>): Prisma__AgentCallLogClient<$Result.GetResult<Prisma.$AgentCallLogPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AgentCallLogs.
+     * @param {AgentCallLogCreateManyArgs} args - Arguments to create many AgentCallLogs.
+     * @example
+     * // Create many AgentCallLogs
+     * const agentCallLog = await prisma.agentCallLog.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AgentCallLogCreateManyArgs>(args?: SelectSubset<T, AgentCallLogCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AgentCallLogs and returns the data saved in the database.
+     * @param {AgentCallLogCreateManyAndReturnArgs} args - Arguments to create many AgentCallLogs.
+     * @example
+     * // Create many AgentCallLogs
+     * const agentCallLog = await prisma.agentCallLog.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AgentCallLogs and only return the `id`
+     * const agentCallLogWithIdOnly = await prisma.agentCallLog.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AgentCallLogCreateManyAndReturnArgs>(args?: SelectSubset<T, AgentCallLogCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentCallLogPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AgentCallLog.
+     * @param {AgentCallLogDeleteArgs} args - Arguments to delete one AgentCallLog.
+     * @example
+     * // Delete one AgentCallLog
+     * const AgentCallLog = await prisma.agentCallLog.delete({
+     *   where: {
+     *     // ... filter to delete one AgentCallLog
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AgentCallLogDeleteArgs>(args: SelectSubset<T, AgentCallLogDeleteArgs<ExtArgs>>): Prisma__AgentCallLogClient<$Result.GetResult<Prisma.$AgentCallLogPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AgentCallLog.
+     * @param {AgentCallLogUpdateArgs} args - Arguments to update one AgentCallLog.
+     * @example
+     * // Update one AgentCallLog
+     * const agentCallLog = await prisma.agentCallLog.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AgentCallLogUpdateArgs>(args: SelectSubset<T, AgentCallLogUpdateArgs<ExtArgs>>): Prisma__AgentCallLogClient<$Result.GetResult<Prisma.$AgentCallLogPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AgentCallLogs.
+     * @param {AgentCallLogDeleteManyArgs} args - Arguments to filter AgentCallLogs to delete.
+     * @example
+     * // Delete a few AgentCallLogs
+     * const { count } = await prisma.agentCallLog.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AgentCallLogDeleteManyArgs>(args?: SelectSubset<T, AgentCallLogDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentCallLogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentCallLogUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AgentCallLogs
+     * const agentCallLog = await prisma.agentCallLog.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AgentCallLogUpdateManyArgs>(args: SelectSubset<T, AgentCallLogUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentCallLogs and returns the data updated in the database.
+     * @param {AgentCallLogUpdateManyAndReturnArgs} args - Arguments to update many AgentCallLogs.
+     * @example
+     * // Update many AgentCallLogs
+     * const agentCallLog = await prisma.agentCallLog.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more AgentCallLogs and only return the `id`
+     * const agentCallLogWithIdOnly = await prisma.agentCallLog.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends AgentCallLogUpdateManyAndReturnArgs>(args: SelectSubset<T, AgentCallLogUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentCallLogPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AgentCallLog.
+     * @param {AgentCallLogUpsertArgs} args - Arguments to update or create a AgentCallLog.
+     * @example
+     * // Update or create a AgentCallLog
+     * const agentCallLog = await prisma.agentCallLog.upsert({
+     *   create: {
+     *     // ... data to create a AgentCallLog
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AgentCallLog we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AgentCallLogUpsertArgs>(args: SelectSubset<T, AgentCallLogUpsertArgs<ExtArgs>>): Prisma__AgentCallLogClient<$Result.GetResult<Prisma.$AgentCallLogPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AgentCallLogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentCallLogCountArgs} args - Arguments to filter AgentCallLogs to count.
+     * @example
+     * // Count the number of AgentCallLogs
+     * const count = await prisma.agentCallLog.count({
+     *   where: {
+     *     // ... the filter for the AgentCallLogs we want to count
+     *   }
+     * })
+    **/
+    count<T extends AgentCallLogCountArgs>(
+      args?: Subset<T, AgentCallLogCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AgentCallLogCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AgentCallLog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentCallLogAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AgentCallLogAggregateArgs>(args: Subset<T, AgentCallLogAggregateArgs>): Prisma.PrismaPromise<GetAgentCallLogAggregateType<T>>
+
+    /**
+     * Group by AgentCallLog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentCallLogGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AgentCallLogGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AgentCallLogGroupByArgs['orderBy'] }
+        : { orderBy?: AgentCallLogGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AgentCallLogGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAgentCallLogGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AgentCallLog model
+   */
+  readonly fields: AgentCallLogFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AgentCallLog.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AgentCallLogClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AgentCallLog model
+   */
+  interface AgentCallLogFieldRefs {
+    readonly id: FieldRef<"AgentCallLog", 'String'>
+    readonly createdAt: FieldRef<"AgentCallLog", 'DateTime'>
+    readonly userId: FieldRef<"AgentCallLog", 'String'>
+    readonly organizationId: FieldRef<"AgentCallLog", 'String'>
+    readonly projectId: FieldRef<"AgentCallLog", 'String'>
+    readonly mode: FieldRef<"AgentCallLog", 'String'>
+    readonly highEffort: FieldRef<"AgentCallLog", 'Boolean'>
+    readonly escalated: FieldRef<"AgentCallLog", 'Boolean'>
+    readonly turbo: FieldRef<"AgentCallLog", 'Boolean'>
+    readonly lineKey: FieldRef<"AgentCallLog", 'String'>
+    readonly provider: FieldRef<"AgentCallLog", 'String'>
+    readonly model: FieldRef<"AgentCallLog", 'String'>
+    readonly tokensIn: FieldRef<"AgentCallLog", 'Int'>
+    readonly tokensOut: FieldRef<"AgentCallLog", 'Int'>
+    readonly costMillicents: FieldRef<"AgentCallLog", 'Int'>
+    readonly creditCents: FieldRef<"AgentCallLog", 'Int'>
+    readonly marginMillicents: FieldRef<"AgentCallLog", 'Int'>
+    readonly billedToUser: FieldRef<"AgentCallLog", 'Boolean'>
+    readonly routingCardVersion: FieldRef<"AgentCallLog", 'Int'>
+    readonly source: FieldRef<"AgentCallLog", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AgentCallLog findUnique
+   */
+  export type AgentCallLogFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentCallLog
+     */
+    select?: AgentCallLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentCallLog
+     */
+    omit?: AgentCallLogOmit<ExtArgs> | null
+    /**
+     * Filter, which AgentCallLog to fetch.
+     */
+    where: AgentCallLogWhereUniqueInput
+  }
+
+  /**
+   * AgentCallLog findUniqueOrThrow
+   */
+  export type AgentCallLogFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentCallLog
+     */
+    select?: AgentCallLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentCallLog
+     */
+    omit?: AgentCallLogOmit<ExtArgs> | null
+    /**
+     * Filter, which AgentCallLog to fetch.
+     */
+    where: AgentCallLogWhereUniqueInput
+  }
+
+  /**
+   * AgentCallLog findFirst
+   */
+  export type AgentCallLogFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentCallLog
+     */
+    select?: AgentCallLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentCallLog
+     */
+    omit?: AgentCallLogOmit<ExtArgs> | null
+    /**
+     * Filter, which AgentCallLog to fetch.
+     */
+    where?: AgentCallLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentCallLogs to fetch.
+     */
+    orderBy?: AgentCallLogOrderByWithRelationInput | AgentCallLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AgentCallLogs.
+     */
+    cursor?: AgentCallLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentCallLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentCallLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentCallLogs.
+     */
+    distinct?: AgentCallLogScalarFieldEnum | AgentCallLogScalarFieldEnum[]
+  }
+
+  /**
+   * AgentCallLog findFirstOrThrow
+   */
+  export type AgentCallLogFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentCallLog
+     */
+    select?: AgentCallLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentCallLog
+     */
+    omit?: AgentCallLogOmit<ExtArgs> | null
+    /**
+     * Filter, which AgentCallLog to fetch.
+     */
+    where?: AgentCallLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentCallLogs to fetch.
+     */
+    orderBy?: AgentCallLogOrderByWithRelationInput | AgentCallLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AgentCallLogs.
+     */
+    cursor?: AgentCallLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentCallLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentCallLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentCallLogs.
+     */
+    distinct?: AgentCallLogScalarFieldEnum | AgentCallLogScalarFieldEnum[]
+  }
+
+  /**
+   * AgentCallLog findMany
+   */
+  export type AgentCallLogFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentCallLog
+     */
+    select?: AgentCallLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentCallLog
+     */
+    omit?: AgentCallLogOmit<ExtArgs> | null
+    /**
+     * Filter, which AgentCallLogs to fetch.
+     */
+    where?: AgentCallLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentCallLogs to fetch.
+     */
+    orderBy?: AgentCallLogOrderByWithRelationInput | AgentCallLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AgentCallLogs.
+     */
+    cursor?: AgentCallLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentCallLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentCallLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentCallLogs.
+     */
+    distinct?: AgentCallLogScalarFieldEnum | AgentCallLogScalarFieldEnum[]
+  }
+
+  /**
+   * AgentCallLog create
+   */
+  export type AgentCallLogCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentCallLog
+     */
+    select?: AgentCallLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentCallLog
+     */
+    omit?: AgentCallLogOmit<ExtArgs> | null
+    /**
+     * The data needed to create a AgentCallLog.
+     */
+    data: XOR<AgentCallLogCreateInput, AgentCallLogUncheckedCreateInput>
+  }
+
+  /**
+   * AgentCallLog createMany
+   */
+  export type AgentCallLogCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AgentCallLogs.
+     */
+    data: AgentCallLogCreateManyInput | AgentCallLogCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AgentCallLog createManyAndReturn
+   */
+  export type AgentCallLogCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentCallLog
+     */
+    select?: AgentCallLogSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentCallLog
+     */
+    omit?: AgentCallLogOmit<ExtArgs> | null
+    /**
+     * The data used to create many AgentCallLogs.
+     */
+    data: AgentCallLogCreateManyInput | AgentCallLogCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AgentCallLog update
+   */
+  export type AgentCallLogUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentCallLog
+     */
+    select?: AgentCallLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentCallLog
+     */
+    omit?: AgentCallLogOmit<ExtArgs> | null
+    /**
+     * The data needed to update a AgentCallLog.
+     */
+    data: XOR<AgentCallLogUpdateInput, AgentCallLogUncheckedUpdateInput>
+    /**
+     * Choose, which AgentCallLog to update.
+     */
+    where: AgentCallLogWhereUniqueInput
+  }
+
+  /**
+   * AgentCallLog updateMany
+   */
+  export type AgentCallLogUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AgentCallLogs.
+     */
+    data: XOR<AgentCallLogUpdateManyMutationInput, AgentCallLogUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentCallLogs to update
+     */
+    where?: AgentCallLogWhereInput
+    /**
+     * Limit how many AgentCallLogs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentCallLog updateManyAndReturn
+   */
+  export type AgentCallLogUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentCallLog
+     */
+    select?: AgentCallLogSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentCallLog
+     */
+    omit?: AgentCallLogOmit<ExtArgs> | null
+    /**
+     * The data used to update AgentCallLogs.
+     */
+    data: XOR<AgentCallLogUpdateManyMutationInput, AgentCallLogUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentCallLogs to update
+     */
+    where?: AgentCallLogWhereInput
+    /**
+     * Limit how many AgentCallLogs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentCallLog upsert
+   */
+  export type AgentCallLogUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentCallLog
+     */
+    select?: AgentCallLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentCallLog
+     */
+    omit?: AgentCallLogOmit<ExtArgs> | null
+    /**
+     * The filter to search for the AgentCallLog to update in case it exists.
+     */
+    where: AgentCallLogWhereUniqueInput
+    /**
+     * In case the AgentCallLog found by the `where` argument doesn't exist, create a new AgentCallLog with this data.
+     */
+    create: XOR<AgentCallLogCreateInput, AgentCallLogUncheckedCreateInput>
+    /**
+     * In case the AgentCallLog was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AgentCallLogUpdateInput, AgentCallLogUncheckedUpdateInput>
+  }
+
+  /**
+   * AgentCallLog delete
+   */
+  export type AgentCallLogDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentCallLog
+     */
+    select?: AgentCallLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentCallLog
+     */
+    omit?: AgentCallLogOmit<ExtArgs> | null
+    /**
+     * Filter which AgentCallLog to delete.
+     */
+    where: AgentCallLogWhereUniqueInput
+  }
+
+  /**
+   * AgentCallLog deleteMany
+   */
+  export type AgentCallLogDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentCallLogs to delete
+     */
+    where?: AgentCallLogWhereInput
+    /**
+     * Limit how many AgentCallLogs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentCallLog without action
+   */
+  export type AgentCallLogDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentCallLog
+     */
+    select?: AgentCallLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentCallLog
+     */
+    omit?: AgentCallLogOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -135607,6 +138271,47 @@ export namespace Prisma {
   export type ScheduledTaskRunScalarFieldEnum = (typeof ScheduledTaskRunScalarFieldEnum)[keyof typeof ScheduledTaskRunScalarFieldEnum]
 
 
+  export const AgentRoutingCardScalarFieldEnum: {
+    id: 'id',
+    version: 'version',
+    active: 'active',
+    data: 'data',
+    effectiveFrom: 'effectiveFrom',
+    effectiveTo: 'effectiveTo',
+    sourceDate: 'sourceDate',
+    createdByUserId: 'createdByUserId',
+    createdAt: 'createdAt'
+  };
+
+  export type AgentRoutingCardScalarFieldEnum = (typeof AgentRoutingCardScalarFieldEnum)[keyof typeof AgentRoutingCardScalarFieldEnum]
+
+
+  export const AgentCallLogScalarFieldEnum: {
+    id: 'id',
+    createdAt: 'createdAt',
+    userId: 'userId',
+    organizationId: 'organizationId',
+    projectId: 'projectId',
+    mode: 'mode',
+    highEffort: 'highEffort',
+    escalated: 'escalated',
+    turbo: 'turbo',
+    lineKey: 'lineKey',
+    provider: 'provider',
+    model: 'model',
+    tokensIn: 'tokensIn',
+    tokensOut: 'tokensOut',
+    costMillicents: 'costMillicents',
+    creditCents: 'creditCents',
+    marginMillicents: 'marginMillicents',
+    billedToUser: 'billedToUser',
+    routingCardVersion: 'routingCardVersion',
+    source: 'source'
+  };
+
+  export type AgentCallLogScalarFieldEnum = (typeof AgentCallLogScalarFieldEnum)[keyof typeof AgentCallLogScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -136041,6 +138746,7 @@ export namespace Prisma {
     notifications?: NotificationListRelationFilter
     aiMessageFeedback?: AiMessageFeedbackListRelationFilter
     spendLimits?: UserSpendLimitListRelationFilter
+    agentRoutingCards?: AgentRoutingCardListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -136089,6 +138795,7 @@ export namespace Prisma {
     notifications?: NotificationOrderByRelationAggregateInput
     aiMessageFeedback?: AiMessageFeedbackOrderByRelationAggregateInput
     spendLimits?: UserSpendLimitOrderByRelationAggregateInput
+    agentRoutingCards?: AgentRoutingCardOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -136140,6 +138847,7 @@ export namespace Prisma {
     notifications?: NotificationListRelationFilter
     aiMessageFeedback?: AiMessageFeedbackListRelationFilter
     spendLimits?: UserSpendLimitListRelationFilter
+    agentRoutingCards?: AgentRoutingCardListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -144404,6 +147112,212 @@ export namespace Prisma {
     meteredAt?: DateTimeNullableWithAggregatesFilter<"ScheduledTaskRun"> | Date | string | null
   }
 
+  export type AgentRoutingCardWhereInput = {
+    AND?: AgentRoutingCardWhereInput | AgentRoutingCardWhereInput[]
+    OR?: AgentRoutingCardWhereInput[]
+    NOT?: AgentRoutingCardWhereInput | AgentRoutingCardWhereInput[]
+    id?: StringFilter<"AgentRoutingCard"> | string
+    version?: IntFilter<"AgentRoutingCard"> | number
+    active?: BoolFilter<"AgentRoutingCard"> | boolean
+    data?: JsonFilter<"AgentRoutingCard">
+    effectiveFrom?: DateTimeFilter<"AgentRoutingCard"> | Date | string
+    effectiveTo?: DateTimeNullableFilter<"AgentRoutingCard"> | Date | string | null
+    sourceDate?: StringNullableFilter<"AgentRoutingCard"> | string | null
+    createdByUserId?: StringNullableFilter<"AgentRoutingCard"> | string | null
+    createdAt?: DateTimeFilter<"AgentRoutingCard"> | Date | string
+    createdBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+  }
+
+  export type AgentRoutingCardOrderByWithRelationInput = {
+    id?: SortOrder
+    version?: SortOrder
+    active?: SortOrder
+    data?: SortOrder
+    effectiveFrom?: SortOrder
+    effectiveTo?: SortOrderInput | SortOrder
+    sourceDate?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    createdBy?: UserOrderByWithRelationInput
+  }
+
+  export type AgentRoutingCardWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    version?: number
+    AND?: AgentRoutingCardWhereInput | AgentRoutingCardWhereInput[]
+    OR?: AgentRoutingCardWhereInput[]
+    NOT?: AgentRoutingCardWhereInput | AgentRoutingCardWhereInput[]
+    active?: BoolFilter<"AgentRoutingCard"> | boolean
+    data?: JsonFilter<"AgentRoutingCard">
+    effectiveFrom?: DateTimeFilter<"AgentRoutingCard"> | Date | string
+    effectiveTo?: DateTimeNullableFilter<"AgentRoutingCard"> | Date | string | null
+    sourceDate?: StringNullableFilter<"AgentRoutingCard"> | string | null
+    createdByUserId?: StringNullableFilter<"AgentRoutingCard"> | string | null
+    createdAt?: DateTimeFilter<"AgentRoutingCard"> | Date | string
+    createdBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+  }, "id" | "version">
+
+  export type AgentRoutingCardOrderByWithAggregationInput = {
+    id?: SortOrder
+    version?: SortOrder
+    active?: SortOrder
+    data?: SortOrder
+    effectiveFrom?: SortOrder
+    effectiveTo?: SortOrderInput | SortOrder
+    sourceDate?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: AgentRoutingCardCountOrderByAggregateInput
+    _avg?: AgentRoutingCardAvgOrderByAggregateInput
+    _max?: AgentRoutingCardMaxOrderByAggregateInput
+    _min?: AgentRoutingCardMinOrderByAggregateInput
+    _sum?: AgentRoutingCardSumOrderByAggregateInput
+  }
+
+  export type AgentRoutingCardScalarWhereWithAggregatesInput = {
+    AND?: AgentRoutingCardScalarWhereWithAggregatesInput | AgentRoutingCardScalarWhereWithAggregatesInput[]
+    OR?: AgentRoutingCardScalarWhereWithAggregatesInput[]
+    NOT?: AgentRoutingCardScalarWhereWithAggregatesInput | AgentRoutingCardScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AgentRoutingCard"> | string
+    version?: IntWithAggregatesFilter<"AgentRoutingCard"> | number
+    active?: BoolWithAggregatesFilter<"AgentRoutingCard"> | boolean
+    data?: JsonWithAggregatesFilter<"AgentRoutingCard">
+    effectiveFrom?: DateTimeWithAggregatesFilter<"AgentRoutingCard"> | Date | string
+    effectiveTo?: DateTimeNullableWithAggregatesFilter<"AgentRoutingCard"> | Date | string | null
+    sourceDate?: StringNullableWithAggregatesFilter<"AgentRoutingCard"> | string | null
+    createdByUserId?: StringNullableWithAggregatesFilter<"AgentRoutingCard"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"AgentRoutingCard"> | Date | string
+  }
+
+  export type AgentCallLogWhereInput = {
+    AND?: AgentCallLogWhereInput | AgentCallLogWhereInput[]
+    OR?: AgentCallLogWhereInput[]
+    NOT?: AgentCallLogWhereInput | AgentCallLogWhereInput[]
+    id?: StringFilter<"AgentCallLog"> | string
+    createdAt?: DateTimeFilter<"AgentCallLog"> | Date | string
+    userId?: StringNullableFilter<"AgentCallLog"> | string | null
+    organizationId?: StringNullableFilter<"AgentCallLog"> | string | null
+    projectId?: StringNullableFilter<"AgentCallLog"> | string | null
+    mode?: StringFilter<"AgentCallLog"> | string
+    highEffort?: BoolFilter<"AgentCallLog"> | boolean
+    escalated?: BoolFilter<"AgentCallLog"> | boolean
+    turbo?: BoolFilter<"AgentCallLog"> | boolean
+    lineKey?: StringFilter<"AgentCallLog"> | string
+    provider?: StringFilter<"AgentCallLog"> | string
+    model?: StringFilter<"AgentCallLog"> | string
+    tokensIn?: IntFilter<"AgentCallLog"> | number
+    tokensOut?: IntFilter<"AgentCallLog"> | number
+    costMillicents?: IntFilter<"AgentCallLog"> | number
+    creditCents?: IntFilter<"AgentCallLog"> | number
+    marginMillicents?: IntFilter<"AgentCallLog"> | number
+    billedToUser?: BoolFilter<"AgentCallLog"> | boolean
+    routingCardVersion?: IntFilter<"AgentCallLog"> | number
+    source?: StringFilter<"AgentCallLog"> | string
+  }
+
+  export type AgentCallLogOrderByWithRelationInput = {
+    id?: SortOrder
+    createdAt?: SortOrder
+    userId?: SortOrderInput | SortOrder
+    organizationId?: SortOrderInput | SortOrder
+    projectId?: SortOrderInput | SortOrder
+    mode?: SortOrder
+    highEffort?: SortOrder
+    escalated?: SortOrder
+    turbo?: SortOrder
+    lineKey?: SortOrder
+    provider?: SortOrder
+    model?: SortOrder
+    tokensIn?: SortOrder
+    tokensOut?: SortOrder
+    costMillicents?: SortOrder
+    creditCents?: SortOrder
+    marginMillicents?: SortOrder
+    billedToUser?: SortOrder
+    routingCardVersion?: SortOrder
+    source?: SortOrder
+  }
+
+  export type AgentCallLogWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AgentCallLogWhereInput | AgentCallLogWhereInput[]
+    OR?: AgentCallLogWhereInput[]
+    NOT?: AgentCallLogWhereInput | AgentCallLogWhereInput[]
+    createdAt?: DateTimeFilter<"AgentCallLog"> | Date | string
+    userId?: StringNullableFilter<"AgentCallLog"> | string | null
+    organizationId?: StringNullableFilter<"AgentCallLog"> | string | null
+    projectId?: StringNullableFilter<"AgentCallLog"> | string | null
+    mode?: StringFilter<"AgentCallLog"> | string
+    highEffort?: BoolFilter<"AgentCallLog"> | boolean
+    escalated?: BoolFilter<"AgentCallLog"> | boolean
+    turbo?: BoolFilter<"AgentCallLog"> | boolean
+    lineKey?: StringFilter<"AgentCallLog"> | string
+    provider?: StringFilter<"AgentCallLog"> | string
+    model?: StringFilter<"AgentCallLog"> | string
+    tokensIn?: IntFilter<"AgentCallLog"> | number
+    tokensOut?: IntFilter<"AgentCallLog"> | number
+    costMillicents?: IntFilter<"AgentCallLog"> | number
+    creditCents?: IntFilter<"AgentCallLog"> | number
+    marginMillicents?: IntFilter<"AgentCallLog"> | number
+    billedToUser?: BoolFilter<"AgentCallLog"> | boolean
+    routingCardVersion?: IntFilter<"AgentCallLog"> | number
+    source?: StringFilter<"AgentCallLog"> | string
+  }, "id">
+
+  export type AgentCallLogOrderByWithAggregationInput = {
+    id?: SortOrder
+    createdAt?: SortOrder
+    userId?: SortOrderInput | SortOrder
+    organizationId?: SortOrderInput | SortOrder
+    projectId?: SortOrderInput | SortOrder
+    mode?: SortOrder
+    highEffort?: SortOrder
+    escalated?: SortOrder
+    turbo?: SortOrder
+    lineKey?: SortOrder
+    provider?: SortOrder
+    model?: SortOrder
+    tokensIn?: SortOrder
+    tokensOut?: SortOrder
+    costMillicents?: SortOrder
+    creditCents?: SortOrder
+    marginMillicents?: SortOrder
+    billedToUser?: SortOrder
+    routingCardVersion?: SortOrder
+    source?: SortOrder
+    _count?: AgentCallLogCountOrderByAggregateInput
+    _avg?: AgentCallLogAvgOrderByAggregateInput
+    _max?: AgentCallLogMaxOrderByAggregateInput
+    _min?: AgentCallLogMinOrderByAggregateInput
+    _sum?: AgentCallLogSumOrderByAggregateInput
+  }
+
+  export type AgentCallLogScalarWhereWithAggregatesInput = {
+    AND?: AgentCallLogScalarWhereWithAggregatesInput | AgentCallLogScalarWhereWithAggregatesInput[]
+    OR?: AgentCallLogScalarWhereWithAggregatesInput[]
+    NOT?: AgentCallLogScalarWhereWithAggregatesInput | AgentCallLogScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AgentCallLog"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"AgentCallLog"> | Date | string
+    userId?: StringNullableWithAggregatesFilter<"AgentCallLog"> | string | null
+    organizationId?: StringNullableWithAggregatesFilter<"AgentCallLog"> | string | null
+    projectId?: StringNullableWithAggregatesFilter<"AgentCallLog"> | string | null
+    mode?: StringWithAggregatesFilter<"AgentCallLog"> | string
+    highEffort?: BoolWithAggregatesFilter<"AgentCallLog"> | boolean
+    escalated?: BoolWithAggregatesFilter<"AgentCallLog"> | boolean
+    turbo?: BoolWithAggregatesFilter<"AgentCallLog"> | boolean
+    lineKey?: StringWithAggregatesFilter<"AgentCallLog"> | string
+    provider?: StringWithAggregatesFilter<"AgentCallLog"> | string
+    model?: StringWithAggregatesFilter<"AgentCallLog"> | string
+    tokensIn?: IntWithAggregatesFilter<"AgentCallLog"> | number
+    tokensOut?: IntWithAggregatesFilter<"AgentCallLog"> | number
+    costMillicents?: IntWithAggregatesFilter<"AgentCallLog"> | number
+    creditCents?: IntWithAggregatesFilter<"AgentCallLog"> | number
+    marginMillicents?: IntWithAggregatesFilter<"AgentCallLog"> | number
+    billedToUser?: BoolWithAggregatesFilter<"AgentCallLog"> | boolean
+    routingCardVersion?: IntWithAggregatesFilter<"AgentCallLog"> | number
+    source?: StringWithAggregatesFilter<"AgentCallLog"> | string
+  }
+
   export type UserCreateInput = {
     id?: string
     email: string
@@ -144450,6 +147364,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -144498,6 +147413,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUpdateInput = {
@@ -144546,6 +147462,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -144594,6 +147511,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -153569,6 +156487,250 @@ export namespace Prisma {
     meteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
+  export type AgentRoutingCardCreateInput = {
+    id?: string
+    version: number
+    active?: boolean
+    data: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: Date | string
+    effectiveTo?: Date | string | null
+    sourceDate?: string | null
+    createdAt?: Date | string
+    createdBy?: UserCreateNestedOneWithoutAgentRoutingCardsInput
+  }
+
+  export type AgentRoutingCardUncheckedCreateInput = {
+    id?: string
+    version: number
+    active?: boolean
+    data: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: Date | string
+    effectiveTo?: Date | string | null
+    sourceDate?: string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type AgentRoutingCardUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    active?: BoolFieldUpdateOperationsInput | boolean
+    data?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectiveTo?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourceDate?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: UserUpdateOneWithoutAgentRoutingCardsNestedInput
+  }
+
+  export type AgentRoutingCardUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    active?: BoolFieldUpdateOperationsInput | boolean
+    data?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectiveTo?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourceDate?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentRoutingCardCreateManyInput = {
+    id?: string
+    version: number
+    active?: boolean
+    data: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: Date | string
+    effectiveTo?: Date | string | null
+    sourceDate?: string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type AgentRoutingCardUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    active?: BoolFieldUpdateOperationsInput | boolean
+    data?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectiveTo?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourceDate?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentRoutingCardUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    active?: BoolFieldUpdateOperationsInput | boolean
+    data?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectiveTo?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourceDate?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentCallLogCreateInput = {
+    id?: string
+    createdAt?: Date | string
+    userId?: string | null
+    organizationId?: string | null
+    projectId?: string | null
+    mode: string
+    highEffort?: boolean
+    escalated?: boolean
+    turbo?: boolean
+    lineKey: string
+    provider: string
+    model: string
+    tokensIn?: number
+    tokensOut?: number
+    costMillicents?: number
+    creditCents?: number
+    marginMillicents?: number
+    billedToUser?: boolean
+    routingCardVersion: number
+    source?: string
+  }
+
+  export type AgentCallLogUncheckedCreateInput = {
+    id?: string
+    createdAt?: Date | string
+    userId?: string | null
+    organizationId?: string | null
+    projectId?: string | null
+    mode: string
+    highEffort?: boolean
+    escalated?: boolean
+    turbo?: boolean
+    lineKey: string
+    provider: string
+    model: string
+    tokensIn?: number
+    tokensOut?: number
+    costMillicents?: number
+    creditCents?: number
+    marginMillicents?: number
+    billedToUser?: boolean
+    routingCardVersion: number
+    source?: string
+  }
+
+  export type AgentCallLogUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    highEffort?: BoolFieldUpdateOperationsInput | boolean
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    turbo?: BoolFieldUpdateOperationsInput | boolean
+    lineKey?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    model?: StringFieldUpdateOperationsInput | string
+    tokensIn?: IntFieldUpdateOperationsInput | number
+    tokensOut?: IntFieldUpdateOperationsInput | number
+    costMillicents?: IntFieldUpdateOperationsInput | number
+    creditCents?: IntFieldUpdateOperationsInput | number
+    marginMillicents?: IntFieldUpdateOperationsInput | number
+    billedToUser?: BoolFieldUpdateOperationsInput | boolean
+    routingCardVersion?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type AgentCallLogUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    highEffort?: BoolFieldUpdateOperationsInput | boolean
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    turbo?: BoolFieldUpdateOperationsInput | boolean
+    lineKey?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    model?: StringFieldUpdateOperationsInput | string
+    tokensIn?: IntFieldUpdateOperationsInput | number
+    tokensOut?: IntFieldUpdateOperationsInput | number
+    costMillicents?: IntFieldUpdateOperationsInput | number
+    creditCents?: IntFieldUpdateOperationsInput | number
+    marginMillicents?: IntFieldUpdateOperationsInput | number
+    billedToUser?: BoolFieldUpdateOperationsInput | boolean
+    routingCardVersion?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type AgentCallLogCreateManyInput = {
+    id?: string
+    createdAt?: Date | string
+    userId?: string | null
+    organizationId?: string | null
+    projectId?: string | null
+    mode: string
+    highEffort?: boolean
+    escalated?: boolean
+    turbo?: boolean
+    lineKey: string
+    provider: string
+    model: string
+    tokensIn?: number
+    tokensOut?: number
+    costMillicents?: number
+    creditCents?: number
+    marginMillicents?: number
+    billedToUser?: boolean
+    routingCardVersion: number
+    source?: string
+  }
+
+  export type AgentCallLogUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    highEffort?: BoolFieldUpdateOperationsInput | boolean
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    turbo?: BoolFieldUpdateOperationsInput | boolean
+    lineKey?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    model?: StringFieldUpdateOperationsInput | string
+    tokensIn?: IntFieldUpdateOperationsInput | number
+    tokensOut?: IntFieldUpdateOperationsInput | number
+    costMillicents?: IntFieldUpdateOperationsInput | number
+    creditCents?: IntFieldUpdateOperationsInput | number
+    marginMillicents?: IntFieldUpdateOperationsInput | number
+    billedToUser?: BoolFieldUpdateOperationsInput | boolean
+    routingCardVersion?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type AgentCallLogUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    highEffort?: BoolFieldUpdateOperationsInput | boolean
+    escalated?: BoolFieldUpdateOperationsInput | boolean
+    turbo?: BoolFieldUpdateOperationsInput | boolean
+    lineKey?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    model?: StringFieldUpdateOperationsInput | string
+    tokensIn?: IntFieldUpdateOperationsInput | number
+    tokensOut?: IntFieldUpdateOperationsInput | number
+    costMillicents?: IntFieldUpdateOperationsInput | number
+    creditCents?: IntFieldUpdateOperationsInput | number
+    marginMillicents?: IntFieldUpdateOperationsInput | number
+    billedToUser?: BoolFieldUpdateOperationsInput | boolean
+    routingCardVersion?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -153834,6 +156996,12 @@ export namespace Prisma {
     none?: UserSpendLimitWhereInput
   }
 
+  export type AgentRoutingCardListRelationFilter = {
+    every?: AgentRoutingCardWhereInput
+    some?: AgentRoutingCardWhereInput
+    none?: AgentRoutingCardWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -153956,6 +157124,10 @@ export namespace Prisma {
   }
 
   export type UserSpendLimitOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type AgentRoutingCardOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -159328,6 +162500,135 @@ export namespace Prisma {
     _max?: NestedFloatNullableFilter<$PrismaModel>
   }
 
+  export type AgentRoutingCardCountOrderByAggregateInput = {
+    id?: SortOrder
+    version?: SortOrder
+    active?: SortOrder
+    data?: SortOrder
+    effectiveFrom?: SortOrder
+    effectiveTo?: SortOrder
+    sourceDate?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AgentRoutingCardAvgOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type AgentRoutingCardMaxOrderByAggregateInput = {
+    id?: SortOrder
+    version?: SortOrder
+    active?: SortOrder
+    effectiveFrom?: SortOrder
+    effectiveTo?: SortOrder
+    sourceDate?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AgentRoutingCardMinOrderByAggregateInput = {
+    id?: SortOrder
+    version?: SortOrder
+    active?: SortOrder
+    effectiveFrom?: SortOrder
+    effectiveTo?: SortOrder
+    sourceDate?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AgentRoutingCardSumOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type AgentCallLogCountOrderByAggregateInput = {
+    id?: SortOrder
+    createdAt?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    mode?: SortOrder
+    highEffort?: SortOrder
+    escalated?: SortOrder
+    turbo?: SortOrder
+    lineKey?: SortOrder
+    provider?: SortOrder
+    model?: SortOrder
+    tokensIn?: SortOrder
+    tokensOut?: SortOrder
+    costMillicents?: SortOrder
+    creditCents?: SortOrder
+    marginMillicents?: SortOrder
+    billedToUser?: SortOrder
+    routingCardVersion?: SortOrder
+    source?: SortOrder
+  }
+
+  export type AgentCallLogAvgOrderByAggregateInput = {
+    tokensIn?: SortOrder
+    tokensOut?: SortOrder
+    costMillicents?: SortOrder
+    creditCents?: SortOrder
+    marginMillicents?: SortOrder
+    routingCardVersion?: SortOrder
+  }
+
+  export type AgentCallLogMaxOrderByAggregateInput = {
+    id?: SortOrder
+    createdAt?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    mode?: SortOrder
+    highEffort?: SortOrder
+    escalated?: SortOrder
+    turbo?: SortOrder
+    lineKey?: SortOrder
+    provider?: SortOrder
+    model?: SortOrder
+    tokensIn?: SortOrder
+    tokensOut?: SortOrder
+    costMillicents?: SortOrder
+    creditCents?: SortOrder
+    marginMillicents?: SortOrder
+    billedToUser?: SortOrder
+    routingCardVersion?: SortOrder
+    source?: SortOrder
+  }
+
+  export type AgentCallLogMinOrderByAggregateInput = {
+    id?: SortOrder
+    createdAt?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    mode?: SortOrder
+    highEffort?: SortOrder
+    escalated?: SortOrder
+    turbo?: SortOrder
+    lineKey?: SortOrder
+    provider?: SortOrder
+    model?: SortOrder
+    tokensIn?: SortOrder
+    tokensOut?: SortOrder
+    costMillicents?: SortOrder
+    creditCents?: SortOrder
+    marginMillicents?: SortOrder
+    billedToUser?: SortOrder
+    routingCardVersion?: SortOrder
+    source?: SortOrder
+  }
+
+  export type AgentCallLogSumOrderByAggregateInput = {
+    tokensIn?: SortOrder
+    tokensOut?: SortOrder
+    costMillicents?: SortOrder
+    creditCents?: SortOrder
+    marginMillicents?: SortOrder
+    routingCardVersion?: SortOrder
+  }
+
   export type AccountCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -159541,6 +162842,13 @@ export namespace Prisma {
     connect?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
   }
 
+  export type AgentRoutingCardCreateNestedManyWithoutCreatedByInput = {
+    create?: XOR<AgentRoutingCardCreateWithoutCreatedByInput, AgentRoutingCardUncheckedCreateWithoutCreatedByInput> | AgentRoutingCardCreateWithoutCreatedByInput[] | AgentRoutingCardUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: AgentRoutingCardCreateOrConnectWithoutCreatedByInput | AgentRoutingCardCreateOrConnectWithoutCreatedByInput[]
+    createMany?: AgentRoutingCardCreateManyCreatedByInputEnvelope
+    connect?: AgentRoutingCardWhereUniqueInput | AgentRoutingCardWhereUniqueInput[]
+  }
+
   export type AccountUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -159752,6 +163060,13 @@ export namespace Prisma {
     connectOrCreate?: UserSpendLimitCreateOrConnectWithoutUserInput | UserSpendLimitCreateOrConnectWithoutUserInput[]
     createMany?: UserSpendLimitCreateManyUserInputEnvelope
     connect?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+  }
+
+  export type AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput = {
+    create?: XOR<AgentRoutingCardCreateWithoutCreatedByInput, AgentRoutingCardUncheckedCreateWithoutCreatedByInput> | AgentRoutingCardCreateWithoutCreatedByInput[] | AgentRoutingCardUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: AgentRoutingCardCreateOrConnectWithoutCreatedByInput | AgentRoutingCardCreateOrConnectWithoutCreatedByInput[]
+    createMany?: AgentRoutingCardCreateManyCreatedByInputEnvelope
+    connect?: AgentRoutingCardWhereUniqueInput | AgentRoutingCardWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -160200,6 +163515,20 @@ export namespace Prisma {
     deleteMany?: UserSpendLimitScalarWhereInput | UserSpendLimitScalarWhereInput[]
   }
 
+  export type AgentRoutingCardUpdateManyWithoutCreatedByNestedInput = {
+    create?: XOR<AgentRoutingCardCreateWithoutCreatedByInput, AgentRoutingCardUncheckedCreateWithoutCreatedByInput> | AgentRoutingCardCreateWithoutCreatedByInput[] | AgentRoutingCardUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: AgentRoutingCardCreateOrConnectWithoutCreatedByInput | AgentRoutingCardCreateOrConnectWithoutCreatedByInput[]
+    upsert?: AgentRoutingCardUpsertWithWhereUniqueWithoutCreatedByInput | AgentRoutingCardUpsertWithWhereUniqueWithoutCreatedByInput[]
+    createMany?: AgentRoutingCardCreateManyCreatedByInputEnvelope
+    set?: AgentRoutingCardWhereUniqueInput | AgentRoutingCardWhereUniqueInput[]
+    disconnect?: AgentRoutingCardWhereUniqueInput | AgentRoutingCardWhereUniqueInput[]
+    delete?: AgentRoutingCardWhereUniqueInput | AgentRoutingCardWhereUniqueInput[]
+    connect?: AgentRoutingCardWhereUniqueInput | AgentRoutingCardWhereUniqueInput[]
+    update?: AgentRoutingCardUpdateWithWhereUniqueWithoutCreatedByInput | AgentRoutingCardUpdateWithWhereUniqueWithoutCreatedByInput[]
+    updateMany?: AgentRoutingCardUpdateManyWithWhereWithoutCreatedByInput | AgentRoutingCardUpdateManyWithWhereWithoutCreatedByInput[]
+    deleteMany?: AgentRoutingCardScalarWhereInput | AgentRoutingCardScalarWhereInput[]
+  }
+
   export type AccountUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -160624,6 +163953,20 @@ export namespace Prisma {
     update?: UserSpendLimitUpdateWithWhereUniqueWithoutUserInput | UserSpendLimitUpdateWithWhereUniqueWithoutUserInput[]
     updateMany?: UserSpendLimitUpdateManyWithWhereWithoutUserInput | UserSpendLimitUpdateManyWithWhereWithoutUserInput[]
     deleteMany?: UserSpendLimitScalarWhereInput | UserSpendLimitScalarWhereInput[]
+  }
+
+  export type AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput = {
+    create?: XOR<AgentRoutingCardCreateWithoutCreatedByInput, AgentRoutingCardUncheckedCreateWithoutCreatedByInput> | AgentRoutingCardCreateWithoutCreatedByInput[] | AgentRoutingCardUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: AgentRoutingCardCreateOrConnectWithoutCreatedByInput | AgentRoutingCardCreateOrConnectWithoutCreatedByInput[]
+    upsert?: AgentRoutingCardUpsertWithWhereUniqueWithoutCreatedByInput | AgentRoutingCardUpsertWithWhereUniqueWithoutCreatedByInput[]
+    createMany?: AgentRoutingCardCreateManyCreatedByInputEnvelope
+    set?: AgentRoutingCardWhereUniqueInput | AgentRoutingCardWhereUniqueInput[]
+    disconnect?: AgentRoutingCardWhereUniqueInput | AgentRoutingCardWhereUniqueInput[]
+    delete?: AgentRoutingCardWhereUniqueInput | AgentRoutingCardWhereUniqueInput[]
+    connect?: AgentRoutingCardWhereUniqueInput | AgentRoutingCardWhereUniqueInput[]
+    update?: AgentRoutingCardUpdateWithWhereUniqueWithoutCreatedByInput | AgentRoutingCardUpdateWithWhereUniqueWithoutCreatedByInput[]
+    updateMany?: AgentRoutingCardUpdateManyWithWhereWithoutCreatedByInput | AgentRoutingCardUpdateManyWithWhereWithoutCreatedByInput[]
+    deleteMany?: AgentRoutingCardScalarWhereInput | AgentRoutingCardScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutAccountsInput = {
@@ -165863,6 +169206,22 @@ export namespace Prisma {
     update?: XOR<XOR<ScheduledTaskUpdateToOneWithWhereWithoutRunsInput, ScheduledTaskUpdateWithoutRunsInput>, ScheduledTaskUncheckedUpdateWithoutRunsInput>
   }
 
+  export type UserCreateNestedOneWithoutAgentRoutingCardsInput = {
+    create?: XOR<UserCreateWithoutAgentRoutingCardsInput, UserUncheckedCreateWithoutAgentRoutingCardsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutAgentRoutingCardsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserUpdateOneWithoutAgentRoutingCardsNestedInput = {
+    create?: XOR<UserCreateWithoutAgentRoutingCardsInput, UserUncheckedCreateWithoutAgentRoutingCardsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutAgentRoutingCardsInput
+    upsert?: UserUpsertWithoutAgentRoutingCardsInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutAgentRoutingCardsInput, UserUpdateWithoutAgentRoutingCardsInput>, UserUncheckedUpdateWithoutAgentRoutingCardsInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -167375,6 +170734,38 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type AgentRoutingCardCreateWithoutCreatedByInput = {
+    id?: string
+    version: number
+    active?: boolean
+    data: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: Date | string
+    effectiveTo?: Date | string | null
+    sourceDate?: string | null
+    createdAt?: Date | string
+  }
+
+  export type AgentRoutingCardUncheckedCreateWithoutCreatedByInput = {
+    id?: string
+    version: number
+    active?: boolean
+    data: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: Date | string
+    effectiveTo?: Date | string | null
+    sourceDate?: string | null
+    createdAt?: Date | string
+  }
+
+  export type AgentRoutingCardCreateOrConnectWithoutCreatedByInput = {
+    where: AgentRoutingCardWhereUniqueInput
+    create: XOR<AgentRoutingCardCreateWithoutCreatedByInput, AgentRoutingCardUncheckedCreateWithoutCreatedByInput>
+  }
+
+  export type AgentRoutingCardCreateManyCreatedByInputEnvelope = {
+    data: AgentRoutingCardCreateManyCreatedByInput | AgentRoutingCardCreateManyCreatedByInput[]
+    skipDuplicates?: boolean
+  }
+
   export type AccountUpsertWithWhereUniqueWithoutUserInput = {
     where: AccountWhereUniqueInput
     update: XOR<AccountUpdateWithoutUserInput, AccountUncheckedUpdateWithoutUserInput>
@@ -168316,6 +171707,37 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"UserSpendLimit"> | Date | string
   }
 
+  export type AgentRoutingCardUpsertWithWhereUniqueWithoutCreatedByInput = {
+    where: AgentRoutingCardWhereUniqueInput
+    update: XOR<AgentRoutingCardUpdateWithoutCreatedByInput, AgentRoutingCardUncheckedUpdateWithoutCreatedByInput>
+    create: XOR<AgentRoutingCardCreateWithoutCreatedByInput, AgentRoutingCardUncheckedCreateWithoutCreatedByInput>
+  }
+
+  export type AgentRoutingCardUpdateWithWhereUniqueWithoutCreatedByInput = {
+    where: AgentRoutingCardWhereUniqueInput
+    data: XOR<AgentRoutingCardUpdateWithoutCreatedByInput, AgentRoutingCardUncheckedUpdateWithoutCreatedByInput>
+  }
+
+  export type AgentRoutingCardUpdateManyWithWhereWithoutCreatedByInput = {
+    where: AgentRoutingCardScalarWhereInput
+    data: XOR<AgentRoutingCardUpdateManyMutationInput, AgentRoutingCardUncheckedUpdateManyWithoutCreatedByInput>
+  }
+
+  export type AgentRoutingCardScalarWhereInput = {
+    AND?: AgentRoutingCardScalarWhereInput | AgentRoutingCardScalarWhereInput[]
+    OR?: AgentRoutingCardScalarWhereInput[]
+    NOT?: AgentRoutingCardScalarWhereInput | AgentRoutingCardScalarWhereInput[]
+    id?: StringFilter<"AgentRoutingCard"> | string
+    version?: IntFilter<"AgentRoutingCard"> | number
+    active?: BoolFilter<"AgentRoutingCard"> | boolean
+    data?: JsonFilter<"AgentRoutingCard">
+    effectiveFrom?: DateTimeFilter<"AgentRoutingCard"> | Date | string
+    effectiveTo?: DateTimeNullableFilter<"AgentRoutingCard"> | Date | string | null
+    sourceDate?: StringNullableFilter<"AgentRoutingCard"> | string | null
+    createdByUserId?: StringNullableFilter<"AgentRoutingCard"> | string | null
+    createdAt?: DateTimeFilter<"AgentRoutingCard"> | Date | string
+  }
+
   export type UserCreateWithoutAccountsInput = {
     id?: string
     email: string
@@ -168361,6 +171783,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAccountsInput = {
@@ -168408,6 +171831,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAccountsInput = {
@@ -168471,6 +171895,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -168518,6 +171943,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -168565,6 +171991,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -168612,6 +172039,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -168675,6 +172103,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -168722,6 +172151,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationMemberCreateWithoutOrganizationInput = {
@@ -170821,6 +174251,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutMembershipsInput = {
@@ -170868,6 +174299,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutMembershipsInput = {
@@ -171049,6 +174481,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMembershipsInput = {
@@ -171096,6 +174529,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type RoleUpsertWithoutMembersInput = {
@@ -173339,6 +176773,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoriesInput = {
@@ -173386,6 +176821,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoriesInput = {
@@ -173449,6 +176885,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -173496,6 +176933,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationCreateWithoutAgentMemoriesInput = {
@@ -173907,6 +177345,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -173954,6 +177393,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -174193,6 +177633,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -174240,6 +177681,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentMemoryPreferencesInput = {
@@ -174562,6 +178004,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutProjectIdeStateUpdatesInput = {
@@ -174609,6 +178052,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutProjectIdeStateUpdatesInput = {
@@ -174765,6 +178209,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectIdeStateUpdatesInput = {
@@ -174812,6 +178257,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutAgentPatchProposalsInput = {
@@ -176026,6 +179472,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutProjectCollaborationsInput = {
@@ -176073,6 +179520,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutProjectCollaborationsInput = {
@@ -176229,6 +179677,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectCollaborationsInput = {
@@ -176276,6 +179725,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutActivityInput = {
@@ -176410,6 +179860,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutProjectActivityInput = {
@@ -176457,6 +179908,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutProjectActivityInput = {
@@ -176613,6 +180065,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectActivityInput = {
@@ -176660,6 +180113,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationPresenceInput = {
@@ -176794,6 +180248,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -176841,6 +180296,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -176997,6 +180453,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -177044,6 +180501,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationCommentsInput = {
@@ -177178,6 +180636,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -177225,6 +180684,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -177381,6 +180841,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -177428,6 +180889,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutShareLinksInput = {
@@ -177562,6 +181024,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationShareLinksInput = {
@@ -177609,6 +181072,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationShareLinksInput = {
@@ -177765,6 +181229,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationShareLinksInput = {
@@ -177812,6 +181277,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutTemplatesInput = {
@@ -179192,6 +182658,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutProjectSnapshotsInput = {
@@ -179239,6 +182706,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutProjectSnapshotsInput = {
@@ -179395,6 +182863,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectSnapshotsInput = {
@@ -179442,6 +182911,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutStorageObjectsInput = {
@@ -180058,6 +183528,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -180105,6 +183576,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -180263,6 +183735,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -180310,6 +183783,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutAdminAuditLogsInput = {
@@ -180357,6 +183831,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAdminAuditLogsInput = {
@@ -180404,6 +183879,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAdminAuditLogsInput = {
@@ -180467,6 +183943,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAdminAuditLogsInput = {
@@ -180514,6 +183991,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationCreateWithoutBillingCustomerInput = {
@@ -181878,6 +185356,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutConversationsInput = {
@@ -181925,6 +185404,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutConversationsInput = {
@@ -182109,6 +185589,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConversationsInput = {
@@ -182156,6 +185637,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type AiMessageUpsertWithWhereUniqueWithoutConversationInput = {
@@ -182492,6 +185974,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAiMessageFeedbackInput = {
@@ -182539,6 +186022,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAiMessageFeedbackInput = {
@@ -182602,6 +186086,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAiMessageFeedbackInput = {
@@ -182649,6 +186134,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationCreateWithoutAiCostLedgerInput = {
@@ -183153,6 +186639,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutSupportTicketsInput = {
@@ -183200,6 +186687,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutSupportTicketsInput = {
@@ -183384,6 +186872,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSupportTicketsInput = {
@@ -183431,6 +186920,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type TicketMessageUpsertWithWhereUniqueWithoutTicketInput = {
@@ -183750,6 +187240,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
@@ -183797,6 +187288,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutEmailVerificationTokensInput = {
@@ -183860,6 +187352,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
@@ -183907,6 +187400,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutPasswordResetTokensInput = {
@@ -183954,6 +187448,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
@@ -184001,6 +187496,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutPasswordResetTokensInput = {
@@ -184064,6 +187560,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
@@ -184111,6 +187608,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutRecoveryCodesInput = {
@@ -184158,6 +187656,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutRecoveryCodesInput = {
@@ -184205,6 +187704,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutRecoveryCodesInput = {
@@ -184268,6 +187768,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRecoveryCodesInput = {
@@ -184315,6 +187816,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationCreateWithoutEnterpriseSettingsInput = {
@@ -185555,6 +189057,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutApiKeysInput = {
@@ -185602,6 +189105,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutApiKeysInput = {
@@ -185760,6 +189264,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutApiKeysInput = {
@@ -185807,6 +189312,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutOauthConnectionsInput = {
@@ -185854,6 +189360,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutOauthConnectionsInput = {
@@ -185901,6 +189408,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutOauthConnectionsInput = {
@@ -185964,6 +189472,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOauthConnectionsInput = {
@@ -186011,6 +189520,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type McpInstallCreateWithoutCatalogEntryInput = {
@@ -186157,6 +189667,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutMcpInstallsInput = {
@@ -186204,6 +189715,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutMcpInstallsInput = {
@@ -186413,6 +189925,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpInstallsInput = {
@@ -186460,6 +189973,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationUpsertWithoutMcpInstallsInput = {
@@ -186602,6 +190116,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutMcpUserConfigInput = {
@@ -186649,6 +190164,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutMcpUserConfigInput = {
@@ -186712,6 +190228,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpUserConfigInput = {
@@ -186759,6 +190276,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type AgentRunResultCreateWithoutRunInput = {
@@ -186877,6 +190395,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAgentRunsInput = {
@@ -186924,6 +190443,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAgentRunsInput = {
@@ -187149,6 +190669,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentRunsInput = {
@@ -187196,6 +190717,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentRunsInput = {
@@ -187498,6 +191020,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutUserConnectionsInput = {
@@ -187545,6 +191068,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutUserConnectionsInput = {
@@ -187695,6 +191219,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutUserConnectionsInput = {
@@ -187742,6 +191267,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationOAuthAppOverrideUpsertWithoutUserConnectionsInput = {
@@ -188014,6 +191540,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutLinkedProjectConnectionsInput = {
@@ -188061,6 +191588,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutLinkedProjectConnectionsInput = {
@@ -188276,6 +191804,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutLinkedProjectConnectionsInput = {
@@ -188323,6 +191852,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationCreateWithoutOauthAppOverridesInput = {
@@ -188459,6 +191989,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutConfiguredOauthAppOverridesInput = {
@@ -188506,6 +192037,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutConfiguredOauthAppOverridesInput = {
@@ -188722,6 +192254,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConfiguredOauthAppOverridesInput = {
@@ -188769,6 +192302,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserConnectionUpsertWithWhereUniqueWithoutOauthAppOverrideInput = {
@@ -189128,6 +192662,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -189175,6 +192710,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -189238,6 +192774,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -189285,6 +192822,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutIntegrationFeatureRequestsInput = {
@@ -189332,6 +192870,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutIntegrationFeatureRequestsInput = {
@@ -189379,6 +192918,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutIntegrationFeatureRequestsInput = {
@@ -189531,6 +193071,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutIntegrationFeatureRequestsInput = {
@@ -189578,6 +193119,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationUpsertWithoutIntegrationFeatureRequestsInput = {
@@ -190667,6 +194209,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutSpendLimitsInput = {
@@ -190714,6 +194257,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutSpendLimitsInput = {
@@ -190872,6 +194416,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSpendLimitsInput = {
@@ -190919,6 +194464,7 @@ export namespace Prisma {
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ModelConfigCreateWithoutProviderConfigInput = {
@@ -191738,6 +195284,214 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type UserCreateWithoutAgentRoutingCardsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutAgentRoutingCardsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutAgentRoutingCardsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutAgentRoutingCardsInput, UserUncheckedCreateWithoutAgentRoutingCardsInput>
+  }
+
+  export type UserUpsertWithoutAgentRoutingCardsInput = {
+    update: XOR<UserUpdateWithoutAgentRoutingCardsInput, UserUncheckedUpdateWithoutAgentRoutingCardsInput>
+    create: XOR<UserCreateWithoutAgentRoutingCardsInput, UserUncheckedCreateWithoutAgentRoutingCardsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutAgentRoutingCardsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutAgentRoutingCardsInput, UserUncheckedUpdateWithoutAgentRoutingCardsInput>
+  }
+
+  export type UserUpdateWithoutAgentRoutingCardsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutAgentRoutingCardsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+  }
+
   export type AccountCreateManyUserInput = {
     id?: string
     provider: string
@@ -192032,6 +195786,17 @@ export namespace Prisma {
     limitCents: number
     createdAt?: Date | string
     updatedAt?: Date | string
+  }
+
+  export type AgentRoutingCardCreateManyCreatedByInput = {
+    id?: string
+    version: number
+    active?: boolean
+    data: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: Date | string
+    effectiveTo?: Date | string | null
+    sourceDate?: string | null
+    createdAt?: Date | string
   }
 
   export type AccountUpdateWithoutUserInput = {
@@ -193006,6 +196771,39 @@ export namespace Prisma {
     limitCents?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentRoutingCardUpdateWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    active?: BoolFieldUpdateOperationsInput | boolean
+    data?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectiveTo?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourceDate?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentRoutingCardUncheckedUpdateWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    active?: BoolFieldUpdateOperationsInput | boolean
+    data?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectiveTo?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourceDate?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentRoutingCardUncheckedUpdateManyWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    active?: BoolFieldUpdateOperationsInput | boolean
+    data?: JsonNullValueInput | InputJsonValue
+    effectiveFrom?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectiveTo?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourceDate?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type OrganizationMemberCreateManyOrganizationInput = {

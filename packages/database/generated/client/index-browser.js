@@ -1391,6 +1391,41 @@ exports.Prisma.ScheduledTaskRunScalarFieldEnum = {
   meteredAt: 'meteredAt'
 };
 
+exports.Prisma.AgentRoutingCardScalarFieldEnum = {
+  id: 'id',
+  version: 'version',
+  active: 'active',
+  data: 'data',
+  effectiveFrom: 'effectiveFrom',
+  effectiveTo: 'effectiveTo',
+  sourceDate: 'sourceDate',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.AgentCallLogScalarFieldEnum = {
+  id: 'id',
+  createdAt: 'createdAt',
+  userId: 'userId',
+  organizationId: 'organizationId',
+  projectId: 'projectId',
+  mode: 'mode',
+  highEffort: 'highEffort',
+  escalated: 'escalated',
+  turbo: 'turbo',
+  lineKey: 'lineKey',
+  provider: 'provider',
+  model: 'model',
+  tokensIn: 'tokensIn',
+  tokensOut: 'tokensOut',
+  costMillicents: 'costMillicents',
+  creditCents: 'creditCents',
+  marginMillicents: 'marginMillicents',
+  billedToUser: 'billedToUser',
+  routingCardVersion: 'routingCardVersion',
+  source: 'source'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1658,7 +1693,9 @@ exports.Prisma.ModelName = {
   DatabaseSnapshot: 'DatabaseSnapshot',
   DatabaseRestore: 'DatabaseRestore',
   ScheduledTask: 'ScheduledTask',
-  ScheduledTaskRun: 'ScheduledTaskRun'
+  ScheduledTaskRun: 'ScheduledTaskRun',
+  AgentRoutingCard: 'AgentRoutingCard',
+  AgentCallLog: 'AgentCallLog'
 };
 
 /**

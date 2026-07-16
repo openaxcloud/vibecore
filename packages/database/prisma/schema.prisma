@@ -99,6 +99,7 @@ model User {
   notifications               Notification[]
   aiMessageFeedback           AiMessageFeedback[]
   spendLimits                 UserSpendLimit[]
+  agentRoutingCards           AgentRoutingCard[]             @relation("AgentRoutingCardAuthor")
 }
 
 model Account {
@@ -2227,4 +2228,65 @@ model ScheduledTaskRun {
   @@index([taskId, startedAt])
   @@index([projectId, startedAt])
   @@index([status])
+}
+
+/// Versioned Agent Routing Card: maps agent modes (Lite/Economy/Power) and
+/// switches (High effort/Turbo) + the harness classifier to concrete provider
+/// models with cost-of-revenue and user pricing. `data` is the serialized
+/// AgentRoutingCard document (packages/billing agent-routing.ts). A config
+/// change inserts a NEW version and closes the previous one (effectiveTo) —
+/// never a deployment, never a mutation of history.
+model AgentRoutingCard {
+  id              String    @id @default(cuid())
+  version         Int       @unique
+  active          Boolean   @default(false)
+  data            Json
+  effectiveFrom   DateTime  @default(now())
+  effectiveTo     DateTime?
+  /// Date the cost-of-revenue figures were sourced from provider pricing.
+  sourceDate      String?
+  createdByUserId String?
+  createdAt       DateTime  @default(now())
+  createdBy       User?     @relation("AgentRoutingCardAuthor", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([active])
+}
+
+/// One row per routed agent LLM call (admin-only, never shown to the client):
+/// who called, which mode/switches, whether high-effort escalated, the REAL
+/// provider+model used, tokens, cost-of-revenue, credits billed and margin.
+/// Cents are stored as millicents (Int) to keep fractional cost exact.
+model AgentCallLog {
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now())
+  userId             String?
+  organizationId     String?
+  projectId          String?
+  /// lite | economy | power
+  mode               String
+  highEffort         Boolean  @default(false)
+  /// true when high-effort actually escalated this call to the escalation line
+  escalated          Boolean  @default(false)
+  turbo              Boolean  @default(false)
+  /// Routing line that priced the call: mode key, high-effort, turbo or classifier.
+  lineKey            String
+  provider           String
+  model              String
+  tokensIn           Int      @default(0)
+  tokensOut          Int      @default(0)
+  /// Coût de revient in millicents (1/1000 cent).
+  costMillicents     Int      @default(0)
+  /// Credits billed to the user, in cents (0 when billedToUser=false).
+  creditCents        Int      @default(0)
+  /// creditCents*1000 - costMillicents (negative = platform absorbed cost).
+  marginMillicents   Int      @default(0)
+  billedToUser       Boolean  @default(true)
+  routingCardVersion Int
+  /// chat | classifier | continuation…
+  source             String   @default("chat")
+
+  @@index([createdAt])
+  @@index([lineKey, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([projectId, createdAt])
 }
