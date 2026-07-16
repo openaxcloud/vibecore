@@ -128,15 +128,55 @@ function checkHeader(file, doc) {
   const doc = loadYaml(join(parityRoot, file));
   checkHeader(file, doc);
 
-  for (const surface of doc.surfaces ?? []) {
-    requireFields(file, surface, ['surfaceId', 'route', 'client', 'plan', 'permissions', 'states', 'serviceIds', 'events', 'responsive', 'e2eProofIds'], surface?.surfaceId ?? 'surface');
+  const SURFACE_AVAILABILITY = ['SUPPORTED', 'UNSUPPORTED', 'NOT_APPLICABLE', 'ROLLOUT', 'UNKNOWN'];
 
-    if (!('featureFlag' in (surface ?? {}))) {
-      fail(file, `${surface?.surfaceId}: featureFlag key required (null allowed)`);
+  for (const surface of doc.surfaces ?? []) {
+    // schemaVersion 2 (audit v4 G): the full SurfaceRegistryEntry envelope.
+    requireFields(
+      file,
+      surface,
+      [
+        'surfaceId',
+        'route',
+        'clientKind',
+        'clientVersion',
+        'plan',
+        'entitlement',
+        'region',
+        'rolloutCohort',
+        'availability',
+        'permissions',
+        'serverAuthz',
+        'states',
+        'errors',
+        'recovery',
+        'serviceIds',
+        'events',
+        'responsiveContract',
+        'accessibilityContract',
+        'locale',
+        'rtl',
+        'timezoneBehavior',
+        'performanceBudget',
+        'e2eProofIds',
+        'observedAt',
+      ],
+      surface?.surfaceId ?? 'surface',
+    );
+
+    if (surface?.availability && !SURFACE_AVAILABILITY.includes(surface.availability)) {
+      fail(file, `${surface?.surfaceId}: availability "${surface.availability}" not in {${SURFACE_AVAILABILITY.join('|')}}`);
+    }
+
+    for (const dim of ['web', 'tablet', 'mobile']) {
+      const v = surface?.responsiveContract?.[dim];
+      if (v !== true && v !== false && v !== 'UNKNOWN') {
+        fail(file, `${surface?.surfaceId}: responsiveContract.${dim} must be true|false|UNKNOWN, got ${JSON.stringify(v)}`);
+      }
     }
   }
 
-  checked.push(`${file} (${doc.surfaces?.length ?? 0} surfaces)`);
+  checked.push(`${file} (${doc.surfaces?.length ?? 0} surfaces, schemaVersion ${doc.schemaVersion})`);
 }
 
 /* ---- 4. E2E_PROOFS ----------------------------------------------------- */

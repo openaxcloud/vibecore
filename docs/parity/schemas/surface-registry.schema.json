@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecode/parity/surface-registry",
+  "x-schemaVersion": 2,
+  "x-repoCommit": "06fabcf1",
+  "title": "SurfaceRegistry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "repoCommit", "surfaces"],
+  "properties": {
+    "schemaVersion": {},
+    "repoCommit": { "type": "string" },
+    "surfaces": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/SurfaceRegistryEntry" }
+    }
+  },
+  "$defs": {
+    "SurfaceRegistryEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A product surface (a real route/client of the repo) with its full availability + contract envelope. UNKNOWN is a first-class value everywhere it is not measured — never guessed.",
+      "required": [
+        "surfaceId",
+        "route",
+        "clientKind",
+        "clientVersion",
+        "plan",
+        "entitlement",
+        "region",
+        "rolloutCohort",
+        "availability",
+        "permissions",
+        "serverAuthz",
+        "states",
+        "errors",
+        "recovery",
+        "serviceIds",
+        "events",
+        "responsiveContract",
+        "accessibilityContract",
+        "locale",
+        "rtl",
+        "timezoneBehavior",
+        "performanceBudget",
+        "e2eProofIds",
+        "observedAt"
+      ],
+      "properties": {
+        "surfaceId": { "type": "string", "pattern": "^SRF-" },
+        "route": { "type": "string" },
+        "clientKind": { "enum": ["web", "admin-spa", "mobile-web", "cli", "api", "UNKNOWN"] },
+        "clientVersion": { "type": "string" },
+        "plan": { "type": "string" },
+        "entitlement": { "type": "string" },
+        "region": { "type": "string" },
+        "rolloutCohort": { "type": "string" },
+        "availability": { "enum": ["SUPPORTED", "UNSUPPORTED", "NOT_APPLICABLE", "ROLLOUT", "UNKNOWN"] },
+        "permissions": { "type": "string" },
+        "serverAuthz": { "type": "string" },
+        "states": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "errors": { "type": "array", "items": { "type": "string" } },
+        "recovery": { "type": "array", "items": { "type": "string" } },
+        "serviceIds": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "events": { "type": "array", "items": { "type": "string" } },
+        "responsiveContract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["web", "tablet", "mobile"],
+          "properties": {
+            "web": { "enum": [true, false, "UNKNOWN"] },
+            "tablet": { "enum": [true, false, "UNKNOWN"] },
+            "mobile": { "enum": [true, false, "UNKNOWN"] }
+          }
+        },
+        "accessibilityContract": { "type": "string" },
+        "locale": { "type": "string" },
+        "rtl": { "enum": [true, false, "UNKNOWN"] },
+        "timezoneBehavior": { "type": "string" },
+        "performanceBudget": { "type": "string" },
+        "e2eProofIds": { "type": "array", "items": { "type": "string" } },
+        "observedAt": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}

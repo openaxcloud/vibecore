@@ -1,51 +1,105 @@
 # SURFACE_REGISTRY — surfaces produit E-Code (routes réelles du repo).
 # NON EXHAUSTIF: seed avec les surfaces vérifiées; toute surface ajoutée doit
 # porter des ids réels (routes/testids du code), jamais des inventions.
-schemaVersion: 1
-repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+# schemaVersion 2 (audit v4 G): champ SurfaceRegistryEntry complet. UNKNOWN est
+# une valeur de première classe partout où ce n'est PAS mesuré — jamais deviné.
+schemaVersion: 2
+repoCommit: 06fabcf1
 surfaces:
   - surfaceId: SRF-LANDING
     route: /
-    client: web
+    clientKind: web
+    clientVersion: UNKNOWN
     plan: public
-    featureFlag: null
+    entitlement: none
+    region: global
+    rolloutCohort: ga
+    availability: SUPPORTED
     permissions: anonymous
+    serverAuthz: none
     states: [default]
+    errors: []
+    recovery: []
     serviceIds: [web]
     events: [build-now-click]
-    responsive: { web: true, tablet: true, mobile: true }
-    e2eProofIds: [E2E-AGM-A]        # DOM sans nom de modèle — PENDING (déploiement fee92bd0)
+    responsiveContract: { web: true, tablet: true, mobile: true }
+    accessibilityContract: UNKNOWN
+    locale: en
+    rtl: UNKNOWN
+    timezoneBehavior: n/a
+    performanceBudget: UNKNOWN
+    e2eProofIds: [E2E-AGM-A]        # DOM sans nom de modèle
+    observedAt: "2026-07-16"
   - surfaceId: SRF-PROJECT-CREATE
     route: /projects/new
-    client: web
+    clientKind: web
+    clientVersion: UNKNOWN
     plan: authenticated
-    featureFlag: null
+    entitlement: project:create
+    region: global
+    rolloutCohort: ga
+    availability: SUPPORTED
     permissions: session
+    serverAuthz: session-cookie -> api bearer
     states: [default, submitting, error]
+    errors: [validation-error, api-5xx]
+    recovery: [retry-submit]
     serviceIds: [web, api]
     events: [project-create-submit]
-    responsive: { web: true, tablet: true, mobile: true }
+    responsiveContract: { web: true, tablet: true, mobile: true }
+    accessibilityContract: UNKNOWN
+    locale: en
+    rtl: UNKNOWN
+    timezoneBehavior: n/a
+    performanceBudget: UNKNOWN
     e2eProofIds: [E2E-AGM-A]
+    observedAt: "2026-07-16"
   - surfaceId: SRF-IDE-COMPOSER
     route: /:accountSlug/:projectSlug/ide
-    client: web
+    clientKind: web
+    clientVersion: UNKNOWN
     plan: authenticated
-    featureFlag: null
+    entitlement: workspaces:read
+    region: global
+    rolloutCohort: ga
+    availability: SUPPORTED
     permissions: workspaces:read
+    serverAuthz: session-cookie -> api bearer; mode routing server-side
     states: [default, streaming, mode-locked-by-plan]
+    errors: [stream-error, mode-forbidden-403]
+    recovery: [retry-with-model, downgrade-mode]
     serviceIds: [web, api]
     events: [agent-mode-change, agent-send, agent-mode-nudge]
-    responsive: { web: true, tablet: true, mobile: true }
+    responsiveContract: { web: true, tablet: true, mobile: true }
+    accessibilityContract: UNKNOWN
+    locale: en
+    rtl: UNKNOWN
+    timezoneBehavior: n/a
+    performanceBudget: UNKNOWN
     e2eProofIds: [E2E-AGM-B, E2E-AGM-C]
+    observedAt: "2026-07-16"
     notes: "Segmented Lite/Economy/Power (data-testid agent-mode-segmented), Advanced: High effort + Turbo. Aucun nom de modèle."
   - surfaceId: SRF-ADMIN-AGENT-ROUTING
     route: "admin SPA > section agent-routing (ClusterIP, non exposée publiquement)"
-    client: admin-spa
+    clientKind: admin-spa
+    clientVersion: UNKNOWN
     plan: platform-admin
-    featureFlag: null
+    entitlement: platformAdmin
+    region: internal
+    rolloutCohort: internal
+    availability: SUPPORTED
     permissions: platformAdmin + reauth récent pour mutations
+    serverAuthz: platformAdmin claim + step-up lastReauthAt for mutations
     states: [table, negative-margin-alert, simulation, history]
+    errors: [negative-margin-block-409, reauth-required-401]
+    recovery: [step-up-reauth, adjust-margin]
     serviceIds: [api]
     events: [agent-routing-publish, agent-routing-simulate]
-    responsive: { web: true, tablet: UNKNOWN, mobile: UNKNOWN }
+    responsiveContract: { web: true, tablet: UNKNOWN, mobile: UNKNOWN }
+    accessibilityContract: UNKNOWN
+    locale: en
+    rtl: UNKNOWN
+    timezoneBehavior: UTC
+    performanceBudget: UNKNOWN
     e2eProofIds: [E2E-AGM-F]
+    observedAt: "2026-07-16"
