@@ -356,3 +356,75 @@ describe('admin agent routing', () => {
     expect(call.lineKey).toBe('turbo');
   });
 });
+
+describe('GET /projects/:id/agent/routing/resolve (control-plane decision point)', () => {
+  const resolve = (
+    app: Awaited<ReturnType<typeof setup>>['app'],
+    projectId: string,
+    qs: string,
+  ) =>
+    app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/agent/routing/resolve${qs}`,
+      headers: auth('agm-token'),
+    });
+
+  it('resolves each mode to its concrete provider+model from the active card', async () => {
+    const { app, project } = await setup();
+
+    const economy = (await resolve(app, project.id, '?mode=economy')).json();
+    expect(economy.base).toMatchObject({ provider: 'anthropic', model: 'claude-opus-4-8', multiplier: 1 });
+
+    const lite = (await resolve(app, project.id, '?mode=lite')).json();
+    expect(lite.base).toMatchObject({ model: 'claude-haiku-4-5', multiplier: 0.5 });
+
+    const power = (await resolve(app, project.id, '?mode=power')).json();
+    expect(power.base).toMatchObject({ model: 'claude-fable-5', multiplier: 2 });
+    expect(power.escalation).toBeUndefined();
+  });
+
+  it('refuses high effort on the free plan (403, explicit code) and in Lite mode', async () => {
+    const { app, store, org, project } = await setup();
+
+    const freeRefusal = await resolve(app, project.id, '?mode=economy&highEffort=true');
+    expect(freeRefusal.statusCode).toBe(403);
+    expect(freeRefusal.json().code).toBe('AGENT_HIGH_EFFORT_NOT_ALLOWED');
+
+    await store.upsertSubscription({ organizationId: org.id, planKey: 'pro', status: 'ACTIVE' });
+
+    const liteRefusal = await resolve(app, project.id, '?mode=lite&highEffort=true');
+    expect(liteRefusal.statusCode).toBe(403);
+    expect(liteRefusal.json().code).toBe('AGENT_HIGH_EFFORT_LITE');
+
+    const granted = await resolve(app, project.id, '?mode=economy&highEffort=true');
+    expect(granted.statusCode).toBe(200);
+    expect(granted.json().escalation).toMatchObject({ model: 'claude-fable-5', multiplier: 2 });
+    expect(granted.json().classifier).toMatchObject({ model: 'claude-haiku-4-5' });
+  });
+
+  it('refuses turbo outside Power and without the org flag, then routes to gpt-5.6-sol', async () => {
+    const { app, store, org, project } = await setup();
+    await store.upsertSubscription({ organizationId: org.id, planKey: 'pro', status: 'ACTIVE' });
+
+    const wrongMode = await resolve(app, project.id, '?mode=economy&turbo=true');
+    expect(wrongMode.statusCode).toBe(403);
+    expect(wrongMode.json().code).toBe('AGENT_TURBO_POWER_ONLY');
+
+    const noFlag = await resolve(app, project.id, '?mode=power&turbo=true');
+    expect(noFlag.statusCode).toBe(403);
+    expect(noFlag.json().code).toBe('AGENT_TURBO_NOT_ALLOWED');
+
+    await store.setFeatureFlag({ key: 'agent_turbo', enabled: true, organizationId: org.id });
+
+    const granted = await resolve(app, project.id, '?mode=power&turbo=true');
+    expect(granted.statusCode).toBe(200);
+    expect(granted.json().base).toMatchObject({ lineKey: 'turbo', provider: 'openai', model: 'gpt-5.6-sol' });
+  });
+
+  it('treats the literal string "false" as false (query-string boolean trap)', async () => {
+    const { app, project } = await setup();
+    const res = await resolve(app, project.id, '?mode=economy&highEffort=false&turbo=false');
+    expect(res.statusCode).toBe(200);
+    expect(res.json().escalation).toBeUndefined();
+  });
+});

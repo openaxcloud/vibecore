@@ -21937,6 +21937,130 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   });
 
+  /*
+   * AGM: server-to-server route resolution — the Remix chat route calls this
+   * before every generation to turn (mode, highEffort, turbo) into the CONCRETE
+   * provider+model from the ACTIVE routing card. This is the control-plane
+   * decision point: an admin publishing a new card version changes what this
+   * returns with zero deployment. Refusals are explicit (403 + code) so an
+   * unauthorized mode/switch is never silently downgraded.
+   */
+  app.get('/projects/:projectId/agent/routing/resolve', async (request, reply) => {
+    const { projectId } = parse(projectParams, request.params);
+    const project = await requireProject(request, store, projectId, 'workspaces:read');
+
+    /*
+     * Strict query-string booleans: z.coerce.boolean() would turn the literal
+     * string "false" into true, silently granting a switch the caller turned off.
+     */
+    const queryBool = z.preprocess((value) => value === true || value === 'true' || value === '1', z.boolean());
+
+    const query = parse(
+      z.object({
+        mode: z.enum(['lite', 'economy', 'power']).default(DEFAULT_AGENT_MODE),
+        highEffort: queryBool.default(false),
+        turbo: queryBool.default(false),
+      }),
+      request.query ?? {},
+    );
+
+    const card = await getActiveAgentRoutingCard(store);
+
+    let planKey = 'free';
+
+    try {
+      const subscription = await store.getSubscription(project.organizationId);
+      planKey = subscription?.planKey ?? 'free';
+    } catch {
+      planKey = 'free';
+    }
+
+    const modeLine = routingLine(card, query.mode);
+
+    if (!modeLine || !modeLine.active || !modeLine.availablePlans.includes(planKey)) {
+      return reply.status(403).send({
+        error: `The ${query.mode} mode is not available on the ${planKey} plan.`,
+        code: 'AGENT_MODE_NOT_ALLOWED',
+        mode: query.mode,
+        plan: planKey,
+      });
+    }
+
+    let base = { lineKey: modeLine.key, provider: modeLine.provider, model: modeLine.model, multiplier: modeLine.multiplier };
+    let escalation: typeof base | undefined;
+    let classifier: { provider: string; model: string } | undefined;
+
+    if (query.turbo) {
+      // Turbo: Power only, plan-gated AND org-gated (agent_turbo flag, OFF by default).
+      if (query.mode !== 'power') {
+        return reply.status(403).send({
+          error: 'Turbo is only available in Power mode.',
+          code: 'AGENT_TURBO_POWER_ONLY',
+          mode: query.mode,
+        });
+      }
+
+      const turboLine = routingLine(card, 'turbo');
+      const turboOrgEnabled = await evaluateFeatureFlag(store, 'agent_turbo', {
+        userId: request.currentUser?.id,
+        organizationId: project.organizationId,
+      }).catch(() => false);
+
+      if (!turboLine || !turboLine.active || !turboLine.availablePlans.includes(planKey) || !turboOrgEnabled) {
+        return reply.status(403).send({
+          error: 'Turbo is not enabled for this organization.',
+          code: 'AGENT_TURBO_NOT_ALLOWED',
+          plan: planKey,
+        });
+      }
+
+      base = { lineKey: turboLine.key, provider: turboLine.provider, model: turboLine.model, multiplier: turboLine.multiplier };
+    }
+
+    if (query.highEffort) {
+      // High effort: Economy and Power only — NEVER Lite — and plan-gated.
+      if (query.mode === 'lite') {
+        return reply.status(403).send({
+          error: 'High effort is not available in Lite mode.',
+          code: 'AGENT_HIGH_EFFORT_LITE',
+          mode: query.mode,
+        });
+      }
+
+      const escalationLine = routingLine(card, 'high-effort');
+
+      if (!escalationLine || !escalationLine.active || !escalationLine.availablePlans.includes(planKey)) {
+        return reply.status(403).send({
+          error: `High effort is not available on the ${planKey} plan.`,
+          code: 'AGENT_HIGH_EFFORT_NOT_ALLOWED',
+          plan: planKey,
+        });
+      }
+
+      escalation = {
+        lineKey: escalationLine.key,
+        provider: escalationLine.provider,
+        model: escalationLine.model,
+        multiplier: escalationLine.multiplier,
+      };
+
+      const classifierLine = routingLine(card, 'classifier');
+
+      if (classifierLine && classifierLine.active) {
+        classifier = { provider: classifierLine.provider, model: classifierLine.model };
+      }
+    }
+
+    return {
+      routingVersion: card.version,
+      mode: query.mode,
+      plan: planKey,
+      base,
+      escalation,
+      classifier,
+    };
+  });
+
   app.post('/projects/:projectId/ai/record-usage', async (request) => {
     const { projectId } = parse(projectParams, request.params);
     const project = await requireProject(request, store, projectId, 'workspaces:read');
