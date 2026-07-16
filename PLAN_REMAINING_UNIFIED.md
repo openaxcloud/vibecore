@@ -33,6 +33,15 @@ Priorité A, B d'abord, puis C→I. UNKNOWN partout où on ne sait pas.
 
 **Réserve honnête** — le ✅ ci-dessus = « codé + prouvé en unitaire/validateur » (machines à états pures avec tests négatifs, registres validés, refus prouvés). Le vertical d'approbation e2e reste **RED** (`approvalReady=false`) : seuls les stages `execute` (E2E-AGM-C) et `publish` (E2E-PHASEB-NODE) sont prouvés ; `create/modify/preview/observe/rollback` n'ont pas encore de preuve e2e taggée. C'est l'état réel, calculé, non maquillé.
 
+### Vertical d'approbation — chantier rollback (le plus critique)
+
+**Écart MESURÉ 16/07 (code lu)** : le rollback `provider='server'` **ne re-déploie aucune image** — il recopie l'URL/metadata du déploiement précédent dans une ligne `READY`. **Aucune table `ReleaseCatalog`, aucun digest persisté** sur `Deployment`. Si la révision de v1 est supprimée, l'URL rollbackée est morte → I-REL-1 **non tenu**. Le contrat le déclarait obligatoire ; il n'a jamais été exécuté.
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|:---:|:---:|:---:|---|
+| ROLLBACK-core. Mécanisme rollback-depuis-digest-retenu (`retainRelease` + `resolveRollbackImage`) | ✅ | ✅ `ec0e50ca` | 🟡 unitaire | 7 tests dont révision-supprimée→résout quand même v1 + sans-digest→`ROLLBACK_NO_RETAINED_DIGEST` (refuse l'URL morte). Pur, pas encore câblé |
+| ROLLBACK-live. Persistance digest + câblage reconcile + **preuve e2e** v1→v2→supprimer révision v1→rollback→sert v1 | ✅ | ⬜ | ⬜ | `UNK-ROLLBACK-LIVE` (priorité 1). **Stage `rollback` du vertical = RED**. Preuve live non exécutée — souvenir ≠ preuve |
+
 ## REMIX — pipeline de fork sécurisé (décision Avi 16/07)
 
 Contrat `DOMAIN_MODEL.md §1`. Machine à états NORMATIVE : SNAPSHOT_PINNED → **CREDENTIALS_DETACHED** → CLONING → DB_FORKING → STORAGE_POLICY_APPLIED → SCANNING → INDEXING. Invariant SÉCURITÉ : une **valeur** de secret n'entre JAMAIS dans l'artefact de clone (secrets = références) ; le détachement précède le clone. Preuve exigée : remix réel d'un projet CONTENANT un secret + démonstration que le secret est introuvable (FS, DB, env, logs) — le test doit CHERCHER le secret et échouer à le trouver. App Storage : 3 modes DETACH / CLONE / SHARE_WITH_CONSENT testés (bucket account-level partageable — « nouveau bucket » est NOTRE décision, explicite).
