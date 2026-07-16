@@ -25,12 +25,56 @@ Tout exécuté sur prod (`vibecore-prod-app`, europe-west9) via le vrai parcours
   seul port exposé ; readinessProbe `{path:/, periodSeconds:1, timeoutSeconds:5, failureThreshold:30}`
   = la règle Replit « accueil > 5 s = pas prêt » est portée par la probe.
 
-## Tailles machine (rate card v1) — [preuves à compléter après CD 894c5f6f]
+## Tailles machine (rate card v1) — PROUVÉ LIVE (deployment `cmrn4qhjy00090nesh8nxs756`)
 
-- Publish réel avec `machineSize` non-défaut → `kubectl get deploy -o yaml` (requests==limits).
-- Garde-fous : 8 vCPU refusé en free (400 MACHINE_SIZE_PLAN) ; 4 vCPU refusé au plafond de
-  capacité mesuré (400 MACHINE_SIZE_CAPACITY, nœuds e2-standard-4 = 3920m allocatable).
-- Metering : événements `deployment.compute` stampés machineSize/activeSeconds/rateCardVersion.
+- Migration 0070 passée en prod : `RateCard v1 active=true` (vérifié en DB).
+- `GET /projects/:id/deployments/rate-card` : carte v1 servie de la DB, 6 tailles annotées
+  disponibilité (`machinesize-ratecard-guards.txt`).
+- Gardes 400 typées prouvées : `dedicated-8` en free → `MACHINE_SIZE_PLAN` ; `dedicated-4` →
+  `MACHINE_SIZE_CAPACITY` (plafond mesuré 2 vCPU, nœuds 3920m) ; `mega-64` → `MACHINE_SIZE_UNKNOWN`.
+- Publish réel `machineSize=dedicated-1` → 202, `machineSize` persisté sur la ligne, READY ~40 s.
+- **kubectl get deploy -o yaml** (`machinesize-kubectl-proof.txt`) : `requests==limits ==
+  {cpu:"1", memory:"4Gi"}`, replicas 1/1, URL publique 200 avec le contenu réel.
+- **Panneau** (`panel-machine-size.txt`, vu à l'écran avec la session QA) : sélecteur 6 tailles,
+  prix $/h actif issus de la carte, tailles interdites désactivées avec raison, note sleep 15 min.
+- **Billing runtime** : événement `deployment.compute` 06:35:11 = 6 830 unités
+  (contrôle : 26 u/s × 262,7 s actifs = 6 830 ✓ ; = 2,19 ¢ au rate card v1), metadata
+  `{machineSize:dedicated-1, activeSeconds:263, replicas:1, requests:1, rateCardVersion:1}`,
+  watermarks `runtimeMeteredAt`/`meteredRequests` avancés. Mode shadow (`BILLING_CREDITS_ENABLED`
+  non actif) : l'événement + le montant sont réels, le débit de crédits est volontairement inhibé.
+
+## Cron produit — RE-PROUVÉ après le fix P0 (`scheduled-reproof.txt`)
+
+Tâche `sched_273460ed…` armée à T+2 min (cron `35 06 * * *` UTC) : tir à l'heure exacte
+(`scheduledFor 06:35:00Z`, start 06:35:06.9), **SUCCESS exit 0 en 7,7 s**, logs réels du pod
+(« cron reproof 1784183593 » + date), **computeUnits 100,425 / costCents 1 > 0**, `meteredAt`
+posé, `nextRunAt` avancé au 2026-07-17T06:35:00Z.
+
+## AUTOSCALE-01 bis — cycle complet sur le déploiement à taille choisie (`autoscale-01-new-deploy.txt`)
+
+`cmrn4qhjy…` (dedicated-1) : dernier trafic 06:31 → endormi par le tick GC 07:00
+(**spec.replicas=0**) → 1 requête → **HTTP 200 en 16,3 s** avec le contenu réel
+(`{"ok":true,"phase":"machinesize","size":"dedicated-1"}`) → `spec.replicas=1 ready=1`.
+La requête de réveil n'est pas perdue, zéro 502. Publish → facturé actif → sommeil gratuit →
+réveil : la boucle Replit-parity entière sur UN même déploiement.
+
+## GC mort du 9 au 16/07 — impact chiffré (`gc-pvc-analysis.txt`)
+
+- 14 PVC / 595 Gi demandés dans `workspaces`, dont 4 × 100 Gi créés 10-14/07 (survivants de la
+  semaine sans GC), passés STOPPED au premier GC fonctionnel (04:25) → suppression auto à +24 h
+  (~400 Gi pd-standard ≈ 16 $/mois récupérés sans intervention).
+- Storage class `workspace-standard-rwo` = **pd-standard** → les PVC ne comptent PAS dans
+  `SSD_TOTAL_GB`. Le diagnostic « saturation SSD = boot disks gvisor pd-balanced » TIENT ;
+  la migration pd-standard restait la bonne réponse structurelle. L'effet réel du GC mort :
+  saturation CPU des nœuds (pods jamais arrêtés → Pending → scale-up bloqué par le quota),
+  plus reaper/SIEM/metering morts 7 jours.
+
+## Bug prod noté en passant (à l'inventaire)
+
+`POST /api/runtime/workspaces/:id/files` sur un fichier EXISTANT → 502
+(`WORKSPACE_AGENT_REQUEST_FAILED`) : la route mappe sur `/files/create` agent, qui 500 quand le
+chemin existe. Le PUT `/files/write` fonctionne. L'UI n'utilise sans doute que le PUT, mais la
+route POST ment (204 attendu, 502 rendu) sur l'overwrite.
 
 ## Rétention Artifact Registry — chiffres et policies
 
