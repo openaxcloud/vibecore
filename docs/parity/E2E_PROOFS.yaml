@@ -76,7 +76,8 @@ proofs:
     steps: ["ouvrir agent-routing", "mettre un revient > prix", "vérifier alerte + 409 sans confirmation"]
     expected: "alerte visuelle rouge; publish bloqué; 409 AGENT_ROUTING_NEGATIVE_MARGIN"
     evidenceId: docs/deploy-evidence/2026-07-16-agent-modes/
-    screenshots: pending
-    logs: pending
-    traceIds: null
-    status: PENDING
+    screenshots: yes
+    logs: yes
+    traceIds: "table marges live + alerte rouge SPA (f-admin-spa-table.png, f-admin-spa-negative-alert.png) ; 409 AGENT_ROUTING_NEGATIVE_MARGIN (f-admin-margin.txt)"
+    status: PROVEN
+    provenAt: "2026-07-16"

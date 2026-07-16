@@ -20,3 +20,14 @@ POST /admin/agent-routing (sans confirmNegativeMargin)
 
 # Capture SPA de l'alerte visuelle : voir f-admin-spa-*.png (panel AgentRoutingPanel,
 # image admin:agm-proof bumpée sur le tier admin interne le temps de la preuve).
+
+## Capture SPA (image admin agm-proof bumpée temporairement sur le tier interne) :
+- f-admin-spa-table.png : table Agent routing rendue live (6 lignes, marges %,
+  volume 30j des tests c/d, classifieur « not billed (our operating cost) »,
+  historique v1 ● active).
+- f-admin-spa-negative-alert.png : coût Economy porté à 100000 ¢/M → alerte rouge
+  « ⚠ Negative margin on: Economy. Publishing is blocked unless you explicitly
+  confirm losing money on these lines. »
+# Tier admin RESTAURÉ à l'image d'origine ef05fea502 juste après (helm rev 854) —
+# l'image agm-proof avait un VITE_API_URL=localhost (build ponctuel), inadaptée
+# aux vrais admins ; prod remise dans son état initial.
