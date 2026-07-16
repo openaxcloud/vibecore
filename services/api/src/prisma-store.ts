@@ -2231,6 +2231,7 @@ export class PrismaApiStore implements ApiStore {
     metadata?: Record<string, unknown>;
     rolledBackFromId?: string;
     parentDeploymentId?: string;
+    machineSize?: string;
     startedAt?: string;
     finishedAt?: string;
     canceledAt?: string;
@@ -2256,6 +2257,7 @@ export class PrismaApiStore implements ApiStore {
           metadata: (input.metadata ?? {}) as any,
           rolledBackFromId: input.rolledBackFromId,
           parentDeploymentId: input.parentDeploymentId,
+          ...(input.machineSize ? { machineSize: input.machineSize } : {}),
           startedAt: input.startedAt ? new Date(input.startedAt) : undefined,
           finishedAt: input.finishedAt ? new Date(input.finishedAt) : undefined,
           canceledAt: input.canceledAt ? new Date(input.canceledAt) : undefined,
@@ -2344,6 +2346,28 @@ export class PrismaApiStore implements ApiStore {
         take: options.take ?? 100,
       })
     ).map(mapDeployment);
+  }
+
+  async listActiveServerDeployments() {
+    return (
+      await this.prisma.deployment.findMany({
+        where: { provider: 'server', status: 'READY' as any },
+        orderBy: { createdAt: 'asc' },
+        // Bound one metering sweep; an unswept tail is billed on the next tick
+        // (the watermark is per-row, so nothing is lost — only deferred).
+        take: 500,
+      })
+    ).map(mapDeployment);
+  }
+
+  async getActiveRateCard() {
+    const card = await this.prisma.rateCard.findFirst({
+      where: { active: true },
+      orderBy: { version: 'desc' },
+      select: { version: true, data: true },
+    });
+
+    return card ? { version: card.version, data: card.data as unknown } : undefined;
   }
 
   async listStaleDeployments(cutoffIso: string) {
@@ -5476,6 +5500,7 @@ function mapDeployment(deployment: any): DeploymentRecord {
     metadata: deployment.metadata ?? undefined,
     rolledBackFromId: deployment.rolledBackFromId ?? undefined,
     parentDeploymentId: deployment.parentDeploymentId ?? undefined,
+    machineSize: deployment.machineSize ?? undefined,
     lastMeteredAt: toIso(deployment.lastMeteredAt),
     startedAt: toIso(deployment.startedAt),
     finishedAt: toIso(deployment.finishedAt),

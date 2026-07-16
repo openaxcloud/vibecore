@@ -194,6 +194,11 @@ export type Deployment = $Result.DefaultSelection<Prisma.$DeploymentPayload>
  */
 export type DeploymentEnvironment = $Result.DefaultSelection<Prisma.$DeploymentEnvironmentPayload>
 /**
+ * Model RateCard
+ * 
+ */
+export type RateCard = $Result.DefaultSelection<Prisma.$RateCardPayload>
+/**
  * Model AuditLog
  * 
  */
@@ -596,6 +601,19 @@ export type DatabaseSnapshot = $Result.DefaultSelection<Prisma.$DatabaseSnapshot
  * restore executor is a later phase; rows can be created dormant for the UI.
  */
 export type DatabaseRestore = $Result.DefaultSelection<Prisma.$DatabaseRestorePayload>
+/**
+ * Model ScheduledTask
+ * One cron-scheduled unit of work owned by a project. `nextRunAt` is the claim
+ * token: the scheduler advances it inside a conditional UPDATE, so exactly one
+ * api replica can ever own a given tick (no distributed lock needed).
+ */
+export type ScheduledTask = $Result.DefaultSelection<Prisma.$ScheduledTaskPayload>
+/**
+ * Model ScheduledTaskRun
+ * One execution. Holds the FULL captured stdout+stderr, the real exit code, the
+ * real duration, and the billing outcome for that duration.
+ */
+export type ScheduledTaskRun = $Result.DefaultSelection<Prisma.$ScheduledTaskRunPayload>
 
 /**
  * Enums
@@ -763,6 +781,26 @@ export const DatabaseRestoreStatus: {
 
 export type DatabaseRestoreStatus = (typeof DatabaseRestoreStatus)[keyof typeof DatabaseRestoreStatus]
 
+
+export const ScheduledTaskKind: {
+  WORKFLOW: 'WORKFLOW',
+  DEPLOYMENT: 'DEPLOYMENT'
+};
+
+export type ScheduledTaskKind = (typeof ScheduledTaskKind)[keyof typeof ScheduledTaskKind]
+
+
+export const ScheduledTaskRunStatus: {
+  RUNNING: 'RUNNING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  TIMED_OUT: 'TIMED_OUT',
+  SKIPPED: 'SKIPPED',
+  CANCELED: 'CANCELED'
+};
+
+export type ScheduledTaskRunStatus = (typeof ScheduledTaskRunStatus)[keyof typeof ScheduledTaskRunStatus]
+
 }
 
 export type WorkspaceStatus = $Enums.WorkspaceStatus
@@ -824,6 +862,14 @@ export const DatabaseInstanceStatus: typeof $Enums.DatabaseInstanceStatus
 export type DatabaseRestoreStatus = $Enums.DatabaseRestoreStatus
 
 export const DatabaseRestoreStatus: typeof $Enums.DatabaseRestoreStatus
+
+export type ScheduledTaskKind = $Enums.ScheduledTaskKind
+
+export const ScheduledTaskKind: typeof $Enums.ScheduledTaskKind
+
+export type ScheduledTaskRunStatus = $Enums.ScheduledTaskRunStatus
+
+export const ScheduledTaskRunStatus: typeof $Enums.ScheduledTaskRunStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -1305,6 +1351,16 @@ export class PrismaClient<
     * ```
     */
   get deploymentEnvironment(): Prisma.DeploymentEnvironmentDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.rateCard`: Exposes CRUD operations for the **RateCard** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more RateCards
+    * const rateCards = await prisma.rateCard.findMany()
+    * ```
+    */
+  get rateCard(): Prisma.RateCardDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.auditLog`: Exposes CRUD operations for the **AuditLog** model.
@@ -1975,6 +2031,26 @@ export class PrismaClient<
     * ```
     */
   get databaseRestore(): Prisma.DatabaseRestoreDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.scheduledTask`: Exposes CRUD operations for the **ScheduledTask** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ScheduledTasks
+    * const scheduledTasks = await prisma.scheduledTask.findMany()
+    * ```
+    */
+  get scheduledTask(): Prisma.ScheduledTaskDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.scheduledTaskRun`: Exposes CRUD operations for the **ScheduledTaskRun** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ScheduledTaskRuns
+    * const scheduledTaskRuns = await prisma.scheduledTaskRun.findMany()
+    * ```
+    */
+  get scheduledTaskRun(): Prisma.ScheduledTaskRunDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -2445,6 +2521,7 @@ export namespace Prisma {
     ProjectStorageObject: 'ProjectStorageObject',
     Deployment: 'Deployment',
     DeploymentEnvironment: 'DeploymentEnvironment',
+    RateCard: 'RateCard',
     AuditLog: 'AuditLog',
     SecurityEventResolution: 'SecurityEventResolution',
     AdminAuditLog: 'AdminAuditLog',
@@ -2511,7 +2588,9 @@ export namespace Prisma {
     ModelConfig: 'ModelConfig',
     DatabaseInstance: 'DatabaseInstance',
     DatabaseSnapshot: 'DatabaseSnapshot',
-    DatabaseRestore: 'DatabaseRestore'
+    DatabaseRestore: 'DatabaseRestore',
+    ScheduledTask: 'ScheduledTask',
+    ScheduledTaskRun: 'ScheduledTaskRun'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2527,7 +2606,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5176,6 +5255,80 @@ export namespace Prisma {
           count: {
             args: Prisma.DeploymentEnvironmentCountArgs<ExtArgs>
             result: $Utils.Optional<DeploymentEnvironmentCountAggregateOutputType> | number
+          }
+        }
+      }
+      RateCard: {
+        payload: Prisma.$RateCardPayload<ExtArgs>
+        fields: Prisma.RateCardFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.RateCardFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RateCardPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.RateCardFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RateCardPayload>
+          }
+          findFirst: {
+            args: Prisma.RateCardFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RateCardPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.RateCardFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RateCardPayload>
+          }
+          findMany: {
+            args: Prisma.RateCardFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RateCardPayload>[]
+          }
+          create: {
+            args: Prisma.RateCardCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RateCardPayload>
+          }
+          createMany: {
+            args: Prisma.RateCardCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.RateCardCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RateCardPayload>[]
+          }
+          delete: {
+            args: Prisma.RateCardDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RateCardPayload>
+          }
+          update: {
+            args: Prisma.RateCardUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RateCardPayload>
+          }
+          deleteMany: {
+            args: Prisma.RateCardDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.RateCardUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.RateCardUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RateCardPayload>[]
+          }
+          upsert: {
+            args: Prisma.RateCardUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RateCardPayload>
+          }
+          aggregate: {
+            args: Prisma.RateCardAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateRateCard>
+          }
+          groupBy: {
+            args: Prisma.RateCardGroupByArgs<ExtArgs>
+            result: $Utils.Optional<RateCardGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.RateCardCountArgs<ExtArgs>
+            result: $Utils.Optional<RateCardCountAggregateOutputType> | number
           }
         }
       }
@@ -10137,6 +10290,154 @@ export namespace Prisma {
           }
         }
       }
+      ScheduledTask: {
+        payload: Prisma.$ScheduledTaskPayload<ExtArgs>
+        fields: Prisma.ScheduledTaskFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ScheduledTaskFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ScheduledTaskFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskPayload>
+          }
+          findFirst: {
+            args: Prisma.ScheduledTaskFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ScheduledTaskFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskPayload>
+          }
+          findMany: {
+            args: Prisma.ScheduledTaskFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskPayload>[]
+          }
+          create: {
+            args: Prisma.ScheduledTaskCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskPayload>
+          }
+          createMany: {
+            args: Prisma.ScheduledTaskCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ScheduledTaskCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskPayload>[]
+          }
+          delete: {
+            args: Prisma.ScheduledTaskDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskPayload>
+          }
+          update: {
+            args: Prisma.ScheduledTaskUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskPayload>
+          }
+          deleteMany: {
+            args: Prisma.ScheduledTaskDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ScheduledTaskUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ScheduledTaskUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskPayload>[]
+          }
+          upsert: {
+            args: Prisma.ScheduledTaskUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskPayload>
+          }
+          aggregate: {
+            args: Prisma.ScheduledTaskAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateScheduledTask>
+          }
+          groupBy: {
+            args: Prisma.ScheduledTaskGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ScheduledTaskGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ScheduledTaskCountArgs<ExtArgs>
+            result: $Utils.Optional<ScheduledTaskCountAggregateOutputType> | number
+          }
+        }
+      }
+      ScheduledTaskRun: {
+        payload: Prisma.$ScheduledTaskRunPayload<ExtArgs>
+        fields: Prisma.ScheduledTaskRunFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ScheduledTaskRunFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskRunPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ScheduledTaskRunFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskRunPayload>
+          }
+          findFirst: {
+            args: Prisma.ScheduledTaskRunFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskRunPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ScheduledTaskRunFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskRunPayload>
+          }
+          findMany: {
+            args: Prisma.ScheduledTaskRunFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskRunPayload>[]
+          }
+          create: {
+            args: Prisma.ScheduledTaskRunCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskRunPayload>
+          }
+          createMany: {
+            args: Prisma.ScheduledTaskRunCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ScheduledTaskRunCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskRunPayload>[]
+          }
+          delete: {
+            args: Prisma.ScheduledTaskRunDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskRunPayload>
+          }
+          update: {
+            args: Prisma.ScheduledTaskRunUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskRunPayload>
+          }
+          deleteMany: {
+            args: Prisma.ScheduledTaskRunDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ScheduledTaskRunUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ScheduledTaskRunUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskRunPayload>[]
+          }
+          upsert: {
+            args: Prisma.ScheduledTaskRunUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScheduledTaskRunPayload>
+          }
+          aggregate: {
+            args: Prisma.ScheduledTaskRunAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateScheduledTaskRun>
+          }
+          groupBy: {
+            args: Prisma.ScheduledTaskRunGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ScheduledTaskRunGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ScheduledTaskRunCountArgs<ExtArgs>
+            result: $Utils.Optional<ScheduledTaskRunCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -10281,6 +10582,7 @@ export namespace Prisma {
     projectStorageObject?: ProjectStorageObjectOmit
     deployment?: DeploymentOmit
     deploymentEnvironment?: DeploymentEnvironmentOmit
+    rateCard?: RateCardOmit
     auditLog?: AuditLogOmit
     securityEventResolution?: SecurityEventResolutionOmit
     adminAuditLog?: AdminAuditLogOmit
@@ -10348,6 +10650,8 @@ export namespace Prisma {
     databaseInstance?: DatabaseInstanceOmit
     databaseSnapshot?: DatabaseSnapshotOmit
     databaseRestore?: DatabaseRestoreOmit
+    scheduledTask?: ScheduledTaskOmit
+    scheduledTaskRun?: ScheduledTaskRunOmit
   }
 
   /* Types for Logging */
@@ -11761,6 +12065,37 @@ export namespace Prisma {
    */
   export type DatabaseInstanceCountOutputTypeCountRestoresArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: DatabaseRestoreWhereInput
+  }
+
+
+  /**
+   * Count Type ScheduledTaskCountOutputType
+   */
+
+  export type ScheduledTaskCountOutputType = {
+    runs: number
+  }
+
+  export type ScheduledTaskCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    runs?: boolean | ScheduledTaskCountOutputTypeCountRunsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * ScheduledTaskCountOutputType without action
+   */
+  export type ScheduledTaskCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTaskCountOutputType
+     */
+    select?: ScheduledTaskCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * ScheduledTaskCountOutputType without action
+   */
+  export type ScheduledTaskCountOutputTypeCountRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ScheduledTaskRunWhereInput
   }
 
 
@@ -52300,6 +52635,7 @@ export namespace Prisma {
     rolledBackFromId: string | null
     parentDeploymentId: string | null
     lastMeteredAt: Date | null
+    machineSize: string | null
     startedAt: Date | null
     finishedAt: Date | null
     canceledAt: Date | null
@@ -52327,6 +52663,7 @@ export namespace Prisma {
     rolledBackFromId: string | null
     parentDeploymentId: string | null
     lastMeteredAt: Date | null
+    machineSize: string | null
     startedAt: Date | null
     finishedAt: Date | null
     canceledAt: Date | null
@@ -52356,6 +52693,7 @@ export namespace Prisma {
     rolledBackFromId: number
     parentDeploymentId: number
     lastMeteredAt: number
+    machineSize: number
     startedAt: number
     finishedAt: number
     canceledAt: number
@@ -52385,6 +52723,7 @@ export namespace Prisma {
     rolledBackFromId?: true
     parentDeploymentId?: true
     lastMeteredAt?: true
+    machineSize?: true
     startedAt?: true
     finishedAt?: true
     canceledAt?: true
@@ -52412,6 +52751,7 @@ export namespace Prisma {
     rolledBackFromId?: true
     parentDeploymentId?: true
     lastMeteredAt?: true
+    machineSize?: true
     startedAt?: true
     finishedAt?: true
     canceledAt?: true
@@ -52441,6 +52781,7 @@ export namespace Prisma {
     rolledBackFromId?: true
     parentDeploymentId?: true
     lastMeteredAt?: true
+    machineSize?: true
     startedAt?: true
     finishedAt?: true
     canceledAt?: true
@@ -52543,6 +52884,7 @@ export namespace Prisma {
     rolledBackFromId: string | null
     parentDeploymentId: string | null
     lastMeteredAt: Date | null
+    machineSize: string
     startedAt: Date | null
     finishedAt: Date | null
     canceledAt: Date | null
@@ -52589,6 +52931,7 @@ export namespace Prisma {
     rolledBackFromId?: boolean
     parentDeploymentId?: boolean
     lastMeteredAt?: boolean
+    machineSize?: boolean
     startedAt?: boolean
     finishedAt?: boolean
     canceledAt?: boolean
@@ -52620,6 +52963,7 @@ export namespace Prisma {
     rolledBackFromId?: boolean
     parentDeploymentId?: boolean
     lastMeteredAt?: boolean
+    machineSize?: boolean
     startedAt?: boolean
     finishedAt?: boolean
     canceledAt?: boolean
@@ -52651,6 +52995,7 @@ export namespace Prisma {
     rolledBackFromId?: boolean
     parentDeploymentId?: boolean
     lastMeteredAt?: boolean
+    machineSize?: boolean
     startedAt?: boolean
     finishedAt?: boolean
     canceledAt?: boolean
@@ -52682,6 +53027,7 @@ export namespace Prisma {
     rolledBackFromId?: boolean
     parentDeploymentId?: boolean
     lastMeteredAt?: boolean
+    machineSize?: boolean
     startedAt?: boolean
     finishedAt?: boolean
     canceledAt?: boolean
@@ -52689,7 +53035,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type DeploymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "workspaceId" | "environmentId" | "environmentName" | "status" | "provider" | "url" | "previewUrl" | "productionUrl" | "framework" | "buildCommand" | "outputDirectory" | "branch" | "commitSha" | "customDomain" | "logs" | "metadata" | "rolledBackFromId" | "parentDeploymentId" | "lastMeteredAt" | "startedAt" | "finishedAt" | "canceledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["deployment"]>
+  export type DeploymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "workspaceId" | "environmentId" | "environmentName" | "status" | "provider" | "url" | "previewUrl" | "productionUrl" | "framework" | "buildCommand" | "outputDirectory" | "branch" | "commitSha" | "customDomain" | "logs" | "metadata" | "rolledBackFromId" | "parentDeploymentId" | "lastMeteredAt" | "machineSize" | "startedAt" | "finishedAt" | "canceledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["deployment"]>
   export type DeploymentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     environment?: boolean | Deployment$environmentArgs<ExtArgs>
@@ -52731,6 +53077,7 @@ export namespace Prisma {
       rolledBackFromId: string | null
       parentDeploymentId: string | null
       lastMeteredAt: Date | null
+      machineSize: string
       startedAt: Date | null
       finishedAt: Date | null
       canceledAt: Date | null
@@ -53182,6 +53529,7 @@ export namespace Prisma {
     readonly rolledBackFromId: FieldRef<"Deployment", 'String'>
     readonly parentDeploymentId: FieldRef<"Deployment", 'String'>
     readonly lastMeteredAt: FieldRef<"Deployment", 'DateTime'>
+    readonly machineSize: FieldRef<"Deployment", 'String'>
     readonly startedAt: FieldRef<"Deployment", 'DateTime'>
     readonly finishedAt: FieldRef<"Deployment", 'DateTime'>
     readonly canceledAt: FieldRef<"Deployment", 'DateTime'>
@@ -54658,6 +55006,1049 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: DeploymentEnvironmentInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model RateCard
+   */
+
+  export type AggregateRateCard = {
+    _count: RateCardCountAggregateOutputType | null
+    _avg: RateCardAvgAggregateOutputType | null
+    _sum: RateCardSumAggregateOutputType | null
+    _min: RateCardMinAggregateOutputType | null
+    _max: RateCardMaxAggregateOutputType | null
+  }
+
+  export type RateCardAvgAggregateOutputType = {
+    version: number | null
+  }
+
+  export type RateCardSumAggregateOutputType = {
+    version: number | null
+  }
+
+  export type RateCardMinAggregateOutputType = {
+    id: string | null
+    version: number | null
+    active: boolean | null
+    effectiveAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type RateCardMaxAggregateOutputType = {
+    id: string | null
+    version: number | null
+    active: boolean | null
+    effectiveAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type RateCardCountAggregateOutputType = {
+    id: number
+    version: number
+    active: number
+    data: number
+    effectiveAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type RateCardAvgAggregateInputType = {
+    version?: true
+  }
+
+  export type RateCardSumAggregateInputType = {
+    version?: true
+  }
+
+  export type RateCardMinAggregateInputType = {
+    id?: true
+    version?: true
+    active?: true
+    effectiveAt?: true
+    createdAt?: true
+  }
+
+  export type RateCardMaxAggregateInputType = {
+    id?: true
+    version?: true
+    active?: true
+    effectiveAt?: true
+    createdAt?: true
+  }
+
+  export type RateCardCountAggregateInputType = {
+    id?: true
+    version?: true
+    active?: true
+    data?: true
+    effectiveAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type RateCardAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RateCard to aggregate.
+     */
+    where?: RateCardWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RateCards to fetch.
+     */
+    orderBy?: RateCardOrderByWithRelationInput | RateCardOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: RateCardWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RateCards from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RateCards.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned RateCards
+    **/
+    _count?: true | RateCardCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: RateCardAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: RateCardSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: RateCardMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: RateCardMaxAggregateInputType
+  }
+
+  export type GetRateCardAggregateType<T extends RateCardAggregateArgs> = {
+        [P in keyof T & keyof AggregateRateCard]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRateCard[P]>
+      : GetScalarType<T[P], AggregateRateCard[P]>
+  }
+
+
+
+
+  export type RateCardGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RateCardWhereInput
+    orderBy?: RateCardOrderByWithAggregationInput | RateCardOrderByWithAggregationInput[]
+    by: RateCardScalarFieldEnum[] | RateCardScalarFieldEnum
+    having?: RateCardScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: RateCardCountAggregateInputType | true
+    _avg?: RateCardAvgAggregateInputType
+    _sum?: RateCardSumAggregateInputType
+    _min?: RateCardMinAggregateInputType
+    _max?: RateCardMaxAggregateInputType
+  }
+
+  export type RateCardGroupByOutputType = {
+    id: string
+    version: number
+    active: boolean
+    data: JsonValue
+    effectiveAt: Date
+    createdAt: Date
+    _count: RateCardCountAggregateOutputType | null
+    _avg: RateCardAvgAggregateOutputType | null
+    _sum: RateCardSumAggregateOutputType | null
+    _min: RateCardMinAggregateOutputType | null
+    _max: RateCardMaxAggregateOutputType | null
+  }
+
+  type GetRateCardGroupByPayload<T extends RateCardGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<RateCardGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof RateCardGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], RateCardGroupByOutputType[P]>
+            : GetScalarType<T[P], RateCardGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type RateCardSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    version?: boolean
+    active?: boolean
+    data?: boolean
+    effectiveAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["rateCard"]>
+
+  export type RateCardSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    version?: boolean
+    active?: boolean
+    data?: boolean
+    effectiveAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["rateCard"]>
+
+  export type RateCardSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    version?: boolean
+    active?: boolean
+    data?: boolean
+    effectiveAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["rateCard"]>
+
+  export type RateCardSelectScalar = {
+    id?: boolean
+    version?: boolean
+    active?: boolean
+    data?: boolean
+    effectiveAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type RateCardOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "version" | "active" | "data" | "effectiveAt" | "createdAt", ExtArgs["result"]["rateCard"]>
+
+  export type $RateCardPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "RateCard"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      version: number
+      active: boolean
+      data: Prisma.JsonValue
+      effectiveAt: Date
+      createdAt: Date
+    }, ExtArgs["result"]["rateCard"]>
+    composites: {}
+  }
+
+  type RateCardGetPayload<S extends boolean | null | undefined | RateCardDefaultArgs> = $Result.GetResult<Prisma.$RateCardPayload, S>
+
+  type RateCardCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<RateCardFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: RateCardCountAggregateInputType | true
+    }
+
+  export interface RateCardDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['RateCard'], meta: { name: 'RateCard' } }
+    /**
+     * Find zero or one RateCard that matches the filter.
+     * @param {RateCardFindUniqueArgs} args - Arguments to find a RateCard
+     * @example
+     * // Get one RateCard
+     * const rateCard = await prisma.rateCard.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends RateCardFindUniqueArgs>(args: SelectSubset<T, RateCardFindUniqueArgs<ExtArgs>>): Prisma__RateCardClient<$Result.GetResult<Prisma.$RateCardPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one RateCard that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {RateCardFindUniqueOrThrowArgs} args - Arguments to find a RateCard
+     * @example
+     * // Get one RateCard
+     * const rateCard = await prisma.rateCard.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends RateCardFindUniqueOrThrowArgs>(args: SelectSubset<T, RateCardFindUniqueOrThrowArgs<ExtArgs>>): Prisma__RateCardClient<$Result.GetResult<Prisma.$RateCardPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first RateCard that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RateCardFindFirstArgs} args - Arguments to find a RateCard
+     * @example
+     * // Get one RateCard
+     * const rateCard = await prisma.rateCard.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends RateCardFindFirstArgs>(args?: SelectSubset<T, RateCardFindFirstArgs<ExtArgs>>): Prisma__RateCardClient<$Result.GetResult<Prisma.$RateCardPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first RateCard that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RateCardFindFirstOrThrowArgs} args - Arguments to find a RateCard
+     * @example
+     * // Get one RateCard
+     * const rateCard = await prisma.rateCard.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends RateCardFindFirstOrThrowArgs>(args?: SelectSubset<T, RateCardFindFirstOrThrowArgs<ExtArgs>>): Prisma__RateCardClient<$Result.GetResult<Prisma.$RateCardPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more RateCards that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RateCardFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all RateCards
+     * const rateCards = await prisma.rateCard.findMany()
+     * 
+     * // Get first 10 RateCards
+     * const rateCards = await prisma.rateCard.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const rateCardWithIdOnly = await prisma.rateCard.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends RateCardFindManyArgs>(args?: SelectSubset<T, RateCardFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RateCardPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a RateCard.
+     * @param {RateCardCreateArgs} args - Arguments to create a RateCard.
+     * @example
+     * // Create one RateCard
+     * const RateCard = await prisma.rateCard.create({
+     *   data: {
+     *     // ... data to create a RateCard
+     *   }
+     * })
+     * 
+     */
+    create<T extends RateCardCreateArgs>(args: SelectSubset<T, RateCardCreateArgs<ExtArgs>>): Prisma__RateCardClient<$Result.GetResult<Prisma.$RateCardPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many RateCards.
+     * @param {RateCardCreateManyArgs} args - Arguments to create many RateCards.
+     * @example
+     * // Create many RateCards
+     * const rateCard = await prisma.rateCard.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends RateCardCreateManyArgs>(args?: SelectSubset<T, RateCardCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many RateCards and returns the data saved in the database.
+     * @param {RateCardCreateManyAndReturnArgs} args - Arguments to create many RateCards.
+     * @example
+     * // Create many RateCards
+     * const rateCard = await prisma.rateCard.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many RateCards and only return the `id`
+     * const rateCardWithIdOnly = await prisma.rateCard.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends RateCardCreateManyAndReturnArgs>(args?: SelectSubset<T, RateCardCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RateCardPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a RateCard.
+     * @param {RateCardDeleteArgs} args - Arguments to delete one RateCard.
+     * @example
+     * // Delete one RateCard
+     * const RateCard = await prisma.rateCard.delete({
+     *   where: {
+     *     // ... filter to delete one RateCard
+     *   }
+     * })
+     * 
+     */
+    delete<T extends RateCardDeleteArgs>(args: SelectSubset<T, RateCardDeleteArgs<ExtArgs>>): Prisma__RateCardClient<$Result.GetResult<Prisma.$RateCardPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one RateCard.
+     * @param {RateCardUpdateArgs} args - Arguments to update one RateCard.
+     * @example
+     * // Update one RateCard
+     * const rateCard = await prisma.rateCard.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends RateCardUpdateArgs>(args: SelectSubset<T, RateCardUpdateArgs<ExtArgs>>): Prisma__RateCardClient<$Result.GetResult<Prisma.$RateCardPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more RateCards.
+     * @param {RateCardDeleteManyArgs} args - Arguments to filter RateCards to delete.
+     * @example
+     * // Delete a few RateCards
+     * const { count } = await prisma.rateCard.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends RateCardDeleteManyArgs>(args?: SelectSubset<T, RateCardDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RateCards.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RateCardUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many RateCards
+     * const rateCard = await prisma.rateCard.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends RateCardUpdateManyArgs>(args: SelectSubset<T, RateCardUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RateCards and returns the data updated in the database.
+     * @param {RateCardUpdateManyAndReturnArgs} args - Arguments to update many RateCards.
+     * @example
+     * // Update many RateCards
+     * const rateCard = await prisma.rateCard.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more RateCards and only return the `id`
+     * const rateCardWithIdOnly = await prisma.rateCard.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends RateCardUpdateManyAndReturnArgs>(args: SelectSubset<T, RateCardUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RateCardPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one RateCard.
+     * @param {RateCardUpsertArgs} args - Arguments to update or create a RateCard.
+     * @example
+     * // Update or create a RateCard
+     * const rateCard = await prisma.rateCard.upsert({
+     *   create: {
+     *     // ... data to create a RateCard
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the RateCard we want to update
+     *   }
+     * })
+     */
+    upsert<T extends RateCardUpsertArgs>(args: SelectSubset<T, RateCardUpsertArgs<ExtArgs>>): Prisma__RateCardClient<$Result.GetResult<Prisma.$RateCardPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of RateCards.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RateCardCountArgs} args - Arguments to filter RateCards to count.
+     * @example
+     * // Count the number of RateCards
+     * const count = await prisma.rateCard.count({
+     *   where: {
+     *     // ... the filter for the RateCards we want to count
+     *   }
+     * })
+    **/
+    count<T extends RateCardCountArgs>(
+      args?: Subset<T, RateCardCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], RateCardCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a RateCard.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RateCardAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends RateCardAggregateArgs>(args: Subset<T, RateCardAggregateArgs>): Prisma.PrismaPromise<GetRateCardAggregateType<T>>
+
+    /**
+     * Group by RateCard.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RateCardGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends RateCardGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: RateCardGroupByArgs['orderBy'] }
+        : { orderBy?: RateCardGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, RateCardGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRateCardGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the RateCard model
+   */
+  readonly fields: RateCardFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for RateCard.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__RateCardClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the RateCard model
+   */
+  interface RateCardFieldRefs {
+    readonly id: FieldRef<"RateCard", 'String'>
+    readonly version: FieldRef<"RateCard", 'Int'>
+    readonly active: FieldRef<"RateCard", 'Boolean'>
+    readonly data: FieldRef<"RateCard", 'Json'>
+    readonly effectiveAt: FieldRef<"RateCard", 'DateTime'>
+    readonly createdAt: FieldRef<"RateCard", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * RateCard findUnique
+   */
+  export type RateCardFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RateCard
+     */
+    select?: RateCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RateCard
+     */
+    omit?: RateCardOmit<ExtArgs> | null
+    /**
+     * Filter, which RateCard to fetch.
+     */
+    where: RateCardWhereUniqueInput
+  }
+
+  /**
+   * RateCard findUniqueOrThrow
+   */
+  export type RateCardFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RateCard
+     */
+    select?: RateCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RateCard
+     */
+    omit?: RateCardOmit<ExtArgs> | null
+    /**
+     * Filter, which RateCard to fetch.
+     */
+    where: RateCardWhereUniqueInput
+  }
+
+  /**
+   * RateCard findFirst
+   */
+  export type RateCardFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RateCard
+     */
+    select?: RateCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RateCard
+     */
+    omit?: RateCardOmit<ExtArgs> | null
+    /**
+     * Filter, which RateCard to fetch.
+     */
+    where?: RateCardWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RateCards to fetch.
+     */
+    orderBy?: RateCardOrderByWithRelationInput | RateCardOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RateCards.
+     */
+    cursor?: RateCardWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RateCards from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RateCards.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RateCards.
+     */
+    distinct?: RateCardScalarFieldEnum | RateCardScalarFieldEnum[]
+  }
+
+  /**
+   * RateCard findFirstOrThrow
+   */
+  export type RateCardFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RateCard
+     */
+    select?: RateCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RateCard
+     */
+    omit?: RateCardOmit<ExtArgs> | null
+    /**
+     * Filter, which RateCard to fetch.
+     */
+    where?: RateCardWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RateCards to fetch.
+     */
+    orderBy?: RateCardOrderByWithRelationInput | RateCardOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RateCards.
+     */
+    cursor?: RateCardWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RateCards from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RateCards.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RateCards.
+     */
+    distinct?: RateCardScalarFieldEnum | RateCardScalarFieldEnum[]
+  }
+
+  /**
+   * RateCard findMany
+   */
+  export type RateCardFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RateCard
+     */
+    select?: RateCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RateCard
+     */
+    omit?: RateCardOmit<ExtArgs> | null
+    /**
+     * Filter, which RateCards to fetch.
+     */
+    where?: RateCardWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RateCards to fetch.
+     */
+    orderBy?: RateCardOrderByWithRelationInput | RateCardOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing RateCards.
+     */
+    cursor?: RateCardWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RateCards from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RateCards.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RateCards.
+     */
+    distinct?: RateCardScalarFieldEnum | RateCardScalarFieldEnum[]
+  }
+
+  /**
+   * RateCard create
+   */
+  export type RateCardCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RateCard
+     */
+    select?: RateCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RateCard
+     */
+    omit?: RateCardOmit<ExtArgs> | null
+    /**
+     * The data needed to create a RateCard.
+     */
+    data: XOR<RateCardCreateInput, RateCardUncheckedCreateInput>
+  }
+
+  /**
+   * RateCard createMany
+   */
+  export type RateCardCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many RateCards.
+     */
+    data: RateCardCreateManyInput | RateCardCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * RateCard createManyAndReturn
+   */
+  export type RateCardCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RateCard
+     */
+    select?: RateCardSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the RateCard
+     */
+    omit?: RateCardOmit<ExtArgs> | null
+    /**
+     * The data used to create many RateCards.
+     */
+    data: RateCardCreateManyInput | RateCardCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * RateCard update
+   */
+  export type RateCardUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RateCard
+     */
+    select?: RateCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RateCard
+     */
+    omit?: RateCardOmit<ExtArgs> | null
+    /**
+     * The data needed to update a RateCard.
+     */
+    data: XOR<RateCardUpdateInput, RateCardUncheckedUpdateInput>
+    /**
+     * Choose, which RateCard to update.
+     */
+    where: RateCardWhereUniqueInput
+  }
+
+  /**
+   * RateCard updateMany
+   */
+  export type RateCardUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update RateCards.
+     */
+    data: XOR<RateCardUpdateManyMutationInput, RateCardUncheckedUpdateManyInput>
+    /**
+     * Filter which RateCards to update
+     */
+    where?: RateCardWhereInput
+    /**
+     * Limit how many RateCards to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * RateCard updateManyAndReturn
+   */
+  export type RateCardUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RateCard
+     */
+    select?: RateCardSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the RateCard
+     */
+    omit?: RateCardOmit<ExtArgs> | null
+    /**
+     * The data used to update RateCards.
+     */
+    data: XOR<RateCardUpdateManyMutationInput, RateCardUncheckedUpdateManyInput>
+    /**
+     * Filter which RateCards to update
+     */
+    where?: RateCardWhereInput
+    /**
+     * Limit how many RateCards to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * RateCard upsert
+   */
+  export type RateCardUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RateCard
+     */
+    select?: RateCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RateCard
+     */
+    omit?: RateCardOmit<ExtArgs> | null
+    /**
+     * The filter to search for the RateCard to update in case it exists.
+     */
+    where: RateCardWhereUniqueInput
+    /**
+     * In case the RateCard found by the `where` argument doesn't exist, create a new RateCard with this data.
+     */
+    create: XOR<RateCardCreateInput, RateCardUncheckedCreateInput>
+    /**
+     * In case the RateCard was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<RateCardUpdateInput, RateCardUncheckedUpdateInput>
+  }
+
+  /**
+   * RateCard delete
+   */
+  export type RateCardDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RateCard
+     */
+    select?: RateCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RateCard
+     */
+    omit?: RateCardOmit<ExtArgs> | null
+    /**
+     * Filter which RateCard to delete.
+     */
+    where: RateCardWhereUniqueInput
+  }
+
+  /**
+   * RateCard deleteMany
+   */
+  export type RateCardDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RateCards to delete
+     */
+    where?: RateCardWhereInput
+    /**
+     * Limit how many RateCards to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * RateCard without action
+   */
+  export type RateCardDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RateCard
+     */
+    select?: RateCardSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RateCard
+     */
+    omit?: RateCardOmit<ExtArgs> | null
   }
 
 
@@ -129968,6 +131359,2652 @@ export namespace Prisma {
 
 
   /**
+   * Model ScheduledTask
+   */
+
+  export type AggregateScheduledTask = {
+    _count: ScheduledTaskCountAggregateOutputType | null
+    _avg: ScheduledTaskAvgAggregateOutputType | null
+    _sum: ScheduledTaskSumAggregateOutputType | null
+    _min: ScheduledTaskMinAggregateOutputType | null
+    _max: ScheduledTaskMaxAggregateOutputType | null
+  }
+
+  export type ScheduledTaskAvgAggregateOutputType = {
+    workflowId: number | null
+    timeoutSeconds: number | null
+    maxRetries: number | null
+  }
+
+  export type ScheduledTaskSumAggregateOutputType = {
+    workflowId: number | null
+    timeoutSeconds: number | null
+    maxRetries: number | null
+  }
+
+  export type ScheduledTaskMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    projectId: string | null
+    kind: $Enums.ScheduledTaskKind | null
+    name: string | null
+    command: string | null
+    workflowId: number | null
+    cron: string | null
+    timezone: string | null
+    machineSize: string | null
+    enabled: boolean | null
+    timeoutSeconds: number | null
+    concurrency: string | null
+    maxRetries: number | null
+    notifyOnFailure: boolean | null
+    lastRunAt: Date | null
+    lastStatus: string | null
+    nextRunAt: Date | null
+    createdByUserId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ScheduledTaskMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    projectId: string | null
+    kind: $Enums.ScheduledTaskKind | null
+    name: string | null
+    command: string | null
+    workflowId: number | null
+    cron: string | null
+    timezone: string | null
+    machineSize: string | null
+    enabled: boolean | null
+    timeoutSeconds: number | null
+    concurrency: string | null
+    maxRetries: number | null
+    notifyOnFailure: boolean | null
+    lastRunAt: Date | null
+    lastStatus: string | null
+    nextRunAt: Date | null
+    createdByUserId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ScheduledTaskCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    projectId: number
+    kind: number
+    name: number
+    command: number
+    workflowId: number
+    cron: number
+    timezone: number
+    machineSize: number
+    enabled: number
+    timeoutSeconds: number
+    concurrency: number
+    maxRetries: number
+    notifyOnFailure: number
+    lastRunAt: number
+    lastStatus: number
+    nextRunAt: number
+    createdByUserId: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ScheduledTaskAvgAggregateInputType = {
+    workflowId?: true
+    timeoutSeconds?: true
+    maxRetries?: true
+  }
+
+  export type ScheduledTaskSumAggregateInputType = {
+    workflowId?: true
+    timeoutSeconds?: true
+    maxRetries?: true
+  }
+
+  export type ScheduledTaskMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    projectId?: true
+    kind?: true
+    name?: true
+    command?: true
+    workflowId?: true
+    cron?: true
+    timezone?: true
+    machineSize?: true
+    enabled?: true
+    timeoutSeconds?: true
+    concurrency?: true
+    maxRetries?: true
+    notifyOnFailure?: true
+    lastRunAt?: true
+    lastStatus?: true
+    nextRunAt?: true
+    createdByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ScheduledTaskMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    projectId?: true
+    kind?: true
+    name?: true
+    command?: true
+    workflowId?: true
+    cron?: true
+    timezone?: true
+    machineSize?: true
+    enabled?: true
+    timeoutSeconds?: true
+    concurrency?: true
+    maxRetries?: true
+    notifyOnFailure?: true
+    lastRunAt?: true
+    lastStatus?: true
+    nextRunAt?: true
+    createdByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ScheduledTaskCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    projectId?: true
+    kind?: true
+    name?: true
+    command?: true
+    workflowId?: true
+    cron?: true
+    timezone?: true
+    machineSize?: true
+    enabled?: true
+    timeoutSeconds?: true
+    concurrency?: true
+    maxRetries?: true
+    notifyOnFailure?: true
+    lastRunAt?: true
+    lastStatus?: true
+    nextRunAt?: true
+    createdByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ScheduledTaskAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ScheduledTask to aggregate.
+     */
+    where?: ScheduledTaskWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ScheduledTasks to fetch.
+     */
+    orderBy?: ScheduledTaskOrderByWithRelationInput | ScheduledTaskOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ScheduledTaskWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ScheduledTasks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ScheduledTasks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ScheduledTasks
+    **/
+    _count?: true | ScheduledTaskCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ScheduledTaskAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ScheduledTaskSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ScheduledTaskMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ScheduledTaskMaxAggregateInputType
+  }
+
+  export type GetScheduledTaskAggregateType<T extends ScheduledTaskAggregateArgs> = {
+        [P in keyof T & keyof AggregateScheduledTask]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateScheduledTask[P]>
+      : GetScalarType<T[P], AggregateScheduledTask[P]>
+  }
+
+
+
+
+  export type ScheduledTaskGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ScheduledTaskWhereInput
+    orderBy?: ScheduledTaskOrderByWithAggregationInput | ScheduledTaskOrderByWithAggregationInput[]
+    by: ScheduledTaskScalarFieldEnum[] | ScheduledTaskScalarFieldEnum
+    having?: ScheduledTaskScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ScheduledTaskCountAggregateInputType | true
+    _avg?: ScheduledTaskAvgAggregateInputType
+    _sum?: ScheduledTaskSumAggregateInputType
+    _min?: ScheduledTaskMinAggregateInputType
+    _max?: ScheduledTaskMaxAggregateInputType
+  }
+
+  export type ScheduledTaskGroupByOutputType = {
+    id: string
+    organizationId: string
+    projectId: string
+    kind: $Enums.ScheduledTaskKind
+    name: string
+    command: string
+    workflowId: number | null
+    cron: string
+    timezone: string
+    machineSize: string
+    enabled: boolean
+    timeoutSeconds: number
+    concurrency: string
+    maxRetries: number
+    notifyOnFailure: boolean
+    lastRunAt: Date | null
+    lastStatus: string | null
+    nextRunAt: Date | null
+    createdByUserId: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ScheduledTaskCountAggregateOutputType | null
+    _avg: ScheduledTaskAvgAggregateOutputType | null
+    _sum: ScheduledTaskSumAggregateOutputType | null
+    _min: ScheduledTaskMinAggregateOutputType | null
+    _max: ScheduledTaskMaxAggregateOutputType | null
+  }
+
+  type GetScheduledTaskGroupByPayload<T extends ScheduledTaskGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ScheduledTaskGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ScheduledTaskGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ScheduledTaskGroupByOutputType[P]>
+            : GetScalarType<T[P], ScheduledTaskGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ScheduledTaskSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    kind?: boolean
+    name?: boolean
+    command?: boolean
+    workflowId?: boolean
+    cron?: boolean
+    timezone?: boolean
+    machineSize?: boolean
+    enabled?: boolean
+    timeoutSeconds?: boolean
+    concurrency?: boolean
+    maxRetries?: boolean
+    notifyOnFailure?: boolean
+    lastRunAt?: boolean
+    lastStatus?: boolean
+    nextRunAt?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    runs?: boolean | ScheduledTask$runsArgs<ExtArgs>
+    _count?: boolean | ScheduledTaskCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["scheduledTask"]>
+
+  export type ScheduledTaskSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    kind?: boolean
+    name?: boolean
+    command?: boolean
+    workflowId?: boolean
+    cron?: boolean
+    timezone?: boolean
+    machineSize?: boolean
+    enabled?: boolean
+    timeoutSeconds?: boolean
+    concurrency?: boolean
+    maxRetries?: boolean
+    notifyOnFailure?: boolean
+    lastRunAt?: boolean
+    lastStatus?: boolean
+    nextRunAt?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["scheduledTask"]>
+
+  export type ScheduledTaskSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    kind?: boolean
+    name?: boolean
+    command?: boolean
+    workflowId?: boolean
+    cron?: boolean
+    timezone?: boolean
+    machineSize?: boolean
+    enabled?: boolean
+    timeoutSeconds?: boolean
+    concurrency?: boolean
+    maxRetries?: boolean
+    notifyOnFailure?: boolean
+    lastRunAt?: boolean
+    lastStatus?: boolean
+    nextRunAt?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["scheduledTask"]>
+
+  export type ScheduledTaskSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    kind?: boolean
+    name?: boolean
+    command?: boolean
+    workflowId?: boolean
+    cron?: boolean
+    timezone?: boolean
+    machineSize?: boolean
+    enabled?: boolean
+    timeoutSeconds?: boolean
+    concurrency?: boolean
+    maxRetries?: boolean
+    notifyOnFailure?: boolean
+    lastRunAt?: boolean
+    lastStatus?: boolean
+    nextRunAt?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ScheduledTaskOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "projectId" | "kind" | "name" | "command" | "workflowId" | "cron" | "timezone" | "machineSize" | "enabled" | "timeoutSeconds" | "concurrency" | "maxRetries" | "notifyOnFailure" | "lastRunAt" | "lastStatus" | "nextRunAt" | "createdByUserId" | "createdAt" | "updatedAt", ExtArgs["result"]["scheduledTask"]>
+  export type ScheduledTaskInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    runs?: boolean | ScheduledTask$runsArgs<ExtArgs>
+    _count?: boolean | ScheduledTaskCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type ScheduledTaskIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type ScheduledTaskIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $ScheduledTaskPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ScheduledTask"
+    objects: {
+      runs: Prisma.$ScheduledTaskRunPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      projectId: string
+      kind: $Enums.ScheduledTaskKind
+      name: string
+      /**
+       * Shell command for DEPLOYMENT tasks (run as `sh -lc <command>` in the project sandbox).
+       */
+      command: string
+      /**
+       * For WORKFLOW tasks: the workflow id inside VIBECORE_WORKFLOWS_STATE.
+       */
+      workflowId: number | null
+      /**
+       * 5-field cron expression, already normalized.
+       */
+      cron: string
+      /**
+       * IANA timezone the cron fields are interpreted in.
+       */
+      timezone: string
+      /**
+       * Machine size key. The size catalogue itself is owned elsewhere; this is the field only.
+       */
+      machineSize: string
+      enabled: boolean
+      /**
+       * Hard kill after this many seconds.
+       */
+      timeoutSeconds: number
+      /**
+       * FORBID (skip if the previous run is still going) | ALLOW.
+       */
+      concurrency: string
+      /**
+       * Replit parity: a failed scheduled run is NOT retried by default.
+       */
+      maxRetries: number
+      notifyOnFailure: boolean
+      lastRunAt: Date | null
+      lastStatus: string | null
+      /**
+       * Next fire time (UTC). NULL when disabled.
+       */
+      nextRunAt: Date | null
+      createdByUserId: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["scheduledTask"]>
+    composites: {}
+  }
+
+  type ScheduledTaskGetPayload<S extends boolean | null | undefined | ScheduledTaskDefaultArgs> = $Result.GetResult<Prisma.$ScheduledTaskPayload, S>
+
+  type ScheduledTaskCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ScheduledTaskFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ScheduledTaskCountAggregateInputType | true
+    }
+
+  export interface ScheduledTaskDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ScheduledTask'], meta: { name: 'ScheduledTask' } }
+    /**
+     * Find zero or one ScheduledTask that matches the filter.
+     * @param {ScheduledTaskFindUniqueArgs} args - Arguments to find a ScheduledTask
+     * @example
+     * // Get one ScheduledTask
+     * const scheduledTask = await prisma.scheduledTask.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ScheduledTaskFindUniqueArgs>(args: SelectSubset<T, ScheduledTaskFindUniqueArgs<ExtArgs>>): Prisma__ScheduledTaskClient<$Result.GetResult<Prisma.$ScheduledTaskPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ScheduledTask that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ScheduledTaskFindUniqueOrThrowArgs} args - Arguments to find a ScheduledTask
+     * @example
+     * // Get one ScheduledTask
+     * const scheduledTask = await prisma.scheduledTask.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ScheduledTaskFindUniqueOrThrowArgs>(args: SelectSubset<T, ScheduledTaskFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ScheduledTaskClient<$Result.GetResult<Prisma.$ScheduledTaskPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ScheduledTask that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScheduledTaskFindFirstArgs} args - Arguments to find a ScheduledTask
+     * @example
+     * // Get one ScheduledTask
+     * const scheduledTask = await prisma.scheduledTask.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ScheduledTaskFindFirstArgs>(args?: SelectSubset<T, ScheduledTaskFindFirstArgs<ExtArgs>>): Prisma__ScheduledTaskClient<$Result.GetResult<Prisma.$ScheduledTaskPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ScheduledTask that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScheduledTaskFindFirstOrThrowArgs} args - Arguments to find a ScheduledTask
+     * @example
+     * // Get one ScheduledTask
+     * const scheduledTask = await prisma.scheduledTask.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ScheduledTaskFindFirstOrThrowArgs>(args?: SelectSubset<T, ScheduledTaskFindFirstOrThrowArgs<ExtArgs>>): Prisma__ScheduledTaskClient<$Result.GetResult<Prisma.$ScheduledTaskPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ScheduledTasks that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScheduledTaskFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ScheduledTasks
+     * const scheduledTasks = await prisma.scheduledTask.findMany()
+     * 
+     * // Get first 10 ScheduledTasks
+     * const scheduledTasks = await prisma.scheduledTask.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const scheduledTaskWithIdOnly = await prisma.scheduledTask.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ScheduledTaskFindManyArgs>(args?: SelectSubset<T, ScheduledTaskFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScheduledTaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ScheduledTask.
+     * @param {ScheduledTaskCreateArgs} args - Arguments to create a ScheduledTask.
+     * @example
+     * // Create one ScheduledTask
+     * const ScheduledTask = await prisma.scheduledTask.create({
+     *   data: {
+     *     // ... data to create a ScheduledTask
+     *   }
+     * })
+     * 
+     */
+    create<T extends ScheduledTaskCreateArgs>(args: SelectSubset<T, ScheduledTaskCreateArgs<ExtArgs>>): Prisma__ScheduledTaskClient<$Result.GetResult<Prisma.$ScheduledTaskPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ScheduledTasks.
+     * @param {ScheduledTaskCreateManyArgs} args - Arguments to create many ScheduledTasks.
+     * @example
+     * // Create many ScheduledTasks
+     * const scheduledTask = await prisma.scheduledTask.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ScheduledTaskCreateManyArgs>(args?: SelectSubset<T, ScheduledTaskCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ScheduledTasks and returns the data saved in the database.
+     * @param {ScheduledTaskCreateManyAndReturnArgs} args - Arguments to create many ScheduledTasks.
+     * @example
+     * // Create many ScheduledTasks
+     * const scheduledTask = await prisma.scheduledTask.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ScheduledTasks and only return the `id`
+     * const scheduledTaskWithIdOnly = await prisma.scheduledTask.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ScheduledTaskCreateManyAndReturnArgs>(args?: SelectSubset<T, ScheduledTaskCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScheduledTaskPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ScheduledTask.
+     * @param {ScheduledTaskDeleteArgs} args - Arguments to delete one ScheduledTask.
+     * @example
+     * // Delete one ScheduledTask
+     * const ScheduledTask = await prisma.scheduledTask.delete({
+     *   where: {
+     *     // ... filter to delete one ScheduledTask
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ScheduledTaskDeleteArgs>(args: SelectSubset<T, ScheduledTaskDeleteArgs<ExtArgs>>): Prisma__ScheduledTaskClient<$Result.GetResult<Prisma.$ScheduledTaskPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ScheduledTask.
+     * @param {ScheduledTaskUpdateArgs} args - Arguments to update one ScheduledTask.
+     * @example
+     * // Update one ScheduledTask
+     * const scheduledTask = await prisma.scheduledTask.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ScheduledTaskUpdateArgs>(args: SelectSubset<T, ScheduledTaskUpdateArgs<ExtArgs>>): Prisma__ScheduledTaskClient<$Result.GetResult<Prisma.$ScheduledTaskPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ScheduledTasks.
+     * @param {ScheduledTaskDeleteManyArgs} args - Arguments to filter ScheduledTasks to delete.
+     * @example
+     * // Delete a few ScheduledTasks
+     * const { count } = await prisma.scheduledTask.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ScheduledTaskDeleteManyArgs>(args?: SelectSubset<T, ScheduledTaskDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ScheduledTasks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScheduledTaskUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ScheduledTasks
+     * const scheduledTask = await prisma.scheduledTask.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ScheduledTaskUpdateManyArgs>(args: SelectSubset<T, ScheduledTaskUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ScheduledTasks and returns the data updated in the database.
+     * @param {ScheduledTaskUpdateManyAndReturnArgs} args - Arguments to update many ScheduledTasks.
+     * @example
+     * // Update many ScheduledTasks
+     * const scheduledTask = await prisma.scheduledTask.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ScheduledTasks and only return the `id`
+     * const scheduledTaskWithIdOnly = await prisma.scheduledTask.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ScheduledTaskUpdateManyAndReturnArgs>(args: SelectSubset<T, ScheduledTaskUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScheduledTaskPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ScheduledTask.
+     * @param {ScheduledTaskUpsertArgs} args - Arguments to update or create a ScheduledTask.
+     * @example
+     * // Update or create a ScheduledTask
+     * const scheduledTask = await prisma.scheduledTask.upsert({
+     *   create: {
+     *     // ... data to create a ScheduledTask
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ScheduledTask we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ScheduledTaskUpsertArgs>(args: SelectSubset<T, ScheduledTaskUpsertArgs<ExtArgs>>): Prisma__ScheduledTaskClient<$Result.GetResult<Prisma.$ScheduledTaskPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ScheduledTasks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScheduledTaskCountArgs} args - Arguments to filter ScheduledTasks to count.
+     * @example
+     * // Count the number of ScheduledTasks
+     * const count = await prisma.scheduledTask.count({
+     *   where: {
+     *     // ... the filter for the ScheduledTasks we want to count
+     *   }
+     * })
+    **/
+    count<T extends ScheduledTaskCountArgs>(
+      args?: Subset<T, ScheduledTaskCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ScheduledTaskCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ScheduledTask.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScheduledTaskAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ScheduledTaskAggregateArgs>(args: Subset<T, ScheduledTaskAggregateArgs>): Prisma.PrismaPromise<GetScheduledTaskAggregateType<T>>
+
+    /**
+     * Group by ScheduledTask.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScheduledTaskGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ScheduledTaskGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ScheduledTaskGroupByArgs['orderBy'] }
+        : { orderBy?: ScheduledTaskGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ScheduledTaskGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetScheduledTaskGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ScheduledTask model
+   */
+  readonly fields: ScheduledTaskFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ScheduledTask.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ScheduledTaskClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    runs<T extends ScheduledTask$runsArgs<ExtArgs> = {}>(args?: Subset<T, ScheduledTask$runsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScheduledTaskRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ScheduledTask model
+   */
+  interface ScheduledTaskFieldRefs {
+    readonly id: FieldRef<"ScheduledTask", 'String'>
+    readonly organizationId: FieldRef<"ScheduledTask", 'String'>
+    readonly projectId: FieldRef<"ScheduledTask", 'String'>
+    readonly kind: FieldRef<"ScheduledTask", 'ScheduledTaskKind'>
+    readonly name: FieldRef<"ScheduledTask", 'String'>
+    readonly command: FieldRef<"ScheduledTask", 'String'>
+    readonly workflowId: FieldRef<"ScheduledTask", 'Int'>
+    readonly cron: FieldRef<"ScheduledTask", 'String'>
+    readonly timezone: FieldRef<"ScheduledTask", 'String'>
+    readonly machineSize: FieldRef<"ScheduledTask", 'String'>
+    readonly enabled: FieldRef<"ScheduledTask", 'Boolean'>
+    readonly timeoutSeconds: FieldRef<"ScheduledTask", 'Int'>
+    readonly concurrency: FieldRef<"ScheduledTask", 'String'>
+    readonly maxRetries: FieldRef<"ScheduledTask", 'Int'>
+    readonly notifyOnFailure: FieldRef<"ScheduledTask", 'Boolean'>
+    readonly lastRunAt: FieldRef<"ScheduledTask", 'DateTime'>
+    readonly lastStatus: FieldRef<"ScheduledTask", 'String'>
+    readonly nextRunAt: FieldRef<"ScheduledTask", 'DateTime'>
+    readonly createdByUserId: FieldRef<"ScheduledTask", 'String'>
+    readonly createdAt: FieldRef<"ScheduledTask", 'DateTime'>
+    readonly updatedAt: FieldRef<"ScheduledTask", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ScheduledTask findUnique
+   */
+  export type ScheduledTaskFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTask
+     */
+    select?: ScheduledTaskSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTask
+     */
+    omit?: ScheduledTaskOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskInclude<ExtArgs> | null
+    /**
+     * Filter, which ScheduledTask to fetch.
+     */
+    where: ScheduledTaskWhereUniqueInput
+  }
+
+  /**
+   * ScheduledTask findUniqueOrThrow
+   */
+  export type ScheduledTaskFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTask
+     */
+    select?: ScheduledTaskSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTask
+     */
+    omit?: ScheduledTaskOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskInclude<ExtArgs> | null
+    /**
+     * Filter, which ScheduledTask to fetch.
+     */
+    where: ScheduledTaskWhereUniqueInput
+  }
+
+  /**
+   * ScheduledTask findFirst
+   */
+  export type ScheduledTaskFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTask
+     */
+    select?: ScheduledTaskSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTask
+     */
+    omit?: ScheduledTaskOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskInclude<ExtArgs> | null
+    /**
+     * Filter, which ScheduledTask to fetch.
+     */
+    where?: ScheduledTaskWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ScheduledTasks to fetch.
+     */
+    orderBy?: ScheduledTaskOrderByWithRelationInput | ScheduledTaskOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ScheduledTasks.
+     */
+    cursor?: ScheduledTaskWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ScheduledTasks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ScheduledTasks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ScheduledTasks.
+     */
+    distinct?: ScheduledTaskScalarFieldEnum | ScheduledTaskScalarFieldEnum[]
+  }
+
+  /**
+   * ScheduledTask findFirstOrThrow
+   */
+  export type ScheduledTaskFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTask
+     */
+    select?: ScheduledTaskSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTask
+     */
+    omit?: ScheduledTaskOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskInclude<ExtArgs> | null
+    /**
+     * Filter, which ScheduledTask to fetch.
+     */
+    where?: ScheduledTaskWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ScheduledTasks to fetch.
+     */
+    orderBy?: ScheduledTaskOrderByWithRelationInput | ScheduledTaskOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ScheduledTasks.
+     */
+    cursor?: ScheduledTaskWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ScheduledTasks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ScheduledTasks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ScheduledTasks.
+     */
+    distinct?: ScheduledTaskScalarFieldEnum | ScheduledTaskScalarFieldEnum[]
+  }
+
+  /**
+   * ScheduledTask findMany
+   */
+  export type ScheduledTaskFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTask
+     */
+    select?: ScheduledTaskSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTask
+     */
+    omit?: ScheduledTaskOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskInclude<ExtArgs> | null
+    /**
+     * Filter, which ScheduledTasks to fetch.
+     */
+    where?: ScheduledTaskWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ScheduledTasks to fetch.
+     */
+    orderBy?: ScheduledTaskOrderByWithRelationInput | ScheduledTaskOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ScheduledTasks.
+     */
+    cursor?: ScheduledTaskWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ScheduledTasks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ScheduledTasks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ScheduledTasks.
+     */
+    distinct?: ScheduledTaskScalarFieldEnum | ScheduledTaskScalarFieldEnum[]
+  }
+
+  /**
+   * ScheduledTask create
+   */
+  export type ScheduledTaskCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTask
+     */
+    select?: ScheduledTaskSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTask
+     */
+    omit?: ScheduledTaskOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ScheduledTask.
+     */
+    data: XOR<ScheduledTaskCreateInput, ScheduledTaskUncheckedCreateInput>
+  }
+
+  /**
+   * ScheduledTask createMany
+   */
+  export type ScheduledTaskCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ScheduledTasks.
+     */
+    data: ScheduledTaskCreateManyInput | ScheduledTaskCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ScheduledTask createManyAndReturn
+   */
+  export type ScheduledTaskCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTask
+     */
+    select?: ScheduledTaskSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTask
+     */
+    omit?: ScheduledTaskOmit<ExtArgs> | null
+    /**
+     * The data used to create many ScheduledTasks.
+     */
+    data: ScheduledTaskCreateManyInput | ScheduledTaskCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ScheduledTask update
+   */
+  export type ScheduledTaskUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTask
+     */
+    select?: ScheduledTaskSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTask
+     */
+    omit?: ScheduledTaskOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ScheduledTask.
+     */
+    data: XOR<ScheduledTaskUpdateInput, ScheduledTaskUncheckedUpdateInput>
+    /**
+     * Choose, which ScheduledTask to update.
+     */
+    where: ScheduledTaskWhereUniqueInput
+  }
+
+  /**
+   * ScheduledTask updateMany
+   */
+  export type ScheduledTaskUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ScheduledTasks.
+     */
+    data: XOR<ScheduledTaskUpdateManyMutationInput, ScheduledTaskUncheckedUpdateManyInput>
+    /**
+     * Filter which ScheduledTasks to update
+     */
+    where?: ScheduledTaskWhereInput
+    /**
+     * Limit how many ScheduledTasks to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ScheduledTask updateManyAndReturn
+   */
+  export type ScheduledTaskUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTask
+     */
+    select?: ScheduledTaskSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTask
+     */
+    omit?: ScheduledTaskOmit<ExtArgs> | null
+    /**
+     * The data used to update ScheduledTasks.
+     */
+    data: XOR<ScheduledTaskUpdateManyMutationInput, ScheduledTaskUncheckedUpdateManyInput>
+    /**
+     * Filter which ScheduledTasks to update
+     */
+    where?: ScheduledTaskWhereInput
+    /**
+     * Limit how many ScheduledTasks to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ScheduledTask upsert
+   */
+  export type ScheduledTaskUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTask
+     */
+    select?: ScheduledTaskSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTask
+     */
+    omit?: ScheduledTaskOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ScheduledTask to update in case it exists.
+     */
+    where: ScheduledTaskWhereUniqueInput
+    /**
+     * In case the ScheduledTask found by the `where` argument doesn't exist, create a new ScheduledTask with this data.
+     */
+    create: XOR<ScheduledTaskCreateInput, ScheduledTaskUncheckedCreateInput>
+    /**
+     * In case the ScheduledTask was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ScheduledTaskUpdateInput, ScheduledTaskUncheckedUpdateInput>
+  }
+
+  /**
+   * ScheduledTask delete
+   */
+  export type ScheduledTaskDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTask
+     */
+    select?: ScheduledTaskSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTask
+     */
+    omit?: ScheduledTaskOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskInclude<ExtArgs> | null
+    /**
+     * Filter which ScheduledTask to delete.
+     */
+    where: ScheduledTaskWhereUniqueInput
+  }
+
+  /**
+   * ScheduledTask deleteMany
+   */
+  export type ScheduledTaskDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ScheduledTasks to delete
+     */
+    where?: ScheduledTaskWhereInput
+    /**
+     * Limit how many ScheduledTasks to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ScheduledTask.runs
+   */
+  export type ScheduledTask$runsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTaskRun
+     */
+    select?: ScheduledTaskRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTaskRun
+     */
+    omit?: ScheduledTaskRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskRunInclude<ExtArgs> | null
+    where?: ScheduledTaskRunWhereInput
+    orderBy?: ScheduledTaskRunOrderByWithRelationInput | ScheduledTaskRunOrderByWithRelationInput[]
+    cursor?: ScheduledTaskRunWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ScheduledTaskRunScalarFieldEnum | ScheduledTaskRunScalarFieldEnum[]
+  }
+
+  /**
+   * ScheduledTask without action
+   */
+  export type ScheduledTaskDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTask
+     */
+    select?: ScheduledTaskSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTask
+     */
+    omit?: ScheduledTaskOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ScheduledTaskRun
+   */
+
+  export type AggregateScheduledTaskRun = {
+    _count: ScheduledTaskRunCountAggregateOutputType | null
+    _avg: ScheduledTaskRunAvgAggregateOutputType | null
+    _sum: ScheduledTaskRunSumAggregateOutputType | null
+    _min: ScheduledTaskRunMinAggregateOutputType | null
+    _max: ScheduledTaskRunMaxAggregateOutputType | null
+  }
+
+  export type ScheduledTaskRunAvgAggregateOutputType = {
+    attempt: number | null
+    durationMs: number | null
+    exitCode: number | null
+    computeUnits: number | null
+    costCents: number | null
+  }
+
+  export type ScheduledTaskRunSumAggregateOutputType = {
+    attempt: number | null
+    durationMs: number | null
+    exitCode: number | null
+    computeUnits: number | null
+    costCents: number | null
+  }
+
+  export type ScheduledTaskRunMinAggregateOutputType = {
+    id: string | null
+    taskId: string | null
+    organizationId: string | null
+    projectId: string | null
+    status: $Enums.ScheduledTaskRunStatus | null
+    trigger: string | null
+    attempt: number | null
+    scheduledFor: Date | null
+    startedAt: Date | null
+    finishedAt: Date | null
+    durationMs: number | null
+    exitCode: number | null
+    logs: string | null
+    error: string | null
+    machineSize: string | null
+    computeUnits: number | null
+    costCents: number | null
+    meteredAt: Date | null
+  }
+
+  export type ScheduledTaskRunMaxAggregateOutputType = {
+    id: string | null
+    taskId: string | null
+    organizationId: string | null
+    projectId: string | null
+    status: $Enums.ScheduledTaskRunStatus | null
+    trigger: string | null
+    attempt: number | null
+    scheduledFor: Date | null
+    startedAt: Date | null
+    finishedAt: Date | null
+    durationMs: number | null
+    exitCode: number | null
+    logs: string | null
+    error: string | null
+    machineSize: string | null
+    computeUnits: number | null
+    costCents: number | null
+    meteredAt: Date | null
+  }
+
+  export type ScheduledTaskRunCountAggregateOutputType = {
+    id: number
+    taskId: number
+    organizationId: number
+    projectId: number
+    status: number
+    trigger: number
+    attempt: number
+    scheduledFor: number
+    startedAt: number
+    finishedAt: number
+    durationMs: number
+    exitCode: number
+    logs: number
+    error: number
+    machineSize: number
+    computeUnits: number
+    costCents: number
+    meteredAt: number
+    _all: number
+  }
+
+
+  export type ScheduledTaskRunAvgAggregateInputType = {
+    attempt?: true
+    durationMs?: true
+    exitCode?: true
+    computeUnits?: true
+    costCents?: true
+  }
+
+  export type ScheduledTaskRunSumAggregateInputType = {
+    attempt?: true
+    durationMs?: true
+    exitCode?: true
+    computeUnits?: true
+    costCents?: true
+  }
+
+  export type ScheduledTaskRunMinAggregateInputType = {
+    id?: true
+    taskId?: true
+    organizationId?: true
+    projectId?: true
+    status?: true
+    trigger?: true
+    attempt?: true
+    scheduledFor?: true
+    startedAt?: true
+    finishedAt?: true
+    durationMs?: true
+    exitCode?: true
+    logs?: true
+    error?: true
+    machineSize?: true
+    computeUnits?: true
+    costCents?: true
+    meteredAt?: true
+  }
+
+  export type ScheduledTaskRunMaxAggregateInputType = {
+    id?: true
+    taskId?: true
+    organizationId?: true
+    projectId?: true
+    status?: true
+    trigger?: true
+    attempt?: true
+    scheduledFor?: true
+    startedAt?: true
+    finishedAt?: true
+    durationMs?: true
+    exitCode?: true
+    logs?: true
+    error?: true
+    machineSize?: true
+    computeUnits?: true
+    costCents?: true
+    meteredAt?: true
+  }
+
+  export type ScheduledTaskRunCountAggregateInputType = {
+    id?: true
+    taskId?: true
+    organizationId?: true
+    projectId?: true
+    status?: true
+    trigger?: true
+    attempt?: true
+    scheduledFor?: true
+    startedAt?: true
+    finishedAt?: true
+    durationMs?: true
+    exitCode?: true
+    logs?: true
+    error?: true
+    machineSize?: true
+    computeUnits?: true
+    costCents?: true
+    meteredAt?: true
+    _all?: true
+  }
+
+  export type ScheduledTaskRunAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ScheduledTaskRun to aggregate.
+     */
+    where?: ScheduledTaskRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ScheduledTaskRuns to fetch.
+     */
+    orderBy?: ScheduledTaskRunOrderByWithRelationInput | ScheduledTaskRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ScheduledTaskRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ScheduledTaskRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ScheduledTaskRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ScheduledTaskRuns
+    **/
+    _count?: true | ScheduledTaskRunCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ScheduledTaskRunAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ScheduledTaskRunSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ScheduledTaskRunMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ScheduledTaskRunMaxAggregateInputType
+  }
+
+  export type GetScheduledTaskRunAggregateType<T extends ScheduledTaskRunAggregateArgs> = {
+        [P in keyof T & keyof AggregateScheduledTaskRun]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateScheduledTaskRun[P]>
+      : GetScalarType<T[P], AggregateScheduledTaskRun[P]>
+  }
+
+
+
+
+  export type ScheduledTaskRunGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ScheduledTaskRunWhereInput
+    orderBy?: ScheduledTaskRunOrderByWithAggregationInput | ScheduledTaskRunOrderByWithAggregationInput[]
+    by: ScheduledTaskRunScalarFieldEnum[] | ScheduledTaskRunScalarFieldEnum
+    having?: ScheduledTaskRunScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ScheduledTaskRunCountAggregateInputType | true
+    _avg?: ScheduledTaskRunAvgAggregateInputType
+    _sum?: ScheduledTaskRunSumAggregateInputType
+    _min?: ScheduledTaskRunMinAggregateInputType
+    _max?: ScheduledTaskRunMaxAggregateInputType
+  }
+
+  export type ScheduledTaskRunGroupByOutputType = {
+    id: string
+    taskId: string
+    organizationId: string
+    projectId: string
+    status: $Enums.ScheduledTaskRunStatus
+    trigger: string
+    attempt: number
+    scheduledFor: Date
+    startedAt: Date
+    finishedAt: Date | null
+    durationMs: number | null
+    exitCode: number | null
+    logs: string
+    error: string | null
+    machineSize: string | null
+    computeUnits: number | null
+    costCents: number | null
+    meteredAt: Date | null
+    _count: ScheduledTaskRunCountAggregateOutputType | null
+    _avg: ScheduledTaskRunAvgAggregateOutputType | null
+    _sum: ScheduledTaskRunSumAggregateOutputType | null
+    _min: ScheduledTaskRunMinAggregateOutputType | null
+    _max: ScheduledTaskRunMaxAggregateOutputType | null
+  }
+
+  type GetScheduledTaskRunGroupByPayload<T extends ScheduledTaskRunGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ScheduledTaskRunGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ScheduledTaskRunGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ScheduledTaskRunGroupByOutputType[P]>
+            : GetScalarType<T[P], ScheduledTaskRunGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ScheduledTaskRunSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    taskId?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    status?: boolean
+    trigger?: boolean
+    attempt?: boolean
+    scheduledFor?: boolean
+    startedAt?: boolean
+    finishedAt?: boolean
+    durationMs?: boolean
+    exitCode?: boolean
+    logs?: boolean
+    error?: boolean
+    machineSize?: boolean
+    computeUnits?: boolean
+    costCents?: boolean
+    meteredAt?: boolean
+    task?: boolean | ScheduledTaskDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["scheduledTaskRun"]>
+
+  export type ScheduledTaskRunSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    taskId?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    status?: boolean
+    trigger?: boolean
+    attempt?: boolean
+    scheduledFor?: boolean
+    startedAt?: boolean
+    finishedAt?: boolean
+    durationMs?: boolean
+    exitCode?: boolean
+    logs?: boolean
+    error?: boolean
+    machineSize?: boolean
+    computeUnits?: boolean
+    costCents?: boolean
+    meteredAt?: boolean
+    task?: boolean | ScheduledTaskDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["scheduledTaskRun"]>
+
+  export type ScheduledTaskRunSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    taskId?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    status?: boolean
+    trigger?: boolean
+    attempt?: boolean
+    scheduledFor?: boolean
+    startedAt?: boolean
+    finishedAt?: boolean
+    durationMs?: boolean
+    exitCode?: boolean
+    logs?: boolean
+    error?: boolean
+    machineSize?: boolean
+    computeUnits?: boolean
+    costCents?: boolean
+    meteredAt?: boolean
+    task?: boolean | ScheduledTaskDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["scheduledTaskRun"]>
+
+  export type ScheduledTaskRunSelectScalar = {
+    id?: boolean
+    taskId?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    status?: boolean
+    trigger?: boolean
+    attempt?: boolean
+    scheduledFor?: boolean
+    startedAt?: boolean
+    finishedAt?: boolean
+    durationMs?: boolean
+    exitCode?: boolean
+    logs?: boolean
+    error?: boolean
+    machineSize?: boolean
+    computeUnits?: boolean
+    costCents?: boolean
+    meteredAt?: boolean
+  }
+
+  export type ScheduledTaskRunOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "taskId" | "organizationId" | "projectId" | "status" | "trigger" | "attempt" | "scheduledFor" | "startedAt" | "finishedAt" | "durationMs" | "exitCode" | "logs" | "error" | "machineSize" | "computeUnits" | "costCents" | "meteredAt", ExtArgs["result"]["scheduledTaskRun"]>
+  export type ScheduledTaskRunInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    task?: boolean | ScheduledTaskDefaultArgs<ExtArgs>
+  }
+  export type ScheduledTaskRunIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    task?: boolean | ScheduledTaskDefaultArgs<ExtArgs>
+  }
+  export type ScheduledTaskRunIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    task?: boolean | ScheduledTaskDefaultArgs<ExtArgs>
+  }
+
+  export type $ScheduledTaskRunPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ScheduledTaskRun"
+    objects: {
+      task: Prisma.$ScheduledTaskPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      taskId: string
+      organizationId: string
+      projectId: string
+      status: $Enums.ScheduledTaskRunStatus
+      /**
+       * "schedule" | "manual"
+       */
+      trigger: string
+      attempt: number
+      /**
+       * The cron instant this run is for (may differ from startedAt under load).
+       */
+      scheduledFor: Date
+      startedAt: Date
+      finishedAt: Date | null
+      durationMs: number | null
+      exitCode: number | null
+      /**
+       * Full captured output (stdout + stderr), not a tail.
+       */
+      logs: string
+      error: string | null
+      machineSize: string | null
+      /**
+       * Billed compute units for this run (duration x size). NULL until metered.
+       */
+      computeUnits: number | null
+      costCents: number | null
+      meteredAt: Date | null
+    }, ExtArgs["result"]["scheduledTaskRun"]>
+    composites: {}
+  }
+
+  type ScheduledTaskRunGetPayload<S extends boolean | null | undefined | ScheduledTaskRunDefaultArgs> = $Result.GetResult<Prisma.$ScheduledTaskRunPayload, S>
+
+  type ScheduledTaskRunCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ScheduledTaskRunFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ScheduledTaskRunCountAggregateInputType | true
+    }
+
+  export interface ScheduledTaskRunDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ScheduledTaskRun'], meta: { name: 'ScheduledTaskRun' } }
+    /**
+     * Find zero or one ScheduledTaskRun that matches the filter.
+     * @param {ScheduledTaskRunFindUniqueArgs} args - Arguments to find a ScheduledTaskRun
+     * @example
+     * // Get one ScheduledTaskRun
+     * const scheduledTaskRun = await prisma.scheduledTaskRun.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ScheduledTaskRunFindUniqueArgs>(args: SelectSubset<T, ScheduledTaskRunFindUniqueArgs<ExtArgs>>): Prisma__ScheduledTaskRunClient<$Result.GetResult<Prisma.$ScheduledTaskRunPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ScheduledTaskRun that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ScheduledTaskRunFindUniqueOrThrowArgs} args - Arguments to find a ScheduledTaskRun
+     * @example
+     * // Get one ScheduledTaskRun
+     * const scheduledTaskRun = await prisma.scheduledTaskRun.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ScheduledTaskRunFindUniqueOrThrowArgs>(args: SelectSubset<T, ScheduledTaskRunFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ScheduledTaskRunClient<$Result.GetResult<Prisma.$ScheduledTaskRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ScheduledTaskRun that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScheduledTaskRunFindFirstArgs} args - Arguments to find a ScheduledTaskRun
+     * @example
+     * // Get one ScheduledTaskRun
+     * const scheduledTaskRun = await prisma.scheduledTaskRun.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ScheduledTaskRunFindFirstArgs>(args?: SelectSubset<T, ScheduledTaskRunFindFirstArgs<ExtArgs>>): Prisma__ScheduledTaskRunClient<$Result.GetResult<Prisma.$ScheduledTaskRunPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ScheduledTaskRun that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScheduledTaskRunFindFirstOrThrowArgs} args - Arguments to find a ScheduledTaskRun
+     * @example
+     * // Get one ScheduledTaskRun
+     * const scheduledTaskRun = await prisma.scheduledTaskRun.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ScheduledTaskRunFindFirstOrThrowArgs>(args?: SelectSubset<T, ScheduledTaskRunFindFirstOrThrowArgs<ExtArgs>>): Prisma__ScheduledTaskRunClient<$Result.GetResult<Prisma.$ScheduledTaskRunPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ScheduledTaskRuns that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScheduledTaskRunFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ScheduledTaskRuns
+     * const scheduledTaskRuns = await prisma.scheduledTaskRun.findMany()
+     * 
+     * // Get first 10 ScheduledTaskRuns
+     * const scheduledTaskRuns = await prisma.scheduledTaskRun.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const scheduledTaskRunWithIdOnly = await prisma.scheduledTaskRun.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ScheduledTaskRunFindManyArgs>(args?: SelectSubset<T, ScheduledTaskRunFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScheduledTaskRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ScheduledTaskRun.
+     * @param {ScheduledTaskRunCreateArgs} args - Arguments to create a ScheduledTaskRun.
+     * @example
+     * // Create one ScheduledTaskRun
+     * const ScheduledTaskRun = await prisma.scheduledTaskRun.create({
+     *   data: {
+     *     // ... data to create a ScheduledTaskRun
+     *   }
+     * })
+     * 
+     */
+    create<T extends ScheduledTaskRunCreateArgs>(args: SelectSubset<T, ScheduledTaskRunCreateArgs<ExtArgs>>): Prisma__ScheduledTaskRunClient<$Result.GetResult<Prisma.$ScheduledTaskRunPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ScheduledTaskRuns.
+     * @param {ScheduledTaskRunCreateManyArgs} args - Arguments to create many ScheduledTaskRuns.
+     * @example
+     * // Create many ScheduledTaskRuns
+     * const scheduledTaskRun = await prisma.scheduledTaskRun.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ScheduledTaskRunCreateManyArgs>(args?: SelectSubset<T, ScheduledTaskRunCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ScheduledTaskRuns and returns the data saved in the database.
+     * @param {ScheduledTaskRunCreateManyAndReturnArgs} args - Arguments to create many ScheduledTaskRuns.
+     * @example
+     * // Create many ScheduledTaskRuns
+     * const scheduledTaskRun = await prisma.scheduledTaskRun.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ScheduledTaskRuns and only return the `id`
+     * const scheduledTaskRunWithIdOnly = await prisma.scheduledTaskRun.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ScheduledTaskRunCreateManyAndReturnArgs>(args?: SelectSubset<T, ScheduledTaskRunCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScheduledTaskRunPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ScheduledTaskRun.
+     * @param {ScheduledTaskRunDeleteArgs} args - Arguments to delete one ScheduledTaskRun.
+     * @example
+     * // Delete one ScheduledTaskRun
+     * const ScheduledTaskRun = await prisma.scheduledTaskRun.delete({
+     *   where: {
+     *     // ... filter to delete one ScheduledTaskRun
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ScheduledTaskRunDeleteArgs>(args: SelectSubset<T, ScheduledTaskRunDeleteArgs<ExtArgs>>): Prisma__ScheduledTaskRunClient<$Result.GetResult<Prisma.$ScheduledTaskRunPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ScheduledTaskRun.
+     * @param {ScheduledTaskRunUpdateArgs} args - Arguments to update one ScheduledTaskRun.
+     * @example
+     * // Update one ScheduledTaskRun
+     * const scheduledTaskRun = await prisma.scheduledTaskRun.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ScheduledTaskRunUpdateArgs>(args: SelectSubset<T, ScheduledTaskRunUpdateArgs<ExtArgs>>): Prisma__ScheduledTaskRunClient<$Result.GetResult<Prisma.$ScheduledTaskRunPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ScheduledTaskRuns.
+     * @param {ScheduledTaskRunDeleteManyArgs} args - Arguments to filter ScheduledTaskRuns to delete.
+     * @example
+     * // Delete a few ScheduledTaskRuns
+     * const { count } = await prisma.scheduledTaskRun.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ScheduledTaskRunDeleteManyArgs>(args?: SelectSubset<T, ScheduledTaskRunDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ScheduledTaskRuns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScheduledTaskRunUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ScheduledTaskRuns
+     * const scheduledTaskRun = await prisma.scheduledTaskRun.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ScheduledTaskRunUpdateManyArgs>(args: SelectSubset<T, ScheduledTaskRunUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ScheduledTaskRuns and returns the data updated in the database.
+     * @param {ScheduledTaskRunUpdateManyAndReturnArgs} args - Arguments to update many ScheduledTaskRuns.
+     * @example
+     * // Update many ScheduledTaskRuns
+     * const scheduledTaskRun = await prisma.scheduledTaskRun.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ScheduledTaskRuns and only return the `id`
+     * const scheduledTaskRunWithIdOnly = await prisma.scheduledTaskRun.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ScheduledTaskRunUpdateManyAndReturnArgs>(args: SelectSubset<T, ScheduledTaskRunUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScheduledTaskRunPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ScheduledTaskRun.
+     * @param {ScheduledTaskRunUpsertArgs} args - Arguments to update or create a ScheduledTaskRun.
+     * @example
+     * // Update or create a ScheduledTaskRun
+     * const scheduledTaskRun = await prisma.scheduledTaskRun.upsert({
+     *   create: {
+     *     // ... data to create a ScheduledTaskRun
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ScheduledTaskRun we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ScheduledTaskRunUpsertArgs>(args: SelectSubset<T, ScheduledTaskRunUpsertArgs<ExtArgs>>): Prisma__ScheduledTaskRunClient<$Result.GetResult<Prisma.$ScheduledTaskRunPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ScheduledTaskRuns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScheduledTaskRunCountArgs} args - Arguments to filter ScheduledTaskRuns to count.
+     * @example
+     * // Count the number of ScheduledTaskRuns
+     * const count = await prisma.scheduledTaskRun.count({
+     *   where: {
+     *     // ... the filter for the ScheduledTaskRuns we want to count
+     *   }
+     * })
+    **/
+    count<T extends ScheduledTaskRunCountArgs>(
+      args?: Subset<T, ScheduledTaskRunCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ScheduledTaskRunCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ScheduledTaskRun.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScheduledTaskRunAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ScheduledTaskRunAggregateArgs>(args: Subset<T, ScheduledTaskRunAggregateArgs>): Prisma.PrismaPromise<GetScheduledTaskRunAggregateType<T>>
+
+    /**
+     * Group by ScheduledTaskRun.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScheduledTaskRunGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ScheduledTaskRunGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ScheduledTaskRunGroupByArgs['orderBy'] }
+        : { orderBy?: ScheduledTaskRunGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ScheduledTaskRunGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetScheduledTaskRunGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ScheduledTaskRun model
+   */
+  readonly fields: ScheduledTaskRunFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ScheduledTaskRun.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ScheduledTaskRunClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    task<T extends ScheduledTaskDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ScheduledTaskDefaultArgs<ExtArgs>>): Prisma__ScheduledTaskClient<$Result.GetResult<Prisma.$ScheduledTaskPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ScheduledTaskRun model
+   */
+  interface ScheduledTaskRunFieldRefs {
+    readonly id: FieldRef<"ScheduledTaskRun", 'String'>
+    readonly taskId: FieldRef<"ScheduledTaskRun", 'String'>
+    readonly organizationId: FieldRef<"ScheduledTaskRun", 'String'>
+    readonly projectId: FieldRef<"ScheduledTaskRun", 'String'>
+    readonly status: FieldRef<"ScheduledTaskRun", 'ScheduledTaskRunStatus'>
+    readonly trigger: FieldRef<"ScheduledTaskRun", 'String'>
+    readonly attempt: FieldRef<"ScheduledTaskRun", 'Int'>
+    readonly scheduledFor: FieldRef<"ScheduledTaskRun", 'DateTime'>
+    readonly startedAt: FieldRef<"ScheduledTaskRun", 'DateTime'>
+    readonly finishedAt: FieldRef<"ScheduledTaskRun", 'DateTime'>
+    readonly durationMs: FieldRef<"ScheduledTaskRun", 'Int'>
+    readonly exitCode: FieldRef<"ScheduledTaskRun", 'Int'>
+    readonly logs: FieldRef<"ScheduledTaskRun", 'String'>
+    readonly error: FieldRef<"ScheduledTaskRun", 'String'>
+    readonly machineSize: FieldRef<"ScheduledTaskRun", 'String'>
+    readonly computeUnits: FieldRef<"ScheduledTaskRun", 'Float'>
+    readonly costCents: FieldRef<"ScheduledTaskRun", 'Float'>
+    readonly meteredAt: FieldRef<"ScheduledTaskRun", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ScheduledTaskRun findUnique
+   */
+  export type ScheduledTaskRunFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTaskRun
+     */
+    select?: ScheduledTaskRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTaskRun
+     */
+    omit?: ScheduledTaskRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskRunInclude<ExtArgs> | null
+    /**
+     * Filter, which ScheduledTaskRun to fetch.
+     */
+    where: ScheduledTaskRunWhereUniqueInput
+  }
+
+  /**
+   * ScheduledTaskRun findUniqueOrThrow
+   */
+  export type ScheduledTaskRunFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTaskRun
+     */
+    select?: ScheduledTaskRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTaskRun
+     */
+    omit?: ScheduledTaskRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskRunInclude<ExtArgs> | null
+    /**
+     * Filter, which ScheduledTaskRun to fetch.
+     */
+    where: ScheduledTaskRunWhereUniqueInput
+  }
+
+  /**
+   * ScheduledTaskRun findFirst
+   */
+  export type ScheduledTaskRunFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTaskRun
+     */
+    select?: ScheduledTaskRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTaskRun
+     */
+    omit?: ScheduledTaskRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskRunInclude<ExtArgs> | null
+    /**
+     * Filter, which ScheduledTaskRun to fetch.
+     */
+    where?: ScheduledTaskRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ScheduledTaskRuns to fetch.
+     */
+    orderBy?: ScheduledTaskRunOrderByWithRelationInput | ScheduledTaskRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ScheduledTaskRuns.
+     */
+    cursor?: ScheduledTaskRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ScheduledTaskRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ScheduledTaskRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ScheduledTaskRuns.
+     */
+    distinct?: ScheduledTaskRunScalarFieldEnum | ScheduledTaskRunScalarFieldEnum[]
+  }
+
+  /**
+   * ScheduledTaskRun findFirstOrThrow
+   */
+  export type ScheduledTaskRunFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTaskRun
+     */
+    select?: ScheduledTaskRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTaskRun
+     */
+    omit?: ScheduledTaskRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskRunInclude<ExtArgs> | null
+    /**
+     * Filter, which ScheduledTaskRun to fetch.
+     */
+    where?: ScheduledTaskRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ScheduledTaskRuns to fetch.
+     */
+    orderBy?: ScheduledTaskRunOrderByWithRelationInput | ScheduledTaskRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ScheduledTaskRuns.
+     */
+    cursor?: ScheduledTaskRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ScheduledTaskRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ScheduledTaskRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ScheduledTaskRuns.
+     */
+    distinct?: ScheduledTaskRunScalarFieldEnum | ScheduledTaskRunScalarFieldEnum[]
+  }
+
+  /**
+   * ScheduledTaskRun findMany
+   */
+  export type ScheduledTaskRunFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTaskRun
+     */
+    select?: ScheduledTaskRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTaskRun
+     */
+    omit?: ScheduledTaskRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskRunInclude<ExtArgs> | null
+    /**
+     * Filter, which ScheduledTaskRuns to fetch.
+     */
+    where?: ScheduledTaskRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ScheduledTaskRuns to fetch.
+     */
+    orderBy?: ScheduledTaskRunOrderByWithRelationInput | ScheduledTaskRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ScheduledTaskRuns.
+     */
+    cursor?: ScheduledTaskRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ScheduledTaskRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ScheduledTaskRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ScheduledTaskRuns.
+     */
+    distinct?: ScheduledTaskRunScalarFieldEnum | ScheduledTaskRunScalarFieldEnum[]
+  }
+
+  /**
+   * ScheduledTaskRun create
+   */
+  export type ScheduledTaskRunCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTaskRun
+     */
+    select?: ScheduledTaskRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTaskRun
+     */
+    omit?: ScheduledTaskRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskRunInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ScheduledTaskRun.
+     */
+    data: XOR<ScheduledTaskRunCreateInput, ScheduledTaskRunUncheckedCreateInput>
+  }
+
+  /**
+   * ScheduledTaskRun createMany
+   */
+  export type ScheduledTaskRunCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ScheduledTaskRuns.
+     */
+    data: ScheduledTaskRunCreateManyInput | ScheduledTaskRunCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ScheduledTaskRun createManyAndReturn
+   */
+  export type ScheduledTaskRunCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTaskRun
+     */
+    select?: ScheduledTaskRunSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTaskRun
+     */
+    omit?: ScheduledTaskRunOmit<ExtArgs> | null
+    /**
+     * The data used to create many ScheduledTaskRuns.
+     */
+    data: ScheduledTaskRunCreateManyInput | ScheduledTaskRunCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskRunIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ScheduledTaskRun update
+   */
+  export type ScheduledTaskRunUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTaskRun
+     */
+    select?: ScheduledTaskRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTaskRun
+     */
+    omit?: ScheduledTaskRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskRunInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ScheduledTaskRun.
+     */
+    data: XOR<ScheduledTaskRunUpdateInput, ScheduledTaskRunUncheckedUpdateInput>
+    /**
+     * Choose, which ScheduledTaskRun to update.
+     */
+    where: ScheduledTaskRunWhereUniqueInput
+  }
+
+  /**
+   * ScheduledTaskRun updateMany
+   */
+  export type ScheduledTaskRunUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ScheduledTaskRuns.
+     */
+    data: XOR<ScheduledTaskRunUpdateManyMutationInput, ScheduledTaskRunUncheckedUpdateManyInput>
+    /**
+     * Filter which ScheduledTaskRuns to update
+     */
+    where?: ScheduledTaskRunWhereInput
+    /**
+     * Limit how many ScheduledTaskRuns to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ScheduledTaskRun updateManyAndReturn
+   */
+  export type ScheduledTaskRunUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTaskRun
+     */
+    select?: ScheduledTaskRunSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTaskRun
+     */
+    omit?: ScheduledTaskRunOmit<ExtArgs> | null
+    /**
+     * The data used to update ScheduledTaskRuns.
+     */
+    data: XOR<ScheduledTaskRunUpdateManyMutationInput, ScheduledTaskRunUncheckedUpdateManyInput>
+    /**
+     * Filter which ScheduledTaskRuns to update
+     */
+    where?: ScheduledTaskRunWhereInput
+    /**
+     * Limit how many ScheduledTaskRuns to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskRunIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ScheduledTaskRun upsert
+   */
+  export type ScheduledTaskRunUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTaskRun
+     */
+    select?: ScheduledTaskRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTaskRun
+     */
+    omit?: ScheduledTaskRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskRunInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ScheduledTaskRun to update in case it exists.
+     */
+    where: ScheduledTaskRunWhereUniqueInput
+    /**
+     * In case the ScheduledTaskRun found by the `where` argument doesn't exist, create a new ScheduledTaskRun with this data.
+     */
+    create: XOR<ScheduledTaskRunCreateInput, ScheduledTaskRunUncheckedCreateInput>
+    /**
+     * In case the ScheduledTaskRun was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ScheduledTaskRunUpdateInput, ScheduledTaskRunUncheckedUpdateInput>
+  }
+
+  /**
+   * ScheduledTaskRun delete
+   */
+  export type ScheduledTaskRunDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTaskRun
+     */
+    select?: ScheduledTaskRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTaskRun
+     */
+    omit?: ScheduledTaskRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskRunInclude<ExtArgs> | null
+    /**
+     * Filter which ScheduledTaskRun to delete.
+     */
+    where: ScheduledTaskRunWhereUniqueInput
+  }
+
+  /**
+   * ScheduledTaskRun deleteMany
+   */
+  export type ScheduledTaskRunDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ScheduledTaskRuns to delete
+     */
+    where?: ScheduledTaskRunWhereInput
+    /**
+     * Limit how many ScheduledTaskRuns to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ScheduledTaskRun without action
+   */
+  export type ScheduledTaskRunDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScheduledTaskRun
+     */
+    select?: ScheduledTaskRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScheduledTaskRun
+     */
+    omit?: ScheduledTaskRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScheduledTaskRunInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -130484,6 +134521,7 @@ export namespace Prisma {
     rolledBackFromId: 'rolledBackFromId',
     parentDeploymentId: 'parentDeploymentId',
     lastMeteredAt: 'lastMeteredAt',
+    machineSize: 'machineSize',
     startedAt: 'startedAt',
     finishedAt: 'finishedAt',
     canceledAt: 'canceledAt',
@@ -130500,6 +134538,18 @@ export namespace Prisma {
   };
 
   export type DeploymentEnvironmentScalarFieldEnum = (typeof DeploymentEnvironmentScalarFieldEnum)[keyof typeof DeploymentEnvironmentScalarFieldEnum]
+
+
+  export const RateCardScalarFieldEnum: {
+    id: 'id',
+    version: 'version',
+    active: 'active',
+    data: 'data',
+    effectiveAt: 'effectiveAt',
+    createdAt: 'createdAt'
+  };
+
+  export type RateCardScalarFieldEnum = (typeof RateCardScalarFieldEnum)[keyof typeof RateCardScalarFieldEnum]
 
 
   export const AuditLogScalarFieldEnum: {
@@ -131506,6 +135556,57 @@ export namespace Prisma {
   export type DatabaseRestoreScalarFieldEnum = (typeof DatabaseRestoreScalarFieldEnum)[keyof typeof DatabaseRestoreScalarFieldEnum]
 
 
+  export const ScheduledTaskScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    projectId: 'projectId',
+    kind: 'kind',
+    name: 'name',
+    command: 'command',
+    workflowId: 'workflowId',
+    cron: 'cron',
+    timezone: 'timezone',
+    machineSize: 'machineSize',
+    enabled: 'enabled',
+    timeoutSeconds: 'timeoutSeconds',
+    concurrency: 'concurrency',
+    maxRetries: 'maxRetries',
+    notifyOnFailure: 'notifyOnFailure',
+    lastRunAt: 'lastRunAt',
+    lastStatus: 'lastStatus',
+    nextRunAt: 'nextRunAt',
+    createdByUserId: 'createdByUserId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ScheduledTaskScalarFieldEnum = (typeof ScheduledTaskScalarFieldEnum)[keyof typeof ScheduledTaskScalarFieldEnum]
+
+
+  export const ScheduledTaskRunScalarFieldEnum: {
+    id: 'id',
+    taskId: 'taskId',
+    organizationId: 'organizationId',
+    projectId: 'projectId',
+    status: 'status',
+    trigger: 'trigger',
+    attempt: 'attempt',
+    scheduledFor: 'scheduledFor',
+    startedAt: 'startedAt',
+    finishedAt: 'finishedAt',
+    durationMs: 'durationMs',
+    exitCode: 'exitCode',
+    logs: 'logs',
+    error: 'error',
+    machineSize: 'machineSize',
+    computeUnits: 'computeUnits',
+    costCents: 'costCents',
+    meteredAt: 'meteredAt'
+  };
+
+  export type ScheduledTaskRunScalarFieldEnum = (typeof ScheduledTaskRunScalarFieldEnum)[keyof typeof ScheduledTaskRunScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -131857,6 +135958,34 @@ export namespace Prisma {
    * Reference to a field of type 'DatabaseRestoreStatus[]'
    */
   export type ListEnumDatabaseRestoreStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DatabaseRestoreStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'ScheduledTaskKind'
+   */
+  export type EnumScheduledTaskKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ScheduledTaskKind'>
+    
+
+
+  /**
+   * Reference to a field of type 'ScheduledTaskKind[]'
+   */
+  export type ListEnumScheduledTaskKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ScheduledTaskKind[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'ScheduledTaskRunStatus'
+   */
+  export type EnumScheduledTaskRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ScheduledTaskRunStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'ScheduledTaskRunStatus[]'
+   */
+  export type ListEnumScheduledTaskRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ScheduledTaskRunStatus[]'>
     
   /**
    * Deep Input Types
@@ -134651,6 +138780,7 @@ export namespace Prisma {
     rolledBackFromId?: StringNullableFilter<"Deployment"> | string | null
     parentDeploymentId?: StringNullableFilter<"Deployment"> | string | null
     lastMeteredAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    machineSize?: StringFilter<"Deployment"> | string
     startedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     finishedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     canceledAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
@@ -134682,6 +138812,7 @@ export namespace Prisma {
     rolledBackFromId?: SortOrderInput | SortOrder
     parentDeploymentId?: SortOrderInput | SortOrder
     lastMeteredAt?: SortOrderInput | SortOrder
+    machineSize?: SortOrder
     startedAt?: SortOrderInput | SortOrder
     finishedAt?: SortOrderInput | SortOrder
     canceledAt?: SortOrderInput | SortOrder
@@ -134716,6 +138847,7 @@ export namespace Prisma {
     rolledBackFromId?: StringNullableFilter<"Deployment"> | string | null
     parentDeploymentId?: StringNullableFilter<"Deployment"> | string | null
     lastMeteredAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    machineSize?: StringFilter<"Deployment"> | string
     startedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     finishedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     canceledAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
@@ -134747,6 +138879,7 @@ export namespace Prisma {
     rolledBackFromId?: SortOrderInput | SortOrder
     parentDeploymentId?: SortOrderInput | SortOrder
     lastMeteredAt?: SortOrderInput | SortOrder
+    machineSize?: SortOrder
     startedAt?: SortOrderInput | SortOrder
     finishedAt?: SortOrderInput | SortOrder
     canceledAt?: SortOrderInput | SortOrder
@@ -134782,6 +138915,7 @@ export namespace Prisma {
     rolledBackFromId?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
     parentDeploymentId?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
     lastMeteredAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
+    machineSize?: StringWithAggregatesFilter<"Deployment"> | string
     startedAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
     finishedAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
     canceledAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
@@ -134827,6 +138961,65 @@ export namespace Prisma {
     NOT?: DeploymentEnvironmentScalarWhereWithAggregatesInput | DeploymentEnvironmentScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"DeploymentEnvironment"> | string
     name?: StringWithAggregatesFilter<"DeploymentEnvironment"> | string
+  }
+
+  export type RateCardWhereInput = {
+    AND?: RateCardWhereInput | RateCardWhereInput[]
+    OR?: RateCardWhereInput[]
+    NOT?: RateCardWhereInput | RateCardWhereInput[]
+    id?: StringFilter<"RateCard"> | string
+    version?: IntFilter<"RateCard"> | number
+    active?: BoolFilter<"RateCard"> | boolean
+    data?: JsonFilter<"RateCard">
+    effectiveAt?: DateTimeFilter<"RateCard"> | Date | string
+    createdAt?: DateTimeFilter<"RateCard"> | Date | string
+  }
+
+  export type RateCardOrderByWithRelationInput = {
+    id?: SortOrder
+    version?: SortOrder
+    active?: SortOrder
+    data?: SortOrder
+    effectiveAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type RateCardWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    version?: number
+    AND?: RateCardWhereInput | RateCardWhereInput[]
+    OR?: RateCardWhereInput[]
+    NOT?: RateCardWhereInput | RateCardWhereInput[]
+    active?: BoolFilter<"RateCard"> | boolean
+    data?: JsonFilter<"RateCard">
+    effectiveAt?: DateTimeFilter<"RateCard"> | Date | string
+    createdAt?: DateTimeFilter<"RateCard"> | Date | string
+  }, "id" | "version">
+
+  export type RateCardOrderByWithAggregationInput = {
+    id?: SortOrder
+    version?: SortOrder
+    active?: SortOrder
+    data?: SortOrder
+    effectiveAt?: SortOrder
+    createdAt?: SortOrder
+    _count?: RateCardCountOrderByAggregateInput
+    _avg?: RateCardAvgOrderByAggregateInput
+    _max?: RateCardMaxOrderByAggregateInput
+    _min?: RateCardMinOrderByAggregateInput
+    _sum?: RateCardSumOrderByAggregateInput
+  }
+
+  export type RateCardScalarWhereWithAggregatesInput = {
+    AND?: RateCardScalarWhereWithAggregatesInput | RateCardScalarWhereWithAggregatesInput[]
+    OR?: RateCardScalarWhereWithAggregatesInput[]
+    NOT?: RateCardScalarWhereWithAggregatesInput | RateCardScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"RateCard"> | string
+    version?: IntWithAggregatesFilter<"RateCard"> | number
+    active?: BoolWithAggregatesFilter<"RateCard"> | boolean
+    data?: JsonWithAggregatesFilter<"RateCard">
+    effectiveAt?: DateTimeWithAggregatesFilter<"RateCard"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"RateCard"> | Date | string
   }
 
   export type AuditLogWhereInput = {
@@ -139951,6 +144144,266 @@ export namespace Prisma {
     completedAt?: DateTimeNullableWithAggregatesFilter<"DatabaseRestore"> | Date | string | null
   }
 
+  export type ScheduledTaskWhereInput = {
+    AND?: ScheduledTaskWhereInput | ScheduledTaskWhereInput[]
+    OR?: ScheduledTaskWhereInput[]
+    NOT?: ScheduledTaskWhereInput | ScheduledTaskWhereInput[]
+    id?: StringFilter<"ScheduledTask"> | string
+    organizationId?: StringFilter<"ScheduledTask"> | string
+    projectId?: StringFilter<"ScheduledTask"> | string
+    kind?: EnumScheduledTaskKindFilter<"ScheduledTask"> | $Enums.ScheduledTaskKind
+    name?: StringFilter<"ScheduledTask"> | string
+    command?: StringFilter<"ScheduledTask"> | string
+    workflowId?: IntNullableFilter<"ScheduledTask"> | number | null
+    cron?: StringFilter<"ScheduledTask"> | string
+    timezone?: StringFilter<"ScheduledTask"> | string
+    machineSize?: StringFilter<"ScheduledTask"> | string
+    enabled?: BoolFilter<"ScheduledTask"> | boolean
+    timeoutSeconds?: IntFilter<"ScheduledTask"> | number
+    concurrency?: StringFilter<"ScheduledTask"> | string
+    maxRetries?: IntFilter<"ScheduledTask"> | number
+    notifyOnFailure?: BoolFilter<"ScheduledTask"> | boolean
+    lastRunAt?: DateTimeNullableFilter<"ScheduledTask"> | Date | string | null
+    lastStatus?: StringNullableFilter<"ScheduledTask"> | string | null
+    nextRunAt?: DateTimeNullableFilter<"ScheduledTask"> | Date | string | null
+    createdByUserId?: StringNullableFilter<"ScheduledTask"> | string | null
+    createdAt?: DateTimeFilter<"ScheduledTask"> | Date | string
+    updatedAt?: DateTimeFilter<"ScheduledTask"> | Date | string
+    runs?: ScheduledTaskRunListRelationFilter
+  }
+
+  export type ScheduledTaskOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    kind?: SortOrder
+    name?: SortOrder
+    command?: SortOrder
+    workflowId?: SortOrderInput | SortOrder
+    cron?: SortOrder
+    timezone?: SortOrder
+    machineSize?: SortOrder
+    enabled?: SortOrder
+    timeoutSeconds?: SortOrder
+    concurrency?: SortOrder
+    maxRetries?: SortOrder
+    notifyOnFailure?: SortOrder
+    lastRunAt?: SortOrderInput | SortOrder
+    lastStatus?: SortOrderInput | SortOrder
+    nextRunAt?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    runs?: ScheduledTaskRunOrderByRelationAggregateInput
+  }
+
+  export type ScheduledTaskWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    projectId_kind_workflowId?: ScheduledTaskProjectIdKindWorkflowIdCompoundUniqueInput
+    AND?: ScheduledTaskWhereInput | ScheduledTaskWhereInput[]
+    OR?: ScheduledTaskWhereInput[]
+    NOT?: ScheduledTaskWhereInput | ScheduledTaskWhereInput[]
+    organizationId?: StringFilter<"ScheduledTask"> | string
+    projectId?: StringFilter<"ScheduledTask"> | string
+    kind?: EnumScheduledTaskKindFilter<"ScheduledTask"> | $Enums.ScheduledTaskKind
+    name?: StringFilter<"ScheduledTask"> | string
+    command?: StringFilter<"ScheduledTask"> | string
+    workflowId?: IntNullableFilter<"ScheduledTask"> | number | null
+    cron?: StringFilter<"ScheduledTask"> | string
+    timezone?: StringFilter<"ScheduledTask"> | string
+    machineSize?: StringFilter<"ScheduledTask"> | string
+    enabled?: BoolFilter<"ScheduledTask"> | boolean
+    timeoutSeconds?: IntFilter<"ScheduledTask"> | number
+    concurrency?: StringFilter<"ScheduledTask"> | string
+    maxRetries?: IntFilter<"ScheduledTask"> | number
+    notifyOnFailure?: BoolFilter<"ScheduledTask"> | boolean
+    lastRunAt?: DateTimeNullableFilter<"ScheduledTask"> | Date | string | null
+    lastStatus?: StringNullableFilter<"ScheduledTask"> | string | null
+    nextRunAt?: DateTimeNullableFilter<"ScheduledTask"> | Date | string | null
+    createdByUserId?: StringNullableFilter<"ScheduledTask"> | string | null
+    createdAt?: DateTimeFilter<"ScheduledTask"> | Date | string
+    updatedAt?: DateTimeFilter<"ScheduledTask"> | Date | string
+    runs?: ScheduledTaskRunListRelationFilter
+  }, "id" | "projectId_kind_workflowId">
+
+  export type ScheduledTaskOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    kind?: SortOrder
+    name?: SortOrder
+    command?: SortOrder
+    workflowId?: SortOrderInput | SortOrder
+    cron?: SortOrder
+    timezone?: SortOrder
+    machineSize?: SortOrder
+    enabled?: SortOrder
+    timeoutSeconds?: SortOrder
+    concurrency?: SortOrder
+    maxRetries?: SortOrder
+    notifyOnFailure?: SortOrder
+    lastRunAt?: SortOrderInput | SortOrder
+    lastStatus?: SortOrderInput | SortOrder
+    nextRunAt?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ScheduledTaskCountOrderByAggregateInput
+    _avg?: ScheduledTaskAvgOrderByAggregateInput
+    _max?: ScheduledTaskMaxOrderByAggregateInput
+    _min?: ScheduledTaskMinOrderByAggregateInput
+    _sum?: ScheduledTaskSumOrderByAggregateInput
+  }
+
+  export type ScheduledTaskScalarWhereWithAggregatesInput = {
+    AND?: ScheduledTaskScalarWhereWithAggregatesInput | ScheduledTaskScalarWhereWithAggregatesInput[]
+    OR?: ScheduledTaskScalarWhereWithAggregatesInput[]
+    NOT?: ScheduledTaskScalarWhereWithAggregatesInput | ScheduledTaskScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ScheduledTask"> | string
+    organizationId?: StringWithAggregatesFilter<"ScheduledTask"> | string
+    projectId?: StringWithAggregatesFilter<"ScheduledTask"> | string
+    kind?: EnumScheduledTaskKindWithAggregatesFilter<"ScheduledTask"> | $Enums.ScheduledTaskKind
+    name?: StringWithAggregatesFilter<"ScheduledTask"> | string
+    command?: StringWithAggregatesFilter<"ScheduledTask"> | string
+    workflowId?: IntNullableWithAggregatesFilter<"ScheduledTask"> | number | null
+    cron?: StringWithAggregatesFilter<"ScheduledTask"> | string
+    timezone?: StringWithAggregatesFilter<"ScheduledTask"> | string
+    machineSize?: StringWithAggregatesFilter<"ScheduledTask"> | string
+    enabled?: BoolWithAggregatesFilter<"ScheduledTask"> | boolean
+    timeoutSeconds?: IntWithAggregatesFilter<"ScheduledTask"> | number
+    concurrency?: StringWithAggregatesFilter<"ScheduledTask"> | string
+    maxRetries?: IntWithAggregatesFilter<"ScheduledTask"> | number
+    notifyOnFailure?: BoolWithAggregatesFilter<"ScheduledTask"> | boolean
+    lastRunAt?: DateTimeNullableWithAggregatesFilter<"ScheduledTask"> | Date | string | null
+    lastStatus?: StringNullableWithAggregatesFilter<"ScheduledTask"> | string | null
+    nextRunAt?: DateTimeNullableWithAggregatesFilter<"ScheduledTask"> | Date | string | null
+    createdByUserId?: StringNullableWithAggregatesFilter<"ScheduledTask"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ScheduledTask"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ScheduledTask"> | Date | string
+  }
+
+  export type ScheduledTaskRunWhereInput = {
+    AND?: ScheduledTaskRunWhereInput | ScheduledTaskRunWhereInput[]
+    OR?: ScheduledTaskRunWhereInput[]
+    NOT?: ScheduledTaskRunWhereInput | ScheduledTaskRunWhereInput[]
+    id?: StringFilter<"ScheduledTaskRun"> | string
+    taskId?: StringFilter<"ScheduledTaskRun"> | string
+    organizationId?: StringFilter<"ScheduledTaskRun"> | string
+    projectId?: StringFilter<"ScheduledTaskRun"> | string
+    status?: EnumScheduledTaskRunStatusFilter<"ScheduledTaskRun"> | $Enums.ScheduledTaskRunStatus
+    trigger?: StringFilter<"ScheduledTaskRun"> | string
+    attempt?: IntFilter<"ScheduledTaskRun"> | number
+    scheduledFor?: DateTimeFilter<"ScheduledTaskRun"> | Date | string
+    startedAt?: DateTimeFilter<"ScheduledTaskRun"> | Date | string
+    finishedAt?: DateTimeNullableFilter<"ScheduledTaskRun"> | Date | string | null
+    durationMs?: IntNullableFilter<"ScheduledTaskRun"> | number | null
+    exitCode?: IntNullableFilter<"ScheduledTaskRun"> | number | null
+    logs?: StringFilter<"ScheduledTaskRun"> | string
+    error?: StringNullableFilter<"ScheduledTaskRun"> | string | null
+    machineSize?: StringNullableFilter<"ScheduledTaskRun"> | string | null
+    computeUnits?: FloatNullableFilter<"ScheduledTaskRun"> | number | null
+    costCents?: FloatNullableFilter<"ScheduledTaskRun"> | number | null
+    meteredAt?: DateTimeNullableFilter<"ScheduledTaskRun"> | Date | string | null
+    task?: XOR<ScheduledTaskScalarRelationFilter, ScheduledTaskWhereInput>
+  }
+
+  export type ScheduledTaskRunOrderByWithRelationInput = {
+    id?: SortOrder
+    taskId?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    status?: SortOrder
+    trigger?: SortOrder
+    attempt?: SortOrder
+    scheduledFor?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrderInput | SortOrder
+    durationMs?: SortOrderInput | SortOrder
+    exitCode?: SortOrderInput | SortOrder
+    logs?: SortOrder
+    error?: SortOrderInput | SortOrder
+    machineSize?: SortOrderInput | SortOrder
+    computeUnits?: SortOrderInput | SortOrder
+    costCents?: SortOrderInput | SortOrder
+    meteredAt?: SortOrderInput | SortOrder
+    task?: ScheduledTaskOrderByWithRelationInput
+  }
+
+  export type ScheduledTaskRunWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ScheduledTaskRunWhereInput | ScheduledTaskRunWhereInput[]
+    OR?: ScheduledTaskRunWhereInput[]
+    NOT?: ScheduledTaskRunWhereInput | ScheduledTaskRunWhereInput[]
+    taskId?: StringFilter<"ScheduledTaskRun"> | string
+    organizationId?: StringFilter<"ScheduledTaskRun"> | string
+    projectId?: StringFilter<"ScheduledTaskRun"> | string
+    status?: EnumScheduledTaskRunStatusFilter<"ScheduledTaskRun"> | $Enums.ScheduledTaskRunStatus
+    trigger?: StringFilter<"ScheduledTaskRun"> | string
+    attempt?: IntFilter<"ScheduledTaskRun"> | number
+    scheduledFor?: DateTimeFilter<"ScheduledTaskRun"> | Date | string
+    startedAt?: DateTimeFilter<"ScheduledTaskRun"> | Date | string
+    finishedAt?: DateTimeNullableFilter<"ScheduledTaskRun"> | Date | string | null
+    durationMs?: IntNullableFilter<"ScheduledTaskRun"> | number | null
+    exitCode?: IntNullableFilter<"ScheduledTaskRun"> | number | null
+    logs?: StringFilter<"ScheduledTaskRun"> | string
+    error?: StringNullableFilter<"ScheduledTaskRun"> | string | null
+    machineSize?: StringNullableFilter<"ScheduledTaskRun"> | string | null
+    computeUnits?: FloatNullableFilter<"ScheduledTaskRun"> | number | null
+    costCents?: FloatNullableFilter<"ScheduledTaskRun"> | number | null
+    meteredAt?: DateTimeNullableFilter<"ScheduledTaskRun"> | Date | string | null
+    task?: XOR<ScheduledTaskScalarRelationFilter, ScheduledTaskWhereInput>
+  }, "id">
+
+  export type ScheduledTaskRunOrderByWithAggregationInput = {
+    id?: SortOrder
+    taskId?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    status?: SortOrder
+    trigger?: SortOrder
+    attempt?: SortOrder
+    scheduledFor?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrderInput | SortOrder
+    durationMs?: SortOrderInput | SortOrder
+    exitCode?: SortOrderInput | SortOrder
+    logs?: SortOrder
+    error?: SortOrderInput | SortOrder
+    machineSize?: SortOrderInput | SortOrder
+    computeUnits?: SortOrderInput | SortOrder
+    costCents?: SortOrderInput | SortOrder
+    meteredAt?: SortOrderInput | SortOrder
+    _count?: ScheduledTaskRunCountOrderByAggregateInput
+    _avg?: ScheduledTaskRunAvgOrderByAggregateInput
+    _max?: ScheduledTaskRunMaxOrderByAggregateInput
+    _min?: ScheduledTaskRunMinOrderByAggregateInput
+    _sum?: ScheduledTaskRunSumOrderByAggregateInput
+  }
+
+  export type ScheduledTaskRunScalarWhereWithAggregatesInput = {
+    AND?: ScheduledTaskRunScalarWhereWithAggregatesInput | ScheduledTaskRunScalarWhereWithAggregatesInput[]
+    OR?: ScheduledTaskRunScalarWhereWithAggregatesInput[]
+    NOT?: ScheduledTaskRunScalarWhereWithAggregatesInput | ScheduledTaskRunScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ScheduledTaskRun"> | string
+    taskId?: StringWithAggregatesFilter<"ScheduledTaskRun"> | string
+    organizationId?: StringWithAggregatesFilter<"ScheduledTaskRun"> | string
+    projectId?: StringWithAggregatesFilter<"ScheduledTaskRun"> | string
+    status?: EnumScheduledTaskRunStatusWithAggregatesFilter<"ScheduledTaskRun"> | $Enums.ScheduledTaskRunStatus
+    trigger?: StringWithAggregatesFilter<"ScheduledTaskRun"> | string
+    attempt?: IntWithAggregatesFilter<"ScheduledTaskRun"> | number
+    scheduledFor?: DateTimeWithAggregatesFilter<"ScheduledTaskRun"> | Date | string
+    startedAt?: DateTimeWithAggregatesFilter<"ScheduledTaskRun"> | Date | string
+    finishedAt?: DateTimeNullableWithAggregatesFilter<"ScheduledTaskRun"> | Date | string | null
+    durationMs?: IntNullableWithAggregatesFilter<"ScheduledTaskRun"> | number | null
+    exitCode?: IntNullableWithAggregatesFilter<"ScheduledTaskRun"> | number | null
+    logs?: StringWithAggregatesFilter<"ScheduledTaskRun"> | string
+    error?: StringNullableWithAggregatesFilter<"ScheduledTaskRun"> | string | null
+    machineSize?: StringNullableWithAggregatesFilter<"ScheduledTaskRun"> | string | null
+    computeUnits?: FloatNullableWithAggregatesFilter<"ScheduledTaskRun"> | number | null
+    costCents?: FloatNullableWithAggregatesFilter<"ScheduledTaskRun"> | number | null
+    meteredAt?: DateTimeNullableWithAggregatesFilter<"ScheduledTaskRun"> | Date | string | null
+  }
+
   export type UserCreateInput = {
     id?: string
     email: string
@@ -142892,6 +147345,7 @@ export namespace Prisma {
     rolledBackFromId?: string | null
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
+    machineSize?: string
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -142923,6 +147377,7 @@ export namespace Prisma {
     rolledBackFromId?: string | null
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
+    machineSize?: string
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -142950,6 +147405,7 @@ export namespace Prisma {
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    machineSize?: StringFieldUpdateOperationsInput | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -142981,6 +147437,7 @@ export namespace Prisma {
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    machineSize?: StringFieldUpdateOperationsInput | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -143010,6 +147467,7 @@ export namespace Prisma {
     rolledBackFromId?: string | null
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
+    machineSize?: string
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -143037,6 +147495,7 @@ export namespace Prisma {
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    machineSize?: StringFieldUpdateOperationsInput | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -143066,6 +147525,7 @@ export namespace Prisma {
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    machineSize?: StringFieldUpdateOperationsInput | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -143110,6 +147570,69 @@ export namespace Prisma {
   export type DeploymentEnvironmentUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type RateCardCreateInput = {
+    id?: string
+    version: number
+    active?: boolean
+    data: JsonNullValueInput | InputJsonValue
+    effectiveAt?: Date | string
+    createdAt?: Date | string
+  }
+
+  export type RateCardUncheckedCreateInput = {
+    id?: string
+    version: number
+    active?: boolean
+    data: JsonNullValueInput | InputJsonValue
+    effectiveAt?: Date | string
+    createdAt?: Date | string
+  }
+
+  export type RateCardUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    active?: BoolFieldUpdateOperationsInput | boolean
+    data?: JsonNullValueInput | InputJsonValue
+    effectiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RateCardUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    active?: BoolFieldUpdateOperationsInput | boolean
+    data?: JsonNullValueInput | InputJsonValue
+    effectiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RateCardCreateManyInput = {
+    id?: string
+    version: number
+    active?: boolean
+    data: JsonNullValueInput | InputJsonValue
+    effectiveAt?: Date | string
+    createdAt?: Date | string
+  }
+
+  export type RateCardUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    active?: BoolFieldUpdateOperationsInput | boolean
+    data?: JsonNullValueInput | InputJsonValue
+    effectiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RateCardUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    active?: BoolFieldUpdateOperationsInput | boolean
+    data?: JsonNullValueInput | InputJsonValue
+    effectiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type AuditLogCreateInput = {
@@ -148728,6 +153251,324 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
+  export type ScheduledTaskCreateInput = {
+    id?: string
+    organizationId: string
+    projectId: string
+    kind?: $Enums.ScheduledTaskKind
+    name: string
+    command?: string
+    workflowId?: number | null
+    cron: string
+    timezone?: string
+    machineSize?: string
+    enabled?: boolean
+    timeoutSeconds?: number
+    concurrency?: string
+    maxRetries?: number
+    notifyOnFailure?: boolean
+    lastRunAt?: Date | string | null
+    lastStatus?: string | null
+    nextRunAt?: Date | string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    runs?: ScheduledTaskRunCreateNestedManyWithoutTaskInput
+  }
+
+  export type ScheduledTaskUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    projectId: string
+    kind?: $Enums.ScheduledTaskKind
+    name: string
+    command?: string
+    workflowId?: number | null
+    cron: string
+    timezone?: string
+    machineSize?: string
+    enabled?: boolean
+    timeoutSeconds?: number
+    concurrency?: string
+    maxRetries?: number
+    notifyOnFailure?: boolean
+    lastRunAt?: Date | string | null
+    lastStatus?: string | null
+    nextRunAt?: Date | string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    runs?: ScheduledTaskRunUncheckedCreateNestedManyWithoutTaskInput
+  }
+
+  export type ScheduledTaskUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumScheduledTaskKindFieldUpdateOperationsInput | $Enums.ScheduledTaskKind
+    name?: StringFieldUpdateOperationsInput | string
+    command?: StringFieldUpdateOperationsInput | string
+    workflowId?: NullableIntFieldUpdateOperationsInput | number | null
+    cron?: StringFieldUpdateOperationsInput | string
+    timezone?: StringFieldUpdateOperationsInput | string
+    machineSize?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    timeoutSeconds?: IntFieldUpdateOperationsInput | number
+    concurrency?: StringFieldUpdateOperationsInput | string
+    maxRetries?: IntFieldUpdateOperationsInput | number
+    notifyOnFailure?: BoolFieldUpdateOperationsInput | boolean
+    lastRunAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    nextRunAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    runs?: ScheduledTaskRunUpdateManyWithoutTaskNestedInput
+  }
+
+  export type ScheduledTaskUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumScheduledTaskKindFieldUpdateOperationsInput | $Enums.ScheduledTaskKind
+    name?: StringFieldUpdateOperationsInput | string
+    command?: StringFieldUpdateOperationsInput | string
+    workflowId?: NullableIntFieldUpdateOperationsInput | number | null
+    cron?: StringFieldUpdateOperationsInput | string
+    timezone?: StringFieldUpdateOperationsInput | string
+    machineSize?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    timeoutSeconds?: IntFieldUpdateOperationsInput | number
+    concurrency?: StringFieldUpdateOperationsInput | string
+    maxRetries?: IntFieldUpdateOperationsInput | number
+    notifyOnFailure?: BoolFieldUpdateOperationsInput | boolean
+    lastRunAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    nextRunAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    runs?: ScheduledTaskRunUncheckedUpdateManyWithoutTaskNestedInput
+  }
+
+  export type ScheduledTaskCreateManyInput = {
+    id?: string
+    organizationId: string
+    projectId: string
+    kind?: $Enums.ScheduledTaskKind
+    name: string
+    command?: string
+    workflowId?: number | null
+    cron: string
+    timezone?: string
+    machineSize?: string
+    enabled?: boolean
+    timeoutSeconds?: number
+    concurrency?: string
+    maxRetries?: number
+    notifyOnFailure?: boolean
+    lastRunAt?: Date | string | null
+    lastStatus?: string | null
+    nextRunAt?: Date | string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ScheduledTaskUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumScheduledTaskKindFieldUpdateOperationsInput | $Enums.ScheduledTaskKind
+    name?: StringFieldUpdateOperationsInput | string
+    command?: StringFieldUpdateOperationsInput | string
+    workflowId?: NullableIntFieldUpdateOperationsInput | number | null
+    cron?: StringFieldUpdateOperationsInput | string
+    timezone?: StringFieldUpdateOperationsInput | string
+    machineSize?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    timeoutSeconds?: IntFieldUpdateOperationsInput | number
+    concurrency?: StringFieldUpdateOperationsInput | string
+    maxRetries?: IntFieldUpdateOperationsInput | number
+    notifyOnFailure?: BoolFieldUpdateOperationsInput | boolean
+    lastRunAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    nextRunAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ScheduledTaskUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumScheduledTaskKindFieldUpdateOperationsInput | $Enums.ScheduledTaskKind
+    name?: StringFieldUpdateOperationsInput | string
+    command?: StringFieldUpdateOperationsInput | string
+    workflowId?: NullableIntFieldUpdateOperationsInput | number | null
+    cron?: StringFieldUpdateOperationsInput | string
+    timezone?: StringFieldUpdateOperationsInput | string
+    machineSize?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    timeoutSeconds?: IntFieldUpdateOperationsInput | number
+    concurrency?: StringFieldUpdateOperationsInput | string
+    maxRetries?: IntFieldUpdateOperationsInput | number
+    notifyOnFailure?: BoolFieldUpdateOperationsInput | boolean
+    lastRunAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    nextRunAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ScheduledTaskRunCreateInput = {
+    id?: string
+    organizationId: string
+    projectId: string
+    status?: $Enums.ScheduledTaskRunStatus
+    trigger?: string
+    attempt?: number
+    scheduledFor: Date | string
+    startedAt?: Date | string
+    finishedAt?: Date | string | null
+    durationMs?: number | null
+    exitCode?: number | null
+    logs?: string
+    error?: string | null
+    machineSize?: string | null
+    computeUnits?: number | null
+    costCents?: number | null
+    meteredAt?: Date | string | null
+    task: ScheduledTaskCreateNestedOneWithoutRunsInput
+  }
+
+  export type ScheduledTaskRunUncheckedCreateInput = {
+    id?: string
+    taskId: string
+    organizationId: string
+    projectId: string
+    status?: $Enums.ScheduledTaskRunStatus
+    trigger?: string
+    attempt?: number
+    scheduledFor: Date | string
+    startedAt?: Date | string
+    finishedAt?: Date | string | null
+    durationMs?: number | null
+    exitCode?: number | null
+    logs?: string
+    error?: string | null
+    machineSize?: string | null
+    computeUnits?: number | null
+    costCents?: number | null
+    meteredAt?: Date | string | null
+  }
+
+  export type ScheduledTaskRunUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    status?: EnumScheduledTaskRunStatusFieldUpdateOperationsInput | $Enums.ScheduledTaskRunStatus
+    trigger?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    scheduledFor?: DateTimeFieldUpdateOperationsInput | Date | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    durationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    exitCode?: NullableIntFieldUpdateOperationsInput | number | null
+    logs?: StringFieldUpdateOperationsInput | string
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    machineSize?: NullableStringFieldUpdateOperationsInput | string | null
+    computeUnits?: NullableFloatFieldUpdateOperationsInput | number | null
+    costCents?: NullableFloatFieldUpdateOperationsInput | number | null
+    meteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    task?: ScheduledTaskUpdateOneRequiredWithoutRunsNestedInput
+  }
+
+  export type ScheduledTaskRunUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    taskId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    status?: EnumScheduledTaskRunStatusFieldUpdateOperationsInput | $Enums.ScheduledTaskRunStatus
+    trigger?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    scheduledFor?: DateTimeFieldUpdateOperationsInput | Date | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    durationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    exitCode?: NullableIntFieldUpdateOperationsInput | number | null
+    logs?: StringFieldUpdateOperationsInput | string
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    machineSize?: NullableStringFieldUpdateOperationsInput | string | null
+    computeUnits?: NullableFloatFieldUpdateOperationsInput | number | null
+    costCents?: NullableFloatFieldUpdateOperationsInput | number | null
+    meteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ScheduledTaskRunCreateManyInput = {
+    id?: string
+    taskId: string
+    organizationId: string
+    projectId: string
+    status?: $Enums.ScheduledTaskRunStatus
+    trigger?: string
+    attempt?: number
+    scheduledFor: Date | string
+    startedAt?: Date | string
+    finishedAt?: Date | string | null
+    durationMs?: number | null
+    exitCode?: number | null
+    logs?: string
+    error?: string | null
+    machineSize?: string | null
+    computeUnits?: number | null
+    costCents?: number | null
+    meteredAt?: Date | string | null
+  }
+
+  export type ScheduledTaskRunUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    status?: EnumScheduledTaskRunStatusFieldUpdateOperationsInput | $Enums.ScheduledTaskRunStatus
+    trigger?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    scheduledFor?: DateTimeFieldUpdateOperationsInput | Date | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    durationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    exitCode?: NullableIntFieldUpdateOperationsInput | number | null
+    logs?: StringFieldUpdateOperationsInput | string
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    machineSize?: NullableStringFieldUpdateOperationsInput | string | null
+    computeUnits?: NullableFloatFieldUpdateOperationsInput | number | null
+    costCents?: NullableFloatFieldUpdateOperationsInput | number | null
+    meteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ScheduledTaskRunUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    taskId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    status?: EnumScheduledTaskRunStatusFieldUpdateOperationsInput | $Enums.ScheduledTaskRunStatus
+    trigger?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    scheduledFor?: DateTimeFieldUpdateOperationsInput | Date | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    durationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    exitCode?: NullableIntFieldUpdateOperationsInput | number | null
+    logs?: StringFieldUpdateOperationsInput | string
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    machineSize?: NullableStringFieldUpdateOperationsInput | string | null
+    computeUnits?: NullableFloatFieldUpdateOperationsInput | number | null
+    costCents?: NullableFloatFieldUpdateOperationsInput | number | null
+    meteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -151086,6 +155927,7 @@ export namespace Prisma {
     rolledBackFromId?: SortOrder
     parentDeploymentId?: SortOrder
     lastMeteredAt?: SortOrder
+    machineSize?: SortOrder
     startedAt?: SortOrder
     finishedAt?: SortOrder
     canceledAt?: SortOrder
@@ -151113,6 +155955,7 @@ export namespace Prisma {
     rolledBackFromId?: SortOrder
     parentDeploymentId?: SortOrder
     lastMeteredAt?: SortOrder
+    machineSize?: SortOrder
     startedAt?: SortOrder
     finishedAt?: SortOrder
     canceledAt?: SortOrder
@@ -151140,6 +155983,7 @@ export namespace Prisma {
     rolledBackFromId?: SortOrder
     parentDeploymentId?: SortOrder
     lastMeteredAt?: SortOrder
+    machineSize?: SortOrder
     startedAt?: SortOrder
     finishedAt?: SortOrder
     canceledAt?: SortOrder
@@ -151170,6 +156014,39 @@ export namespace Prisma {
   export type DeploymentEnvironmentMinOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
+  }
+
+  export type RateCardCountOrderByAggregateInput = {
+    id?: SortOrder
+    version?: SortOrder
+    active?: SortOrder
+    data?: SortOrder
+    effectiveAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type RateCardAvgOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type RateCardMaxOrderByAggregateInput = {
+    id?: SortOrder
+    version?: SortOrder
+    active?: SortOrder
+    effectiveAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type RateCardMinOrderByAggregateInput = {
+    id?: SortOrder
+    version?: SortOrder
+    active?: SortOrder
+    effectiveAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type RateCardSumOrderByAggregateInput = {
+    version?: SortOrder
   }
 
   export type AuditLogCountOrderByAggregateInput = {
@@ -154204,6 +159081,251 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumDatabaseRestoreStatusFilter<$PrismaModel>
     _max?: NestedEnumDatabaseRestoreStatusFilter<$PrismaModel>
+  }
+
+  export type EnumScheduledTaskKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.ScheduledTaskKind | EnumScheduledTaskKindFieldRefInput<$PrismaModel>
+    in?: $Enums.ScheduledTaskKind[] | ListEnumScheduledTaskKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ScheduledTaskKind[] | ListEnumScheduledTaskKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumScheduledTaskKindFilter<$PrismaModel> | $Enums.ScheduledTaskKind
+  }
+
+  export type ScheduledTaskRunListRelationFilter = {
+    every?: ScheduledTaskRunWhereInput
+    some?: ScheduledTaskRunWhereInput
+    none?: ScheduledTaskRunWhereInput
+  }
+
+  export type ScheduledTaskRunOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ScheduledTaskProjectIdKindWorkflowIdCompoundUniqueInput = {
+    projectId: string
+    kind: $Enums.ScheduledTaskKind
+    workflowId: number
+  }
+
+  export type ScheduledTaskCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    kind?: SortOrder
+    name?: SortOrder
+    command?: SortOrder
+    workflowId?: SortOrder
+    cron?: SortOrder
+    timezone?: SortOrder
+    machineSize?: SortOrder
+    enabled?: SortOrder
+    timeoutSeconds?: SortOrder
+    concurrency?: SortOrder
+    maxRetries?: SortOrder
+    notifyOnFailure?: SortOrder
+    lastRunAt?: SortOrder
+    lastStatus?: SortOrder
+    nextRunAt?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ScheduledTaskAvgOrderByAggregateInput = {
+    workflowId?: SortOrder
+    timeoutSeconds?: SortOrder
+    maxRetries?: SortOrder
+  }
+
+  export type ScheduledTaskMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    kind?: SortOrder
+    name?: SortOrder
+    command?: SortOrder
+    workflowId?: SortOrder
+    cron?: SortOrder
+    timezone?: SortOrder
+    machineSize?: SortOrder
+    enabled?: SortOrder
+    timeoutSeconds?: SortOrder
+    concurrency?: SortOrder
+    maxRetries?: SortOrder
+    notifyOnFailure?: SortOrder
+    lastRunAt?: SortOrder
+    lastStatus?: SortOrder
+    nextRunAt?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ScheduledTaskMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    kind?: SortOrder
+    name?: SortOrder
+    command?: SortOrder
+    workflowId?: SortOrder
+    cron?: SortOrder
+    timezone?: SortOrder
+    machineSize?: SortOrder
+    enabled?: SortOrder
+    timeoutSeconds?: SortOrder
+    concurrency?: SortOrder
+    maxRetries?: SortOrder
+    notifyOnFailure?: SortOrder
+    lastRunAt?: SortOrder
+    lastStatus?: SortOrder
+    nextRunAt?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ScheduledTaskSumOrderByAggregateInput = {
+    workflowId?: SortOrder
+    timeoutSeconds?: SortOrder
+    maxRetries?: SortOrder
+  }
+
+  export type EnumScheduledTaskKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ScheduledTaskKind | EnumScheduledTaskKindFieldRefInput<$PrismaModel>
+    in?: $Enums.ScheduledTaskKind[] | ListEnumScheduledTaskKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ScheduledTaskKind[] | ListEnumScheduledTaskKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumScheduledTaskKindWithAggregatesFilter<$PrismaModel> | $Enums.ScheduledTaskKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumScheduledTaskKindFilter<$PrismaModel>
+    _max?: NestedEnumScheduledTaskKindFilter<$PrismaModel>
+  }
+
+  export type EnumScheduledTaskRunStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ScheduledTaskRunStatus | EnumScheduledTaskRunStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ScheduledTaskRunStatus[] | ListEnumScheduledTaskRunStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ScheduledTaskRunStatus[] | ListEnumScheduledTaskRunStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumScheduledTaskRunStatusFilter<$PrismaModel> | $Enums.ScheduledTaskRunStatus
+  }
+
+  export type FloatNullableFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type ScheduledTaskScalarRelationFilter = {
+    is?: ScheduledTaskWhereInput
+    isNot?: ScheduledTaskWhereInput
+  }
+
+  export type ScheduledTaskRunCountOrderByAggregateInput = {
+    id?: SortOrder
+    taskId?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    status?: SortOrder
+    trigger?: SortOrder
+    attempt?: SortOrder
+    scheduledFor?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrder
+    durationMs?: SortOrder
+    exitCode?: SortOrder
+    logs?: SortOrder
+    error?: SortOrder
+    machineSize?: SortOrder
+    computeUnits?: SortOrder
+    costCents?: SortOrder
+    meteredAt?: SortOrder
+  }
+
+  export type ScheduledTaskRunAvgOrderByAggregateInput = {
+    attempt?: SortOrder
+    durationMs?: SortOrder
+    exitCode?: SortOrder
+    computeUnits?: SortOrder
+    costCents?: SortOrder
+  }
+
+  export type ScheduledTaskRunMaxOrderByAggregateInput = {
+    id?: SortOrder
+    taskId?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    status?: SortOrder
+    trigger?: SortOrder
+    attempt?: SortOrder
+    scheduledFor?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrder
+    durationMs?: SortOrder
+    exitCode?: SortOrder
+    logs?: SortOrder
+    error?: SortOrder
+    machineSize?: SortOrder
+    computeUnits?: SortOrder
+    costCents?: SortOrder
+    meteredAt?: SortOrder
+  }
+
+  export type ScheduledTaskRunMinOrderByAggregateInput = {
+    id?: SortOrder
+    taskId?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    status?: SortOrder
+    trigger?: SortOrder
+    attempt?: SortOrder
+    scheduledFor?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrder
+    durationMs?: SortOrder
+    exitCode?: SortOrder
+    logs?: SortOrder
+    error?: SortOrder
+    machineSize?: SortOrder
+    computeUnits?: SortOrder
+    costCents?: SortOrder
+    meteredAt?: SortOrder
+  }
+
+  export type ScheduledTaskRunSumOrderByAggregateInput = {
+    attempt?: SortOrder
+    durationMs?: SortOrder
+    exitCode?: SortOrder
+    computeUnits?: SortOrder
+    costCents?: SortOrder
+  }
+
+  export type EnumScheduledTaskRunStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ScheduledTaskRunStatus | EnumScheduledTaskRunStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ScheduledTaskRunStatus[] | ListEnumScheduledTaskRunStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ScheduledTaskRunStatus[] | ListEnumScheduledTaskRunStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumScheduledTaskRunStatusWithAggregatesFilter<$PrismaModel> | $Enums.ScheduledTaskRunStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumScheduledTaskRunStatusFilter<$PrismaModel>
+    _max?: NestedEnumScheduledTaskRunStatusFilter<$PrismaModel>
+  }
+
+  export type FloatNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedFloatNullableFilter<$PrismaModel>
+    _min?: NestedFloatNullableFilter<$PrismaModel>
+    _max?: NestedFloatNullableFilter<$PrismaModel>
   }
 
   export type AccountCreateNestedManyWithoutUserInput = {
@@ -160669,6 +165791,78 @@ export namespace Prisma {
     update?: XOR<XOR<DatabaseInstanceUpdateToOneWithWhereWithoutRestoresInput, DatabaseInstanceUpdateWithoutRestoresInput>, DatabaseInstanceUncheckedUpdateWithoutRestoresInput>
   }
 
+  export type ScheduledTaskRunCreateNestedManyWithoutTaskInput = {
+    create?: XOR<ScheduledTaskRunCreateWithoutTaskInput, ScheduledTaskRunUncheckedCreateWithoutTaskInput> | ScheduledTaskRunCreateWithoutTaskInput[] | ScheduledTaskRunUncheckedCreateWithoutTaskInput[]
+    connectOrCreate?: ScheduledTaskRunCreateOrConnectWithoutTaskInput | ScheduledTaskRunCreateOrConnectWithoutTaskInput[]
+    createMany?: ScheduledTaskRunCreateManyTaskInputEnvelope
+    connect?: ScheduledTaskRunWhereUniqueInput | ScheduledTaskRunWhereUniqueInput[]
+  }
+
+  export type ScheduledTaskRunUncheckedCreateNestedManyWithoutTaskInput = {
+    create?: XOR<ScheduledTaskRunCreateWithoutTaskInput, ScheduledTaskRunUncheckedCreateWithoutTaskInput> | ScheduledTaskRunCreateWithoutTaskInput[] | ScheduledTaskRunUncheckedCreateWithoutTaskInput[]
+    connectOrCreate?: ScheduledTaskRunCreateOrConnectWithoutTaskInput | ScheduledTaskRunCreateOrConnectWithoutTaskInput[]
+    createMany?: ScheduledTaskRunCreateManyTaskInputEnvelope
+    connect?: ScheduledTaskRunWhereUniqueInput | ScheduledTaskRunWhereUniqueInput[]
+  }
+
+  export type EnumScheduledTaskKindFieldUpdateOperationsInput = {
+    set?: $Enums.ScheduledTaskKind
+  }
+
+  export type ScheduledTaskRunUpdateManyWithoutTaskNestedInput = {
+    create?: XOR<ScheduledTaskRunCreateWithoutTaskInput, ScheduledTaskRunUncheckedCreateWithoutTaskInput> | ScheduledTaskRunCreateWithoutTaskInput[] | ScheduledTaskRunUncheckedCreateWithoutTaskInput[]
+    connectOrCreate?: ScheduledTaskRunCreateOrConnectWithoutTaskInput | ScheduledTaskRunCreateOrConnectWithoutTaskInput[]
+    upsert?: ScheduledTaskRunUpsertWithWhereUniqueWithoutTaskInput | ScheduledTaskRunUpsertWithWhereUniqueWithoutTaskInput[]
+    createMany?: ScheduledTaskRunCreateManyTaskInputEnvelope
+    set?: ScheduledTaskRunWhereUniqueInput | ScheduledTaskRunWhereUniqueInput[]
+    disconnect?: ScheduledTaskRunWhereUniqueInput | ScheduledTaskRunWhereUniqueInput[]
+    delete?: ScheduledTaskRunWhereUniqueInput | ScheduledTaskRunWhereUniqueInput[]
+    connect?: ScheduledTaskRunWhereUniqueInput | ScheduledTaskRunWhereUniqueInput[]
+    update?: ScheduledTaskRunUpdateWithWhereUniqueWithoutTaskInput | ScheduledTaskRunUpdateWithWhereUniqueWithoutTaskInput[]
+    updateMany?: ScheduledTaskRunUpdateManyWithWhereWithoutTaskInput | ScheduledTaskRunUpdateManyWithWhereWithoutTaskInput[]
+    deleteMany?: ScheduledTaskRunScalarWhereInput | ScheduledTaskRunScalarWhereInput[]
+  }
+
+  export type ScheduledTaskRunUncheckedUpdateManyWithoutTaskNestedInput = {
+    create?: XOR<ScheduledTaskRunCreateWithoutTaskInput, ScheduledTaskRunUncheckedCreateWithoutTaskInput> | ScheduledTaskRunCreateWithoutTaskInput[] | ScheduledTaskRunUncheckedCreateWithoutTaskInput[]
+    connectOrCreate?: ScheduledTaskRunCreateOrConnectWithoutTaskInput | ScheduledTaskRunCreateOrConnectWithoutTaskInput[]
+    upsert?: ScheduledTaskRunUpsertWithWhereUniqueWithoutTaskInput | ScheduledTaskRunUpsertWithWhereUniqueWithoutTaskInput[]
+    createMany?: ScheduledTaskRunCreateManyTaskInputEnvelope
+    set?: ScheduledTaskRunWhereUniqueInput | ScheduledTaskRunWhereUniqueInput[]
+    disconnect?: ScheduledTaskRunWhereUniqueInput | ScheduledTaskRunWhereUniqueInput[]
+    delete?: ScheduledTaskRunWhereUniqueInput | ScheduledTaskRunWhereUniqueInput[]
+    connect?: ScheduledTaskRunWhereUniqueInput | ScheduledTaskRunWhereUniqueInput[]
+    update?: ScheduledTaskRunUpdateWithWhereUniqueWithoutTaskInput | ScheduledTaskRunUpdateWithWhereUniqueWithoutTaskInput[]
+    updateMany?: ScheduledTaskRunUpdateManyWithWhereWithoutTaskInput | ScheduledTaskRunUpdateManyWithWhereWithoutTaskInput[]
+    deleteMany?: ScheduledTaskRunScalarWhereInput | ScheduledTaskRunScalarWhereInput[]
+  }
+
+  export type ScheduledTaskCreateNestedOneWithoutRunsInput = {
+    create?: XOR<ScheduledTaskCreateWithoutRunsInput, ScheduledTaskUncheckedCreateWithoutRunsInput>
+    connectOrCreate?: ScheduledTaskCreateOrConnectWithoutRunsInput
+    connect?: ScheduledTaskWhereUniqueInput
+  }
+
+  export type EnumScheduledTaskRunStatusFieldUpdateOperationsInput = {
+    set?: $Enums.ScheduledTaskRunStatus
+  }
+
+  export type NullableFloatFieldUpdateOperationsInput = {
+    set?: number | null
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type ScheduledTaskUpdateOneRequiredWithoutRunsNestedInput = {
+    create?: XOR<ScheduledTaskCreateWithoutRunsInput, ScheduledTaskUncheckedCreateWithoutRunsInput>
+    connectOrCreate?: ScheduledTaskCreateOrConnectWithoutRunsInput
+    upsert?: ScheduledTaskUpsertWithoutRunsInput
+    connect?: ScheduledTaskWhereUniqueInput
+    update?: XOR<XOR<ScheduledTaskUpdateToOneWithWhereWithoutRunsInput, ScheduledTaskUpdateWithoutRunsInput>, ScheduledTaskUncheckedUpdateWithoutRunsInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -161212,6 +166406,56 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumDatabaseRestoreStatusFilter<$PrismaModel>
     _max?: NestedEnumDatabaseRestoreStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumScheduledTaskKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.ScheduledTaskKind | EnumScheduledTaskKindFieldRefInput<$PrismaModel>
+    in?: $Enums.ScheduledTaskKind[] | ListEnumScheduledTaskKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ScheduledTaskKind[] | ListEnumScheduledTaskKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumScheduledTaskKindFilter<$PrismaModel> | $Enums.ScheduledTaskKind
+  }
+
+  export type NestedEnumScheduledTaskKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ScheduledTaskKind | EnumScheduledTaskKindFieldRefInput<$PrismaModel>
+    in?: $Enums.ScheduledTaskKind[] | ListEnumScheduledTaskKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ScheduledTaskKind[] | ListEnumScheduledTaskKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumScheduledTaskKindWithAggregatesFilter<$PrismaModel> | $Enums.ScheduledTaskKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumScheduledTaskKindFilter<$PrismaModel>
+    _max?: NestedEnumScheduledTaskKindFilter<$PrismaModel>
+  }
+
+  export type NestedEnumScheduledTaskRunStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ScheduledTaskRunStatus | EnumScheduledTaskRunStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ScheduledTaskRunStatus[] | ListEnumScheduledTaskRunStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ScheduledTaskRunStatus[] | ListEnumScheduledTaskRunStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumScheduledTaskRunStatusFilter<$PrismaModel> | $Enums.ScheduledTaskRunStatus
+  }
+
+  export type NestedEnumScheduledTaskRunStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ScheduledTaskRunStatus | EnumScheduledTaskRunStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ScheduledTaskRunStatus[] | ListEnumScheduledTaskRunStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ScheduledTaskRunStatus[] | ListEnumScheduledTaskRunStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumScheduledTaskRunStatusWithAggregatesFilter<$PrismaModel> | $Enums.ScheduledTaskRunStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumScheduledTaskRunStatusFilter<$PrismaModel>
+    _max?: NestedEnumScheduledTaskRunStatusFilter<$PrismaModel>
+  }
+
+  export type NestedFloatNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedFloatNullableFilter<$PrismaModel>
+    _min?: NestedFloatNullableFilter<$PrismaModel>
+    _max?: NestedFloatNullableFilter<$PrismaModel>
   }
 
   export type AccountCreateWithoutUserInput = {
@@ -166746,6 +171990,7 @@ export namespace Prisma {
     rolledBackFromId?: string | null
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
+    machineSize?: string
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -166775,6 +172020,7 @@ export namespace Prisma {
     rolledBackFromId?: string | null
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
+    machineSize?: string
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -167539,6 +172785,7 @@ export namespace Prisma {
     rolledBackFromId?: StringNullableFilter<"Deployment"> | string | null
     parentDeploymentId?: StringNullableFilter<"Deployment"> | string | null
     lastMeteredAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    machineSize?: StringFilter<"Deployment"> | string
     startedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     finishedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     canceledAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
@@ -174613,6 +179860,7 @@ export namespace Prisma {
     rolledBackFromId?: string | null
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
+    machineSize?: string
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -174642,6 +179890,7 @@ export namespace Prisma {
     rolledBackFromId?: string | null
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
+    machineSize?: string
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -186287,6 +191536,208 @@ export namespace Prisma {
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
   }
 
+  export type ScheduledTaskRunCreateWithoutTaskInput = {
+    id?: string
+    organizationId: string
+    projectId: string
+    status?: $Enums.ScheduledTaskRunStatus
+    trigger?: string
+    attempt?: number
+    scheduledFor: Date | string
+    startedAt?: Date | string
+    finishedAt?: Date | string | null
+    durationMs?: number | null
+    exitCode?: number | null
+    logs?: string
+    error?: string | null
+    machineSize?: string | null
+    computeUnits?: number | null
+    costCents?: number | null
+    meteredAt?: Date | string | null
+  }
+
+  export type ScheduledTaskRunUncheckedCreateWithoutTaskInput = {
+    id?: string
+    organizationId: string
+    projectId: string
+    status?: $Enums.ScheduledTaskRunStatus
+    trigger?: string
+    attempt?: number
+    scheduledFor: Date | string
+    startedAt?: Date | string
+    finishedAt?: Date | string | null
+    durationMs?: number | null
+    exitCode?: number | null
+    logs?: string
+    error?: string | null
+    machineSize?: string | null
+    computeUnits?: number | null
+    costCents?: number | null
+    meteredAt?: Date | string | null
+  }
+
+  export type ScheduledTaskRunCreateOrConnectWithoutTaskInput = {
+    where: ScheduledTaskRunWhereUniqueInput
+    create: XOR<ScheduledTaskRunCreateWithoutTaskInput, ScheduledTaskRunUncheckedCreateWithoutTaskInput>
+  }
+
+  export type ScheduledTaskRunCreateManyTaskInputEnvelope = {
+    data: ScheduledTaskRunCreateManyTaskInput | ScheduledTaskRunCreateManyTaskInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ScheduledTaskRunUpsertWithWhereUniqueWithoutTaskInput = {
+    where: ScheduledTaskRunWhereUniqueInput
+    update: XOR<ScheduledTaskRunUpdateWithoutTaskInput, ScheduledTaskRunUncheckedUpdateWithoutTaskInput>
+    create: XOR<ScheduledTaskRunCreateWithoutTaskInput, ScheduledTaskRunUncheckedCreateWithoutTaskInput>
+  }
+
+  export type ScheduledTaskRunUpdateWithWhereUniqueWithoutTaskInput = {
+    where: ScheduledTaskRunWhereUniqueInput
+    data: XOR<ScheduledTaskRunUpdateWithoutTaskInput, ScheduledTaskRunUncheckedUpdateWithoutTaskInput>
+  }
+
+  export type ScheduledTaskRunUpdateManyWithWhereWithoutTaskInput = {
+    where: ScheduledTaskRunScalarWhereInput
+    data: XOR<ScheduledTaskRunUpdateManyMutationInput, ScheduledTaskRunUncheckedUpdateManyWithoutTaskInput>
+  }
+
+  export type ScheduledTaskRunScalarWhereInput = {
+    AND?: ScheduledTaskRunScalarWhereInput | ScheduledTaskRunScalarWhereInput[]
+    OR?: ScheduledTaskRunScalarWhereInput[]
+    NOT?: ScheduledTaskRunScalarWhereInput | ScheduledTaskRunScalarWhereInput[]
+    id?: StringFilter<"ScheduledTaskRun"> | string
+    taskId?: StringFilter<"ScheduledTaskRun"> | string
+    organizationId?: StringFilter<"ScheduledTaskRun"> | string
+    projectId?: StringFilter<"ScheduledTaskRun"> | string
+    status?: EnumScheduledTaskRunStatusFilter<"ScheduledTaskRun"> | $Enums.ScheduledTaskRunStatus
+    trigger?: StringFilter<"ScheduledTaskRun"> | string
+    attempt?: IntFilter<"ScheduledTaskRun"> | number
+    scheduledFor?: DateTimeFilter<"ScheduledTaskRun"> | Date | string
+    startedAt?: DateTimeFilter<"ScheduledTaskRun"> | Date | string
+    finishedAt?: DateTimeNullableFilter<"ScheduledTaskRun"> | Date | string | null
+    durationMs?: IntNullableFilter<"ScheduledTaskRun"> | number | null
+    exitCode?: IntNullableFilter<"ScheduledTaskRun"> | number | null
+    logs?: StringFilter<"ScheduledTaskRun"> | string
+    error?: StringNullableFilter<"ScheduledTaskRun"> | string | null
+    machineSize?: StringNullableFilter<"ScheduledTaskRun"> | string | null
+    computeUnits?: FloatNullableFilter<"ScheduledTaskRun"> | number | null
+    costCents?: FloatNullableFilter<"ScheduledTaskRun"> | number | null
+    meteredAt?: DateTimeNullableFilter<"ScheduledTaskRun"> | Date | string | null
+  }
+
+  export type ScheduledTaskCreateWithoutRunsInput = {
+    id?: string
+    organizationId: string
+    projectId: string
+    kind?: $Enums.ScheduledTaskKind
+    name: string
+    command?: string
+    workflowId?: number | null
+    cron: string
+    timezone?: string
+    machineSize?: string
+    enabled?: boolean
+    timeoutSeconds?: number
+    concurrency?: string
+    maxRetries?: number
+    notifyOnFailure?: boolean
+    lastRunAt?: Date | string | null
+    lastStatus?: string | null
+    nextRunAt?: Date | string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ScheduledTaskUncheckedCreateWithoutRunsInput = {
+    id?: string
+    organizationId: string
+    projectId: string
+    kind?: $Enums.ScheduledTaskKind
+    name: string
+    command?: string
+    workflowId?: number | null
+    cron: string
+    timezone?: string
+    machineSize?: string
+    enabled?: boolean
+    timeoutSeconds?: number
+    concurrency?: string
+    maxRetries?: number
+    notifyOnFailure?: boolean
+    lastRunAt?: Date | string | null
+    lastStatus?: string | null
+    nextRunAt?: Date | string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ScheduledTaskCreateOrConnectWithoutRunsInput = {
+    where: ScheduledTaskWhereUniqueInput
+    create: XOR<ScheduledTaskCreateWithoutRunsInput, ScheduledTaskUncheckedCreateWithoutRunsInput>
+  }
+
+  export type ScheduledTaskUpsertWithoutRunsInput = {
+    update: XOR<ScheduledTaskUpdateWithoutRunsInput, ScheduledTaskUncheckedUpdateWithoutRunsInput>
+    create: XOR<ScheduledTaskCreateWithoutRunsInput, ScheduledTaskUncheckedCreateWithoutRunsInput>
+    where?: ScheduledTaskWhereInput
+  }
+
+  export type ScheduledTaskUpdateToOneWithWhereWithoutRunsInput = {
+    where?: ScheduledTaskWhereInput
+    data: XOR<ScheduledTaskUpdateWithoutRunsInput, ScheduledTaskUncheckedUpdateWithoutRunsInput>
+  }
+
+  export type ScheduledTaskUpdateWithoutRunsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumScheduledTaskKindFieldUpdateOperationsInput | $Enums.ScheduledTaskKind
+    name?: StringFieldUpdateOperationsInput | string
+    command?: StringFieldUpdateOperationsInput | string
+    workflowId?: NullableIntFieldUpdateOperationsInput | number | null
+    cron?: StringFieldUpdateOperationsInput | string
+    timezone?: StringFieldUpdateOperationsInput | string
+    machineSize?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    timeoutSeconds?: IntFieldUpdateOperationsInput | number
+    concurrency?: StringFieldUpdateOperationsInput | string
+    maxRetries?: IntFieldUpdateOperationsInput | number
+    notifyOnFailure?: BoolFieldUpdateOperationsInput | boolean
+    lastRunAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    nextRunAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ScheduledTaskUncheckedUpdateWithoutRunsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    kind?: EnumScheduledTaskKindFieldUpdateOperationsInput | $Enums.ScheduledTaskKind
+    name?: StringFieldUpdateOperationsInput | string
+    command?: StringFieldUpdateOperationsInput | string
+    workflowId?: NullableIntFieldUpdateOperationsInput | number | null
+    cron?: StringFieldUpdateOperationsInput | string
+    timezone?: StringFieldUpdateOperationsInput | string
+    machineSize?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    timeoutSeconds?: IntFieldUpdateOperationsInput | number
+    concurrency?: StringFieldUpdateOperationsInput | string
+    maxRetries?: IntFieldUpdateOperationsInput | number
+    notifyOnFailure?: BoolFieldUpdateOperationsInput | boolean
+    lastRunAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    nextRunAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type AccountCreateManyUserInput = {
     id?: string
     provider: string
@@ -189177,6 +194628,7 @@ export namespace Prisma {
     rolledBackFromId?: string | null
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
+    machineSize?: string
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -189588,6 +195040,7 @@ export namespace Prisma {
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    machineSize?: StringFieldUpdateOperationsInput | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -189617,6 +195070,7 @@ export namespace Prisma {
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    machineSize?: StringFieldUpdateOperationsInput | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -189645,6 +195099,7 @@ export namespace Prisma {
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    machineSize?: StringFieldUpdateOperationsInput | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -190236,6 +195691,7 @@ export namespace Prisma {
     rolledBackFromId?: string | null
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
+    machineSize?: string
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -190263,6 +195719,7 @@ export namespace Prisma {
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    machineSize?: StringFieldUpdateOperationsInput | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -190292,6 +195749,7 @@ export namespace Prisma {
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    machineSize?: StringFieldUpdateOperationsInput | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -190320,6 +195778,7 @@ export namespace Prisma {
     rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    machineSize?: StringFieldUpdateOperationsInput | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -190937,6 +196396,86 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ScheduledTaskRunCreateManyTaskInput = {
+    id?: string
+    organizationId: string
+    projectId: string
+    status?: $Enums.ScheduledTaskRunStatus
+    trigger?: string
+    attempt?: number
+    scheduledFor: Date | string
+    startedAt?: Date | string
+    finishedAt?: Date | string | null
+    durationMs?: number | null
+    exitCode?: number | null
+    logs?: string
+    error?: string | null
+    machineSize?: string | null
+    computeUnits?: number | null
+    costCents?: number | null
+    meteredAt?: Date | string | null
+  }
+
+  export type ScheduledTaskRunUpdateWithoutTaskInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    status?: EnumScheduledTaskRunStatusFieldUpdateOperationsInput | $Enums.ScheduledTaskRunStatus
+    trigger?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    scheduledFor?: DateTimeFieldUpdateOperationsInput | Date | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    durationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    exitCode?: NullableIntFieldUpdateOperationsInput | number | null
+    logs?: StringFieldUpdateOperationsInput | string
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    machineSize?: NullableStringFieldUpdateOperationsInput | string | null
+    computeUnits?: NullableFloatFieldUpdateOperationsInput | number | null
+    costCents?: NullableFloatFieldUpdateOperationsInput | number | null
+    meteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ScheduledTaskRunUncheckedUpdateWithoutTaskInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    status?: EnumScheduledTaskRunStatusFieldUpdateOperationsInput | $Enums.ScheduledTaskRunStatus
+    trigger?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    scheduledFor?: DateTimeFieldUpdateOperationsInput | Date | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    durationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    exitCode?: NullableIntFieldUpdateOperationsInput | number | null
+    logs?: StringFieldUpdateOperationsInput | string
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    machineSize?: NullableStringFieldUpdateOperationsInput | string | null
+    computeUnits?: NullableFloatFieldUpdateOperationsInput | number | null
+    costCents?: NullableFloatFieldUpdateOperationsInput | number | null
+    meteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ScheduledTaskRunUncheckedUpdateManyWithoutTaskInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    status?: EnumScheduledTaskRunStatusFieldUpdateOperationsInput | $Enums.ScheduledTaskRunStatus
+    trigger?: StringFieldUpdateOperationsInput | string
+    attempt?: IntFieldUpdateOperationsInput | number
+    scheduledFor?: DateTimeFieldUpdateOperationsInput | Date | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    durationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    exitCode?: NullableIntFieldUpdateOperationsInput | number | null
+    logs?: StringFieldUpdateOperationsInput | string
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    machineSize?: NullableStringFieldUpdateOperationsInput | string | null
+    computeUnits?: NullableFloatFieldUpdateOperationsInput | number | null
+    costCents?: NullableFloatFieldUpdateOperationsInput | number | null
+    meteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
 

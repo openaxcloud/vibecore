@@ -747,6 +747,10 @@ model Deployment {
   // metered (mirrors WorkspaceRuntime.lastMeteredAt) so a re-reconcile never
   // double-charges. Dormant/SHADOW until BILLING_CREDITS_ENABLED. See metering-service.ts.
   lastMeteredAt      DateTime?
+  // Machine size the user picked at publish (rate-card key, e.g. 'dedicated-1').
+  // Applied verbatim as the runtime pod's requests==limits and used to price
+  // compute metering — the machine you picked is the machine you pay for.
+  machineSize        String                 @default("shared-0.5")
   startedAt          DateTime?
   finishedAt         DateTime?
   canceledAt         DateTime?
@@ -765,6 +769,22 @@ model DeploymentEnvironment {
   id          String       @id @default(cuid())
   name        String       @unique
   deployments Deployment[]
+}
+
+// Versioned Rate Card: the priced catalogue (machine sizes, compute-unit and
+// request rates) served to the app and stamped on every metering event. A
+// price change INSERTS a new version and flips `active` — history is never
+// mutated, so past usage events stay auditable against the card that priced
+// them. Seeded with version 1 (= packages/billing BUILTIN_RATE_CARD).
+model RateCard {
+  id          String   @id @default(cuid())
+  version     Int      @unique
+  active      Boolean  @default(false)
+  data        Json
+  effectiveAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([active])
 }
 
 model AuditLog {

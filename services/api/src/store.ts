@@ -291,6 +291,8 @@ export interface DeploymentRecord {
   parentDeploymentId?: string;
   /** Replit-parity deploy metering idempotency marker (ISO); set once metered. */
   lastMeteredAt?: string;
+  /** Rate-card machine size key picked at publish (server deploys). */
+  machineSize?: string;
   startedAt?: string;
   finishedAt?: string;
   canceledAt?: string;
@@ -1549,6 +1551,7 @@ export interface ApiStore {
     metadata?: Record<string, unknown>;
     rolledBackFromId?: string;
     parentDeploymentId?: string;
+    machineSize?: string;
     startedAt?: string;
     finishedAt?: string;
     canceledAt?: string;
@@ -1569,6 +1572,16 @@ export interface ApiStore {
    * which fails builds orphaned by an api/worker crash so they never hang.
    */
   listStaleDeployments(cutoffIso: string): Promise<DeploymentRecord[]>;
+  /**
+   * READY server deployments (provider 'server') — the runtime-metering sweep
+   * walks these to bill active machine time against their machineSize.
+   */
+  listActiveServerDeployments(): Promise<DeploymentRecord[]>;
+  /**
+   * The ACTIVE versioned Rate Card row (undefined when none is active — the
+   * caller falls back to the built-in card). `data` is the serialized RateCard.
+   */
+  getActiveRateCard(): Promise<{ version: number; data: unknown } | undefined>;
   createSupportTicket(input: {
     organizationId: string;
     userId: string;

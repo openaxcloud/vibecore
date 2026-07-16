@@ -32,6 +32,8 @@ import {
   assertQuota,
   assertConcurrentPublishedApps,
   aiModelCatalog,
+  availableMachineSizes,
+  machineSizeFromCard,
   billingPlans,
   ceilCents,
   computeAiCostCents,
@@ -119,6 +121,14 @@ import {
 } from './database-rollback-service.js';
 import { enqueueDeployBuildJob } from './deploy-queue.js';
 import { reapStaleDeployments, resolveDeployBuildTimeoutMs } from './deploy-reaper.js';
+import { meterServerDeploymentRuntime } from './deploy-runtime-metering.js';
+import {
+  MachineSizeError,
+  getActiveRateCard,
+  machineSizeResources,
+  maxSchedulableVcpu,
+  resolveDeployMachineSize,
+} from './rate-card-service.js';
 import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
 import {
   detectPodPackageManager,
@@ -6535,6 +6545,12 @@ async function startServerDeploymentViaManager(payload: {
   healthPath?: string;
   readyTimeoutMs?: number;
   nixStorePvcName?: string;
+
+  // Machine-size resources (k8s quantities) — requests==limits, see rate-card-service.
+  cpuRequest?: string;
+  cpuLimit?: string;
+  memoryRequest?: string;
+  memoryLimit?: string;
 }): Promise<{ ready: boolean; url: string; name: string; readyReplicas: number }> {
   const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
@@ -28117,9 +28133,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       if ((bootCommand || serverImage) && !serverError) {
+        /*
+         * Machine size → pod resources. The size key was validated + persisted
+         * at create; resolve it against the active rate card here so the pod
+         * gets exactly the machine the row will be billed for (requests ==
+         * limits by contract, see machineSizeResources).
+         */
+        const deployRateCard = await getActiveRateCard(store);
+        const machineSize = machineSizeFromCard(deployRateCard, queued.machineSize);
+
         try {
           started = await startServerDeploymentViaManager({
             deploymentId: queued.id,
+            ...machineSizeResources(machineSize),
             image:
               serverImage ??
               process.env.SERVER_DEPLOY_IMAGE ??
@@ -28500,6 +28526,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     assertDeploymentRequestAllowed(body, deployPlanKey);
 
     /*
+     * Machine size (server deploys): resolve the requested rate-card size and
+     * enforce the plan ceiling (free never gets 8 vCPU) + the cluster's real
+     * scheduling ceiling — a size the scheduler cannot place must fail the
+     * publish HERE with a clear message, not hang a pod in Pending forever.
+     */
+    let deployMachineSize: string | undefined;
+
+    if (body.provider === 'server') {
+      try {
+        const rateCard = await getActiveRateCard(store);
+        deployMachineSize = resolveDeployMachineSize(rateCard, body.machineSize, deployPlanKey).key;
+      } catch (error) {
+        if (error instanceof MachineSizeError) {
+          return reply.code(error.statusCode).send({ error: error.message, code: error.code });
+        }
+
+        throw error;
+      }
+    }
+
+    /*
      * Reject non-static providers that have no deploy hook / credentials wired
      * up rather than synthesizing a fake `*.vibecore.local` URL and marking the
      * deployment READY (audit #1). The static provider builds in-process and
@@ -28550,6 +28597,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           branch: body.githubIntegration?.branch ?? body.branch,
           commitSha: body.commitSha,
           customDomain: body.customDomain,
+          machineSize: deployMachineSize,
           metadata: {
             previewDeployment: body.previewDeployment,
             timeoutSeconds: body.timeoutSeconds,
@@ -28709,7 +28757,61 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/internal/deployments/reap', async (request) => {
     requireInternalSecret(request);
 
-    return reapStaleDeployments(store, { timeoutMs: resolveDeployBuildTimeoutMs() });
+    const reaped = await reapStaleDeployments(store, { timeoutMs: resolveDeployBuildTimeoutMs() });
+
+    /*
+     * Same tick, second sweep: runtime metering for READY server deployments.
+     * Bills observed ACTIVE machine time (replicas > 0) at the row's machine
+     * size; a sleeping app advances its watermark for free. Best-effort — a
+     * metering failure must never fail the reap (each is independently useful).
+     */
+    let runtimeMetering: Awaited<ReturnType<typeof meterServerDeploymentRuntime>> | { error: string };
+
+    try {
+      runtimeMetering = await meterServerDeploymentRuntime(store, {
+        card: await getActiveRateCard(store),
+        getLiveStatus: (deploymentId) => getServerDeploymentStatusViaManager(deploymentId),
+        nowMs: Date.now(),
+        shadow: process.env.BILLING_CREDITS_ENABLED !== 'true',
+      });
+    } catch (error) {
+      runtimeMetering = { error: (error as Error).message };
+      request.log.error({ err: error }, 'server-deploy runtime metering sweep failed');
+    }
+
+    return { ...reaped, runtimeMetering };
+  });
+
+  /*
+   * The versioned Rate Card (deploy machine sizes + unit prices) with per-size
+   * availability for the CALLER's plan and the cluster's current scheduling
+   * ceiling. The Deploy panel renders its size selector from this — prices and
+   * sizes live in the card, never hard-coded in the UI.
+   */
+  app.get('/projects/:projectId/deployments/rate-card', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    const { subscription } = await billingState(project.organizationId);
+    const planKey =
+      subscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(subscription.status) ? subscription.planKey : 'free';
+
+    const card = await getActiveRateCard(store);
+
+    return {
+      version: card.version,
+      effectiveAt: card.effectiveAt,
+      currency: card.currency,
+      compute: card.compute,
+      planKey,
+      defaultMachineSize:
+        card.machineSizes.some((size) => size.key === 'shared-0.5') ? 'shared-0.5' : card.machineSizes[0]?.key,
+      machineSizes: availableMachineSizes(card, planKey, maxSchedulableVcpu()),
+    };
   });
 
   /*
@@ -29439,6 +29541,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           branch: source.branch,
           commitSha: source.commitSha,
           customDomain: source.customDomain,
+          // A redeploy runs on the SAME machine the original was priced for.
+          machineSize: source.machineSize,
           metadata: { ...source.metadata, redeployedFromId: source.id },
           startedAt: new Date().toISOString(),
           logs: [{ timestamp: new Date().toISOString(), level: 'info', message: `Redeploying from ${source.id}` }],

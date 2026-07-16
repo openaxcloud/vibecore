@@ -2,8 +2,8 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { getClusterCapacity } from '@vibecore/k8s-client';
 import Fastify from 'fastify';
 import { z } from 'zod';
-import { WorkspaceManager } from './manager.js';
 import { runAppBuild } from './app-builds.js';
+import { WorkspaceManager } from './manager.js';
 import { runScheduledJob } from './scheduled-jobs.js';
 
 /*
@@ -71,6 +71,7 @@ const appBuildSchema = z.object({
   artifactHeaders: z.record(z.string()),
   buildCommand: z.string().min(1).optional(),
   timeoutSeconds: z.number().int().positive().max(3600).default(600),
+
   // Same /nix RO mount contract as workspaces + app pods (kill-switch gated).
   nixStorePvcName: z.string().min(1).optional(),
 });
@@ -92,8 +93,18 @@ const serverStartSchema = z.object({
   healthPath: z.string().optional(),
   readyTimeoutMs: z.number().int().positive().optional(),
   createIngress: z.boolean().optional(),
+
   // Same /nix RO mount as the workspace the app was snapshotted from (see startSchema).
   nixStorePvcName: z.string().min(1).optional(),
+
+  /*
+   * Machine size resources (rate-card catalogue, resolved by the api):
+   * k8s quantity strings, applied verbatim as the container requests/limits.
+   */
+  cpuRequest: z.string().min(1).optional(),
+  cpuLimit: z.string().min(1).optional(),
+  memoryRequest: z.string().min(1).optional(),
+  memoryLimit: z.string().min(1).optional(),
 });
 
 function runtimeNamespace() {
@@ -316,6 +327,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   app.post('/server-deployments/reap-idle', async (request) => {
     const idleMs = Number((request.body as { idleMs?: number } | undefined)?.idleMs) || SERVER_DEPLOY_IDLE_MS;
     const slept = await manager.reapIdleServerDeployments(runtimeNamespace(), idleMs);
+
     return { slept };
   });
 

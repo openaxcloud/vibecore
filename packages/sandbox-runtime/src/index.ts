@@ -61,6 +61,16 @@ export interface ServerAppSpec {
   readyTimeoutMs?: number;
   createIngress?: boolean;
   nixStorePvcName?: string;
+
+  /*
+   * Machine size (rate-card catalogue): applied verbatim as the container's
+   * resources. requests==limits by contract — the size the user picked is the
+   * machine they get and the machine they are billed for.
+   */
+  cpuRequest?: string;
+  cpuLimit?: string;
+  memoryRequest?: string;
+  memoryLimit?: string;
 }
 
 export interface ServerAppStatus {
@@ -117,6 +127,7 @@ export class GvisorPodRuntime implements SandboxRuntime {
 
   async startServerApp(spec: ServerAppSpec) {
     const name = serverDeploymentName(spec.deploymentId);
+
     const runtime: ServerRuntimeInput = {
       deploymentId: spec.deploymentId,
       namespace: spec.namespace,
@@ -133,6 +144,10 @@ export class GvisorPodRuntime implements SandboxRuntime {
       replicas: spec.replicas,
       healthPath: spec.healthPath,
       nixStorePvcName: spec.nixStorePvcName,
+      cpuRequest: spec.cpuRequest,
+      cpuLimit: spec.cpuLimit,
+      memoryRequest: spec.memoryRequest,
+      memoryLimit: spec.memoryLimit,
     };
 
     await this.k8s.apply(serverAppDeployment(runtime));
@@ -207,8 +222,10 @@ export function resolveSandboxRuntime(
 ): SandboxRuntime {
   const id = env.SANDBOX_RUNTIME?.trim() || 'gvisor-pod';
 
-  // No silent fallback: an unknown runtime is a deploy-time configuration
-  // error, not something to paper over with a default at request time.
+  /*
+   * No silent fallback: an unknown runtime is a deploy-time configuration
+   * error, not something to paper over with a default at request time.
+   */
   if (id !== 'gvisor-pod') {
     throw Object.assign(new Error(`Unknown sandbox runtime '${id}' (known: gvisor-pod)`), {
       code: 'SANDBOX_RUNTIME_UNKNOWN',

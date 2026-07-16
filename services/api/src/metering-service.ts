@@ -29,6 +29,7 @@ export interface MeterResult {
   costCents: number;
   fromPacks: number;
   fromBalance: number;
+
   /**
    * Usage cost not covered by credit packs or wallet balance — the pay-as-you-go
    * overage (billed to Stripe, counts toward the spend cap). 0 in shadow mode.
@@ -45,6 +46,7 @@ async function charge(
     reason: string;
     shadow?: boolean;
     nowMs: number;
+
     /**
      * Stable dedup key for the PAYG tracking-ledger entry. When provided (and the
      * usage incurs an overage beyond packs+balance), the overage is recorded as a
@@ -266,6 +268,7 @@ export async function meterDatabaseStorage(
   input: {
     organizationId: string;
     billableGib: number;
+
     /** Fraction-of-month the storage was held (daily sweep passes 1/daysInPeriod). */
     monthFraction?: number;
     shadow?: boolean;
@@ -281,6 +284,7 @@ export async function meterDatabaseStorage(
     quantity: Math.ceil(gibMonths),
     metadata: { billableGib },
   });
+
   const result = await charge(store, {
     organizationId: input.organizationId,
     costCents: databaseStorageCents(gibMonths),
@@ -289,6 +293,7 @@ export async function meterDatabaseStorage(
     nowMs: input.nowMs,
     paygReference: input.paygReference,
   });
+
   return { ...result, billableGib, gibMonths };
 }
 
@@ -307,9 +312,12 @@ export async function meterAllDatabaseStorage(
   const days = input.daysInPeriod && input.daysInPeriod > 0 ? input.daysInPeriod : 30;
   const instances = await store.listActiveDatabaseInstances();
 
-  // Sum billable GiB per org, applying the floor/cap PER instance (Replit bills
-  // the 33 MB floor per database, not per org).
+  /*
+   * Sum billable GiB per org, applying the floor/cap PER instance (Replit bills
+   * the 33 MB floor per database, not per org).
+   */
   const billableByOrg = new Map<string, { gib: number; count: number }>();
+
   for (const instance of instances) {
     const usedMb = Number(instance.sizeBytes ?? 0) / (1024 * 1024);
     const gib = databaseBillableStorageGib(usedMb);
@@ -332,6 +340,7 @@ export async function meterAllDatabaseStorage(
         if (await store.hasUsageEventSince(organizationId, 'database.storageGiBMonths', dayStartMs)) {
           return false;
         }
+
         // `gib` is already the org's total billable GiB (floor/cap applied per DB).
         await meterDatabaseStorage(store, {
           organizationId,
@@ -341,6 +350,7 @@ export async function meterAllDatabaseStorage(
           nowMs: input.nowMs,
           paygReference: `usage:database-storage:${utcDay}:${organizationId}`,
         });
+
         return true;
       },
     );
@@ -370,6 +380,9 @@ export async function meterDeployment(
     shadow?: boolean;
     nowMs: number;
     paygReference?: string;
+
+    /** Extra audit fields for the usage event (machineSize, rateCardVersion…). */
+    metadata?: Record<string, unknown>;
   },
 ): Promise<MeterResult> {
   let cost = 0;
@@ -403,7 +416,7 @@ export async function meterDeployment(
      * on. Changing it to 0 does not affect billing and breaks that signal.
      */
     quantity: Math.ceil(input.computeUnits ?? input.egressGib ?? 1),
-    metadata: { kind: input.kind, requests: input.requests, reservedTier: input.reservedTier },
+    metadata: { kind: input.kind, requests: input.requests, reservedTier: input.reservedTier, ...input.metadata },
   });
 
   return charge(store, {

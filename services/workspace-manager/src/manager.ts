@@ -202,6 +202,7 @@ export interface StartWorkspaceInput {
   orgId: string;
   projectId: string;
   workspaceId: string;
+
   /** The user the workspace runs as (audit; threaded into the object-storage token). */
   userId?: string;
   image: string;
@@ -209,6 +210,7 @@ export interface StartWorkspaceInput {
   env: Record<string, string>;
   allowedSecretKeys: string[];
   allowedSecrets?: Record<string, string>;
+
   /** App-facing object storage: in-cluster API URL + the project-scoped access token. */
   objectStorage?: { apiUrl: string; accessToken: string };
   resourceLimits?: {
@@ -537,11 +539,13 @@ export class WorkspaceManager {
     host: string;
     tlsSecretName: string;
     env?: Record<string, string>;
+
     // Secret-backed env (name -> value); stored in an app-secrets-<id> Secret.
     secrets?: Record<string, string>;
     replicas?: number;
     healthPath?: string;
     readyTimeoutMs?: number;
+
     /*
      * Create an exact-host Ingress in the runtime namespace. OFF by default: the
      * default deploy routing is the preview-proxy host-routing `d-<id>.<domain>`
@@ -560,6 +564,12 @@ export class WorkspaceManager {
      * pod spec unchanged.
      */
     nixStorePvcName?: string;
+
+    // Machine-size resources (k8s quantities), applied verbatim on the container.
+    cpuRequest?: string;
+    cpuLimit?: string;
+    memoryRequest?: string;
+    memoryLimit?: string;
   }): Promise<{ ready: boolean; url: string; name: string; readyReplicas: number }> {
     const hasSecrets = Boolean(input.secrets && Object.keys(input.secrets).length > 0);
     const secretName = `app-secrets-${input.deploymentId}`;
@@ -605,8 +615,13 @@ export class WorkspaceManager {
       healthPath: input.healthPath,
       readyTimeoutMs: input.readyTimeoutMs,
       createIngress: input.createIngress,
+
       // Per-request opt-in wins; cluster-wide kill switch as fallback (mirrors startWorkspace).
       nixStorePvcName: input.nixStorePvcName ?? process.env.NIX_STORE_PVC_NAME,
+      cpuRequest: input.cpuRequest,
+      cpuLimit: input.cpuLimit,
+      memoryRequest: input.memoryRequest,
+      memoryLimit: input.memoryLimit,
     });
   }
 
@@ -650,6 +665,7 @@ export class WorkspaceManager {
     readyTimeoutMs = 60_000,
   ): Promise<{ ready: boolean; readyReplicas: number; wokeUp: boolean }> {
     const name = serverDeploymentName(deploymentId);
+
     const dep = (await this.k8s.get('Deployment', namespace, name).catch(() => undefined)) as
       | { spec?: { replicas?: number }; status?: { readyReplicas?: number } }
       | undefined;
@@ -743,6 +759,7 @@ export class WorkspaceManager {
    */
   async reapIdleServerDeployments(namespace: string, idleMs: number): Promise<string[]> {
     const now = Date.now();
+
     const deployments = await this.k8s
       .listByLabel('Deployment', namespace, 'vibecore.ai/server-deploy')
       .catch(() => [] as Awaited<ReturnType<typeof this.k8s.listByLabel>>);
@@ -761,6 +778,7 @@ export class WorkspaceManager {
             };
           }
         ).metadata;
+
         const spec = (dep as { spec?: { replicas?: number } }).spec;
         const deploymentId = meta?.labels?.['vibecore.ai/server-deploy'];
 
@@ -774,6 +792,7 @@ export class WorkspaceManager {
         }
 
         const lastRequestRaw = meta.annotations?.[WorkspaceManager.LAST_REQUEST_ANNOTATION];
+
         const lastRequestMs = lastRequestRaw
           ? Number(lastRequestRaw)
           : new Date(meta.creationTimestamp ?? now).getTime();
@@ -1545,6 +1564,7 @@ export function isImmutablePodUpdateError(error: unknown): boolean {
     (error as { stderr?: unknown } | undefined)?.stderr,
     (error as { message?: unknown } | undefined)?.message,
   ];
+
   const text = parts.map((part) => (typeof part === 'string' ? part : '')).join('\n');
 
   return /pod updates may not change fields other than|field is immutable|spec:\s*Forbidden/i.test(text);
