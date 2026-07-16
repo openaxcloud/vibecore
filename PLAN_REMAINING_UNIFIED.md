@@ -17,6 +17,20 @@ Contrat `DOMAIN_MODEL.md §1`. Machine à états NORMATIVE : SNAPSHOT_PINNED →
 | RMX-6. SCANNING : scan de secrets sur l'artefact cloné (échoue si un secret matérialisé est trouvé) | ✅ | ✅ `bd4c334e` | ✅ 16/07 | scanClonedFilesForSecrets trouve la valeur matérialisée → 409 REMIX_SECRET_LEAK (test dédié) |
 | RMX-7. Preuve : remix d'un projet AVEC secret → secret introuvable (FS+DB+job), test qui CHERCHE le secret | ✅ | ✅ `bd4c334e` | ✅ 16/07 | remix-routes.spec 14/14 ; `docs/deploy-evidence/2026-07-16-remix/README.md` (preuve = test intégration, pas encore parcours UI prod) |
 
+## IMPORT — pipeline d'import sécurisé (décision Avi 16/07)
+
+Contrat `DOMAIN_MODEL.md §2`. RECEIVED → STAGING_ISOLATED → SCANNING → QUARANTINED → AWAITING_USER_ACTION → COMMITTING → COMMITTED ; cleanup ROLLING_BACK/EXPIRED/CANCELLED. Invariants : (1) aucune suppression silencieuse — findings présentés+bloquants, contenu modifié qu'avec consentement explicite ; (2) staging jetable, cible jamais montée avant le commit atomique. Preuve = test qui CHERCHE le secret. 12 tuiles du hub (Empty inclus ; GitLab/Screenshot exclus). Réservation crédits idempotente = DÉCISION E-CODE (pas parité).
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|:---:|:---:|:---:|---|
+| IMP-1. Machine à états typée + persistée ; commit exige scan propre OU consentement | ✅ | ✅ `7d45c2cb` | ✅ 16/07 | assertImportTransition + IMPORT_COMMIT_WITHOUT_CONSENT ; 15 tests module pur |
+| IMP-2. Aucune suppression silencieuse : scan read-only, findings redactés bloquants, redaction sur consentement | ✅ | ✅ `7d45c2cb` | ✅ 16/07 | hash source inchangé ; 409 IMPORT_UNRESOLVED_FINDINGS ; redact vs keep (`docs/deploy-evidence/2026-07-16-import/`) |
+| IMP-3. Staging jetable, cible jamais montée avant le commit atomique | ✅ | ✅ `7d45c2cb` | ✅ 16/07 | writeCalls==[] hors commit ; cancel/rollback/échec → aucune cible |
+| IMP-4. Cleanup prouvé sur cancel, timeout ET échec | ✅ | ✅ `7d45c2cb` | 🟡 partiel | cancel + échec (write mocké) prouvés ; timeout = expiresAt modélisé, sweeper non exécuté |
+| IMP-5. Logs redactés (valeur du secret absente des logs) | ✅ | ✅ `7d45c2cb` | ✅ 16/07 | import.scan loggé, valeur absente (test dédié) |
+| IMP-6. 12 tuiles du hub ; providers exécutés vs modélisés | ✅ | ✅ `7d45c2cb` | 🟡 partiel | github/bitbucket/zip/empty exécutés ; vercel/figma/claude/bolt/lovable/base44/spreadsheet/previous-agent-export = source réelle follow-up connecteur |
+| IMP-7. Réservation crédits idempotente = DÉCISION E-CODE | ✅ | ✅ `7d45c2cb` | 🟡 partiel | marqueur creditsReserved (idempotent par importJobId) ; débit réel non wiré |
+
 ## DOC NORMATIVE — P0-02 registres parité + P0-04 collecteur baseline (décision Avi 16/07)
 
 Audit externe : 19 P0. P0-02 = 12 registres/contrats sous `docs/parity/` (chaque fichier porte `schemaVersion` + `repoCommit` ; `status: UNKNOWN` explicite plutôt qu'inventer). P0-04 = collecteur baseline QUOTIDIEN (le changelog Replit n'est PAS hebdo-vendredi : l'index contient un dimanche 16/11/2025 et un mercredi 26/11/2025 — toute automatisation « vendredi » interdite). Preuve = validateur qui passe + collecteur qui tourne en réel.
