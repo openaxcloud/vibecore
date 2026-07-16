@@ -642,6 +642,17 @@ export type AgentCallLog = $Result.DefaultSelection<Prisma.$AgentCallLogPayload>
  * records materialized-secret hits (key + location, never the value).
  */
 export type RemixJob = $Result.DefaultSelection<Prisma.$RemixJobPayload>
+/**
+ * Model ImportJob
+ * A secure project import run (DOMAIN_MODEL §2). Tracks the normative state
+ * machine (RECEIVED → STAGING_ISOLATED → SCANNING → QUARANTINED →
+ * AWAITING_USER_ACTION → COMMITTING → COMMITTED, with ROLLING_BACK / EXPIRED /
+ * CANCELLED cleanup branches). `findings` holds REDACTED secret findings only
+ * (never a raw value); `consent` records the per-finding keep/redact decision.
+ * `targetProjectId` is set ONLY at the atomic COMMIT — it is null on every
+ * non-committed terminal state (proving the target was never touched).
+ */
+export type ImportJob = $Result.DefaultSelection<Prisma.$ImportJobPayload>
 
 /**
  * Enums
@@ -2109,6 +2120,16 @@ export class PrismaClient<
     * ```
     */
   get remixJob(): Prisma.RemixJobDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.importJob`: Exposes CRUD operations for the **ImportJob** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ImportJobs
+    * const importJobs = await prisma.importJob.findMany()
+    * ```
+    */
+  get importJob(): Prisma.ImportJobDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -2651,7 +2672,8 @@ export namespace Prisma {
     ScheduledTaskRun: 'ScheduledTaskRun',
     AgentRoutingCard: 'AgentRoutingCard',
     AgentCallLog: 'AgentCallLog',
-    RemixJob: 'RemixJob'
+    RemixJob: 'RemixJob',
+    ImportJob: 'ImportJob'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2667,7 +2689,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -10721,6 +10743,80 @@ export namespace Prisma {
           }
         }
       }
+      ImportJob: {
+        payload: Prisma.$ImportJobPayload<ExtArgs>
+        fields: Prisma.ImportJobFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ImportJobFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportJobPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ImportJobFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportJobPayload>
+          }
+          findFirst: {
+            args: Prisma.ImportJobFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportJobPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ImportJobFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportJobPayload>
+          }
+          findMany: {
+            args: Prisma.ImportJobFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportJobPayload>[]
+          }
+          create: {
+            args: Prisma.ImportJobCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportJobPayload>
+          }
+          createMany: {
+            args: Prisma.ImportJobCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ImportJobCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportJobPayload>[]
+          }
+          delete: {
+            args: Prisma.ImportJobDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportJobPayload>
+          }
+          update: {
+            args: Prisma.ImportJobUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportJobPayload>
+          }
+          deleteMany: {
+            args: Prisma.ImportJobDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ImportJobUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ImportJobUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportJobPayload>[]
+          }
+          upsert: {
+            args: Prisma.ImportJobUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportJobPayload>
+          }
+          aggregate: {
+            args: Prisma.ImportJobAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateImportJob>
+          }
+          groupBy: {
+            args: Prisma.ImportJobGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ImportJobGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ImportJobCountArgs<ExtArgs>
+            result: $Utils.Optional<ImportJobCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -10938,6 +11034,7 @@ export namespace Prisma {
     agentRoutingCard?: AgentRoutingCardOmit
     agentCallLog?: AgentCallLogOmit
     remixJob?: RemixJobOmit
+    importJob?: ImportJobOmit
   }
 
   /* Types for Logging */
@@ -137923,6 +138020,1194 @@ export namespace Prisma {
 
 
   /**
+   * Model ImportJob
+   */
+
+  export type AggregateImportJob = {
+    _count: ImportJobCountAggregateOutputType | null
+    _avg: ImportJobAvgAggregateOutputType | null
+    _sum: ImportJobSumAggregateOutputType | null
+    _min: ImportJobMinAggregateOutputType | null
+    _max: ImportJobMaxAggregateOutputType | null
+  }
+
+  export type ImportJobAvgAggregateOutputType = {
+    stagedFileCount: number | null
+    redactedCount: number | null
+  }
+
+  export type ImportJobSumAggregateOutputType = {
+    stagedFileCount: number | null
+    redactedCount: number | null
+  }
+
+  export type ImportJobMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    actorUserId: string | null
+    provider: string | null
+    state: string | null
+    sourceRef: string | null
+    targetProjectId: string | null
+    stagedFileCount: number | null
+    redactedCount: number | null
+    creditsReserved: boolean | null
+    error: string | null
+    expiresAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ImportJobMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    actorUserId: string | null
+    provider: string | null
+    state: string | null
+    sourceRef: string | null
+    targetProjectId: string | null
+    stagedFileCount: number | null
+    redactedCount: number | null
+    creditsReserved: boolean | null
+    error: string | null
+    expiresAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ImportJobCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    actorUserId: number
+    provider: number
+    state: number
+    sourceRef: number
+    findings: number
+    consent: number
+    targetProjectId: number
+    stagedFileCount: number
+    redactedCount: number
+    creditsReserved: number
+    error: number
+    expiresAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ImportJobAvgAggregateInputType = {
+    stagedFileCount?: true
+    redactedCount?: true
+  }
+
+  export type ImportJobSumAggregateInputType = {
+    stagedFileCount?: true
+    redactedCount?: true
+  }
+
+  export type ImportJobMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    actorUserId?: true
+    provider?: true
+    state?: true
+    sourceRef?: true
+    targetProjectId?: true
+    stagedFileCount?: true
+    redactedCount?: true
+    creditsReserved?: true
+    error?: true
+    expiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ImportJobMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    actorUserId?: true
+    provider?: true
+    state?: true
+    sourceRef?: true
+    targetProjectId?: true
+    stagedFileCount?: true
+    redactedCount?: true
+    creditsReserved?: true
+    error?: true
+    expiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ImportJobCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    actorUserId?: true
+    provider?: true
+    state?: true
+    sourceRef?: true
+    findings?: true
+    consent?: true
+    targetProjectId?: true
+    stagedFileCount?: true
+    redactedCount?: true
+    creditsReserved?: true
+    error?: true
+    expiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ImportJobAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ImportJob to aggregate.
+     */
+    where?: ImportJobWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportJobs to fetch.
+     */
+    orderBy?: ImportJobOrderByWithRelationInput | ImportJobOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ImportJobWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportJobs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportJobs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ImportJobs
+    **/
+    _count?: true | ImportJobCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ImportJobAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ImportJobSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ImportJobMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ImportJobMaxAggregateInputType
+  }
+
+  export type GetImportJobAggregateType<T extends ImportJobAggregateArgs> = {
+        [P in keyof T & keyof AggregateImportJob]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateImportJob[P]>
+      : GetScalarType<T[P], AggregateImportJob[P]>
+  }
+
+
+
+
+  export type ImportJobGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ImportJobWhereInput
+    orderBy?: ImportJobOrderByWithAggregationInput | ImportJobOrderByWithAggregationInput[]
+    by: ImportJobScalarFieldEnum[] | ImportJobScalarFieldEnum
+    having?: ImportJobScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ImportJobCountAggregateInputType | true
+    _avg?: ImportJobAvgAggregateInputType
+    _sum?: ImportJobSumAggregateInputType
+    _min?: ImportJobMinAggregateInputType
+    _max?: ImportJobMaxAggregateInputType
+  }
+
+  export type ImportJobGroupByOutputType = {
+    id: string
+    organizationId: string
+    actorUserId: string | null
+    provider: string
+    state: string
+    sourceRef: string | null
+    findings: JsonValue | null
+    consent: JsonValue | null
+    targetProjectId: string | null
+    stagedFileCount: number
+    redactedCount: number
+    creditsReserved: boolean
+    error: string | null
+    expiresAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ImportJobCountAggregateOutputType | null
+    _avg: ImportJobAvgAggregateOutputType | null
+    _sum: ImportJobSumAggregateOutputType | null
+    _min: ImportJobMinAggregateOutputType | null
+    _max: ImportJobMaxAggregateOutputType | null
+  }
+
+  type GetImportJobGroupByPayload<T extends ImportJobGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ImportJobGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ImportJobGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ImportJobGroupByOutputType[P]>
+            : GetScalarType<T[P], ImportJobGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ImportJobSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    actorUserId?: boolean
+    provider?: boolean
+    state?: boolean
+    sourceRef?: boolean
+    findings?: boolean
+    consent?: boolean
+    targetProjectId?: boolean
+    stagedFileCount?: boolean
+    redactedCount?: boolean
+    creditsReserved?: boolean
+    error?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["importJob"]>
+
+  export type ImportJobSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    actorUserId?: boolean
+    provider?: boolean
+    state?: boolean
+    sourceRef?: boolean
+    findings?: boolean
+    consent?: boolean
+    targetProjectId?: boolean
+    stagedFileCount?: boolean
+    redactedCount?: boolean
+    creditsReserved?: boolean
+    error?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["importJob"]>
+
+  export type ImportJobSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    actorUserId?: boolean
+    provider?: boolean
+    state?: boolean
+    sourceRef?: boolean
+    findings?: boolean
+    consent?: boolean
+    targetProjectId?: boolean
+    stagedFileCount?: boolean
+    redactedCount?: boolean
+    creditsReserved?: boolean
+    error?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["importJob"]>
+
+  export type ImportJobSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    actorUserId?: boolean
+    provider?: boolean
+    state?: boolean
+    sourceRef?: boolean
+    findings?: boolean
+    consent?: boolean
+    targetProjectId?: boolean
+    stagedFileCount?: boolean
+    redactedCount?: boolean
+    creditsReserved?: boolean
+    error?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ImportJobOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "actorUserId" | "provider" | "state" | "sourceRef" | "findings" | "consent" | "targetProjectId" | "stagedFileCount" | "redactedCount" | "creditsReserved" | "error" | "expiresAt" | "createdAt" | "updatedAt", ExtArgs["result"]["importJob"]>
+
+  export type $ImportJobPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ImportJob"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      actorUserId: string | null
+      /**
+       * One of the 12 hub tiles (github|bitbucket|vercel|figma|claude|bolt|lovable|base44|zip|spreadsheet|previous-agent-export|empty)
+       */
+      provider: string
+      state: string
+      sourceRef: string | null
+      /**
+       * ImportSecretFinding[] { path, line, kind, preview } — redacted, no value.
+       */
+      findings: Prisma.JsonValue | null
+      /**
+       * ConsentDecision { "path:line": "keep"|"redact" }.
+       */
+      consent: Prisma.JsonValue | null
+      /**
+       * Set only at COMMITTED. Null everywhere else = target never mounted.
+       */
+      targetProjectId: string | null
+      stagedFileCount: number
+      redactedCount: number
+      /**
+       * E-CODE DECISION (not Replit parity): idempotent credit reservation marker.
+       */
+      creditsReserved: boolean
+      error: string | null
+      expiresAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["importJob"]>
+    composites: {}
+  }
+
+  type ImportJobGetPayload<S extends boolean | null | undefined | ImportJobDefaultArgs> = $Result.GetResult<Prisma.$ImportJobPayload, S>
+
+  type ImportJobCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ImportJobFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ImportJobCountAggregateInputType | true
+    }
+
+  export interface ImportJobDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ImportJob'], meta: { name: 'ImportJob' } }
+    /**
+     * Find zero or one ImportJob that matches the filter.
+     * @param {ImportJobFindUniqueArgs} args - Arguments to find a ImportJob
+     * @example
+     * // Get one ImportJob
+     * const importJob = await prisma.importJob.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ImportJobFindUniqueArgs>(args: SelectSubset<T, ImportJobFindUniqueArgs<ExtArgs>>): Prisma__ImportJobClient<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ImportJob that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ImportJobFindUniqueOrThrowArgs} args - Arguments to find a ImportJob
+     * @example
+     * // Get one ImportJob
+     * const importJob = await prisma.importJob.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ImportJobFindUniqueOrThrowArgs>(args: SelectSubset<T, ImportJobFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ImportJobClient<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ImportJob that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportJobFindFirstArgs} args - Arguments to find a ImportJob
+     * @example
+     * // Get one ImportJob
+     * const importJob = await prisma.importJob.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ImportJobFindFirstArgs>(args?: SelectSubset<T, ImportJobFindFirstArgs<ExtArgs>>): Prisma__ImportJobClient<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ImportJob that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportJobFindFirstOrThrowArgs} args - Arguments to find a ImportJob
+     * @example
+     * // Get one ImportJob
+     * const importJob = await prisma.importJob.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ImportJobFindFirstOrThrowArgs>(args?: SelectSubset<T, ImportJobFindFirstOrThrowArgs<ExtArgs>>): Prisma__ImportJobClient<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ImportJobs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportJobFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ImportJobs
+     * const importJobs = await prisma.importJob.findMany()
+     * 
+     * // Get first 10 ImportJobs
+     * const importJobs = await prisma.importJob.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const importJobWithIdOnly = await prisma.importJob.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ImportJobFindManyArgs>(args?: SelectSubset<T, ImportJobFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ImportJob.
+     * @param {ImportJobCreateArgs} args - Arguments to create a ImportJob.
+     * @example
+     * // Create one ImportJob
+     * const ImportJob = await prisma.importJob.create({
+     *   data: {
+     *     // ... data to create a ImportJob
+     *   }
+     * })
+     * 
+     */
+    create<T extends ImportJobCreateArgs>(args: SelectSubset<T, ImportJobCreateArgs<ExtArgs>>): Prisma__ImportJobClient<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ImportJobs.
+     * @param {ImportJobCreateManyArgs} args - Arguments to create many ImportJobs.
+     * @example
+     * // Create many ImportJobs
+     * const importJob = await prisma.importJob.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ImportJobCreateManyArgs>(args?: SelectSubset<T, ImportJobCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ImportJobs and returns the data saved in the database.
+     * @param {ImportJobCreateManyAndReturnArgs} args - Arguments to create many ImportJobs.
+     * @example
+     * // Create many ImportJobs
+     * const importJob = await prisma.importJob.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ImportJobs and only return the `id`
+     * const importJobWithIdOnly = await prisma.importJob.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ImportJobCreateManyAndReturnArgs>(args?: SelectSubset<T, ImportJobCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ImportJob.
+     * @param {ImportJobDeleteArgs} args - Arguments to delete one ImportJob.
+     * @example
+     * // Delete one ImportJob
+     * const ImportJob = await prisma.importJob.delete({
+     *   where: {
+     *     // ... filter to delete one ImportJob
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ImportJobDeleteArgs>(args: SelectSubset<T, ImportJobDeleteArgs<ExtArgs>>): Prisma__ImportJobClient<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ImportJob.
+     * @param {ImportJobUpdateArgs} args - Arguments to update one ImportJob.
+     * @example
+     * // Update one ImportJob
+     * const importJob = await prisma.importJob.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ImportJobUpdateArgs>(args: SelectSubset<T, ImportJobUpdateArgs<ExtArgs>>): Prisma__ImportJobClient<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ImportJobs.
+     * @param {ImportJobDeleteManyArgs} args - Arguments to filter ImportJobs to delete.
+     * @example
+     * // Delete a few ImportJobs
+     * const { count } = await prisma.importJob.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ImportJobDeleteManyArgs>(args?: SelectSubset<T, ImportJobDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ImportJobs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportJobUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ImportJobs
+     * const importJob = await prisma.importJob.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ImportJobUpdateManyArgs>(args: SelectSubset<T, ImportJobUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ImportJobs and returns the data updated in the database.
+     * @param {ImportJobUpdateManyAndReturnArgs} args - Arguments to update many ImportJobs.
+     * @example
+     * // Update many ImportJobs
+     * const importJob = await prisma.importJob.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ImportJobs and only return the `id`
+     * const importJobWithIdOnly = await prisma.importJob.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ImportJobUpdateManyAndReturnArgs>(args: SelectSubset<T, ImportJobUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ImportJob.
+     * @param {ImportJobUpsertArgs} args - Arguments to update or create a ImportJob.
+     * @example
+     * // Update or create a ImportJob
+     * const importJob = await prisma.importJob.upsert({
+     *   create: {
+     *     // ... data to create a ImportJob
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ImportJob we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ImportJobUpsertArgs>(args: SelectSubset<T, ImportJobUpsertArgs<ExtArgs>>): Prisma__ImportJobClient<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ImportJobs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportJobCountArgs} args - Arguments to filter ImportJobs to count.
+     * @example
+     * // Count the number of ImportJobs
+     * const count = await prisma.importJob.count({
+     *   where: {
+     *     // ... the filter for the ImportJobs we want to count
+     *   }
+     * })
+    **/
+    count<T extends ImportJobCountArgs>(
+      args?: Subset<T, ImportJobCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ImportJobCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ImportJob.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportJobAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ImportJobAggregateArgs>(args: Subset<T, ImportJobAggregateArgs>): Prisma.PrismaPromise<GetImportJobAggregateType<T>>
+
+    /**
+     * Group by ImportJob.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportJobGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ImportJobGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ImportJobGroupByArgs['orderBy'] }
+        : { orderBy?: ImportJobGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ImportJobGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetImportJobGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ImportJob model
+   */
+  readonly fields: ImportJobFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ImportJob.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ImportJobClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ImportJob model
+   */
+  interface ImportJobFieldRefs {
+    readonly id: FieldRef<"ImportJob", 'String'>
+    readonly organizationId: FieldRef<"ImportJob", 'String'>
+    readonly actorUserId: FieldRef<"ImportJob", 'String'>
+    readonly provider: FieldRef<"ImportJob", 'String'>
+    readonly state: FieldRef<"ImportJob", 'String'>
+    readonly sourceRef: FieldRef<"ImportJob", 'String'>
+    readonly findings: FieldRef<"ImportJob", 'Json'>
+    readonly consent: FieldRef<"ImportJob", 'Json'>
+    readonly targetProjectId: FieldRef<"ImportJob", 'String'>
+    readonly stagedFileCount: FieldRef<"ImportJob", 'Int'>
+    readonly redactedCount: FieldRef<"ImportJob", 'Int'>
+    readonly creditsReserved: FieldRef<"ImportJob", 'Boolean'>
+    readonly error: FieldRef<"ImportJob", 'String'>
+    readonly expiresAt: FieldRef<"ImportJob", 'DateTime'>
+    readonly createdAt: FieldRef<"ImportJob", 'DateTime'>
+    readonly updatedAt: FieldRef<"ImportJob", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ImportJob findUnique
+   */
+  export type ImportJobFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportJob
+     */
+    select?: ImportJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportJob
+     */
+    omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Filter, which ImportJob to fetch.
+     */
+    where: ImportJobWhereUniqueInput
+  }
+
+  /**
+   * ImportJob findUniqueOrThrow
+   */
+  export type ImportJobFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportJob
+     */
+    select?: ImportJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportJob
+     */
+    omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Filter, which ImportJob to fetch.
+     */
+    where: ImportJobWhereUniqueInput
+  }
+
+  /**
+   * ImportJob findFirst
+   */
+  export type ImportJobFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportJob
+     */
+    select?: ImportJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportJob
+     */
+    omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Filter, which ImportJob to fetch.
+     */
+    where?: ImportJobWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportJobs to fetch.
+     */
+    orderBy?: ImportJobOrderByWithRelationInput | ImportJobOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ImportJobs.
+     */
+    cursor?: ImportJobWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportJobs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportJobs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportJobs.
+     */
+    distinct?: ImportJobScalarFieldEnum | ImportJobScalarFieldEnum[]
+  }
+
+  /**
+   * ImportJob findFirstOrThrow
+   */
+  export type ImportJobFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportJob
+     */
+    select?: ImportJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportJob
+     */
+    omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Filter, which ImportJob to fetch.
+     */
+    where?: ImportJobWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportJobs to fetch.
+     */
+    orderBy?: ImportJobOrderByWithRelationInput | ImportJobOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ImportJobs.
+     */
+    cursor?: ImportJobWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportJobs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportJobs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportJobs.
+     */
+    distinct?: ImportJobScalarFieldEnum | ImportJobScalarFieldEnum[]
+  }
+
+  /**
+   * ImportJob findMany
+   */
+  export type ImportJobFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportJob
+     */
+    select?: ImportJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportJob
+     */
+    omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Filter, which ImportJobs to fetch.
+     */
+    where?: ImportJobWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportJobs to fetch.
+     */
+    orderBy?: ImportJobOrderByWithRelationInput | ImportJobOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ImportJobs.
+     */
+    cursor?: ImportJobWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportJobs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportJobs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportJobs.
+     */
+    distinct?: ImportJobScalarFieldEnum | ImportJobScalarFieldEnum[]
+  }
+
+  /**
+   * ImportJob create
+   */
+  export type ImportJobCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportJob
+     */
+    select?: ImportJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportJob
+     */
+    omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * The data needed to create a ImportJob.
+     */
+    data: XOR<ImportJobCreateInput, ImportJobUncheckedCreateInput>
+  }
+
+  /**
+   * ImportJob createMany
+   */
+  export type ImportJobCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ImportJobs.
+     */
+    data: ImportJobCreateManyInput | ImportJobCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ImportJob createManyAndReturn
+   */
+  export type ImportJobCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportJob
+     */
+    select?: ImportJobSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportJob
+     */
+    omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * The data used to create many ImportJobs.
+     */
+    data: ImportJobCreateManyInput | ImportJobCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ImportJob update
+   */
+  export type ImportJobUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportJob
+     */
+    select?: ImportJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportJob
+     */
+    omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * The data needed to update a ImportJob.
+     */
+    data: XOR<ImportJobUpdateInput, ImportJobUncheckedUpdateInput>
+    /**
+     * Choose, which ImportJob to update.
+     */
+    where: ImportJobWhereUniqueInput
+  }
+
+  /**
+   * ImportJob updateMany
+   */
+  export type ImportJobUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ImportJobs.
+     */
+    data: XOR<ImportJobUpdateManyMutationInput, ImportJobUncheckedUpdateManyInput>
+    /**
+     * Filter which ImportJobs to update
+     */
+    where?: ImportJobWhereInput
+    /**
+     * Limit how many ImportJobs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ImportJob updateManyAndReturn
+   */
+  export type ImportJobUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportJob
+     */
+    select?: ImportJobSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportJob
+     */
+    omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * The data used to update ImportJobs.
+     */
+    data: XOR<ImportJobUpdateManyMutationInput, ImportJobUncheckedUpdateManyInput>
+    /**
+     * Filter which ImportJobs to update
+     */
+    where?: ImportJobWhereInput
+    /**
+     * Limit how many ImportJobs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ImportJob upsert
+   */
+  export type ImportJobUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportJob
+     */
+    select?: ImportJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportJob
+     */
+    omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * The filter to search for the ImportJob to update in case it exists.
+     */
+    where: ImportJobWhereUniqueInput
+    /**
+     * In case the ImportJob found by the `where` argument doesn't exist, create a new ImportJob with this data.
+     */
+    create: XOR<ImportJobCreateInput, ImportJobUncheckedCreateInput>
+    /**
+     * In case the ImportJob was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ImportJobUpdateInput, ImportJobUncheckedUpdateInput>
+  }
+
+  /**
+   * ImportJob delete
+   */
+  export type ImportJobDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportJob
+     */
+    select?: ImportJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportJob
+     */
+    omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Filter which ImportJob to delete.
+     */
+    where: ImportJobWhereUniqueInput
+  }
+
+  /**
+   * ImportJob deleteMany
+   */
+  export type ImportJobDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ImportJobs to delete
+     */
+    where?: ImportJobWhereInput
+    /**
+     * Limit how many ImportJobs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ImportJob without action
+   */
+  export type ImportJobDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportJob
+     */
+    select?: ImportJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportJob
+     */
+    omit?: ImportJobOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -139584,6 +140869,28 @@ export namespace Prisma {
   };
 
   export type RemixJobScalarFieldEnum = (typeof RemixJobScalarFieldEnum)[keyof typeof RemixJobScalarFieldEnum]
+
+
+  export const ImportJobScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    actorUserId: 'actorUserId',
+    provider: 'provider',
+    state: 'state',
+    sourceRef: 'sourceRef',
+    findings: 'findings',
+    consent: 'consent',
+    targetProjectId: 'targetProjectId',
+    stagedFileCount: 'stagedFileCount',
+    redactedCount: 'redactedCount',
+    creditsReserved: 'creditsReserved',
+    error: 'error',
+    expiresAt: 'expiresAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ImportJobScalarFieldEnum = (typeof ImportJobScalarFieldEnum)[keyof typeof ImportJobScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -148689,6 +149996,115 @@ export namespace Prisma {
     error?: StringNullableWithAggregatesFilter<"RemixJob"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"RemixJob"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"RemixJob"> | Date | string
+  }
+
+  export type ImportJobWhereInput = {
+    AND?: ImportJobWhereInput | ImportJobWhereInput[]
+    OR?: ImportJobWhereInput[]
+    NOT?: ImportJobWhereInput | ImportJobWhereInput[]
+    id?: StringFilter<"ImportJob"> | string
+    organizationId?: StringFilter<"ImportJob"> | string
+    actorUserId?: StringNullableFilter<"ImportJob"> | string | null
+    provider?: StringFilter<"ImportJob"> | string
+    state?: StringFilter<"ImportJob"> | string
+    sourceRef?: StringNullableFilter<"ImportJob"> | string | null
+    findings?: JsonNullableFilter<"ImportJob">
+    consent?: JsonNullableFilter<"ImportJob">
+    targetProjectId?: StringNullableFilter<"ImportJob"> | string | null
+    stagedFileCount?: IntFilter<"ImportJob"> | number
+    redactedCount?: IntFilter<"ImportJob"> | number
+    creditsReserved?: BoolFilter<"ImportJob"> | boolean
+    error?: StringNullableFilter<"ImportJob"> | string | null
+    expiresAt?: DateTimeNullableFilter<"ImportJob"> | Date | string | null
+    createdAt?: DateTimeFilter<"ImportJob"> | Date | string
+    updatedAt?: DateTimeFilter<"ImportJob"> | Date | string
+  }
+
+  export type ImportJobOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    actorUserId?: SortOrderInput | SortOrder
+    provider?: SortOrder
+    state?: SortOrder
+    sourceRef?: SortOrderInput | SortOrder
+    findings?: SortOrderInput | SortOrder
+    consent?: SortOrderInput | SortOrder
+    targetProjectId?: SortOrderInput | SortOrder
+    stagedFileCount?: SortOrder
+    redactedCount?: SortOrder
+    creditsReserved?: SortOrder
+    error?: SortOrderInput | SortOrder
+    expiresAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ImportJobWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ImportJobWhereInput | ImportJobWhereInput[]
+    OR?: ImportJobWhereInput[]
+    NOT?: ImportJobWhereInput | ImportJobWhereInput[]
+    organizationId?: StringFilter<"ImportJob"> | string
+    actorUserId?: StringNullableFilter<"ImportJob"> | string | null
+    provider?: StringFilter<"ImportJob"> | string
+    state?: StringFilter<"ImportJob"> | string
+    sourceRef?: StringNullableFilter<"ImportJob"> | string | null
+    findings?: JsonNullableFilter<"ImportJob">
+    consent?: JsonNullableFilter<"ImportJob">
+    targetProjectId?: StringNullableFilter<"ImportJob"> | string | null
+    stagedFileCount?: IntFilter<"ImportJob"> | number
+    redactedCount?: IntFilter<"ImportJob"> | number
+    creditsReserved?: BoolFilter<"ImportJob"> | boolean
+    error?: StringNullableFilter<"ImportJob"> | string | null
+    expiresAt?: DateTimeNullableFilter<"ImportJob"> | Date | string | null
+    createdAt?: DateTimeFilter<"ImportJob"> | Date | string
+    updatedAt?: DateTimeFilter<"ImportJob"> | Date | string
+  }, "id">
+
+  export type ImportJobOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    actorUserId?: SortOrderInput | SortOrder
+    provider?: SortOrder
+    state?: SortOrder
+    sourceRef?: SortOrderInput | SortOrder
+    findings?: SortOrderInput | SortOrder
+    consent?: SortOrderInput | SortOrder
+    targetProjectId?: SortOrderInput | SortOrder
+    stagedFileCount?: SortOrder
+    redactedCount?: SortOrder
+    creditsReserved?: SortOrder
+    error?: SortOrderInput | SortOrder
+    expiresAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ImportJobCountOrderByAggregateInput
+    _avg?: ImportJobAvgOrderByAggregateInput
+    _max?: ImportJobMaxOrderByAggregateInput
+    _min?: ImportJobMinOrderByAggregateInput
+    _sum?: ImportJobSumOrderByAggregateInput
+  }
+
+  export type ImportJobScalarWhereWithAggregatesInput = {
+    AND?: ImportJobScalarWhereWithAggregatesInput | ImportJobScalarWhereWithAggregatesInput[]
+    OR?: ImportJobScalarWhereWithAggregatesInput[]
+    NOT?: ImportJobScalarWhereWithAggregatesInput | ImportJobScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ImportJob"> | string
+    organizationId?: StringWithAggregatesFilter<"ImportJob"> | string
+    actorUserId?: StringNullableWithAggregatesFilter<"ImportJob"> | string | null
+    provider?: StringWithAggregatesFilter<"ImportJob"> | string
+    state?: StringWithAggregatesFilter<"ImportJob"> | string
+    sourceRef?: StringNullableWithAggregatesFilter<"ImportJob"> | string | null
+    findings?: JsonNullableWithAggregatesFilter<"ImportJob">
+    consent?: JsonNullableWithAggregatesFilter<"ImportJob">
+    targetProjectId?: StringNullableWithAggregatesFilter<"ImportJob"> | string | null
+    stagedFileCount?: IntWithAggregatesFilter<"ImportJob"> | number
+    redactedCount?: IntWithAggregatesFilter<"ImportJob"> | number
+    creditsReserved?: BoolWithAggregatesFilter<"ImportJob"> | boolean
+    error?: StringNullableWithAggregatesFilter<"ImportJob"> | string | null
+    expiresAt?: DateTimeNullableWithAggregatesFilter<"ImportJob"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ImportJob"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ImportJob"> | Date | string
   }
 
   export type UserCreateInput = {
@@ -158223,6 +159639,139 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ImportJobCreateInput = {
+    id?: string
+    organizationId: string
+    actorUserId?: string | null
+    provider: string
+    state?: string
+    sourceRef?: string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: string | null
+    stagedFileCount?: number
+    redactedCount?: number
+    creditsReserved?: boolean
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ImportJobUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    actorUserId?: string | null
+    provider: string
+    state?: string
+    sourceRef?: string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: string | null
+    stagedFileCount?: number
+    redactedCount?: number
+    creditsReserved?: boolean
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ImportJobUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportJobUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportJobCreateManyInput = {
+    id?: string
+    organizationId: string
+    actorUserId?: string | null
+    provider: string
+    state?: string
+    sourceRef?: string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: string | null
+    stagedFileCount?: number
+    redactedCount?: number
+    creditsReserved?: boolean
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ImportJobUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportJobUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -164174,6 +165723,69 @@ export namespace Prisma {
 
   export type RemixJobSumOrderByAggregateInput = {
     scrubbedCount?: SortOrder
+  }
+
+  export type ImportJobCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    actorUserId?: SortOrder
+    provider?: SortOrder
+    state?: SortOrder
+    sourceRef?: SortOrder
+    findings?: SortOrder
+    consent?: SortOrder
+    targetProjectId?: SortOrder
+    stagedFileCount?: SortOrder
+    redactedCount?: SortOrder
+    creditsReserved?: SortOrder
+    error?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ImportJobAvgOrderByAggregateInput = {
+    stagedFileCount?: SortOrder
+    redactedCount?: SortOrder
+  }
+
+  export type ImportJobMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    actorUserId?: SortOrder
+    provider?: SortOrder
+    state?: SortOrder
+    sourceRef?: SortOrder
+    targetProjectId?: SortOrder
+    stagedFileCount?: SortOrder
+    redactedCount?: SortOrder
+    creditsReserved?: SortOrder
+    error?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ImportJobMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    actorUserId?: SortOrder
+    provider?: SortOrder
+    state?: SortOrder
+    sourceRef?: SortOrder
+    targetProjectId?: SortOrder
+    stagedFileCount?: SortOrder
+    redactedCount?: SortOrder
+    creditsReserved?: SortOrder
+    error?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ImportJobSumOrderByAggregateInput = {
+    stagedFileCount?: SortOrder
+    redactedCount?: SortOrder
   }
 
   export type AccountCreateNestedManyWithoutUserInput = {

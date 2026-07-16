@@ -1295,6 +1295,46 @@ export interface ApiStore {
       }
     | undefined
   >;
+  /** Create an import-job row (secure import state machine). */
+  createImportJob(input: {
+    organizationId: string;
+    actorUserId?: string;
+    provider: string;
+    sourceRef?: string;
+    expiresAt?: string;
+  }): Promise<{ id: string; state: string }>;
+  updateImportJob(
+    id: string,
+    patch: {
+      state?: string;
+      findings?: unknown;
+      consent?: unknown;
+      targetProjectId?: string;
+      stagedFileCount?: number;
+      redactedCount?: number;
+      creditsReserved?: boolean;
+      error?: string;
+    },
+  ): Promise<void>;
+  getImportJob(id: string): Promise<
+    | {
+        id: string;
+        organizationId: string;
+        provider: string;
+        state: string;
+        sourceRef?: string;
+        findings?: unknown;
+        consent?: unknown;
+        targetProjectId?: string;
+        stagedFileCount: number;
+        redactedCount: number;
+        creditsReserved: boolean;
+        error?: string;
+        expiresAt?: string;
+        createdAt: string;
+      }
+    | undefined
+  >;
   deleteProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
   addProjectCollaborator(input: {
     projectId: string;

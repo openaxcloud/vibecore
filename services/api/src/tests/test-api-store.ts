@@ -1926,6 +1926,73 @@ export class TestApiStore implements ApiStore {
     return this.remixJobs.get(id);
   }
 
+  importJobs = new Map<
+    string,
+    {
+      id: string;
+      organizationId: string;
+      provider: string;
+      state: string;
+      sourceRef?: string;
+      findings?: unknown;
+      consent?: unknown;
+      targetProjectId?: string;
+      stagedFileCount: number;
+      redactedCount: number;
+      creditsReserved: boolean;
+      error?: string;
+      expiresAt?: string;
+      createdAt: string;
+    }
+  >();
+
+  async createImportJob(input: {
+    organizationId: string;
+    actorUserId?: string;
+    provider: string;
+    sourceRef?: string;
+    expiresAt?: string;
+  }) {
+    const row = {
+      id: id('import'),
+      organizationId: input.organizationId,
+      provider: input.provider,
+      state: 'RECEIVED',
+      sourceRef: input.sourceRef,
+      stagedFileCount: 0,
+      redactedCount: 0,
+      creditsReserved: false,
+      expiresAt: input.expiresAt,
+      createdAt: now(),
+    };
+    this.importJobs.set(row.id, row);
+    return { id: row.id, state: row.state };
+  }
+
+  async updateImportJob(
+    id: string,
+    patch: {
+      state?: string;
+      findings?: unknown;
+      consent?: unknown;
+      targetProjectId?: string;
+      stagedFileCount?: number;
+      redactedCount?: number;
+      creditsReserved?: boolean;
+      error?: string;
+    },
+  ) {
+    const row = this.importJobs.get(id);
+
+    if (row) {
+      Object.assign(row, patch);
+    }
+  }
+
+  async getImportJob(id: string) {
+    return this.importJobs.get(id);
+  }
+
   async countAgentRoutingCards(): Promise<number> {
     return this.agentRoutingCards.length;
   }

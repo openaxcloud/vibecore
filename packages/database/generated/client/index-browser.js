@@ -1443,6 +1443,25 @@ exports.Prisma.RemixJobScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ImportJobScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  actorUserId: 'actorUserId',
+  provider: 'provider',
+  state: 'state',
+  sourceRef: 'sourceRef',
+  findings: 'findings',
+  consent: 'consent',
+  targetProjectId: 'targetProjectId',
+  stagedFileCount: 'stagedFileCount',
+  redactedCount: 'redactedCount',
+  creditsReserved: 'creditsReserved',
+  error: 'error',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1713,7 +1732,8 @@ exports.Prisma.ModelName = {
   ScheduledTaskRun: 'ScheduledTaskRun',
   AgentRoutingCard: 'AgentRoutingCard',
   AgentCallLog: 'AgentCallLog',
-  RemixJob: 'RemixJob'
+  RemixJob: 'RemixJob',
+  ImportJob: 'ImportJob'
 };
 
 /**

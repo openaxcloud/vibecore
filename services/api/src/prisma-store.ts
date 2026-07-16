@@ -1226,6 +1226,80 @@ export class PrismaApiStore implements ApiStore {
     };
   }
 
+  async createImportJob(input: {
+    organizationId: string;
+    actorUserId?: string;
+    provider: string;
+    sourceRef?: string;
+    expiresAt?: string;
+  }) {
+    const row = await this.prisma.importJob.create({
+      data: {
+        organizationId: input.organizationId,
+        actorUserId: input.actorUserId ?? null,
+        provider: input.provider,
+        sourceRef: input.sourceRef ?? null,
+        expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+        state: 'RECEIVED',
+      },
+    });
+
+    return { id: row.id, state: row.state };
+  }
+
+  async updateImportJob(
+    id: string,
+    patch: {
+      state?: string;
+      findings?: unknown;
+      consent?: unknown;
+      targetProjectId?: string;
+      stagedFileCount?: number;
+      redactedCount?: number;
+      creditsReserved?: boolean;
+      error?: string;
+    },
+  ) {
+    await this.prisma.importJob.update({
+      where: { id },
+      data: {
+        ...(patch.state !== undefined ? { state: patch.state } : {}),
+        ...(patch.findings !== undefined ? { findings: patch.findings as object } : {}),
+        ...(patch.consent !== undefined ? { consent: patch.consent as object } : {}),
+        ...(patch.targetProjectId !== undefined ? { targetProjectId: patch.targetProjectId } : {}),
+        ...(patch.stagedFileCount !== undefined ? { stagedFileCount: patch.stagedFileCount } : {}),
+        ...(patch.redactedCount !== undefined ? { redactedCount: patch.redactedCount } : {}),
+        ...(patch.creditsReserved !== undefined ? { creditsReserved: patch.creditsReserved } : {}),
+        ...(patch.error !== undefined ? { error: patch.error } : {}),
+      },
+    });
+  }
+
+  async getImportJob(id: string) {
+    const row = await this.prisma.importJob.findUnique({ where: { id } });
+
+    if (!row) {
+      return undefined;
+    }
+
+    return {
+      id: row.id,
+      organizationId: row.organizationId,
+      provider: row.provider,
+      state: row.state,
+      sourceRef: row.sourceRef ?? undefined,
+      findings: row.findings as unknown,
+      consent: row.consent as unknown,
+      targetProjectId: row.targetProjectId ?? undefined,
+      stagedFileCount: row.stagedFileCount,
+      redactedCount: row.redactedCount,
+      creditsReserved: row.creditsReserved,
+      error: row.error ?? undefined,
+      expiresAt: row.expiresAt?.toISOString(),
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
   async deleteProjectSecret(projectId: string, key: string) {
     /*
      * find-then-delete raced a concurrent delete into an unhandled P2025; use a

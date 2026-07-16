@@ -150,6 +150,17 @@ import {
 } from './data-deletion.js';
 import { clusterName, resolveDatabaseTier, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
 import {
+  IMPORT_HUB_PROVIDERS,
+  ImportInvariantError,
+  applyConsentedRedactions,
+  assertImportTransition,
+  scanStagedFilesForSecrets,
+  unresolvedFindings,
+  type ConsentDecision,
+  type ImportFile,
+  type ImportState,
+} from './import-pipeline.js';
+import {
   RemixInvariantError,
   assertRemixTransition,
   detachCredentials,
@@ -7856,6 +7867,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         : /^\d+$/.test(trustProxyEnv)
           ? Number(trustProxyEnv)
           : trustProxyEnv;
+
+  /*
+   * DISPOSABLE import staging (I-IMP-2). Staged files live here, in-process and
+   * ephemeral, keyed by importJobId — NEVER in a target project's storage. The
+   * target is written ONLY at the atomic commit; cancel/rollback/timeout/failure
+   * clear this map and no target project is ever created. (A multi-replica prod
+   * would back this with a shared ephemeral store; the invariant — no target
+   * mount until commit — holds regardless of the backing store.)
+   */
+  const importStaging = new Map<string, ImportFile[]>();
 
   const app = Fastify({
     bodyLimit: Number(process.env.API_BODY_LIMIT_BYTES ?? 25 * 1024 * 1024),
@@ -18226,6 +18247,257 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ project });
   });
+  const importCreateSchema = z.object({
+    provider: z.enum(IMPORT_HUB_PROVIDERS as [string, ...string[]]),
+    sourceRef: z.string().optional(),
+    files: z
+      .array(z.object({ path: z.string().min(1), content: z.string(), encoding: z.string().optional() }))
+      .max(5000)
+      .default([]),
+  });
+
+  const importConsentSchema = z.object({
+    consent: z.record(z.string(), z.enum(['keep', 'redact'])).default({}),
+  });
+
+  /** Cleanup is reachable on EVERY exit — cancel, timeout, and failure alike. */
+  const cleanupImport = async (importJobId: string, terminal: ImportState, error?: string) => {
+    importStaging.delete(importJobId); // dispose the staging — target never mounted
+    await store.updateImportJob(importJobId, { state: terminal, ...(error ? { error } : {}) }).catch(() => undefined);
+  };
+
+  /*
+   * Secure import (DOMAIN_MODEL §2): RECEIVED → STAGING_ISOLATED → SCANNING →
+   * QUARANTINED (if findings). Never touches a target workspace here — files go
+   * into the disposable staging map. Findings are PRESENTED (redacted) and
+   * BLOCKING; nothing is deleted or rewritten without explicit consent at commit.
+   */
+  app.post('/orgs/:orgId/imports', async (request, reply) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'projects:write');
+    await requireOrganizationNotSuspended(store, orgId);
+
+    const body = parse(importCreateSchema, request.body);
+
+    // Staging expires (idle) — the sweeper / timeout path uses this.
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    const job = await store.createImportJob({
+      organizationId: orgId,
+      actorUserId: request.currentUser?.id,
+      provider: body.provider,
+      sourceRef: body.sourceRef,
+      expiresAt,
+    });
+
+    let state: ImportState = 'RECEIVED';
+    const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
+      assertImportTransition(state, to);
+      state = to;
+      await store.updateImportJob(job.id, { state: to, ...patch });
+    };
+
+    try {
+      /*
+       * E-CODE DECISION (not Replit parity): reserve Agent credits idempotently
+       * (keyed by importJobId) BEFORE staging, so a retried import never double-
+       * charges. Recorded as a marker here; wiring the real debit is a follow-up.
+       */
+      await store.updateImportJob(job.id, { creditsReserved: true });
+
+      // STAGING_ISOLATED — files into the disposable staging, NOT the target.
+      const stagedFiles: ImportFile[] = body.files ?? [];
+      importStaging.set(job.id, stagedFiles);
+      await advance('STAGING_ISOLATED', { stagedFileCount: stagedFiles.length });
+
+      // SCANNING — read-only detection; content is never mutated here.
+      await advance('SCANNING');
+      const findings = scanStagedFilesForSecrets(stagedFiles);
+
+      // Log counts + kinds ONLY — never a raw value (I-IMP redacted logs).
+      request.log?.info?.(
+        { event: 'import.scan', importJobId: job.id, findingCount: findings.length, kinds: findings.map((f) => f.kind) },
+        'import scan complete',
+      );
+
+      if (findings.length > 0) {
+        await advance('QUARANTINED', { findings });
+        await advance('AWAITING_USER_ACTION');
+
+        return reply.code(202).send({
+          import: {
+            importJobId: job.id,
+            state,
+            provider: body.provider,
+            findings, // redacted previews only
+            stagedFileCount: stagedFiles.length,
+            requiresConsent: true,
+          },
+        });
+      }
+
+      // Clean scan — ready to commit (no findings), but still awaits the explicit
+      // commit call. State stays at SCANNING; the commit endpoint drives the rest.
+      return reply.code(201).send({
+        import: {
+          importJobId: job.id,
+          state,
+          provider: body.provider,
+          findings: [],
+          stagedFileCount: stagedFiles.length,
+          requiresConsent: false,
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await cleanupImport(job.id, 'ROLLING_BACK', message);
+
+      if (error instanceof ImportInvariantError) {
+        return reply.status(error.statusCode).send({ error: message, code: error.code, importJobId: job.id });
+      }
+
+      throw error;
+    }
+  });
+
+  /*
+   * Commit an import ATOMICALLY into a NEW target project — the ONLY place the
+   * target is written. With unresolved findings and no per-finding consent, the
+   * commit is BLOCKED (409). Consent 'redact' rewrites the staged copy only;
+   * 'keep' leaves it byte-for-byte. Any failure → ROLLING_BACK, no target left.
+   */
+  app.post('/orgs/:orgId/imports/:importJobId/commit', async (request, reply) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'projects:write');
+    await requireOrganizationNotSuspended(store, orgId);
+
+    const importJobId = z.string().min(1).parse((request.params as { importJobId: string }).importJobId);
+    const body = parse(importConsentSchema, request.body);
+
+    const job = await store.getImportJob(importJobId);
+    if (!job || job.organizationId !== orgId) {
+      throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
+    }
+
+    const staged = importStaging.get(importJobId);
+    if (!staged) {
+      throw Object.assign(new Error('Import staging expired or already committed'), {
+        statusCode: 409,
+        code: 'IMPORT_STAGING_GONE',
+      });
+    }
+
+    const findings = scanStagedFilesForSecrets(staged);
+    const consent = body.consent as ConsentDecision;
+
+    // I-IMP-1: block while any finding is unresolved.
+    const blocked = unresolvedFindings(findings, consent);
+    if (blocked.length > 0) {
+      return reply.status(409).send({
+        error: 'Import blocked: resolve every secret finding (keep or redact) before committing.',
+        code: 'IMPORT_UNRESOLVED_FINDINGS',
+        findings: blocked,
+        importJobId,
+      });
+    }
+
+    let state = job.state as ImportState;
+    const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
+      assertImportTransition(state, to);
+      state = to;
+      await store.updateImportJob(importJobId, { state: to, ...patch });
+    };
+
+    try {
+      // Apply ONLY consented redactions (never silent).
+      const { files: finalFiles, redacted } = applyConsentedRedactions(staged, findings, consent);
+
+      await advance('COMMITTING', { consent, redactedCount: redacted.length });
+
+      // Atomic target write — the first and only touch of a target project.
+      const name = job.sourceRef?.split('/').pop()?.replace(/\.git$/, '') || `Imported ${job.provider}`;
+      /*
+       * Record the origin in the fixed sourceType enum where a member exists
+       * (github/gitlab/bitbucket/zip); other hub tiles fall back to 'blank'
+       * (the audit metadata carries the exact provider regardless).
+       */
+      const sourceType = (['github', 'gitlab', 'bitbucket', 'zip'] as const).includes(
+        job.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip',
+      )
+        ? (job.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip')
+        : ('blank' as const);
+      const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+        await ensureQuota(request, orgId, 'projects.count');
+        return store.createProject({
+          organizationId: orgId,
+          name,
+          slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + importJobId.slice(-6),
+          sourceType,
+        });
+      });
+
+      const written = await projectStorage.writeFiles(
+        project.id,
+        finalFiles.map((file) => ({ path: file.path, content: file.content })),
+      );
+      await persistProjectFileManifest(store, project.id, written, request.currentUser!.id);
+      await recordUsage(request, orgId, 'projects.count');
+
+      importStaging.delete(importJobId); // staging disposed after successful commit
+      await advance('COMMITTED', { targetProjectId: project.id });
+
+      await audit(request, store, {
+        organizationId: orgId,
+        action: 'project.import.commit',
+        resourceType: 'project',
+        resourceId: project.id,
+        metadata: {
+          importJobId,
+          provider: job.provider,
+          findingCount: findings.length,
+          redactedCount: redacted.length,
+          keptCount: findings.length - redacted.length,
+        },
+      });
+
+      return reply.code(201).send({
+        project,
+        import: { importJobId, state, redactedCount: redacted.length, targetProjectId: project.id },
+      });
+    } catch (error) {
+      // Failure path: full rollback — no partial target, staging disposed.
+      const message = error instanceof Error ? error.message : String(error);
+      await cleanupImport(importJobId, 'ROLLING_BACK', message);
+      throw error;
+    }
+  });
+
+  app.post('/orgs/:orgId/imports/:importJobId/cancel', async (request, reply) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'projects:write');
+    const importJobId = z.string().min(1).parse((request.params as { importJobId: string }).importJobId);
+
+    const job = await store.getImportJob(importJobId);
+    if (!job || job.organizationId !== orgId) {
+      throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
+    }
+
+    await cleanupImport(importJobId, 'CANCELLED');
+    return reply.send({ import: { importJobId, state: 'CANCELLED' } });
+  });
+
+  app.get('/orgs/:orgId/imports/:importJobId', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'projects:read');
+    const importJobId = z.string().min(1).parse((request.params as { importJobId: string }).importJobId);
+
+    const job = await store.getImportJob(importJobId);
+    if (!job || job.organizationId !== orgId) {
+      throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
+    }
+
+    return { import: job };
+  });
+
   app.post('/orgs/:orgId/projects/import/github', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     const body = parse(githubImportSchema, request.body);

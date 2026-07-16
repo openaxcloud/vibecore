@@ -2321,3 +2321,37 @@ model RemixJob {
   @@index([sourceProjectId])
   @@index([organizationId, createdAt])
 }
+
+/// A secure project import run (DOMAIN_MODEL §2). Tracks the normative state
+/// machine (RECEIVED → STAGING_ISOLATED → SCANNING → QUARANTINED →
+/// AWAITING_USER_ACTION → COMMITTING → COMMITTED, with ROLLING_BACK / EXPIRED /
+/// CANCELLED cleanup branches). `findings` holds REDACTED secret findings only
+/// (never a raw value); `consent` records the per-finding keep/redact decision.
+/// `targetProjectId` is set ONLY at the atomic COMMIT — it is null on every
+/// non-committed terminal state (proving the target was never touched).
+model ImportJob {
+  id              String    @id @default(cuid())
+  organizationId  String
+  actorUserId     String?
+  /// One of the 12 hub tiles (github|bitbucket|vercel|figma|claude|bolt|lovable|base44|zip|spreadsheet|previous-agent-export|empty)
+  provider        String
+  state           String    @default("RECEIVED")
+  sourceRef       String?
+  /// ImportSecretFinding[] { path, line, kind, preview } — redacted, no value.
+  findings        Json?
+  /// ConsentDecision { "path:line": "keep"|"redact" }.
+  consent         Json?
+  /// Set only at COMMITTED. Null everywhere else = target never mounted.
+  targetProjectId String?
+  stagedFileCount Int       @default(0)
+  redactedCount   Int       @default(0)
+  /// E-CODE DECISION (not Replit parity): idempotent credit reservation marker.
+  creditsReserved Boolean   @default(false)
+  error           String?
+  expiresAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([organizationId, createdAt])
+  @@index([state])
+}
