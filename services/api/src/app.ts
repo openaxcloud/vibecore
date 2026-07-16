@@ -285,6 +285,7 @@ import {
   maxSchedulableVcpu,
   resolveDeployMachineSize,
 } from './rate-card-service.js';
+import { resolveRollbackImage, resolveRollbackSecrets, retainRelease, type SecretPolicy } from './release-rollback.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { describeCron } from './scheduled-tasks-cron.js';
 import {
@@ -28852,6 +28853,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             buildId?: string;
             buildMs?: number;
 
+            /*
+             * Immutable release identity (audit v4 rollback): the bare repo path
+             * + the sha256 content digest. Persisted so a rollback can re-deploy
+             * THIS exact image by digest even after the current revision is gone
+             * (I-REL-1) — see release-rollback.ts.
+             */
+            imageRef?: string;
+            imageDigest?: string;
+
             // Revision-based (reproducible) builds: the replayable input.
             revisionObject?: string;
             revisionSha256?: string;
@@ -29075,6 +29085,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       imageSizeBytes: buildResult.imageSizeBytes,
                       buildId: buildResult.buildId,
                       buildMs: buildResult.durationMs,
+
+                      /*
+                       * Retain the immutable release identity for rollback (audit v4).
+                       * imageRef = bare repo path (tag stripped); imageDigest = sha256.
+                       */
+                      imageRef: buildResult.imageUri.replace(/:[^:/]+$/, ''),
+                      ...(buildResult.digest ? { imageDigest: buildResult.digest } : {}),
                       ...(context.revisionSha256
                         ? { revisionObject: context.revisionObject, revisionSha256: context.revisionSha256 }
                         : {}),
@@ -30887,6 +30904,131 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           providerRollbackStatus: providerRollback.status,
         },
       });
+    }
+
+    /*
+     * Audit v4 rollback vertical: a SERVER deploy must actually RE-DEPLOY the
+     * retained image by digest (I-REL-1) — the row created above only copies the
+     * target's URL and re-deploys nothing, so if the current revision is gone the
+     * URL is dead. Flag-gated (SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=1); external
+     * providers and static are untouched. Refuses loudly (no retained digest /
+     * unsatisfiable secret policy) instead of leaving a dead-URL row.
+     */
+    if (
+      !willTriggerProviderRollback &&
+      target.provider === 'server' &&
+      process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST === '1'
+    ) {
+      try {
+        const serverMeta = (target.metadata as Record<string, unknown>)?.serverDeploy as
+          | { image?: { imageRef?: string; imageUri?: string; imageDigest?: string }; secretPolicy?: string }
+          | undefined;
+
+        const image = serverMeta?.image ?? {};
+
+        const retained = retainRelease({
+          deploymentId: target.id,
+          projectId: project.id,
+          imageUri: image.imageRef ?? image.imageUri ?? '',
+          digest: image.imageDigest,
+          createdAt: new Date().toISOString(),
+        });
+
+        /*
+         * The whole point of the fix: resolve ENTIRELY from the retained digest,
+         * independent of whether the current revision still exists.
+         */
+        const plan = resolveRollbackImage(retained, { revisionExists: false });
+
+        const secretPolicy = (serverMeta?.secretPolicy as SecretPolicy) ?? 'CURRENT';
+
+        const currentSecrets = await resolveProjectSecretValues(store, project.id).catch(
+          (): Record<string, string> => ({}),
+        );
+
+        const secretResolution = resolveRollbackSecrets({ policy: secretPolicy, currentSecrets, pinnedSecrets: null });
+
+        const rbHost = serverDeployHost(rollback.id);
+        const rbPort = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
+
+        const rbEnv = buildServerDeployEnv({
+          deploymentId: rollback.id,
+          port: rbPort,
+          environment: target.environment ?? 'preview',
+          projectSecrets: secretResolution.secrets,
+          envOverrides: {},
+        });
+
+        const deployRateCard = await getActiveRateCard(store);
+        const machineSize = machineSizeFromCard(deployRateCard, target.machineSize);
+
+        const started = await startServerDeploymentViaManager({
+          deploymentId: rollback.id,
+          ...machineSizeResources(machineSize),
+          image: plan.pullRef,
+          port: rbPort,
+          host: rbHost,
+          projectId: project.id,
+          orgId: project.organizationId,
+          env: rbEnv,
+          healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+          nixStorePvcName: nixStorePvcForProject(project.id),
+        });
+
+        const ok = Boolean(started?.ready);
+        const rbUrl = started?.url ?? `https://${rbHost}`;
+        finalDeployment = await store.updateDeployment(project.id, rollback.id, {
+          status: ok ? 'READY' : 'BUILDING',
+          url: ok ? rbUrl : undefined,
+          previewUrl: ok && target.environment !== 'production' ? rbUrl : undefined,
+          productionUrl: ok && target.environment === 'production' ? rbUrl : undefined,
+          metadata: {
+            ...(rollback.metadata as Record<string, unknown>),
+            serverDeploy: {
+              host: rbHost,
+              ready: ok,
+              readyReplicas: started?.readyReplicas ?? 0,
+              applied: Boolean(started),
+              rolledBackFromDigest: plan.imageDigest,
+              secretPolicy: secretResolution.policy,
+              image: { imageRef: retained.imageRef, imageUri: plan.pullRef, imageDigest: plan.imageDigest },
+            },
+          },
+          logs: [
+            ...rollback.logs,
+            {
+              timestamp: new Date().toISOString(),
+              level: 'info' as const,
+              message: `Rollback re-deployed the retained image by digest ${plan.pullRef} (revision-independent, I-REL-1; secretPolicy=${secretResolution.policy})`,
+            },
+          ],
+          finishedAt: ok ? new Date().toISOString() : undefined,
+        });
+      } catch (error) {
+        const code = (error as { code?: string }).code ?? 'ROLLBACK_FAILED';
+        const statusCode = (error as { statusCode?: number }).statusCode ?? 502;
+
+        /*
+         * Refuse loudly (ROLLBACK_NO_RETAINED_DIGEST / ROLLBACK_SECRET_POLICY_UNSATISFIABLE)
+         * and mark the row FAILED — never leave a READY row that re-deployed nothing.
+         */
+        await store.updateDeployment(project.id, rollback.id, {
+          status: 'FAILED',
+          url: '',
+          previewUrl: '',
+          productionUrl: '',
+          logs: [
+            ...rollback.logs,
+            {
+              timestamp: new Date().toISOString(),
+              level: 'error' as const,
+              message: `Rollback refused: ${(error as Error).message}`,
+            },
+          ],
+        });
+
+        return reply.code(statusCode === 409 ? 409 : 502).send({ error: (error as Error).message, code });
+      }
     }
 
     await audit(request, store, {
