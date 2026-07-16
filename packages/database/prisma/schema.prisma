@@ -2290,3 +2290,34 @@ model AgentCallLog {
   @@index([organizationId, createdAt])
   @@index([projectId, createdAt])
 }
+
+/// A secure project remix (fork) run. Tracks the normative state machine
+/// (SNAPSHOT_PINNED → CREDENTIALS_DETACHED → CLONING → DB_FORKING →
+/// STORAGE_POLICY_APPLIED → SCANNING → INDEXING → COMPLETED) so the
+/// credentials-detached-before-cloning invariant is auditable. `detachedKeys`
+/// holds ONLY secret/env KEYS (references) — never a value. `scanFindings`
+/// records materialized-secret hits (key + location, never the value).
+model RemixJob {
+  id              String   @id @default(cuid())
+  sourceProjectId String
+  targetProjectId String?
+  organizationId  String
+  actorUserId     String?
+  state           String   @default("SNAPSHOT_PINNED")
+  /// { secretKeys: string[], envVarKeys: string[] } — references only.
+  detachedKeys    Json?
+  /// DETACH | CLONE | SHARE_WITH_CONSENT
+  storagePolicy   String   @default("DETACH")
+  /// SecretScanFinding[] { path, secretKey, line } — never the value.
+  scanFindings    Json?
+  /// Count of value-lines scrubbed out of the clone during CLONING.
+  scrubbedCount   Int      @default(0)
+  /// Honest marker: was a physical isolated DB provisioned, or deferred?
+  dbForked        Boolean  @default(false)
+  error           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([sourceProjectId])
+  @@index([organizationId, createdAt])
+}

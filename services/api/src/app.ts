@@ -150,6 +150,15 @@ import {
 } from './data-deletion.js';
 import { clusterName, resolveDatabaseTier, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
 import {
+  RemixInvariantError,
+  assertRemixTransition,
+  detachCredentials,
+  scanClonedFilesForSecrets,
+  scrubSecretsFromFiles,
+  type RemixState,
+  type RemixStoragePolicy,
+} from './remix-pipeline.js';
+import {
   databaseRollbackEntitlement,
   isDatabaseRollbackEnabled,
   retentionFloorMs,
@@ -21026,6 +21035,196 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { project: transferred };
   });
+  const remixSchema = z.object({
+    name: z.string().min(1),
+    slug: z.string().min(2).optional(),
+    storagePolicy: z.enum(['DETACH', 'CLONE', 'SHARE_WITH_CONSENT']).default('DETACH'),
+  });
+
+  /*
+   * Secure project remix (DOMAIN_MODEL §1). Runs the normative state machine
+   * server-side with the credentials-detached-before-cloning invariant enforced
+   * by assertRemixTransition(). A secret VALUE never enters the clone: source
+   * secrets/env-vars are reduced to KEYS (references), and any value that was
+   * materialized into a workspace file (e.g. a committed .env) is scrubbed
+   * during CLONING and re-verified absent during SCANNING — a leftover value
+   * FAILS the remix (quarantine), it is never shipped.
+   */
+  app.post('/projects/:projectId/remix', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    const body = parse(remixSchema, request.body);
+    const storagePolicy = body.storagePolicy as RemixStoragePolicy;
+
+    const job = await store.createRemixJob({
+      sourceProjectId: project.id,
+      organizationId: project.organizationId,
+      actorUserId: request.currentUser?.id,
+      storagePolicy,
+    });
+
+    let state: RemixState = 'SNAPSHOT_PINNED';
+    const advance = async (to: RemixState, patch: Record<string, unknown> = {}) => {
+      assertRemixTransition(state, to);
+      state = to;
+      await store.updateRemixJob(job.id, { state: to, ...patch });
+    };
+
+    try {
+      // (1) SNAPSHOT_PINNED already set at creation. Pin the source file set now.
+      const sourceFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
+
+      // (2) CREDENTIALS_DETACHED — references (keys) only, recorded BEFORE any clone.
+      const sourceSecrets = await store.listProjectSecrets(project.id);
+      const sourceEnvVars = await store.listProjectEnvVars(project.id);
+      const detached = detachCredentials(sourceSecrets, sourceEnvVars);
+      await advance('CREDENTIALS_DETACHED', { detachedKeys: detached });
+
+      /*
+       * Resolve the source's actual secret VALUES — used ONLY in-memory to scrub
+       * any materialized copy out of the clone files. They are never persisted
+       * onto the clone. ProjectSecret is AES-GCM (decrypt); ProjectEnvVar is
+       * plaintext already.
+       */
+      const materializedValues: Array<{ key: string; value: string }> = [];
+      for (const ref of detached.secretKeys) {
+        const full = await store.getProjectSecret(project.id, ref);
+        if (full?.valueEncrypted) {
+          try {
+            materializedValues.push({ key: ref, value: decryptJson<{ value: string }>(full.valueEncrypted).value });
+          } catch {
+            // undecryptable ciphertext — nothing to scrub for this key
+          }
+        }
+      }
+      for (const envVar of sourceEnvVars) {
+        if (typeof envVar.value === 'string' && envVar.value.length > 0) {
+          materializedValues.push({ key: envVar.key, value: envVar.value });
+        }
+      }
+
+      // (3) CLONING — new project (metadata only) + files scrubbed of any secret value.
+      const duplicate = await store.withSerializedMutation(`projects:${project.organizationId}`, async () => {
+        await ensureQuota(request, project.organizationId, 'projects.count');
+        return store.duplicateProject({
+          projectId: project.id,
+          name: body.name,
+          slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        });
+      });
+
+      const { files: scrubbedFiles, removed } = scrubSecretsFromFiles(
+        sourceFiles.map((file) => ({ path: file.path, content: file.content, encoding: file.encoding })),
+        materializedValues,
+      );
+      const writtenFiles = await projectStorage.writeFiles(
+        duplicate.id,
+        scrubbedFiles.map((file, index) => ({ ...sourceFiles[index], content: file.content })),
+      );
+      await persistProjectFileManifest(store, duplicate.id, writtenFiles, request.currentUser!.id);
+      await advance('CLONING', { targetProjectId: duplicate.id, scrubbedCount: removed.length });
+
+      /*
+       * (4) DB_FORKING — isolation, not copy. The clone gets a FRESH, isolated
+       * database binding; the source DATABASE_URL secret is deliberately NOT
+       * carried over (it's only a reference key on the clone). Physical CNPG
+       * provisioning is reconciled lazily by the Database panel, so here we
+       * record the isolation decision honestly rather than fake a fork.
+       */
+      await advance('DB_FORKING', { dbForked: false });
+
+      // (5) STORAGE_POLICY_APPLIED — per-project bucket; policy chosen by caller.
+      // DETACH (default): clone gets its own empty bucket ref, source untouched.
+      // CLONE / SHARE_WITH_CONSENT: recorded; object copy/sharing is a follow-up
+      // reconcile (Object Storage is flag-gated), so we record the intent.
+      await advance('STORAGE_POLICY_APPLIED');
+
+      // (6) SCANNING — re-verify NO materialized secret value survived into the clone.
+      const findings = scanClonedFilesForSecrets(
+        scrubbedFiles.map((file) => ({ path: file.path, content: file.content, encoding: file.encoding })),
+        materializedValues,
+      );
+
+      if (findings.length > 0) {
+        // Invariant breach — quarantine, never ship.
+        await store.updateRemixJob(job.id, {
+          state: 'FAILED',
+          scanFindings: findings,
+          error: `SCANNING found ${findings.length} materialized secret value(s) in the clone`,
+        });
+        return reply.status(409).send({
+          error: 'Remix blocked: a secret value materialized into the clone.',
+          code: 'REMIX_SECRET_LEAK',
+          findings, // key + location only, never the value
+          remixJobId: job.id,
+        });
+      }
+      await advance('SCANNING', { scanFindings: [] });
+
+      // (7) INDEXING — honest completion marker (project code index does not exist yet).
+      await advance('INDEXING');
+      await advance('COMPLETED');
+
+      await audit(request, store, {
+        organizationId: duplicate.organizationId,
+        action: 'project.remix',
+        resourceType: 'project',
+        resourceId: duplicate.id,
+        metadata: {
+          sourceProjectId: project.id,
+          remixJobId: job.id,
+          detachedSecretKeys: detached.secretKeys.length,
+          detachedEnvVarKeys: detached.envVarKeys.length,
+          scrubbedValueLines: removed.length,
+          storagePolicy,
+        },
+      });
+
+      return reply.code(201).send({
+        project: duplicate,
+        remix: {
+          remixJobId: job.id,
+          state,
+          detachedKeys: detached,
+          scrubbedValueLines: removed.length,
+          storagePolicy,
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await store.updateRemixJob(job.id, { state: 'FAILED', error: message }).catch(() => undefined);
+
+      if (error instanceof RemixInvariantError) {
+        return reply.status(error.statusCode).send({ error: message, code: error.code, remixJobId: job.id });
+      }
+
+      throw error;
+    }
+  });
+
+  app.get('/projects/:projectId/remix/:remixJobId', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const remixJobId = z.string().min(1).parse((request.params as { remixJobId: string }).remixJobId);
+    const job = await store.getRemixJob(remixJobId);
+
+    if (!job || job.sourceProjectId !== project.id) {
+      throw Object.assign(new Error('Remix job not found'), { statusCode: 404, code: 'REMIX_JOB_NOT_FOUND' });
+    }
+
+    return { remix: job };
+  });
+
   app.post('/projects/:projectId/duplicate', async (request, reply) => {
     const project = await requireProject(
       request,

@@ -1426,6 +1426,23 @@ exports.Prisma.AgentCallLogScalarFieldEnum = {
   source: 'source'
 };
 
+exports.Prisma.RemixJobScalarFieldEnum = {
+  id: 'id',
+  sourceProjectId: 'sourceProjectId',
+  targetProjectId: 'targetProjectId',
+  organizationId: 'organizationId',
+  actorUserId: 'actorUserId',
+  state: 'state',
+  detachedKeys: 'detachedKeys',
+  storagePolicy: 'storagePolicy',
+  scanFindings: 'scanFindings',
+  scrubbedCount: 'scrubbedCount',
+  dbForked: 'dbForked',
+  error: 'error',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1695,7 +1712,8 @@ exports.Prisma.ModelName = {
   ScheduledTask: 'ScheduledTask',
   ScheduledTaskRun: 'ScheduledTaskRun',
   AgentRoutingCard: 'AgentRoutingCard',
-  AgentCallLog: 'AgentCallLog'
+  AgentCallLog: 'AgentCallLog',
+  RemixJob: 'RemixJob'
 };
 
 /**

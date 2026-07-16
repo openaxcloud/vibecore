@@ -632,6 +632,16 @@ export type AgentRoutingCard = $Result.DefaultSelection<Prisma.$AgentRoutingCard
  * Cents are stored as millicents (Int) to keep fractional cost exact.
  */
 export type AgentCallLog = $Result.DefaultSelection<Prisma.$AgentCallLogPayload>
+/**
+ * Model RemixJob
+ * A secure project remix (fork) run. Tracks the normative state machine
+ * (SNAPSHOT_PINNED → CREDENTIALS_DETACHED → CLONING → DB_FORKING →
+ * STORAGE_POLICY_APPLIED → SCANNING → INDEXING → COMPLETED) so the
+ * credentials-detached-before-cloning invariant is auditable. `detachedKeys`
+ * holds ONLY secret/env KEYS (references) — never a value. `scanFindings`
+ * records materialized-secret hits (key + location, never the value).
+ */
+export type RemixJob = $Result.DefaultSelection<Prisma.$RemixJobPayload>
 
 /**
  * Enums
@@ -2089,6 +2099,16 @@ export class PrismaClient<
     * ```
     */
   get agentCallLog(): Prisma.AgentCallLogDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.remixJob`: Exposes CRUD operations for the **RemixJob** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more RemixJobs
+    * const remixJobs = await prisma.remixJob.findMany()
+    * ```
+    */
+  get remixJob(): Prisma.RemixJobDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -2630,7 +2650,8 @@ export namespace Prisma {
     ScheduledTask: 'ScheduledTask',
     ScheduledTaskRun: 'ScheduledTaskRun',
     AgentRoutingCard: 'AgentRoutingCard',
-    AgentCallLog: 'AgentCallLog'
+    AgentCallLog: 'AgentCallLog',
+    RemixJob: 'RemixJob'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2646,7 +2667,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -10626,6 +10647,80 @@ export namespace Prisma {
           }
         }
       }
+      RemixJob: {
+        payload: Prisma.$RemixJobPayload<ExtArgs>
+        fields: Prisma.RemixJobFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.RemixJobFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RemixJobPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.RemixJobFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RemixJobPayload>
+          }
+          findFirst: {
+            args: Prisma.RemixJobFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RemixJobPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.RemixJobFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RemixJobPayload>
+          }
+          findMany: {
+            args: Prisma.RemixJobFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RemixJobPayload>[]
+          }
+          create: {
+            args: Prisma.RemixJobCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RemixJobPayload>
+          }
+          createMany: {
+            args: Prisma.RemixJobCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.RemixJobCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RemixJobPayload>[]
+          }
+          delete: {
+            args: Prisma.RemixJobDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RemixJobPayload>
+          }
+          update: {
+            args: Prisma.RemixJobUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RemixJobPayload>
+          }
+          deleteMany: {
+            args: Prisma.RemixJobDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.RemixJobUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.RemixJobUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RemixJobPayload>[]
+          }
+          upsert: {
+            args: Prisma.RemixJobUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RemixJobPayload>
+          }
+          aggregate: {
+            args: Prisma.RemixJobAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateRemixJob>
+          }
+          groupBy: {
+            args: Prisma.RemixJobGroupByArgs<ExtArgs>
+            result: $Utils.Optional<RemixJobGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.RemixJobCountArgs<ExtArgs>
+            result: $Utils.Optional<RemixJobCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -10842,6 +10937,7 @@ export namespace Prisma {
     scheduledTaskRun?: ScheduledTaskRunOmit
     agentRoutingCard?: AgentRoutingCardOmit
     agentCallLog?: AgentCallLogOmit
+    remixJob?: RemixJobOmit
   }
 
   /* Types for Logging */
@@ -136669,6 +136765,1164 @@ export namespace Prisma {
 
 
   /**
+   * Model RemixJob
+   */
+
+  export type AggregateRemixJob = {
+    _count: RemixJobCountAggregateOutputType | null
+    _avg: RemixJobAvgAggregateOutputType | null
+    _sum: RemixJobSumAggregateOutputType | null
+    _min: RemixJobMinAggregateOutputType | null
+    _max: RemixJobMaxAggregateOutputType | null
+  }
+
+  export type RemixJobAvgAggregateOutputType = {
+    scrubbedCount: number | null
+  }
+
+  export type RemixJobSumAggregateOutputType = {
+    scrubbedCount: number | null
+  }
+
+  export type RemixJobMinAggregateOutputType = {
+    id: string | null
+    sourceProjectId: string | null
+    targetProjectId: string | null
+    organizationId: string | null
+    actorUserId: string | null
+    state: string | null
+    storagePolicy: string | null
+    scrubbedCount: number | null
+    dbForked: boolean | null
+    error: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type RemixJobMaxAggregateOutputType = {
+    id: string | null
+    sourceProjectId: string | null
+    targetProjectId: string | null
+    organizationId: string | null
+    actorUserId: string | null
+    state: string | null
+    storagePolicy: string | null
+    scrubbedCount: number | null
+    dbForked: boolean | null
+    error: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type RemixJobCountAggregateOutputType = {
+    id: number
+    sourceProjectId: number
+    targetProjectId: number
+    organizationId: number
+    actorUserId: number
+    state: number
+    detachedKeys: number
+    storagePolicy: number
+    scanFindings: number
+    scrubbedCount: number
+    dbForked: number
+    error: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type RemixJobAvgAggregateInputType = {
+    scrubbedCount?: true
+  }
+
+  export type RemixJobSumAggregateInputType = {
+    scrubbedCount?: true
+  }
+
+  export type RemixJobMinAggregateInputType = {
+    id?: true
+    sourceProjectId?: true
+    targetProjectId?: true
+    organizationId?: true
+    actorUserId?: true
+    state?: true
+    storagePolicy?: true
+    scrubbedCount?: true
+    dbForked?: true
+    error?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type RemixJobMaxAggregateInputType = {
+    id?: true
+    sourceProjectId?: true
+    targetProjectId?: true
+    organizationId?: true
+    actorUserId?: true
+    state?: true
+    storagePolicy?: true
+    scrubbedCount?: true
+    dbForked?: true
+    error?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type RemixJobCountAggregateInputType = {
+    id?: true
+    sourceProjectId?: true
+    targetProjectId?: true
+    organizationId?: true
+    actorUserId?: true
+    state?: true
+    detachedKeys?: true
+    storagePolicy?: true
+    scanFindings?: true
+    scrubbedCount?: true
+    dbForked?: true
+    error?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type RemixJobAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RemixJob to aggregate.
+     */
+    where?: RemixJobWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RemixJobs to fetch.
+     */
+    orderBy?: RemixJobOrderByWithRelationInput | RemixJobOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: RemixJobWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RemixJobs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RemixJobs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned RemixJobs
+    **/
+    _count?: true | RemixJobCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: RemixJobAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: RemixJobSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: RemixJobMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: RemixJobMaxAggregateInputType
+  }
+
+  export type GetRemixJobAggregateType<T extends RemixJobAggregateArgs> = {
+        [P in keyof T & keyof AggregateRemixJob]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRemixJob[P]>
+      : GetScalarType<T[P], AggregateRemixJob[P]>
+  }
+
+
+
+
+  export type RemixJobGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RemixJobWhereInput
+    orderBy?: RemixJobOrderByWithAggregationInput | RemixJobOrderByWithAggregationInput[]
+    by: RemixJobScalarFieldEnum[] | RemixJobScalarFieldEnum
+    having?: RemixJobScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: RemixJobCountAggregateInputType | true
+    _avg?: RemixJobAvgAggregateInputType
+    _sum?: RemixJobSumAggregateInputType
+    _min?: RemixJobMinAggregateInputType
+    _max?: RemixJobMaxAggregateInputType
+  }
+
+  export type RemixJobGroupByOutputType = {
+    id: string
+    sourceProjectId: string
+    targetProjectId: string | null
+    organizationId: string
+    actorUserId: string | null
+    state: string
+    detachedKeys: JsonValue | null
+    storagePolicy: string
+    scanFindings: JsonValue | null
+    scrubbedCount: number
+    dbForked: boolean
+    error: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: RemixJobCountAggregateOutputType | null
+    _avg: RemixJobAvgAggregateOutputType | null
+    _sum: RemixJobSumAggregateOutputType | null
+    _min: RemixJobMinAggregateOutputType | null
+    _max: RemixJobMaxAggregateOutputType | null
+  }
+
+  type GetRemixJobGroupByPayload<T extends RemixJobGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<RemixJobGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof RemixJobGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], RemixJobGroupByOutputType[P]>
+            : GetScalarType<T[P], RemixJobGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type RemixJobSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sourceProjectId?: boolean
+    targetProjectId?: boolean
+    organizationId?: boolean
+    actorUserId?: boolean
+    state?: boolean
+    detachedKeys?: boolean
+    storagePolicy?: boolean
+    scanFindings?: boolean
+    scrubbedCount?: boolean
+    dbForked?: boolean
+    error?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["remixJob"]>
+
+  export type RemixJobSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sourceProjectId?: boolean
+    targetProjectId?: boolean
+    organizationId?: boolean
+    actorUserId?: boolean
+    state?: boolean
+    detachedKeys?: boolean
+    storagePolicy?: boolean
+    scanFindings?: boolean
+    scrubbedCount?: boolean
+    dbForked?: boolean
+    error?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["remixJob"]>
+
+  export type RemixJobSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sourceProjectId?: boolean
+    targetProjectId?: boolean
+    organizationId?: boolean
+    actorUserId?: boolean
+    state?: boolean
+    detachedKeys?: boolean
+    storagePolicy?: boolean
+    scanFindings?: boolean
+    scrubbedCount?: boolean
+    dbForked?: boolean
+    error?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["remixJob"]>
+
+  export type RemixJobSelectScalar = {
+    id?: boolean
+    sourceProjectId?: boolean
+    targetProjectId?: boolean
+    organizationId?: boolean
+    actorUserId?: boolean
+    state?: boolean
+    detachedKeys?: boolean
+    storagePolicy?: boolean
+    scanFindings?: boolean
+    scrubbedCount?: boolean
+    dbForked?: boolean
+    error?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type RemixJobOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "sourceProjectId" | "targetProjectId" | "organizationId" | "actorUserId" | "state" | "detachedKeys" | "storagePolicy" | "scanFindings" | "scrubbedCount" | "dbForked" | "error" | "createdAt" | "updatedAt", ExtArgs["result"]["remixJob"]>
+
+  export type $RemixJobPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "RemixJob"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      sourceProjectId: string
+      targetProjectId: string | null
+      organizationId: string
+      actorUserId: string | null
+      state: string
+      /**
+       * { secretKeys: string[], envVarKeys: string[] } — references only.
+       */
+      detachedKeys: Prisma.JsonValue | null
+      /**
+       * DETACH | CLONE | SHARE_WITH_CONSENT
+       */
+      storagePolicy: string
+      /**
+       * SecretScanFinding[] { path, secretKey, line } — never the value.
+       */
+      scanFindings: Prisma.JsonValue | null
+      /**
+       * Count of value-lines scrubbed out of the clone during CLONING.
+       */
+      scrubbedCount: number
+      /**
+       * Honest marker: was a physical isolated DB provisioned, or deferred?
+       */
+      dbForked: boolean
+      error: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["remixJob"]>
+    composites: {}
+  }
+
+  type RemixJobGetPayload<S extends boolean | null | undefined | RemixJobDefaultArgs> = $Result.GetResult<Prisma.$RemixJobPayload, S>
+
+  type RemixJobCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<RemixJobFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: RemixJobCountAggregateInputType | true
+    }
+
+  export interface RemixJobDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['RemixJob'], meta: { name: 'RemixJob' } }
+    /**
+     * Find zero or one RemixJob that matches the filter.
+     * @param {RemixJobFindUniqueArgs} args - Arguments to find a RemixJob
+     * @example
+     * // Get one RemixJob
+     * const remixJob = await prisma.remixJob.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends RemixJobFindUniqueArgs>(args: SelectSubset<T, RemixJobFindUniqueArgs<ExtArgs>>): Prisma__RemixJobClient<$Result.GetResult<Prisma.$RemixJobPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one RemixJob that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {RemixJobFindUniqueOrThrowArgs} args - Arguments to find a RemixJob
+     * @example
+     * // Get one RemixJob
+     * const remixJob = await prisma.remixJob.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends RemixJobFindUniqueOrThrowArgs>(args: SelectSubset<T, RemixJobFindUniqueOrThrowArgs<ExtArgs>>): Prisma__RemixJobClient<$Result.GetResult<Prisma.$RemixJobPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first RemixJob that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RemixJobFindFirstArgs} args - Arguments to find a RemixJob
+     * @example
+     * // Get one RemixJob
+     * const remixJob = await prisma.remixJob.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends RemixJobFindFirstArgs>(args?: SelectSubset<T, RemixJobFindFirstArgs<ExtArgs>>): Prisma__RemixJobClient<$Result.GetResult<Prisma.$RemixJobPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first RemixJob that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RemixJobFindFirstOrThrowArgs} args - Arguments to find a RemixJob
+     * @example
+     * // Get one RemixJob
+     * const remixJob = await prisma.remixJob.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends RemixJobFindFirstOrThrowArgs>(args?: SelectSubset<T, RemixJobFindFirstOrThrowArgs<ExtArgs>>): Prisma__RemixJobClient<$Result.GetResult<Prisma.$RemixJobPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more RemixJobs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RemixJobFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all RemixJobs
+     * const remixJobs = await prisma.remixJob.findMany()
+     * 
+     * // Get first 10 RemixJobs
+     * const remixJobs = await prisma.remixJob.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const remixJobWithIdOnly = await prisma.remixJob.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends RemixJobFindManyArgs>(args?: SelectSubset<T, RemixJobFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RemixJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a RemixJob.
+     * @param {RemixJobCreateArgs} args - Arguments to create a RemixJob.
+     * @example
+     * // Create one RemixJob
+     * const RemixJob = await prisma.remixJob.create({
+     *   data: {
+     *     // ... data to create a RemixJob
+     *   }
+     * })
+     * 
+     */
+    create<T extends RemixJobCreateArgs>(args: SelectSubset<T, RemixJobCreateArgs<ExtArgs>>): Prisma__RemixJobClient<$Result.GetResult<Prisma.$RemixJobPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many RemixJobs.
+     * @param {RemixJobCreateManyArgs} args - Arguments to create many RemixJobs.
+     * @example
+     * // Create many RemixJobs
+     * const remixJob = await prisma.remixJob.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends RemixJobCreateManyArgs>(args?: SelectSubset<T, RemixJobCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many RemixJobs and returns the data saved in the database.
+     * @param {RemixJobCreateManyAndReturnArgs} args - Arguments to create many RemixJobs.
+     * @example
+     * // Create many RemixJobs
+     * const remixJob = await prisma.remixJob.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many RemixJobs and only return the `id`
+     * const remixJobWithIdOnly = await prisma.remixJob.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends RemixJobCreateManyAndReturnArgs>(args?: SelectSubset<T, RemixJobCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RemixJobPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a RemixJob.
+     * @param {RemixJobDeleteArgs} args - Arguments to delete one RemixJob.
+     * @example
+     * // Delete one RemixJob
+     * const RemixJob = await prisma.remixJob.delete({
+     *   where: {
+     *     // ... filter to delete one RemixJob
+     *   }
+     * })
+     * 
+     */
+    delete<T extends RemixJobDeleteArgs>(args: SelectSubset<T, RemixJobDeleteArgs<ExtArgs>>): Prisma__RemixJobClient<$Result.GetResult<Prisma.$RemixJobPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one RemixJob.
+     * @param {RemixJobUpdateArgs} args - Arguments to update one RemixJob.
+     * @example
+     * // Update one RemixJob
+     * const remixJob = await prisma.remixJob.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends RemixJobUpdateArgs>(args: SelectSubset<T, RemixJobUpdateArgs<ExtArgs>>): Prisma__RemixJobClient<$Result.GetResult<Prisma.$RemixJobPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more RemixJobs.
+     * @param {RemixJobDeleteManyArgs} args - Arguments to filter RemixJobs to delete.
+     * @example
+     * // Delete a few RemixJobs
+     * const { count } = await prisma.remixJob.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends RemixJobDeleteManyArgs>(args?: SelectSubset<T, RemixJobDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RemixJobs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RemixJobUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many RemixJobs
+     * const remixJob = await prisma.remixJob.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends RemixJobUpdateManyArgs>(args: SelectSubset<T, RemixJobUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RemixJobs and returns the data updated in the database.
+     * @param {RemixJobUpdateManyAndReturnArgs} args - Arguments to update many RemixJobs.
+     * @example
+     * // Update many RemixJobs
+     * const remixJob = await prisma.remixJob.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more RemixJobs and only return the `id`
+     * const remixJobWithIdOnly = await prisma.remixJob.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends RemixJobUpdateManyAndReturnArgs>(args: SelectSubset<T, RemixJobUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RemixJobPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one RemixJob.
+     * @param {RemixJobUpsertArgs} args - Arguments to update or create a RemixJob.
+     * @example
+     * // Update or create a RemixJob
+     * const remixJob = await prisma.remixJob.upsert({
+     *   create: {
+     *     // ... data to create a RemixJob
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the RemixJob we want to update
+     *   }
+     * })
+     */
+    upsert<T extends RemixJobUpsertArgs>(args: SelectSubset<T, RemixJobUpsertArgs<ExtArgs>>): Prisma__RemixJobClient<$Result.GetResult<Prisma.$RemixJobPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of RemixJobs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RemixJobCountArgs} args - Arguments to filter RemixJobs to count.
+     * @example
+     * // Count the number of RemixJobs
+     * const count = await prisma.remixJob.count({
+     *   where: {
+     *     // ... the filter for the RemixJobs we want to count
+     *   }
+     * })
+    **/
+    count<T extends RemixJobCountArgs>(
+      args?: Subset<T, RemixJobCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], RemixJobCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a RemixJob.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RemixJobAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends RemixJobAggregateArgs>(args: Subset<T, RemixJobAggregateArgs>): Prisma.PrismaPromise<GetRemixJobAggregateType<T>>
+
+    /**
+     * Group by RemixJob.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RemixJobGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends RemixJobGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: RemixJobGroupByArgs['orderBy'] }
+        : { orderBy?: RemixJobGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, RemixJobGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRemixJobGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the RemixJob model
+   */
+  readonly fields: RemixJobFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for RemixJob.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__RemixJobClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the RemixJob model
+   */
+  interface RemixJobFieldRefs {
+    readonly id: FieldRef<"RemixJob", 'String'>
+    readonly sourceProjectId: FieldRef<"RemixJob", 'String'>
+    readonly targetProjectId: FieldRef<"RemixJob", 'String'>
+    readonly organizationId: FieldRef<"RemixJob", 'String'>
+    readonly actorUserId: FieldRef<"RemixJob", 'String'>
+    readonly state: FieldRef<"RemixJob", 'String'>
+    readonly detachedKeys: FieldRef<"RemixJob", 'Json'>
+    readonly storagePolicy: FieldRef<"RemixJob", 'String'>
+    readonly scanFindings: FieldRef<"RemixJob", 'Json'>
+    readonly scrubbedCount: FieldRef<"RemixJob", 'Int'>
+    readonly dbForked: FieldRef<"RemixJob", 'Boolean'>
+    readonly error: FieldRef<"RemixJob", 'String'>
+    readonly createdAt: FieldRef<"RemixJob", 'DateTime'>
+    readonly updatedAt: FieldRef<"RemixJob", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * RemixJob findUnique
+   */
+  export type RemixJobFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixJob
+     */
+    select?: RemixJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixJob
+     */
+    omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * Filter, which RemixJob to fetch.
+     */
+    where: RemixJobWhereUniqueInput
+  }
+
+  /**
+   * RemixJob findUniqueOrThrow
+   */
+  export type RemixJobFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixJob
+     */
+    select?: RemixJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixJob
+     */
+    omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * Filter, which RemixJob to fetch.
+     */
+    where: RemixJobWhereUniqueInput
+  }
+
+  /**
+   * RemixJob findFirst
+   */
+  export type RemixJobFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixJob
+     */
+    select?: RemixJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixJob
+     */
+    omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * Filter, which RemixJob to fetch.
+     */
+    where?: RemixJobWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RemixJobs to fetch.
+     */
+    orderBy?: RemixJobOrderByWithRelationInput | RemixJobOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RemixJobs.
+     */
+    cursor?: RemixJobWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RemixJobs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RemixJobs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RemixJobs.
+     */
+    distinct?: RemixJobScalarFieldEnum | RemixJobScalarFieldEnum[]
+  }
+
+  /**
+   * RemixJob findFirstOrThrow
+   */
+  export type RemixJobFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixJob
+     */
+    select?: RemixJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixJob
+     */
+    omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * Filter, which RemixJob to fetch.
+     */
+    where?: RemixJobWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RemixJobs to fetch.
+     */
+    orderBy?: RemixJobOrderByWithRelationInput | RemixJobOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RemixJobs.
+     */
+    cursor?: RemixJobWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RemixJobs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RemixJobs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RemixJobs.
+     */
+    distinct?: RemixJobScalarFieldEnum | RemixJobScalarFieldEnum[]
+  }
+
+  /**
+   * RemixJob findMany
+   */
+  export type RemixJobFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixJob
+     */
+    select?: RemixJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixJob
+     */
+    omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * Filter, which RemixJobs to fetch.
+     */
+    where?: RemixJobWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RemixJobs to fetch.
+     */
+    orderBy?: RemixJobOrderByWithRelationInput | RemixJobOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing RemixJobs.
+     */
+    cursor?: RemixJobWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RemixJobs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RemixJobs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RemixJobs.
+     */
+    distinct?: RemixJobScalarFieldEnum | RemixJobScalarFieldEnum[]
+  }
+
+  /**
+   * RemixJob create
+   */
+  export type RemixJobCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixJob
+     */
+    select?: RemixJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixJob
+     */
+    omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * The data needed to create a RemixJob.
+     */
+    data: XOR<RemixJobCreateInput, RemixJobUncheckedCreateInput>
+  }
+
+  /**
+   * RemixJob createMany
+   */
+  export type RemixJobCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many RemixJobs.
+     */
+    data: RemixJobCreateManyInput | RemixJobCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * RemixJob createManyAndReturn
+   */
+  export type RemixJobCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixJob
+     */
+    select?: RemixJobSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixJob
+     */
+    omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * The data used to create many RemixJobs.
+     */
+    data: RemixJobCreateManyInput | RemixJobCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * RemixJob update
+   */
+  export type RemixJobUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixJob
+     */
+    select?: RemixJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixJob
+     */
+    omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * The data needed to update a RemixJob.
+     */
+    data: XOR<RemixJobUpdateInput, RemixJobUncheckedUpdateInput>
+    /**
+     * Choose, which RemixJob to update.
+     */
+    where: RemixJobWhereUniqueInput
+  }
+
+  /**
+   * RemixJob updateMany
+   */
+  export type RemixJobUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update RemixJobs.
+     */
+    data: XOR<RemixJobUpdateManyMutationInput, RemixJobUncheckedUpdateManyInput>
+    /**
+     * Filter which RemixJobs to update
+     */
+    where?: RemixJobWhereInput
+    /**
+     * Limit how many RemixJobs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * RemixJob updateManyAndReturn
+   */
+  export type RemixJobUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixJob
+     */
+    select?: RemixJobSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixJob
+     */
+    omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * The data used to update RemixJobs.
+     */
+    data: XOR<RemixJobUpdateManyMutationInput, RemixJobUncheckedUpdateManyInput>
+    /**
+     * Filter which RemixJobs to update
+     */
+    where?: RemixJobWhereInput
+    /**
+     * Limit how many RemixJobs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * RemixJob upsert
+   */
+  export type RemixJobUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixJob
+     */
+    select?: RemixJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixJob
+     */
+    omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * The filter to search for the RemixJob to update in case it exists.
+     */
+    where: RemixJobWhereUniqueInput
+    /**
+     * In case the RemixJob found by the `where` argument doesn't exist, create a new RemixJob with this data.
+     */
+    create: XOR<RemixJobCreateInput, RemixJobUncheckedCreateInput>
+    /**
+     * In case the RemixJob was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<RemixJobUpdateInput, RemixJobUncheckedUpdateInput>
+  }
+
+  /**
+   * RemixJob delete
+   */
+  export type RemixJobDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixJob
+     */
+    select?: RemixJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixJob
+     */
+    omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * Filter which RemixJob to delete.
+     */
+    where: RemixJobWhereUniqueInput
+  }
+
+  /**
+   * RemixJob deleteMany
+   */
+  export type RemixJobDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RemixJobs to delete
+     */
+    where?: RemixJobWhereInput
+    /**
+     * Limit how many RemixJobs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * RemixJob without action
+   */
+  export type RemixJobDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixJob
+     */
+    select?: RemixJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixJob
+     */
+    omit?: RemixJobOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -138310,6 +139564,26 @@ export namespace Prisma {
   };
 
   export type AgentCallLogScalarFieldEnum = (typeof AgentCallLogScalarFieldEnum)[keyof typeof AgentCallLogScalarFieldEnum]
+
+
+  export const RemixJobScalarFieldEnum: {
+    id: 'id',
+    sourceProjectId: 'sourceProjectId',
+    targetProjectId: 'targetProjectId',
+    organizationId: 'organizationId',
+    actorUserId: 'actorUserId',
+    state: 'state',
+    detachedKeys: 'detachedKeys',
+    storagePolicy: 'storagePolicy',
+    scanFindings: 'scanFindings',
+    scrubbedCount: 'scrubbedCount',
+    dbForked: 'dbForked',
+    error: 'error',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type RemixJobScalarFieldEnum = (typeof RemixJobScalarFieldEnum)[keyof typeof RemixJobScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -147316,6 +148590,105 @@ export namespace Prisma {
     billedToUser?: BoolWithAggregatesFilter<"AgentCallLog"> | boolean
     routingCardVersion?: IntWithAggregatesFilter<"AgentCallLog"> | number
     source?: StringWithAggregatesFilter<"AgentCallLog"> | string
+  }
+
+  export type RemixJobWhereInput = {
+    AND?: RemixJobWhereInput | RemixJobWhereInput[]
+    OR?: RemixJobWhereInput[]
+    NOT?: RemixJobWhereInput | RemixJobWhereInput[]
+    id?: StringFilter<"RemixJob"> | string
+    sourceProjectId?: StringFilter<"RemixJob"> | string
+    targetProjectId?: StringNullableFilter<"RemixJob"> | string | null
+    organizationId?: StringFilter<"RemixJob"> | string
+    actorUserId?: StringNullableFilter<"RemixJob"> | string | null
+    state?: StringFilter<"RemixJob"> | string
+    detachedKeys?: JsonNullableFilter<"RemixJob">
+    storagePolicy?: StringFilter<"RemixJob"> | string
+    scanFindings?: JsonNullableFilter<"RemixJob">
+    scrubbedCount?: IntFilter<"RemixJob"> | number
+    dbForked?: BoolFilter<"RemixJob"> | boolean
+    error?: StringNullableFilter<"RemixJob"> | string | null
+    createdAt?: DateTimeFilter<"RemixJob"> | Date | string
+    updatedAt?: DateTimeFilter<"RemixJob"> | Date | string
+  }
+
+  export type RemixJobOrderByWithRelationInput = {
+    id?: SortOrder
+    sourceProjectId?: SortOrder
+    targetProjectId?: SortOrderInput | SortOrder
+    organizationId?: SortOrder
+    actorUserId?: SortOrderInput | SortOrder
+    state?: SortOrder
+    detachedKeys?: SortOrderInput | SortOrder
+    storagePolicy?: SortOrder
+    scanFindings?: SortOrderInput | SortOrder
+    scrubbedCount?: SortOrder
+    dbForked?: SortOrder
+    error?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type RemixJobWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: RemixJobWhereInput | RemixJobWhereInput[]
+    OR?: RemixJobWhereInput[]
+    NOT?: RemixJobWhereInput | RemixJobWhereInput[]
+    sourceProjectId?: StringFilter<"RemixJob"> | string
+    targetProjectId?: StringNullableFilter<"RemixJob"> | string | null
+    organizationId?: StringFilter<"RemixJob"> | string
+    actorUserId?: StringNullableFilter<"RemixJob"> | string | null
+    state?: StringFilter<"RemixJob"> | string
+    detachedKeys?: JsonNullableFilter<"RemixJob">
+    storagePolicy?: StringFilter<"RemixJob"> | string
+    scanFindings?: JsonNullableFilter<"RemixJob">
+    scrubbedCount?: IntFilter<"RemixJob"> | number
+    dbForked?: BoolFilter<"RemixJob"> | boolean
+    error?: StringNullableFilter<"RemixJob"> | string | null
+    createdAt?: DateTimeFilter<"RemixJob"> | Date | string
+    updatedAt?: DateTimeFilter<"RemixJob"> | Date | string
+  }, "id">
+
+  export type RemixJobOrderByWithAggregationInput = {
+    id?: SortOrder
+    sourceProjectId?: SortOrder
+    targetProjectId?: SortOrderInput | SortOrder
+    organizationId?: SortOrder
+    actorUserId?: SortOrderInput | SortOrder
+    state?: SortOrder
+    detachedKeys?: SortOrderInput | SortOrder
+    storagePolicy?: SortOrder
+    scanFindings?: SortOrderInput | SortOrder
+    scrubbedCount?: SortOrder
+    dbForked?: SortOrder
+    error?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: RemixJobCountOrderByAggregateInput
+    _avg?: RemixJobAvgOrderByAggregateInput
+    _max?: RemixJobMaxOrderByAggregateInput
+    _min?: RemixJobMinOrderByAggregateInput
+    _sum?: RemixJobSumOrderByAggregateInput
+  }
+
+  export type RemixJobScalarWhereWithAggregatesInput = {
+    AND?: RemixJobScalarWhereWithAggregatesInput | RemixJobScalarWhereWithAggregatesInput[]
+    OR?: RemixJobScalarWhereWithAggregatesInput[]
+    NOT?: RemixJobScalarWhereWithAggregatesInput | RemixJobScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"RemixJob"> | string
+    sourceProjectId?: StringWithAggregatesFilter<"RemixJob"> | string
+    targetProjectId?: StringNullableWithAggregatesFilter<"RemixJob"> | string | null
+    organizationId?: StringWithAggregatesFilter<"RemixJob"> | string
+    actorUserId?: StringNullableWithAggregatesFilter<"RemixJob"> | string | null
+    state?: StringWithAggregatesFilter<"RemixJob"> | string
+    detachedKeys?: JsonNullableWithAggregatesFilter<"RemixJob">
+    storagePolicy?: StringWithAggregatesFilter<"RemixJob"> | string
+    scanFindings?: JsonNullableWithAggregatesFilter<"RemixJob">
+    scrubbedCount?: IntWithAggregatesFilter<"RemixJob"> | number
+    dbForked?: BoolWithAggregatesFilter<"RemixJob"> | boolean
+    error?: StringNullableWithAggregatesFilter<"RemixJob"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"RemixJob"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"RemixJob"> | Date | string
   }
 
   export type UserCreateInput = {
@@ -156731,6 +158104,125 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
   }
 
+  export type RemixJobCreateInput = {
+    id?: string
+    sourceProjectId: string
+    targetProjectId?: string | null
+    organizationId: string
+    actorUserId?: string | null
+    state?: string
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: string
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: number
+    dbForked?: boolean
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RemixJobUncheckedCreateInput = {
+    id?: string
+    sourceProjectId: string
+    targetProjectId?: string | null
+    organizationId: string
+    actorUserId?: string | null
+    state?: string
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: string
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: number
+    dbForked?: boolean
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RemixJobUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: StringFieldUpdateOperationsInput | string
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: StringFieldUpdateOperationsInput | string
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: IntFieldUpdateOperationsInput | number
+    dbForked?: BoolFieldUpdateOperationsInput | boolean
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RemixJobUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: StringFieldUpdateOperationsInput | string
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: StringFieldUpdateOperationsInput | string
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: IntFieldUpdateOperationsInput | number
+    dbForked?: BoolFieldUpdateOperationsInput | boolean
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RemixJobCreateManyInput = {
+    id?: string
+    sourceProjectId: string
+    targetProjectId?: string | null
+    organizationId: string
+    actorUserId?: string | null
+    state?: string
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: string
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: number
+    dbForked?: boolean
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RemixJobUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: StringFieldUpdateOperationsInput | string
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: StringFieldUpdateOperationsInput | string
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: IntFieldUpdateOperationsInput | number
+    dbForked?: BoolFieldUpdateOperationsInput | boolean
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RemixJobUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: StringFieldUpdateOperationsInput | string
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: StringFieldUpdateOperationsInput | string
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: IntFieldUpdateOperationsInput | number
+    dbForked?: BoolFieldUpdateOperationsInput | boolean
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -162627,6 +164119,61 @@ export namespace Prisma {
     creditCents?: SortOrder
     marginMillicents?: SortOrder
     routingCardVersion?: SortOrder
+  }
+
+  export type RemixJobCountOrderByAggregateInput = {
+    id?: SortOrder
+    sourceProjectId?: SortOrder
+    targetProjectId?: SortOrder
+    organizationId?: SortOrder
+    actorUserId?: SortOrder
+    state?: SortOrder
+    detachedKeys?: SortOrder
+    storagePolicy?: SortOrder
+    scanFindings?: SortOrder
+    scrubbedCount?: SortOrder
+    dbForked?: SortOrder
+    error?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type RemixJobAvgOrderByAggregateInput = {
+    scrubbedCount?: SortOrder
+  }
+
+  export type RemixJobMaxOrderByAggregateInput = {
+    id?: SortOrder
+    sourceProjectId?: SortOrder
+    targetProjectId?: SortOrder
+    organizationId?: SortOrder
+    actorUserId?: SortOrder
+    state?: SortOrder
+    storagePolicy?: SortOrder
+    scrubbedCount?: SortOrder
+    dbForked?: SortOrder
+    error?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type RemixJobMinOrderByAggregateInput = {
+    id?: SortOrder
+    sourceProjectId?: SortOrder
+    targetProjectId?: SortOrder
+    organizationId?: SortOrder
+    actorUserId?: SortOrder
+    state?: SortOrder
+    storagePolicy?: SortOrder
+    scrubbedCount?: SortOrder
+    dbForked?: SortOrder
+    error?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type RemixJobSumOrderByAggregateInput = {
+    scrubbedCount?: SortOrder
   }
 
   export type AccountCreateNestedManyWithoutUserInput = {

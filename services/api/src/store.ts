@@ -1258,6 +1258,43 @@ export interface ApiStore {
   upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }): Promise<ProjectSecretRecord>;
   listProjectSecrets(projectId: string): Promise<Array<Omit<ProjectSecretRecord, 'valueEncrypted'>>>;
   getProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
+  /** Create a remix-job row (state machine + audit of the secure fork pipeline). */
+  createRemixJob(input: {
+    sourceProjectId: string;
+    organizationId: string;
+    actorUserId?: string;
+    storagePolicy: string;
+  }): Promise<{ id: string; state: string }>;
+  /** Advance / annotate a remix job. Partial patch. */
+  updateRemixJob(
+    id: string,
+    patch: {
+      state?: string;
+      targetProjectId?: string;
+      detachedKeys?: unknown;
+      scanFindings?: unknown;
+      scrubbedCount?: number;
+      dbForked?: boolean;
+      error?: string;
+    },
+  ): Promise<void>;
+  getRemixJob(id: string): Promise<
+    | {
+        id: string;
+        sourceProjectId: string;
+        targetProjectId?: string;
+        organizationId: string;
+        state: string;
+        detachedKeys?: unknown;
+        storagePolicy: string;
+        scanFindings?: unknown;
+        scrubbedCount: number;
+        dbForked: boolean;
+        error?: string;
+        createdAt: string;
+      }
+    | undefined
+  >;
   deleteProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
   addProjectCollaborator(input: {
     projectId: string;

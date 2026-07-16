@@ -1865,6 +1865,67 @@ export class TestApiStore implements ApiStore {
     return active ? { version: active.version, data: active.data } : undefined;
   }
 
+  remixJobs = new Map<
+    string,
+    {
+      id: string;
+      sourceProjectId: string;
+      targetProjectId?: string;
+      organizationId: string;
+      state: string;
+      detachedKeys?: unknown;
+      storagePolicy: string;
+      scanFindings?: unknown;
+      scrubbedCount: number;
+      dbForked: boolean;
+      error?: string;
+      createdAt: string;
+    }
+  >();
+
+  async createRemixJob(input: {
+    sourceProjectId: string;
+    organizationId: string;
+    actorUserId?: string;
+    storagePolicy: string;
+  }) {
+    const row = {
+      id: id('remix'),
+      sourceProjectId: input.sourceProjectId,
+      organizationId: input.organizationId,
+      state: 'SNAPSHOT_PINNED',
+      storagePolicy: input.storagePolicy,
+      scrubbedCount: 0,
+      dbForked: false,
+      createdAt: now(),
+    };
+    this.remixJobs.set(row.id, row);
+    return { id: row.id, state: row.state };
+  }
+
+  async updateRemixJob(
+    id: string,
+    patch: {
+      state?: string;
+      targetProjectId?: string;
+      detachedKeys?: unknown;
+      scanFindings?: unknown;
+      scrubbedCount?: number;
+      dbForked?: boolean;
+      error?: string;
+    },
+  ) {
+    const row = this.remixJobs.get(id);
+
+    if (row) {
+      Object.assign(row, patch);
+    }
+  }
+
+  async getRemixJob(id: string) {
+    return this.remixJobs.get(id);
+  }
+
   async countAgentRoutingCards(): Promise<number> {
     return this.agentRoutingCards.length;
   }

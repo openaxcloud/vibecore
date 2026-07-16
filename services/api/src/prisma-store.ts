@@ -1158,6 +1158,74 @@ export class PrismaApiStore implements ApiStore {
     return secret ? mapSecret(secret) : undefined;
   }
 
+  async createRemixJob(input: {
+    sourceProjectId: string;
+    organizationId: string;
+    actorUserId?: string;
+    storagePolicy: string;
+  }) {
+    const row = await this.prisma.remixJob.create({
+      data: {
+        sourceProjectId: input.sourceProjectId,
+        organizationId: input.organizationId,
+        actorUserId: input.actorUserId ?? null,
+        storagePolicy: input.storagePolicy,
+        state: 'SNAPSHOT_PINNED',
+      },
+    });
+
+    return { id: row.id, state: row.state };
+  }
+
+  async updateRemixJob(
+    id: string,
+    patch: {
+      state?: string;
+      targetProjectId?: string;
+      detachedKeys?: unknown;
+      scanFindings?: unknown;
+      scrubbedCount?: number;
+      dbForked?: boolean;
+      error?: string;
+    },
+  ) {
+    await this.prisma.remixJob.update({
+      where: { id },
+      data: {
+        ...(patch.state !== undefined ? { state: patch.state } : {}),
+        ...(patch.targetProjectId !== undefined ? { targetProjectId: patch.targetProjectId } : {}),
+        ...(patch.detachedKeys !== undefined ? { detachedKeys: patch.detachedKeys as object } : {}),
+        ...(patch.scanFindings !== undefined ? { scanFindings: patch.scanFindings as object } : {}),
+        ...(patch.scrubbedCount !== undefined ? { scrubbedCount: patch.scrubbedCount } : {}),
+        ...(patch.dbForked !== undefined ? { dbForked: patch.dbForked } : {}),
+        ...(patch.error !== undefined ? { error: patch.error } : {}),
+      },
+    });
+  }
+
+  async getRemixJob(id: string) {
+    const row = await this.prisma.remixJob.findUnique({ where: { id } });
+
+    if (!row) {
+      return undefined;
+    }
+
+    return {
+      id: row.id,
+      sourceProjectId: row.sourceProjectId,
+      targetProjectId: row.targetProjectId ?? undefined,
+      organizationId: row.organizationId,
+      state: row.state,
+      detachedKeys: row.detachedKeys as unknown,
+      storagePolicy: row.storagePolicy,
+      scanFindings: row.scanFindings as unknown,
+      scrubbedCount: row.scrubbedCount,
+      dbForked: row.dbForked,
+      error: row.error ?? undefined,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
   async deleteProjectSecret(projectId: string, key: string) {
     /*
      * find-then-delete raced a concurrent delete into an unhandled P2025; use a
