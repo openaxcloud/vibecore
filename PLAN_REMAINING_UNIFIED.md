@@ -3,6 +3,25 @@
 États par point : 📤 Dispatché · 💻 Codé (commité+poussé sur main) · ✅ Testé live (écran + greps, web/tablette/mobile le cas échéant).
 Un point n'est « fait » QUE quand ✅ est coché.
 
+## AGENT — 3 modes + routage admin avec marge (décision Avi 16/07)
+
+Décision produit validée par audit Replit : Replit n'a AUCUN sélecteur de modèle nulle part ; nous en affichons 147 (« AI Model Selection — 147 available », incl. `Gemini Robotics-ER 1.6` = modèle robotique). Cible : 3 modes (Lite / **Economy = défaut** / Power) dans l'IDE uniquement, aucun nom de modèle dans l'UI, réglages par UTILISATEUR ; table de routage admin versionnée avec coût de revient + marge. Preuve = parcours réel UI → control plane → modèle → réponse ; artefacts dans `docs/deploy-evidence/`.
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|:---:|:---:|:---:|---|
+| AGM-1. Supprimer le menu « 147 modèles » de la landing (aucun nom de modèle sur marketing) | ✅ | ⬜ | ⬜ | Preuve : mesure DOM e-code.ai, zéro nom de modèle |
+| AGM-2. Supprimer tout sélecteur modèle/provider de la création de projet | ✅ | ⬜ | ⬜ | Aucune question modèle avant la création |
+| AGM-3. Supprimer le sélecteur modèle/provider de l'IDE (chat Bolt) | ✅ | ⬜ | ⬜ | Aucun nom de modèle dans l'IDE |
+| AGM-4. Segmented control 3 modes dans l'IDE + ⌘⇧I (Lite / Economy défaut / Power) + garde-fou Lite | ✅ | ⬜ | ⬜ | Libellés : Lite « Rapide et économique… », Economy « Le bon équilibre. », Power « Pour les tâches complexes. » |
+| AGM-5. Advanced settings : High effort (Economy+Power, jamais Lite, escalade seulement sur tâches dures + « +0 credit » sinon) ; Turbo (Power only, OFF, activable admin org) | ✅ | ⬜ | ⬜ | Réglages par UTILISATEUR, pas par projet |
+| AGM-6. Routage serveur mode→modèle (config versionnée, PAS un déploiement) + refus mode non autorisé par plan | ✅ | ⬜ | ⬜ | Défauts : Economy=Claude Opus 4.8 ×1, High effort=Fable ×2 (tâches dures only), Turbo=OpenAI 5.6 ×2 |
+| AGM-7. Log par appel admin-only { userId, projectId, mode, highEffort, escaladeDeclenchee, providerReel, modeleReel, tokensIn/Out, coutRevient, creditsFactures, marge } | ✅ | ⬜ | ⬜ | Invisible client |
+| AGM-8. Écran Admin → Agent → Routage des modèles (revient /1M in/out, multiplicateur, prix crédits, marge % et €, volume 30j, dispo plan, actif) + alerte marge négative bloquante | ✅ | ⬜ | ⬜ | Réutilise Rate Card versionné `packages/billing` (`1ea573b4`) |
+| AGM-9. Simulateur avant application + historique complet (qui/quoi/quand, marge avant/après) + versionnage effectiveFrom/effectiveTo/sourceDate | ✅ | ⬜ | ⬜ | |
+| AGM-10. Ligne classifieur harness (rapide/cheap, non facturé, revient visible) | ✅ | ⬜ | ⬜ | Coût d'exploitation |
+| AGM-11. Nudge Economy→Power si boucle, max 1×/projet | ✅ | ⬜ | ⬜ | |
+| AGM-12. Preuves live (a)–(f) : DOM sans nom de modèle, 3 modes IDE, mode change le modèle appelé (log), coût diffère, refus par plan, alerte marge | ✅ | ⬜ | ⬜ | Artefacts bruts `docs/deploy-evidence/` |
+
 ## Server deploy Phase A — « Publish = snapshot du workspace → image → run » (décision Avi 15/07)
 
 Contexte : le chemin boot-script (détection Node → tarball source → install/build au boot) est l'impasse par-langage.
