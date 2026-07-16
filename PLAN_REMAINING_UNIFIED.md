@@ -15,6 +15,24 @@ Audit externe v4 (15 P0). Priorité 4 (sécu) → 3 (échelle) → 2 → 1. Stat
 | V4-P1. Collecteur voyant : routes produit rendues JS + canal lancement ; retrouve Community Profiles | ✅ | ✅ `b42459fc` | ✅ 16/07 | collect-baseline v2 (3 familles) ; watchHits["Community Profiles"]==["community"] ; 🟡 rendu JS en CI = UNK-COLLECTOR-CI-RENDER |
 | V4-STATUS. APPROVAL_STATUS.json CALCULÉ + P0/DECISION/UNKNOWN registres + CI (refs croisées, freshness, no-DONE-sans-preuve, no-CLOSED-sans-reviewer) | ✅ | ✅ `b42459fc` | ✅ 16/07 | generate-approval-status.mjs ; validateur échoue sur dérive ; 3 tests négatifs prouvent les refus |
 
+### Compléments A→I (2e lecture Avi 16/07)
+
+Priorité A, B d'abord, puis C→I. UNKNOWN partout où on ne sait pas.
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|:---:|:---:|:---:|---|
+| A. Observation : sourceType/observedAt/**eventDate≠detectionDate**/contentHash/archiveUri/plan/region/client/rollout/triageState + SLA triage + familles | ✅ | ✅ `e503220e` | ✅ 16/07 | OBSERVATION_REGISTRY.yaml + schema ; validateur vérifie triageSla + cohérence blindnessGapDays |
+| B. Changelog 10/07 (domain purchase, Excalidraw, editors-answer) → PUBLIC_BASELINE triageState PENDING | ✅ | ✅ `e503220e` | ✅ 16/07 | RPL-20/21/22 (SRC-CHANGELOG-2026-07-10 sha256 010fb57a) |
+| C. PromotionManifest + ReleaseManifest + machine PROMOTION_PREPARED→…→COMMITTED ; promotion incomplète nettoyée ≠ release ; rollback ≠ inversion DB | ✅ | ✅ `57ab0a67` | ✅ 16/07 | lifecycle-state-machines.ts ; releaseMayBeCut refuse non-committé/attachment non-relié/BinAuthz≠PASSED ; 4 tests ; DOMAIN_MODEL §5 |
+| D. Checkpoint barrière 2 phases : BARRIER_ESTABLISHED avant tout snapshot ; manifest visible après vérif de TOUS ; quiesce timeout+dégel | ✅ | ✅ `4a61800c` | ✅ 16/07 | assertCheckpointTransition (CHECKPOINT_SNAPSHOT_BEFORE_BARRIER) + checkpointManifestVisible + quiesceAdmissible ; tests négatifs ; CHECKPOINT_CONTRACT.md |
+| E. Migrations DB : PLANNED→…→COMMITTED, APPLYING exige BACKUP_VERIFIED, une seule active par env | ✅ | ✅ `4a61800c` | ✅ 16/07 | assertMigrationTransition (MIGRATION_APPLY_BEFORE_BACKUP) + migrationMayStart ; DATABASE_CONTRACT.md |
+| F. Gallery CONFIRMED vs UNKNOWN séparés (publish self-service/preview embarquée/review/licence remix = UNKNOWN) | ✅ | ✅ `06fabcf1` | ✅ 16/07 | GALLERY_COMMUNITY_CONTRACT.md ; 4 UNKNOWN dédiés ; rien d'interne marqué CONFIRMED par ressemblance |
+| G. SurfaceRegistryEntry champs exacts (clientKind/entitlement/region/rolloutCohort/availability/serverAuthz/errors/recovery/responsiveContract/a11y/locale/rtl/tz/perfBudget/observedAt) | ✅ | ✅ `b8186f2f` | ✅ 16/07 | SURFACE_REGISTRY schemaVersion 2 + surface-registry.schema.json ; enum availability prouvé (MAYBE→exit 1) ; UNKNOWN 1re classe |
+| H. APPROVAL_STATUS : algorithme EXACT à 6 conditions (P0, fichiers+schemaVersion, refs sans orphelin, vertical vert, sources fraîches, décisions/unknowns) | ✅ | ✅ `ca299f87` | ✅ 16/07 | conditions[] ; validateur : approvalReady==6-pass ; **approvalReady=false honnête** (vertical : seuls execute+publish verts) ; hand-flip→DRIFT prouvé |
+| I. 14 contrats manquants (17 groupes) + private deployments RPL-23 (4 modes, accessPolicyVersion) | ✅ | ✅ `b20eb6bc` | ✅ 16/07 | 14 CONTRACT.md header-checkés (22 md) ; RPL-23 cité SRC-LLMS-FULL-TXT ; AUTH_ACCESS_CONTRACT ; UNK-AUTH-ACCESS-LIVE + UNK-REGRESSION-HARNESS |
+
+**Réserve honnête** — le ✅ ci-dessus = « codé + prouvé en unitaire/validateur » (machines à états pures avec tests négatifs, registres validés, refus prouvés). Le vertical d'approbation e2e reste **RED** (`approvalReady=false`) : seuls les stages `execute` (E2E-AGM-C) et `publish` (E2E-PHASEB-NODE) sont prouvés ; `create/modify/preview/observe/rollback` n'ont pas encore de preuve e2e taggée. C'est l'état réel, calculé, non maquillé.
+
 ## REMIX — pipeline de fork sécurisé (décision Avi 16/07)
 
 Contrat `DOMAIN_MODEL.md §1`. Machine à états NORMATIVE : SNAPSHOT_PINNED → **CREDENTIALS_DETACHED** → CLONING → DB_FORKING → STORAGE_POLICY_APPLIED → SCANNING → INDEXING. Invariant SÉCURITÉ : une **valeur** de secret n'entre JAMAIS dans l'artefact de clone (secrets = références) ; le détachement précède le clone. Preuve exigée : remix réel d'un projet CONTENANT un secret + démonstration que le secret est introuvable (FS, DB, env, logs) — le test doit CHERCHER le secret et échouer à le trouver. App Storage : 3 modes DETACH / CLONE / SHARE_WITH_CONSENT testés (bucket account-level partageable — « nouveau bucket » est NOTRE décision, explicite).
