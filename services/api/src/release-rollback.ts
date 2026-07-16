@@ -139,3 +139,58 @@ export function resolveRollbackImage(target: RetainedRelease | null | undefined,
     resolvedWithoutLiveRevision: live.revisionExists === false,
   };
 }
+
+/* ============================ secret policy ============================ */
+
+/**
+ * Which secret VALUES a rolled-back release runs with. Declared on the release
+ * (the ReleaseManifest), never inferred at rollback time.
+ *  - CURRENT: the app runs with the project's CURRENT secret values. This is the
+ *    only policy E-Code can honour today — `ProjectSecret` is unique per
+ *    (projectId, key) and a rotation OVERWRITES the value, so no prior version is
+ *    retained to pin to.
+ *  - PINNED: the app must run with the secret values as of the original release.
+ *    Requires the release to have retained those versions; if it did not, the
+ *    policy is UNSATISFIABLE and the rollback is refused — never silently served
+ *    with current values under a "pinned" label.
+ */
+export type SecretPolicy = 'CURRENT' | 'PINNED';
+
+export interface RollbackSecretInputs {
+  policy: SecretPolicy;
+
+  /** Current project secret values (post-rotation). */
+  currentSecrets: Record<string, string>;
+
+  /** Secret values captured at the original release, if any were retained. */
+  pinnedSecrets?: Record<string, string> | null;
+}
+
+export interface RollbackSecretResolution {
+  policy: SecretPolicy;
+  secrets: Record<string, string>;
+
+  /** True when the resolved values came from the pinned snapshot, not current. */
+  pinned: boolean;
+}
+
+/**
+ * Resolve which secret values the rolled-back release runs with, honouring the
+ * DECLARED policy. The secret-rotation negative case: with policy CURRENT the
+ * rotated value flows through; with policy PINNED and no retained snapshot the
+ * rollback is REFUSED (ROLLBACK_SECRET_POLICY_UNSATISFIABLE) rather than lying.
+ */
+export function resolveRollbackSecrets(input: RollbackSecretInputs): RollbackSecretResolution {
+  if (input.policy === 'PINNED') {
+    if (!input.pinnedSecrets) {
+      throw new RollbackError(
+        'Release declares secretPolicy=PINNED but retained no secret snapshot — cannot honour it (ProjectSecret keeps no version history). Refusing rather than serving current values under a pinned label.',
+        'ROLLBACK_SECRET_POLICY_UNSATISFIABLE',
+      );
+    }
+
+    return { policy: 'PINNED', secrets: input.pinnedSecrets, pinned: true };
+  }
+
+  return { policy: 'CURRENT', secrets: input.currentSecrets, pinned: false };
+}

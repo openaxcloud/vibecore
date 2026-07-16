@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { RollbackError, resolveRollbackImage, retainRelease, type RetainedRelease } from './release-rollback.js';
+import {
+  RollbackError,
+  resolveRollbackImage,
+  resolveRollbackSecrets,
+  retainRelease,
+  type RetainedRelease,
+} from './release-rollback.js';
 
 const IMAGE_URI = 'europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/app-proj123:v2';
 const DIGEST = 'sha256:' + 'a'.repeat(64);
@@ -79,5 +85,37 @@ describe('resolveRollbackImage (I-REL-1 / I-REL-2)', () => {
     expect(Object.keys(plan).sort()).toEqual(
       ['fromDeploymentId', 'imageDigest', 'pullRef', 'resolvedWithoutLiveRevision'].sort(),
     );
+  });
+});
+
+describe('resolveRollbackSecrets — rollback after secret rotation', () => {
+  it('policy CURRENT: the rolled-back release runs with the ROTATED (current) value', () => {
+    // Secret was rotated after v1 shipped: API_KEY old→new. Policy CURRENT applies new.
+    const res = resolveRollbackSecrets({
+      policy: 'CURRENT',
+      currentSecrets: { API_KEY: 'new-rotated-value' },
+      pinnedSecrets: { API_KEY: 'old-value-at-v1' },
+    });
+    expect(res.secrets.API_KEY).toBe('new-rotated-value');
+    expect(res.pinned).toBe(false);
+  });
+
+  it('policy PINNED with a retained snapshot: runs with the values as of the original release', () => {
+    const res = resolveRollbackSecrets({
+      policy: 'PINNED',
+      currentSecrets: { API_KEY: 'new-rotated-value' },
+      pinnedSecrets: { API_KEY: 'old-value-at-v1' },
+    });
+    expect(res.secrets.API_KEY).toBe('old-value-at-v1');
+    expect(res.pinned).toBe(true);
+  });
+
+  it('policy PINNED with NO retained snapshot: REFUSES instead of faking (ProjectSecret keeps no history)', () => {
+    try {
+      resolveRollbackSecrets({ policy: 'PINNED', currentSecrets: { API_KEY: 'new' }, pinnedSecrets: null });
+      throw new Error('should have thrown');
+    } catch (error) {
+      expect((error as RollbackError).code).toBe('ROLLBACK_SECRET_POLICY_UNSATISFIABLE');
+    }
   });
 });
