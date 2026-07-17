@@ -6,6 +6,7 @@ export * from './credits.js';
 export * from './compute-pricing.js';
 export * from './rate-card.js';
 export * from './agent-routing.js';
+export * from './import-pricing.js';
 
 /*
  * Pinned Stripe API version. Sent on every request so the request/webhook

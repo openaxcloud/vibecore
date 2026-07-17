@@ -1240,9 +1240,49 @@ exports.Prisma.CreditLedgerScalarFieldEnum = {
   kind: 'kind',
   reason: 'reason',
   checkpointId: 'checkpointId',
+  reservationId: 'reservationId',
   expiresAt: 'expiresAt',
   metadata: 'metadata',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.UsageReservationScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  idempotencyKey: 'idempotencyKey',
+  operation: 'operation',
+  maxAmountCents: 'maxAmountCents',
+  committedCents: 'committedCents',
+  status: 'status',
+  rateCardVersion: 'rateCardVersion',
+  importJobId: 'importJobId',
+  expiresAt: 'expiresAt',
+  committedAt: 'committedAt',
+  releasedAt: 'releasedAt',
+  releaseReason: 'releaseReason',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PaymentAuthorizationScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  idempotencyKey: 'idempotencyKey',
+  purpose: 'purpose',
+  amountCents: 'amountCents',
+  currency: 'currency',
+  status: 'status',
+  stripePaymentIntentId: 'stripePaymentIntentId',
+  expiresAt: 'expiresAt',
+  authorizedAt: 'authorizedAt',
+  capturedAt: 'capturedAt',
+  voidedAt: 'voidedAt',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.AgentCheckpointScalarFieldEnum = {
@@ -1611,6 +1651,22 @@ exports.CreditEntryKind = exports.$Enums.CreditEntryKind = {
   EXPIRY: 'EXPIRY'
 };
 
+exports.UsageReservationStatus = exports.$Enums.UsageReservationStatus = {
+  ACTIVE: 'ACTIVE',
+  COMMITTED: 'COMMITTED',
+  COMPENSATED: 'COMPENSATED',
+  RELEASED: 'RELEASED',
+  EXPIRED: 'EXPIRED'
+};
+
+exports.PaymentAuthorizationStatus = exports.$Enums.PaymentAuthorizationStatus = {
+  PENDING: 'PENDING',
+  AUTHORIZED: 'AUTHORIZED',
+  CAPTURED: 'CAPTURED',
+  VOIDED: 'VOIDED',
+  EXPIRED: 'EXPIRED'
+};
+
 exports.CheckpointStatus = exports.$Enums.CheckpointStatus = {
   PENDING: 'PENDING',
   COMPLETED: 'COMPLETED',
@@ -1743,6 +1799,8 @@ exports.Prisma.ModelName = {
   CreditWallet: 'CreditWallet',
   CreditPack: 'CreditPack',
   CreditLedger: 'CreditLedger',
+  UsageReservation: 'UsageReservation',
+  PaymentAuthorization: 'PaymentAuthorization',
   AgentCheckpoint: 'AgentCheckpoint',
   UserSpendLimit: 'UserSpendLimit',
   ProviderConfig: 'ProviderConfig',

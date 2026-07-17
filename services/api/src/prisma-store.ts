@@ -85,6 +85,10 @@ import type {
   UserConnectionStatus,
   UserRecord,
   UsageEventRecord,
+  UsageReservationRecord,
+  UsageReservationStatus,
+  PaymentAuthorizationRecord,
+  PaymentAuthorizationStatus,
   WorkspaceIdeStateRecord,
   WorkspaceRecord,
   QuotaOverrideRecord,
@@ -4224,6 +4228,7 @@ export class PrismaApiStore implements ApiStore {
     kind: CreditEntryKind;
     reason: string;
     checkpointId?: string;
+    reservationId?: string;
     expiresAt?: Date;
     metadata?: unknown;
   }) {
@@ -4247,6 +4252,7 @@ export class PrismaApiStore implements ApiStore {
           kind: input.kind,
           reason: input.reason,
           checkpointId: input.checkpointId,
+          reservationId: input.reservationId,
           expiresAt: input.expiresAt,
           metadata: (input.metadata ?? null) as any,
         },
@@ -4267,6 +4273,260 @@ export class PrismaApiStore implements ApiStore {
         take: options?.take ?? 100,
       })
     ).map(mapCreditLedger);
+  }
+
+  async listCreditLedgerByReservation(reservationId: string) {
+    return (
+      await this.prisma.creditLedger.findMany({
+        where: { reservationId },
+        orderBy: { createdAt: 'asc' },
+      })
+    ).map(mapCreditLedger);
+  }
+
+  async createUsageReservation(input: {
+    organizationId: string;
+    userId?: string;
+    idempotencyKey: string;
+    operation: string;
+    maxAmountCents: number;
+    expiresAt: Date;
+    rateCardVersion?: number;
+    importJobId?: string;
+    metadata?: unknown;
+  }) {
+    /*
+     * Idempotency is enforced by the DB unique index (organizationId,
+     * idempotencyKey): create-first, and on P2002 return the EXISTING row —
+     * a read-then-write would race two concurrent replays into two holds.
+     */
+    try {
+      const row = await this.prisma.usageReservation.create({
+        data: {
+          organizationId: input.organizationId,
+          userId: input.userId ?? null,
+          idempotencyKey: input.idempotencyKey,
+          operation: input.operation,
+          maxAmountCents: input.maxAmountCents,
+          expiresAt: input.expiresAt,
+          rateCardVersion: input.rateCardVersion ?? null,
+          importJobId: input.importJobId ?? null,
+          metadata: (input.metadata ?? null) as any,
+        },
+      });
+
+      return { reservation: mapUsageReservation(row), created: true };
+    } catch (error: any) {
+      if (error?.code !== 'P2002') {
+        throw error;
+      }
+
+      const existing = await this.prisma.usageReservation.findUnique({
+        where: {
+          organizationId_idempotencyKey: {
+            organizationId: input.organizationId,
+            idempotencyKey: input.idempotencyKey,
+          },
+        },
+      });
+
+      if (!existing) {
+        throw error;
+      }
+
+      return { reservation: mapUsageReservation(existing), created: false };
+    }
+  }
+
+  async getUsageReservation(id: string) {
+    const row = await this.prisma.usageReservation.findUnique({ where: { id } });
+    return row ? mapUsageReservation(row) : undefined;
+  }
+
+  async findUsageReservationByKey(organizationId: string, idempotencyKey: string) {
+    const row = await this.prisma.usageReservation.findUnique({
+      where: { organizationId_idempotencyKey: { organizationId, idempotencyKey } },
+    });
+    return row ? mapUsageReservation(row) : undefined;
+  }
+
+  async findUsageReservationByImportJob(importJobId: string) {
+    const row = await this.prisma.usageReservation.findFirst({
+      where: { importJobId },
+      orderBy: { createdAt: 'desc' },
+    });
+    return row ? mapUsageReservation(row) : undefined;
+  }
+
+  async transitionUsageReservation(input: {
+    id: string;
+    from: UsageReservationStatus[];
+    to: UsageReservationStatus;
+    committedCents?: number;
+    releaseReason?: string;
+    nowIso: string;
+  }) {
+    const nowDate = new Date(input.nowIso);
+    // Compare-and-set: updateMany's WHERE status-in-from is the atomicity —
+    // exactly one concurrent transition can win; losers see count === 0.
+    const result = await this.prisma.usageReservation.updateMany({
+      where: { id: input.id, status: { in: input.from } },
+      data: {
+        status: input.to,
+        ...(input.to === 'COMMITTED'
+          ? { committedCents: input.committedCents ?? 0, committedAt: nowDate }
+          : { releasedAt: nowDate, ...(input.releaseReason ? { releaseReason: input.releaseReason } : {}) }),
+      },
+    });
+
+    if (result.count === 0) {
+      return undefined;
+    }
+
+    return this.getUsageReservation(input.id);
+  }
+
+  async listUsageReservations(organizationId: string, options?: { take?: number }) {
+    return (
+      await this.prisma.usageReservation.findMany({
+        where: { organizationId },
+        orderBy: { createdAt: 'desc' },
+        take: options?.take ?? 100,
+      })
+    ).map(mapUsageReservation);
+  }
+
+  async reapExpiredUsageReservations(nowIso: string) {
+    const now = new Date(nowIso);
+    const stale = await this.prisma.usageReservation.findMany({
+      where: { status: 'ACTIVE', expiresAt: { lt: now } },
+      select: { id: true },
+    });
+
+    if (stale.length === 0) {
+      return [];
+    }
+
+    // Per-row compare-and-set so a concurrent commit/release always beats the
+    // reaper (an EXPIRED stamp must never overwrite a COMMITTED hold).
+    const reaped: UsageReservationRecord[] = [];
+
+    for (const { id } of stale) {
+      const updated = await this.transitionUsageReservation({
+        id,
+        from: ['ACTIVE'],
+        to: 'EXPIRED',
+        releaseReason: 'timeout',
+        nowIso,
+      });
+
+      if (updated) {
+        reaped.push(updated);
+      }
+    }
+
+    return reaped;
+  }
+
+  async createPaymentAuthorization(input: {
+    organizationId: string;
+    userId?: string;
+    idempotencyKey: string;
+    purpose: string;
+    amountCents: number;
+    currency?: string;
+    expiresAt: Date;
+    metadata?: unknown;
+  }) {
+    try {
+      const row = await this.prisma.paymentAuthorization.create({
+        data: {
+          organizationId: input.organizationId,
+          userId: input.userId ?? null,
+          idempotencyKey: input.idempotencyKey,
+          purpose: input.purpose,
+          amountCents: input.amountCents,
+          currency: input.currency ?? 'usd',
+          expiresAt: input.expiresAt,
+          metadata: (input.metadata ?? null) as any,
+        },
+      });
+
+      return { authorization: mapPaymentAuthorization(row), created: true };
+    } catch (error: any) {
+      if (error?.code !== 'P2002') {
+        throw error;
+      }
+
+      const existing = await this.prisma.paymentAuthorization.findUnique({
+        where: {
+          organizationId_idempotencyKey: {
+            organizationId: input.organizationId,
+            idempotencyKey: input.idempotencyKey,
+          },
+        },
+      });
+
+      if (!existing) {
+        throw error;
+      }
+
+      return { authorization: mapPaymentAuthorization(existing), created: false };
+    }
+  }
+
+  async getPaymentAuthorization(id: string) {
+    const row = await this.prisma.paymentAuthorization.findUnique({ where: { id } });
+    return row ? mapPaymentAuthorization(row) : undefined;
+  }
+
+  async findPaymentAuthorizationByKey(organizationId: string, idempotencyKey: string) {
+    const row = await this.prisma.paymentAuthorization.findUnique({
+      where: { organizationId_idempotencyKey: { organizationId, idempotencyKey } },
+    });
+    return row ? mapPaymentAuthorization(row) : undefined;
+  }
+
+  async transitionPaymentAuthorization(input: {
+    id: string;
+    from: PaymentAuthorizationStatus[];
+    to: PaymentAuthorizationStatus;
+    stripePaymentIntentId?: string;
+    nowIso: string;
+  }) {
+    const nowDate = new Date(input.nowIso);
+    const stamps =
+      input.to === 'AUTHORIZED'
+        ? { authorizedAt: nowDate }
+        : input.to === 'CAPTURED'
+          ? { capturedAt: nowDate }
+          : input.to === 'VOIDED' || input.to === 'EXPIRED'
+            ? { voidedAt: nowDate }
+            : {};
+    const result = await this.prisma.paymentAuthorization.updateMany({
+      where: { id: input.id, status: { in: input.from } },
+      data: {
+        status: input.to,
+        ...(input.stripePaymentIntentId ? { stripePaymentIntentId: input.stripePaymentIntentId } : {}),
+        ...stamps,
+      },
+    });
+
+    if (result.count === 0) {
+      return undefined;
+    }
+
+    return this.getPaymentAuthorization(input.id);
+  }
+
+  async listPaymentAuthorizations(organizationId: string, options?: { take?: number }) {
+    return (
+      await this.prisma.paymentAuthorization.findMany({
+        where: { organizationId },
+        orderBy: { createdAt: 'desc' },
+        take: options?.take ?? 100,
+      })
+    ).map(mapPaymentAuthorization);
   }
 
   async sumPaygSpendSince(organizationId: string, sinceMs: number): Promise<number> {
@@ -6394,9 +6654,53 @@ function mapCreditLedger(entry: any): CreditLedgerRecord {
     kind: entry.kind,
     reason: entry.reason,
     checkpointId: entry.checkpointId ?? undefined,
+    reservationId: entry.reservationId ?? undefined,
     expiresAt: toIso(entry.expiresAt) ?? undefined,
     metadata: entry.metadata ?? undefined,
     createdAt: toIso(entry.createdAt)!,
+  };
+}
+
+function mapUsageReservation(row: any): UsageReservationRecord {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    userId: row.userId ?? undefined,
+    idempotencyKey: row.idempotencyKey,
+    operation: row.operation,
+    maxAmountCents: row.maxAmountCents,
+    committedCents: row.committedCents ?? undefined,
+    status: row.status,
+    rateCardVersion: row.rateCardVersion ?? undefined,
+    importJobId: row.importJobId ?? undefined,
+    expiresAt: toIso(row.expiresAt)!,
+    committedAt: toIso(row.committedAt) ?? undefined,
+    releasedAt: toIso(row.releasedAt) ?? undefined,
+    releaseReason: row.releaseReason ?? undefined,
+    metadata: row.metadata ?? undefined,
+    createdAt: toIso(row.createdAt)!,
+    updatedAt: toIso(row.updatedAt)!,
+  };
+}
+
+function mapPaymentAuthorization(row: any): PaymentAuthorizationRecord {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    userId: row.userId ?? undefined,
+    idempotencyKey: row.idempotencyKey,
+    purpose: row.purpose,
+    amountCents: row.amountCents,
+    currency: row.currency,
+    status: row.status,
+    stripePaymentIntentId: row.stripePaymentIntentId ?? undefined,
+    expiresAt: toIso(row.expiresAt)!,
+    authorizedAt: toIso(row.authorizedAt) ?? undefined,
+    capturedAt: toIso(row.capturedAt) ?? undefined,
+    voidedAt: toIso(row.voidedAt) ?? undefined,
+    metadata: row.metadata ?? undefined,
+    createdAt: toIso(row.createdAt)!,
+    updatedAt: toIso(row.updatedAt)!,
   };
 }
 

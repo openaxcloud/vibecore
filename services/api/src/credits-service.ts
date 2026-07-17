@@ -150,7 +150,15 @@ export interface DebitResult {
  */
 export async function debitCredits(
   store: ApiStore,
-  input: { organizationId: string; amountCents: number; reason: string; checkpointId?: string; nowMs: number },
+  input: {
+    organizationId: string;
+    amountCents: number;
+    reason: string;
+    checkpointId?: string;
+    /** Correlates the balance-draw ledger entries to a UsageReservation (D4). */
+    reservationId?: string;
+    nowMs: number;
+  },
 ): Promise<DebitResult> {
   const amount = Number.isFinite(input.amountCents) ? Math.max(0, Math.ceil(input.amountCents)) : 0;
 
@@ -226,6 +234,7 @@ export async function debitCredits(
         kind: 'CONSUMPTION',
         reason: input.reason,
         checkpointId: input.checkpointId,
+        reservationId: input.reservationId,
       });
 
       const overdraw = postBalance < 0 ? -postBalance : 0;
@@ -237,6 +246,7 @@ export async function debitCredits(
           kind: 'CONSUMPTION',
           reason: `${input.reason} (overdraw reversal)`,
           checkpointId: input.checkpointId,
+          reservationId: input.reservationId,
         });
       }
 

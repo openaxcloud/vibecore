@@ -1927,6 +1927,9 @@ model CreditLedger {
   kind           CreditEntryKind
   reason         String
   checkpointId   String?
+  /// Correlation to the UsageReservation this movement settles or compensates
+  /// (importJobId <-> reservationId <-> ledger entry, D4 billing safety).
+  reservationId  String?
   expiresAt      DateTime?
   metadata       Json?
   createdAt      DateTime        @default(now())
@@ -1940,10 +1943,100 @@ model CreditLedger {
   @@index([organizationId, createdAt])
   @@index([walletId, createdAt])
   @@index([checkpointId])
+  @@index([reservationId])
   @@index([kind, expiresAt])
   // Org-scoped credit-expiry sweep filters organizationId + kind + expiresAt
   // together; the kind/expiresAt-only index wasn't org-scoped.
   @@index([organizationId, kind, expiresAt])
+}
+
+/// E-CODE DECISION (D4 phase 1 — billing minimal de sûreté): idempotent credit
+/// HOLD for a long-running billable operation (import today; connectors/agent
+/// next). The reservation is a CEILING (`maxAmountCents`), never a debit — the
+/// real debit happens exactly once at COMMIT, AFTER the billable step
+/// succeeded, via CreditLedger entries stamped with `reservationId`.
+/// Cancel / timeout / failure RELEASE the hold (nothing was debited yet); a
+/// post-commit rollback COMPENSATES with an opposite REFUND ledger entry —
+/// history is corrected by appending, never by mutating.
+enum UsageReservationStatus {
+  ACTIVE
+  COMMITTED
+  COMPENSATED
+  RELEASED
+  EXPIRED
+}
+
+model UsageReservation {
+  id              String                 @id @default(cuid())
+  organizationId  String
+  userId          String?
+  /// Idempotency key, unique per org: replaying the same key returns the SAME
+  /// reservation — never a second hold.
+  idempotencyKey  String
+  /// Operation family ('import' | ...). Purchases are REFUSED here: money
+  /// authorization is PaymentAuthorization, a distinct object by design.
+  operation       String
+  /// The authorized ceiling. The committed debit can never exceed it.
+  maxAmountCents  Int
+  /// Set at COMMIT: what was actually debited (always <= maxAmountCents).
+  committedCents  Int?
+  status          UsageReservationStatus @default(ACTIVE)
+  /// Rate-card / pricing version the estimate was computed with (audit).
+  rateCardVersion Int?
+  /// Correlation: importJobId <-> reservationId <-> CreditLedger.reservationId.
+  importJobId     String?
+  expiresAt       DateTime
+  committedAt     DateTime?
+  releasedAt      DateTime?
+  /// 'cancel' | 'timeout' | 'failure' (release) or the compensation reason.
+  releaseReason   String?
+  metadata        Json?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, status])
+  @@index([status, expiresAt])
+  @@index([importJobId])
+}
+
+/// Authorization to charge MONEY (PSP / Stripe) for a purchase (domains, ...).
+/// Deliberately DISTINCT from UsageReservation: reserving credits and
+/// authorizing a payment are two different operations — conflating them is an
+/// accounting fault. This object NEVER touches the credit wallet or ledger;
+/// the money side lives at the PSP (`stripePaymentIntentId`).
+enum PaymentAuthorizationStatus {
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  VOIDED
+  EXPIRED
+}
+
+model PaymentAuthorization {
+  id                    String                     @id @default(cuid())
+  organizationId        String
+  userId                String?
+  /// Idempotency key, unique per org: a replay returns the SAME authorization.
+  idempotencyKey        String
+  /// What is being bought ('domain' | ...).
+  purpose               String
+  amountCents           Int
+  currency              String                     @default("usd")
+  status                PaymentAuthorizationStatus @default(PENDING)
+  /// External PSP hold (Stripe PaymentIntent id).
+  stripePaymentIntentId String?
+  expiresAt             DateTime
+  authorizedAt          DateTime?
+  capturedAt            DateTime?
+  voidedAt              DateTime?
+  metadata              Json?
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, status])
+  @@index([status, expiresAt])
 }
 
 enum CheckpointStatus {

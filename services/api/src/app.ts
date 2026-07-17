@@ -42,6 +42,8 @@ import {
   creditPackCatalog,
   databaseBillableStorageGib,
   databaseStorageCents,
+  estimateImportCreditCents,
+  BUILTIN_IMPORT_PRICING,
   findCreditPack,
   gatePremiumAgentModes,
   availableAgentModes,
@@ -141,6 +143,16 @@ import {
   reportUsagePaygUsage,
   settleCheckpoint,
 } from './credits-service.js';
+import {
+  UsageReservationError,
+  commitReservation,
+  compensateReservation,
+  evaluateBoundary,
+  expireUsageReservations,
+  releaseReservation,
+  requireActiveReservation,
+  reserveUsage,
+} from './usage-reservation-service.js';
 import {
   DELETION_GRACE_PERIOD_DAYS,
   canCancelDeletion,
@@ -18272,6 +18284,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const cleanupImport = async (importJobId: string, terminal: ImportState, error?: string) => {
     importStaging.delete(importJobId); // dispose the staging — target never mounted
     await store.updateImportJob(importJobId, { state: terminal, ...(error ? { error } : {}) }).catch(() => undefined);
+
+    /*
+     * D4 billing safety: every exit also settles the credit hold. An ACTIVE
+     * reservation is RELEASED (nothing was debited before commit); if the debit
+     * already happened (post-commit rollback), the caller compensates instead.
+     */
+    const reservation = await store.findUsageReservationByImportJob(importJobId).catch(() => undefined);
+
+    if (reservation?.status === 'ACTIVE') {
+      await releaseReservation(store, {
+        reservationId: reservation.id,
+        reason: terminal === 'CANCELLED' ? 'cancel' : 'failure',
+        nowMs: Date.now(),
+      }).catch(() => undefined);
+    }
   };
 
   /*
@@ -18288,6 +18315,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     for (const id of expired) {
       importStaging.delete(id);
     }
+
+    // D4 billing safety: abandoned credit holds expire with the jobs (timeout
+    // compensation — an ACTIVE hold carries no debit, expiry just drops it).
+    await expireUsageReservations(store, new Date(nowIso).getTime()).catch(() => []);
 
     return expired;
   };
@@ -18329,14 +18360,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     try {
       /*
-       * E-CODE DECISION (not Replit parity): reserve Agent credits idempotently
-       * (keyed by importJobId) BEFORE staging, so a retried import never double-
-       * charges. Recorded as a marker here; wiring the real debit is a follow-up.
+       * D4 billing safety: an import that consumes credits must NOT start
+       * without an idempotent reservation (keyed `import:<jobId>` — a retried
+       * POST re-uses the SAME hold, never opens a second one). The ceiling is
+       * the rate-carded estimate; the real debit happens only at commit, after
+       * the billable step. `creditsReserved` (the former marker) now means
+       * "the reservation row exists".
        */
+      const stagedFiles: ImportFile[] = body.files ?? [];
+      const { reservation } = await reserveUsage(store, {
+        organizationId: orgId,
+        userId: request.currentUser?.id,
+        idempotencyKey: `import:${job.id}`,
+        operation: 'import',
+        maxAmountCents: estimateImportCreditCents({ fileCount: stagedFiles.length }),
+        ttlMs: 60 * 60 * 1000,
+        importJobId: job.id,
+        rateCardVersion: BUILTIN_IMPORT_PRICING.version,
+        nowMs: Date.now(),
+      });
       await store.updateImportJob(job.id, { creditsReserved: true });
 
       // STAGING_ISOLATED — files into the disposable staging, NOT the target.
-      const stagedFiles: ImportFile[] = body.files ?? [];
       importStaging.set(job.id, stagedFiles);
       await advance('STAGING_ISOLATED', { stagedFileCount: stagedFiles.length });
 
@@ -18363,6 +18408,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             stagedFileCount: stagedFiles.length,
             requiresConsent: true,
           },
+          // UI: the estimate and the authorized ceiling, before any debit.
+          billing: {
+            reservationId: reservation.id,
+            estimatedCents: reservation.maxAmountCents,
+            maxAmountCents: reservation.maxAmountCents,
+            rateCardVersion: reservation.rateCardVersion,
+            status: reservation.status,
+          },
         });
       }
 
@@ -18377,10 +18430,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           stagedFileCount: stagedFiles.length,
           requiresConsent: false,
         },
+        billing: {
+          reservationId: reservation.id,
+          estimatedCents: reservation.maxAmountCents,
+          maxAmountCents: reservation.maxAmountCents,
+          rateCardVersion: reservation.rateCardVersion,
+          status: reservation.status,
+        },
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await cleanupImport(job.id, 'ROLLING_BACK', message);
+
+      if (error instanceof UsageReservationError) {
+        return reply.status(error.statusCode).send({ error: message, code: error.code, importJobId: job.id });
+      }
 
       if (error instanceof ImportInvariantError) {
         return reply.status(error.statusCode).send({ error: message, code: error.code, importJobId: job.id });
@@ -18438,6 +18502,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await store.updateImportJob(importJobId, { state: to, ...patch });
     };
 
+    /*
+     * D4 billing safety — the SAFE BOUNDARY. Both checks run BEFORE the atomic
+     * COMMITTING block and never inside it: (1) the structural gate — a
+     * billable step must not start without an ACTIVE reservation; (2) the hard
+     * limit — the step ahead must fit under the authorized ceiling. Once the
+     * commit starts it always finishes; a limit can only cut here.
+     */
+    const reservation = await requireActiveReservation(store, {
+      organizationId: orgId,
+      importJobId,
+      nowMs: Date.now(),
+    });
+    const boundary = evaluateBoundary({
+      reservation,
+      spentSoFarCents: 0,
+      nextStepMaxCents: reservation.maxAmountCents,
+    });
+
+    if (!boundary.proceed) {
+      return reply.status(402).send({
+        error: 'Credit ceiling reached: the import cannot enter its commit step.',
+        code: 'RESERVATION_CEILING_REACHED',
+        importJobId,
+        remainingCents: boundary.remainingCents,
+      });
+    }
+
+    let billingCommitted = false;
+
     try {
       // Apply ONLY consented redactions (never silent).
       const { files: finalFiles, redacted } = applyConsentedRedactions(staged, findings, consent);
@@ -18476,6 +18569,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       importStaging.delete(importJobId); // staging disposed after successful commit
       await advance('COMMITTED', { targetProjectId: project.id });
 
+      /*
+       * D4 billing safety: the debit happens HERE — after the billable step
+       * succeeded — exactly once (ACTIVE→COMMITTED compare-and-set), clamped
+       * to the authorized ceiling, correlated importJobId ↔ reservationId ↔
+       * ledger entries, recorded as an immutable UsageEvent.
+       */
+      const billing = await commitReservation(store, {
+        reservationId: reservation.id,
+        actualCents: estimateImportCreditCents({ fileCount: finalFiles.length }),
+        reason: `import ${job.provider} (${importJobId})`,
+        nowMs: Date.now(),
+      });
+      billingCommitted = true;
+
       await audit(request, store, {
         organizationId: orgId,
         action: 'project.import.commit',
@@ -18487,16 +18594,43 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           findingCount: findings.length,
           redactedCount: redacted.length,
           keptCount: findings.length - redacted.length,
+          reservationId: reservation.id,
+          committedCents: billing.committedCents,
         },
       });
 
       return reply.code(201).send({
         project,
         import: { importJobId, state, redactedCount: redacted.length, targetProjectId: project.id },
+        // UI: the billed result — what was actually debited under the ceiling.
+        billing: {
+          reservationId: reservation.id,
+          maxAmountCents: reservation.maxAmountCents,
+          committedCents: billing.committedCents,
+          fromPacks: billing.fromPacks,
+          fromBalance: billing.fromBalance,
+          shadow: billing.shadow,
+          usageEventId: billing.usageEventId,
+        },
       });
     } catch (error) {
       // Failure path: full rollback — no partial target, staging disposed.
       const message = error instanceof Error ? error.message : String(error);
+
+      /*
+       * D4 billing safety: if the debit already happened, the rollback appends
+       * an opposite REFUND ledger entry (compensation) — history is corrected
+       * by appending, never by mutating. Pre-debit failures fall through to
+       * cleanupImport, which RELEASES the still-ACTIVE hold.
+       */
+      if (billingCommitted) {
+        await compensateReservation(store, {
+          reservationId: reservation.id,
+          reason: `import ${importJobId} rolled back after debit: ${message}`,
+          nowMs: Date.now(),
+        }).catch(() => undefined);
+      }
+
       await cleanupImport(importJobId, 'ROLLING_BACK', message);
       throw error;
     }
@@ -18526,7 +18660,51 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
     }
 
-    return { import: job };
+    // UI: estimation (ceiling) while pending, billed result once committed.
+    const reservation = await store.findUsageReservationByImportJob(importJobId);
+
+    return {
+      import: job,
+      billing: reservation
+        ? {
+            reservationId: reservation.id,
+            status: reservation.status,
+            estimatedCents: reservation.maxAmountCents,
+            maxAmountCents: reservation.maxAmountCents,
+            committedCents: reservation.committedCents,
+            rateCardVersion: reservation.rateCardVersion,
+            expiresAt: reservation.expiresAt,
+            releaseReason: reservation.releaseReason,
+          }
+        : undefined,
+    };
+  });
+
+  /*
+   * D4 billing safety — the reservations surface for the UI (estimation,
+   * ceiling, billed result) and for ops. Read-only; reservations are only
+   * created by billable operations themselves.
+   */
+  app.get('/orgs/:orgId/usage/reservations', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'usage:read');
+    const reservations = await store.listUsageReservations(orgId, { take: 100 });
+
+    return {
+      reservations: reservations.map((reservation) => ({
+        id: reservation.id,
+        operation: reservation.operation,
+        status: reservation.status,
+        estimatedCents: reservation.maxAmountCents,
+        maxAmountCents: reservation.maxAmountCents,
+        committedCents: reservation.committedCents,
+        importJobId: reservation.importJobId,
+        rateCardVersion: reservation.rateCardVersion,
+        expiresAt: reservation.expiresAt,
+        releaseReason: reservation.releaseReason,
+        createdAt: reservation.createdAt,
+      })),
+    };
   });
 
   app.post('/orgs/:orgId/projects/import/github', async (request, reply) => {

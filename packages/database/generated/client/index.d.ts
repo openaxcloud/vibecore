@@ -549,6 +549,16 @@ export type CreditPack = $Result.DefaultSelection<Prisma.$CreditPackPayload>
  */
 export type CreditLedger = $Result.DefaultSelection<Prisma.$CreditLedgerPayload>
 /**
+ * Model UsageReservation
+ * 
+ */
+export type UsageReservation = $Result.DefaultSelection<Prisma.$UsageReservationPayload>
+/**
+ * Model PaymentAuthorization
+ * 
+ */
+export type PaymentAuthorization = $Result.DefaultSelection<Prisma.$PaymentAuthorizationPayload>
+/**
  * Model AgentCheckpoint
  * Effort-based checkpoint: exactly one per agent request. Bundles the real
  * effort (tokens + wall-time + attributed compute) into a single user-visible
@@ -810,6 +820,28 @@ export const CreditEntryKind: {
 export type CreditEntryKind = (typeof CreditEntryKind)[keyof typeof CreditEntryKind]
 
 
+export const UsageReservationStatus: {
+  ACTIVE: 'ACTIVE',
+  COMMITTED: 'COMMITTED',
+  COMPENSATED: 'COMPENSATED',
+  RELEASED: 'RELEASED',
+  EXPIRED: 'EXPIRED'
+};
+
+export type UsageReservationStatus = (typeof UsageReservationStatus)[keyof typeof UsageReservationStatus]
+
+
+export const PaymentAuthorizationStatus: {
+  PENDING: 'PENDING',
+  AUTHORIZED: 'AUTHORIZED',
+  CAPTURED: 'CAPTURED',
+  VOIDED: 'VOIDED',
+  EXPIRED: 'EXPIRED'
+};
+
+export type PaymentAuthorizationStatus = (typeof PaymentAuthorizationStatus)[keyof typeof PaymentAuthorizationStatus]
+
+
 export const CheckpointStatus: {
   PENDING: 'PENDING',
   COMPLETED: 'COMPLETED',
@@ -907,6 +939,14 @@ export const ConsensusOutcome: typeof $Enums.ConsensusOutcome
 export type CreditEntryKind = $Enums.CreditEntryKind
 
 export const CreditEntryKind: typeof $Enums.CreditEntryKind
+
+export type UsageReservationStatus = $Enums.UsageReservationStatus
+
+export const UsageReservationStatus: typeof $Enums.UsageReservationStatus
+
+export type PaymentAuthorizationStatus = $Enums.PaymentAuthorizationStatus
+
+export const PaymentAuthorizationStatus: typeof $Enums.PaymentAuthorizationStatus
 
 export type CheckpointStatus = $Enums.CheckpointStatus
 
@@ -2020,6 +2060,26 @@ export class PrismaClient<
   get creditLedger(): Prisma.CreditLedgerDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.usageReservation`: Exposes CRUD operations for the **UsageReservation** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more UsageReservations
+    * const usageReservations = await prisma.usageReservation.findMany()
+    * ```
+    */
+  get usageReservation(): Prisma.UsageReservationDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.paymentAuthorization`: Exposes CRUD operations for the **PaymentAuthorization** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PaymentAuthorizations
+    * const paymentAuthorizations = await prisma.paymentAuthorization.findMany()
+    * ```
+    */
+  get paymentAuthorization(): Prisma.PaymentAuthorizationDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.agentCheckpoint`: Exposes CRUD operations for the **AgentCheckpoint** model.
     * Example usage:
     * ```ts
@@ -2689,6 +2749,8 @@ export namespace Prisma {
     CreditWallet: 'CreditWallet',
     CreditPack: 'CreditPack',
     CreditLedger: 'CreditLedger',
+    UsageReservation: 'UsageReservation',
+    PaymentAuthorization: 'PaymentAuthorization',
     AgentCheckpoint: 'AgentCheckpoint',
     UserSpendLimit: 'UserSpendLimit',
     ProviderConfig: 'ProviderConfig',
@@ -2718,7 +2780,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "usageReservation" | "paymentAuthorization" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -9884,6 +9946,154 @@ export namespace Prisma {
           }
         }
       }
+      UsageReservation: {
+        payload: Prisma.$UsageReservationPayload<ExtArgs>
+        fields: Prisma.UsageReservationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.UsageReservationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UsageReservationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.UsageReservationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UsageReservationPayload>
+          }
+          findFirst: {
+            args: Prisma.UsageReservationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UsageReservationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.UsageReservationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UsageReservationPayload>
+          }
+          findMany: {
+            args: Prisma.UsageReservationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UsageReservationPayload>[]
+          }
+          create: {
+            args: Prisma.UsageReservationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UsageReservationPayload>
+          }
+          createMany: {
+            args: Prisma.UsageReservationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.UsageReservationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UsageReservationPayload>[]
+          }
+          delete: {
+            args: Prisma.UsageReservationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UsageReservationPayload>
+          }
+          update: {
+            args: Prisma.UsageReservationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UsageReservationPayload>
+          }
+          deleteMany: {
+            args: Prisma.UsageReservationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.UsageReservationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.UsageReservationUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UsageReservationPayload>[]
+          }
+          upsert: {
+            args: Prisma.UsageReservationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UsageReservationPayload>
+          }
+          aggregate: {
+            args: Prisma.UsageReservationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateUsageReservation>
+          }
+          groupBy: {
+            args: Prisma.UsageReservationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<UsageReservationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.UsageReservationCountArgs<ExtArgs>
+            result: $Utils.Optional<UsageReservationCountAggregateOutputType> | number
+          }
+        }
+      }
+      PaymentAuthorization: {
+        payload: Prisma.$PaymentAuthorizationPayload<ExtArgs>
+        fields: Prisma.PaymentAuthorizationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PaymentAuthorizationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentAuthorizationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PaymentAuthorizationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentAuthorizationPayload>
+          }
+          findFirst: {
+            args: Prisma.PaymentAuthorizationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentAuthorizationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PaymentAuthorizationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentAuthorizationPayload>
+          }
+          findMany: {
+            args: Prisma.PaymentAuthorizationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentAuthorizationPayload>[]
+          }
+          create: {
+            args: Prisma.PaymentAuthorizationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentAuthorizationPayload>
+          }
+          createMany: {
+            args: Prisma.PaymentAuthorizationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PaymentAuthorizationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentAuthorizationPayload>[]
+          }
+          delete: {
+            args: Prisma.PaymentAuthorizationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentAuthorizationPayload>
+          }
+          update: {
+            args: Prisma.PaymentAuthorizationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentAuthorizationPayload>
+          }
+          deleteMany: {
+            args: Prisma.PaymentAuthorizationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PaymentAuthorizationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PaymentAuthorizationUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentAuthorizationPayload>[]
+          }
+          upsert: {
+            args: Prisma.PaymentAuthorizationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentAuthorizationPayload>
+          }
+          aggregate: {
+            args: Prisma.PaymentAuthorizationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePaymentAuthorization>
+          }
+          groupBy: {
+            args: Prisma.PaymentAuthorizationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PaymentAuthorizationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PaymentAuthorizationCountArgs<ExtArgs>
+            result: $Utils.Optional<PaymentAuthorizationCountAggregateOutputType> | number
+          }
+        }
+      }
       AgentCheckpoint: {
         payload: Prisma.$AgentCheckpointPayload<ExtArgs>
         fields: Prisma.AgentCheckpointFieldRefs
@@ -11125,6 +11335,8 @@ export namespace Prisma {
     creditWallet?: CreditWalletOmit
     creditPack?: CreditPackOmit
     creditLedger?: CreditLedgerOmit
+    usageReservation?: UsageReservationOmit
+    paymentAuthorization?: PaymentAuthorizationOmit
     agentCheckpoint?: AgentCheckpointOmit
     userSpendLimit?: UserSpendLimitOmit
     providerConfig?: ProviderConfigOmit
@@ -122511,6 +122723,7 @@ export namespace Prisma {
     kind: $Enums.CreditEntryKind | null
     reason: string | null
     checkpointId: string | null
+    reservationId: string | null
     expiresAt: Date | null
     createdAt: Date | null
   }
@@ -122523,6 +122736,7 @@ export namespace Prisma {
     kind: $Enums.CreditEntryKind | null
     reason: string | null
     checkpointId: string | null
+    reservationId: string | null
     expiresAt: Date | null
     createdAt: Date | null
   }
@@ -122535,6 +122749,7 @@ export namespace Prisma {
     kind: number
     reason: number
     checkpointId: number
+    reservationId: number
     expiresAt: number
     metadata: number
     createdAt: number
@@ -122558,6 +122773,7 @@ export namespace Prisma {
     kind?: true
     reason?: true
     checkpointId?: true
+    reservationId?: true
     expiresAt?: true
     createdAt?: true
   }
@@ -122570,6 +122786,7 @@ export namespace Prisma {
     kind?: true
     reason?: true
     checkpointId?: true
+    reservationId?: true
     expiresAt?: true
     createdAt?: true
   }
@@ -122582,6 +122799,7 @@ export namespace Prisma {
     kind?: true
     reason?: true
     checkpointId?: true
+    reservationId?: true
     expiresAt?: true
     metadata?: true
     createdAt?: true
@@ -122682,6 +122900,7 @@ export namespace Prisma {
     kind: $Enums.CreditEntryKind
     reason: string
     checkpointId: string | null
+    reservationId: string | null
     expiresAt: Date | null
     metadata: JsonValue | null
     createdAt: Date
@@ -122714,6 +122933,7 @@ export namespace Prisma {
     kind?: boolean
     reason?: boolean
     checkpointId?: boolean
+    reservationId?: boolean
     expiresAt?: boolean
     metadata?: boolean
     createdAt?: boolean
@@ -122729,6 +122949,7 @@ export namespace Prisma {
     kind?: boolean
     reason?: boolean
     checkpointId?: boolean
+    reservationId?: boolean
     expiresAt?: boolean
     metadata?: boolean
     createdAt?: boolean
@@ -122744,6 +122965,7 @@ export namespace Prisma {
     kind?: boolean
     reason?: boolean
     checkpointId?: boolean
+    reservationId?: boolean
     expiresAt?: boolean
     metadata?: boolean
     createdAt?: boolean
@@ -122759,12 +122981,13 @@ export namespace Prisma {
     kind?: boolean
     reason?: boolean
     checkpointId?: boolean
+    reservationId?: boolean
     expiresAt?: boolean
     metadata?: boolean
     createdAt?: boolean
   }
 
-  export type CreditLedgerOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "walletId" | "organizationId" | "deltaCents" | "kind" | "reason" | "checkpointId" | "expiresAt" | "metadata" | "createdAt", ExtArgs["result"]["creditLedger"]>
+  export type CreditLedgerOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "walletId" | "organizationId" | "deltaCents" | "kind" | "reason" | "checkpointId" | "reservationId" | "expiresAt" | "metadata" | "createdAt", ExtArgs["result"]["creditLedger"]>
   export type CreditLedgerInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     wallet?: boolean | CreditWalletDefaultArgs<ExtArgs>
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
@@ -122792,6 +123015,11 @@ export namespace Prisma {
       kind: $Enums.CreditEntryKind
       reason: string
       checkpointId: string | null
+      /**
+       * Correlation to the UsageReservation this movement settles or compensates
+       * (importJobId <-> reservationId <-> ledger entry, D4 billing safety).
+       */
+      reservationId: string | null
       expiresAt: Date | null
       metadata: Prisma.JsonValue | null
       createdAt: Date
@@ -123227,6 +123455,7 @@ export namespace Prisma {
     readonly kind: FieldRef<"CreditLedger", 'CreditEntryKind'>
     readonly reason: FieldRef<"CreditLedger", 'String'>
     readonly checkpointId: FieldRef<"CreditLedger", 'String'>
+    readonly reservationId: FieldRef<"CreditLedger", 'String'>
     readonly expiresAt: FieldRef<"CreditLedger", 'DateTime'>
     readonly metadata: FieldRef<"CreditLedger", 'Json'>
     readonly createdAt: FieldRef<"CreditLedger", 'DateTime'>
@@ -123646,6 +123875,2405 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: CreditLedgerInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model UsageReservation
+   */
+
+  export type AggregateUsageReservation = {
+    _count: UsageReservationCountAggregateOutputType | null
+    _avg: UsageReservationAvgAggregateOutputType | null
+    _sum: UsageReservationSumAggregateOutputType | null
+    _min: UsageReservationMinAggregateOutputType | null
+    _max: UsageReservationMaxAggregateOutputType | null
+  }
+
+  export type UsageReservationAvgAggregateOutputType = {
+    maxAmountCents: number | null
+    committedCents: number | null
+    rateCardVersion: number | null
+  }
+
+  export type UsageReservationSumAggregateOutputType = {
+    maxAmountCents: number | null
+    committedCents: number | null
+    rateCardVersion: number | null
+  }
+
+  export type UsageReservationMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    userId: string | null
+    idempotencyKey: string | null
+    operation: string | null
+    maxAmountCents: number | null
+    committedCents: number | null
+    status: $Enums.UsageReservationStatus | null
+    rateCardVersion: number | null
+    importJobId: string | null
+    expiresAt: Date | null
+    committedAt: Date | null
+    releasedAt: Date | null
+    releaseReason: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type UsageReservationMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    userId: string | null
+    idempotencyKey: string | null
+    operation: string | null
+    maxAmountCents: number | null
+    committedCents: number | null
+    status: $Enums.UsageReservationStatus | null
+    rateCardVersion: number | null
+    importJobId: string | null
+    expiresAt: Date | null
+    committedAt: Date | null
+    releasedAt: Date | null
+    releaseReason: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type UsageReservationCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    userId: number
+    idempotencyKey: number
+    operation: number
+    maxAmountCents: number
+    committedCents: number
+    status: number
+    rateCardVersion: number
+    importJobId: number
+    expiresAt: number
+    committedAt: number
+    releasedAt: number
+    releaseReason: number
+    metadata: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type UsageReservationAvgAggregateInputType = {
+    maxAmountCents?: true
+    committedCents?: true
+    rateCardVersion?: true
+  }
+
+  export type UsageReservationSumAggregateInputType = {
+    maxAmountCents?: true
+    committedCents?: true
+    rateCardVersion?: true
+  }
+
+  export type UsageReservationMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    userId?: true
+    idempotencyKey?: true
+    operation?: true
+    maxAmountCents?: true
+    committedCents?: true
+    status?: true
+    rateCardVersion?: true
+    importJobId?: true
+    expiresAt?: true
+    committedAt?: true
+    releasedAt?: true
+    releaseReason?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type UsageReservationMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    userId?: true
+    idempotencyKey?: true
+    operation?: true
+    maxAmountCents?: true
+    committedCents?: true
+    status?: true
+    rateCardVersion?: true
+    importJobId?: true
+    expiresAt?: true
+    committedAt?: true
+    releasedAt?: true
+    releaseReason?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type UsageReservationCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    userId?: true
+    idempotencyKey?: true
+    operation?: true
+    maxAmountCents?: true
+    committedCents?: true
+    status?: true
+    rateCardVersion?: true
+    importJobId?: true
+    expiresAt?: true
+    committedAt?: true
+    releasedAt?: true
+    releaseReason?: true
+    metadata?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type UsageReservationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UsageReservation to aggregate.
+     */
+    where?: UsageReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UsageReservations to fetch.
+     */
+    orderBy?: UsageReservationOrderByWithRelationInput | UsageReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: UsageReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UsageReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UsageReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned UsageReservations
+    **/
+    _count?: true | UsageReservationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: UsageReservationAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: UsageReservationSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: UsageReservationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: UsageReservationMaxAggregateInputType
+  }
+
+  export type GetUsageReservationAggregateType<T extends UsageReservationAggregateArgs> = {
+        [P in keyof T & keyof AggregateUsageReservation]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateUsageReservation[P]>
+      : GetScalarType<T[P], AggregateUsageReservation[P]>
+  }
+
+
+
+
+  export type UsageReservationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UsageReservationWhereInput
+    orderBy?: UsageReservationOrderByWithAggregationInput | UsageReservationOrderByWithAggregationInput[]
+    by: UsageReservationScalarFieldEnum[] | UsageReservationScalarFieldEnum
+    having?: UsageReservationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: UsageReservationCountAggregateInputType | true
+    _avg?: UsageReservationAvgAggregateInputType
+    _sum?: UsageReservationSumAggregateInputType
+    _min?: UsageReservationMinAggregateInputType
+    _max?: UsageReservationMaxAggregateInputType
+  }
+
+  export type UsageReservationGroupByOutputType = {
+    id: string
+    organizationId: string
+    userId: string | null
+    idempotencyKey: string
+    operation: string
+    maxAmountCents: number
+    committedCents: number | null
+    status: $Enums.UsageReservationStatus
+    rateCardVersion: number | null
+    importJobId: string | null
+    expiresAt: Date
+    committedAt: Date | null
+    releasedAt: Date | null
+    releaseReason: string | null
+    metadata: JsonValue | null
+    createdAt: Date
+    updatedAt: Date
+    _count: UsageReservationCountAggregateOutputType | null
+    _avg: UsageReservationAvgAggregateOutputType | null
+    _sum: UsageReservationSumAggregateOutputType | null
+    _min: UsageReservationMinAggregateOutputType | null
+    _max: UsageReservationMaxAggregateOutputType | null
+  }
+
+  type GetUsageReservationGroupByPayload<T extends UsageReservationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<UsageReservationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof UsageReservationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], UsageReservationGroupByOutputType[P]>
+            : GetScalarType<T[P], UsageReservationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type UsageReservationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    idempotencyKey?: boolean
+    operation?: boolean
+    maxAmountCents?: boolean
+    committedCents?: boolean
+    status?: boolean
+    rateCardVersion?: boolean
+    importJobId?: boolean
+    expiresAt?: boolean
+    committedAt?: boolean
+    releasedAt?: boolean
+    releaseReason?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["usageReservation"]>
+
+  export type UsageReservationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    idempotencyKey?: boolean
+    operation?: boolean
+    maxAmountCents?: boolean
+    committedCents?: boolean
+    status?: boolean
+    rateCardVersion?: boolean
+    importJobId?: boolean
+    expiresAt?: boolean
+    committedAt?: boolean
+    releasedAt?: boolean
+    releaseReason?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["usageReservation"]>
+
+  export type UsageReservationSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    idempotencyKey?: boolean
+    operation?: boolean
+    maxAmountCents?: boolean
+    committedCents?: boolean
+    status?: boolean
+    rateCardVersion?: boolean
+    importJobId?: boolean
+    expiresAt?: boolean
+    committedAt?: boolean
+    releasedAt?: boolean
+    releaseReason?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["usageReservation"]>
+
+  export type UsageReservationSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    idempotencyKey?: boolean
+    operation?: boolean
+    maxAmountCents?: boolean
+    committedCents?: boolean
+    status?: boolean
+    rateCardVersion?: boolean
+    importJobId?: boolean
+    expiresAt?: boolean
+    committedAt?: boolean
+    releasedAt?: boolean
+    releaseReason?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type UsageReservationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "userId" | "idempotencyKey" | "operation" | "maxAmountCents" | "committedCents" | "status" | "rateCardVersion" | "importJobId" | "expiresAt" | "committedAt" | "releasedAt" | "releaseReason" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["usageReservation"]>
+
+  export type $UsageReservationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "UsageReservation"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      userId: string | null
+      /**
+       * Idempotency key, unique per org: replaying the same key returns the SAME
+       * reservation — never a second hold.
+       */
+      idempotencyKey: string
+      /**
+       * Operation family ('import' | ...). Purchases are REFUSED here: money
+       * authorization is PaymentAuthorization, a distinct object by design.
+       */
+      operation: string
+      /**
+       * The authorized ceiling. The committed debit can never exceed it.
+       */
+      maxAmountCents: number
+      /**
+       * Set at COMMIT: what was actually debited (always <= maxAmountCents).
+       */
+      committedCents: number | null
+      status: $Enums.UsageReservationStatus
+      /**
+       * Rate-card / pricing version the estimate was computed with (audit).
+       */
+      rateCardVersion: number | null
+      /**
+       * Correlation: importJobId <-> reservationId <-> CreditLedger.reservationId.
+       */
+      importJobId: string | null
+      expiresAt: Date
+      committedAt: Date | null
+      releasedAt: Date | null
+      /**
+       * 'cancel' | 'timeout' | 'failure' (release) or the compensation reason.
+       */
+      releaseReason: string | null
+      metadata: Prisma.JsonValue | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["usageReservation"]>
+    composites: {}
+  }
+
+  type UsageReservationGetPayload<S extends boolean | null | undefined | UsageReservationDefaultArgs> = $Result.GetResult<Prisma.$UsageReservationPayload, S>
+
+  type UsageReservationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<UsageReservationFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: UsageReservationCountAggregateInputType | true
+    }
+
+  export interface UsageReservationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['UsageReservation'], meta: { name: 'UsageReservation' } }
+    /**
+     * Find zero or one UsageReservation that matches the filter.
+     * @param {UsageReservationFindUniqueArgs} args - Arguments to find a UsageReservation
+     * @example
+     * // Get one UsageReservation
+     * const usageReservation = await prisma.usageReservation.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends UsageReservationFindUniqueArgs>(args: SelectSubset<T, UsageReservationFindUniqueArgs<ExtArgs>>): Prisma__UsageReservationClient<$Result.GetResult<Prisma.$UsageReservationPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one UsageReservation that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {UsageReservationFindUniqueOrThrowArgs} args - Arguments to find a UsageReservation
+     * @example
+     * // Get one UsageReservation
+     * const usageReservation = await prisma.usageReservation.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends UsageReservationFindUniqueOrThrowArgs>(args: SelectSubset<T, UsageReservationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__UsageReservationClient<$Result.GetResult<Prisma.$UsageReservationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first UsageReservation that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UsageReservationFindFirstArgs} args - Arguments to find a UsageReservation
+     * @example
+     * // Get one UsageReservation
+     * const usageReservation = await prisma.usageReservation.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends UsageReservationFindFirstArgs>(args?: SelectSubset<T, UsageReservationFindFirstArgs<ExtArgs>>): Prisma__UsageReservationClient<$Result.GetResult<Prisma.$UsageReservationPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first UsageReservation that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UsageReservationFindFirstOrThrowArgs} args - Arguments to find a UsageReservation
+     * @example
+     * // Get one UsageReservation
+     * const usageReservation = await prisma.usageReservation.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends UsageReservationFindFirstOrThrowArgs>(args?: SelectSubset<T, UsageReservationFindFirstOrThrowArgs<ExtArgs>>): Prisma__UsageReservationClient<$Result.GetResult<Prisma.$UsageReservationPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more UsageReservations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UsageReservationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all UsageReservations
+     * const usageReservations = await prisma.usageReservation.findMany()
+     * 
+     * // Get first 10 UsageReservations
+     * const usageReservations = await prisma.usageReservation.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const usageReservationWithIdOnly = await prisma.usageReservation.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends UsageReservationFindManyArgs>(args?: SelectSubset<T, UsageReservationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UsageReservationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a UsageReservation.
+     * @param {UsageReservationCreateArgs} args - Arguments to create a UsageReservation.
+     * @example
+     * // Create one UsageReservation
+     * const UsageReservation = await prisma.usageReservation.create({
+     *   data: {
+     *     // ... data to create a UsageReservation
+     *   }
+     * })
+     * 
+     */
+    create<T extends UsageReservationCreateArgs>(args: SelectSubset<T, UsageReservationCreateArgs<ExtArgs>>): Prisma__UsageReservationClient<$Result.GetResult<Prisma.$UsageReservationPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many UsageReservations.
+     * @param {UsageReservationCreateManyArgs} args - Arguments to create many UsageReservations.
+     * @example
+     * // Create many UsageReservations
+     * const usageReservation = await prisma.usageReservation.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends UsageReservationCreateManyArgs>(args?: SelectSubset<T, UsageReservationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many UsageReservations and returns the data saved in the database.
+     * @param {UsageReservationCreateManyAndReturnArgs} args - Arguments to create many UsageReservations.
+     * @example
+     * // Create many UsageReservations
+     * const usageReservation = await prisma.usageReservation.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many UsageReservations and only return the `id`
+     * const usageReservationWithIdOnly = await prisma.usageReservation.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends UsageReservationCreateManyAndReturnArgs>(args?: SelectSubset<T, UsageReservationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UsageReservationPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a UsageReservation.
+     * @param {UsageReservationDeleteArgs} args - Arguments to delete one UsageReservation.
+     * @example
+     * // Delete one UsageReservation
+     * const UsageReservation = await prisma.usageReservation.delete({
+     *   where: {
+     *     // ... filter to delete one UsageReservation
+     *   }
+     * })
+     * 
+     */
+    delete<T extends UsageReservationDeleteArgs>(args: SelectSubset<T, UsageReservationDeleteArgs<ExtArgs>>): Prisma__UsageReservationClient<$Result.GetResult<Prisma.$UsageReservationPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one UsageReservation.
+     * @param {UsageReservationUpdateArgs} args - Arguments to update one UsageReservation.
+     * @example
+     * // Update one UsageReservation
+     * const usageReservation = await prisma.usageReservation.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends UsageReservationUpdateArgs>(args: SelectSubset<T, UsageReservationUpdateArgs<ExtArgs>>): Prisma__UsageReservationClient<$Result.GetResult<Prisma.$UsageReservationPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more UsageReservations.
+     * @param {UsageReservationDeleteManyArgs} args - Arguments to filter UsageReservations to delete.
+     * @example
+     * // Delete a few UsageReservations
+     * const { count } = await prisma.usageReservation.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends UsageReservationDeleteManyArgs>(args?: SelectSubset<T, UsageReservationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more UsageReservations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UsageReservationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many UsageReservations
+     * const usageReservation = await prisma.usageReservation.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends UsageReservationUpdateManyArgs>(args: SelectSubset<T, UsageReservationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more UsageReservations and returns the data updated in the database.
+     * @param {UsageReservationUpdateManyAndReturnArgs} args - Arguments to update many UsageReservations.
+     * @example
+     * // Update many UsageReservations
+     * const usageReservation = await prisma.usageReservation.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more UsageReservations and only return the `id`
+     * const usageReservationWithIdOnly = await prisma.usageReservation.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends UsageReservationUpdateManyAndReturnArgs>(args: SelectSubset<T, UsageReservationUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UsageReservationPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one UsageReservation.
+     * @param {UsageReservationUpsertArgs} args - Arguments to update or create a UsageReservation.
+     * @example
+     * // Update or create a UsageReservation
+     * const usageReservation = await prisma.usageReservation.upsert({
+     *   create: {
+     *     // ... data to create a UsageReservation
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the UsageReservation we want to update
+     *   }
+     * })
+     */
+    upsert<T extends UsageReservationUpsertArgs>(args: SelectSubset<T, UsageReservationUpsertArgs<ExtArgs>>): Prisma__UsageReservationClient<$Result.GetResult<Prisma.$UsageReservationPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of UsageReservations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UsageReservationCountArgs} args - Arguments to filter UsageReservations to count.
+     * @example
+     * // Count the number of UsageReservations
+     * const count = await prisma.usageReservation.count({
+     *   where: {
+     *     // ... the filter for the UsageReservations we want to count
+     *   }
+     * })
+    **/
+    count<T extends UsageReservationCountArgs>(
+      args?: Subset<T, UsageReservationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], UsageReservationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a UsageReservation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UsageReservationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends UsageReservationAggregateArgs>(args: Subset<T, UsageReservationAggregateArgs>): Prisma.PrismaPromise<GetUsageReservationAggregateType<T>>
+
+    /**
+     * Group by UsageReservation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UsageReservationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends UsageReservationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: UsageReservationGroupByArgs['orderBy'] }
+        : { orderBy?: UsageReservationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, UsageReservationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetUsageReservationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the UsageReservation model
+   */
+  readonly fields: UsageReservationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for UsageReservation.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__UsageReservationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the UsageReservation model
+   */
+  interface UsageReservationFieldRefs {
+    readonly id: FieldRef<"UsageReservation", 'String'>
+    readonly organizationId: FieldRef<"UsageReservation", 'String'>
+    readonly userId: FieldRef<"UsageReservation", 'String'>
+    readonly idempotencyKey: FieldRef<"UsageReservation", 'String'>
+    readonly operation: FieldRef<"UsageReservation", 'String'>
+    readonly maxAmountCents: FieldRef<"UsageReservation", 'Int'>
+    readonly committedCents: FieldRef<"UsageReservation", 'Int'>
+    readonly status: FieldRef<"UsageReservation", 'UsageReservationStatus'>
+    readonly rateCardVersion: FieldRef<"UsageReservation", 'Int'>
+    readonly importJobId: FieldRef<"UsageReservation", 'String'>
+    readonly expiresAt: FieldRef<"UsageReservation", 'DateTime'>
+    readonly committedAt: FieldRef<"UsageReservation", 'DateTime'>
+    readonly releasedAt: FieldRef<"UsageReservation", 'DateTime'>
+    readonly releaseReason: FieldRef<"UsageReservation", 'String'>
+    readonly metadata: FieldRef<"UsageReservation", 'Json'>
+    readonly createdAt: FieldRef<"UsageReservation", 'DateTime'>
+    readonly updatedAt: FieldRef<"UsageReservation", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * UsageReservation findUnique
+   */
+  export type UsageReservationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UsageReservation
+     */
+    select?: UsageReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UsageReservation
+     */
+    omit?: UsageReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which UsageReservation to fetch.
+     */
+    where: UsageReservationWhereUniqueInput
+  }
+
+  /**
+   * UsageReservation findUniqueOrThrow
+   */
+  export type UsageReservationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UsageReservation
+     */
+    select?: UsageReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UsageReservation
+     */
+    omit?: UsageReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which UsageReservation to fetch.
+     */
+    where: UsageReservationWhereUniqueInput
+  }
+
+  /**
+   * UsageReservation findFirst
+   */
+  export type UsageReservationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UsageReservation
+     */
+    select?: UsageReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UsageReservation
+     */
+    omit?: UsageReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which UsageReservation to fetch.
+     */
+    where?: UsageReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UsageReservations to fetch.
+     */
+    orderBy?: UsageReservationOrderByWithRelationInput | UsageReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UsageReservations.
+     */
+    cursor?: UsageReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UsageReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UsageReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UsageReservations.
+     */
+    distinct?: UsageReservationScalarFieldEnum | UsageReservationScalarFieldEnum[]
+  }
+
+  /**
+   * UsageReservation findFirstOrThrow
+   */
+  export type UsageReservationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UsageReservation
+     */
+    select?: UsageReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UsageReservation
+     */
+    omit?: UsageReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which UsageReservation to fetch.
+     */
+    where?: UsageReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UsageReservations to fetch.
+     */
+    orderBy?: UsageReservationOrderByWithRelationInput | UsageReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UsageReservations.
+     */
+    cursor?: UsageReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UsageReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UsageReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UsageReservations.
+     */
+    distinct?: UsageReservationScalarFieldEnum | UsageReservationScalarFieldEnum[]
+  }
+
+  /**
+   * UsageReservation findMany
+   */
+  export type UsageReservationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UsageReservation
+     */
+    select?: UsageReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UsageReservation
+     */
+    omit?: UsageReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which UsageReservations to fetch.
+     */
+    where?: UsageReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UsageReservations to fetch.
+     */
+    orderBy?: UsageReservationOrderByWithRelationInput | UsageReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing UsageReservations.
+     */
+    cursor?: UsageReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UsageReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UsageReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UsageReservations.
+     */
+    distinct?: UsageReservationScalarFieldEnum | UsageReservationScalarFieldEnum[]
+  }
+
+  /**
+   * UsageReservation create
+   */
+  export type UsageReservationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UsageReservation
+     */
+    select?: UsageReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UsageReservation
+     */
+    omit?: UsageReservationOmit<ExtArgs> | null
+    /**
+     * The data needed to create a UsageReservation.
+     */
+    data: XOR<UsageReservationCreateInput, UsageReservationUncheckedCreateInput>
+  }
+
+  /**
+   * UsageReservation createMany
+   */
+  export type UsageReservationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many UsageReservations.
+     */
+    data: UsageReservationCreateManyInput | UsageReservationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * UsageReservation createManyAndReturn
+   */
+  export type UsageReservationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UsageReservation
+     */
+    select?: UsageReservationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the UsageReservation
+     */
+    omit?: UsageReservationOmit<ExtArgs> | null
+    /**
+     * The data used to create many UsageReservations.
+     */
+    data: UsageReservationCreateManyInput | UsageReservationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * UsageReservation update
+   */
+  export type UsageReservationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UsageReservation
+     */
+    select?: UsageReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UsageReservation
+     */
+    omit?: UsageReservationOmit<ExtArgs> | null
+    /**
+     * The data needed to update a UsageReservation.
+     */
+    data: XOR<UsageReservationUpdateInput, UsageReservationUncheckedUpdateInput>
+    /**
+     * Choose, which UsageReservation to update.
+     */
+    where: UsageReservationWhereUniqueInput
+  }
+
+  /**
+   * UsageReservation updateMany
+   */
+  export type UsageReservationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update UsageReservations.
+     */
+    data: XOR<UsageReservationUpdateManyMutationInput, UsageReservationUncheckedUpdateManyInput>
+    /**
+     * Filter which UsageReservations to update
+     */
+    where?: UsageReservationWhereInput
+    /**
+     * Limit how many UsageReservations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * UsageReservation updateManyAndReturn
+   */
+  export type UsageReservationUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UsageReservation
+     */
+    select?: UsageReservationSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the UsageReservation
+     */
+    omit?: UsageReservationOmit<ExtArgs> | null
+    /**
+     * The data used to update UsageReservations.
+     */
+    data: XOR<UsageReservationUpdateManyMutationInput, UsageReservationUncheckedUpdateManyInput>
+    /**
+     * Filter which UsageReservations to update
+     */
+    where?: UsageReservationWhereInput
+    /**
+     * Limit how many UsageReservations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * UsageReservation upsert
+   */
+  export type UsageReservationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UsageReservation
+     */
+    select?: UsageReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UsageReservation
+     */
+    omit?: UsageReservationOmit<ExtArgs> | null
+    /**
+     * The filter to search for the UsageReservation to update in case it exists.
+     */
+    where: UsageReservationWhereUniqueInput
+    /**
+     * In case the UsageReservation found by the `where` argument doesn't exist, create a new UsageReservation with this data.
+     */
+    create: XOR<UsageReservationCreateInput, UsageReservationUncheckedCreateInput>
+    /**
+     * In case the UsageReservation was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<UsageReservationUpdateInput, UsageReservationUncheckedUpdateInput>
+  }
+
+  /**
+   * UsageReservation delete
+   */
+  export type UsageReservationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UsageReservation
+     */
+    select?: UsageReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UsageReservation
+     */
+    omit?: UsageReservationOmit<ExtArgs> | null
+    /**
+     * Filter which UsageReservation to delete.
+     */
+    where: UsageReservationWhereUniqueInput
+  }
+
+  /**
+   * UsageReservation deleteMany
+   */
+  export type UsageReservationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UsageReservations to delete
+     */
+    where?: UsageReservationWhereInput
+    /**
+     * Limit how many UsageReservations to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * UsageReservation without action
+   */
+  export type UsageReservationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UsageReservation
+     */
+    select?: UsageReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UsageReservation
+     */
+    omit?: UsageReservationOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PaymentAuthorization
+   */
+
+  export type AggregatePaymentAuthorization = {
+    _count: PaymentAuthorizationCountAggregateOutputType | null
+    _avg: PaymentAuthorizationAvgAggregateOutputType | null
+    _sum: PaymentAuthorizationSumAggregateOutputType | null
+    _min: PaymentAuthorizationMinAggregateOutputType | null
+    _max: PaymentAuthorizationMaxAggregateOutputType | null
+  }
+
+  export type PaymentAuthorizationAvgAggregateOutputType = {
+    amountCents: number | null
+  }
+
+  export type PaymentAuthorizationSumAggregateOutputType = {
+    amountCents: number | null
+  }
+
+  export type PaymentAuthorizationMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    userId: string | null
+    idempotencyKey: string | null
+    purpose: string | null
+    amountCents: number | null
+    currency: string | null
+    status: $Enums.PaymentAuthorizationStatus | null
+    stripePaymentIntentId: string | null
+    expiresAt: Date | null
+    authorizedAt: Date | null
+    capturedAt: Date | null
+    voidedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PaymentAuthorizationMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    userId: string | null
+    idempotencyKey: string | null
+    purpose: string | null
+    amountCents: number | null
+    currency: string | null
+    status: $Enums.PaymentAuthorizationStatus | null
+    stripePaymentIntentId: string | null
+    expiresAt: Date | null
+    authorizedAt: Date | null
+    capturedAt: Date | null
+    voidedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PaymentAuthorizationCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    userId: number
+    idempotencyKey: number
+    purpose: number
+    amountCents: number
+    currency: number
+    status: number
+    stripePaymentIntentId: number
+    expiresAt: number
+    authorizedAt: number
+    capturedAt: number
+    voidedAt: number
+    metadata: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type PaymentAuthorizationAvgAggregateInputType = {
+    amountCents?: true
+  }
+
+  export type PaymentAuthorizationSumAggregateInputType = {
+    amountCents?: true
+  }
+
+  export type PaymentAuthorizationMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    userId?: true
+    idempotencyKey?: true
+    purpose?: true
+    amountCents?: true
+    currency?: true
+    status?: true
+    stripePaymentIntentId?: true
+    expiresAt?: true
+    authorizedAt?: true
+    capturedAt?: true
+    voidedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PaymentAuthorizationMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    userId?: true
+    idempotencyKey?: true
+    purpose?: true
+    amountCents?: true
+    currency?: true
+    status?: true
+    stripePaymentIntentId?: true
+    expiresAt?: true
+    authorizedAt?: true
+    capturedAt?: true
+    voidedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PaymentAuthorizationCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    userId?: true
+    idempotencyKey?: true
+    purpose?: true
+    amountCents?: true
+    currency?: true
+    status?: true
+    stripePaymentIntentId?: true
+    expiresAt?: true
+    authorizedAt?: true
+    capturedAt?: true
+    voidedAt?: true
+    metadata?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type PaymentAuthorizationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PaymentAuthorization to aggregate.
+     */
+    where?: PaymentAuthorizationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentAuthorizations to fetch.
+     */
+    orderBy?: PaymentAuthorizationOrderByWithRelationInput | PaymentAuthorizationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PaymentAuthorizationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentAuthorizations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentAuthorizations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PaymentAuthorizations
+    **/
+    _count?: true | PaymentAuthorizationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PaymentAuthorizationAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PaymentAuthorizationSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PaymentAuthorizationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PaymentAuthorizationMaxAggregateInputType
+  }
+
+  export type GetPaymentAuthorizationAggregateType<T extends PaymentAuthorizationAggregateArgs> = {
+        [P in keyof T & keyof AggregatePaymentAuthorization]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePaymentAuthorization[P]>
+      : GetScalarType<T[P], AggregatePaymentAuthorization[P]>
+  }
+
+
+
+
+  export type PaymentAuthorizationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PaymentAuthorizationWhereInput
+    orderBy?: PaymentAuthorizationOrderByWithAggregationInput | PaymentAuthorizationOrderByWithAggregationInput[]
+    by: PaymentAuthorizationScalarFieldEnum[] | PaymentAuthorizationScalarFieldEnum
+    having?: PaymentAuthorizationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PaymentAuthorizationCountAggregateInputType | true
+    _avg?: PaymentAuthorizationAvgAggregateInputType
+    _sum?: PaymentAuthorizationSumAggregateInputType
+    _min?: PaymentAuthorizationMinAggregateInputType
+    _max?: PaymentAuthorizationMaxAggregateInputType
+  }
+
+  export type PaymentAuthorizationGroupByOutputType = {
+    id: string
+    organizationId: string
+    userId: string | null
+    idempotencyKey: string
+    purpose: string
+    amountCents: number
+    currency: string
+    status: $Enums.PaymentAuthorizationStatus
+    stripePaymentIntentId: string | null
+    expiresAt: Date
+    authorizedAt: Date | null
+    capturedAt: Date | null
+    voidedAt: Date | null
+    metadata: JsonValue | null
+    createdAt: Date
+    updatedAt: Date
+    _count: PaymentAuthorizationCountAggregateOutputType | null
+    _avg: PaymentAuthorizationAvgAggregateOutputType | null
+    _sum: PaymentAuthorizationSumAggregateOutputType | null
+    _min: PaymentAuthorizationMinAggregateOutputType | null
+    _max: PaymentAuthorizationMaxAggregateOutputType | null
+  }
+
+  type GetPaymentAuthorizationGroupByPayload<T extends PaymentAuthorizationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PaymentAuthorizationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PaymentAuthorizationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PaymentAuthorizationGroupByOutputType[P]>
+            : GetScalarType<T[P], PaymentAuthorizationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PaymentAuthorizationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    idempotencyKey?: boolean
+    purpose?: boolean
+    amountCents?: boolean
+    currency?: boolean
+    status?: boolean
+    stripePaymentIntentId?: boolean
+    expiresAt?: boolean
+    authorizedAt?: boolean
+    capturedAt?: boolean
+    voidedAt?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["paymentAuthorization"]>
+
+  export type PaymentAuthorizationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    idempotencyKey?: boolean
+    purpose?: boolean
+    amountCents?: boolean
+    currency?: boolean
+    status?: boolean
+    stripePaymentIntentId?: boolean
+    expiresAt?: boolean
+    authorizedAt?: boolean
+    capturedAt?: boolean
+    voidedAt?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["paymentAuthorization"]>
+
+  export type PaymentAuthorizationSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    idempotencyKey?: boolean
+    purpose?: boolean
+    amountCents?: boolean
+    currency?: boolean
+    status?: boolean
+    stripePaymentIntentId?: boolean
+    expiresAt?: boolean
+    authorizedAt?: boolean
+    capturedAt?: boolean
+    voidedAt?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["paymentAuthorization"]>
+
+  export type PaymentAuthorizationSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    idempotencyKey?: boolean
+    purpose?: boolean
+    amountCents?: boolean
+    currency?: boolean
+    status?: boolean
+    stripePaymentIntentId?: boolean
+    expiresAt?: boolean
+    authorizedAt?: boolean
+    capturedAt?: boolean
+    voidedAt?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type PaymentAuthorizationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "userId" | "idempotencyKey" | "purpose" | "amountCents" | "currency" | "status" | "stripePaymentIntentId" | "expiresAt" | "authorizedAt" | "capturedAt" | "voidedAt" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["paymentAuthorization"]>
+
+  export type $PaymentAuthorizationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PaymentAuthorization"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      userId: string | null
+      /**
+       * Idempotency key, unique per org: a replay returns the SAME authorization.
+       */
+      idempotencyKey: string
+      /**
+       * What is being bought ('domain' | ...).
+       */
+      purpose: string
+      amountCents: number
+      currency: string
+      status: $Enums.PaymentAuthorizationStatus
+      /**
+       * External PSP hold (Stripe PaymentIntent id).
+       */
+      stripePaymentIntentId: string | null
+      expiresAt: Date
+      authorizedAt: Date | null
+      capturedAt: Date | null
+      voidedAt: Date | null
+      metadata: Prisma.JsonValue | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["paymentAuthorization"]>
+    composites: {}
+  }
+
+  type PaymentAuthorizationGetPayload<S extends boolean | null | undefined | PaymentAuthorizationDefaultArgs> = $Result.GetResult<Prisma.$PaymentAuthorizationPayload, S>
+
+  type PaymentAuthorizationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PaymentAuthorizationFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PaymentAuthorizationCountAggregateInputType | true
+    }
+
+  export interface PaymentAuthorizationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PaymentAuthorization'], meta: { name: 'PaymentAuthorization' } }
+    /**
+     * Find zero or one PaymentAuthorization that matches the filter.
+     * @param {PaymentAuthorizationFindUniqueArgs} args - Arguments to find a PaymentAuthorization
+     * @example
+     * // Get one PaymentAuthorization
+     * const paymentAuthorization = await prisma.paymentAuthorization.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PaymentAuthorizationFindUniqueArgs>(args: SelectSubset<T, PaymentAuthorizationFindUniqueArgs<ExtArgs>>): Prisma__PaymentAuthorizationClient<$Result.GetResult<Prisma.$PaymentAuthorizationPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one PaymentAuthorization that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PaymentAuthorizationFindUniqueOrThrowArgs} args - Arguments to find a PaymentAuthorization
+     * @example
+     * // Get one PaymentAuthorization
+     * const paymentAuthorization = await prisma.paymentAuthorization.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PaymentAuthorizationFindUniqueOrThrowArgs>(args: SelectSubset<T, PaymentAuthorizationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PaymentAuthorizationClient<$Result.GetResult<Prisma.$PaymentAuthorizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PaymentAuthorization that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentAuthorizationFindFirstArgs} args - Arguments to find a PaymentAuthorization
+     * @example
+     * // Get one PaymentAuthorization
+     * const paymentAuthorization = await prisma.paymentAuthorization.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PaymentAuthorizationFindFirstArgs>(args?: SelectSubset<T, PaymentAuthorizationFindFirstArgs<ExtArgs>>): Prisma__PaymentAuthorizationClient<$Result.GetResult<Prisma.$PaymentAuthorizationPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PaymentAuthorization that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentAuthorizationFindFirstOrThrowArgs} args - Arguments to find a PaymentAuthorization
+     * @example
+     * // Get one PaymentAuthorization
+     * const paymentAuthorization = await prisma.paymentAuthorization.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PaymentAuthorizationFindFirstOrThrowArgs>(args?: SelectSubset<T, PaymentAuthorizationFindFirstOrThrowArgs<ExtArgs>>): Prisma__PaymentAuthorizationClient<$Result.GetResult<Prisma.$PaymentAuthorizationPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more PaymentAuthorizations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentAuthorizationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PaymentAuthorizations
+     * const paymentAuthorizations = await prisma.paymentAuthorization.findMany()
+     * 
+     * // Get first 10 PaymentAuthorizations
+     * const paymentAuthorizations = await prisma.paymentAuthorization.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const paymentAuthorizationWithIdOnly = await prisma.paymentAuthorization.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PaymentAuthorizationFindManyArgs>(args?: SelectSubset<T, PaymentAuthorizationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentAuthorizationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a PaymentAuthorization.
+     * @param {PaymentAuthorizationCreateArgs} args - Arguments to create a PaymentAuthorization.
+     * @example
+     * // Create one PaymentAuthorization
+     * const PaymentAuthorization = await prisma.paymentAuthorization.create({
+     *   data: {
+     *     // ... data to create a PaymentAuthorization
+     *   }
+     * })
+     * 
+     */
+    create<T extends PaymentAuthorizationCreateArgs>(args: SelectSubset<T, PaymentAuthorizationCreateArgs<ExtArgs>>): Prisma__PaymentAuthorizationClient<$Result.GetResult<Prisma.$PaymentAuthorizationPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many PaymentAuthorizations.
+     * @param {PaymentAuthorizationCreateManyArgs} args - Arguments to create many PaymentAuthorizations.
+     * @example
+     * // Create many PaymentAuthorizations
+     * const paymentAuthorization = await prisma.paymentAuthorization.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PaymentAuthorizationCreateManyArgs>(args?: SelectSubset<T, PaymentAuthorizationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PaymentAuthorizations and returns the data saved in the database.
+     * @param {PaymentAuthorizationCreateManyAndReturnArgs} args - Arguments to create many PaymentAuthorizations.
+     * @example
+     * // Create many PaymentAuthorizations
+     * const paymentAuthorization = await prisma.paymentAuthorization.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PaymentAuthorizations and only return the `id`
+     * const paymentAuthorizationWithIdOnly = await prisma.paymentAuthorization.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PaymentAuthorizationCreateManyAndReturnArgs>(args?: SelectSubset<T, PaymentAuthorizationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentAuthorizationPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a PaymentAuthorization.
+     * @param {PaymentAuthorizationDeleteArgs} args - Arguments to delete one PaymentAuthorization.
+     * @example
+     * // Delete one PaymentAuthorization
+     * const PaymentAuthorization = await prisma.paymentAuthorization.delete({
+     *   where: {
+     *     // ... filter to delete one PaymentAuthorization
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PaymentAuthorizationDeleteArgs>(args: SelectSubset<T, PaymentAuthorizationDeleteArgs<ExtArgs>>): Prisma__PaymentAuthorizationClient<$Result.GetResult<Prisma.$PaymentAuthorizationPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one PaymentAuthorization.
+     * @param {PaymentAuthorizationUpdateArgs} args - Arguments to update one PaymentAuthorization.
+     * @example
+     * // Update one PaymentAuthorization
+     * const paymentAuthorization = await prisma.paymentAuthorization.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PaymentAuthorizationUpdateArgs>(args: SelectSubset<T, PaymentAuthorizationUpdateArgs<ExtArgs>>): Prisma__PaymentAuthorizationClient<$Result.GetResult<Prisma.$PaymentAuthorizationPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more PaymentAuthorizations.
+     * @param {PaymentAuthorizationDeleteManyArgs} args - Arguments to filter PaymentAuthorizations to delete.
+     * @example
+     * // Delete a few PaymentAuthorizations
+     * const { count } = await prisma.paymentAuthorization.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PaymentAuthorizationDeleteManyArgs>(args?: SelectSubset<T, PaymentAuthorizationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PaymentAuthorizations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentAuthorizationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PaymentAuthorizations
+     * const paymentAuthorization = await prisma.paymentAuthorization.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PaymentAuthorizationUpdateManyArgs>(args: SelectSubset<T, PaymentAuthorizationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PaymentAuthorizations and returns the data updated in the database.
+     * @param {PaymentAuthorizationUpdateManyAndReturnArgs} args - Arguments to update many PaymentAuthorizations.
+     * @example
+     * // Update many PaymentAuthorizations
+     * const paymentAuthorization = await prisma.paymentAuthorization.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PaymentAuthorizations and only return the `id`
+     * const paymentAuthorizationWithIdOnly = await prisma.paymentAuthorization.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PaymentAuthorizationUpdateManyAndReturnArgs>(args: SelectSubset<T, PaymentAuthorizationUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentAuthorizationPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one PaymentAuthorization.
+     * @param {PaymentAuthorizationUpsertArgs} args - Arguments to update or create a PaymentAuthorization.
+     * @example
+     * // Update or create a PaymentAuthorization
+     * const paymentAuthorization = await prisma.paymentAuthorization.upsert({
+     *   create: {
+     *     // ... data to create a PaymentAuthorization
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PaymentAuthorization we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PaymentAuthorizationUpsertArgs>(args: SelectSubset<T, PaymentAuthorizationUpsertArgs<ExtArgs>>): Prisma__PaymentAuthorizationClient<$Result.GetResult<Prisma.$PaymentAuthorizationPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of PaymentAuthorizations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentAuthorizationCountArgs} args - Arguments to filter PaymentAuthorizations to count.
+     * @example
+     * // Count the number of PaymentAuthorizations
+     * const count = await prisma.paymentAuthorization.count({
+     *   where: {
+     *     // ... the filter for the PaymentAuthorizations we want to count
+     *   }
+     * })
+    **/
+    count<T extends PaymentAuthorizationCountArgs>(
+      args?: Subset<T, PaymentAuthorizationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PaymentAuthorizationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PaymentAuthorization.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentAuthorizationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PaymentAuthorizationAggregateArgs>(args: Subset<T, PaymentAuthorizationAggregateArgs>): Prisma.PrismaPromise<GetPaymentAuthorizationAggregateType<T>>
+
+    /**
+     * Group by PaymentAuthorization.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentAuthorizationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PaymentAuthorizationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PaymentAuthorizationGroupByArgs['orderBy'] }
+        : { orderBy?: PaymentAuthorizationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PaymentAuthorizationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPaymentAuthorizationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PaymentAuthorization model
+   */
+  readonly fields: PaymentAuthorizationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PaymentAuthorization.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PaymentAuthorizationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PaymentAuthorization model
+   */
+  interface PaymentAuthorizationFieldRefs {
+    readonly id: FieldRef<"PaymentAuthorization", 'String'>
+    readonly organizationId: FieldRef<"PaymentAuthorization", 'String'>
+    readonly userId: FieldRef<"PaymentAuthorization", 'String'>
+    readonly idempotencyKey: FieldRef<"PaymentAuthorization", 'String'>
+    readonly purpose: FieldRef<"PaymentAuthorization", 'String'>
+    readonly amountCents: FieldRef<"PaymentAuthorization", 'Int'>
+    readonly currency: FieldRef<"PaymentAuthorization", 'String'>
+    readonly status: FieldRef<"PaymentAuthorization", 'PaymentAuthorizationStatus'>
+    readonly stripePaymentIntentId: FieldRef<"PaymentAuthorization", 'String'>
+    readonly expiresAt: FieldRef<"PaymentAuthorization", 'DateTime'>
+    readonly authorizedAt: FieldRef<"PaymentAuthorization", 'DateTime'>
+    readonly capturedAt: FieldRef<"PaymentAuthorization", 'DateTime'>
+    readonly voidedAt: FieldRef<"PaymentAuthorization", 'DateTime'>
+    readonly metadata: FieldRef<"PaymentAuthorization", 'Json'>
+    readonly createdAt: FieldRef<"PaymentAuthorization", 'DateTime'>
+    readonly updatedAt: FieldRef<"PaymentAuthorization", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PaymentAuthorization findUnique
+   */
+  export type PaymentAuthorizationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentAuthorization
+     */
+    select?: PaymentAuthorizationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentAuthorization
+     */
+    omit?: PaymentAuthorizationOmit<ExtArgs> | null
+    /**
+     * Filter, which PaymentAuthorization to fetch.
+     */
+    where: PaymentAuthorizationWhereUniqueInput
+  }
+
+  /**
+   * PaymentAuthorization findUniqueOrThrow
+   */
+  export type PaymentAuthorizationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentAuthorization
+     */
+    select?: PaymentAuthorizationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentAuthorization
+     */
+    omit?: PaymentAuthorizationOmit<ExtArgs> | null
+    /**
+     * Filter, which PaymentAuthorization to fetch.
+     */
+    where: PaymentAuthorizationWhereUniqueInput
+  }
+
+  /**
+   * PaymentAuthorization findFirst
+   */
+  export type PaymentAuthorizationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentAuthorization
+     */
+    select?: PaymentAuthorizationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentAuthorization
+     */
+    omit?: PaymentAuthorizationOmit<ExtArgs> | null
+    /**
+     * Filter, which PaymentAuthorization to fetch.
+     */
+    where?: PaymentAuthorizationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentAuthorizations to fetch.
+     */
+    orderBy?: PaymentAuthorizationOrderByWithRelationInput | PaymentAuthorizationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PaymentAuthorizations.
+     */
+    cursor?: PaymentAuthorizationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentAuthorizations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentAuthorizations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PaymentAuthorizations.
+     */
+    distinct?: PaymentAuthorizationScalarFieldEnum | PaymentAuthorizationScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentAuthorization findFirstOrThrow
+   */
+  export type PaymentAuthorizationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentAuthorization
+     */
+    select?: PaymentAuthorizationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentAuthorization
+     */
+    omit?: PaymentAuthorizationOmit<ExtArgs> | null
+    /**
+     * Filter, which PaymentAuthorization to fetch.
+     */
+    where?: PaymentAuthorizationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentAuthorizations to fetch.
+     */
+    orderBy?: PaymentAuthorizationOrderByWithRelationInput | PaymentAuthorizationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PaymentAuthorizations.
+     */
+    cursor?: PaymentAuthorizationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentAuthorizations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentAuthorizations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PaymentAuthorizations.
+     */
+    distinct?: PaymentAuthorizationScalarFieldEnum | PaymentAuthorizationScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentAuthorization findMany
+   */
+  export type PaymentAuthorizationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentAuthorization
+     */
+    select?: PaymentAuthorizationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentAuthorization
+     */
+    omit?: PaymentAuthorizationOmit<ExtArgs> | null
+    /**
+     * Filter, which PaymentAuthorizations to fetch.
+     */
+    where?: PaymentAuthorizationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentAuthorizations to fetch.
+     */
+    orderBy?: PaymentAuthorizationOrderByWithRelationInput | PaymentAuthorizationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PaymentAuthorizations.
+     */
+    cursor?: PaymentAuthorizationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentAuthorizations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentAuthorizations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PaymentAuthorizations.
+     */
+    distinct?: PaymentAuthorizationScalarFieldEnum | PaymentAuthorizationScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentAuthorization create
+   */
+  export type PaymentAuthorizationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentAuthorization
+     */
+    select?: PaymentAuthorizationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentAuthorization
+     */
+    omit?: PaymentAuthorizationOmit<ExtArgs> | null
+    /**
+     * The data needed to create a PaymentAuthorization.
+     */
+    data: XOR<PaymentAuthorizationCreateInput, PaymentAuthorizationUncheckedCreateInput>
+  }
+
+  /**
+   * PaymentAuthorization createMany
+   */
+  export type PaymentAuthorizationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PaymentAuthorizations.
+     */
+    data: PaymentAuthorizationCreateManyInput | PaymentAuthorizationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PaymentAuthorization createManyAndReturn
+   */
+  export type PaymentAuthorizationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentAuthorization
+     */
+    select?: PaymentAuthorizationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentAuthorization
+     */
+    omit?: PaymentAuthorizationOmit<ExtArgs> | null
+    /**
+     * The data used to create many PaymentAuthorizations.
+     */
+    data: PaymentAuthorizationCreateManyInput | PaymentAuthorizationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PaymentAuthorization update
+   */
+  export type PaymentAuthorizationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentAuthorization
+     */
+    select?: PaymentAuthorizationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentAuthorization
+     */
+    omit?: PaymentAuthorizationOmit<ExtArgs> | null
+    /**
+     * The data needed to update a PaymentAuthorization.
+     */
+    data: XOR<PaymentAuthorizationUpdateInput, PaymentAuthorizationUncheckedUpdateInput>
+    /**
+     * Choose, which PaymentAuthorization to update.
+     */
+    where: PaymentAuthorizationWhereUniqueInput
+  }
+
+  /**
+   * PaymentAuthorization updateMany
+   */
+  export type PaymentAuthorizationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PaymentAuthorizations.
+     */
+    data: XOR<PaymentAuthorizationUpdateManyMutationInput, PaymentAuthorizationUncheckedUpdateManyInput>
+    /**
+     * Filter which PaymentAuthorizations to update
+     */
+    where?: PaymentAuthorizationWhereInput
+    /**
+     * Limit how many PaymentAuthorizations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PaymentAuthorization updateManyAndReturn
+   */
+  export type PaymentAuthorizationUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentAuthorization
+     */
+    select?: PaymentAuthorizationSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentAuthorization
+     */
+    omit?: PaymentAuthorizationOmit<ExtArgs> | null
+    /**
+     * The data used to update PaymentAuthorizations.
+     */
+    data: XOR<PaymentAuthorizationUpdateManyMutationInput, PaymentAuthorizationUncheckedUpdateManyInput>
+    /**
+     * Filter which PaymentAuthorizations to update
+     */
+    where?: PaymentAuthorizationWhereInput
+    /**
+     * Limit how many PaymentAuthorizations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PaymentAuthorization upsert
+   */
+  export type PaymentAuthorizationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentAuthorization
+     */
+    select?: PaymentAuthorizationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentAuthorization
+     */
+    omit?: PaymentAuthorizationOmit<ExtArgs> | null
+    /**
+     * The filter to search for the PaymentAuthorization to update in case it exists.
+     */
+    where: PaymentAuthorizationWhereUniqueInput
+    /**
+     * In case the PaymentAuthorization found by the `where` argument doesn't exist, create a new PaymentAuthorization with this data.
+     */
+    create: XOR<PaymentAuthorizationCreateInput, PaymentAuthorizationUncheckedCreateInput>
+    /**
+     * In case the PaymentAuthorization was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PaymentAuthorizationUpdateInput, PaymentAuthorizationUncheckedUpdateInput>
+  }
+
+  /**
+   * PaymentAuthorization delete
+   */
+  export type PaymentAuthorizationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentAuthorization
+     */
+    select?: PaymentAuthorizationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentAuthorization
+     */
+    omit?: PaymentAuthorizationOmit<ExtArgs> | null
+    /**
+     * Filter which PaymentAuthorization to delete.
+     */
+    where: PaymentAuthorizationWhereUniqueInput
+  }
+
+  /**
+   * PaymentAuthorization deleteMany
+   */
+  export type PaymentAuthorizationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PaymentAuthorizations to delete
+     */
+    where?: PaymentAuthorizationWhereInput
+    /**
+     * Limit how many PaymentAuthorizations to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PaymentAuthorization without action
+   */
+  export type PaymentAuthorizationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentAuthorization
+     */
+    select?: PaymentAuthorizationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentAuthorization
+     */
+    omit?: PaymentAuthorizationOmit<ExtArgs> | null
   }
 
 
@@ -142137,12 +144765,58 @@ export namespace Prisma {
     kind: 'kind',
     reason: 'reason',
     checkpointId: 'checkpointId',
+    reservationId: 'reservationId',
     expiresAt: 'expiresAt',
     metadata: 'metadata',
     createdAt: 'createdAt'
   };
 
   export type CreditLedgerScalarFieldEnum = (typeof CreditLedgerScalarFieldEnum)[keyof typeof CreditLedgerScalarFieldEnum]
+
+
+  export const UsageReservationScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    userId: 'userId',
+    idempotencyKey: 'idempotencyKey',
+    operation: 'operation',
+    maxAmountCents: 'maxAmountCents',
+    committedCents: 'committedCents',
+    status: 'status',
+    rateCardVersion: 'rateCardVersion',
+    importJobId: 'importJobId',
+    expiresAt: 'expiresAt',
+    committedAt: 'committedAt',
+    releasedAt: 'releasedAt',
+    releaseReason: 'releaseReason',
+    metadata: 'metadata',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type UsageReservationScalarFieldEnum = (typeof UsageReservationScalarFieldEnum)[keyof typeof UsageReservationScalarFieldEnum]
+
+
+  export const PaymentAuthorizationScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    userId: 'userId',
+    idempotencyKey: 'idempotencyKey',
+    purpose: 'purpose',
+    amountCents: 'amountCents',
+    currency: 'currency',
+    status: 'status',
+    stripePaymentIntentId: 'stripePaymentIntentId',
+    expiresAt: 'expiresAt',
+    authorizedAt: 'authorizedAt',
+    capturedAt: 'capturedAt',
+    voidedAt: 'voidedAt',
+    metadata: 'metadata',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type PaymentAuthorizationScalarFieldEnum = (typeof PaymentAuthorizationScalarFieldEnum)[keyof typeof PaymentAuthorizationScalarFieldEnum]
 
 
   export const AgentCheckpointScalarFieldEnum: {
@@ -142721,6 +145395,34 @@ export namespace Prisma {
    * Reference to a field of type 'CreditEntryKind[]'
    */
   export type ListEnumCreditEntryKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CreditEntryKind[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'UsageReservationStatus'
+   */
+  export type EnumUsageReservationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UsageReservationStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'UsageReservationStatus[]'
+   */
+  export type ListEnumUsageReservationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UsageReservationStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PaymentAuthorizationStatus'
+   */
+  export type EnumPaymentAuthorizationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentAuthorizationStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'PaymentAuthorizationStatus[]'
+   */
+  export type ListEnumPaymentAuthorizationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentAuthorizationStatus[]'>
     
 
 
@@ -150266,6 +152968,7 @@ export namespace Prisma {
     kind?: EnumCreditEntryKindFilter<"CreditLedger"> | $Enums.CreditEntryKind
     reason?: StringFilter<"CreditLedger"> | string
     checkpointId?: StringNullableFilter<"CreditLedger"> | string | null
+    reservationId?: StringNullableFilter<"CreditLedger"> | string | null
     expiresAt?: DateTimeNullableFilter<"CreditLedger"> | Date | string | null
     metadata?: JsonNullableFilter<"CreditLedger">
     createdAt?: DateTimeFilter<"CreditLedger"> | Date | string
@@ -150281,6 +152984,7 @@ export namespace Prisma {
     kind?: SortOrder
     reason?: SortOrder
     checkpointId?: SortOrderInput | SortOrder
+    reservationId?: SortOrderInput | SortOrder
     expiresAt?: SortOrderInput | SortOrder
     metadata?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -150299,6 +153003,7 @@ export namespace Prisma {
     kind?: EnumCreditEntryKindFilter<"CreditLedger"> | $Enums.CreditEntryKind
     reason?: StringFilter<"CreditLedger"> | string
     checkpointId?: StringNullableFilter<"CreditLedger"> | string | null
+    reservationId?: StringNullableFilter<"CreditLedger"> | string | null
     expiresAt?: DateTimeNullableFilter<"CreditLedger"> | Date | string | null
     metadata?: JsonNullableFilter<"CreditLedger">
     createdAt?: DateTimeFilter<"CreditLedger"> | Date | string
@@ -150314,6 +153019,7 @@ export namespace Prisma {
     kind?: SortOrder
     reason?: SortOrder
     checkpointId?: SortOrderInput | SortOrder
+    reservationId?: SortOrderInput | SortOrder
     expiresAt?: SortOrderInput | SortOrder
     metadata?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -150335,9 +153041,235 @@ export namespace Prisma {
     kind?: EnumCreditEntryKindWithAggregatesFilter<"CreditLedger"> | $Enums.CreditEntryKind
     reason?: StringWithAggregatesFilter<"CreditLedger"> | string
     checkpointId?: StringNullableWithAggregatesFilter<"CreditLedger"> | string | null
+    reservationId?: StringNullableWithAggregatesFilter<"CreditLedger"> | string | null
     expiresAt?: DateTimeNullableWithAggregatesFilter<"CreditLedger"> | Date | string | null
     metadata?: JsonNullableWithAggregatesFilter<"CreditLedger">
     createdAt?: DateTimeWithAggregatesFilter<"CreditLedger"> | Date | string
+  }
+
+  export type UsageReservationWhereInput = {
+    AND?: UsageReservationWhereInput | UsageReservationWhereInput[]
+    OR?: UsageReservationWhereInput[]
+    NOT?: UsageReservationWhereInput | UsageReservationWhereInput[]
+    id?: StringFilter<"UsageReservation"> | string
+    organizationId?: StringFilter<"UsageReservation"> | string
+    userId?: StringNullableFilter<"UsageReservation"> | string | null
+    idempotencyKey?: StringFilter<"UsageReservation"> | string
+    operation?: StringFilter<"UsageReservation"> | string
+    maxAmountCents?: IntFilter<"UsageReservation"> | number
+    committedCents?: IntNullableFilter<"UsageReservation"> | number | null
+    status?: EnumUsageReservationStatusFilter<"UsageReservation"> | $Enums.UsageReservationStatus
+    rateCardVersion?: IntNullableFilter<"UsageReservation"> | number | null
+    importJobId?: StringNullableFilter<"UsageReservation"> | string | null
+    expiresAt?: DateTimeFilter<"UsageReservation"> | Date | string
+    committedAt?: DateTimeNullableFilter<"UsageReservation"> | Date | string | null
+    releasedAt?: DateTimeNullableFilter<"UsageReservation"> | Date | string | null
+    releaseReason?: StringNullableFilter<"UsageReservation"> | string | null
+    metadata?: JsonNullableFilter<"UsageReservation">
+    createdAt?: DateTimeFilter<"UsageReservation"> | Date | string
+    updatedAt?: DateTimeFilter<"UsageReservation"> | Date | string
+  }
+
+  export type UsageReservationOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrder
+    operation?: SortOrder
+    maxAmountCents?: SortOrder
+    committedCents?: SortOrderInput | SortOrder
+    status?: SortOrder
+    rateCardVersion?: SortOrderInput | SortOrder
+    importJobId?: SortOrderInput | SortOrder
+    expiresAt?: SortOrder
+    committedAt?: SortOrderInput | SortOrder
+    releasedAt?: SortOrderInput | SortOrder
+    releaseReason?: SortOrderInput | SortOrder
+    metadata?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UsageReservationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    organizationId_idempotencyKey?: UsageReservationOrganizationIdIdempotencyKeyCompoundUniqueInput
+    AND?: UsageReservationWhereInput | UsageReservationWhereInput[]
+    OR?: UsageReservationWhereInput[]
+    NOT?: UsageReservationWhereInput | UsageReservationWhereInput[]
+    organizationId?: StringFilter<"UsageReservation"> | string
+    userId?: StringNullableFilter<"UsageReservation"> | string | null
+    idempotencyKey?: StringFilter<"UsageReservation"> | string
+    operation?: StringFilter<"UsageReservation"> | string
+    maxAmountCents?: IntFilter<"UsageReservation"> | number
+    committedCents?: IntNullableFilter<"UsageReservation"> | number | null
+    status?: EnumUsageReservationStatusFilter<"UsageReservation"> | $Enums.UsageReservationStatus
+    rateCardVersion?: IntNullableFilter<"UsageReservation"> | number | null
+    importJobId?: StringNullableFilter<"UsageReservation"> | string | null
+    expiresAt?: DateTimeFilter<"UsageReservation"> | Date | string
+    committedAt?: DateTimeNullableFilter<"UsageReservation"> | Date | string | null
+    releasedAt?: DateTimeNullableFilter<"UsageReservation"> | Date | string | null
+    releaseReason?: StringNullableFilter<"UsageReservation"> | string | null
+    metadata?: JsonNullableFilter<"UsageReservation">
+    createdAt?: DateTimeFilter<"UsageReservation"> | Date | string
+    updatedAt?: DateTimeFilter<"UsageReservation"> | Date | string
+  }, "id" | "organizationId_idempotencyKey">
+
+  export type UsageReservationOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrder
+    operation?: SortOrder
+    maxAmountCents?: SortOrder
+    committedCents?: SortOrderInput | SortOrder
+    status?: SortOrder
+    rateCardVersion?: SortOrderInput | SortOrder
+    importJobId?: SortOrderInput | SortOrder
+    expiresAt?: SortOrder
+    committedAt?: SortOrderInput | SortOrder
+    releasedAt?: SortOrderInput | SortOrder
+    releaseReason?: SortOrderInput | SortOrder
+    metadata?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: UsageReservationCountOrderByAggregateInput
+    _avg?: UsageReservationAvgOrderByAggregateInput
+    _max?: UsageReservationMaxOrderByAggregateInput
+    _min?: UsageReservationMinOrderByAggregateInput
+    _sum?: UsageReservationSumOrderByAggregateInput
+  }
+
+  export type UsageReservationScalarWhereWithAggregatesInput = {
+    AND?: UsageReservationScalarWhereWithAggregatesInput | UsageReservationScalarWhereWithAggregatesInput[]
+    OR?: UsageReservationScalarWhereWithAggregatesInput[]
+    NOT?: UsageReservationScalarWhereWithAggregatesInput | UsageReservationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"UsageReservation"> | string
+    organizationId?: StringWithAggregatesFilter<"UsageReservation"> | string
+    userId?: StringNullableWithAggregatesFilter<"UsageReservation"> | string | null
+    idempotencyKey?: StringWithAggregatesFilter<"UsageReservation"> | string
+    operation?: StringWithAggregatesFilter<"UsageReservation"> | string
+    maxAmountCents?: IntWithAggregatesFilter<"UsageReservation"> | number
+    committedCents?: IntNullableWithAggregatesFilter<"UsageReservation"> | number | null
+    status?: EnumUsageReservationStatusWithAggregatesFilter<"UsageReservation"> | $Enums.UsageReservationStatus
+    rateCardVersion?: IntNullableWithAggregatesFilter<"UsageReservation"> | number | null
+    importJobId?: StringNullableWithAggregatesFilter<"UsageReservation"> | string | null
+    expiresAt?: DateTimeWithAggregatesFilter<"UsageReservation"> | Date | string
+    committedAt?: DateTimeNullableWithAggregatesFilter<"UsageReservation"> | Date | string | null
+    releasedAt?: DateTimeNullableWithAggregatesFilter<"UsageReservation"> | Date | string | null
+    releaseReason?: StringNullableWithAggregatesFilter<"UsageReservation"> | string | null
+    metadata?: JsonNullableWithAggregatesFilter<"UsageReservation">
+    createdAt?: DateTimeWithAggregatesFilter<"UsageReservation"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"UsageReservation"> | Date | string
+  }
+
+  export type PaymentAuthorizationWhereInput = {
+    AND?: PaymentAuthorizationWhereInput | PaymentAuthorizationWhereInput[]
+    OR?: PaymentAuthorizationWhereInput[]
+    NOT?: PaymentAuthorizationWhereInput | PaymentAuthorizationWhereInput[]
+    id?: StringFilter<"PaymentAuthorization"> | string
+    organizationId?: StringFilter<"PaymentAuthorization"> | string
+    userId?: StringNullableFilter<"PaymentAuthorization"> | string | null
+    idempotencyKey?: StringFilter<"PaymentAuthorization"> | string
+    purpose?: StringFilter<"PaymentAuthorization"> | string
+    amountCents?: IntFilter<"PaymentAuthorization"> | number
+    currency?: StringFilter<"PaymentAuthorization"> | string
+    status?: EnumPaymentAuthorizationStatusFilter<"PaymentAuthorization"> | $Enums.PaymentAuthorizationStatus
+    stripePaymentIntentId?: StringNullableFilter<"PaymentAuthorization"> | string | null
+    expiresAt?: DateTimeFilter<"PaymentAuthorization"> | Date | string
+    authorizedAt?: DateTimeNullableFilter<"PaymentAuthorization"> | Date | string | null
+    capturedAt?: DateTimeNullableFilter<"PaymentAuthorization"> | Date | string | null
+    voidedAt?: DateTimeNullableFilter<"PaymentAuthorization"> | Date | string | null
+    metadata?: JsonNullableFilter<"PaymentAuthorization">
+    createdAt?: DateTimeFilter<"PaymentAuthorization"> | Date | string
+    updatedAt?: DateTimeFilter<"PaymentAuthorization"> | Date | string
+  }
+
+  export type PaymentAuthorizationOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrder
+    purpose?: SortOrder
+    amountCents?: SortOrder
+    currency?: SortOrder
+    status?: SortOrder
+    stripePaymentIntentId?: SortOrderInput | SortOrder
+    expiresAt?: SortOrder
+    authorizedAt?: SortOrderInput | SortOrder
+    capturedAt?: SortOrderInput | SortOrder
+    voidedAt?: SortOrderInput | SortOrder
+    metadata?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PaymentAuthorizationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    organizationId_idempotencyKey?: PaymentAuthorizationOrganizationIdIdempotencyKeyCompoundUniqueInput
+    AND?: PaymentAuthorizationWhereInput | PaymentAuthorizationWhereInput[]
+    OR?: PaymentAuthorizationWhereInput[]
+    NOT?: PaymentAuthorizationWhereInput | PaymentAuthorizationWhereInput[]
+    organizationId?: StringFilter<"PaymentAuthorization"> | string
+    userId?: StringNullableFilter<"PaymentAuthorization"> | string | null
+    idempotencyKey?: StringFilter<"PaymentAuthorization"> | string
+    purpose?: StringFilter<"PaymentAuthorization"> | string
+    amountCents?: IntFilter<"PaymentAuthorization"> | number
+    currency?: StringFilter<"PaymentAuthorization"> | string
+    status?: EnumPaymentAuthorizationStatusFilter<"PaymentAuthorization"> | $Enums.PaymentAuthorizationStatus
+    stripePaymentIntentId?: StringNullableFilter<"PaymentAuthorization"> | string | null
+    expiresAt?: DateTimeFilter<"PaymentAuthorization"> | Date | string
+    authorizedAt?: DateTimeNullableFilter<"PaymentAuthorization"> | Date | string | null
+    capturedAt?: DateTimeNullableFilter<"PaymentAuthorization"> | Date | string | null
+    voidedAt?: DateTimeNullableFilter<"PaymentAuthorization"> | Date | string | null
+    metadata?: JsonNullableFilter<"PaymentAuthorization">
+    createdAt?: DateTimeFilter<"PaymentAuthorization"> | Date | string
+    updatedAt?: DateTimeFilter<"PaymentAuthorization"> | Date | string
+  }, "id" | "organizationId_idempotencyKey">
+
+  export type PaymentAuthorizationOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrder
+    purpose?: SortOrder
+    amountCents?: SortOrder
+    currency?: SortOrder
+    status?: SortOrder
+    stripePaymentIntentId?: SortOrderInput | SortOrder
+    expiresAt?: SortOrder
+    authorizedAt?: SortOrderInput | SortOrder
+    capturedAt?: SortOrderInput | SortOrder
+    voidedAt?: SortOrderInput | SortOrder
+    metadata?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: PaymentAuthorizationCountOrderByAggregateInput
+    _avg?: PaymentAuthorizationAvgOrderByAggregateInput
+    _max?: PaymentAuthorizationMaxOrderByAggregateInput
+    _min?: PaymentAuthorizationMinOrderByAggregateInput
+    _sum?: PaymentAuthorizationSumOrderByAggregateInput
+  }
+
+  export type PaymentAuthorizationScalarWhereWithAggregatesInput = {
+    AND?: PaymentAuthorizationScalarWhereWithAggregatesInput | PaymentAuthorizationScalarWhereWithAggregatesInput[]
+    OR?: PaymentAuthorizationScalarWhereWithAggregatesInput[]
+    NOT?: PaymentAuthorizationScalarWhereWithAggregatesInput | PaymentAuthorizationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PaymentAuthorization"> | string
+    organizationId?: StringWithAggregatesFilter<"PaymentAuthorization"> | string
+    userId?: StringNullableWithAggregatesFilter<"PaymentAuthorization"> | string | null
+    idempotencyKey?: StringWithAggregatesFilter<"PaymentAuthorization"> | string
+    purpose?: StringWithAggregatesFilter<"PaymentAuthorization"> | string
+    amountCents?: IntWithAggregatesFilter<"PaymentAuthorization"> | number
+    currency?: StringWithAggregatesFilter<"PaymentAuthorization"> | string
+    status?: EnumPaymentAuthorizationStatusWithAggregatesFilter<"PaymentAuthorization"> | $Enums.PaymentAuthorizationStatus
+    stripePaymentIntentId?: StringNullableWithAggregatesFilter<"PaymentAuthorization"> | string | null
+    expiresAt?: DateTimeWithAggregatesFilter<"PaymentAuthorization"> | Date | string
+    authorizedAt?: DateTimeNullableWithAggregatesFilter<"PaymentAuthorization"> | Date | string | null
+    capturedAt?: DateTimeNullableWithAggregatesFilter<"PaymentAuthorization"> | Date | string | null
+    voidedAt?: DateTimeNullableWithAggregatesFilter<"PaymentAuthorization"> | Date | string | null
+    metadata?: JsonNullableWithAggregatesFilter<"PaymentAuthorization">
+    createdAt?: DateTimeWithAggregatesFilter<"PaymentAuthorization"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PaymentAuthorization"> | Date | string
   }
 
   export type AgentCheckpointWhereInput = {
@@ -159840,6 +162772,7 @@ export namespace Prisma {
     kind: $Enums.CreditEntryKind
     reason: string
     checkpointId?: string | null
+    reservationId?: string | null
     expiresAt?: Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -159855,6 +162788,7 @@ export namespace Prisma {
     kind: $Enums.CreditEntryKind
     reason: string
     checkpointId?: string | null
+    reservationId?: string | null
     expiresAt?: Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -159866,6 +162800,7 @@ export namespace Prisma {
     kind?: EnumCreditEntryKindFieldUpdateOperationsInput | $Enums.CreditEntryKind
     reason?: StringFieldUpdateOperationsInput | string
     checkpointId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservationId?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -159881,6 +162816,7 @@ export namespace Prisma {
     kind?: EnumCreditEntryKindFieldUpdateOperationsInput | $Enums.CreditEntryKind
     reason?: StringFieldUpdateOperationsInput | string
     checkpointId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservationId?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -159894,6 +162830,7 @@ export namespace Prisma {
     kind: $Enums.CreditEntryKind
     reason: string
     checkpointId?: string | null
+    reservationId?: string | null
     expiresAt?: Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -159905,6 +162842,7 @@ export namespace Prisma {
     kind?: EnumCreditEntryKindFieldUpdateOperationsInput | $Enums.CreditEntryKind
     reason?: StringFieldUpdateOperationsInput | string
     checkpointId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservationId?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -159918,9 +162856,283 @@ export namespace Prisma {
     kind?: EnumCreditEntryKindFieldUpdateOperationsInput | $Enums.CreditEntryKind
     reason?: StringFieldUpdateOperationsInput | string
     checkpointId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservationId?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UsageReservationCreateInput = {
+    id?: string
+    organizationId: string
+    userId?: string | null
+    idempotencyKey: string
+    operation: string
+    maxAmountCents: number
+    committedCents?: number | null
+    status?: $Enums.UsageReservationStatus
+    rateCardVersion?: number | null
+    importJobId?: string | null
+    expiresAt: Date | string
+    committedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    releaseReason?: string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type UsageReservationUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    userId?: string | null
+    idempotencyKey: string
+    operation: string
+    maxAmountCents: number
+    committedCents?: number | null
+    status?: $Enums.UsageReservationStatus
+    rateCardVersion?: number | null
+    importJobId?: string | null
+    expiresAt: Date | string
+    committedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    releaseReason?: string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type UsageReservationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    operation?: StringFieldUpdateOperationsInput | string
+    maxAmountCents?: IntFieldUpdateOperationsInput | number
+    committedCents?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumUsageReservationStatusFieldUpdateOperationsInput | $Enums.UsageReservationStatus
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    importJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releaseReason?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UsageReservationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    operation?: StringFieldUpdateOperationsInput | string
+    maxAmountCents?: IntFieldUpdateOperationsInput | number
+    committedCents?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumUsageReservationStatusFieldUpdateOperationsInput | $Enums.UsageReservationStatus
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    importJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releaseReason?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UsageReservationCreateManyInput = {
+    id?: string
+    organizationId: string
+    userId?: string | null
+    idempotencyKey: string
+    operation: string
+    maxAmountCents: number
+    committedCents?: number | null
+    status?: $Enums.UsageReservationStatus
+    rateCardVersion?: number | null
+    importJobId?: string | null
+    expiresAt: Date | string
+    committedAt?: Date | string | null
+    releasedAt?: Date | string | null
+    releaseReason?: string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type UsageReservationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    operation?: StringFieldUpdateOperationsInput | string
+    maxAmountCents?: IntFieldUpdateOperationsInput | number
+    committedCents?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumUsageReservationStatusFieldUpdateOperationsInput | $Enums.UsageReservationStatus
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    importJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releaseReason?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UsageReservationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    operation?: StringFieldUpdateOperationsInput | string
+    maxAmountCents?: IntFieldUpdateOperationsInput | number
+    committedCents?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumUsageReservationStatusFieldUpdateOperationsInput | $Enums.UsageReservationStatus
+    rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    importJobId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releaseReason?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentAuthorizationCreateInput = {
+    id?: string
+    organizationId: string
+    userId?: string | null
+    idempotencyKey: string
+    purpose: string
+    amountCents: number
+    currency?: string
+    status?: $Enums.PaymentAuthorizationStatus
+    stripePaymentIntentId?: string | null
+    expiresAt: Date | string
+    authorizedAt?: Date | string | null
+    capturedAt?: Date | string | null
+    voidedAt?: Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PaymentAuthorizationUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    userId?: string | null
+    idempotencyKey: string
+    purpose: string
+    amountCents: number
+    currency?: string
+    status?: $Enums.PaymentAuthorizationStatus
+    stripePaymentIntentId?: string | null
+    expiresAt: Date | string
+    authorizedAt?: Date | string | null
+    capturedAt?: Date | string | null
+    voidedAt?: Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PaymentAuthorizationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    purpose?: StringFieldUpdateOperationsInput | string
+    amountCents?: IntFieldUpdateOperationsInput | number
+    currency?: StringFieldUpdateOperationsInput | string
+    status?: EnumPaymentAuthorizationStatusFieldUpdateOperationsInput | $Enums.PaymentAuthorizationStatus
+    stripePaymentIntentId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    authorizedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    capturedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    voidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentAuthorizationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    purpose?: StringFieldUpdateOperationsInput | string
+    amountCents?: IntFieldUpdateOperationsInput | number
+    currency?: StringFieldUpdateOperationsInput | string
+    status?: EnumPaymentAuthorizationStatusFieldUpdateOperationsInput | $Enums.PaymentAuthorizationStatus
+    stripePaymentIntentId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    authorizedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    capturedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    voidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentAuthorizationCreateManyInput = {
+    id?: string
+    organizationId: string
+    userId?: string | null
+    idempotencyKey: string
+    purpose: string
+    amountCents: number
+    currency?: string
+    status?: $Enums.PaymentAuthorizationStatus
+    stripePaymentIntentId?: string | null
+    expiresAt: Date | string
+    authorizedAt?: Date | string | null
+    capturedAt?: Date | string | null
+    voidedAt?: Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PaymentAuthorizationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    purpose?: StringFieldUpdateOperationsInput | string
+    amountCents?: IntFieldUpdateOperationsInput | number
+    currency?: StringFieldUpdateOperationsInput | string
+    status?: EnumPaymentAuthorizationStatusFieldUpdateOperationsInput | $Enums.PaymentAuthorizationStatus
+    stripePaymentIntentId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    authorizedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    capturedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    voidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentAuthorizationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    purpose?: StringFieldUpdateOperationsInput | string
+    amountCents?: IntFieldUpdateOperationsInput | number
+    currency?: StringFieldUpdateOperationsInput | string
+    status?: EnumPaymentAuthorizationStatusFieldUpdateOperationsInput | $Enums.PaymentAuthorizationStatus
+    stripePaymentIntentId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    authorizedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    capturedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    voidedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type AgentCheckpointCreateInput = {
@@ -166598,6 +169810,7 @@ export namespace Prisma {
     kind?: SortOrder
     reason?: SortOrder
     checkpointId?: SortOrder
+    reservationId?: SortOrder
     expiresAt?: SortOrder
     metadata?: SortOrder
     createdAt?: SortOrder
@@ -166615,6 +169828,7 @@ export namespace Prisma {
     kind?: SortOrder
     reason?: SortOrder
     checkpointId?: SortOrder
+    reservationId?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
   }
@@ -166627,6 +169841,7 @@ export namespace Prisma {
     kind?: SortOrder
     reason?: SortOrder
     checkpointId?: SortOrder
+    reservationId?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
   }
@@ -166643,6 +169858,183 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumCreditEntryKindFilter<$PrismaModel>
     _max?: NestedEnumCreditEntryKindFilter<$PrismaModel>
+  }
+
+  export type EnumUsageReservationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.UsageReservationStatus | EnumUsageReservationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.UsageReservationStatus[] | ListEnumUsageReservationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.UsageReservationStatus[] | ListEnumUsageReservationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumUsageReservationStatusFilter<$PrismaModel> | $Enums.UsageReservationStatus
+  }
+
+  export type UsageReservationOrganizationIdIdempotencyKeyCompoundUniqueInput = {
+    organizationId: string
+    idempotencyKey: string
+  }
+
+  export type UsageReservationCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    idempotencyKey?: SortOrder
+    operation?: SortOrder
+    maxAmountCents?: SortOrder
+    committedCents?: SortOrder
+    status?: SortOrder
+    rateCardVersion?: SortOrder
+    importJobId?: SortOrder
+    expiresAt?: SortOrder
+    committedAt?: SortOrder
+    releasedAt?: SortOrder
+    releaseReason?: SortOrder
+    metadata?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UsageReservationAvgOrderByAggregateInput = {
+    maxAmountCents?: SortOrder
+    committedCents?: SortOrder
+    rateCardVersion?: SortOrder
+  }
+
+  export type UsageReservationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    idempotencyKey?: SortOrder
+    operation?: SortOrder
+    maxAmountCents?: SortOrder
+    committedCents?: SortOrder
+    status?: SortOrder
+    rateCardVersion?: SortOrder
+    importJobId?: SortOrder
+    expiresAt?: SortOrder
+    committedAt?: SortOrder
+    releasedAt?: SortOrder
+    releaseReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UsageReservationMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    idempotencyKey?: SortOrder
+    operation?: SortOrder
+    maxAmountCents?: SortOrder
+    committedCents?: SortOrder
+    status?: SortOrder
+    rateCardVersion?: SortOrder
+    importJobId?: SortOrder
+    expiresAt?: SortOrder
+    committedAt?: SortOrder
+    releasedAt?: SortOrder
+    releaseReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UsageReservationSumOrderByAggregateInput = {
+    maxAmountCents?: SortOrder
+    committedCents?: SortOrder
+    rateCardVersion?: SortOrder
+  }
+
+  export type EnumUsageReservationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.UsageReservationStatus | EnumUsageReservationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.UsageReservationStatus[] | ListEnumUsageReservationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.UsageReservationStatus[] | ListEnumUsageReservationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumUsageReservationStatusWithAggregatesFilter<$PrismaModel> | $Enums.UsageReservationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumUsageReservationStatusFilter<$PrismaModel>
+    _max?: NestedEnumUsageReservationStatusFilter<$PrismaModel>
+  }
+
+  export type EnumPaymentAuthorizationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PaymentAuthorizationStatus | EnumPaymentAuthorizationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PaymentAuthorizationStatus[] | ListEnumPaymentAuthorizationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PaymentAuthorizationStatus[] | ListEnumPaymentAuthorizationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPaymentAuthorizationStatusFilter<$PrismaModel> | $Enums.PaymentAuthorizationStatus
+  }
+
+  export type PaymentAuthorizationOrganizationIdIdempotencyKeyCompoundUniqueInput = {
+    organizationId: string
+    idempotencyKey: string
+  }
+
+  export type PaymentAuthorizationCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    idempotencyKey?: SortOrder
+    purpose?: SortOrder
+    amountCents?: SortOrder
+    currency?: SortOrder
+    status?: SortOrder
+    stripePaymentIntentId?: SortOrder
+    expiresAt?: SortOrder
+    authorizedAt?: SortOrder
+    capturedAt?: SortOrder
+    voidedAt?: SortOrder
+    metadata?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PaymentAuthorizationAvgOrderByAggregateInput = {
+    amountCents?: SortOrder
+  }
+
+  export type PaymentAuthorizationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    idempotencyKey?: SortOrder
+    purpose?: SortOrder
+    amountCents?: SortOrder
+    currency?: SortOrder
+    status?: SortOrder
+    stripePaymentIntentId?: SortOrder
+    expiresAt?: SortOrder
+    authorizedAt?: SortOrder
+    capturedAt?: SortOrder
+    voidedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PaymentAuthorizationMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    idempotencyKey?: SortOrder
+    purpose?: SortOrder
+    amountCents?: SortOrder
+    currency?: SortOrder
+    status?: SortOrder
+    stripePaymentIntentId?: SortOrder
+    expiresAt?: SortOrder
+    authorizedAt?: SortOrder
+    capturedAt?: SortOrder
+    voidedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PaymentAuthorizationSumOrderByAggregateInput = {
+    amountCents?: SortOrder
+  }
+
+  export type EnumPaymentAuthorizationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PaymentAuthorizationStatus | EnumPaymentAuthorizationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PaymentAuthorizationStatus[] | ListEnumPaymentAuthorizationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PaymentAuthorizationStatus[] | ListEnumPaymentAuthorizationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPaymentAuthorizationStatusWithAggregatesFilter<$PrismaModel> | $Enums.PaymentAuthorizationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPaymentAuthorizationStatusFilter<$PrismaModel>
+    _max?: NestedEnumPaymentAuthorizationStatusFilter<$PrismaModel>
   }
 
   export type EnumCheckpointStatusFilter<$PrismaModel = never> = {
@@ -174046,6 +177438,14 @@ export namespace Prisma {
     update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutCreditLedgerInput, OrganizationUpdateWithoutCreditLedgerInput>, OrganizationUncheckedUpdateWithoutCreditLedgerInput>
   }
 
+  export type EnumUsageReservationStatusFieldUpdateOperationsInput = {
+    set?: $Enums.UsageReservationStatus
+  }
+
+  export type EnumPaymentAuthorizationStatusFieldUpdateOperationsInput = {
+    set?: $Enums.PaymentAuthorizationStatus
+  }
+
   export type OrganizationCreateNestedOneWithoutAgentCheckpointsInput = {
     create?: XOR<OrganizationCreateWithoutAgentCheckpointsInput, OrganizationUncheckedCreateWithoutAgentCheckpointsInput>
     connectOrCreate?: OrganizationCreateOrConnectWithoutAgentCheckpointsInput
@@ -174882,6 +178282,40 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumCreditEntryKindFilter<$PrismaModel>
     _max?: NestedEnumCreditEntryKindFilter<$PrismaModel>
+  }
+
+  export type NestedEnumUsageReservationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.UsageReservationStatus | EnumUsageReservationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.UsageReservationStatus[] | ListEnumUsageReservationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.UsageReservationStatus[] | ListEnumUsageReservationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumUsageReservationStatusFilter<$PrismaModel> | $Enums.UsageReservationStatus
+  }
+
+  export type NestedEnumUsageReservationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.UsageReservationStatus | EnumUsageReservationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.UsageReservationStatus[] | ListEnumUsageReservationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.UsageReservationStatus[] | ListEnumUsageReservationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumUsageReservationStatusWithAggregatesFilter<$PrismaModel> | $Enums.UsageReservationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumUsageReservationStatusFilter<$PrismaModel>
+    _max?: NestedEnumUsageReservationStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPaymentAuthorizationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PaymentAuthorizationStatus | EnumPaymentAuthorizationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PaymentAuthorizationStatus[] | ListEnumPaymentAuthorizationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PaymentAuthorizationStatus[] | ListEnumPaymentAuthorizationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPaymentAuthorizationStatusFilter<$PrismaModel> | $Enums.PaymentAuthorizationStatus
+  }
+
+  export type NestedEnumPaymentAuthorizationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PaymentAuthorizationStatus | EnumPaymentAuthorizationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PaymentAuthorizationStatus[] | ListEnumPaymentAuthorizationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PaymentAuthorizationStatus[] | ListEnumPaymentAuthorizationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPaymentAuthorizationStatusWithAggregatesFilter<$PrismaModel> | $Enums.PaymentAuthorizationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPaymentAuthorizationStatusFilter<$PrismaModel>
+    _max?: NestedEnumPaymentAuthorizationStatusFilter<$PrismaModel>
   }
 
   export type NestedEnumCheckpointStatusFilter<$PrismaModel = never> = {
@@ -178391,6 +181825,7 @@ export namespace Prisma {
     kind: $Enums.CreditEntryKind
     reason: string
     checkpointId?: string | null
+    reservationId?: string | null
     expiresAt?: Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -178404,6 +181839,7 @@ export namespace Prisma {
     kind: $Enums.CreditEntryKind
     reason: string
     checkpointId?: string | null
+    reservationId?: string | null
     expiresAt?: Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -179318,6 +182754,7 @@ export namespace Prisma {
     kind?: EnumCreditEntryKindFilter<"CreditLedger"> | $Enums.CreditEntryKind
     reason?: StringFilter<"CreditLedger"> | string
     checkpointId?: StringNullableFilter<"CreditLedger"> | string | null
+    reservationId?: StringNullableFilter<"CreditLedger"> | string | null
     expiresAt?: DateTimeNullableFilter<"CreditLedger"> | Date | string | null
     metadata?: JsonNullableFilter<"CreditLedger">
     createdAt?: DateTimeFilter<"CreditLedger"> | Date | string
@@ -198872,6 +202309,7 @@ export namespace Prisma {
     kind: $Enums.CreditEntryKind
     reason: string
     checkpointId?: string | null
+    reservationId?: string | null
     expiresAt?: Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -198885,6 +202323,7 @@ export namespace Prisma {
     kind: $Enums.CreditEntryKind
     reason: string
     checkpointId?: string | null
+    reservationId?: string | null
     expiresAt?: Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -203129,6 +206568,7 @@ export namespace Prisma {
     kind: $Enums.CreditEntryKind
     reason: string
     checkpointId?: string | null
+    reservationId?: string | null
     expiresAt?: Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -204124,6 +207564,7 @@ export namespace Prisma {
     kind?: EnumCreditEntryKindFieldUpdateOperationsInput | $Enums.CreditEntryKind
     reason?: StringFieldUpdateOperationsInput | string
     checkpointId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservationId?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -204137,6 +207578,7 @@ export namespace Prisma {
     kind?: EnumCreditEntryKindFieldUpdateOperationsInput | $Enums.CreditEntryKind
     reason?: StringFieldUpdateOperationsInput | string
     checkpointId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservationId?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -204149,6 +207591,7 @@ export namespace Prisma {
     kind?: EnumCreditEntryKindFieldUpdateOperationsInput | $Enums.CreditEntryKind
     reason?: StringFieldUpdateOperationsInput | string
     checkpointId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservationId?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -206121,6 +209564,7 @@ export namespace Prisma {
     kind: $Enums.CreditEntryKind
     reason: string
     checkpointId?: string | null
+    reservationId?: string | null
     expiresAt?: Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -206132,6 +209576,7 @@ export namespace Prisma {
     kind?: EnumCreditEntryKindFieldUpdateOperationsInput | $Enums.CreditEntryKind
     reason?: StringFieldUpdateOperationsInput | string
     checkpointId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservationId?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -206145,6 +209590,7 @@ export namespace Prisma {
     kind?: EnumCreditEntryKindFieldUpdateOperationsInput | $Enums.CreditEntryKind
     reason?: StringFieldUpdateOperationsInput | string
     checkpointId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservationId?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -206157,6 +209603,7 @@ export namespace Prisma {
     kind?: EnumCreditEntryKindFieldUpdateOperationsInput | $Enums.CreditEntryKind
     reason?: StringFieldUpdateOperationsInput | string
     checkpointId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservationId?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string

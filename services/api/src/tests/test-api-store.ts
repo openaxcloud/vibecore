@@ -85,6 +85,10 @@ import type {
   SystemSettingRecord,
   UserRecord,
   UsageEventRecord,
+  UsageReservationRecord,
+  UsageReservationStatus,
+  PaymentAuthorizationRecord,
+  PaymentAuthorizationStatus,
   WorkspaceIdeStateRecord,
   WorkspaceRecord,
   QuotaOverrideRecord,
@@ -183,6 +187,8 @@ export class TestApiStore implements ApiStore {
   readonly creditWallets = new Map<string, CreditWalletRecord>();
   readonly creditLedger = new Map<string, CreditLedgerRecord>();
   readonly creditPacks = new Map<string, CreditPackRecord>();
+  readonly usageReservations = new Map<string, UsageReservationRecord>();
+  readonly paymentAuthorizations = new Map<string, PaymentAuthorizationRecord>();
   readonly agentCheckpoints = new Map<string, AgentCheckpointRecord>();
   readonly userSpendLimits = new Map<string, UserSpendLimitRecord>();
   readonly providerConfigs = new Map<string, ProviderConfigRecord>();
@@ -3362,6 +3368,7 @@ export class TestApiStore implements ApiStore {
     kind: CreditEntryKind;
     reason: string;
     checkpointId?: string;
+    reservationId?: string;
     expiresAt?: Date;
     metadata?: unknown;
   }) {
@@ -3375,6 +3382,7 @@ export class TestApiStore implements ApiStore {
       kind: input.kind,
       reason: input.reason,
       checkpointId: input.checkpointId,
+      reservationId: input.reservationId,
       expiresAt: input.expiresAt ? input.expiresAt.toISOString() : undefined,
       metadata: input.metadata,
       createdAt: now(),
@@ -3389,6 +3397,213 @@ export class TestApiStore implements ApiStore {
   async listCreditLedger(organizationId: string, options?: { take?: number }) {
     return [...this.creditLedger.values()]
       .filter((e) => e.organizationId === organizationId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, options?.take ?? 100);
+  }
+
+  async listCreditLedgerByReservation(reservationId: string) {
+    return [...this.creditLedger.values()]
+      .filter((e) => e.reservationId === reservationId)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  async createUsageReservation(input: {
+    organizationId: string;
+    userId?: string;
+    idempotencyKey: string;
+    operation: string;
+    maxAmountCents: number;
+    expiresAt: Date;
+    rateCardVersion?: number;
+    importJobId?: string;
+    metadata?: unknown;
+  }) {
+    // Mirrors the DB unique (organizationId, idempotencyKey): replay returns
+    // the EXISTING hold, never a second one.
+    const existing = await this.findUsageReservationByKey(input.organizationId, input.idempotencyKey);
+
+    if (existing) {
+      return { reservation: existing, created: false };
+    }
+
+    const reservation: UsageReservationRecord = {
+      id: id('resv'),
+      organizationId: input.organizationId,
+      userId: input.userId,
+      idempotencyKey: input.idempotencyKey,
+      operation: input.operation,
+      maxAmountCents: input.maxAmountCents,
+      committedCents: undefined,
+      status: 'ACTIVE',
+      rateCardVersion: input.rateCardVersion,
+      importJobId: input.importJobId,
+      expiresAt: input.expiresAt.toISOString(),
+      metadata: input.metadata,
+      createdAt: now(),
+      updatedAt: now(),
+    };
+    this.usageReservations.set(reservation.id, reservation);
+
+    return { reservation, created: true };
+  }
+
+  async getUsageReservation(id: string) {
+    return this.usageReservations.get(id);
+  }
+
+  async findUsageReservationByKey(organizationId: string, idempotencyKey: string) {
+    return [...this.usageReservations.values()].find(
+      (r) => r.organizationId === organizationId && r.idempotencyKey === idempotencyKey,
+    );
+  }
+
+  async findUsageReservationByImportJob(importJobId: string) {
+    return [...this.usageReservations.values()]
+      .filter((r) => r.importJobId === importJobId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  }
+
+  async transitionUsageReservation(input: {
+    id: string;
+    from: UsageReservationStatus[];
+    to: UsageReservationStatus;
+    committedCents?: number;
+    releaseReason?: string;
+    nowIso: string;
+  }) {
+    const reservation = this.usageReservations.get(input.id);
+
+    if (!reservation || !input.from.includes(reservation.status)) {
+      return undefined;
+    }
+
+    reservation.status = input.to;
+
+    if (input.to === 'COMMITTED') {
+      reservation.committedCents = input.committedCents ?? 0;
+      reservation.committedAt = input.nowIso;
+    } else {
+      reservation.releasedAt = input.nowIso;
+
+      if (input.releaseReason) {
+        reservation.releaseReason = input.releaseReason;
+      }
+    }
+
+    reservation.updatedAt = input.nowIso;
+
+    return reservation;
+  }
+
+  async listUsageReservations(organizationId: string, options?: { take?: number }) {
+    return [...this.usageReservations.values()]
+      .filter((r) => r.organizationId === organizationId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, options?.take ?? 100);
+  }
+
+  async reapExpiredUsageReservations(nowIso: string) {
+    const reaped: UsageReservationRecord[] = [];
+
+    for (const reservation of this.usageReservations.values()) {
+      if (reservation.status === 'ACTIVE' && reservation.expiresAt < nowIso) {
+        const updated = await this.transitionUsageReservation({
+          id: reservation.id,
+          from: ['ACTIVE'],
+          to: 'EXPIRED',
+          releaseReason: 'timeout',
+          nowIso,
+        });
+
+        if (updated) {
+          reaped.push(updated);
+        }
+      }
+    }
+
+    return reaped;
+  }
+
+  async createPaymentAuthorization(input: {
+    organizationId: string;
+    userId?: string;
+    idempotencyKey: string;
+    purpose: string;
+    amountCents: number;
+    currency?: string;
+    expiresAt: Date;
+    metadata?: unknown;
+  }) {
+    const existing = await this.findPaymentAuthorizationByKey(input.organizationId, input.idempotencyKey);
+
+    if (existing) {
+      return { authorization: existing, created: false };
+    }
+
+    const authorization: PaymentAuthorizationRecord = {
+      id: id('payauth'),
+      organizationId: input.organizationId,
+      userId: input.userId,
+      idempotencyKey: input.idempotencyKey,
+      purpose: input.purpose,
+      amountCents: input.amountCents,
+      currency: input.currency ?? 'usd',
+      status: 'PENDING',
+      expiresAt: input.expiresAt.toISOString(),
+      metadata: input.metadata,
+      createdAt: now(),
+      updatedAt: now(),
+    };
+    this.paymentAuthorizations.set(authorization.id, authorization);
+
+    return { authorization, created: true };
+  }
+
+  async getPaymentAuthorization(id: string) {
+    return this.paymentAuthorizations.get(id);
+  }
+
+  async findPaymentAuthorizationByKey(organizationId: string, idempotencyKey: string) {
+    return [...this.paymentAuthorizations.values()].find(
+      (a) => a.organizationId === organizationId && a.idempotencyKey === idempotencyKey,
+    );
+  }
+
+  async transitionPaymentAuthorization(input: {
+    id: string;
+    from: PaymentAuthorizationStatus[];
+    to: PaymentAuthorizationStatus;
+    stripePaymentIntentId?: string;
+    nowIso: string;
+  }) {
+    const authorization = this.paymentAuthorizations.get(input.id);
+
+    if (!authorization || !input.from.includes(authorization.status)) {
+      return undefined;
+    }
+
+    authorization.status = input.to;
+
+    if (input.stripePaymentIntentId) {
+      authorization.stripePaymentIntentId = input.stripePaymentIntentId;
+    }
+
+    if (input.to === 'AUTHORIZED') {
+      authorization.authorizedAt = input.nowIso;
+    } else if (input.to === 'CAPTURED') {
+      authorization.capturedAt = input.nowIso;
+    } else if (input.to === 'VOIDED' || input.to === 'EXPIRED') {
+      authorization.voidedAt = input.nowIso;
+    }
+
+    authorization.updatedAt = input.nowIso;
+
+    return authorization;
+  }
+
+  async listPaymentAuthorizations(organizationId: string, options?: { take?: number }) {
+    return [...this.paymentAuthorizations.values()]
+      .filter((a) => a.organizationId === organizationId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, options?.take ?? 100);
   }

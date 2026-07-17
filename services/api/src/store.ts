@@ -713,9 +713,63 @@ export interface CreditLedgerRecord {
   kind: CreditEntryKind;
   reason: string;
   checkpointId?: string;
+  /** Correlation to the UsageReservation this movement settles or compensates. */
+  reservationId?: string;
   expiresAt?: string;
   metadata?: unknown;
   createdAt: string;
+}
+
+export type UsageReservationStatus = 'ACTIVE' | 'COMMITTED' | 'COMPENSATED' | 'RELEASED' | 'EXPIRED';
+
+/**
+ * Idempotent credit HOLD for a long-running billable operation (D4 billing
+ * safety). `maxAmountCents` is a ceiling, never a debit — the debit happens
+ * exactly once at COMMIT via CreditLedger entries stamped `reservationId`.
+ */
+export interface UsageReservationRecord {
+  id: string;
+  organizationId: string;
+  userId?: string;
+  idempotencyKey: string;
+  operation: string;
+  maxAmountCents: number;
+  committedCents?: number;
+  status: UsageReservationStatus;
+  rateCardVersion?: number;
+  importJobId?: string;
+  expiresAt: string;
+  committedAt?: string;
+  releasedAt?: string;
+  releaseReason?: string;
+  metadata?: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PaymentAuthorizationStatus = 'PENDING' | 'AUTHORIZED' | 'CAPTURED' | 'VOIDED' | 'EXPIRED';
+
+/**
+ * Money-side (PSP) authorization for a purchase (domains, ...). Deliberately
+ * DISTINCT from UsageReservation — it never touches the credit wallet/ledger.
+ */
+export interface PaymentAuthorizationRecord {
+  id: string;
+  organizationId: string;
+  userId?: string;
+  idempotencyKey: string;
+  purpose: string;
+  amountCents: number;
+  currency: string;
+  status: PaymentAuthorizationStatus;
+  stripePaymentIntentId?: string;
+  expiresAt: string;
+  authorizedAt?: string;
+  capturedAt?: string;
+  voidedAt?: string;
+  metadata?: unknown;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type CheckpointStatus = 'PENDING' | 'COMPLETED' | 'FAILED';
@@ -2135,9 +2189,85 @@ export interface ApiStore {
     kind: CreditEntryKind;
     reason: string;
     checkpointId?: string;
+    reservationId?: string;
     expiresAt?: Date;
     metadata?: unknown;
   }): Promise<{ entry: CreditLedgerRecord; balanceCents: number }>;
+  /** Ledger entries correlated to one reservation (commit debits + compensations). */
+  listCreditLedgerByReservation(reservationId: string): Promise<CreditLedgerRecord[]>;
+
+  // --- D4 billing safety: usage reservations (idempotent credit holds) --------
+  /**
+   * Create an ACTIVE reservation, idempotently: when (organizationId,
+   * idempotencyKey) already exists the EXISTING row is returned with
+   * `created: false` — replaying a key never opens a second hold. Backed by the
+   * DB unique index (create + catch-P2002), not a read-then-write race.
+   */
+  createUsageReservation(input: {
+    organizationId: string;
+    userId?: string;
+    idempotencyKey: string;
+    operation: string;
+    maxAmountCents: number;
+    expiresAt: Date;
+    rateCardVersion?: number;
+    importJobId?: string;
+    metadata?: unknown;
+  }): Promise<{ reservation: UsageReservationRecord; created: boolean }>;
+  getUsageReservation(id: string): Promise<UsageReservationRecord | undefined>;
+  findUsageReservationByKey(
+    organizationId: string,
+    idempotencyKey: string,
+  ): Promise<UsageReservationRecord | undefined>;
+  /** Latest reservation correlated to an import job (any status). */
+  findUsageReservationByImportJob(importJobId: string): Promise<UsageReservationRecord | undefined>;
+  /**
+   * Guarded state transition — an atomic compare-and-set on `status`. Returns
+   * the updated record, or undefined when the row was not in `from` (a
+   * concurrent commit/release won the race). This is the double-commit lock.
+   * `to: COMMITTED` stamps committedAt/committedCents; terminal releases stamp
+   * releasedAt/releaseReason.
+   */
+  transitionUsageReservation(input: {
+    id: string;
+    from: UsageReservationStatus[];
+    to: UsageReservationStatus;
+    committedCents?: number;
+    releaseReason?: string;
+    nowIso: string;
+  }): Promise<UsageReservationRecord | undefined>;
+  listUsageReservations(organizationId: string, options?: { take?: number }): Promise<UsageReservationRecord[]>;
+  /** ACTIVE past `expiresAt` -> EXPIRED (releaseReason 'timeout'); returns the reaped rows. */
+  reapExpiredUsageReservations(nowIso: string): Promise<UsageReservationRecord[]>;
+
+  // --- D4 billing safety: payment authorizations (money side, PSP) ------------
+  createPaymentAuthorization(input: {
+    organizationId: string;
+    userId?: string;
+    idempotencyKey: string;
+    purpose: string;
+    amountCents: number;
+    currency?: string;
+    expiresAt: Date;
+    metadata?: unknown;
+  }): Promise<{ authorization: PaymentAuthorizationRecord; created: boolean }>;
+  getPaymentAuthorization(id: string): Promise<PaymentAuthorizationRecord | undefined>;
+  findPaymentAuthorizationByKey(
+    organizationId: string,
+    idempotencyKey: string,
+  ): Promise<PaymentAuthorizationRecord | undefined>;
+  /** Same compare-and-set contract as transitionUsageReservation. */
+  transitionPaymentAuthorization(input: {
+    id: string;
+    from: PaymentAuthorizationStatus[];
+    to: PaymentAuthorizationStatus;
+    stripePaymentIntentId?: string;
+    nowIso: string;
+  }): Promise<PaymentAuthorizationRecord | undefined>;
+  listPaymentAuthorizations(
+    organizationId: string,
+    options?: { take?: number },
+  ): Promise<PaymentAuthorizationRecord[]>;
   listCreditLedger(organizationId: string, options?: { take?: number }): Promise<CreditLedgerRecord[]>;
   /**
    * Total usage-based (PAYG) spend in cents since `sinceMs` — sums the absolute

@@ -44,6 +44,19 @@ type UsageData = {
   overrides?: QuotaOverride[];
   plan: { name: string };
 };
+type UsageReservation = {
+  id: string;
+  operation: string;
+  status: 'ACTIVE' | 'COMMITTED' | 'COMPENSATED' | 'RELEASED' | 'EXPIRED';
+  estimatedCents: number;
+  maxAmountCents: number;
+  committedCents?: number;
+  importJobId?: string;
+  expiresAt: string;
+  releaseReason?: string;
+  createdAt: string;
+};
+type ReservationsData = { reservations: UsageReservation[] } | null;
 
 export const meta: MetaFunction = () => [{ title: 'Usage - E-Code' }];
 export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
@@ -73,9 +86,23 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     }),
   );
 
+  /*
+   * Credit reservations (D4): estimation / ceiling / billed result per hold.
+   * Best-effort like the breakdown — hidden on older API pods.
+   */
+  const reservationsPromise = apiRequest<ReservationsData>(request, `/orgs/${organization.id}/usage/reservations`).then(
+    (reservations) => reservations,
+    () => null as ReservationsData,
+  );
+
   try {
     const data = await apiRequest<UsageData>(request, `/orgs/${organization.id}/usage`);
-    const [breakdownResult, memberLimitsResult] = await Promise.all([breakdownPromise, memberLimitsPromise]);
+
+    const [breakdownResult, memberLimitsResult, reservationsResult] = await Promise.all([
+      breakdownPromise,
+      memberLimitsPromise,
+      reservationsPromise,
+    ]);
 
     return {
       ...data,
@@ -83,6 +110,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       breakdownUnavailable: breakdownResult.unavailable,
       memberLimits: memberLimitsResult.memberLimits,
       memberLimitsUnavailable: memberLimitsResult.unavailable,
+      reservations: reservationsResult?.reservations ?? null,
       usageAccessLimited: false,
     };
   } catch (error) {
@@ -91,7 +119,11 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
      * instead of crashing the page to the root error view (mirrors billing.tsx).
      */
     if (isForbiddenApiResponse(error)) {
-      const [breakdownResult, memberLimitsResult] = await Promise.all([breakdownPromise, memberLimitsPromise]);
+      const [breakdownResult, memberLimitsResult, reservationsResult] = await Promise.all([
+        breakdownPromise,
+        memberLimitsPromise,
+        reservationsPromise,
+      ]);
 
       return {
         usage: [],
@@ -103,6 +135,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         breakdownUnavailable: breakdownResult.unavailable,
         memberLimits: memberLimitsResult.memberLimits,
         memberLimitsUnavailable: memberLimitsResult.unavailable,
+        reservations: reservationsResult?.reservations ?? null,
         usageAccessLimited: true,
       };
     }
@@ -252,6 +285,71 @@ export default function UsagePage() {
           variant="compact"
         />
       )}
+      {data.reservations && data.reservations.length ? (
+        <section className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-5">
+          <h2 className="mb-1 text-base font-semibold text-bolt-elements-textPrimary">Credit reservations</h2>
+          <p className="mb-4 text-xs text-bolt-elements-textSecondary">
+            Each billable operation holds an authorized ceiling before it starts; the charge is recorded only after the
+            work completes, and cancelled or failed operations are released automatically.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-bolt-elements-textSecondary">
+                  <th className="py-1.5 pr-3 font-medium">Operation</th>
+                  <th className="py-1.5 pr-3 font-medium">Status</th>
+                  <th className="py-1.5 pr-3 font-medium">Estimated</th>
+                  <th className="py-1.5 pr-3 font-medium">Ceiling</th>
+                  <th className="py-1.5 pr-3 font-medium">Billed</th>
+                  <th className="py-1.5 font-medium">Opened</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.reservations.map((reservation) => (
+                  <tr key={reservation.id} className="border-t border-bolt-elements-borderColor">
+                    <td className="py-2 pr-3 text-bolt-elements-textPrimary">
+                      {userFacingLabel(reservation.operation)}
+                    </td>
+                    <td className="py-2 pr-3">
+                      <span
+                        className={
+                          reservation.status === 'ACTIVE'
+                            ? 'rounded-full bg-[var(--status-warning-bg)] px-2 py-0.5 text-xs font-medium text-[var(--status-warning-text)]'
+                            : reservation.status === 'COMMITTED'
+                              ? 'rounded-full bg-[var(--status-success-bg)] px-2 py-0.5 text-xs font-medium text-[var(--status-success-text)]'
+                              : 'rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs font-medium text-bolt-elements-textSecondary'
+                        }
+                      >
+                        {reservation.status === 'ACTIVE'
+                          ? 'Reserved'
+                          : reservation.status === 'COMMITTED'
+                            ? 'Billed'
+                            : reservation.status === 'COMPENSATED'
+                              ? 'Refunded'
+                              : reservation.status === 'RELEASED'
+                                ? 'Released'
+                                : 'Expired'}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-3 text-bolt-elements-textSecondary">
+                      {dollars(reservation.estimatedCents)}
+                    </td>
+                    <td className="py-2 pr-3 text-bolt-elements-textSecondary">
+                      {dollars(reservation.maxAmountCents)}
+                    </td>
+                    <td className="py-2 pr-3 font-medium text-bolt-elements-textPrimary">
+                      {reservation.committedCents != null ? dollars(reservation.committedCents) : '—'}
+                    </td>
+                    <td className="py-2 text-bolt-elements-textSecondary">
+                      {formatUserAreaDate(reservation.createdAt) ?? '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
       {data.usageAccessLimited ? (
         <AsyncPanelError
           title="Usage details are restricted"
