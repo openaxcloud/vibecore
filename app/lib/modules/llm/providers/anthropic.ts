@@ -310,6 +310,13 @@ export default class AnthropicProvider extends BaseProvider {
 
   staticModels: ModelInfo[] = [
     {
+      name: 'claude-fable-5',
+      label: 'Claude Fable 5',
+      provider: 'Anthropic',
+      maxTokenAllowed: 1_000_000,
+      maxCompletionTokens: 128000,
+    },
+    {
       name: 'claude-opus-4-8',
       label: 'Claude Opus 4.8',
       provider: 'Anthropic',
@@ -339,6 +346,14 @@ export default class AnthropicProvider extends BaseProvider {
     },
     {
       name: 'claude-haiku-4-5-20251001',
+      label: 'Claude Haiku 4.5',
+      provider: 'Anthropic',
+      maxTokenAllowed: 200000,
+      maxCompletionTokens: 64000,
+    },
+    {
+      // Alias id (no date suffix) — the agent routing card addresses Haiku by alias.
+      name: 'claude-haiku-4-5',
       label: 'Claude Haiku 4.5',
       provider: 'Anthropic',
       maxTokenAllowed: 200000,

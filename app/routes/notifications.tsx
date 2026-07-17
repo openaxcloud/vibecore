@@ -12,9 +12,9 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MetaFunction } from 'react-router';
-import { useFetcher, useLoaderData, useRevalidator } from 'react-router';
+import { useLoaderData, useRevalidator } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
@@ -162,7 +162,77 @@ type FeedNotification = {
 
 type NotificationFeed = { notifications: FeedNotification[]; unreadCount: number };
 
+type NotificationMutationResponse = {
+  ok?: boolean;
+  unreadCount?: number;
+};
+
 const EMPTY_NOTIFICATION_FEED: NotificationFeed = { notifications: [], unreadCount: 0 };
+
+function useRecoverableNotificationPost({
+  endpoint,
+  failureMessage,
+  onSuccess,
+}: {
+  endpoint: string;
+  failureMessage: string;
+  onSuccess?: (response: NotificationMutationResponse) => void | Promise<void>;
+}) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const controllerRef = useRef<AbortController | null>(null);
+  const onSuccessRef = useRef(onSuccess);
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
+
+  useEffect(
+    () => () => {
+      controllerRef.current?.abort();
+    },
+    [],
+  );
+
+  const run = useCallback(async () => {
+    controllerRef.current?.abort();
+
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    setPending(true);
+    setError(null);
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { accept: 'application/json' },
+        signal: controller.signal,
+      });
+
+      const payload = (await response.json().catch(() => null)) as NotificationMutationResponse | null;
+
+      if (!response.ok || payload?.ok !== true) {
+        throw new Error('Notification mutation was not confirmed');
+      }
+
+      await onSuccessRef.current?.(payload);
+    } catch (requestError) {
+      if (requestError instanceof DOMException && requestError.name === 'AbortError') {
+        return;
+      }
+
+      setError(failureMessage);
+    } finally {
+      if (controllerRef.current === controller) {
+        controllerRef.current = null;
+        setPending(false);
+      }
+    }
+  }, [endpoint, failureMessage]);
+
+  return { error, pending, run };
+}
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   /*
@@ -260,29 +330,68 @@ export default function NotificationsPage() {
   );
 }
 
-function PreferencesMatrixSection({ initial }: { initial: NotificationPreferences }) {
-  const fetcher = useFetcher<typeof action>();
+export function PreferencesMatrixSection({ initial }: { initial: NotificationPreferences }) {
   const [matrix, setMatrix] = useState(initial.matrix);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // Last server-confirmed state, so a failed save can revert optimistic toggles.
   const committed = useRef(initial.matrix);
+  const lastAttempted = useRef<NotificationMatrix | null>(null);
+  const saveController = useRef<AbortController | null>(null);
 
-  const saving = fetcher.state !== 'idle';
+  const submitMatrix = useCallback(async (next: NotificationMatrix) => {
+    saveController.current?.abort();
 
-  useEffect(() => {
-    if (!fetcher.data) {
-      return;
+    const controller = new AbortController();
+    saveController.current = controller;
+    lastAttempted.current = next;
+    setSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/user/preferences', {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ preferences: { notifications: { matrix: next } } }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error('Notification preferences were not persisted');
+      }
+
+      if (saveController.current === controller) {
+        committed.current = next;
+        lastAttempted.current = null;
+      }
+    } catch (requestError) {
+      if (requestError instanceof Error && requestError.name === 'AbortError') {
+        return;
+      }
+
+      if (saveController.current === controller) {
+        setMatrix(committed.current);
+        setError('Could not save notification preferences.');
+      }
+    } finally {
+      if (saveController.current === controller) {
+        saveController.current = null;
+        setSaving(false);
+      }
     }
+  }, []);
 
-    if (fetcher.data.ok) {
-      committed.current = fetcher.data.preferences.matrix;
-      setError(null);
-    } else {
-      setMatrix(committed.current);
-      setError(fetcher.data.error);
-    }
-  }, [fetcher.data]);
+  useEffect(
+    () => () => {
+      saveController.current?.abort();
+    },
+    [],
+  );
 
   const setCell = (categoryKey: string, channelKey: string, enabled: boolean) => {
     if (isLockedCell(categoryKey, channelKey)) {
@@ -297,17 +406,19 @@ function PreferencesMatrixSection({ initial }: { initial: NotificationPreference
      * Optimistic save-on-change: submit the full grid (last submission wins on
      * rapid toggles) and revert to the last confirmed state on error.
      */
-    const form = new FormData();
+    void submitMatrix(next);
+  };
 
-    for (const category of categories) {
-      for (const channel of channels) {
-        if (next[category.key]?.[channel.key]) {
-          form.set(`cell.${category.key}.${channel.key}`, 'on');
-        }
-      }
+  const retryLastSave = () => {
+    const attempted = lastAttempted.current;
+
+    if (!attempted) {
+      return;
     }
 
-    fetcher.submit(form, { method: 'post' });
+    setMatrix(attempted);
+    setError(null);
+    void submitMatrix(attempted);
   };
 
   const totalCells = categories.length * channels.length;
@@ -342,12 +453,14 @@ function PreferencesMatrixSection({ initial }: { initial: NotificationPreference
       </div>
 
       {error ? (
-        <p
-          role="alert"
-          className="mx-5 mt-4 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)] sm:mx-6"
-        >
-          {error} Your changes were reverted.
-        </p>
+        <AsyncPanelError
+          compact
+          title="Preferences were not saved"
+          description={`${error} Your previous settings remain active.`}
+          onRetry={retryLastSave}
+          retrying={saving}
+          className="mx-5 mt-4 sm:mx-6"
+        />
       ) : null}
 
       <div className="overflow-x-auto">
@@ -451,12 +564,41 @@ function toneClasses(tone: NotificationCategory['tone']) {
   );
 }
 
-function NotificationFeedSection({ feed, unavailable }: { feed: NotificationFeed; unavailable: boolean }) {
-  const markAllFetcher = useFetcher();
+export function NotificationFeedSection({ feed, unavailable }: { feed: NotificationFeed; unavailable: boolean }) {
   const revalidator = useRevalidator();
-  const { notifications, unreadCount } = feed;
-  const markingAll = markAllFetcher.state !== 'idle';
+  const [currentFeed, setCurrentFeed] = useState(feed);
+  const { notifications, unreadCount } = currentFeed;
   const retrying = revalidator.state !== 'idle';
+
+  const markAll = useRecoverableNotificationPost({
+    endpoint: '/api/notifications/read-all',
+    failureMessage: 'E-Code could not confirm that every notification was marked as read.',
+    onSuccess: (response) => {
+      setCurrentFeed((current) => ({
+        notifications: current.notifications.map((notification) => ({
+          ...notification,
+          read: true,
+          readAt: notification.readAt ?? new Date().toISOString(),
+        })),
+        unreadCount: response.unreadCount ?? 0,
+      }));
+    },
+  });
+
+  useEffect(() => {
+    setCurrentFeed(feed);
+  }, [feed]);
+
+  const confirmNotificationRead = useCallback((notificationId: string, nextUnreadCount?: number) => {
+    setCurrentFeed((current) => ({
+      notifications: current.notifications.map((notification) =>
+        notification.id === notificationId
+          ? { ...notification, read: true, readAt: notification.readAt ?? new Date().toISOString() }
+          : notification,
+      ),
+      unreadCount: nextUnreadCount ?? Math.max(0, current.unreadCount - 1),
+    }));
+  }, []);
 
   if (unavailable) {
     return retrying ? (
@@ -493,13 +635,30 @@ function NotificationFeedSection({ feed, unavailable }: { feed: NotificationFeed
           </div>
         </div>
         {unreadCount > 0 ? (
-          <markAllFetcher.Form method="post" action="/api/notifications/read-all">
-            <Button type="submit" variant="secondary" disabled={markingAll} aria-busy={markingAll}>
-              {markingAll ? 'Marking…' : 'Mark all as read'}
-            </Button>
-          </markAllFetcher.Form>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={markAll.pending}
+            aria-busy={markAll.pending}
+            className="min-h-[44px]"
+            onClick={() => void markAll.run()}
+          >
+            {markAll.pending ? 'Marking…' : 'Mark all as read'}
+          </Button>
         ) : null}
       </div>
+
+      {markAll.error ? (
+        <div className="border-b border-bolt-elements-borderColor p-4 sm:px-6">
+          <AsyncPanelError
+            compact
+            title="Notifications were not marked as read"
+            description={`${markAll.error} Try again before relying on the unread count.`}
+            onRetry={() => void markAll.run()}
+            retrying={markAll.pending}
+          />
+        </div>
+      ) : null}
 
       {notifications.length === 0 ? (
         <div className="flex flex-col items-center gap-2 p-8 text-center">
@@ -512,7 +671,7 @@ function NotificationFeedSection({ feed, unavailable }: { feed: NotificationFeed
       ) : (
         <ul className="divide-y divide-bolt-elements-borderColor">
           {notifications.map((notification) => (
-            <NotificationRow key={notification.id} notification={notification} />
+            <NotificationRow key={notification.id} notification={notification} onRead={confirmNotificationRead} />
           ))}
         </ul>
       )}
@@ -520,64 +679,99 @@ function NotificationFeedSection({ feed, unavailable }: { feed: NotificationFeed
   );
 }
 
-function NotificationRow({ notification }: { notification: FeedNotification }) {
-  const readFetcher = useFetcher();
+function NotificationRow({
+  notification,
+  onRead,
+}: {
+  notification: FeedNotification;
+  onRead: (notificationId: string, unreadCount?: number) => void;
+}) {
+  const [confirmedRead, setConfirmedRead] = useState(notification.read);
   const tone = categoryTone[notification.category] ?? 'info';
 
+  const markRead = useRecoverableNotificationPost({
+    endpoint: `/api/notifications/${encodeURIComponent(notification.id)}/read`,
+    failureMessage: 'E-Code could not confirm that this notification was marked as read.',
+    onSuccess: (response) => {
+      setConfirmedRead(true);
+      onRead(notification.id, response.unreadCount);
+    },
+  });
+
+  useEffect(() => {
+    setConfirmedRead(notification.read);
+  }, [notification.read]);
+
   // Optimistically reflect an in-flight mark-read so the row updates instantly.
-  const isRead = notification.read || readFetcher.state !== 'idle';
+  const isRead = confirmedRead || markRead.pending;
 
   return (
     <li
+      aria-busy={markRead.pending || undefined}
       className={classNames(
-        'flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between',
+        'p-4',
         isRead ? 'bg-bolt-elements-background-depth-2' : 'bg-bolt-elements-background-depth-1',
       )}
     >
-      <div className="flex min-w-0 items-start gap-3">
-        <span
-          className={classNames(
-            'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border',
-            toneClasses(tone),
-          )}
-        >
-          <Bell className="h-4 w-4" aria-hidden />
-        </span>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className={classNames('text-sm', isRead ? 'font-medium' : 'font-semibold')}>{notification.title}</h3>
-            {!isRead ? (
-              <span className="h-2 w-2 shrink-0 rounded-full bg-bolt-elements-item-contentAccent" aria-label="Unread" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            className={classNames(
+              'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border',
+              toneClasses(tone),
+            )}
+          >
+            <Bell className="h-4 w-4" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className={classNames('text-sm', isRead ? 'font-medium' : 'font-semibold')}>{notification.title}</h3>
+              {!isRead ? (
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full bg-bolt-elements-item-contentAccent"
+                  aria-label="Unread"
+                />
+              ) : null}
+            </div>
+            {notification.body ? (
+              <p className="mt-1 text-sm leading-6 text-bolt-elements-textSecondary">{notification.body}</p>
             ) : null}
-          </div>
-          {notification.body ? (
-            <p className="mt-1 text-sm leading-6 text-bolt-elements-textSecondary">{notification.body}</p>
-          ) : null}
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textTertiary">
-            <time dateTime={notification.createdAt}>
-              {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-            </time>
-            {notification.linkUrl ? (
-              <>
-                <span aria-hidden>·</span>
-                <a className="text-bolt-elements-item-contentAccent hover:underline" href={notification.linkUrl}>
-                  View
-                </a>
-              </>
-            ) : null}
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textTertiary">
+              <time dateTime={notification.createdAt}>
+                {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+              </time>
+              {notification.linkUrl ? (
+                <>
+                  <span aria-hidden>·</span>
+                  <a className="text-bolt-elements-item-contentAccent hover:underline" href={notification.linkUrl}>
+                    View
+                  </a>
+                </>
+              ) : null}
+            </div>
           </div>
         </div>
-      </div>
-      {!isRead ? (
-        <readFetcher.Form
-          method="post"
-          action={`/api/notifications/${encodeURIComponent(notification.id)}/read`}
-          className="shrink-0"
-        >
-          <Button type="submit" variant="secondary" disabled={readFetcher.state !== 'idle'}>
+        {!isRead && !markRead.error ? (
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={markRead.pending}
+            className="min-h-[44px] shrink-0"
+            onClick={() => void markRead.run()}
+          >
             Mark read
           </Button>
-        </readFetcher.Form>
+        ) : null}
+      </div>
+      {markRead.error ? (
+        <AsyncPanelError
+          compact
+          title="Notification was not marked as read"
+          description={`${markRead.error} Try the request again.`}
+          onRetry={() => void markRead.run()}
+          retrying={markRead.pending}
+          className="mt-3"
+        />
       ) : null}
     </li>
   );

@@ -99,6 +99,7 @@ model User {
   notifications               Notification[]
   aiMessageFeedback           AiMessageFeedback[]
   spendLimits                 UserSpendLimit[]
+  agentRoutingCards           AgentRoutingCard[]             @relation("AgentRoutingCardAuthor")
 }
 
 model Account {
@@ -747,6 +748,10 @@ model Deployment {
   // metered (mirrors WorkspaceRuntime.lastMeteredAt) so a re-reconcile never
   // double-charges. Dormant/SHADOW until BILLING_CREDITS_ENABLED. See metering-service.ts.
   lastMeteredAt      DateTime?
+  // Machine size the user picked at publish (rate-card key, e.g. 'dedicated-1').
+  // Applied verbatim as the runtime pod's requests==limits and used to price
+  // compute metering — the machine you picked is the machine you pay for.
+  machineSize        String                 @default("shared-0.5")
   startedAt          DateTime?
   finishedAt         DateTime?
   canceledAt         DateTime?
@@ -765,6 +770,22 @@ model DeploymentEnvironment {
   id          String       @id @default(cuid())
   name        String       @unique
   deployments Deployment[]
+}
+
+// Versioned Rate Card: the priced catalogue (machine sizes, compute-unit and
+// request rates) served to the app and stamped on every metering event. A
+// price change INSERTS a new version and flips `active` — history is never
+// mutated, so past usage events stay auditable against the card that priced
+// them. Seeded with version 1 (= packages/billing BUILTIN_RATE_CARD).
+model RateCard {
+  id          String   @id @default(cuid())
+  version     Int      @unique
+  active      Boolean  @default(false)
+  data        Json
+  effectiveAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([active])
 }
 
 model AuditLog {
@@ -2107,4 +2128,165 @@ model DatabaseRestore {
   @@index([status])
   // "restores requested by user" lookups; was a full-scan (no FK on this column).
   @@index([requestedByUserId])
+}
+
+// ---------------------------------------------------------------------------
+// Scheduled tasks (cron). Backs BOTH the Workflows panel schedules AND the
+// Replit-parity "Scheduled" deployment type: a command that runs on a cron,
+// exits, and is billed for its RUN TIME (duration x machine size) rather than
+// 24/7. Before this, cron expressions were validated and a nextRunAt was
+// computed, but nothing ever fired them — the feature was dead.
+// ---------------------------------------------------------------------------
+
+enum ScheduledTaskKind {
+  /// Runs an existing Workflows-panel workflow (its ordered steps).
+  WORKFLOW
+  /// Replit "Scheduled Deployment": one shell command, on a cron.
+  DEPLOYMENT
+}
+
+enum ScheduledTaskRunStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+  TIMED_OUT
+  /// The previous run was still RUNNING when this tick fired (concurrencyPolicy=FORBID).
+  SKIPPED
+  CANCELED
+}
+
+/// One cron-scheduled unit of work owned by a project. `nextRunAt` is the claim
+/// token: the scheduler advances it inside a conditional UPDATE, so exactly one
+/// api replica can ever own a given tick (no distributed lock needed).
+model ScheduledTask {
+  id              String             @id @default(cuid())
+  organizationId  String
+  projectId       String
+  kind            ScheduledTaskKind  @default(DEPLOYMENT)
+  name            String
+  /// Shell command for DEPLOYMENT tasks (run as `sh -lc <command>` in the project sandbox).
+  command         String             @default("")
+  /// For WORKFLOW tasks: the workflow id inside VIBECORE_WORKFLOWS_STATE.
+  workflowId      Int?
+  /// 5-field cron expression, already normalized.
+  cron            String
+  /// IANA timezone the cron fields are interpreted in.
+  timezone        String             @default("UTC")
+  /// Machine size key. The size catalogue itself is owned elsewhere; this is the field only.
+  machineSize     String             @default("shared-0.5")
+  enabled         Boolean            @default(true)
+  /// Hard kill after this many seconds.
+  timeoutSeconds  Int                @default(900)
+  /// FORBID (skip if the previous run is still going) | ALLOW.
+  concurrency     String             @default("FORBID")
+  /// Replit parity: a failed scheduled run is NOT retried by default.
+  maxRetries      Int                @default(0)
+  notifyOnFailure Boolean            @default(true)
+  lastRunAt       DateTime?
+  lastStatus      String?
+  /// Next fire time (UTC). NULL when disabled.
+  nextRunAt       DateTime?
+  createdByUserId String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  runs            ScheduledTaskRun[]
+
+  @@unique([projectId, kind, workflowId])
+  /// The scheduler's hot query: enabled tasks whose nextRunAt is due.
+  @@index([enabled, nextRunAt])
+  @@index([projectId])
+  @@index([organizationId])
+}
+
+/// One execution. Holds the FULL captured stdout+stderr, the real exit code, the
+/// real duration, and the billing outcome for that duration.
+model ScheduledTaskRun {
+  id             String                 @id @default(cuid())
+  taskId         String
+  organizationId String
+  projectId      String
+  status         ScheduledTaskRunStatus @default(RUNNING)
+  /// "schedule" | "manual"
+  trigger        String                 @default("schedule")
+  attempt        Int                    @default(1)
+  /// The cron instant this run is for (may differ from startedAt under load).
+  scheduledFor   DateTime
+  startedAt      DateTime               @default(now())
+  finishedAt     DateTime?
+  durationMs     Int?
+  exitCode       Int?
+  /// Full captured output (stdout + stderr), not a tail.
+  logs           String                 @default("")
+  error          String?
+  machineSize    String?
+  /// Billed compute units for this run (duration x size). NULL until metered.
+  computeUnits   Float?
+  costCents      Float?
+  meteredAt      DateTime?
+  task           ScheduledTask          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, startedAt])
+  @@index([projectId, startedAt])
+  @@index([status])
+}
+
+/// Versioned Agent Routing Card: maps agent modes (Lite/Economy/Power) and
+/// switches (High effort/Turbo) + the harness classifier to concrete provider
+/// models with cost-of-revenue and user pricing. `data` is the serialized
+/// AgentRoutingCard document (packages/billing agent-routing.ts). A config
+/// change inserts a NEW version and closes the previous one (effectiveTo) —
+/// never a deployment, never a mutation of history.
+model AgentRoutingCard {
+  id              String    @id @default(cuid())
+  version         Int       @unique
+  active          Boolean   @default(false)
+  data            Json
+  effectiveFrom   DateTime  @default(now())
+  effectiveTo     DateTime?
+  /// Date the cost-of-revenue figures were sourced from provider pricing.
+  sourceDate      String?
+  createdByUserId String?
+  createdAt       DateTime  @default(now())
+  createdBy       User?     @relation("AgentRoutingCardAuthor", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([active])
+}
+
+/// One row per routed agent LLM call (admin-only, never shown to the client):
+/// who called, which mode/switches, whether high-effort escalated, the REAL
+/// provider+model used, tokens, cost-of-revenue, credits billed and margin.
+/// Cents are stored as millicents (Int) to keep fractional cost exact.
+model AgentCallLog {
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now())
+  userId             String?
+  organizationId     String?
+  projectId          String?
+  /// lite | economy | power
+  mode               String
+  highEffort         Boolean  @default(false)
+  /// true when high-effort actually escalated this call to the escalation line
+  escalated          Boolean  @default(false)
+  turbo              Boolean  @default(false)
+  /// Routing line that priced the call: mode key, high-effort, turbo or classifier.
+  lineKey            String
+  provider           String
+  model              String
+  tokensIn           Int      @default(0)
+  tokensOut          Int      @default(0)
+  /// Coût de revient in millicents (1/1000 cent).
+  costMillicents     Int      @default(0)
+  /// Credits billed to the user, in cents (0 when billedToUser=false).
+  creditCents        Int      @default(0)
+  /// creditCents*1000 - costMillicents (negative = platform absorbed cost).
+  marginMillicents   Int      @default(0)
+  billedToUser       Boolean  @default(true)
+  routingCardVersion Int
+  /// chat | classifier | continuation…
+  source             String   @default("chat")
+
+  @@index([createdAt])
+  @@index([lineKey, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([projectId, createdAt])
 }

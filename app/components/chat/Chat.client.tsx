@@ -1455,7 +1455,7 @@ export const ChatImpl = memo(
 
           append({
             role: 'user',
-            content: `[Model: ${selectedModel}]\n\n[Provider: ${selectedProvider.name}]\n\n${prompt}`,
+            content: prompt,
           });
         })
         .catch((error) => {
@@ -1529,7 +1529,7 @@ export const ChatImpl = memo(
       runAnimation();
       append({
         role: 'user',
-        content: `[Model: ${selectedModel}]\n\n[Provider: ${selectedProvider.name}]\n\n${prompt}`,
+        content: prompt,
       });
 
       clearPromptParams();
@@ -1706,6 +1706,36 @@ export const ChatImpl = memo(
         finalMessageContent = messageContent + elementInfo;
       }
 
+      /*
+       * AGM nudge: a user looping in Economy on the same project (several sends
+       * in a row) probably has a task Power would handle better. Suggest it AT
+       * MOST ONCE PER PROJECT (localStorage marker), as a dismissible toast —
+       * never a blocking dialog, never a model name.
+       */
+      if (projectId && agentPower?.buildTier !== 'power') {
+        try {
+          const nudgeKey = `vibecore:agent-mode-nudge:${projectId}`;
+          const countKey = `vibecore:agent-mode-economy-sends:${projectId}`;
+
+          if (!window.localStorage.getItem(nudgeKey)) {
+            const sends = Number(window.localStorage.getItem(countKey) ?? '0') + 1;
+            window.localStorage.setItem(countKey, String(sends));
+
+            if (sends >= 4) {
+              window.localStorage.setItem(nudgeKey, new Date().toISOString());
+              toast.info(
+                'Still iterating? Power mode handles complex tasks in fewer turns — try it from the mode selector.',
+                {
+                  autoClose: 8000,
+                },
+              );
+            }
+          }
+        } catch {
+          // storage unavailable — the nudge is best-effort
+        }
+      }
+
       runAnimation();
 
       /*
@@ -1770,7 +1800,7 @@ export const ChatImpl = memo(
               }
 
               const { assistantMessage, userMessage } = temResp;
-              const userMessageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
+              const userMessageText = finalMessageContent;
 
               setMessages([
                 {
@@ -1787,7 +1817,7 @@ export const ChatImpl = memo(
                 {
                   id: `3-${new Date().getTime()}`,
                   role: 'user',
-                  content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}`,
+                  content: userMessage,
                   annotations: ['hidden'],
                 },
               ]);
@@ -1815,7 +1845,7 @@ export const ChatImpl = memo(
         }
 
         // If autoSelectTemplate is disabled or template selection failed, proceed with normal message
-        const userMessageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
+        const userMessageText = finalMessageContent;
         const attachments = uploadedFiles.length > 0 ? await filesToAttachments(uploadedFiles) : undefined;
 
         /*
@@ -1862,7 +1892,7 @@ export const ChatImpl = memo(
 
       if (modifiedFiles !== undefined) {
         const userUpdateArtifact = filesToArtifacts(modifiedFiles, `${Date.now()}`);
-        const messageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userUpdateArtifact}${finalMessageContent}`;
+        const messageText = `${userUpdateArtifact}${finalMessageContent}`;
 
         const attachmentOptions =
           uploadedFiles.length > 0 ? { experimental_attachments: await filesToAttachments(uploadedFiles) } : undefined;
@@ -1881,7 +1911,7 @@ export const ChatImpl = memo(
 
         workbenchStore.resetAllFileModifications();
       } else {
-        const messageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
+        const messageText = finalMessageContent;
 
         const attachmentOptions =
           uploadedFiles.length > 0 ? { experimental_attachments: await filesToAttachments(uploadedFiles) } : undefined;

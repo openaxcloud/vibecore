@@ -97,6 +97,30 @@ export type DeployDetect = {
   pending?: boolean;
 };
 
+/** The versioned rate card served by /projects/:id/deployments/rate-card. */
+export type DeployRateCard = {
+  version: number;
+  currency: string;
+  compute: { unitCents: number; requestCents: number };
+  planKey: string;
+  defaultMachineSize: string;
+  machineSizes: Array<{
+    key: string;
+    label: string;
+    vcpu: number;
+    ramGb: number;
+    computeUnitsPerSecond: number;
+    available: boolean;
+    reason?: 'plan' | 'capacity';
+  }>;
+};
+
+/** ~$ per active hour for a size (compute units/s × 3600 × unit price). */
+export function machineSizeHourlyDollars(card: DeployRateCard, size: { computeUnitsPerSecond: number }): string {
+  const cents = size.computeUnitsPerSecond * 3600 * card.compute.unitCents;
+  return `$${(cents / 100).toFixed(cents >= 100 ? 2 : 3)}`;
+}
+
 export const loader = async (args: EnterpriseLoaderArgs) => {
   /*
    * `?detect=1` is a lightweight side-channel the Publish panel's fetcher hits to
@@ -130,6 +154,32 @@ export const loader = async (args: EnterpriseLoaderArgs) => {
           pending: true,
         },
       });
+    }
+  }
+
+  /*
+   * `?rateCard=1` side-channel (same pattern as `?detect=1`): the Publish card
+   * fetches the versioned rate card — machine sizes, per-size availability for
+   * the org's plan, unit prices — so the size selector renders from the card,
+   * never from hard-coded UI strings.
+   */
+  if (url.searchParams.get('rateCard') === '1') {
+    const projectId = args.params.projectId;
+
+    if (!projectId) {
+      throw json({ ok: false, error: 'Project not found' }, { status: 404 });
+    }
+
+    try {
+      const rateCard = await apiRequest<DeployRateCard>(args.request, `/projects/${projectId}/deployments/rate-card`);
+
+      return json({ rateCard });
+    } catch (error) {
+      if (isReauthRedirect(error)) {
+        throw error;
+      }
+
+      return json({ rateCard: null });
     }
   }
 
@@ -182,6 +232,9 @@ export const action = (args: EnterpriseActionArgs) =>
               ? { repositoryUrl: body.repositoryUrl, branch: body.branch || undefined }
               : undefined,
             workspaceId,
+
+            // Server deploys: rate-card machine size picked in the publish card.
+            machineSize: body.machineSize || undefined,
           }),
         });
       } catch (error) {
@@ -424,6 +477,7 @@ function DeployPublishCard({
   onDetectedMode: (mode: 'server' | 'static') => void;
 }) {
   const detectFetcher = useFetcher<{ detected: DeployDetect }>();
+  const rateCardFetcher = useFetcher<{ rateCard: DeployRateCard | null }>();
   const [override, setOverride] = useState<'auto' | 'server' | 'static'>('auto');
 
   const detectHref = `/projects/${projectId}/deployments?detect=1${
@@ -434,6 +488,13 @@ function DeployPublishCard({
   useEffect(() => {
     detectFetcher.load(detectHref);
   }, [detectHref]);
+
+  // The rate card (machine sizes + availability) drives the server-mode selector.
+  useEffect(() => {
+    rateCardFetcher.load(`/projects/${projectId}/deployments?rateCard=1`);
+  }, [projectId]);
+
+  const rateCard = rateCardFetcher.data?.rateCard ?? null;
 
   const detected = detectFetcher.data?.detected;
   const detecting = detectFetcher.state !== 'idle' || !detected;
@@ -509,6 +570,28 @@ function DeployPublishCard({
           </Field>
           <Field label="Custom domain" name="customDomain" placeholder="app.example.com" />
         </div>
+
+        {/*
+         * Machine size (server mode) — rendered from the versioned rate card,
+         * never hard-coded. Sizes the plan or current capacity cannot grant stay
+         * visible but disabled, so the ladder is honest about what exists.
+         */}
+        {effectiveMode === 'server' && rateCard ? (
+          <div className="grid gap-1.5">
+            <Field as="select" label="Machine size" name="machineSize" defaultValue={rateCard.defaultMachineSize}>
+              {rateCard.machineSizes.map((size) => (
+                <option key={size.key} value={size.key} disabled={!size.available}>
+                  {size.label} — {machineSizeHourlyDollars(rateCard, size)}/h active
+                  {size.available ? '' : size.reason === 'plan' ? ' (upgrade plan)' : ' (unavailable)'}
+                </option>
+              ))}
+            </Field>
+            <p className="text-[11px] text-bolt-elements-textTertiary">
+              Billed only while your app is running — it sleeps automatically after 15 min without traffic and wakes on
+              the next request. Rate card v{rateCard.version}.
+            </p>
+          </div>
+        ) : null}
 
         <Field
           as="textarea"

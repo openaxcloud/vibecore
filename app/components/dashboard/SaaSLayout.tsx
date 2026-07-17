@@ -1323,7 +1323,11 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
   }
 
   return (
-    <div className="grid min-w-0 grid-cols-1 gap-4 overflow-x-hidden md:grid-cols-2 2xl:grid-cols-3">
+    <div
+      data-testid="project-grid"
+      className="grid min-w-0 justify-start gap-4 overflow-x-hidden"
+      style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 19rem), 1fr))' }}
+    >
       {projects.map((project) => (
         <ProjectGridCard key={project.id} project={project} />
       ))}
@@ -1338,18 +1342,42 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
   const statusLabel = projectStatusLabel(project);
 
   return (
-    <Card className="group min-w-0 w-full max-w-full overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3">
-      <CardHeader>
+    <Card className="group flex h-full min-w-0 w-full max-w-[26rem] flex-col overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:border-bolt-elements-borderColorActive">
+      <div className="vc-project-preview relative aspect-[16/10] w-full overflow-hidden border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
+        <ProjectPreviewMedia
+          project={project}
+          className="relative z-[1] h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.015] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+        />
+        <span
+          className="absolute right-3 top-3 z-[2] inline-flex min-h-7 items-center gap-1.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm"
+          aria-label={`Project status: ${statusLabel}`}
+        >
+          <span
+            className={classNames(
+              'h-1.5 w-1.5 rounded-full',
+              lifecycle === 'deployed'
+                ? 'bg-[var(--status-success-text)]'
+                : lifecycle === 'draft'
+                  ? 'bg-[var(--status-info-text)]'
+                  : 'bg-bolt-elements-textTertiary',
+            )}
+            aria-hidden
+          />
+          {statusLabel}
+        </span>
+      </div>
+
+      <CardHeader className="p-4 pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             {renaming ? (
               <ProjectRenameForm project={project} onDone={() => setRenaming(false)} />
             ) : (
-              <CardTitle className="line-clamp-2 min-h-[56px] text-lg" title={project.name}>
+              <CardTitle className="line-clamp-2 min-h-12 text-base leading-6" title={project.name}>
                 {project.name}
               </CardTitle>
             )}
-            <CardDescription className="truncate">
+            <CardDescription className="mt-1 truncate text-xs">
               {project.stack ?? project.sourceType ?? 'Persistent project'}
             </CardDescription>
           </div>
@@ -1358,53 +1386,37 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Cap the thumbnail height while cards are wide enough to scan; the
-            aspect ratio governs again in the large multi-column layout. */}
-        <div className="vc-project-preview relative aspect-[16/10] max-h-44 w-full overflow-hidden rounded-md sm:max-h-52 lg:aspect-[16/9] lg:max-h-none">
-          <ProjectPreviewMedia
-            project={project}
-            className="relative z-[1] h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.015]"
-          />
-          {/* Replit parity: status as a translucent overlay chip in the thumbnail
-              corner (readable over any preview image), not a header pill. */}
-          <span
-            className="absolute right-2 top-2 z-[2] inline-flex items-center gap-1.5 rounded-full bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm"
-            aria-label={`Project status: ${statusLabel}`}
-          >
-            <span
-              className={classNames(
-                'h-1.5 w-1.5 rounded-full',
-                lifecycle === 'deployed'
-                  ? 'bg-[var(--status-success-text)]'
-                  : lifecycle === 'draft'
-                    ? 'bg-[var(--status-info-text)]'
-                    : 'bg-bolt-elements-textTertiary',
-              )}
-              aria-hidden
-            />
-            {statusLabel}
-          </span>
-        </div>
-        <div className="flex min-w-0 items-center justify-between gap-3 text-xs text-bolt-elements-textSecondary">
-          <div className="min-w-0 space-y-1">
-            {project.updatedAtIso ? (
-              <RelativeTime value={project.updatedAtIso} prefix="Last activity" className="block truncate" />
-            ) : (
-              <span className="block truncate">Last activity {project.updated ?? 'recently'}</span>
-            )}
-            <span className="flex items-center gap-1.5 text-bolt-elements-textTertiary">
-              <Rocket className="h-3.5 w-3.5" aria-hidden />
-              {projectDeploymentSummary(project.deploymentCount)}
-            </span>
+      <CardContent className="mt-auto space-y-3 p-4 pt-0">
+        <div className="grid min-w-0 grid-cols-2 gap-3 border-y border-bolt-elements-borderColor py-3 text-xs">
+          <div className="flex min-w-0 items-start gap-2">
+            <Activity className="mt-0.5 h-3.5 w-3.5 shrink-0 text-bolt-elements-textTertiary" aria-hidden />
+            <div className="min-w-0">
+              <span className="block text-[11px] text-bolt-elements-textTertiary">Activity</span>
+              <span className="mt-0.5 block truncate font-medium text-bolt-elements-textSecondary">
+                {project.updatedAtIso ? <RelativeTime value={project.updatedAtIso} /> : (project.updated ?? 'recently')}
+              </span>
+            </div>
           </div>
-          <Link
-            to={project.ideUrl ?? `/projects/${project.id}/ide`}
-            className="inline-flex min-h-[44px] shrink-0 items-center rounded-md px-2 py-1 font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
-          >
-            Open IDE
-          </Link>
+          <div className="flex min-w-0 items-start gap-2">
+            <Rocket className="mt-0.5 h-3.5 w-3.5 shrink-0 text-bolt-elements-textTertiary" aria-hidden />
+            <div className="min-w-0">
+              <span className="block text-[11px] text-bolt-elements-textTertiary">Deployments</span>
+              <span className="mt-0.5 block truncate font-medium text-bolt-elements-textSecondary">
+                {projectDeploymentSummary(project.deploymentCount)}
+              </span>
+            </div>
+          </div>
         </div>
+        <Link
+          to={project.ideUrl ?? `/projects/${project.id}/ide`}
+          className="inline-flex min-h-[44px] w-full items-center justify-between gap-3 rounded-md bg-bolt-elements-button-primary-background px-3.5 text-sm font-medium text-bolt-elements-button-primary-text transition-colors hover:bg-bolt-elements-button-primary-backgroundHover focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)]"
+        >
+          <span className="inline-flex min-w-0 items-center gap-2">
+            <MonitorPlay className="h-4 w-4 shrink-0" aria-hidden />
+            <span>Open IDE</span>
+          </span>
+          <ArrowUpRight className="h-4 w-4 shrink-0" aria-hidden />
+        </Link>
       </CardContent>
     </Card>
   );
@@ -1418,9 +1430,12 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
  */
 function ProjectPreviewFallback({ project }: { project: ProjectCard }) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-bolt-elements-background-depth-3 text-bolt-elements-textTertiary">
-      <span className="i-ph:image-square text-2xl" aria-hidden />
-      <span className="text-[11px]">No preview yet</span>
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-bolt-elements-background-depth-3 px-5 text-center text-bolt-elements-textTertiary">
+      <span className="flex h-10 w-10 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
+        <MonitorPlay className="h-5 w-5" aria-hidden />
+      </span>
+      <span className="text-xs font-medium text-bolt-elements-textSecondary">No preview yet</span>
+      <span className="max-w-48 text-[11px] leading-4">A captured app preview will appear here.</span>
       <span className="sr-only">No preview captured yet for {project.name}</span>
     </div>
   );

@@ -521,6 +521,7 @@ exports.Prisma.DeploymentScalarFieldEnum = {
   rolledBackFromId: 'rolledBackFromId',
   parentDeploymentId: 'parentDeploymentId',
   lastMeteredAt: 'lastMeteredAt',
+  machineSize: 'machineSize',
   startedAt: 'startedAt',
   finishedAt: 'finishedAt',
   canceledAt: 'canceledAt',
@@ -531,6 +532,15 @@ exports.Prisma.DeploymentScalarFieldEnum = {
 exports.Prisma.DeploymentEnvironmentScalarFieldEnum = {
   id: 'id',
   name: 'name'
+};
+
+exports.Prisma.RateCardScalarFieldEnum = {
+  id: 'id',
+  version: 'version',
+  active: 'active',
+  data: 'data',
+  effectiveAt: 'effectiveAt',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.AuditLogScalarFieldEnum = {
@@ -1336,6 +1346,86 @@ exports.Prisma.DatabaseRestoreScalarFieldEnum = {
   completedAt: 'completedAt'
 };
 
+exports.Prisma.ScheduledTaskScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  projectId: 'projectId',
+  kind: 'kind',
+  name: 'name',
+  command: 'command',
+  workflowId: 'workflowId',
+  cron: 'cron',
+  timezone: 'timezone',
+  machineSize: 'machineSize',
+  enabled: 'enabled',
+  timeoutSeconds: 'timeoutSeconds',
+  concurrency: 'concurrency',
+  maxRetries: 'maxRetries',
+  notifyOnFailure: 'notifyOnFailure',
+  lastRunAt: 'lastRunAt',
+  lastStatus: 'lastStatus',
+  nextRunAt: 'nextRunAt',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ScheduledTaskRunScalarFieldEnum = {
+  id: 'id',
+  taskId: 'taskId',
+  organizationId: 'organizationId',
+  projectId: 'projectId',
+  status: 'status',
+  trigger: 'trigger',
+  attempt: 'attempt',
+  scheduledFor: 'scheduledFor',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt',
+  durationMs: 'durationMs',
+  exitCode: 'exitCode',
+  logs: 'logs',
+  error: 'error',
+  machineSize: 'machineSize',
+  computeUnits: 'computeUnits',
+  costCents: 'costCents',
+  meteredAt: 'meteredAt'
+};
+
+exports.Prisma.AgentRoutingCardScalarFieldEnum = {
+  id: 'id',
+  version: 'version',
+  active: 'active',
+  data: 'data',
+  effectiveFrom: 'effectiveFrom',
+  effectiveTo: 'effectiveTo',
+  sourceDate: 'sourceDate',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.AgentCallLogScalarFieldEnum = {
+  id: 'id',
+  createdAt: 'createdAt',
+  userId: 'userId',
+  organizationId: 'organizationId',
+  projectId: 'projectId',
+  mode: 'mode',
+  highEffort: 'highEffort',
+  escalated: 'escalated',
+  turbo: 'turbo',
+  lineKey: 'lineKey',
+  provider: 'provider',
+  model: 'model',
+  tokensIn: 'tokensIn',
+  tokensOut: 'tokensOut',
+  costMillicents: 'costMillicents',
+  creditCents: 'creditCents',
+  marginMillicents: 'marginMillicents',
+  billedToUser: 'billedToUser',
+  routingCardVersion: 'routingCardVersion',
+  source: 'source'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1483,6 +1573,20 @@ exports.DatabaseRestoreStatus = exports.$Enums.DatabaseRestoreStatus = {
   FAILED: 'FAILED'
 };
 
+exports.ScheduledTaskKind = exports.$Enums.ScheduledTaskKind = {
+  WORKFLOW: 'WORKFLOW',
+  DEPLOYMENT: 'DEPLOYMENT'
+};
+
+exports.ScheduledTaskRunStatus = exports.$Enums.ScheduledTaskRunStatus = {
+  RUNNING: 'RUNNING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  TIMED_OUT: 'TIMED_OUT',
+  SKIPPED: 'SKIPPED',
+  CANCELED: 'CANCELED'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   Account: 'Account',
@@ -1520,6 +1624,7 @@ exports.Prisma.ModelName = {
   ProjectStorageObject: 'ProjectStorageObject',
   Deployment: 'Deployment',
   DeploymentEnvironment: 'DeploymentEnvironment',
+  RateCard: 'RateCard',
   AuditLog: 'AuditLog',
   SecurityEventResolution: 'SecurityEventResolution',
   AdminAuditLog: 'AdminAuditLog',
@@ -1586,7 +1691,11 @@ exports.Prisma.ModelName = {
   ModelConfig: 'ModelConfig',
   DatabaseInstance: 'DatabaseInstance',
   DatabaseSnapshot: 'DatabaseSnapshot',
-  DatabaseRestore: 'DatabaseRestore'
+  DatabaseRestore: 'DatabaseRestore',
+  ScheduledTask: 'ScheduledTask',
+  ScheduledTaskRun: 'ScheduledTaskRun',
+  AgentRoutingCard: 'AgentRoutingCard',
+  AgentCallLog: 'AgentCallLog'
 };
 
 /**

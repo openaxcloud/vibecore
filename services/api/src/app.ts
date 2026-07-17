@@ -32,8 +32,11 @@ import {
   assertQuota,
   assertConcurrentPublishedApps,
   aiModelCatalog,
+  availableMachineSizes,
+  machineSizeFromCard,
   billingPlans,
   ceilCents,
+  computeAgentCallBilling,
   computeAiCostCents,
   computeUnitsCents,
   creditPackCatalog,
@@ -41,11 +44,21 @@ import {
   databaseStorageCents,
   findCreditPack,
   gatePremiumAgentModes,
+  availableAgentModes,
+  lineMargins,
+  lineUserPrice,
+  negativeMarginLineKeys,
+  routingLine,
+  switchAvailableForPlan,
+  validateAgentRoutingCard,
+  DEFAULT_AGENT_MODE,
   objectStorageCents,
   planByKey,
   planCreditConfig,
   toCreditPlanKey,
   verifyStripeSignature,
+  type AgentRoutingCard,
+  type AgentRoutingLineKey,
   type AiPlanKey,
   type CreditPlanKey,
   type PlanKey,
@@ -94,31 +107,6 @@ import {
   type AgentMemoryScope,
   type AgentMemoryType,
 } from './agent-memory.js';
-import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
-import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
-import {
-  checkServiceShutdown,
-  openCheckpoint,
-  reportCheckpointPaygUsage,
-  reportUsagePaygUsage,
-  settleCheckpoint,
-} from './credits-service.js';
-import {
-  DELETION_GRACE_PERIOD_DAYS,
-  canCancelDeletion,
-  deletionScope,
-  deletionStatus,
-  purgeDueAtMs,
-} from './data-deletion.js';
-import { clusterName, resolveDatabaseTier, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
-import {
-  databaseRollbackEntitlement,
-  isDatabaseRollbackEnabled,
-  retentionFloorMs,
-  validateRestoreTarget,
-} from './database-rollback-service.js';
-import { enqueueDeployBuildJob } from './deploy-queue.js';
-import { reapStaleDeployments, resolveDeployBuildTimeoutMs } from './deploy-reaper.js';
 import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
 import {
   detectPodPackageManager,
@@ -144,6 +132,32 @@ import {
   type ServerRuntimePlan,
 } from './server-runtime-detect.js';
 import { runAppImageBuild } from './app-image-build.js';
+import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
+import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
+import {
+  checkServiceShutdown,
+  openCheckpoint,
+  reportCheckpointPaygUsage,
+  reportUsagePaygUsage,
+  settleCheckpoint,
+} from './credits-service.js';
+import {
+  DELETION_GRACE_PERIOD_DAYS,
+  canCancelDeletion,
+  deletionScope,
+  deletionStatus,
+  purgeDueAtMs,
+} from './data-deletion.js';
+import { clusterName, resolveDatabaseTier, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
+import {
+  databaseRollbackEntitlement,
+  isDatabaseRollbackEnabled,
+  retentionFloorMs,
+  validateRestoreTarget,
+} from './database-rollback-service.js';
+import { enqueueDeployBuildJob } from './deploy-queue.js';
+import { reapStaleDeployments, resolveDeployBuildTimeoutMs } from './deploy-reaper.js';
+import { meterServerDeploymentRuntime } from './deploy-runtime-metering.js';
 import { shouldRecordDeploymentUsage } from './deployment-billing.js';
 import {
   assertDeploymentRequestAllowed,
@@ -225,6 +239,33 @@ import {
   resolveDefaultObjectStorage,
 } from './object-storage.js';
 import { PrismaApiStore } from './prisma-store.js';
+import {
+  decodeFileContent,
+  filesFromZip,
+  filesFromZipBase64,
+  GitCliProvider,
+  LocalProjectStorage,
+  type FileEncoding,
+  type GitProvider,
+  type ProjectFile,
+  type ProjectStorage,
+  type StoredArchive,
+} from './project-storage.js';
+import { aggregateProviderMetrics } from './provider-metrics.js';
+import {
+  agentRoutingCardSchema,
+  getActiveAgentRoutingCard,
+  resetAgentRoutingCache,
+  seedAgentRoutingCard,
+} from './agent-routing-service.js';
+import {
+  MachineSizeError,
+  getActiveRateCard,
+  machineSizeResources,
+  maxSchedulableVcpu,
+  resolveDeployMachineSize,
+} from './rate-card-service.js';
+import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { describeCron } from './scheduled-tasks-cron.js';
 import {
   PostgresScheduledTaskRepository,
@@ -242,20 +283,6 @@ import {
   type SandboxExec,
   type WorkflowResolver,
 } from './scheduled-tasks.js';
-import {
-  decodeFileContent,
-  filesFromZip,
-  filesFromZipBase64,
-  GitCliProvider,
-  LocalProjectStorage,
-  type FileEncoding,
-  type GitProvider,
-  type ProjectFile,
-  type ProjectStorage,
-  type StoredArchive,
-} from './project-storage.js';
-import { aggregateProviderMetrics } from './provider-metrics.js';
-import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
 import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
 import { SKILL_REPO_CATALOG, findRepoEntry, normalizeOwnerRepo } from './skills-repo-catalog.js';
@@ -1529,6 +1556,22 @@ const aiRecordUsageSchema = z.object({
   extendedThinking: z.boolean().optional(),
   buildTier: z.enum(['lite', 'economy', 'power']).optional(),
   turboMode: z.boolean().optional(),
+
+  /*
+   * Agent mode routing metadata (AGM): which mode/switch line actually served
+   * this call. Credits + margin are recomputed server-side from the ACTIVE
+   * routing card — the client payload is descriptive, never authoritative.
+   */
+  agentRouting: z
+    .object({
+      mode: z.enum(['lite', 'economy', 'power']),
+      highEffort: z.boolean().default(false),
+      escalated: z.boolean().default(false),
+      turbo: z.boolean().default(false),
+      lineKey: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier']),
+      source: z.string().min(1).default('chat'),
+    })
+    .optional(),
 });
 
 const aiCheckQuotaSchema = z.object({
@@ -6535,6 +6578,12 @@ async function startServerDeploymentViaManager(payload: {
   healthPath?: string;
   readyTimeoutMs?: number;
   nixStorePvcName?: string;
+
+  // Machine-size resources (k8s quantities) — requests==limits, see rate-card-service.
+  cpuRequest?: string;
+  cpuLimit?: string;
+  memoryRequest?: string;
+  memoryLimit?: string;
 }): Promise<{ ready: boolean; url: string; name: string; readyReplicas: number }> {
   const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
@@ -6580,7 +6629,7 @@ async function stopServerDeploymentViaManager(deploymentId: string): Promise<voi
  */
 async function getServerDeploymentStatusViaManager(
   deploymentId: string,
-): Promise<{ exists: boolean; readyReplicas: number; replicas: number } | undefined> {
+): Promise<{ exists: boolean; readyReplicas: number; replicas: number; requestCount?: number } | undefined> {
   const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
   try {
@@ -6597,7 +6646,12 @@ async function getServerDeploymentStatusViaManager(
       return undefined;
     }
 
-    return (await response.json()) as { exists: boolean; readyReplicas: number; replicas: number };
+    return (await response.json()) as {
+      exists: boolean;
+      readyReplicas: number;
+      replicas: number;
+      requestCount?: number;
+    };
   } catch {
     return undefined;
   }
@@ -7831,6 +7885,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   await seedBillingPlans(store);
   await reloadStripeConfig();
   await seedProviderRegistry(store);
+  await seedAgentRoutingCard(store);
 
   await app.register(helmet, {
     contentSecurityPolicy: {
@@ -12385,7 +12440,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const RUNTIME_PROXY_TIMEOUT_MS = 15000;
 
-  const withRequestTimeout = (init: RequestInit, timeoutMs = RUNTIME_PROXY_TIMEOUT_MS): { init: RequestInit; done: () => void } => {
+  const withRequestTimeout = (
+    init: RequestInit,
+    timeoutMs = RUNTIME_PROXY_TIMEOUT_MS,
+  ): { init: RequestInit; done: () => void } => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -13329,6 +13387,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const scheduledTaskProjectWorkspace = async (projectId: string) => {
     const workspaces = await store.listWorkspaces(projectId).catch(() => []);
+
     const existing =
       workspaces.find((workspace) => (workspace.environment ?? 'development') === 'development') ?? workspaces[0];
 
@@ -13388,6 +13447,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const runtimeWorkspaces = await managerRequest<Array<{ pvcName?: string }>>(
       `/projects/${encodeURIComponent(input.projectId)}/runtime-workspaces`,
     ).catch(() => [] as Array<{ pvcName?: string }>);
+
     const runtimePvcName = runtimeWorkspaces.find((entry) => entry.pvcName)?.pvcName;
 
     const result = await managerRequest<{ exitCode: number; output: string; timedOut: boolean; phase: string }>(
@@ -13414,8 +13474,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }),
       },
 
-      // Synchronous run: the manager polls the pod to completion inside this
-      // request — give it the run's own budget plus scheduling slack.
+      /*
+       * Synchronous run: the manager polls the pod to completion inside this
+       * request — give it the run's own budget plus scheduling slack.
+       */
       input.timeoutMs + 60_000,
     );
 
@@ -21833,6 +21895,178 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.send({ recorded: true });
   });
 
+  /*
+   * AGM: mode availability for the IDE — which of Lite/Economy/Power the
+   * caller's plan may use, whether High effort / Turbo are unlockable, and the
+   * billing multiplier per mode. Deliberately contains NO provider and NO
+   * model id: the client never learns model names from this surface.
+   */
+  app.get('/projects/:projectId/agent/routing', async (request) => {
+    const { projectId } = parse(projectParams, request.params);
+    const project = await requireProject(request, store, projectId, 'workspaces:read');
+
+    const card = await getActiveAgentRoutingCard(store);
+
+    let planKey = 'free';
+
+    try {
+      const subscription = await store.getSubscription(project.organizationId);
+      planKey = subscription?.planKey ?? 'free';
+    } catch {
+      planKey = 'free';
+    }
+
+    const turboLineOk = switchAvailableForPlan(card, 'turbo', planKey);
+
+    /*
+     * Turbo is additionally org-gated: an org admin turns it on via the
+     * `agent_turbo` feature flag (admin > feature flags). OFF by default.
+     */
+    const turboOrgEnabled = await evaluateFeatureFlag(store, 'agent_turbo', {
+      userId: request.currentUser?.id,
+      organizationId: project.organizationId,
+    }).catch(() => false);
+
+    return {
+      defaultMode: DEFAULT_AGENT_MODE,
+      plan: planKey,
+      routingVersion: card.version,
+      modes: availableAgentModes(card, planKey),
+      highEffort: { available: switchAvailableForPlan(card, 'high-effort', planKey) },
+      turbo: { available: turboLineOk && turboOrgEnabled, planAllowed: turboLineOk, orgEnabled: turboOrgEnabled },
+    };
+  });
+
+  /*
+   * AGM: server-to-server route resolution — the Remix chat route calls this
+   * before every generation to turn (mode, highEffort, turbo) into the CONCRETE
+   * provider+model from the ACTIVE routing card. This is the control-plane
+   * decision point: an admin publishing a new card version changes what this
+   * returns with zero deployment. Refusals are explicit (403 + code) so an
+   * unauthorized mode/switch is never silently downgraded.
+   */
+  app.get('/projects/:projectId/agent/routing/resolve', async (request, reply) => {
+    const { projectId } = parse(projectParams, request.params);
+    const project = await requireProject(request, store, projectId, 'workspaces:read');
+
+    /*
+     * Strict query-string booleans: z.coerce.boolean() would turn the literal
+     * string "false" into true, silently granting a switch the caller turned off.
+     */
+    const queryBool = z.preprocess((value) => value === true || value === 'true' || value === '1', z.boolean());
+
+    const query = parse(
+      z.object({
+        mode: z.enum(['lite', 'economy', 'power']).default(DEFAULT_AGENT_MODE),
+        highEffort: queryBool.default(false),
+        turbo: queryBool.default(false),
+      }),
+      request.query ?? {},
+    );
+
+    const card = await getActiveAgentRoutingCard(store);
+
+    let planKey = 'free';
+
+    try {
+      const subscription = await store.getSubscription(project.organizationId);
+      planKey = subscription?.planKey ?? 'free';
+    } catch {
+      planKey = 'free';
+    }
+
+    /*
+     * The strict per-service build (from src/server.ts) infers the defaulted
+     * enum as possibly-undefined; resolve the default explicitly.
+     */
+    const requestedMode = query.mode ?? DEFAULT_AGENT_MODE;
+
+    const modeLine = routingLine(card, requestedMode);
+
+    if (!modeLine || !modeLine.active || !modeLine.availablePlans.includes(planKey)) {
+      return reply.status(403).send({
+        error: `The ${requestedMode} mode is not available on the ${planKey} plan.`,
+        code: 'AGENT_MODE_NOT_ALLOWED',
+        mode: requestedMode,
+        plan: planKey,
+      });
+    }
+
+    let base = { lineKey: modeLine.key, provider: modeLine.provider, model: modeLine.model, multiplier: modeLine.multiplier };
+    let escalation: typeof base | undefined;
+    let classifier: { provider: string; model: string } | undefined;
+
+    if (query.turbo) {
+      // Turbo: Power only, plan-gated AND org-gated (agent_turbo flag, OFF by default).
+      if (requestedMode !== 'power') {
+        return reply.status(403).send({
+          error: 'Turbo is only available in Power mode.',
+          code: 'AGENT_TURBO_POWER_ONLY',
+          mode: requestedMode,
+        });
+      }
+
+      const turboLine = routingLine(card, 'turbo');
+      const turboOrgEnabled = await evaluateFeatureFlag(store, 'agent_turbo', {
+        userId: request.currentUser?.id,
+        organizationId: project.organizationId,
+      }).catch(() => false);
+
+      if (!turboLine || !turboLine.active || !turboLine.availablePlans.includes(planKey) || !turboOrgEnabled) {
+        return reply.status(403).send({
+          error: 'Turbo is not enabled for this organization.',
+          code: 'AGENT_TURBO_NOT_ALLOWED',
+          plan: planKey,
+        });
+      }
+
+      base = { lineKey: turboLine.key, provider: turboLine.provider, model: turboLine.model, multiplier: turboLine.multiplier };
+    }
+
+    if (query.highEffort) {
+      // High effort: Economy and Power only — NEVER Lite — and plan-gated.
+      if (requestedMode === 'lite') {
+        return reply.status(403).send({
+          error: 'High effort is not available in Lite mode.',
+          code: 'AGENT_HIGH_EFFORT_LITE',
+          mode: requestedMode,
+        });
+      }
+
+      const escalationLine = routingLine(card, 'high-effort');
+
+      if (!escalationLine || !escalationLine.active || !escalationLine.availablePlans.includes(planKey)) {
+        return reply.status(403).send({
+          error: `High effort is not available on the ${planKey} plan.`,
+          code: 'AGENT_HIGH_EFFORT_NOT_ALLOWED',
+          plan: planKey,
+        });
+      }
+
+      escalation = {
+        lineKey: escalationLine.key,
+        provider: escalationLine.provider,
+        model: escalationLine.model,
+        multiplier: escalationLine.multiplier,
+      };
+
+      const classifierLine = routingLine(card, 'classifier');
+
+      if (classifierLine && classifierLine.active) {
+        classifier = { provider: classifierLine.provider, model: classifierLine.model };
+      }
+    }
+
+    return {
+      routingVersion: card.version,
+      mode: requestedMode,
+      plan: planKey,
+      base,
+      escalation,
+      classifier,
+    };
+  });
+
   app.post('/projects/:projectId/ai/record-usage', async (request) => {
     const { projectId } = parse(projectParams, request.params);
     const project = await requireProject(request, store, projectId, 'workspaces:read');
@@ -21865,6 +22099,48 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       costCents,
       reason: `chat.completion.${body.source}`,
     });
+
+    /*
+     * AGM per-call log (admin-only): stamp the REAL provider+model this call
+     * used, the mode/switch that routed it, and card-priced cost/credit/margin.
+     * Best-effort — the log must never break usage recording.
+     */
+    if (body.agentRouting) {
+      try {
+        const routingCard = await getActiveAgentRoutingCard(store);
+        const callBilling = computeAgentCallBilling(
+          routingCard,
+          body.agentRouting.lineKey,
+          body.inputTokens,
+          body.outputTokens,
+        );
+
+        if (callBilling) {
+          await store.recordAgentCall({
+            userId: request.currentUser?.id,
+            organizationId: project.organizationId,
+            projectId: project.id,
+            mode: body.agentRouting.mode,
+            highEffort: body.agentRouting.highEffort ?? false,
+            escalated: body.agentRouting.escalated ?? false,
+            turbo: body.agentRouting.turbo ?? false,
+            lineKey: body.agentRouting.lineKey,
+            provider: body.provider,
+            model: body.model,
+            tokensIn: body.inputTokens,
+            tokensOut: body.outputTokens,
+            costMillicents: Math.round(callBilling.costCents * 1000),
+            creditCents: callBilling.creditCents,
+            marginMillicents: Math.round(callBilling.marginCents * 1000),
+            billedToUser: callBilling.billedToUser,
+            routingCardVersion: callBilling.routingCardVersion,
+            source: body.agentRouting.source ?? 'chat',
+          });
+        }
+      } catch (error) {
+        request.log?.warn?.({ err: error }, 'agent call log failed (non-fatal)');
+      }
+    }
 
     await recordUsage(request, project.organizationId, 'ai.messages');
 
@@ -23656,6 +23932,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           provider: name,
           displayName: byName.get(name)?.displayName ?? name,
           enabled: byName.get(name)?.enabled ?? false,
+
           // Non-secret: whether a platform key (apiKeyEnc) is stored — never the value.
           keyConfigured: Boolean(byName.get(name)?.apiKeyEnc),
           sampleCount: metric?.sampleCount ?? 0,
@@ -23776,6 +24053,248 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { model: updated };
+  });
+
+  /*
+   * AGM — Admin > Agent > Model routing. One line per mode/switch with cost of
+   * revenue, user price (base x multiplier), LIVE margins, 30-day volume and
+   * plan availability. Versioned: publishing is an INSERT + active flip.
+   */
+  app.get('/admin/agent-routing', async (request) => {
+    await requirePlatformAdmin(request);
+
+    const card = await getActiveAgentRoutingCard(store);
+    const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+    const volume = await store.aggregateAgentCallVolume(since).catch(() => []);
+    const volumeByLine = new Map(volume.map((row) => [row.lineKey, row]));
+
+    const lines = card.lines.map((line) => {
+      const rowVolume = volumeByLine.get(line.key);
+
+      return {
+        ...line,
+        userPrice: lineUserPrice(card, line),
+        margins: lineMargins(card, line),
+        volume30d: rowVolume
+          ? {
+              calls: rowVolume.calls,
+              tokensIn: rowVolume.tokensIn,
+              tokensOut: rowVolume.tokensOut,
+              costCents: rowVolume.costMillicents / 1000,
+              creditCents: rowVolume.creditCents,
+              marginCents: rowVolume.marginMillicents / 1000,
+            }
+          : { calls: 0, tokensIn: 0, tokensOut: 0, costCents: 0, creditCents: 0, marginCents: 0 },
+      };
+    });
+
+    return {
+      card,
+      lines,
+      negativeLines: negativeMarginLineKeys(card),
+      history: await store.listAgentRoutingCards(50).catch(() => []),
+    };
+  });
+
+  app.get('/admin/agent-routing/calls', async (request) => {
+    await requirePlatformAdmin(request);
+
+    const query = parse(z.object({ limit: z.coerce.number().int().positive().max(500).default(100) }), request.query ?? {});
+
+    return { calls: await store.listAgentCalls(query.limit) };
+  });
+
+  const adminAgentRoutingLineSchema = z.object({
+    key: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier']),
+    label: z.string().min(1),
+    provider: z.string().min(1),
+    model: z.string().min(1),
+    costInCentsPerM: z.number().nonnegative(),
+    costOutCentsPerM: z.number().nonnegative(),
+    multiplier: z.number().nonnegative(),
+    billedToUser: z.boolean(),
+    availablePlans: z.array(z.string()),
+    active: z.boolean(),
+  });
+
+  const adminAgentRoutingDraftSchema = z.object({
+    sourceDate: z.string().min(1),
+    baseUserInCentsPerM: z.number().nonnegative(),
+    baseUserOutCentsPerM: z.number().nonnegative(),
+    lines: z.array(adminAgentRoutingLineSchema).min(1),
+  });
+
+  const buildCandidateRoutingCard = (draft: z.infer<typeof adminAgentRoutingDraftSchema>): AgentRoutingCard => ({
+    version: 1, // placeholder; the store assigns the real monotonic version
+    effectiveFrom: new Date().toISOString(),
+    sourceDate: draft.sourceDate,
+    currency: 'usd',
+    baseUserInCentsPerM: draft.baseUserInCentsPerM,
+    baseUserOutCentsPerM: draft.baseUserOutCentsPerM,
+    lines: draft.lines as AgentRoutingCard['lines'],
+  });
+
+  app.post('/admin/agent-routing', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const body = parse(
+      z.object({ card: adminAgentRoutingDraftSchema, confirmNegativeMargin: z.boolean().default(false) }),
+      request.body ?? {},
+    );
+
+    const candidate = buildCandidateRoutingCard(body.card);
+    const structural = validateAgentRoutingCard(candidate);
+
+    if (structural.length > 0) {
+      return reply
+        .status(400)
+        .send({ error: 'Invalid routing card', code: 'AGENT_ROUTING_INVALID', issues: structural });
+    }
+
+    /*
+     * The margin gate: a line priced below its cost of revenue blocks the save
+     * unless the admin explicitly confirms losing money on that line.
+     */
+    const negative = negativeMarginLineKeys(candidate);
+
+    if (negative.length > 0 && !body.confirmNegativeMargin) {
+      return reply.status(409).send({
+        error: `Negative margin on: ${negative.join(', ')}. Confirm explicitly to publish anyway.`,
+        code: 'AGENT_ROUTING_NEGATIVE_MARGIN',
+        negativeLines: negative,
+      });
+    }
+
+    const previous = await getActiveAgentRoutingCard(store);
+
+    /*
+     * The store assigns the real monotonic version and stamps it (plus
+     * effectiveFrom) into the JSON inside the same transaction that closes the
+     * previous version.
+     */
+    const created = await store.createAgentRoutingCardVersion({
+      data: candidate,
+      sourceDate: body.card.sourceDate,
+      createdByUserId: request.currentUser?.id,
+    });
+
+    const published: AgentRoutingCard = {
+      ...candidate,
+      version: created.version,
+      effectiveFrom: created.effectiveFrom,
+    };
+
+    resetAgentRoutingCache();
+
+    const marginSnapshot = (routing: AgentRoutingCard) =>
+      routing.lines.map((line) => ({ key: line.key, model: line.model, margins: lineMargins(routing, line) }));
+
+    await audit(request, store, {
+      action: 'admin.agent-routing.publish',
+      resourceType: 'agentRoutingCard',
+      resourceId: String(created.version),
+      metadata: {
+        version: created.version,
+        sourceDate: body.card.sourceDate,
+        confirmNegativeMargin: body.confirmNegativeMargin,
+        negativeLines: negative,
+        marginBefore: marginSnapshot(previous),
+        marginAfter: marginSnapshot(published),
+      },
+    });
+
+    return { published: true, version: created.version, effectiveFrom: created.effectiveFrom };
+  });
+
+  /*
+   * AGM simulator: before applying a draft card, replay the LAST 30 DAYS of
+   * real volume against it — "at this volume, this config would have cost X
+   * and earned Y" — next to what actually happened.
+   */
+  app.post('/admin/agent-routing/simulate', async (request, reply) => {
+    await requirePlatformAdmin(request);
+
+    const body = parse(z.object({ card: adminAgentRoutingDraftSchema }), request.body ?? {});
+    const candidate = buildCandidateRoutingCard(body.card);
+    const structural = validateAgentRoutingCard(candidate);
+
+    if (structural.length > 0) {
+      return reply
+        .status(400)
+        .send({ error: 'Invalid routing card', code: 'AGENT_ROUTING_INVALID', issues: structural });
+    }
+
+    const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+    const volume = await store.aggregateAgentCallVolume(since).catch(() => []);
+
+    const perLine = volume.map((row) => {
+      const line = routingLine(candidate, row.lineKey as AgentRoutingLineKey);
+      const actualCostCents = row.costMillicents / 1000;
+      const actualMarginCents = row.marginMillicents / 1000;
+
+      if (!line) {
+        return {
+          lineKey: row.lineKey,
+          calls: row.calls,
+          tokensIn: row.tokensIn,
+          tokensOut: row.tokensOut,
+          actualCostCents,
+          actualCreditCents: row.creditCents,
+          actualMarginCents,
+          simulatedCostCents: 0,
+          simulatedCreditCents: 0,
+          simulatedMarginCents: 0,
+          missingInDraft: true,
+        };
+      }
+
+      const price = lineUserPrice(candidate, line);
+      const simulatedCostCents = (row.tokensIn * line.costInCentsPerM + row.tokensOut * line.costOutCentsPerM) / 1_000_000;
+      const simulatedCreditCents = line.billedToUser
+        ? (row.tokensIn * price.inCentsPerM + row.tokensOut * price.outCentsPerM) / 1_000_000
+        : 0;
+
+      return {
+        lineKey: row.lineKey,
+        calls: row.calls,
+        tokensIn: row.tokensIn,
+        tokensOut: row.tokensOut,
+        actualCostCents,
+        actualCreditCents: row.creditCents,
+        actualMarginCents,
+        simulatedCostCents,
+        simulatedCreditCents,
+        simulatedMarginCents: simulatedCreditCents - simulatedCostCents,
+        missingInDraft: false,
+      };
+    });
+
+    const totals = perLine.reduce(
+      (acc, row) => ({
+        actualCostCents: acc.actualCostCents + row.actualCostCents,
+        actualCreditCents: acc.actualCreditCents + row.actualCreditCents,
+        actualMarginCents: acc.actualMarginCents + row.actualMarginCents,
+        simulatedCostCents: acc.simulatedCostCents + row.simulatedCostCents,
+        simulatedCreditCents: acc.simulatedCreditCents + row.simulatedCreditCents,
+        simulatedMarginCents: acc.simulatedMarginCents + row.simulatedMarginCents,
+      }),
+      {
+        actualCostCents: 0,
+        actualCreditCents: 0,
+        actualMarginCents: 0,
+        simulatedCostCents: 0,
+        simulatedCreditCents: 0,
+        simulatedMarginCents: 0,
+      },
+    );
+
+    return {
+      windowDays: 30,
+      negativeLines: negativeMarginLineKeys(candidate),
+      lines: perLine,
+      totals,
+    };
   });
 
   app.post('/admin/providers/toggle', async (request) => {
@@ -26964,8 +27483,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { mode: 'unknown', framework: 'unknown', reason: manifest.reason, pending: true };
     }
 
-    // A declared run command (.ecode/deploy.json) wins — same precedence as the
-    // deploy handler, so the shown mode and the executed mode stay in lockstep.
+    /*
+     * A declared run command (.ecode/deploy.json) wins — same precedence as the
+     * deploy handler, so the shown mode and the executed mode stay in lockstep.
+     */
     if (manifest.declaredRun) {
       return {
         mode: 'server',
@@ -27803,6 +28324,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       let started: { ready: boolean; url: string; name: string; readyReplicas: number } | undefined;
       let serverError: string | undefined;
+
       const serverPort = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
 
       /*
@@ -27819,6 +28341,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       const userId = request.currentUser?.id;
       const WebSocketCtor = (globalThis as { WebSocket?: new (url: string) => WsLike }).WebSocket;
+
       let bootCommand: string[] | undefined;
 
       /*
@@ -27827,6 +28350,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * runtime + boot script. serverImage set ⇒ no bootCommand, no APP_SRC_*.
        */
       let serverImage: string | undefined;
+
       let imageBuildInfo:
         | {
             imageUri: string;
@@ -27839,6 +28363,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             revisionSha256?: string;
           }
         | undefined;
+
       let serverEnv: Record<string, string> = { DEPLOY_ID: queued.id, PORT: String(serverPort), ...body.envVars };
 
       if (process.env.SERVER_DEPLOY_USE_PROBE === 'true') {
@@ -27869,7 +28394,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         try {
           await ensureWorkspaceReachable(request, authorized);
+
           const token = await agentToken(workspaceId);
+
           const buildAgent = createWorkspaceBuildAgent({
             agentWsBaseUrl: agentBaseUrl(workspaceId).replace(/^http/i, 'ws'),
             token,
@@ -27998,9 +28525,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       objectStorage,
                       image: baseImage,
 
-                      // No package.json ⇒ no Node install: a non-Node project
-                      // (declared via .ecode/deploy.json) drives its own install
-                      // through its build command — never a silent npm fallback.
+                      /*
+                       * No package.json ⇒ no Node install: a non-Node project
+                       * (declared via .ecode/deploy.json) drives its own install
+                       * through its build command — never a silent npm fallback.
+                       */
                       installCommand: packageJson ? `${runPlan.install.command} ${runPlan.install.args.join(' ')}` : '',
                       buildCommand: runPlan.buildCommand,
                       nixStorePvcName: nixStorePvcForProject(project.id),
@@ -28020,6 +28549,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   serverError = context.message ?? 'Failed to snapshot the workspace for the app image.';
                 } else {
                   const imageUri = `${imageRepo}/p-${project.id.toLowerCase()}:${queued.id.toLowerCase()}`;
+
                   const buildResult = await runAppImageBuild(
                     {
                       gcpProject: repoMatch[2],
@@ -28029,8 +28559,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       imageUri,
                       baseImage,
 
-                      // Revision mode already ran the build in the isolated pod;
-                      // Cloud Build must only COPY, never re-run a toolchain.
+                      /*
+                       * Revision mode already ran the build in the isolated pod;
+                       * Cloud Build must only COPY, never re-run a toolchain.
+                       */
                       buildCommand: revisionMode ? null : runPlan.buildCommand,
                       startCommand: runPlan.startCommand,
                       timeoutSeconds: Number(process.env.SERVER_DEPLOY_IMAGE_BUILD_TIMEOUT_S) || 600,
@@ -28057,9 +28589,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       timestamp: nowIso(),
                       level: 'info',
                       message: `Server deploy: image ready ${imageUri}${
-                        buildResult.imageSizeBytes
-                          ? ` (${Math.round(buildResult.imageSizeBytes / 1_000_000)} MB)`
-                          : ''
+                        buildResult.imageSizeBytes ? ` (${Math.round(buildResult.imageSizeBytes / 1_000_000)} MB)` : ''
                       } in ${Math.round(buildResult.durationMs / 1000)}s`,
                     });
 
@@ -28117,14 +28647,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       if ((bootCommand || serverImage) && !serverError) {
+        /*
+         * Machine size → pod resources. The size key was validated + persisted
+         * at create; resolve it against the active rate card here so the pod
+         * gets exactly the machine the row will be billed for (requests ==
+         * limits by contract, see machineSizeResources).
+         */
+        const deployRateCard = await getActiveRateCard(store);
+        const machineSize = machineSizeFromCard(deployRateCard, queued.machineSize);
+
         try {
           started = await startServerDeploymentViaManager({
             deploymentId: queued.id,
+            ...machineSizeResources(machineSize),
             image:
               serverImage ??
               process.env.SERVER_DEPLOY_IMAGE ??
               process.env.WORKSPACE_AGENT_IMAGE ??
               'vibecore/workspace-agent:2026.04.0',
+
             // Snapshot-image deploys run the image's own baked CMD.
             ...(serverImage ? {} : { command: bootCommand }),
             port: serverPort,
@@ -28132,9 +28673,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             projectId: project.id,
             orgId: project.organizationId,
             env: serverEnv,
-            // Real apps rarely expose /health; the readiness probe defaults to `/`,
-            // which every real web app answers (overridable per install).
+
+            /*
+             * Real apps rarely expose /health; the readiness probe defaults to `/`,
+             * which every real web app answers (overridable per install).
+             */
             healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+
             // A Nix-enabled project keeps its /nix toolchain at runtime.
             nixStorePvcName: nixStorePvcForProject(project.id),
           });
@@ -28184,16 +28729,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             host,
             ready: ok,
             readyReplicas: started?.readyReplicas ?? 0,
-            // Marks a row whose k8s manifests are live so reconcile-on-read can
-            // re-check readiness against the manager (BUILDING → READY / teardown).
+
+            /*
+             * Marks a row whose k8s manifests are live so reconcile-on-read can
+             * re-check readiness against the manager (BUILDING → READY / teardown).
+             */
             applied: manifestsApplied,
+
             // Snapshot-image deploys: which image runs + its size (Replit cap: 8GiB).
             ...(imageBuildInfo ? { image: imageBuildInfo } : {}),
           },
         },
         logs: [...createDeploymentLogs(body, { ...queued, url: serverUrl }, project), ...liveLog],
-        // A converging (BUILDING) deploy is not finished — leaving finishedAt
-        // unset keeps reconcile's stale-timeout clock running from startedAt.
+
+        /*
+         * A converging (BUILDING) deploy is not finished — leaving finishedAt
+         * unset keeps reconcile's stale-timeout clock running from startedAt.
+         */
         finishedAt: converging ? undefined : nowIso(),
       });
 
@@ -28500,6 +29052,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     assertDeploymentRequestAllowed(body, deployPlanKey);
 
     /*
+     * Machine size (server deploys): resolve the requested rate-card size and
+     * enforce the plan ceiling (free never gets 8 vCPU) + the cluster's real
+     * scheduling ceiling — a size the scheduler cannot place must fail the
+     * publish HERE with a clear message, not hang a pod in Pending forever.
+     */
+    let deployMachineSize: string | undefined;
+
+    if (body.provider === 'server') {
+      try {
+        const rateCard = await getActiveRateCard(store);
+        deployMachineSize = resolveDeployMachineSize(rateCard, body.machineSize, deployPlanKey).key;
+      } catch (error) {
+        if (error instanceof MachineSizeError) {
+          return reply.code(error.statusCode).send({ error: error.message, code: error.code });
+        }
+
+        throw error;
+      }
+    }
+
+    /*
      * Reject non-static providers that have no deploy hook / credentials wired
      * up rather than synthesizing a fake `*.vibecore.local` URL and marking the
      * deployment READY (audit #1). The static provider builds in-process and
@@ -28550,6 +29123,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           branch: body.githubIntegration?.branch ?? body.branch,
           commitSha: body.commitSha,
           customDomain: body.customDomain,
+          machineSize: deployMachineSize,
           metadata: {
             previewDeployment: body.previewDeployment,
             timeoutSeconds: body.timeoutSeconds,
@@ -28709,7 +29283,63 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/internal/deployments/reap', async (request) => {
     requireInternalSecret(request);
 
-    return reapStaleDeployments(store, { timeoutMs: resolveDeployBuildTimeoutMs() });
+    const reaped = await reapStaleDeployments(store, { timeoutMs: resolveDeployBuildTimeoutMs() });
+
+    /*
+     * Same tick, second sweep: runtime metering for READY server deployments.
+     * Bills observed ACTIVE machine time (replicas > 0) at the row's machine
+     * size; a sleeping app advances its watermark for free. Best-effort — a
+     * metering failure must never fail the reap (each is independently useful).
+     */
+    let runtimeMetering: Awaited<ReturnType<typeof meterServerDeploymentRuntime>> | { error: string };
+
+    try {
+      runtimeMetering = await meterServerDeploymentRuntime(store, {
+        card: await getActiveRateCard(store),
+        getLiveStatus: (deploymentId) => getServerDeploymentStatusViaManager(deploymentId),
+        nowMs: Date.now(),
+        shadow: process.env.BILLING_CREDITS_ENABLED !== 'true',
+      });
+    } catch (error) {
+      runtimeMetering = { error: (error as Error).message };
+      request.log.error({ err: error }, 'server-deploy runtime metering sweep failed');
+    }
+
+    return { ...reaped, runtimeMetering };
+  });
+
+  /*
+   * The versioned Rate Card (deploy machine sizes + unit prices) with per-size
+   * availability for the CALLER's plan and the cluster's current scheduling
+   * ceiling. The Deploy panel renders its size selector from this — prices and
+   * sizes live in the card, never hard-coded in the UI.
+   */
+  app.get('/projects/:projectId/deployments/rate-card', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    const { subscription } = await billingState(project.organizationId);
+
+    const planKey =
+      subscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(subscription.status) ? subscription.planKey : 'free';
+
+    const card = await getActiveRateCard(store);
+
+    return {
+      version: card.version,
+      effectiveAt: card.effectiveAt,
+      currency: card.currency,
+      compute: card.compute,
+      planKey,
+      defaultMachineSize: card.machineSizes.some((size) => size.key === 'shared-0.5')
+        ? 'shared-0.5'
+        : card.machineSizes[0]?.key,
+      machineSizes: availableMachineSizes(card, planKey, maxSchedulableVcpu()),
+    };
   });
 
   /*
@@ -28817,6 +29447,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/projects/:projectId/scheduled-tasks', async (request, reply) => {
     const { projectId } = parse(scheduledTaskParams, request.params);
+
     /*
      * `parse`'s generic collapses zod input/output, so defaulted fields (cron
      * timezone/machineSize/enabled/…) surface as `T | undefined`. They are always
@@ -29439,6 +30070,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           branch: source.branch,
           commitSha: source.commitSha,
           customDomain: source.customDomain,
+
+          // A redeploy runs on the SAME machine the original was priced for.
+          machineSize: source.machineSize,
           metadata: { ...source.metadata, redeployedFromId: source.id },
           startedAt: new Date().toISOString(),
           logs: [{ timestamp: new Date().toISOString(), level: 'info', message: `Redeploying from ${source.id}` }],

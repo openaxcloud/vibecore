@@ -175,6 +175,14 @@ export default class OpenAIProvider extends BaseProvider {
      * truncated when the OpenAI /models endpoint is unavailable or mis-classifies them.
      */
     {
+      // GPT-5.6 flagship (GA 2026-07-09) — the agent routing card's Turbo line.
+      name: 'gpt-5.6-sol',
+      label: 'GPT-5.6 Sol',
+      provider: 'OpenAI',
+      maxTokenAllowed: 1_000_000,
+      maxCompletionTokens: 128000,
+    },
+    {
       name: 'gpt-4.1',
       label: 'GPT-4.1',
       provider: 'OpenAI',

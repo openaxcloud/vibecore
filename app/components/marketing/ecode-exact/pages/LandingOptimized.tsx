@@ -305,13 +305,6 @@ export default function LandingOptimized() {
               Fortune 500 development velocity to every team.
             </p>
 
-            {/* <sm the model picker collapses into the prompt card below to keep the 390px hero short. */}
-            <div className="hidden sm:block max-w-4xl mx-auto mt-8 animate-fade-in" style={{ animationDelay: '300ms' }}>
-              <div className="flex justify-center">
-                <AIModelSelector variant="card" className="w-full max-w-2xl" />
-              </div>
-            </div>
-
             <div className="max-w-4xl mx-auto mt-8 animate-fade-in" style={{ animationDelay: '400ms' }}>
               <div className="relative group">
                 <div className="absolute -inset-1 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition-all duration-300 bg-gradient-to-br from-ecode-orange via-ecode-orange-light to-ecode-yellow" />
@@ -343,10 +336,6 @@ export default function LandingOptimized() {
                       <Sparkles className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                       Build Now
                     </Button>
-                  </div>
-                  {/* <sm: the standalone model card collapses into this compact line. */}
-                  <div className="sm:hidden mt-1 border-t border-[var(--ecode-border)] px-4 py-2 text-left">
-                    <AIModelSelector variant="compactLine" className="w-full" />
                   </div>
                 </div>
               </div>

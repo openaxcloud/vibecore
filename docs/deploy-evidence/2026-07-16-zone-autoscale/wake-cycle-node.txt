@@ -1,0 +1,10 @@
+=== PREUVE AUTOSCALE scale-to-zero → wake — 2026-07-16T05:21:51Z ===
+--- AVANT (kubectl get deploy) :
+NAME                            READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES                                                                                                                 SELECTOR
+app-cmrmb34mz00060nbdp80trhzm   0/0     0            0           12h   app          europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmrm9vobb00070nfe075k2bpv:cmrmb34mz00060nbdp80trhzm   app=app-cmrmb34mz00060nbdp80trhzm
+spec.replicas=0  readyReplicas=
+--- 1 requête (curl chronométré) :
+{"ok":true,"phase":"B4","deployment":"1","builtFrom":"revision"}
+HTTP 200  time_total=16.049747s
+--- APRÈS (kubectl get deploy) :
+spec.replicas=1  readyReplicas=1

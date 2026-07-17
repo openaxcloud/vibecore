@@ -4,6 +4,8 @@ import { toCreditPlanKey, CREDIT_PACK_VALIDITY_DAYS, type CreditPlanKey } from '
 export * from './ai-pricing.js';
 export * from './credits.js';
 export * from './compute-pricing.js';
+export * from './rate-card.js';
+export * from './agent-routing.js';
 
 /*
  * Pinned Stripe API version. Sent on every request so the request/webhook

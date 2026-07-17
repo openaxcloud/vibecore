@@ -1811,6 +1811,7 @@ function SecurityEventsPanel({ reauthPassword, pushToast }: PanelProps) {
  * the generic table when an entry exists. Populated one Batch-F point at a time.
  */
 export const CUSTOM_PANELS: Record<string, React.ComponentType<PanelProps>> = {
+  'agent-routing': AgentRoutingPanel,
   'credit-wallets': CreditWalletsPanel,
   'account-deletions': AccountDeletionsPanel,
   'ai-models': AiModelsPanel,
@@ -1821,3 +1822,529 @@ export const CUSTOM_PANELS: Record<string, React.ComponentType<PanelProps>> = {
   'provider-health': ProvidersPanel,
   'security-events': SecurityEventsPanel,
 };
+
+/* ------------------------------------------------------------------ */
+/* Agent routing (AGM) — Admin > Agent > Model routing                 */
+/* ------------------------------------------------------------------ */
+
+interface AgentRoutingLineView {
+  key: string;
+  label: string;
+  provider: string;
+  model: string;
+  costInCentsPerM: number;
+  costOutCentsPerM: number;
+  multiplier: number;
+  billedToUser: boolean;
+  availablePlans: string[];
+  active: boolean;
+  userPrice: { inCentsPerM: number; outCentsPerM: number };
+  margins: { inputMargin: number | null; outputMargin: number | null; negative: boolean };
+  volume30d: {
+    calls: number;
+    tokensIn: number;
+    tokensOut: number;
+    costCents: number;
+    creditCents: number;
+    marginCents: number;
+  };
+}
+
+interface AgentRoutingPayload {
+  card: {
+    version: number;
+    effectiveFrom: string;
+    sourceDate: string;
+    baseUserInCentsPerM: number;
+    baseUserOutCentsPerM: number;
+  };
+  lines: AgentRoutingLineView[];
+  negativeLines: string[];
+  history: Array<{
+    version: number;
+    active: boolean;
+    effectiveFrom: string;
+    effectiveTo?: string;
+    sourceDate?: string;
+    createdAt: string;
+    createdByEmail?: string;
+  }>;
+}
+
+interface AgentRoutingSimulation {
+  windowDays: number;
+  negativeLines: string[];
+  lines: Array<{
+    lineKey: string;
+    calls: number;
+    tokensIn: number;
+    tokensOut: number;
+    actualCostCents: number;
+    actualCreditCents: number;
+    actualMarginCents: number;
+    simulatedCostCents: number;
+    simulatedCreditCents: number;
+    simulatedMarginCents: number;
+  }>;
+  totals: {
+    actualCostCents: number;
+    actualCreditCents: number;
+    actualMarginCents: number;
+    simulatedCostCents: number;
+    simulatedCreditCents: number;
+    simulatedMarginCents: number;
+  };
+}
+
+interface AgentCallRow {
+  id: string;
+  createdAt: string;
+  mode: string;
+  highEffort: boolean;
+  escalated: boolean;
+  turbo: boolean;
+  lineKey: string;
+  provider: string;
+  model: string;
+  tokensIn: number;
+  tokensOut: number;
+  costMillicents: number;
+  creditCents: number;
+  marginMillicents: number;
+  billedToUser: boolean;
+  routingCardVersion: number;
+  source: string;
+}
+
+function formatMargin(margin: number | null): string {
+  if (margin === null) {
+    return '—';
+  }
+
+  return `${(margin * 100).toFixed(1)}%`;
+}
+
+function marginTone(margin: number | null): React.CSSProperties {
+  if (margin === null) {
+    return { color: 'var(--admin-text-muted, #8a8f98)' };
+  }
+
+  return margin < 0 ? { color: '#e5484d', fontWeight: 700 } : { color: '#30a46c' };
+}
+
+/**
+ * AGM admin screen: one line per mode/switch with cost of revenue, the ONE
+ * billed multiplier, live margins (red + save-blocking when negative), 30-day
+ * real volume, plan availability and the classifier as a visible unbilled
+ * operating cost. Publishing is a NEW versioned card (config change, zero
+ * deployment) — full history + who/when below, plus the 30-day simulator.
+ */
+export function AgentRoutingPanel({ reauthPassword, pushToast }: PanelProps) {
+  const { data, loading, error, reload } = usePanelData<AgentRoutingPayload>('/admin/agent-routing');
+  const [draftLines, setDraftLines] = useState<AgentRoutingLineView[] | undefined>(undefined);
+  const [baseIn, setBaseIn] = useState<number | undefined>(undefined);
+  const [baseOut, setBaseOut] = useState<number | undefined>(undefined);
+  const [sourceDate, setSourceDate] = useState<string | undefined>(undefined);
+  const [confirmNegative, setConfirmNegative] = useState(false);
+  const [simulation, setSimulation] = useState<AgentRoutingSimulation | undefined>(undefined);
+  const [calls, setCalls] = useState<AgentCallRow[] | undefined>(undefined);
+
+  useEffect(() => {
+    if (data) {
+      setDraftLines(structuredClone(data.lines));
+      setBaseIn(data.card.baseUserInCentsPerM);
+      setBaseOut(data.card.baseUserOutCentsPerM);
+      setSourceDate(data.card.sourceDate);
+      setSimulation(undefined);
+      setConfirmNegative(false);
+    }
+  }, [data]);
+
+  useEffect(() => {
+    apiJson<{ calls: AgentCallRow[] }>('/admin/agent-routing/calls?limit=50')
+      .then((payload) => setCalls(payload.calls))
+      .catch(() => setCalls([]));
+  }, [data]);
+
+  if (loading || error || !data || !draftLines) {
+    return <PanelStates loading={loading} error={error} />;
+  }
+
+  const effectiveBaseIn = baseIn ?? data.card.baseUserInCentsPerM;
+  const effectiveBaseOut = baseOut ?? data.card.baseUserOutCentsPerM;
+
+  const draftUserPrice = (line: AgentRoutingLineView) =>
+    line.billedToUser
+      ? { inCentsPerM: effectiveBaseIn * line.multiplier, outCentsPerM: effectiveBaseOut * line.multiplier }
+      : { inCentsPerM: 0, outCentsPerM: 0 };
+
+  const draftMargins = (line: AgentRoutingLineView) => {
+    if (!line.billedToUser) {
+      return { inputMargin: null, outputMargin: null, negative: false };
+    }
+
+    const price = draftUserPrice(line);
+    const inputMargin = price.inCentsPerM > 0 ? (price.inCentsPerM - line.costInCentsPerM) / price.inCentsPerM : null;
+    const outputMargin =
+      price.outCentsPerM > 0 ? (price.outCentsPerM - line.costOutCentsPerM) / price.outCentsPerM : null;
+
+    return {
+      inputMargin,
+      outputMargin,
+      negative: (inputMargin !== null && inputMargin < 0) || (outputMargin !== null && outputMargin < 0),
+    };
+  };
+
+  const negativeDraftLines = draftLines.filter((line) => line.active && draftMargins(line).negative);
+
+  const updateLine = (key: string, patch: Partial<AgentRoutingLineView>) => {
+    setDraftLines((current) => current?.map((line) => (line.key === key ? { ...line, ...patch } : line)));
+    setSimulation(undefined);
+  };
+
+  const draftCardBody = () => ({
+    sourceDate: sourceDate || new Date().toISOString().slice(0, 10),
+    baseUserInCentsPerM: effectiveBaseIn,
+    baseUserOutCentsPerM: effectiveBaseOut,
+    lines: draftLines.map((line) => ({
+      key: line.key,
+      label: line.label,
+      provider: line.provider,
+      model: line.model,
+      costInCentsPerM: line.costInCentsPerM,
+      costOutCentsPerM: line.costOutCentsPerM,
+      multiplier: line.multiplier,
+      billedToUser: line.billedToUser,
+      availablePlans: line.availablePlans,
+      active: line.active,
+    })),
+  });
+
+  const simulate = async () => {
+    try {
+      const result = await apiJson<AgentRoutingSimulation>('/admin/agent-routing/simulate', {
+        method: 'POST',
+        body: JSON.stringify({ card: draftCardBody() }),
+      });
+      setSimulation(result);
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : 'Simulation failed');
+    }
+  };
+
+  const publish = async () => {
+    if (negativeDraftLines.length > 0 && !confirmNegative) {
+      pushToast(
+        `Negative margin on: ${negativeDraftLines.map((line) => line.key).join(', ')} — tick the explicit confirmation to publish anyway.`,
+      );
+      return;
+    }
+
+    const result = await withReauth(reauthPassword, pushToast, () =>
+      apiJson<{ published: boolean; version: number }>('/admin/agent-routing', {
+        method: 'POST',
+        body: JSON.stringify({ card: draftCardBody(), confirmNegativeMargin: confirmNegative }),
+      }),
+    );
+
+    if (result?.published) {
+      pushToast(`Routing card v${result.version} published — live immediately, no deployment.`);
+      reload();
+    }
+  };
+
+  const cellInput = (value: number, onChange: (next: number) => void, width = 90) => (
+    <input
+      type="number"
+      value={Number.isFinite(value) ? value : 0}
+      min={0}
+      step="any"
+      onChange={(event) => onChange(Number(event.currentTarget.value))}
+      style={{ width }}
+    />
+  );
+
+  return (
+    <div className="admin-panel">
+      <div className="admin-panel-block">
+        <h3>Model routing — active card v{data.card.version}</h3>
+        <p className="admin-panel-hint">
+          One line per mode/switch. The user price is <strong>base × multiplier</strong> — the multiplier shown IS the
+          multiplier billed. Margin is computed live; a negative margin blocks publishing unless explicitly confirmed.
+          Publishing creates a NEW version (config change — never a deployment).
+        </p>
+
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', margin: '8px 0' }}>
+          <label>
+            Base user price /1M in (¢): {cellInput(effectiveBaseIn, setBaseIn)}
+          </label>
+          <label>
+            Base user price /1M out (¢): {cellInput(effectiveBaseOut, setBaseOut)}
+          </label>
+          <label>
+            Source date:{' '}
+            <input
+              type="date"
+              value={sourceDate ?? ''}
+              onChange={(event) => setSourceDate(event.currentTarget.value)}
+            />
+          </label>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Line</th>
+                <th>Provider</th>
+                <th>Model</th>
+                <th>Cost /1M in (¢)</th>
+                <th>Cost /1M out (¢)</th>
+                <th>×</th>
+                <th>User /1M in</th>
+                <th>User /1M out</th>
+                <th>Margin in</th>
+                <th>Margin out</th>
+                <th>Margin 30d</th>
+                <th>Volume 30d</th>
+                <th>Plans</th>
+                <th>Active</th>
+              </tr>
+            </thead>
+            <tbody>
+              {draftLines.map((line) => {
+                const margins = draftMargins(line);
+                const price = draftUserPrice(line);
+                const served = data.lines.find((entry) => entry.key === line.key);
+
+                return (
+                  <tr key={line.key} style={margins.negative ? { background: 'rgba(229,72,77,0.08)' } : undefined}>
+                    <td>
+                      <strong>{line.label}</strong>
+                      {!line.billedToUser ? (
+                        <div style={{ fontSize: 11, color: '#8a8f98' }}>not billed (our operating cost)</div>
+                      ) : null}
+                    </td>
+                    <td>
+                      <input
+                        value={line.provider}
+                        onChange={(event) => updateLine(line.key, { provider: event.currentTarget.value })}
+                        style={{ width: 100 }}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        value={line.model}
+                        onChange={(event) => updateLine(line.key, { model: event.currentTarget.value })}
+                        style={{ width: 170 }}
+                      />
+                    </td>
+                    <td>{cellInput(line.costInCentsPerM, (next) => updateLine(line.key, { costInCentsPerM: next }))}</td>
+                    <td>
+                      {cellInput(line.costOutCentsPerM, (next) => updateLine(line.key, { costOutCentsPerM: next }))}
+                    </td>
+                    <td>{cellInput(line.multiplier, (next) => updateLine(line.key, { multiplier: next }), 60)}</td>
+                    <td>{line.billedToUser ? formatCents(price.inCentsPerM) : '—'}</td>
+                    <td>{line.billedToUser ? formatCents(price.outCentsPerM) : '—'}</td>
+                    <td style={marginTone(margins.inputMargin)}>{formatMargin(margins.inputMargin)}</td>
+                    <td style={marginTone(margins.outputMargin)}>{formatMargin(margins.outputMargin)}</td>
+                    <td style={marginTone(served && served.volume30d.calls > 0 ? served.volume30d.marginCents : null)}>
+                      {served && served.volume30d.calls > 0 ? formatCents(served.volume30d.marginCents) : '—'}
+                    </td>
+                    <td style={{ fontSize: 11 }}>
+                      {served
+                        ? `${served.volume30d.calls} calls · ${served.volume30d.tokensIn.toLocaleString()} in / ${served.volume30d.tokensOut.toLocaleString()} out`
+                        : '—'}
+                    </td>
+                    <td>
+                      <input
+                        value={line.availablePlans.join(',')}
+                        onChange={(event) =>
+                          updateLine(line.key, {
+                            availablePlans: event.currentTarget.value
+                              .split(',')
+                              .map((plan) => plan.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                        style={{ width: 160 }}
+                        title="Comma-separated plan keys"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={line.active}
+                        onChange={(event) => updateLine(line.key, { active: event.currentTarget.checked })}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {negativeDraftLines.length > 0 ? (
+          <div
+            role="alert"
+            data-testid="agent-routing-negative-alert"
+            style={{
+              margin: '10px 0',
+              padding: '10px 12px',
+              borderRadius: 8,
+              border: '1px solid #e5484d',
+              background: 'rgba(229,72,77,0.1)',
+              color: '#e5484d',
+              fontWeight: 600,
+            }}
+          >
+            ⚠ Negative margin on: {negativeDraftLines.map((line) => line.label).join(', ')}. Publishing is blocked
+            unless you explicitly confirm losing money on these lines.
+            <label style={{ display: 'block', marginTop: 6, fontWeight: 400 }}>
+              <input
+                type="checkbox"
+                checked={confirmNegative}
+                onChange={(event) => setConfirmNegative(event.currentTarget.checked)}
+              />{' '}
+              I understand and confirm publishing with a negative margin.
+            </label>
+          </div>
+        ) : null}
+
+        <div style={{ display: 'flex', gap: 10, margin: '10px 0' }}>
+          <button type="button" onClick={simulate}>
+            Simulate on the last 30 days
+          </button>
+          <button type="button" onClick={publish} data-testid="agent-routing-publish">
+            Publish new version
+          </button>
+          <button type="button" onClick={reload}>
+            Reset draft
+          </button>
+        </div>
+
+        {simulation ? (
+          <div className="admin-panel-block" data-testid="agent-routing-simulation">
+            <h4>Simulation — real volume of the last {simulation.windowDays} days</h4>
+            <p>
+              At this volume, this config would have <strong>cost {formatCents(simulation.totals.simulatedCostCents)}</strong>{' '}
+              and <strong>earned {formatCents(simulation.totals.simulatedCreditCents)}</strong> (margin{' '}
+              {formatCents(simulation.totals.simulatedMarginCents)}) — vs actual: cost{' '}
+              {formatCents(simulation.totals.actualCostCents)}, earned {formatCents(simulation.totals.actualCreditCents)}
+              , margin {formatCents(simulation.totals.actualMarginCents)}.
+            </p>
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Line</th>
+                  <th>Calls</th>
+                  <th>Actual cost</th>
+                  <th>Actual earned</th>
+                  <th>Simulated cost</th>
+                  <th>Simulated earned</th>
+                  <th>Simulated margin</th>
+                </tr>
+              </thead>
+              <tbody>
+                {simulation.lines.map((line) => (
+                  <tr key={line.lineKey}>
+                    <td>{line.lineKey}</td>
+                    <td>{line.calls}</td>
+                    <td>{formatCents(line.actualCostCents)}</td>
+                    <td>{formatCents(line.actualCreditCents)}</td>
+                    <td>{formatCents(line.simulatedCostCents)}</td>
+                    <td>{formatCents(line.simulatedCreditCents)}</td>
+                    <td style={marginTone(line.simulatedMarginCents < 0 ? -1 : 1)}>
+                      {formatCents(line.simulatedMarginCents)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="admin-panel-block">
+        <h4>Version history — who changed what, when</h4>
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Version</th>
+              <th>Active</th>
+              <th>Effective from</th>
+              <th>Effective to</th>
+              <th>Source date</th>
+              <th>Author</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.history.map((entry) => (
+              <tr key={entry.version}>
+                <td>v{entry.version}</td>
+                <td>{entry.active ? '● active' : '—'}</td>
+                <td>{formatDateTime(entry.effectiveFrom)}</td>
+                <td>{entry.effectiveTo ? formatDateTime(entry.effectiveTo) : '—'}</td>
+                <td>{entry.sourceDate ?? '—'}</td>
+                <td>{entry.createdByEmail ?? 'seed'}</td>
+                <td>{formatDateTime(entry.createdAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="admin-panel-block">
+        <h4>Recent agent calls (admin-only log)</h4>
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Mode</th>
+              <th>Line</th>
+              <th>Model (real)</th>
+              <th>Tokens in/out</th>
+              <th>Cost</th>
+              <th>Credits</th>
+              <th>Margin</th>
+              <th>Escalated</th>
+              <th>Card</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(calls ?? []).map((call) => (
+              <tr key={call.id}>
+                <td>{formatDateTime(call.createdAt)}</td>
+                <td>
+                  {call.mode}
+                  {call.turbo ? ' · turbo' : ''}
+                  {call.highEffort ? ' · high-effort' : ''}
+                </td>
+                <td>{call.lineKey}</td>
+                <td>
+                  {call.provider}/{call.model}
+                  {!call.billedToUser ? ' (unbilled)' : ''}
+                </td>
+                <td>
+                  {call.tokensIn.toLocaleString()} / {call.tokensOut.toLocaleString()}
+                </td>
+                <td>{formatCents(call.costMillicents / 1000)}</td>
+                <td>{formatCents(call.creditCents)}</td>
+                <td style={marginTone(call.marginMillicents < 0 ? -1 : 1)}>{formatCents(call.marginMillicents / 1000)}</td>
+                <td>{call.escalated ? 'yes' : 'no'}</td>
+                <td>v{call.routingCardVersion}</td>
+              </tr>
+            ))}
+            {calls && calls.length === 0 ? (
+              <tr>
+                <td colSpan={10}>No routed calls yet.</td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

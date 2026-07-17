@@ -1,0 +1,8 @@
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app: app-cmrmb34mz00060nbdp80trhzm
+{"failureThreshold":30,"httpGet":{"path":"/","port":3000,"scheme":"HTTP"},"periodSeconds":1,"successThreshold":1,"timeoutSeconds":5}

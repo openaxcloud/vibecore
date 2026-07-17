@@ -52,6 +52,19 @@ export const createDeploymentSchema = z.object({
   artifactSizeLimitMb: z.number().int().min(1).max(2048).default(250),
   envVars: z.record(z.string()).default({}),
   injectSecrets: z.array(z.string().min(1).max(120)).default([]),
+
+  /*
+   * Machine size for server deploys (rate-card key, e.g. 'dedicated-1').
+   * Validated against the ACTIVE rate card + plan ceiling + scheduling
+   * capacity in the route handler — the schema only bounds the shape.
+   */
+  machineSize: z
+    .string()
+    .trim()
+    .min(1)
+    .max(40)
+    .regex(/^[a-z0-9.-]+$/)
+    .optional(),
   githubIntegration: z
     .object({
       repositoryUrl: z.string().url().optional(),
@@ -756,6 +769,9 @@ export function buildPublishedDeploymentInput(source: DeploymentRecord, producti
     commitSha: source.commitSha,
     customDomain: source.customDomain,
     parentDeploymentId: source.id,
+
+    // Production runs on the same machine size the source was priced for.
+    machineSize: source.machineSize,
     metadata: { ...(source.metadata ?? {}), publishedFrom: source.id },
   };
 }
@@ -1450,8 +1466,10 @@ export function createDeploymentLogs(
     baseLogs.push(`${deployment.provider}: provider deployment created through scoped integration`);
   }
 
-  // Same lie for server deploys: readiness is logged by the pipeline when the
-  // Deployment really answers, never at queue time.
+  /*
+   * Same lie for server deploys: readiness is logged by the pipeline when the
+   * Deployment really answers, never at queue time.
+   */
   if (deployment.provider !== 'server') {
     baseLogs.push(
       `Deployment ready: ${deployment.url ?? deployment.previewUrl ?? deployment.productionUrl ?? 'pending URL'}`,

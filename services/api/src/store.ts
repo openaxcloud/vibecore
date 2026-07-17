@@ -291,6 +291,8 @@ export interface DeploymentRecord {
   parentDeploymentId?: string;
   /** Replit-parity deploy metering idempotency marker (ISO); set once metered. */
   lastMeteredAt?: string;
+  /** Rate-card machine size key picked at publish (server deploys). */
+  machineSize?: string;
   startedAt?: string;
   finishedAt?: string;
   canceledAt?: string;
@@ -1549,6 +1551,7 @@ export interface ApiStore {
     metadata?: Record<string, unknown>;
     rolledBackFromId?: string;
     parentDeploymentId?: string;
+    machineSize?: string;
     startedAt?: string;
     finishedAt?: string;
     canceledAt?: string;
@@ -1569,6 +1572,114 @@ export interface ApiStore {
    * which fails builds orphaned by an api/worker crash so they never hang.
    */
   listStaleDeployments(cutoffIso: string): Promise<DeploymentRecord[]>;
+  /**
+   * READY server deployments (provider 'server') — the runtime-metering sweep
+   * walks these to bill active machine time against their machineSize.
+   */
+  listActiveServerDeployments(): Promise<DeploymentRecord[]>;
+  /**
+   * The ACTIVE versioned Rate Card row (undefined when none is active — the
+   * caller falls back to the built-in card). `data` is the serialized RateCard.
+   */
+  getActiveRateCard(): Promise<{ version: number; data: unknown } | undefined>;
+  /**
+   * The ACTIVE versioned Agent Routing Card row (undefined when none — the
+   * caller falls back to the built-in card from packages/billing).
+   */
+  getActiveAgentRoutingCard(): Promise<{ version: number; data: unknown } | undefined>;
+  /** Number of routing card versions stored (0 = seed the built-in v1). */
+  countAgentRoutingCards(): Promise<number>;
+  /** Raw insert used by the boot seed (does not close a previous version). */
+  insertAgentRoutingCard(input: {
+    version: number;
+    data: unknown;
+    sourceDate?: string;
+    effectiveFrom?: string;
+    active: boolean;
+    createdByUserId?: string;
+  }): Promise<void>;
+  /**
+   * Publish a NEW routing card version: closes the currently-active version
+   * (active=false + effectiveTo=now) and inserts the new one as active, in one
+   * transaction. Returns the created version number.
+   */
+  createAgentRoutingCardVersion(input: {
+    data: unknown;
+    sourceDate?: string;
+    createdByUserId?: string;
+  }): Promise<{ version: number; effectiveFrom: string }>;
+  /** Full routing card history, newest first (who/what/when). */
+  listAgentRoutingCards(limit?: number): Promise<
+    Array<{
+      version: number;
+      active: boolean;
+      data: unknown;
+      effectiveFrom: string;
+      effectiveTo?: string;
+      sourceDate?: string;
+      createdAt: string;
+      createdByUserId?: string;
+      createdByEmail?: string;
+    }>
+  >;
+  /** One row per routed agent LLM call — admin-only visibility. */
+  recordAgentCall(input: {
+    userId?: string;
+    organizationId?: string;
+    projectId?: string;
+    mode: string;
+    highEffort: boolean;
+    escalated: boolean;
+    turbo: boolean;
+    lineKey: string;
+    provider: string;
+    model: string;
+    tokensIn: number;
+    tokensOut: number;
+    costMillicents: number;
+    creditCents: number;
+    marginMillicents: number;
+    billedToUser: boolean;
+    routingCardVersion: number;
+    source: string;
+  }): Promise<void>;
+  /** Per-line volume aggregate since an ISO cutoff (drives the admin table + simulator). */
+  aggregateAgentCallVolume(sinceIso: string): Promise<
+    Array<{
+      lineKey: string;
+      calls: number;
+      tokensIn: number;
+      tokensOut: number;
+      costMillicents: number;
+      creditCents: number;
+      marginMillicents: number;
+    }>
+  >;
+  /** Most recent agent call log rows, newest first (admin-only). */
+  listAgentCalls(limit?: number): Promise<
+    Array<{
+      id: string;
+      createdAt: string;
+      userId?: string;
+      organizationId?: string;
+      projectId?: string;
+      mode: string;
+      highEffort: boolean;
+      escalated: boolean;
+      turbo: boolean;
+      lineKey: string;
+      provider: string;
+      model: string;
+      tokensIn: number;
+      tokensOut: number;
+      costMillicents: number;
+      creditCents: number;
+      marginMillicents: number;
+      billedToUser: boolean;
+      routingCardVersion: number;
+      source: string;
+    }>
+  >;
   createSupportTicket(input: {
     organizationId: string;
     userId: string;

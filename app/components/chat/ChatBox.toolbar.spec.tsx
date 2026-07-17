@@ -196,55 +196,61 @@ describe('<ChatBox /> agent power controls', () => {
     window.localStorage.clear();
   });
 
-  it('renders the per-request power controls + a default proof-of-work estimate in the IDE composer', () => {
+  it('renders the AGM segmented mode control + Advanced popover in the IDE composer', () => {
     renderChatBox();
 
     /*
-     * The boosts + build tier are collapsed behind a single "Power" dropdown
-     * (Replit-clean composer) without dropping any control. The live cost
-     * estimate stays visible on the bar; the controls live in the popover.
+     * AGM: the three MODES (Lite/Economy/Power) are a visible segmented
+     * control — never a model name — and the two switches (High effort, Turbo)
+     * live behind the Advanced popover. The live cost estimate stays visible.
      */
-    const powerTrigger = screen.getByRole('button', { name: /Power/i });
-    fireEvent.click(powerTrigger);
+    const segmented = screen.getByRole('radiogroup', { name: /Agent mode/i });
+    expect(within(segmented).getByRole('radio', { name: /Economy/i }).getAttribute('aria-checked')).toBe('true');
+    expect(within(segmented).getByRole('radio', { name: /^Lite/i })).toBeTruthy();
+    expect(within(segmented).getByRole('radio', { name: /^Power/i })).toBeTruthy();
 
-    expect(screen.getByRole('switch', { name: /High power/i })).toBeTruthy();
-    expect(screen.getByRole('switch', { name: /Extended thinking/i })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Advanced/i }));
+
+    expect(screen.getByRole('switch', { name: /High effort/i })).toBeTruthy();
     expect(screen.getByRole('switch', { name: /Turbo/i })).toBeTruthy();
-    expect(screen.getByRole('radiogroup', { name: 'Build tier' })).toBeTruthy();
+
+    // No model name anywhere in the composer — the product rule.
+    expect(document.body.textContent).not.toMatch(/claude|gpt-|anthropic|openai|gemini/i);
 
     // economy (×1) × $0.25 baseline, +30% server AI margin → ceil(33¢) = $0.33
-    expect(screen.getByTitle(/Estimated cost for this request/i).textContent).toContain('~$0.33');
+    expect(screen.getAllByTitle(/Estimated cost for this request/i)[0].textContent).toContain('~$0.33');
   });
 
   it('does not render the power controls outside the IDE composer', () => {
     renderChatBox({ projectIdeMode: false });
-    expect(screen.queryByRole('button', { name: /High power/i })).toBeNull();
+    expect(screen.queryByRole('radiogroup', { name: /Agent mode/i })).toBeNull();
   });
 
-  it('raises the proof-of-work estimate when High power is enabled and reports the change', () => {
+  it('never allows Turbo outside Power and reports High effort through the legacy wire field', () => {
     const onAgentPowerChange = vi.fn();
     renderChatBox({ onAgentPowerChange });
 
-    fireEvent.click(screen.getByRole('button', { name: /Power/i }));
-    fireEvent.click(screen.getByRole('switch', { name: /High power/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Advanced/i }));
 
-    expect(onAgentPowerChange).toHaveBeenCalledWith(expect.objectContaining({ highPowerModel: true }));
+    // Economy: Turbo is locked (Power only)…
+    const turbo = screen.getByRole('switch', { name: /Turbo/i });
+    expect(turbo.hasAttribute('disabled')).toBe(true);
 
-    // $0.25 × 4 = $1.00 raw, +30% server AI margin → ceil(130¢) = $1.30
-    expect(screen.getByTitle(/Estimated cost for this request/i).textContent).toContain('~$1.30');
+    // …but High effort is togglable and mirrors onto highPowerModel (wire compat).
+    fireEvent.click(screen.getByRole('switch', { name: /High effort/i }));
+    expect(onAgentPowerChange).toHaveBeenCalledWith(
+      expect.objectContaining({ highEffort: true, highPowerModel: true }),
+    );
   });
 
-  it('honors a parent-controlled power value (Turbo → ~$1.95)', () => {
+  it('honors a parent-controlled power value (Turbo in Power mode)', () => {
     renderChatBox({
-      agentPower: { highPowerModel: false, extendedThinking: false, turboMode: true, buildTier: 'economy' },
+      agentPower: { highEffort: false, highPowerModel: false, extendedThinking: false, turboMode: true, buildTier: 'power' },
       onAgentPowerChange: vi.fn(),
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Power/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Advanced/i }));
 
     expect(screen.getByRole('switch', { name: /Turbo/i }).getAttribute('aria-checked')).toBe('true');
-
-    // $0.25 × 6 = $1.50 raw, +30% server AI margin → ceil(195¢) = $1.95
-    expect(screen.getByTitle(/Estimated cost for this request/i).textContent).toContain('~$1.95');
   });
 });

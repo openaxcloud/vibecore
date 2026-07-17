@@ -3,6 +3,35 @@
 États par point : 📤 Dispatché · 💻 Codé (commité+poussé sur main) · ✅ Testé live (écran + greps, web/tablette/mobile le cas échéant).
 Un point n'est « fait » QUE quand ✅ est coché.
 
+## DOC NORMATIVE — P0-02 registres parité + P0-04 collecteur baseline (décision Avi 16/07)
+
+Audit externe : 19 P0. P0-02 = 12 registres/contrats sous `docs/parity/` (chaque fichier porte `schemaVersion` + `repoCommit` ; `status: UNKNOWN` explicite plutôt qu'inventer). P0-04 = collecteur baseline QUOTIDIEN (le changelog Replit n'est PAS hebdo-vendredi : l'index contient un dimanche 16/11/2025 et un mercredi 26/11/2025 — toute automatisation « vendredi » interdite). Preuve = validateur qui passe + collecteur qui tourne en réel.
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|:---:|:---:|:---:|---|
+| P002-1. Les 12 fichiers/dossiers sous docs/parity/ (baseline, sources, surfaces, contrats service, domain model, e2e proofs, rate card+ledger, nix contract, ops DR, sécurité, parity status, changelog audit) | ✅ | ✅ (ce commit) | ⬜ | Domaines tranchés reflétés : Remix/Import/CloudTenant/IAM/Rollback/Checkpoint |
+| P002-2. scripts/parity/validate-registries.mjs + cible CI qui ÉCHOUE sur violation de schéma | ✅ | ✅ (ce commit) | ✅ 16/07 (run réel: 8 OK exit 0; test négatif: 3 violations exit 1) | Sortie réelle du run exigée |
+| P004-1. scripts/parity/collect-baseline.mjs quotidien (hash SHA-256 de llms.txt, llms-full.txt, sitemap, changelog, blog, pricing ; diff trié ; nb de liens = propriété du snapshot) | ✅ | ✅ (ce commit) | ✅ 16/07 (run réel 6/6 sources, snapshot 2026-07-16 commité, llms.txt 51 169 o/299 liens sha256 03cbdb07…) | Premier snapshot réel commité avec hash |
+
+## AGENT — 3 modes + routage admin avec marge (décision Avi 16/07)
+
+Décision produit validée par audit Replit : Replit n'a AUCUN sélecteur de modèle nulle part ; nous en affichons 147 (« AI Model Selection — 147 available », incl. `Gemini Robotics-ER 1.6` = modèle robotique). Cible : 3 modes (Lite / **Economy = défaut** / Power) dans l'IDE uniquement, aucun nom de modèle dans l'UI, réglages par UTILISATEUR ; table de routage admin versionnée avec coût de revient + marge. Preuve = parcours réel UI → control plane → modèle → réponse ; artefacts dans `docs/deploy-evidence/`.
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|:---:|:---:|:---:|---|
+| AGM-1. Supprimer le menu « 147 modèles » de la landing (aucun nom de modèle sur marketing) | ✅ | ✅ `84c860b5` | ⬜ | Preuve : mesure DOM e-code.ai, zéro nom de modèle |
+| AGM-2. Supprimer tout sélecteur modèle/provider de la création de projet | ✅ | ✅ `84c860b5` | ⬜ | Aucune question modèle avant la création |
+| AGM-3. Supprimer le sélecteur modèle/provider de l'IDE (chat Bolt) | ✅ | ✅ `84c860b5` | ⬜ | Aucun nom de modèle dans l'IDE |
+| AGM-4. Segmented control 3 modes dans l'IDE + ⌘⇧I (Lite / Economy défaut / Power) + garde-fou Lite | ✅ | ✅ `84c860b5` | ⬜ | Libellés : Lite « Rapide et économique… », Economy « Le bon équilibre. », Power « Pour les tâches complexes. » |
+| AGM-5. Advanced settings : High effort (Economy+Power, jamais Lite, escalade seulement sur tâches dures + « +0 credit » sinon) ; Turbo (Power only, OFF, activable admin org) | ✅ | ✅ `84c860b5` | ⬜ | Réglages par UTILISATEUR, pas par projet |
+| AGM-6. Routage serveur mode→modèle (config versionnée, PAS un déploiement) + refus mode non autorisé par plan | ✅ | ✅ `d0b302fa`+`9ec04adf`+`7abcb045` | ⬜ | Défauts : Economy=Claude Opus 4.8 ×1, High effort=Fable ×2 (tâches dures only), Turbo=OpenAI 5.6 ×2 |
+| AGM-7. Log par appel admin-only { userId, projectId, mode, highEffort, escaladeDeclenchee, providerReel, modeleReel, tokensIn/Out, coutRevient, creditsFactures, marge } | ✅ | ✅ `d0b302fa`+`7abcb045` | ⬜ | Invisible client |
+| AGM-8. Écran Admin → Agent → Routage des modèles (revient /1M in/out, multiplicateur, prix crédits, marge % et €, volume 30j, dispo plan, actif) + alerte marge négative bloquante | ✅ | ✅ `d0b302fa`+`fee92bd0` | ⬜ | Réutilise Rate Card versionné `packages/billing` (`1ea573b4`) |
+| AGM-9. Simulateur avant application + historique complet (qui/quoi/quand, marge avant/après) + versionnage effectiveFrom/effectiveTo/sourceDate | ✅ | ✅ `d0b302fa`+`fee92bd0` | ⬜ | |
+| AGM-10. Ligne classifieur harness (rapide/cheap, non facturé, revient visible) | ✅ | ✅ `dc2d6c9d`+`7abcb045` | ⬜ | Coût d'exploitation |
+| AGM-11. Nudge Economy→Power si boucle, max 1×/projet | ✅ | ✅ `84c860b5` | ⬜ | |
+| AGM-12. Preuves live (a)–(f) : DOM sans nom de modèle, 3 modes IDE, mode change le modèle appelé (log), coût diffère, refus par plan, alerte marge | ✅ | ✅ (`c94f2fdf`) | ✅ **16/07** — (a) scan DOM 3 surfaces × 3 formats hits=[] ; (b) segmented IDE Economy défaut ; (c) economy→opus-4-8, lite→haiku-4-5 (agent-mode.routed live) ; (d) AgentCallLog revient 651 vs 129 mc ; (e) 403 HIGH_EFFORT/TURBO_NOT_ALLOWED ; (f) marges live + 409 AGENT_ROUTING_NEGATIVE_MARGIN | Artefacts bruts `docs/deploy-evidence/` |
+
 ## Server deploy Phase A — « Publish = snapshot du workspace → image → run » (décision Avi 15/07)
 
 Contexte : le chemin boot-script (détection Node → tarball source → install/build au boot) est l'impasse par-langage.
@@ -38,6 +67,17 @@ Décisions committées : `docs/DEPLOY_REPRODUCIBLE_PIPELINE.md` (pipeline) + `do
 | B5. Store Nix v2 (26.05 pinné) + bundles d'activation + preuve Python | ✅ | ✅ | ✅ **15/07** | store 1,9 Go/2 012 chemins signés ; publish Python réel `cmrmc2v0u…` → URL 200 `python:3.12.13` (toolchain 26.05), venv construit dans le pod isolé, pod app monte `nix-store-v2-pvc` ; fix `fb855095` |
 | B6. Gates policy/scan secrets · B7. Signature d'images (cosign) | ☐ | ☐ | ☐ | |
 | B8. Interface `SandboxRuntime`/RuntimeAdapter (aucun objet métier = Pod ; microVM cible) | ✅ | ✅ `fead062e` | ✅ **15/07** | publish B5 réel passé par `GvisorPodRuntime` (manager `fb85509520`) ; réveil Node re-mesuré **14,5 s** (22 s Phase A) avec le poll 1 s |
+
+## Zone Autoscale + tailles machine + rétention AR (16/07, session zone-autoscale)
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|---|---|---|---|
+| Z1. **BUG-CRON-001** : enqueue CronJobs mort (bullmq ≥5.76 rejette `:` dans jobId) → tous les crons plateforme Failed depuis ~9/07 | ✅ | ✅ `9b3315b1` | ✅ **16/07** | Preuve live : jobs Complete 1/1 post-CD + tick 05:15 → 11 apps idle endormies 0/0 (dont Phase B, 1/1 depuis 12 h). Voir BUG_INVENTORY_LIVE |
+| Z2. Tailles machine 0.25→8 vCPU (RAM=4×vCPU) sur Rate Card versionné (DB `RateCard` seed v1, migration 0070, fallback code) ; `Deployment.machineSize` persisté + hérité (redeploy/publish-prod) ; requests==limits sur le pod ; garde plan (8 vCPU interdit en free) + plafond capacité `SERVER_DEPLOY_MAX_VCPU` (défaut 2 = nœuds 3920m) ; sélecteur au panneau Deploy depuis `GET /projects/:id/deployments/rate-card` (prix $/h actif, zéro chaîne en dur) | ✅ | ✅ `1ea573b4` | ✅ **16/07** | Publish réel `cmrn4qhjy…` dedicated-1 → kubectl `requests==limits {cpu:1, memory:4Gi}`, URL 200 ; gardes 400 PLAN/CAPACITY/UNKNOWN prouvées ; panneau vu à l'écran (6 tailles, prix carte, désactivées avec raison). `docs/deploy-evidence/2026-07-16-zone-autoscale/` |
+| Z3. Billing runtime autoscale : sweep sur tick deploy.reap (5 min) — temps ACTIF (replicas>0) × taille (18 u/CPU-s + 2 u/Go-s), **jamais 0** (plancher 1 unité), sommeil gratuit, watermark par déploiement, fenêtre plafonnée 30 min | ✅ | ✅ `1ea573b4` | ✅ **16/07** | Événement live 06:35 : 6 830 unités = 26 u/s × 262,7 s (contrôle exact) = 2,19 ¢, metadata machineSize/activeSeconds/replicas/requests/rateCardVersion, watermarks avancés (shadow mode) |
+| Z4. Metering requêtes : proxy compte→delta au touch 30 s ; manager cumule annotation `vibecore.ai/request-count` + `/status` l'expose ; sweep facture le delta $1.20/M (watermark `meteredRequests`, reset ⇒ jamais négatif) | ✅ | ✅ `894c5f6f` | ✅ **16/07** | Événement 06:35 : requests:1 facturée, watermark meteredRequests=1 sur la ligne (vérifié en DB) |
+| Z5. Autoscale bout en bout : replicas=0 sans trafic (15 min) → 1 requête → réveil + 200, requête non perdue | ✅ | ✅ (préexistant + Z1) | ✅ **16/07** | 2 cycles bruts : `app-cmrmb34mz` 0→200 en 16,05 s ; `cmrn4qhjy` (dedicated-1) endormi tick 07:00 → 200 en 16,3 s → replicas 1/1. Port unique 80→3000 + probe 5 s relevés |
+| Z6. Rétention AR : chiffré (containers 1380 img/483,4 Go ; apps 6 img/168 Mo sans policy) ; policies posées : containers keep-20 + KEEP `running-*`/`helm-active-*` + DELETE >7 j ; apps keep-10 + KEEP `active-*` + DELETE >60 j ; 23 tags de protection posés ; workflow `ar-protect-images.yml` (*/6 h) | ✅ | ✅ `019e0a53` | ✅ **16/07** | Trou réel bouché : `screenshotter:377792b0e1` TOURNAIT hors keep-20 (supprimable à J+23 sous l'ancienne policy). Policies vérifiées par describe ; run workflow 29473177657 **success** (après grant repoAdmin repo-scoped au SA CI) |
 
 ⚠️ Capacité : demande de quota `SSD_TOTAL_GB` REPORTÉE par Google (« resubmit après 48 h ou avec plus d'historique billing » — pas un refus définitif). État 15/07 soir : 432/500, dont **400 = boot disks pd-balanced des 4 nœuds gvisor** (aucun pd-ssd n'existe ; pd-balanced compte DANS ce quota). Seule sortie structurelle : recréer le pool gvisor avec boot disks **pd-standard 200 Go** (throughput ≈ équivalent, coût identique, `DISKS_TOTAL_GB` 4,2/20 To) → SSD ~32/500 et autoscale débloqué. GO d'Avi requis (drain = redémarrage des pods workspaces). Ménage fait : spike-workspace-pvc (2 Go SSD) + 19 PVC d'orgs de test E2E supprimées.
 ⚠️ `--reuse-values` : les nouvelles clés chart (`serverDeployImageRepo`, `nixStorePvc`…) n'atteignent la release que via UN `--set` manuel (fait après passage CD), ensuite persistées.

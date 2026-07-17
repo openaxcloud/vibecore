@@ -1,6 +1,6 @@
 {
   "name": "vibecore",
-  "description": "E-Code — AI-powered full-stack web development in the browser",
+  "description": "E-Code \u2014 AI-powered full-stack web development in the browser",
   "private": true,
   "license": "MIT",
   "sideEffects": false,
@@ -89,7 +89,9 @@
     "electron:build:win": "rm -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --win",
     "electron:build:linux": "rm -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --linux",
     "electron:build:dist": "rm -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --mwl",
-    "platform:no-mocks": "node scripts/check-no-runtime-mocks.mjs"
+    "platform:no-mocks": "node scripts/check-no-runtime-mocks.mjs",
+    "parity:validate": "node scripts/parity/validate-registries.mjs",
+    "parity:collect": "node scripts/parity/collect-baseline.mjs"
   },
   "engines": {
     "node": ">=18.18.0"
