@@ -23,6 +23,8 @@
     "platform:verify:production": "pnpm run platform:verify && pnpm run production:validate",
     "runtime:validate:remote-kubernetes": "tsx scripts/validate-remote-kubernetes-runtime.ts",
     "runtime:validate:api-kubernetes": "tsx scripts/validate-runtime-api-kubernetes.ts",
+    "gallery:validate": "tsx scripts/validate-gallery-demo-apps.ts",
+    "gallery:seed": "tsx scripts/seed-gallery-real-apps.ts",
     "networkpolicies:validate:live": "tsx scripts/validate-networkpolicies-live.ts",
     "desktop:dev": "pnpm run electron:dev",
     "desktop:build": "pnpm run electron:build:dist",
