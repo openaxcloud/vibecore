@@ -72,9 +72,11 @@ export { expect };
  * injection, no personal profile). Leaves the browser on /dashboard.
  */
 export async function loginAsTestUser(page: Page): Promise<void> {
-  // domcontentloaded, NOT 'load': the app keeps live connections open, so the
-  // 'load' event can hang past the navigation timeout on this SPA.
-  await page.goto(`${env.baseURL}/login`, { waitUntil: 'domcontentloaded' });
+  // 'commit', not 'domcontentloaded'/'load': the app's SSR streams the shell and
+  // keeps live connections open, so waiting for the document/load events can hang
+  // past the navigation timeout. 'commit' resolves as soon as the response starts;
+  // the toBeEditable() wait below then gates on the form actually being ready.
+  await page.goto(`${env.baseURL}/login`, { waitUntil: 'commit' });
 
   // The app ships a pre-hydration "Loading E-Code" splash that overlays the form
   // until the SPA hydrates; wait for the inputs to be genuinely editable (not

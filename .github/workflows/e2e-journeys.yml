@@ -1,0 +1,75 @@
+name: E2E Journeys (deployed)
+
+# D5 dedicated E2E harness — authenticated UI journeys against a DEPLOYED
+# environment, driven by a dedicated test user (secrets, never a personal
+# profile). Separate from e2e.yml, which runs the ephemeral LOCAL stack with no
+# real workspaces/IDE/preview. Default target is STAGING; a manual dispatch can
+# point it at any base URL. Uploads the full evidence bundle (video/trace/
+# screenshots/metadata) for every run.
+#
+# Required config:
+#   vars.STAGING_APP_DOMAIN     — staging app host (e.g. app.staging.e-code.ai)
+#   vars.STAGING_API_DOMAIN     — staging api host (optional; defaults to api.<domain>)
+#   secrets.E2E_USER_EMAIL      — dedicated test-user email (NOT a personal account)
+#   secrets.E2E_USER_PASSWORD   — dedicated test-user password
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Web app base URL (defaults to https://<STAGING_APP_DOMAIN>)'
+        required: false
+      api_url:
+        description: 'API base URL (defaults to https://<STAGING_API_DOMAIN>)'
+        required: false
+  schedule:
+    # Nightly regression against staging.
+    - cron: '0 6 * * *'
+
+concurrency:
+  group: e2e-journeys-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  journeys:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+    env:
+      E2E_BASE_URL: ${{ github.event.inputs.base_url || format('https://{0}', vars.STAGING_APP_DOMAIN) }}
+      E2E_API_URL: ${{ github.event.inputs.api_url || format('https://{0}', vars.STAGING_API_DOMAIN) }}
+      E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+      E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+      E2E_COMMIT: ${{ github.sha }}
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - name: Guard — dedicated test-user secrets present
+        run: |
+          test -n "$E2E_USER_EMAIL" || { echo "::error::E2E_USER_EMAIL secret is required (dedicated test user)"; exit 1; }
+          test -n "$E2E_USER_PASSWORD" || { echo "::error::E2E_USER_PASSWORD secret is required"; exit 1; }
+          test -n "$E2E_BASE_URL" || { echo "::error::E2E_BASE_URL / STAGING_APP_DOMAIN is required"; exit 1; }
+          echo "Target: $E2E_BASE_URL (api: $E2E_API_URL)"
+
+      - name: Run authenticated journeys
+        run: pnpm exec playwright test --config playwright.config.journeys.ts
+
+      - name: Upload evidence bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-journeys-evidence
+          path: |
+            playwright-report-journeys
+            test-results-journeys
+          retention-days: 30

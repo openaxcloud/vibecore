@@ -41,6 +41,27 @@ live on prod (app.e-code.ai), chromium 147:
 This closes the exact gap that was previously only an API 201: **the remix is now
 proven VISUALLY through the real UI, by a dedicated (non-personal) logged-in user.**
 
+**Environment caveat (honest).** This first run captured the full journey against
+prod (app.e-code.ai). On repeated automated runs, prod began STALLING headless
+browser navigation to `/login` — `curl` returns 200 in ~1.7s, but `page.goto`
+(and the in-app browser) hang past the navigation timeout (120–300s). No CF
+challenge / rate-limit header is returned; it presents as slow-streamed SSR for
+automated clients that worsens with request volume. This is exactly why D5
+mandates a DEDICATED test env / "auth de staging" rather than automating prod —
+and why the CI workflow below targets **staging**, not prod. The harness is
+env-ready (`E2E_BASE_URL`/`E2E_API_URL`); it just needs to point at a deployed
+env that does not throttle automation. The run-#1 artifact bundle was overwritten
+by later re-runs (same per-test output dir) — the values above are from that run's
+`evidence-metadata.json` as read at the time; a fresh durable bundle should be
+generated on staging.
+
+## CI regression — `.github/workflows/e2e-journeys.yml`
+Runs the journeys against **staging** (`vars.STAGING_APP_DOMAIN`) nightly + on
+manual dispatch, with a dedicated test user (`secrets.E2E_USER_EMAIL` /
+`E2E_USER_PASSWORD` — guarded as required), and uploads the full evidence bundle
+(video/trace/screenshots/metadata) as an artifact. This turns proof #1 into a
+regression the moment staging secrets/vars are set.
+
 **Preview leg (honest status):** a freshly-remixed clone opens with its dev server
 IDLE (the IDE shows a "Get preview running" affordance — it does not auto-run). The
 spec starts it and waits (bounded) for the per-workspace preview iframe. Preview
