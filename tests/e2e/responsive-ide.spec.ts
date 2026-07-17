@@ -932,7 +932,7 @@ test.describe('responsive IDE shell', () => {
     }
   });
 
-  test('desktop can collapse and restore the right preview panel', async ({ page }, testInfo) => {
+  test('desktop opens Files in the canonical Project Editor pane', async ({ page }, testInfo) => {
     test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
     test.setTimeout(120_000);
 
@@ -940,29 +940,26 @@ test.describe('responsive IDE shell', () => {
 
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('button', { name: /^(Run|Stop)$/ })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 15000 });
 
-    const filesPanelToggle = page.getByTestId('ide-files-panel-toggle');
-    await expect(filesPanelToggle).toBeVisible();
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close files panel');
+    const openFilesTab = page.getByRole('button', { name: 'Open Files tab' });
 
-    await filesPanelToggle.click();
-    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toHaveCount(0);
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Open files panel');
+    await expect(openFilesTab).toBeVisible();
+    await openFilesTab.click();
 
-    await filesPanelToggle.click();
-    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 15000 });
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close files panel');
+    const filesTab = page.locator('.bolt-project-tab[data-panel="files"]');
+    const filesPane = page.locator('.bolt-project-pane-leaf').filter({ has: filesTab }).first();
 
-    await page.getByRole('button', { name: 'Close right panel' }).click();
-    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toHaveCount(0);
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Open files panel');
+    await expect(filesTab).toHaveCount(1);
+    await expect(filesTab).toBeVisible({ timeout: 15000 });
+    await expect(filesTab).toHaveAttribute('aria-selected', 'true');
+    await expect(filesPane).toBeVisible();
+    await expect(filesPane.locator('.bolt-project-files-tool')).toBeVisible();
     await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible();
     await expect(page.getByRole('region', { name: 'Editor and preview' })).toBeVisible();
 
-    await page.locator('.bolt-project-ide-rail-item[aria-label^="Files"]').click();
-    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 15000 });
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close files panel');
+    await openFilesTab.click();
+    await expect(filesTab).toHaveCount(1);
+    await expect(filesTab).toHaveAttribute('aria-selected', 'true');
   });
 
   test('desktop opens terminal as a workspace panel from the panel URL', async ({ page }, testInfo) => {

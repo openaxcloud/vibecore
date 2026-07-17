@@ -236,7 +236,7 @@ export const ecodePricingPlans = [
 const heroImage = '/assets/hero-image.svg';
 const agentAvatar = '/assets/ai-avatar.svg';
 
-const aiAgentProof = ['No credit card required', '100+ languages supported', 'Deploy in one click'] as const;
+const aiAgentProof = ['No credit card required', 'Validated JS/TS runtime', 'Deploy in one click'] as const;
 
 const trailerSegments = [
   {
@@ -374,7 +374,7 @@ export function selectAiAgentTabContent(tab: AiAgentTab): {
 const aiPlatformHighlights = [
   ['Natural language', 'Describe the app in plain English'],
   ['Full-stack output', 'Frontend, backend and data layer'],
-  ['100+ languages', 'TypeScript, Python, Node and more'],
+  ['Validated runtime', 'JavaScript, TypeScript and Node.js'],
   ['One-click deploy', 'Ship to the cloud from the workspace'],
 ] as const;
 
@@ -393,11 +393,11 @@ const aiPlatformFeatures = [
     ],
   },
   {
-    key: 'languages',
-    title: 'Any Language Support',
-    description: 'E-Code understands 100+ programming languages and frameworks.',
+    key: 'runtime',
+    title: 'Web Runtime Support',
+    description: 'E-Code currently creates and runs validated JavaScript and TypeScript applications.',
     icon: Code2,
-    details: ['TypeScript and React', 'Node.js APIs', 'Python services', 'Database-backed applications'],
+    details: ['TypeScript and React', 'Node.js APIs', 'Vite applications', 'Database-backed applications'],
   },
   {
     key: 'generation',
@@ -948,8 +948,8 @@ export function EcodeAiPlatformPage() {
                 </span>
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-bolt-elements-textSecondary">
-                Transform ideas into production-ready applications in minutes. Our AI understands 100+ languages and
-                writes professional code automatically.
+                Transform ideas into production-ready applications in minutes. The Agent builds against the current
+                JavaScript and TypeScript runtime and keeps the result reviewable in the IDE.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <ActionLink to="/ai-agent">

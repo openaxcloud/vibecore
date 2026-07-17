@@ -187,25 +187,23 @@ test('project preview boots a package-script Vite app and renders inside the web
   ).toContainText('VibeCore package preview runtime smoke', { timeout: 180_000 });
 });
 
-test('template-created project boots and renders the generated app in preview', async ({ page }) => {
+test('Gallery Remix boots and renders the isolated application in preview', async ({ page }) => {
   test.setTimeout(240_000);
 
   await authenticate(page);
 
   await page.goto('/dashboard/templates', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'Use template' }).first().click();
+  await page.getByRole('button', { name: /^Remix / }).first().click();
   await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 120_000 });
   await expectWorkspaceRunning(page, 180_000);
 
   await page.getByRole('button', { name: 'Webview' }).click();
 
   await expectPreviewIframe(page, 120_000);
-  await expect(page.frameLocator('iframe[title="preview"]').getByRole('heading', { name: 'React SaaS' })).toBeVisible({
+  await expect(page.frameLocator('iframe[title="preview"]').locator('[data-gallery-app-id="react-saas"]')).toBeVisible({
     timeout: 180_000,
   });
-  await expect(
-    page.frameLocator('iframe[title="preview"]').getByText('Created from Bolt template react-saas.'),
-  ).toBeVisible();
+  await expect(page.frameLocator('iframe[title="preview"]').getByRole('heading', { name: 'Good morning, Morgan.' })).toBeVisible();
 });
 
 test('AI-created project starts the agent with a valid default model', async ({ page }) => {

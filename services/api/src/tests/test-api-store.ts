@@ -69,7 +69,9 @@ import type {
   DatabaseInstanceRecord,
   DatabaseSnapshotRecord,
   DatabaseRestoreRecord,
-  ProjectTemplateRecord,
+  CreateProjectImportJobInput,
+  ProjectImportJobRecord,
+  UpdateProjectImportJobInput,
   RecoveryCodeRecord,
   ScimTokenRecord,
   SessionRecord,
@@ -92,6 +94,17 @@ import type {
   InstalledSkillScope,
   InstallSkillInput,
 } from '../store.js';
+import {
+  galleryFacetsFromApps,
+  type GalleryAppPage,
+  type GalleryAppRecord,
+  type GalleryAppVersionRecord,
+  type GalleryFacets,
+  type GalleryReportPage,
+  type GalleryReportRecord,
+  type GalleryRemixRecord,
+  type ProjectGalleryStore,
+} from '../project-gallery.js';
 
 function id(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
@@ -132,7 +145,11 @@ export class TestApiStore implements ApiStore {
   readonly projectShareLinks = new Map<string, ProjectShareLinkRecord>();
   readonly chatShares = new Map<string, ChatShareRecord>();
   readonly agentPatchProposals = new Map<string, AgentPatchProposalRecord>();
-  readonly projectTemplates = new Map<string, ProjectTemplateRecord>();
+  readonly galleryApps = new Map<string, GalleryAppRecord>();
+  readonly galleryAppVersions = new Map<string, GalleryAppVersionRecord>();
+  readonly galleryReports = new Map<string, GalleryReportRecord>();
+  readonly projectRemixes = new Map<string, GalleryRemixRecord>();
+  readonly projectImportJobs = new Map<string, ProjectImportJobRecord>();
   readonly deployments = new Map<string, DeploymentRecord>();
   readonly supportTickets = new Map<string, SupportTicketRecord>();
   readonly ticketMessages: TicketMessageRecord[] = [];
@@ -777,20 +794,864 @@ export class TestApiStore implements ApiStore {
     });
   }
 
-  async createProjectTemplate(input: {
-    sourceProjectId: string;
-    organizationId: string;
-    name: string;
-    description?: string;
-  }) {
-    const template: ProjectTemplateRecord = { id: id('template'), ...input, createdAt: now() };
-    this.projectTemplates.set(template.id, template);
-
-    return template;
+  async getGalleryApp(appId: string) {
+    return this.galleryApps.get(appId);
   }
 
-  async listProjectTemplates(organizationId: string) {
-    return [...this.projectTemplates.values()].filter((template) => template.organizationId === organizationId);
+  async getGalleryAppBySlug(slug: string) {
+    return [...this.galleryApps.values()].find((app) => app.slug === slug);
+  }
+
+  async getGalleryAppVersion(versionId: string) {
+    return this.galleryAppVersions.get(versionId);
+  }
+
+  async getGalleryProjectProvenance(projectId: string) {
+    const readyRemixes = [...this.projectRemixes.values()].filter(
+      (remix) => remix.destinationProjectId === projectId && remix.status === 'READY',
+    );
+    if (readyRemixes.length === 0) return undefined;
+    if (readyRemixes.length > 1) {
+      throw Object.assign(new Error('Destination project has ambiguous Gallery provenance'), {
+        statusCode: 409,
+        code: 'GALLERY_REMIX_PROVENANCE_CONFLICT',
+      });
+    }
+
+    const remix = readyRemixes[0]!;
+    const persistedSource = this.galleryApps.get(remix.galleryAppId);
+    if (persistedSource) {
+      return { sourceGalleryAppId: remix.galleryAppId, sourceGalleryAppSlug: persistedSource.slug };
+    }
+
+    const activity = [...this.projectActivity.values()].find(
+      (candidate) =>
+        candidate.projectId === projectId &&
+        candidate.action === 'project.remix.create' &&
+        candidate.metadata?.sourceGalleryAppId === remix.galleryAppId &&
+        candidate.metadata?.sourceGalleryAppVersionId === remix.galleryAppVersionId &&
+        typeof candidate.metadata?.sourceGalleryAppSlug === 'string',
+    );
+    if (activity) {
+      return {
+        sourceGalleryAppId: remix.galleryAppId,
+        sourceGalleryAppSlug: activity.metadata!.sourceGalleryAppSlug as string,
+      };
+    }
+
+    throw Object.assign(new Error('READY remix is missing its Gallery source metadata'), {
+      statusCode: 409,
+      code: 'GALLERY_REMIX_PROVENANCE_MISSING',
+    });
+  }
+
+  async listPublishedGalleryApps(input: Parameters<ProjectGalleryStore['listPublishedGalleryApps']>[0]) {
+    const query = input.query?.toLowerCase();
+    const compare = (left: GalleryAppRecord, right: GalleryAppRecord) => {
+      if (input.sort === 'NAME') {
+        return left.name.localeCompare(right.name, 'en') || left.id.localeCompare(right.id);
+      }
+      if (input.sort === 'MOST_REMIXED') {
+        return (
+          right.remixCount - left.remixCount ||
+          (right.publishedAt ?? '').localeCompare(left.publishedAt ?? '') ||
+          right.id.localeCompare(left.id)
+        );
+      }
+      if (input.sort === 'RECENT') {
+        return (right.publishedAt ?? '').localeCompare(left.publishedAt ?? '') || right.id.localeCompare(left.id);
+      }
+      return (
+        Number(right.featured) - Number(left.featured) ||
+        right.remixCount - left.remixCount ||
+        (right.publishedAt ?? '').localeCompare(left.publishedAt ?? '') ||
+        right.id.localeCompare(left.id)
+      );
+    };
+    const filtered = [...this.galleryApps.values()]
+      .filter(
+        (app) =>
+          app.status === 'PUBLISHED' &&
+          app.moderationStatus === 'APPROVED' &&
+          app.previewStatus === 'VERIFIED' &&
+          Boolean(app.previewUrl) &&
+          app.visibility === 'PUBLIC',
+      )
+      .filter((app) => !input.category || app.category === input.category)
+      .filter((app) => !input.artifactType || app.artifactType === input.artifactType)
+      .filter((app) => !input.technology || app.technologies.includes(input.technology))
+      .filter((app) => input.featured === undefined || app.featured === input.featured)
+      .filter(
+        (app) =>
+          !query ||
+          [
+            app.name,
+            app.description,
+            app.slug,
+            app.category,
+            app.author.displayName,
+            app.author.handle,
+            ...app.technologies,
+            ...app.tags,
+          ].some((value) => value.toLowerCase().includes(query)),
+      )
+      .sort(compare);
+    const start = input.cursor ? Math.max(0, filtered.findIndex((app) => app.id === input.cursor) + 1) : 0;
+    const apps = filtered.slice(start, start + input.limit);
+    return {
+      apps,
+      itemCursors: apps.map((app) => app.id),
+      ...(start + apps.length < filtered.length ? { nextCursor: apps.at(-1)?.id } : {}),
+    } satisfies GalleryAppPage;
+  }
+
+  async listPublishedGalleryFacets(): Promise<GalleryFacets> {
+    return galleryFacetsFromApps(
+      [...this.galleryApps.values()].filter(
+        (app) =>
+          app.status === 'PUBLISHED' &&
+          app.moderationStatus === 'APPROVED' &&
+          app.previewStatus === 'VERIFIED' &&
+          Boolean(app.previewUrl) &&
+          app.visibility === 'PUBLIC',
+      ),
+    );
+  }
+
+  async getGalleryEngagementCounts(appIds: string[]) {
+    return appIds.map((galleryAppId) => ({
+      galleryAppId,
+      completedRemixCount: [...this.projectRemixes.values()].filter(
+        (remix) => remix.galleryAppId === galleryAppId && remix.status === 'READY',
+      ).length,
+      reportCount: [...this.galleryReports.values()].filter((report) => report.galleryAppId === galleryAppId).length,
+    }));
+  }
+
+  async listOrganizationGalleryApps(input: Parameters<ProjectGalleryStore['listOrganizationGalleryApps']>[0]) {
+    const filtered = [...this.galleryApps.values()]
+      .filter((app) => app.organizationId === input.organizationId && (!input.status || app.status === input.status))
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt) || left.id.localeCompare(right.id));
+    const start = input.cursor ? Math.max(0, filtered.findIndex((app) => app.id === input.cursor) + 1) : 0;
+    const apps = filtered.slice(start, start + input.limit);
+    return {
+      apps,
+      ...(start + apps.length < filtered.length ? { nextCursor: apps.at(-1)?.id } : {}),
+    } satisfies GalleryAppPage;
+  }
+
+  async createGalleryApp(input: Parameters<ProjectGalleryStore['createGalleryApp']>[0]) {
+    const sourceProject = this.projects.get(input.sourceProjectId);
+    const author = this.users.get(input.authorUserId);
+    if (!sourceProject || sourceProject.organizationId !== input.organizationId || sourceProject.deletedAt) {
+      throw Object.assign(new Error('Source project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
+    }
+    if (!author || !(await this.getMembership(input.authorUserId, input.organizationId))) {
+      throw Object.assign(new Error('Organization not found'), { statusCode: 404, code: 'ORGANIZATION_NOT_FOUND' });
+    }
+    const baseSlug = slugify(input.slug ?? input.name) || 'app';
+    let slug = baseSlug;
+    if (input.slug && [...this.galleryApps.values()].some((app) => app.slug === slug)) {
+      throw Object.assign(new Error('Gallery app slug is already in use'), {
+        statusCode: 409,
+        code: 'GALLERY_SLUG_TAKEN',
+      });
+    }
+    for (let suffix = 2; [...this.galleryApps.values()].some((app) => app.slug === slug); suffix += 1) {
+      slug = `${baseSlug}-${suffix}`;
+    }
+
+    const timestamp = now();
+    const appId = id('gallery_app');
+    const versionId = id('gallery_version');
+    const handle = `builder-${author.id.slice(-12).toLowerCase()}`;
+    const app: GalleryAppRecord = {
+      id: appId,
+      slug,
+      sourceProjectId: input.sourceProjectId,
+      organizationId: input.organizationId,
+      authorUserId: input.authorUserId,
+      author: { handle, displayName: author.name?.trim() || handle },
+      name: input.name,
+      description: input.description,
+      artifactType: input.artifactType,
+      category: input.category,
+      technologies: [...input.technologies],
+      tags: [...input.tags],
+      thumbnailUrl: input.thumbnailUrl,
+      visibility: input.visibility,
+      status: 'DRAFT',
+      moderationStatus: 'NOT_SUBMITTED',
+      allowRemix: input.allowRemix,
+      featured: false,
+      remixCount: 0,
+      reportCount: 0,
+      previewStatus: 'PENDING',
+      latestVersionId: versionId,
+      provenance: input.provenance ? { ...input.provenance } : undefined,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    const version: GalleryAppVersionRecord = {
+      ...structuredClone(input.initialVersion),
+      id: versionId,
+      galleryAppId: appId,
+      version: 1,
+      createdByUserId: input.authorUserId,
+      createdAt: timestamp,
+    };
+    this.galleryApps.set(app.id, app);
+    this.galleryAppVersions.set(version.id, version);
+    await this.recordAudit({
+      organizationId: input.organizationId,
+      actorUserId: input.audit.actorUserId,
+      action: 'gallery.app.create',
+      resourceType: 'gallery_app',
+      resourceId: app.id,
+      metadata: { requestId: input.audit.requestId, sourceProjectId: input.sourceProjectId, versionId: version.id },
+      ipAddress: input.audit.ip,
+    });
+    return { app, version };
+  }
+
+  async createGalleryAppVersion(input: Parameters<ProjectGalleryStore['createGalleryAppVersion']>[0]) {
+    const current = this.galleryApps.get(input.appId);
+    if (!current || current.organizationId !== input.organizationId) {
+      throw Object.assign(new Error('Gallery app not found'), { statusCode: 404, code: 'GALLERY_APP_NOT_FOUND' });
+    }
+    if (!['DRAFT', 'REJECTED'].includes(current.status)) {
+      throw Object.assign(new Error('Gallery app cannot be resnapshotted in its current state'), {
+        statusCode: 409,
+        code: 'GALLERY_STATE_CONFLICT',
+      });
+    }
+    if (
+      [...this.galleryAppVersions.values()].some(
+        (candidate) => candidate.galleryAppId === current.id && candidate.contentHash === input.snapshot.contentHash,
+      )
+    ) {
+      throw Object.assign(new Error('The sanitized Gallery snapshot has not changed'), {
+        statusCode: 409,
+        code: 'GALLERY_SNAPSHOT_UNCHANGED',
+      });
+    }
+    const latest = this.galleryAppVersions.get(current.latestVersionId);
+    if (!latest || latest.galleryAppId !== current.id) {
+      throw Object.assign(new Error('Gallery app version not found'), {
+        statusCode: 409,
+        code: 'GALLERY_VERSION_NOT_FOUND',
+      });
+    }
+
+    const timestamp = now();
+    const version: GalleryAppVersionRecord = {
+      ...structuredClone(input.snapshot),
+      id: id('gallery_version'),
+      galleryAppId: current.id,
+      version: latest.version + 1,
+      createdByUserId: input.createdByUserId,
+      createdAt: timestamp,
+    };
+    const app: GalleryAppRecord = {
+      ...current,
+      latestVersionId: version.id,
+      status: 'DRAFT',
+      moderationStatus: 'NOT_SUBMITTED',
+      moderationReason: undefined,
+      previewStatus: 'PENDING',
+      previewUrl: undefined,
+      submittedAt: undefined,
+      publishedAt: undefined,
+      archivedAt: undefined,
+      featured: false,
+      updatedAt: timestamp,
+    };
+    this.galleryAppVersions.set(version.id, version);
+    this.galleryApps.set(app.id, app);
+    await this.recordAudit({
+      organizationId: input.organizationId,
+      actorUserId: input.audit.actorUserId,
+      action: 'gallery.app.version.create',
+      resourceType: 'gallery_app_version',
+      resourceId: version.id,
+      metadata: {
+        requestId: input.audit.requestId,
+        galleryAppId: current.id,
+        previousVersionId: latest.id,
+        version: version.version,
+        contentHash: version.contentHash,
+      },
+      ipAddress: input.audit.ip,
+    });
+    return { app, version };
+  }
+
+  async updateGalleryApp(input: Parameters<ProjectGalleryStore['updateGalleryApp']>[0]) {
+    const current = this.galleryApps.get(input.appId);
+    if (!current || current.organizationId !== input.organizationId) {
+      throw Object.assign(new Error('Gallery app not found'), { statusCode: 404, code: 'GALLERY_APP_NOT_FOUND' });
+    }
+    if (!['DRAFT', 'REJECTED'].includes(current.status)) {
+      throw Object.assign(new Error('Only draft or rejected Gallery apps can be edited'), {
+        statusCode: 409,
+        code: 'GALLERY_STATE_CONFLICT',
+      });
+    }
+    const updated = { ...current, ...structuredClone(input.patch), updatedAt: now() };
+    this.galleryApps.set(updated.id, updated);
+    await this.recordAudit({
+      organizationId: input.organizationId,
+      actorUserId: input.audit.actorUserId,
+      action: 'gallery.app.update',
+      resourceType: 'gallery_app',
+      resourceId: updated.id,
+      metadata: { requestId: input.audit.requestId, fields: Object.keys(input.patch).sort() },
+      ipAddress: input.audit.ip,
+    });
+    return updated;
+  }
+
+  async submitGalleryApp(input: Parameters<ProjectGalleryStore['submitGalleryApp']>[0]) {
+    const current = this.galleryApps.get(input.appId);
+    if (!current || current.organizationId !== input.organizationId) {
+      throw Object.assign(new Error('Gallery app not found'), { statusCode: 404, code: 'GALLERY_APP_NOT_FOUND' });
+    }
+    if (!['DRAFT', 'REJECTED'].includes(current.status) || current.latestVersionId !== input.versionId) {
+      throw Object.assign(new Error('Gallery app state changed before submission'), {
+        statusCode: 409,
+        code: 'GALLERY_STATE_CONFLICT',
+      });
+    }
+    const version = this.galleryAppVersions.get(input.versionId);
+    if (!version || version.galleryAppId !== current.id) {
+      throw Object.assign(new Error('Gallery app state changed before submission'), {
+        statusCode: 409,
+        code: 'GALLERY_STATE_CONFLICT',
+      });
+    }
+    const timestamp = now();
+    const updated: GalleryAppRecord = {
+      ...current,
+      status: 'PENDING_REVIEW',
+      moderationStatus: 'PENDING',
+      moderationReason: undefined,
+      previewStatus: 'VERIFIED',
+      previewUrl: input.preview.previewUrl,
+      submittedAt: timestamp,
+      publishedAt: undefined,
+      archivedAt: undefined,
+      featured: false,
+      updatedAt: timestamp,
+    };
+    this.galleryApps.set(updated.id, updated);
+    await this.recordAudit({
+      organizationId: input.organizationId,
+      actorUserId: input.audit.actorUserId,
+      action: 'gallery.app.submit',
+      resourceType: 'gallery_app',
+      resourceId: updated.id,
+      metadata: { requestId: input.audit.requestId, versionId: input.versionId },
+      ipAddress: input.audit.ip,
+    });
+    return updated;
+  }
+
+  async listGalleryModerationQueue(input: Parameters<ProjectGalleryStore['listGalleryModerationQueue']>[0]) {
+    const filtered = [...this.galleryApps.values()]
+      .filter((app) => app.status === 'PENDING_REVIEW' && app.moderationStatus === 'PENDING')
+      .sort(
+        (left, right) =>
+          (left.submittedAt ?? '').localeCompare(right.submittedAt ?? '') || left.id.localeCompare(right.id),
+      );
+    const start = input.cursor ? Math.max(0, filtered.findIndex((app) => app.id === input.cursor) + 1) : 0;
+    const apps = filtered.slice(start, start + input.limit);
+    return {
+      apps,
+      ...(start + apps.length < filtered.length ? { nextCursor: apps.at(-1)?.id } : {}),
+    } satisfies GalleryAppPage;
+  }
+
+  async moderateGalleryApp(input: Parameters<ProjectGalleryStore['moderateGalleryApp']>[0]) {
+    if (input.action === 'APPROVE' && input.functionalPreviewConfirmed !== true) {
+      throw Object.assign(new Error('Confirm the functional browser Preview and thumbnail review before approval'), {
+        statusCode: 400,
+        code: 'GALLERY_FUNCTIONAL_PREVIEW_CONFIRMATION_REQUIRED',
+      });
+    }
+
+    const current = this.galleryApps.get(input.appId);
+    if (!current)
+      throw Object.assign(new Error('Gallery app not found'), { statusCode: 404, code: 'GALLERY_APP_NOT_FOUND' });
+    const timestamp = now();
+    let updated: GalleryAppRecord;
+    if (input.action === 'APPROVE') {
+      if (
+        current.status !== 'PENDING_REVIEW' ||
+        current.moderationStatus !== 'PENDING' ||
+        current.previewStatus !== 'VERIFIED' ||
+        !current.previewUrl
+      ) {
+        throw Object.assign(new Error('Gallery app cannot be moderated in its current state'), {
+          statusCode: 409,
+          code: 'GALLERY_STATE_CONFLICT',
+        });
+      }
+      updated = {
+        ...current,
+        status: 'PUBLISHED',
+        moderationStatus: 'APPROVED',
+        moderationReason: undefined,
+        publishedAt: timestamp,
+        archivedAt: undefined,
+        updatedAt: timestamp,
+      };
+    } else if (input.action === 'REJECT') {
+      if (current.status !== 'PENDING_REVIEW' || current.moderationStatus !== 'PENDING') {
+        throw Object.assign(new Error('Gallery app cannot be moderated in its current state'), {
+          statusCode: 409,
+          code: 'GALLERY_STATE_CONFLICT',
+        });
+      }
+      updated = {
+        ...current,
+        status: 'REJECTED',
+        moderationStatus: 'REJECTED',
+        moderationReason: input.reason,
+        publishedAt: undefined,
+        featured: false,
+        updatedAt: timestamp,
+      };
+    } else if (input.action === 'ARCHIVE') {
+      if (current.status === 'ARCHIVED')
+        throw Object.assign(new Error('Gallery app cannot be moderated in its current state'), {
+          statusCode: 409,
+          code: 'GALLERY_STATE_CONFLICT',
+        });
+      updated = {
+        ...current,
+        status: 'ARCHIVED',
+        moderationReason: input.reason,
+        archivedAt: timestamp,
+        featured: false,
+        updatedAt: timestamp,
+      };
+    } else if (input.action === 'FEATURE') {
+      if (
+        current.status !== 'PUBLISHED' ||
+        current.moderationStatus !== 'APPROVED' ||
+        current.previewStatus !== 'VERIFIED'
+      ) {
+        throw Object.assign(new Error('Gallery app cannot be moderated in its current state'), {
+          statusCode: 409,
+          code: 'GALLERY_STATE_CONFLICT',
+        });
+      }
+      updated = { ...current, featured: true, updatedAt: timestamp };
+    } else {
+      updated = { ...current, featured: false, updatedAt: timestamp };
+    }
+    this.galleryApps.set(updated.id, updated);
+    await this.recordAudit({
+      organizationId: updated.organizationId,
+      actorUserId: input.audit.actorUserId,
+      action: `gallery.moderation.${input.action.toLowerCase()}`,
+      resourceType: 'gallery_app',
+      resourceId: updated.id,
+      metadata: {
+        requestId: input.audit.requestId,
+        ...(input.action === 'APPROVE' ? { functionalPreviewConfirmed: true } : {}),
+        ...(input.reason ? { reason: input.reason } : {}),
+      },
+      ipAddress: input.audit.ip,
+    });
+    return updated;
+  }
+
+  async createGalleryReport(input: Parameters<ProjectGalleryStore['createGalleryReport']>[0]) {
+    const existing = [...this.galleryReports.values()].find(
+      (report) =>
+        report.galleryAppId === input.galleryAppId &&
+        report.reporterUserId === input.reporterUserId &&
+        report.status === 'OPEN',
+    );
+    if (existing) return { report: existing, created: false };
+
+    const reusable = [...this.galleryReports.values()].find(
+      (report) =>
+        report.galleryAppId === input.galleryAppId &&
+        report.reporterUserId === input.reporterUserId &&
+        report.reason === input.reason,
+    );
+    const timestamp = now();
+    const report: GalleryReportRecord = reusable
+      ? {
+          ...reusable,
+          details: input.details,
+          status: 'OPEN',
+          resolutionNote: undefined,
+          reviewedByUserId: undefined,
+          reviewedAt: undefined,
+          updatedAt: timestamp,
+        }
+      : {
+          id: id('gallery_report'),
+          galleryAppId: input.galleryAppId,
+          reporterUserId: input.reporterUserId,
+          reason: input.reason,
+          details: input.details,
+          status: 'OPEN',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        };
+    this.galleryReports.set(report.id, report);
+    const app = this.galleryApps.get(input.galleryAppId);
+    if (app) this.galleryApps.set(app.id, { ...app, reportCount: app.reportCount + 1, updatedAt: timestamp });
+    await this.recordAudit({
+      organizationId: app?.organizationId,
+      actorUserId: input.audit.actorUserId,
+      action: 'gallery.report.create',
+      resourceType: 'gallery_report',
+      resourceId: report.id,
+      metadata: { requestId: input.audit.requestId, galleryAppId: input.galleryAppId, reason: input.reason },
+      ipAddress: input.audit.ip,
+    });
+    return { report, created: true };
+  }
+
+  async listGalleryReports(input: Parameters<ProjectGalleryStore['listGalleryReports']>[0]) {
+    const filtered = [...this.galleryReports.values()]
+      .filter((report) => report.status === input.status)
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt) || left.id.localeCompare(right.id));
+    const start = input.cursor ? Math.max(0, filtered.findIndex((report) => report.id === input.cursor) + 1) : 0;
+    const reports = filtered.slice(start, start + input.limit);
+    return {
+      reports,
+      ...(start + reports.length < filtered.length ? { nextCursor: reports.at(-1)?.id } : {}),
+    } satisfies GalleryReportPage;
+  }
+
+  async getGalleryReport(reportId: string) {
+    return this.galleryReports.get(reportId);
+  }
+
+  async resolveGalleryReport(input: Parameters<ProjectGalleryStore['resolveGalleryReport']>[0]) {
+    const current = this.galleryReports.get(input.reportId);
+    if (!current)
+      throw Object.assign(new Error('Gallery report not found'), { statusCode: 404, code: 'GALLERY_REPORT_NOT_FOUND' });
+    if (current.status !== 'OPEN') {
+      if (
+        current.status === input.resolution &&
+        current.resolutionNote === input.note &&
+        current.reviewedByUserId === input.audit.actorUserId
+      )
+        return current;
+      throw Object.assign(new Error('Gallery report is already resolved'), {
+        statusCode: 409,
+        code: 'GALLERY_REPORT_STATE_CONFLICT',
+      });
+    }
+    const timestamp = now();
+    const report: GalleryReportRecord = {
+      ...current,
+      status: input.resolution,
+      resolutionNote: input.note,
+      reviewedByUserId: input.audit.actorUserId,
+      reviewedAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.galleryReports.set(report.id, report);
+    await this.recordAudit({
+      organizationId: this.galleryApps.get(report.galleryAppId)?.organizationId,
+      actorUserId: input.audit.actorUserId,
+      action: `gallery.report.${input.resolution.toLowerCase()}`,
+      resourceType: 'gallery_report',
+      resourceId: report.id,
+      metadata: { requestId: input.audit.requestId, galleryAppId: report.galleryAppId },
+      ipAddress: input.audit.ip,
+    });
+    return report;
+  }
+
+  async claimGalleryRemix(input: Parameters<ProjectGalleryStore['claimGalleryRemix']>[0]) {
+    if (!(await this.getMembership(input.destinationOwnerUserId, input.destinationOrganizationId))) {
+      throw Object.assign(new Error('Organization not found'), { statusCode: 404, code: 'ORGANIZATION_NOT_FOUND' });
+    }
+    const existing = [...this.projectRemixes.values()].find(
+      (remix) =>
+        remix.destinationOrganizationId === input.destinationOrganizationId &&
+        remix.idempotencyKey === input.idempotencyKey,
+    );
+    if (existing) {
+      const payloadMatches =
+        existing.requestHash === input.requestHash &&
+        existing.galleryAppId === input.galleryAppId &&
+        existing.galleryAppVersionId === input.galleryAppVersionId &&
+        existing.sourceProjectId === input.sourceProjectId &&
+        existing.destinationOwnerUserId === input.destinationOwnerUserId;
+      if (!payloadMatches) {
+        throw Object.assign(new Error('Idempotency key was already used for a different request'), {
+          statusCode: 409,
+          code: 'IDEMPOTENCY_KEY_REUSED',
+        });
+      }
+      if (existing.status !== 'FAILED') return { remix: existing, claimed: false };
+      const retried: GalleryRemixRecord = {
+        ...existing,
+        status: 'CREATING',
+        destinationProjectId: undefined,
+        destinationRepositoryId: undefined,
+        destinationWorkspaceId: undefined,
+        agentAnalysisId: undefined,
+        errorCode: undefined,
+        completedAt: undefined,
+        failedAt: undefined,
+        updatedAt: now(),
+      };
+      this.projectRemixes.set(retried.id, retried);
+      return { remix: retried, claimed: true };
+    }
+    const timestamp = now();
+    const remix: GalleryRemixRecord = {
+      id: id('project_remix'),
+      ...input,
+      status: 'CREATING',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.projectRemixes.set(remix.id, remix);
+    return { remix, claimed: true };
+  }
+
+  async getGalleryRemixByIdempotency(input: Parameters<ProjectGalleryStore['getGalleryRemixByIdempotency']>[0]) {
+    return [...this.projectRemixes.values()].find(
+      (remix) =>
+        remix.destinationOrganizationId === input.destinationOrganizationId &&
+        remix.idempotencyKey === input.idempotencyKey,
+    );
+  }
+
+  async completeGalleryRemix(input: Parameters<ProjectGalleryStore['completeGalleryRemix']>[0]) {
+    const current = this.projectRemixes.get(input.remixId);
+    if (!current || current.destinationOrganizationId !== input.destinationOrganizationId) {
+      throw Object.assign(new Error('Gallery remix not found'), { statusCode: 404, code: 'GALLERY_REMIX_NOT_FOUND' });
+    }
+    const destination = this.projects.get(input.destinationProjectId);
+    if (!destination || destination.organizationId !== input.destinationOrganizationId || destination.deletedAt) {
+      throw Object.assign(new Error('Destination project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
+    }
+    if (current.status === 'READY') {
+      if (
+        current.destinationProjectId === input.destinationProjectId &&
+        current.destinationRepositoryId === input.destinationRepositoryId &&
+        current.destinationWorkspaceId === input.destinationWorkspaceId &&
+        current.agentAnalysisId === input.agentAnalysisId
+      )
+        return current;
+      throw Object.assign(new Error('Gallery remix is no longer being created'), {
+        statusCode: 409,
+        code: 'GALLERY_REMIX_STATE_CONFLICT',
+      });
+    }
+    if (current.status !== 'CREATING') {
+      throw Object.assign(new Error('Gallery remix is no longer being created'), {
+        statusCode: 409,
+        code: 'GALLERY_REMIX_STATE_CONFLICT',
+      });
+    }
+    const provenanceActivities = [...this.projectActivity.entries()].filter(
+      ([, activity]) => activity.projectId === destination.id && activity.action === 'project.remix.create',
+    );
+    if (provenanceActivities.length !== 1) {
+      throw Object.assign(new Error('Destination project provenance activity is missing or ambiguous'), {
+        statusCode: 409,
+        code: 'GALLERY_REMIX_PROVENANCE_CONFLICT',
+      });
+    }
+    const timestamp = now();
+    const remix: GalleryRemixRecord = {
+      ...current,
+      status: 'READY',
+      destinationProjectId: destination.id,
+      destinationRepositoryId: input.destinationRepositoryId,
+      destinationWorkspaceId: input.destinationWorkspaceId,
+      agentAnalysisId: input.agentAnalysisId,
+      errorCode: undefined,
+      completedAt: timestamp,
+      failedAt: undefined,
+      updatedAt: timestamp,
+    };
+    this.projectRemixes.set(remix.id, remix);
+    const app = this.galleryApps.get(remix.galleryAppId);
+    if (app) this.galleryApps.set(app.id, { ...app, remixCount: app.remixCount + 1, updatedAt: timestamp });
+
+    const [activityId, activity] = provenanceActivities[0]!;
+    this.projectActivity.set(activityId, {
+      ...activity,
+      metadata: {
+        provisioningKey: remix.id,
+        sourceGalleryAppId: remix.galleryAppId,
+        sourceGalleryAppVersionId: remix.galleryAppVersionId,
+        sourceGalleryAppSlug: input.sourceGalleryAppSlug,
+        sourceGalleryAppName: input.sourceGalleryAppName,
+        ...(remix.sourceProjectId ? { sourceProjectId: remix.sourceProjectId } : {}),
+      },
+    });
+
+    await this.recordAudit({
+      organizationId: input.destinationOrganizationId,
+      actorUserId: input.audit.actorUserId,
+      action: 'gallery.remix.complete',
+      resourceType: 'project_remix',
+      resourceId: remix.id,
+      metadata: {
+        requestId: input.audit.requestId,
+        galleryAppId: remix.galleryAppId,
+        galleryAppSlug: input.sourceGalleryAppSlug,
+        galleryAppName: input.sourceGalleryAppName,
+        destinationProjectId: destination.id,
+      },
+      ipAddress: input.audit.ip,
+    });
+    return remix;
+  }
+
+  async failGalleryRemix(input: Parameters<ProjectGalleryStore['failGalleryRemix']>[0]) {
+    const current = this.projectRemixes.get(input.remixId);
+    if (!current || current.destinationOrganizationId !== input.destinationOrganizationId) {
+      throw Object.assign(new Error('Gallery remix not found'), { statusCode: 404, code: 'GALLERY_REMIX_NOT_FOUND' });
+    }
+    if (current.status === 'READY') return current;
+    if (current.status === 'FAILED') {
+      if (current.errorCode === input.errorCode) return current;
+      throw Object.assign(new Error('Gallery remix already failed differently'), {
+        statusCode: 409,
+        code: 'GALLERY_REMIX_STATE_CONFLICT',
+      });
+    }
+    const timestamp = now();
+    const remix: GalleryRemixRecord = {
+      ...current,
+      status: 'FAILED',
+      destinationProjectId: undefined,
+      destinationRepositoryId: undefined,
+      destinationWorkspaceId: undefined,
+      agentAnalysisId: undefined,
+      errorCode: input.errorCode,
+      completedAt: undefined,
+      failedAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.projectRemixes.set(remix.id, remix);
+    await this.recordAudit({
+      organizationId: input.destinationOrganizationId,
+      actorUserId: input.audit.actorUserId,
+      action: 'gallery.remix.fail',
+      resourceType: 'project_remix',
+      resourceId: remix.id,
+      metadata: { requestId: input.audit.requestId, errorCode: input.errorCode },
+      ipAddress: input.audit.ip,
+    });
+    return remix;
+  }
+
+  async createProjectImportJob(input: CreateProjectImportJobInput) {
+    const existing = [...this.projectImportJobs.values()].find(
+      (job) => job.organizationId === input.organizationId && job.idempotencyKey === input.idempotencyKey,
+    );
+
+    if (existing) {
+      if (
+        existing.userId !== input.userId ||
+        existing.source !== input.source ||
+        existing.requestHash !== input.requestHash
+      ) {
+        throw Object.assign(new Error('Idempotency key was already used for a different import'), {
+          statusCode: 409,
+          code: 'IDEMPOTENCY_KEY_REUSED',
+        });
+      }
+      return existing;
+    }
+
+    const timestamp = now();
+    const job: ProjectImportJobRecord = {
+      id: id('import_job'),
+      organizationId: input.organizationId,
+      userId: input.userId,
+      source: input.source,
+      status: 'VALIDATING',
+      idempotencyKey: input.idempotencyKey,
+      requestHash: input.requestHash,
+      sourceReference: input.sourceReference,
+      sourceLabel: input.sourceLabel,
+      stage: input.stage,
+      progress: input.progress ?? 0,
+      validation: structuredClone(input.validation ?? {}),
+      runtimeDetection: structuredClone(input.runtimeDetection ?? {}),
+      missingSecretNames: [...(input.missingSecretNames ?? [])],
+      generatedConfig: structuredClone(input.generatedConfig ?? []),
+      preview: structuredClone(input.preview ?? {}),
+      usesAgent: input.usesAgent ?? false,
+      creditsDisclosure: input.creditsDisclosure,
+      recoverable: false,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.projectImportJobs.set(job.id, job);
+    return job;
+  }
+
+  async getProjectImportJob(input: { importJobId: string; organizationId: string }) {
+    const job = this.projectImportJobs.get(input.importJobId);
+    return job?.organizationId === input.organizationId ? job : undefined;
+  }
+
+  async getProjectImportJobByIdempotency(input: { organizationId: string; idempotencyKey: string }) {
+    return [...this.projectImportJobs.values()].find(
+      (job) => job.organizationId === input.organizationId && job.idempotencyKey === input.idempotencyKey,
+    );
+  }
+
+  async updateProjectImportJob(input: UpdateProjectImportJobInput) {
+    const job = await this.getProjectImportJob(input);
+
+    if (!job) {
+      throw Object.assign(new Error('Import job not found'), {
+        statusCode: 404,
+        code: 'PROJECT_IMPORT_NOT_FOUND',
+      });
+    }
+
+    const updated: ProjectImportJobRecord = {
+      ...job,
+      ...(input.status === undefined ? {} : { status: input.status }),
+      ...(input.stage === undefined ? {} : { stage: input.stage }),
+      ...(input.progress === undefined ? {} : { progress: Math.max(0, Math.min(100, input.progress)) }),
+      ...(input.validation === undefined ? {} : { validation: structuredClone(input.validation) }),
+      ...(input.runtimeDetection === undefined ? {} : { runtimeDetection: structuredClone(input.runtimeDetection) }),
+      ...(input.missingSecretNames === undefined ? {} : { missingSecretNames: [...input.missingSecretNames] }),
+      ...(input.generatedConfig === undefined ? {} : { generatedConfig: structuredClone(input.generatedConfig) }),
+      ...(input.preview === undefined ? {} : { preview: structuredClone(input.preview) }),
+      ...(input.destinationProjectId === undefined
+        ? {}
+        : { destinationProjectId: input.destinationProjectId ?? undefined }),
+      ...(input.errorCode === undefined ? {} : { errorCode: input.errorCode ?? undefined }),
+      ...(input.errorMessage === undefined ? {} : { errorMessage: input.errorMessage ?? undefined }),
+      ...(input.recoverable === undefined ? {} : { recoverable: input.recoverable }),
+      ...(input.completedAt === undefined ? {} : { completedAt: input.completedAt ?? undefined }),
+      ...(input.failedAt === undefined ? {} : { failedAt: input.failedAt ?? undefined }),
+      ...(input.canceledAt === undefined ? {} : { canceledAt: input.canceledAt ?? undefined }),
+      updatedAt: now(),
+    };
+    this.projectImportJobs.set(job.id, updated);
+    return updated;
+  }
+
+  async listProjectImportJobs(organizationId: string, limit = 25) {
+    return [...this.projectImportJobs.values()]
+      .filter((job) => job.organizationId === organizationId)
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+      .slice(0, Math.max(1, Math.min(100, limit)));
   }
 
   async upsertProjectEnvVar(input: { projectId: string; key: string; value: string; scope?: EnvVarScope }) {
@@ -1727,6 +2588,7 @@ export class TestApiStore implements ApiStore {
     metadata?: Record<string, unknown>;
     rolledBackFromId?: string;
     parentDeploymentId?: string;
+    machineSize?: string;
     startedAt?: string;
     finishedAt?: string;
     canceledAt?: string;
@@ -1751,6 +2613,7 @@ export class TestApiStore implements ApiStore {
       metadata: input.metadata,
       rolledBackFromId: input.rolledBackFromId,
       parentDeploymentId: input.parentDeploymentId,
+      machineSize: input.machineSize,
       startedAt: input.startedAt,
       finishedAt: input.finishedAt,
       canceledAt: input.canceledAt,
@@ -1808,6 +2671,17 @@ export class TestApiStore implements ApiStore {
         (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') &&
         new Date(deployment.updatedAt ?? deployment.createdAt).getTime() < cutoff,
     );
+  }
+
+  async listActiveServerDeployments() {
+    return [...this.deployments.values()].filter(
+      (deployment) => deployment.provider === 'server' && deployment.status === 'READY',
+    );
+  }
+
+  /** No DB-backed rate card in tests: callers fall back to the built-in card. */
+  async getActiveRateCard(): Promise<{ version: number; data: unknown } | undefined> {
+    return undefined;
   }
 
   async createSupportTicket(input: { organizationId: string; userId: string; subject: string; category?: string }) {

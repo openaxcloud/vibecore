@@ -80,6 +80,8 @@ describe('E-Code public runtime API adapters', () => {
     ).json()) as {
       status: string;
       services: unknown[];
+      architecture: string;
+      languages: string[];
     };
     const capabilities = (await toResponse(
       await polyglotCapabilitiesLoader(loaderArgs('http://app.e-code.ai/api/polyglot/capabilities')),
@@ -87,8 +89,10 @@ describe('E-Code public runtime API adapters', () => {
 
     expect(health.status).toBe('healthy');
     expect(health.services.length).toBeGreaterThan(0);
+    expect(health.architecture).toBe('web-runtime');
+    expect(health.languages).toEqual(['JavaScript', 'TypeScript']);
     expect(capabilities.services).toHaveProperty('typescript');
-    expect(capabilities.services).toHaveProperty('python-ml');
+    expect(capabilities.services).not.toHaveProperty('python-ml');
     expect(capabilities.routing['file-operations']).toBe('typescript');
   });
 

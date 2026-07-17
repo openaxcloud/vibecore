@@ -128,22 +128,52 @@ vi.mock('./files', async () => {
 });
 
 vi.mock('./editor', async () => {
-  const { atom, map } = await import('nanostores');
+  const { atom, computed, map } = await import('nanostores');
+
+  type MockFileMap = Record<
+    string,
+    { type: 'file'; content: string; isBinary?: boolean } | { type: 'folder' } | undefined
+  >;
 
   return {
     EditorStore: class {
-      currentDocument = atom(undefined);
       selectedFile = atom(undefined);
-      documents = map({});
+      documents = map<Record<string, { filePath: string; value: string; isBinary: boolean }>>({});
+      currentDocument = computed([this.documents, this.selectedFile], (documents, selectedFile) =>
+        selectedFile ? documents[selectedFile] : undefined,
+      );
 
-      setDocuments = vi.fn();
+      setDocuments(files: MockFileMap, keepUnsavedPaths?: ReadonlySet<string>) {
+        const previousDocuments = this.documents.get();
+
+        this.documents.set(
+          Object.fromEntries(
+            Object.entries(files).flatMap(([filePath, file]) => {
+              if (!file || file.type !== 'file') {
+                return [];
+              }
+
+              const previousDocument = previousDocuments[filePath];
+              const value = keepUnsavedPaths?.has(filePath) && previousDocument ? previousDocument.value : file.content;
+
+              return [[filePath, { filePath, value, isBinary: file.isBinary ?? false }]];
+            }),
+          ),
+        );
+      }
 
       setSelectedFile(filePath: string | undefined) {
         this.selectedFile.set(filePath);
       }
 
       updateFile(filePath: string, value: string) {
-        this.documents.setKey(filePath, { filePath, value, isBinary: false });
+        const document = this.documents.get()[filePath];
+
+        if (!document || document.value === value) {
+          return;
+        }
+
+        this.documents.setKey(filePath, { ...document, value });
       }
 
       updateScrollPosition = vi.fn();
@@ -227,6 +257,80 @@ function diffAction(
 function actionStatus(store: WorkbenchStore, actionId: string) {
   return store.artifacts.get()['artifact-1']?.runner.actions.get()[actionId]?.status;
 }
+
+const APP_FILE = '/home/project/src/App.tsx';
+const MAIN_FILE = '/home/project/src/main.tsx';
+
+function prepareEditorDocuments(store: WorkbenchStore) {
+  const files = {
+    [APP_FILE]: { type: 'file' as const, content: 'export const app = "persisted";', isBinary: false },
+    [MAIN_FILE]: { type: 'file' as const, content: 'export const main = "persisted";', isBinary: false },
+  };
+
+  store.files.set(files);
+  store.setDocuments(files);
+  store.setSelectedFile(APP_FILE);
+}
+
+describe('WorkbenchStore targeted document content', () => {
+  it('updates a non-current document without overwriting the current document or changing the selection', () => {
+    const store = new WorkbenchStore();
+    prepareEditorDocuments(store);
+
+    store.setDocumentContent(MAIN_FILE, 'export const main = "edited";');
+
+    expect(store.documents.get()[APP_FILE]?.value).toBe('export const app = "persisted";');
+    expect(store.documents.get()[MAIN_FILE]?.value).toBe('export const main = "edited";');
+    expect(store.selectedFile.get()).toBe(APP_FILE);
+    expect(store.currentDocument.get()).toMatchObject({
+      filePath: APP_FILE,
+      value: 'export const app = "persisted";',
+    });
+    expect(store.unsavedFiles.get()).toEqual(new Set([MAIN_FILE]));
+  });
+
+  it('cleans only the reverted document from the dirty set and preserves the current dirty document', () => {
+    const store = new WorkbenchStore();
+    prepareEditorDocuments(store);
+
+    store.setDocumentContent(APP_FILE, 'export const app = "edited";');
+    store.setDocumentContent(MAIN_FILE, 'export const main = "edited";');
+    store.setDocumentContent(MAIN_FILE, 'export const main = "persisted";');
+
+    expect(store.documents.get()[APP_FILE]?.value).toBe('export const app = "edited";');
+    expect(store.documents.get()[MAIN_FILE]?.value).toBe('export const main = "persisted";');
+    expect(store.currentDocument.get()).toMatchObject({
+      filePath: APP_FILE,
+      value: 'export const app = "edited";',
+    });
+    expect(store.unsavedFiles.get()).toEqual(new Set([APP_FILE]));
+  });
+});
+
+describe('WorkbenchStore canonical Files panel compatibility', () => {
+  it('routes legacy open requests to the canonical Project Editor event and ignores closes', () => {
+    const store = new WorkbenchStore();
+    const receivedPanels: string[] = [];
+
+    const listener = ((event: CustomEvent<{ panel?: string }>) => {
+      if (event.detail?.panel) {
+        receivedPanels.push(event.detail.panel);
+      }
+    }) as EventListener;
+
+    window.addEventListener('vibecore:open-project-ide-panel', listener);
+
+    try {
+      store.requestProjectFilesPanel();
+      store.requestProjectFilesPanel(true);
+      store.requestProjectFilesPanel(false);
+    } finally {
+      window.removeEventListener('vibecore:open-project-ide-panel', listener);
+    }
+
+    expect(receivedPanels).toEqual(['files', 'files']);
+  });
+});
 
 describe('WorkbenchStore reloaded and review-first actions', () => {
   beforeEach(() => {

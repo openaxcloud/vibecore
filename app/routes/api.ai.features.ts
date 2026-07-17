@@ -14,15 +14,15 @@ export async function loader() {
           'Full application scaffolding from a single prompt',
         ],
       },
-      multilingual: {
-        title: '28+ Languages',
-        description: 'Expert-level support for Python, TypeScript, Rust, Go, Java, C++, and 22 more languages.',
+      webRuntime: {
+        title: 'JavaScript & TypeScript Runtime',
+        description: 'Current project generation and previews run on the validated JavaScript and TypeScript runtime.',
         icon: 'Languages',
         details: [
-          'Real-time syntax highlighting and IntelliSense',
-          'Language-specific best practices and patterns',
-          'Cross-language refactoring and migration',
-          'Framework-aware code generation',
+          'TypeScript-first project generation',
+          'JavaScript and Node.js applications',
+          'Preview-aware validation',
+          'Runtime and dependency detection during import',
         ],
       },
       intelligent: {

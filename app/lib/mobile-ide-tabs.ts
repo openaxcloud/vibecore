@@ -88,7 +88,7 @@ export const ECODE_MOBILE_TOOLS: readonly MobileToolItem[] = [
     id: 'terminal',
     section: 'tools',
     title: SHELL_TERMINAL_LABEL,
-    description: 'Workspace shell terminal',
+    description: 'Project runtime shell terminal',
     icon: 'i-ph:terminal-window',
   },
   {

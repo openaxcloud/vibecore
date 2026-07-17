@@ -14,7 +14,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { SiReact, SiTypescript, SiPython, SiVite, SiNodedotjs, SiTailwindcss } from 'react-icons/si';
+import { SiNodedotjs, SiReact, SiSvelte, SiTailwindcss, SiTypescript, SiVite } from 'react-icons/si';
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
@@ -196,7 +196,7 @@ export default function Mobile() {
     { icon: <SiReact className="h-5 w-5" />, name: 'React' },
     { icon: <SiTypescript className="h-5 w-5" />, name: 'TypeScript' },
     { icon: <SiNodedotjs className="h-5 w-5" />, name: 'Node.js' },
-    { icon: <SiPython className="h-5 w-5" />, name: 'Python' },
+    { icon: <SiSvelte className="h-5 w-5" />, name: 'Svelte' },
     { icon: <SiVite className="h-5 w-5" />, name: 'Vite' },
     { icon: <SiTailwindcss className="h-5 w-5" />, name: 'Tailwind' },
   ];
@@ -343,10 +343,10 @@ export default function Mobile() {
         {/* Stacks */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive text-center">
-            <h2 className="mkt-h2 font-bold">Bring any stack</h2>
+            <h2 className="mkt-h2 font-bold">Bring your JavaScript or TypeScript app</h2>
             <p className="mx-auto mt-4 max-w-2xl mkt-body text-muted-foreground">
-              Mobile workspaces run the same cloud runtime as the desktop — the frameworks and languages you already
-              ship.
+              Mobile workspaces use the same validated web runtime as desktop, with the IDE, Agent and Preview kept in
+              sync.
             </p>
             <div className="mx-auto mt-10 flex max-w-3xl flex-wrap justify-center gap-3">
               {stacks.map((stack) => (

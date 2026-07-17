@@ -77,6 +77,8 @@ import { LockManager } from '~/components/workbench/LockManager';
 import { ProjectAgentRunStatus } from '~/components/project-ide/ProjectAgentRunStatus';
 import { ProjectEditorToolbar } from '~/components/project-ide/ProjectEditorToolbar';
 import { ProjectOverviewPanel } from '~/components/project-ide/ProjectOverviewPanel';
+import { ProjectResourcesPopover } from '~/components/project-ide/ProjectResourcesPopover';
+import { ProjectSpotlightButton } from '~/components/project-ide/ProjectSpotlightButton';
 import {
   PROJECT_AGENT_PANEL_MIN_WIDTH,
   clampProjectAgentPanelWidth,
@@ -90,11 +92,10 @@ import { DEFAULT_THEME, applyThemeToDocument, kTheme, themeStore, toggleTheme, t
 import type { ProviderInfo } from '~/types/model';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
-import { buildGitStatusMap } from '~/utils/fileExplorerMetadata';
+import { buildGitStatusMap, resolveWorkspacePathEntry } from '~/utils/fileExplorerMetadata';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
 import { GenerateAppCta } from '~/components/chat/GenerateAppCta';
 import { GitTab } from '~/components/git/GitTab';
-import StarterTemplates from './StarterTemplates';
 import type { ActionAlert, SupabaseAlert, DeployAlert, LlmErrorAlertType } from '~/types/actions';
 import DeployChatAlert from '~/components/deploy/DeployAlert';
 import {
@@ -131,10 +132,43 @@ import { useMobileIdePersistence } from '~/lib/hooks/useMobileIdePersistence';
 import { useProjectChatBranches } from '~/lib/hooks/useProjectChatBranches';
 import {
   getProjectIdeMemory,
+  getProjectIdeMemorySync,
   saveProjectIdeMemory,
   subscribeProjectIdeMemory,
   type ProjectIdeMemory,
 } from '~/lib/persistence/projectIdeMemory';
+import {
+  DEFAULT_PROJECT_EDITOR_WINDOW_ID,
+  PROJECT_EDITOR_LAYOUT_VERSION,
+  bringFloatingPaneToFront,
+  collectPanes,
+  createDefaultProjectEditorWindow,
+  createProjectEditorWindowForTab,
+  dockPane,
+  findPane,
+  findPaneContainingTab,
+  floatPane,
+  migrateLegacyProjectEditorLayout,
+  moveTab,
+  normalizeProjectEditorLayout,
+  openTabInPane,
+  projectEditorLayoutReducer,
+  setSplitRatio,
+  splitPane as splitProjectEditorPane,
+  toggleMaximizedPane,
+  updateFloatingBounds,
+  updatePane,
+  updateProjectEditorWindow,
+  PROJECT_EDITOR_TOOLS,
+  type ProjectEditorLayoutState,
+  type ProjectEditorPaneLeaf,
+  type ProjectEditorPaneNode,
+  type ProjectEditorTab,
+  type ProjectEditorTool,
+  type ProjectEditorWindowState,
+} from '~/lib/project-editor-layout';
+import { PROJECT_EDITOR_TOOL_CATALOG, projectEditorToolMetadata } from '~/lib/project-editor-tool-catalog';
+import { FloatingPaneFrame } from '~/components/project-ide/FloatingPaneFrame';
 import { hasLivePreviewPort, isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -227,7 +261,7 @@ const IDE_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string 
   Agent: { description: 'Focus the AI agent composer and project instructions.', shortcut: 'Cmd+J' },
   'Add tab': { description: 'Open another editor, terminal, preview or project panel.', shortcut: 'Ctrl+T' },
   'Close terminal panel': {
-    description: 'Hide the bottom terminal drawer without stopping the workspace.',
+    description: 'Hide the bottom terminal drawer without stopping the project runtime.',
     shortcut: 'Esc',
   },
   'Close split': { description: 'Return logs to a single stream view.' },
@@ -249,7 +283,7 @@ const IDE_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string 
   'Open refactor menu': { description: 'Show available code actions and refactors.', shortcut: 'Ctrl+.' },
   'Preview window options': { description: 'Adjust preview window and device display options.' },
   'Refresh preview': { description: 'Reload the embedded web preview.', shortcut: 'Cmd+R' },
-  'Refresh runtime logs': { description: 'Refresh terminal and runtime state from the workspace.', shortcut: 'R' },
+  'Refresh runtime logs': { description: 'Refresh terminal and project runtime state.', shortcut: 'R' },
   'Rename symbol': { description: 'Rename the current symbol across references.', shortcut: 'F2' },
   'Resize AI agent panel': { description: 'Drag to give the agent or workbench more room.' },
   'Resize files panel': { description: 'Drag to resize the file browser and project tools.' },
@@ -265,10 +299,10 @@ const IDE_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string 
 
 const IDE_RAIL_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string }> = {
   Agent: { description: 'Focus the AI agent composer and project instructions.', shortcut: 'Cmd+J' },
-  Files: { description: 'Open the project file browser and workspace views.', shortcut: 'Cmd+Shift+E' },
+  Files: { description: 'Open the project file browser and project views.', shortcut: 'Cmd+Shift+E' },
   Editor: { description: 'Return to the active code editor tab.', shortcut: 'Cmd+E' },
-  Terminal: { description: 'Open the workspace shell terminal drawer.', shortcut: 'Ctrl+`' },
-  [SHELL_TERMINAL_LABEL]: { description: 'Open the workspace shell terminal drawer.', shortcut: 'Ctrl+`' },
+  Terminal: { description: 'Open the project runtime shell terminal drawer.', shortcut: 'Ctrl+`' },
+  [SHELL_TERMINAL_LABEL]: { description: 'Open the project runtime shell terminal drawer.', shortcut: 'Ctrl+`' },
   Preview: { description: 'Open the live web preview panel.', shortcut: 'Cmd+Enter' },
   Publish: { description: 'Open deployments, domains and publishing tools.', shortcut: 'Cmd+Shift+P' },
   Search: { description: 'Search project files and symbols.', shortcut: 'Cmd+P' },
@@ -277,8 +311,8 @@ const IDE_RAIL_TOOLTIP_HELP: Record<string, { description: string; shortcut?: st
   Packages: { description: 'Manage dependencies, manifests and package audits.' },
   Monitoring: { description: 'Inspect runtime health, activity and metrics.' },
   Security: { description: 'Run scans and review vulnerabilities.' },
-  Activity: { description: 'Open the project audit timeline and workspace events.' },
-  Settings: { description: 'Open workspace and personal IDE settings.', shortcut: 'Cmd+,' },
+  Activity: { description: 'Open the project audit timeline and runtime events.' },
+  Settings: { description: 'Open project and personal Project Editor settings.', shortcut: 'Cmd+,' },
 };
 
 const PROJECT_IDE_TOUR_STEPS = [
@@ -296,7 +330,7 @@ const PROJECT_IDE_TOUR_STEPS = [
   },
   {
     selector: '.bolt-project-tabbar',
-    title: 'Workspace tabs',
+    title: 'Project Editor tabs',
     description: 'Pin, split and reorder your active work surfaces without losing context.',
     shortcut: 'Ctrl+T',
   },
@@ -358,9 +392,8 @@ const IDE_MANAGEMENT_PANELS = [
   'settings',
 ] as const;
 
-const IDE_RIGHT_PANELS = ['files'] as const;
-const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', ...IDE_MANAGEMENT_PANELS] as const;
-const IDE_URL_PANELS = [...IDE_WORKSPACE_PANELS, ...IDE_RIGHT_PANELS] as const;
+const IDE_WORKSPACE_PANELS = PROJECT_EDITOR_TOOLS;
+const IDE_URL_PANELS = IDE_WORKSPACE_PANELS;
 const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'search', 'locks', 'terminal', 'preview', 'deploy'] as const;
 
 const ECODE_MOBILE_DEFAULT_TABS = ['editor', 'preview', 'agent', 'deployments'] as const;
@@ -430,51 +463,12 @@ const IDE_FILE_TREE_HIDDEN_PATTERNS = [
   /\/lost\+found(?:\/|$)/,
 ];
 
-const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> = {
-  overview: 'Project summary',
-  studio: 'Agent supervisor',
-  database: 'SQL browser',
-  'object-storage': 'File storage',
-  packages: 'Dependencies manager',
-  skills: 'Agent skills',
-  monitoring: 'App metrics',
-  ports: 'Forwarded ports',
-  extensions: 'Marketplace',
-  integrations: 'Connected services',
-  workflows: 'Task automation',
-  debugger: 'Breakpoints and launch configs',
-  deployments: 'Publish your app',
-  security: 'Security scanner',
-  env: 'Environment variables',
-  secrets: 'Environment variables',
-  git: 'Version control',
-  activity: 'Project timeline',
-  terminal: 'Workspace shell terminal',
-  logs: 'Runtime logs',
-  collaborators: 'Team access',
-  domains: 'Custom domains',
-  snapshots: 'Rollback points',
-  settings: 'Project settings',
-  editor: 'Code editor',
-  preview: 'App preview',
-  files: 'Browse project files',
-  search: 'Find in files',
-  locks: 'Locked files',
-};
-
-type IdeRightPanel = (typeof IDE_RIGHT_PANELS)[number];
 type IdeManagementPanel = (typeof IDE_MANAGEMENT_PANELS)[number];
-type IdeWorkspacePanel = (typeof IDE_WORKSPACE_PANELS)[number];
-type IdePaneTab = {
-  id: string;
-  panel: IdeWorkspacePanel;
-  pinned?: boolean;
-  filePath?: string;
-  preview?: boolean;
-};
+type IdeWorkspacePanel = ProjectEditorTool;
+type IdePaneTab = ProjectEditorTab;
 type ProjectBottomTerminalView = 'terminal' | 'output' | 'problems' | 'debug';
 type AgentToolAction = {
-  panel: IdeWorkspacePanel | IdeRightPanel;
+  panel: IdeWorkspacePanel;
   title: string;
   description: string;
   icon: string;
@@ -639,7 +633,7 @@ const INTEGRATION_CATALOG = [
   ['jira', 'Jira', 'Sync issues and delivery work across projects.', 'project', 'i-ph:kanban'],
   ['notion', 'Notion', 'Sync docs and product notes with project context.', 'project', 'i-ph:notion-logo'],
   ['gitlab', 'GitLab', 'Alternative Git hosting and CI pipelines.', 'cicd', 'i-ph:gitlab-logo'],
-  ['discord', 'Discord', 'Send workspace notifications to Discord.', 'communication', 'i-ph:discord-logo'],
+  ['discord', 'Discord', 'Send project notifications to Discord.', 'communication', 'i-ph:discord-logo'],
   ['trello', 'Trello', 'Visual boards and cards for product work.', 'project', 'i-ph:columns'],
   ['asana', 'Asana', 'Team work management and task tracking.', 'project', 'i-ph:list-checks'],
   ['figma', 'Figma', 'Design collaboration and handoff links.', 'project', 'i-ph:figma-logo'],
@@ -743,15 +737,8 @@ type ProjectIdeBackendState = {
   terminalState?: { scriptRuns?: any[] };
   packagesState?: { runs?: any[] };
 };
-type IdePaneLeaf = { type: 'leaf'; id: string; tabs: IdePaneTab[]; activeTabId?: string };
-type IdePaneSplit = {
-  type: 'split';
-  id: string;
-  direction: 'horizontal';
-  first: IdePaneNode;
-  second: IdePaneNode;
-};
-type IdePaneNode = IdePaneLeaf | IdePaneSplit;
+type IdePaneLeaf = ProjectEditorPaneLeaf;
+type IdePaneNode = ProjectEditorPaneNode;
 
 function runtimeStatusText(input: {
   workspaceStatus?: { status?: string; ports?: Array<{ port?: number; ready?: boolean }> } | null;
@@ -1510,53 +1497,31 @@ function cloneDefaultPaneTree(): IdePaneNode {
   return JSON.parse(JSON.stringify(DEFAULT_PANE_TREE));
 }
 
-function collectPaneTabs(node: any): IdePaneTab[] {
-  if (node?.type === 'leaf' && Array.isArray(node.tabs)) {
-    return node.tabs;
-  }
-
-  return [...collectPaneTabs(node?.first), ...collectPaneTabs(node?.second)];
+function createBaseProjectEditorLayout(windowId: string): ProjectEditorLayoutState {
+  return migrateLegacyProjectEditorLayout(
+    {
+      paneTree: cloneDefaultPaneTree(),
+      activePaneId: DEFAULT_PANE_TREE.id,
+    },
+    { windowId },
+  );
 }
 
-function ensureCorePaneTabs(tabs: IdePaneTab[]) {
-  const nextTabs = [...tabs];
-
-  if (!nextTabs.some((tab) => tab.panel === 'editor')) {
-    nextTabs.unshift({ id: 'tab-editor-default', panel: 'editor' });
+function ensureProjectEditorWindow(layout: ProjectEditorLayoutState, windowId: string): ProjectEditorLayoutState {
+  if (layout.windows[windowId]) {
+    return layout.activeWindowId === windowId ? layout : { ...layout, activeWindowId: windowId };
   }
 
-  if (!nextTabs.some((tab) => tab.panel === 'preview')) {
-    nextTabs.push({ id: 'tab-preview-default', panel: 'preview', pinned: true });
-  }
+  const window = createDefaultProjectEditorWindow(windowId, cloneDefaultPaneTree());
 
-  return nextTabs;
+  return projectEditorLayoutReducer(layout, {
+    type: 'window/upsert',
+    window,
+  });
 }
 
-function normalizePaneTree(node: any): IdePaneNode {
-  if (node?.type === 'split') {
-    return {
-      type: 'split',
-      id: typeof node.id === 'string' ? node.id : 'pane-split-root',
-      direction: 'horizontal',
-      first: normalizePaneTree(node.first),
-      second: normalizePaneTree(node.second),
-    };
-  }
-
-  const tabs = ensureCorePaneTabs(collectPaneTabs(node));
-  const legacyActiveTabId = typeof node?.activeTabId === 'string' ? node.activeTabId : undefined;
-  const activeTabId = tabs.some((tab) => tab.id === legacyActiveTabId) ? legacyActiveTabId : tabs[tabs.length - 1]?.id;
-
-  return {
-    type: 'leaf',
-    id: 'pane-main',
-    tabs,
-    activeTabId,
-  };
-}
-
-function isIdeRightPanel(panel: string): panel is IdeRightPanel {
-  return (IDE_RIGHT_PANELS as readonly string[]).includes(panel);
+function projectEditorWindowTabs(windowState: ProjectEditorWindowState): IdePaneTab[] {
+  return collectPanes(windowState).flatMap((pane) => pane.tabs);
 }
 
 function isIdeWorkspacePanel(panel: string): panel is IdeWorkspacePanel {
@@ -1578,6 +1543,7 @@ function makePaneTab(panel: IdeWorkspacePanel, options: Partial<IdePaneTab> = {}
     panel,
     pinned: options.pinned,
     filePath: options.filePath,
+    preview: options.preview,
   };
 }
 
@@ -1618,7 +1584,7 @@ function isIdeHiddenPath(filePath: string) {
 function inferAgentToolAction(message: string | undefined): AgentToolAction | null {
   const text = (message ?? '').toLowerCase();
 
-  const matches: Array<[RegExp, IdeWorkspacePanel | IdeRightPanel, string]> = [
+  const matches: Array<[RegExp, IdeWorkspacePanel, string]> = [
     [/\b(open|show|ouvre|affiche).*\b(files?|fichiers?|explorer)\b|\b(files?|fichiers?)\b/, 'files', 'Open Files'],
     [/\b(search|find|recherche)\b/, 'search', 'Open Search'],
     [/\b(database|sql|db|base de donn)/, 'database', 'Open Database'],
@@ -1651,7 +1617,7 @@ function inferAgentToolAction(message: string | undefined): AgentToolAction | nu
   return {
     panel,
     title,
-    description: IDE_TOOL_DESCRIPTIONS[panel],
+    description: projectEditorToolMetadata(panel).description,
     icon: panelIcon(panel),
   };
 }
@@ -1770,46 +1736,6 @@ function buildProjectAgentPrompt({
   }
 
   return `<vibecore_agent_request>\n${guardrails.map((line) => `- ${line}`).join('\n')}\n</vibecore_agent_request>\n\n${message}`;
-}
-
-function findFirstLeaf(node: IdePaneNode): IdePaneLeaf | undefined {
-  return node.type === 'leaf' ? node : (findFirstLeaf(node.first) ?? findFirstLeaf(node.second));
-}
-
-function findLeaf(node: IdePaneNode, paneId: string): IdePaneLeaf | undefined {
-  if (node.type === 'leaf') {
-    return node.id === paneId ? node : undefined;
-  }
-
-  return findLeaf(node.first, paneId) ?? findLeaf(node.second, paneId);
-}
-
-function findLeafContainingTab(node: IdePaneNode, tabId: string): IdePaneLeaf | undefined {
-  if (node.type === 'leaf') {
-    return node.tabs.some((tab) => tab.id === tabId) ? node : undefined;
-  }
-
-  return findLeafContainingTab(node.first, tabId) ?? findLeafContainingTab(node.second, tabId);
-}
-
-function updateLeaf(node: IdePaneNode, paneId: string, updater: (leaf: IdePaneLeaf) => IdePaneNode): IdePaneNode {
-  if (node.type === 'leaf') {
-    return node.id === paneId ? updater(node) : node;
-  }
-
-  return {
-    ...node,
-    first: updateLeaf(node.first, paneId, updater),
-    second: updateLeaf(node.second, paneId, updater),
-  };
-}
-
-function flattenTabs(node: IdePaneNode): IdePaneTab[] {
-  if (node.type === 'leaf') {
-    return node.tabs;
-  }
-
-  return [...flattenTabs(node.first), ...flattenTabs(node.second)];
 }
 
 function HeaderTip({
@@ -2118,6 +2044,7 @@ interface BaseChatProps {
   onWebSearchResult?: (result: string) => void;
   projectIdeMode?: boolean;
   projectId?: string;
+  projectName?: string;
   projectUrl?: string;
   initialIdePanels?: Record<string, any>;
 }
@@ -2175,6 +2102,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       onWebSearchResult,
       projectIdeMode = false,
       projectId,
+      projectName,
       projectUrl,
       initialIdePanels,
     },
@@ -2184,6 +2112,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [searchParams, setSearchParams] = useSearchParams();
     const layout = useResponsiveLayout();
     const textDirection = useTextDirection();
+    const agentComposerRef = useRef<HTMLDivElement | null>(null);
+
+    const projectEditorWindowId = useMemo(() => {
+      const requested = searchParams.get('window')?.trim();
+
+      return requested && /^[a-zA-Z0-9_-]{1,80}$/.test(requested) ? requested : DEFAULT_PROJECT_EDITOR_WINDOW_ID;
+    }, [searchParams]);
 
     /*
      * Workspace isolation — when the IDE is scoped to a specific workspace
@@ -2372,7 +2307,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             .join('\n');
 
           const prompt = [
-            `Resolve the current Git merge conflicts in this workspace${detail.branch ? ` (branch ${detail.branch})` : ''}, preserving BOTH sides' intent — never discard either side's work.`,
+            `Resolve the current Git merge conflicts in this project${detail.branch ? ` (branch ${detail.branch})` : ''}, preserving BOTH sides' intent — never discard either side's work.`,
             '',
             'Conflicted files:',
             list || '- (run `git status` to list them)',
@@ -2880,23 +2815,102 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const quotaWarning = useStore(workbenchStore.quotaWarning);
     const billingUpgradePrompt = useStore(workbenchStore.billingUpgradePrompt);
     const previewServerState = useStore(workbenchStore.previewServerState);
-    const projectFilesPanelRequest = useStore(workbenchStore.projectFilesPanelRequest);
     const selectedFile = useStore(workbenchStore.selectedFile);
     const currentView = useStore(workbenchStore.currentView);
     const currentDocument = useStore(workbenchStore.currentDocument);
+    const editorDocuments = useStore(workbenchStore.documents);
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const theme = useStore(themeStore);
-    const DEFAULT_RIGHT_PANEL_WIDTH = 280;
-    const MIN_RIGHT_PANEL_WIDTH = 272;
-    const MAX_RIGHT_PANEL_WIDTH = 360;
-    const [rightPanelOpen, setRightPanelOpen] = useState(true);
-    const [rightPanelMode, setRightPanelMode] = useState<'files' | 'preview-logs'>('files');
-    const [rightPanelWidth, setRightPanelWidth] = useState(DEFAULT_RIGHT_PANEL_WIDTH);
     const [workspaceTabs, setWorkspaceTabs] = useState<IdeWorkspacePanel[]>(['editor']);
     const [activeWorkspacePanel, setActiveWorkspacePanel] = useState<IdeWorkspacePanel>('editor');
-    const [paneTree, setPaneTree] = useState<IdePaneNode>(() => cloneDefaultPaneTree());
-    const [activePaneId, setActivePaneId] = useState('pane-main');
+    const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
+
+    const [projectEditorLayout, setProjectEditorLayout] = useState<ProjectEditorLayoutState>(() =>
+      createBaseProjectEditorLayout(projectEditorWindowId),
+    );
+    const projectEditorWindow =
+      projectEditorLayout.windows[projectEditorWindowId] ??
+      createDefaultProjectEditorWindow(projectEditorWindowId, cloneDefaultPaneTree());
+
+    const activePaneId = projectEditorWindow.activePaneId;
     const [paneDropTarget, setPaneDropTarget] = useState<string | null>(null);
+
+    /*
+     * The Window -> Pane -> Tab tree is authoritative. These two compatibility
+     * values still feed older status/rail and persistence code, so derive them
+     * after every canonical layout change instead of allowing a second tab model
+     * to drift from moved, closed, floated, or restored Pane tabs.
+     */
+    useEffect(() => {
+      if (!projectIdeMode) {
+        return;
+      }
+
+      const panes = collectPanes(projectEditorWindow);
+      const canonicalPanels = Array.from(new Set(panes.flatMap((pane) => pane.tabs.map((tab) => tab.panel))));
+      const activePane = findPane(projectEditorWindow, projectEditorWindow.activePaneId) ?? panes[0];
+      const activeTab = activePane?.tabs.find((tab) => tab.id === activePane.activeTabId) ?? activePane?.tabs[0];
+
+      setWorkspaceTabs((current) =>
+        current.length === canonicalPanels.length && current.every((panel, index) => panel === canonicalPanels[index])
+          ? current
+          : canonicalPanels,
+      );
+
+      if (activeTab) {
+        setActiveWorkspacePanel((current) => (current === activeTab.panel ? current : activeTab.panel));
+      }
+    }, [projectEditorWindow, projectIdeMode]);
+
+    const updateCurrentProjectEditorWindow = useCallback(
+      (updater: (windowState: ProjectEditorWindowState) => ProjectEditorWindowState) => {
+        setProjectEditorLayout((currentLayout) => {
+          const withWindow = ensureProjectEditorWindow(currentLayout, projectEditorWindowId);
+
+          return updateProjectEditorWindow(withWindow, projectEditorWindowId, updater);
+        });
+      },
+      [projectEditorWindowId],
+    );
+
+    const setActivePaneId = useCallback(
+      (paneId: string) => {
+        updateCurrentProjectEditorWindow((windowState) =>
+          findPane(windowState, paneId) ? { ...windowState, activePaneId: paneId } : windowState,
+        );
+      },
+      [updateCurrentProjectEditorWindow],
+    );
+
+    useEffect(() => {
+      setProjectEditorLayout((currentLayout) => ensureProjectEditorWindow(currentLayout, projectEditorWindowId));
+    }, [projectEditorWindowId]);
+
+    useEffect(() => {
+      if (!projectStateReady || !paletteMemory?.ui?.projectEditorLayout) {
+        return;
+      }
+
+      const incomingLayout = ensureProjectEditorWindow(
+        normalizeProjectEditorLayout(paletteMemory.ui.projectEditorLayout, {
+          windowId: projectEditorWindowId,
+        }),
+        projectEditorWindowId,
+      );
+
+      setProjectEditorLayout((currentLayout) => {
+        const localWindow = currentLayout.windows[projectEditorWindowId];
+
+        return {
+          ...incomingLayout,
+          activeWindowId: projectEditorWindowId,
+          windows: {
+            ...incomingLayout.windows,
+            ...(localWindow ? { [projectEditorWindowId]: localWindow } : {}),
+          },
+        };
+      });
+    }, [paletteMemory?.ui?.projectEditorLayout, projectEditorWindowId, projectStateReady]);
 
     const [agentWidth, setAgentWidth] = useState(() =>
       defaultProjectAgentPanelWidth(typeof window === 'undefined' ? undefined : window.innerWidth),
@@ -3248,11 +3262,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [recentTabIds, setRecentTabIds] = useState<string[]>([]);
     const [closedTabs, setClosedTabs] = useState<IdePaneTab[]>([]);
     const [agentToolAction, setAgentToolAction] = useState<AgentToolAction | null>(null);
-    const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
     const restoredProjectId = useRef<string | undefined>(undefined);
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
     const scrollUpdateFrame = useRef<number | null>(null);
-    const agentComposerRef = useRef<HTMLDivElement | null>(null);
     const activeProjectPanel = readPanelSearchParam(searchParams, IDE_URL_PANELS) || '';
 
     const setProjectPanelSearchParam = useCallback(
@@ -3261,10 +3273,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [setSearchParams],
     );
-
-    const activeMobileServicePanel = useMemo<IdeManagementPanel>(() => {
-      return isIdeManagementPanel(activeProjectPanel) ? activeProjectPanel : 'deployments';
-    }, [activeProjectPanel]);
 
     const firstProjectFile = useMemo(() => {
       return Object.entries(projectFiles).find(([, file]) => file?.type === 'file')?.[0];
@@ -3500,7 +3508,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const workspaceStatusTitle = useMemo(
       () =>
         [
-          `Workspace: ${workspaceStatusLabel}`,
+          `Runtime: ${workspaceStatusLabel}`,
           workspaceError,
           quotaWarning,
           billingUpgradePrompt,
@@ -3821,7 +3829,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       ? mobileAgentSelectedFileLabel
       : mobileAgentFileCount > 0
         ? `${mobileAgentFileCount} files loaded`
-        : 'Workspace ready';
+        : 'Project ready';
     useEffect(() => {
       setProjectStateReady(!projectIdeMode || !projectId);
       restoredProjectId.current = undefined;
@@ -4174,18 +4182,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           const ui = memory.ui;
 
-          if (typeof ui?.rightPanelOpen === 'boolean') {
-            setRightPanelOpen(ui.rightPanelOpen);
-          }
-
-          if (ui?.rightPanelMode === 'preview-logs') {
-            setRightPanelMode('preview-logs');
-          }
-
-          if (typeof ui?.rightPanelWidth === 'number') {
-            setRightPanelWidth(Math.min(MAX_RIGHT_PANEL_WIDTH, Math.max(MIN_RIGHT_PANEL_WIDTH, ui.rightPanelWidth)));
-          }
-
           const restoredTabs = Array.isArray(ui?.workspaceTabs)
             ? ui.workspaceTabs.filter((panel: string) => isIdeWorkspacePanel(panel))
             : [];
@@ -4203,11 +4199,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             setActiveWorkspacePanel(ui.activeWorkspacePanel);
           }
 
-          if (ui?.paneTree && typeof ui.paneTree === 'object') {
-            setPaneTree(normalizePaneTree(ui.paneTree));
-          }
+          const restoredLayout = normalizeProjectEditorLayout(
+            ui?.projectEditorLayout ?? {
+              paneTree: ui?.paneTree,
+              activePaneId: ui?.activePaneId,
+            },
+            { windowId: projectEditorWindowId },
+          );
 
-          setActivePaneId('pane-main');
+          setProjectEditorLayout(ensureProjectEditorWindow(restoredLayout, projectEditorWindowId));
 
           if (typeof ui?.agentWidth === 'number') {
             setAgentWidth(clampProjectAgentPanelWidth(ui.agentWidth));
@@ -4309,7 +4309,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         cancelled = true;
         window.clearTimeout(restoreFallbackTimer);
       };
-    }, [activeProjectPanel, projectFiles, projectIdeMode, projectId, currentWorkspaceId]);
+    }, [activeProjectPanel, projectFiles, projectIdeMode, projectId, currentWorkspaceId, projectEditorWindowId]);
 
     useEffect(() => {
       const pendingSelectedFile = pendingProjectSelectedFile.current;
@@ -4330,38 +4330,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       workbenchStore.setSelectedFile(resolvedPendingFile);
       pendingProjectSelectedFile.current = undefined;
     }, [projectFiles, projectIdeMode]);
-
-    useEffect(() => {
-      if (!projectIdeMode || !rightPanelOpen) {
-        return;
-      }
-
-      void workbenchStore.loadRuntimeFiles('.').catch((error) => {
-        console.error('Failed to refresh right files panel:', error);
-      });
-    }, [projectIdeMode, rightPanelOpen]);
-
-    useEffect(() => {
-      if (!projectIdeMode || !rightPanelOpen || rightPanelMode !== 'files' || projectFilePaths.length > 0) {
-        return undefined;
-      }
-
-      let attempts = 0;
-
-      const interval = window.setInterval(() => {
-        attempts += 1;
-
-        void workbenchStore.loadRuntimeFiles('.').catch((error) => {
-          console.error('Failed to retry right files panel refresh:', error);
-        });
-
-        if (attempts >= 20 || Object.values(workbenchStore.files.get()).some((entry) => entry?.type === 'file')) {
-          window.clearInterval(interval);
-        }
-      }, 1500);
-
-      return () => window.clearInterval(interval);
-    }, [projectFilePaths.length, projectIdeMode, rightPanelMode, rightPanelOpen]);
 
     useEffect(() => {
       if (!projectIdeMode || useMobileIde || workspaceLoading || workspaceError) {
@@ -4446,7 +4414,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               ? { description: 'Keep this tab visible in the tab strip while you switch context.', shortcut: 'Alt+P' }
               : normalizedLabel.startsWith('Close ')
                 ? {
-                    description: 'Close this view without deleting files or stopping the workspace.',
+                    description: 'Close this view without deleting files or stopping the project runtime.',
                     shortcut: 'Cmd+W',
                   }
                 : normalizedLabel.startsWith('Save ')
@@ -4494,70 +4462,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [projectIdeMode]);
 
     useEffect(() => {
-      if (!projectIdeMode) {
-        return undefined;
-      }
-
-      workbenchStore.projectFilesPanelOpen.set(rightPanelOpen);
-      window.dispatchEvent(
-        new CustomEvent('vibecore:project-files-panel-state', {
-          detail: { open: rightPanelOpen },
-        }),
-      );
-
-      return undefined;
-    }, [projectIdeMode, rightPanelOpen]);
-
-    useEffect(() => {
-      if (!projectIdeMode || !projectFilesPanelRequest) {
-        return;
-      }
-
-      setRightPanelOpen((currentOpen) => {
-        const nextOpen =
-          typeof projectFilesPanelRequest.open === 'boolean' ? projectFilesPanelRequest.open : !currentOpen;
-
-        if (nextOpen) {
-          setRightPanelMode('files');
-        }
-
-        if (!nextOpen) {
-          setProjectPanelSearchParam();
-        }
-
-        return nextOpen;
-      });
-    }, [projectFilesPanelRequest, projectIdeMode, setProjectPanelSearchParam]);
-
-    useEffect(() => {
-      if (!projectIdeMode) {
-        return undefined;
-      }
-
-      const handleToggleFilesPanel = (event: Event) => {
-        const requestedOpen = (event as CustomEvent<{ open?: boolean }>).detail?.open;
-
-        setRightPanelOpen((currentOpen) => {
-          const nextOpen = typeof requestedOpen === 'boolean' ? requestedOpen : !currentOpen;
-
-          if (nextOpen) {
-            setRightPanelMode('files');
-          }
-
-          if (!nextOpen) {
-            setProjectPanelSearchParam();
-          }
-
-          return nextOpen;
-        });
-      };
-
-      window.addEventListener('vibecore:toggle-project-files-panel', handleToggleFilesPanel);
-
-      return () => window.removeEventListener('vibecore:toggle-project-files-panel', handleToggleFilesPanel);
-    }, [projectIdeMode, setProjectPanelSearchParam]);
-
-    useEffect(() => {
       if (!projectIdeMode || !projectStateReady || selectedFile || !firstProjectFile) {
         return;
       }
@@ -4573,18 +4477,30 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       const saveTimer = window.setTimeout(() => {
+        const cachedMemory = getProjectIdeMemorySync(projectId, currentWorkspaceId);
+
+        const cachedLayout = normalizeProjectEditorLayout(cachedMemory?.ui?.projectEditorLayout ?? cachedMemory?.ui, {
+          windowId: projectEditorWindowId,
+        });
+        const mergedProjectEditorLayout: ProjectEditorLayoutState = {
+          version: PROJECT_EDITOR_LAYOUT_VERSION,
+          activeWindowId: projectEditorWindowId,
+          windows: {
+            ...cachedLayout.windows,
+            [projectEditorWindowId]: projectEditorWindow,
+          },
+        };
+
         saveProjectIdeMemory(
           projectId,
           {
             ui: {
               selectedFile,
               currentView,
-              rightPanelOpen,
-              rightPanelMode,
-              rightPanelWidth,
               workspaceTabs,
               activeWorkspacePanel,
-              paneTree,
+              projectEditorLayout: mergedProjectEditorLayout,
+              paneTree: projectEditorWindow.root ?? undefined,
               activePaneId,
               agentWidth,
               terminalBottomOpen,
@@ -4614,12 +4530,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       projectStateReady,
       selectedFile,
       currentView,
-      rightPanelOpen,
-      rightPanelMode,
-      rightPanelWidth,
       workspaceTabs,
       activeWorkspacePanel,
-      paneTree,
+      projectEditorWindow,
+      projectEditorWindowId,
       activePaneId,
       agentWidth,
       terminalBottomOpen,
@@ -4644,29 +4558,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         const targetPaneId = options.paneId ?? activePaneId;
         setActivePaneId(targetPaneId);
-        setPaneTree((currentTree) =>
-          updateLeaf(currentTree, targetPaneId, (leaf) => {
-            const existing = options.filePath
-              ? leaf.tabs.find((tab) => tab.panel === panel && tab.filePath === options.filePath)
-              : leaf.tabs.find((tab) => tab.panel === panel && !tab.filePath);
-            const nextTab =
-              existing ??
-              makePaneTab(panel, {
-                pinned: panel === 'preview',
-                filePath: options.filePath,
-                preview: options.preview,
-              });
-            const baseTabs =
-              panel === 'editor' && options.preview
-                ? leaf.tabs.filter((tab) => !(tab.panel === 'editor' && tab.preview))
-                : leaf.tabs;
-            const tabs = existing
-              ? baseTabs.map((tab) =>
-                  tab.id === existing.id ? { ...tab, preview: options.preview ?? tab.preview } : tab,
-                )
-              : [...baseTabs, nextTab];
-
-            return { ...leaf, tabs, activeTabId: nextTab.id };
+        updateCurrentProjectEditorWindow((windowState) =>
+          openTabInPane(windowState, {
+            paneId: targetPaneId,
+            tab: makePaneTab(panel, {
+              pinned: panel === 'preview' ? true : undefined,
+              filePath: options.filePath,
+              preview: options.preview,
+            }),
           }),
         );
 
@@ -4691,7 +4590,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           setProjectPanelSearchParam(panel);
         }
       },
-      [activePaneId, setProjectPanelSearchParam],
+      [activePaneId, setActivePaneId, setProjectPanelSearchParam, updateCurrentProjectEditorWindow],
     );
 
     const openProjectFile = useCallback(
@@ -4741,24 +4640,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.dispatchEvent(new CustomEvent('vibecore:editor-command', { detail: { command } }));
     }, []);
 
-    const openProjectFilesPanel = useCallback(() => {
-      setRightPanelMode('files');
-      setRightPanelOpen(true);
-      workbenchStore.projectFilesPanelOpen.set(true);
-      setProjectPanelSearchParam('files');
-    }, [setProjectPanelSearchParam]);
-
     const openIdeTool = useCallback(
-      (panel: IdeWorkspacePanel | IdeRightPanel, paneId = activePaneId) => {
-        if (isIdeRightPanel(panel)) {
-          openProjectFilesPanel();
-
-          return;
-        }
-
+      (panel: IdeWorkspacePanel, paneId = activePaneId) => {
         openWorkspacePanel(panel, { paneId });
       },
-      [activePaneId, openProjectFilesPanel, openWorkspacePanel],
+      [activePaneId, openWorkspacePanel],
     );
 
     const openCommandPalette = useCallback((mode: 'all' | 'tools' | 'files' = 'all') => {
@@ -4807,21 +4693,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           setMobileIdePanel('chat', { activeTabId: normalizedToolId });
           setProjectPanelSearchParam();
         } else if (normalizedToolId === 'files') {
+          openWorkspacePanel('files', { replaceUrl: false });
           setMobileIdePanel('files');
           setProjectPanelSearchParam('files');
         } else if (normalizedToolId === 'search') {
+          openWorkspacePanel('search', { replaceUrl: false });
           setMobileIdePanel('search');
           setProjectPanelSearchParam('search');
         } else if (normalizedToolId === 'locks') {
+          openWorkspacePanel('locks', { replaceUrl: false });
           setMobileIdePanel('locks');
           setProjectPanelSearchParam('locks');
         } else if (normalizedToolId === 'preview') {
+          openWorkspacePanel('preview', { replaceUrl: false });
           setMobileIdePanel('preview');
           setProjectPanelSearchParam('preview');
         } else if (normalizedToolId === 'console' || normalizedToolId === 'terminal' || normalizedToolId === 'shell') {
+          openWorkspacePanel('terminal', { replaceUrl: false });
           setMobileIdePanel('terminal', { activeTabId: 'terminal' });
           setProjectPanelSearchParam('terminal');
         } else if (normalizedToolId === 'editor') {
+          openWorkspacePanel('editor', { replaceUrl: false });
           setMobileIdePanel('editor');
           setProjectPanelSearchParam('editor');
         } else {
@@ -4883,15 +4775,37 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return;
         }
 
-        if (isIdeRightPanel(panel) || isIdeWorkspacePanel(panel)) {
+        if (isIdeWorkspacePanel(panel)) {
           openIdeTool(panel);
         }
       };
 
+      /*
+       * Compatibility bridge for integrations that still emit the former Files
+       * sidebar event. An explicit close is intentionally ignored because Files
+       * is now a normal Pane tab; every other request is re-emitted through the
+       * canonical Project Editor event and can never recreate the removed shell.
+       */
+      const handleLegacyFilesPanelToggle = (event: Event) => {
+        const requestedOpen = (event as CustomEvent<{ open?: boolean }>).detail?.open;
+
+        if (requestedOpen === false) {
+          return;
+        }
+
+        window.dispatchEvent(
+          new CustomEvent('vibecore:open-project-ide-panel', {
+            detail: { panel: 'files' },
+          }),
+        );
+      };
+
       window.addEventListener('vibecore:open-project-ide-panel', handleOpenProjectIdePanel);
+      window.addEventListener('vibecore:toggle-project-files-panel', handleLegacyFilesPanelToggle);
 
       return () => {
         window.removeEventListener('vibecore:open-project-ide-panel', handleOpenProjectIdePanel);
+        window.removeEventListener('vibecore:toggle-project-files-panel', handleLegacyFilesPanelToggle);
       };
     }, [activateMobileTool, openIdeTool, projectIdeMode, useMobileIde]);
 
@@ -4909,8 +4823,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           return safeTabs;
         });
-        setPaneTree((currentTree) =>
-          updateLeaf(currentTree, paneId, (leaf) => {
+        updateCurrentProjectEditorWindow((windowState) =>
+          updatePane(windowState, paneId, (leaf) => {
             const targetTab = tabId
               ? leaf.tabs.find((tab) => tab.id === tabId)
               : leaf.tabs.find((tab) => tab.panel === panel);
@@ -4929,22 +4843,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           }),
         );
       },
-      [activeWorkspacePanel, setProjectPanelSearchParam],
+      [activeWorkspacePanel, setProjectPanelSearchParam, updateCurrentProjectEditorWindow],
     );
 
     useEffect(() => {
       if (!projectIdeMode || (!projectStateReady && !activeProjectPanel)) {
-        return;
-      }
-
-      if (isIdeRightPanel(activeProjectPanel)) {
-        setRightPanelMode('files');
-        setRightPanelOpen(true);
-
-        if (useMobileIde && activeProjectPanel === 'files') {
-          setMobileIdePanel('files');
-        }
-
         return;
       }
 
@@ -4967,6 +4870,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               activeTabId: ECODE_MOBILE_MANAGEMENT_PANEL_TABS[activeProjectPanel] ?? activeProjectPanel,
             });
           }
+
+          openWorkspacePanel(activeProjectPanel, { replaceUrl: false });
 
           return;
         }
@@ -5078,8 +4983,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       const reopenedId = `${tab.id}-reopen-${Date.now()}`;
       setClosedTabs(rest);
-      setPaneTree((currentTree) =>
-        updateLeaf(currentTree, activePaneId, (leaf) => ({
+      updateCurrentProjectEditorWindow((windowState) =>
+        updatePane(windowState, activePaneId, (leaf) => ({
           ...leaf,
           tabs: [...leaf.tabs, { ...tab, id: reopenedId }],
           activeTabId: reopenedId,
@@ -5091,17 +4996,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       if (tab.filePath) {
         workbenchStore.setSelectedFile(tab.filePath);
       }
-    }, [activePaneId, closedTabs]);
+    }, [activePaneId, closedTabs, updateCurrentProjectEditorWindow]);
 
     const closeActivePaneTab = useCallback(() => {
-      const leaf = findLeaf(paneTree, activePaneId) ?? findFirstLeaf(paneTree);
+      const leaf = findPane(projectEditorWindow, activePaneId) ?? collectPanes(projectEditorWindow)[0];
       const tab = leaf?.tabs.find((item) => item.id === leaf.activeTabId);
 
       if (leaf && tab) {
         setClosedTabs((items) => [tab, ...items.filter((item) => item.id !== tab.id)].slice(0, 20));
         closeWorkspacePanel(tab.panel, leaf.id, tab.id);
       }
-    }, [activePaneId, closeWorkspacePanel, paneTree]);
+    }, [activePaneId, closeWorkspacePanel, projectEditorWindow]);
 
     const focusAgentPanel = useCallback(() => {
       setProjectAgentPanelOpen(true);
@@ -5181,7 +5086,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         } else if (action === 'tab.reopenClosed') {
           reopenLastClosedTab();
         } else if (action === 'sidebar.toggle') {
-          setRightPanelOpen((open) => !open);
+          openWorkspacePanel('files');
         } else if (action === 'terminal.toggle') {
           setTerminalBottomOpen((value) => !value);
         } else if (action === 'terminal.focus') {
@@ -5207,28 +5112,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           setKeyboardShortcutsOpen(true);
         } else if (/^tab\\.focus\\.[1-9]$/.test(action)) {
           const index = Number(action.at(-1)) - 1;
-          const leaf = findLeaf(paneTree, activePaneId) ?? findFirstLeaf(paneTree);
+          const leaf = findPane(projectEditorWindow, activePaneId) ?? collectPanes(projectEditorWindow)[0];
           const tab = leaf?.tabs[index];
 
           if (leaf && tab) {
-            setPaneTree((currentTree) =>
-              updateLeaf(currentTree, leaf.id, (currentLeaf) => ({ ...currentLeaf, activeTabId: tab.id })),
+            updateCurrentProjectEditorWindow((windowState) =>
+              updatePane(windowState, leaf.id, (currentLeaf) => ({ ...currentLeaf, activeTabId: tab.id })),
             );
             setActivePaneId(leaf.id);
             setActiveWorkspacePanel(tab.panel);
             setRecentTabIds((ids) => [tab.id, ...ids.filter((id) => id !== tab.id)].slice(0, 20));
           }
         } else if (action === 'tab.next') {
-          const tabs = flattenTabs(paneTree);
+          const tabs = projectEditorWindowTabs(projectEditorWindow);
           const currentIndex = tabs.findIndex((tab) => tab.id === recentTabIds[0]);
           const nextTab = tabs[(currentIndex + 1) % Math.max(tabs.length, 1)];
 
           if (nextTab) {
-            const nextLeaf = findLeafContainingTab(paneTree, nextTab.id);
+            const nextLeaf = findPaneContainingTab(projectEditorWindow, nextTab.id);
 
             if (nextLeaf) {
-              setPaneTree((currentTree) =>
-                updateLeaf(currentTree, nextLeaf.id, (leaf) => ({ ...leaf, activeTabId: nextTab.id })),
+              updateCurrentProjectEditorWindow((windowState) =>
+                updatePane(windowState, nextLeaf.id, (leaf) => ({ ...leaf, activeTabId: nextTab.id })),
               );
               setActivePaneId(nextLeaf.id);
               setActiveWorkspacePanel(nextTab.panel);
@@ -5258,10 +5163,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         openBottomTerminal,
         openCommandPalette,
         openWorkspacePanel,
-        paneTree,
+        projectEditorWindow,
         recentTabIds,
         reopenLastClosedTab,
         runProjectEditorCommand,
+        updateCurrentProjectEditorWindow,
       ],
     );
 
@@ -5274,7 +5180,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               combo: `cmd+${index + 1}`,
               action: `tab.focus.${index + 1}`,
               label: `Focus tab ${index + 1}`,
-              description: `Focus workspace tab ${index + 1}.`,
+              description: `Focus Project Editor tab ${index + 1}.`,
               category: 'Workbench' as const,
               preventDefault: true,
             })),
@@ -5282,7 +5188,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               combo: 'cmd+tab',
               action: 'tab.next',
               label: 'Next tab',
-              description: 'Cycle to the next open workspace tab.',
+              description: 'Cycle to the next open Project Editor tab.',
               category: 'Workbench' as const,
               preventDefault: true,
             },
@@ -6499,7 +6405,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
                 handleSendMessage?.(event, messageInput);
               })}
-            {!chatStarted && <StarterTemplates hasUnsentDraft={input.trim().length > 0} />}
           </div>
         </div>
       </div>
@@ -6507,8 +6412,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const selectPaneTab = useCallback(
       (paneId: string, tabId: string, panel: IdeWorkspacePanel) => {
-        const selectedTab = findLeaf(paneTree, paneId)?.tabs.find((tab) => tab.id === tabId);
-        setPaneTree((currentTree) => updateLeaf(currentTree, paneId, (leaf) => ({ ...leaf, activeTabId: tabId })));
+        const selectedTab = findPane(projectEditorWindow, paneId)?.tabs.find((tab) => tab.id === tabId);
+        updateCurrentProjectEditorWindow((windowState) =>
+          updatePane(windowState, paneId, (leaf) => ({ ...leaf, activeTabId: tabId })),
+        );
         setActivePaneId(paneId);
         setActiveWorkspacePanel(panel);
         setRecentTabIds((ids) => [tabId, ...ids.filter((id) => id !== tabId)].slice(0, 20));
@@ -6531,190 +6438,238 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           workbenchStore.toggleTerminal(true);
         }
       },
-      [paneTree, setProjectPanelSearchParam],
+      [projectEditorWindow, setActivePaneId, setProjectPanelSearchParam, updateCurrentProjectEditorWindow],
     );
 
-    const closePaneTabs = useCallback((paneId: string, mode: 'all' | 'others' | 'right' | 'saved', tabId?: string) => {
-      setPaneTree((currentTree) =>
-        updateLeaf(currentTree, paneId, (leaf) => {
-          const targetIndex = tabId ? leaf.tabs.findIndex((tab) => tab.id === tabId) : -1;
+    const closePaneTabs = useCallback(
+      (paneId: string, mode: 'all' | 'others' | 'right' | 'saved', tabId?: string) => {
+        updateCurrentProjectEditorWindow((windowState) =>
+          updatePane(windowState, paneId, (leaf) => {
+            const targetIndex = tabId ? leaf.tabs.findIndex((tab) => tab.id === tabId) : -1;
 
-          /*
-           * Audit v3 (H): 'saved' must keep tabs with unsaved changes.
-           * The "Close saved" menu item previously reused the 'all' handler,
-           * so it closed unsaved editors too — silent data loss. Read the live
-           * unsaved-files set from the store so this stays correct without
-           * adding a render dependency to the callback.
-           */
-          const unsaved = workbenchStore.unsavedFiles.get();
+            /*
+             * Audit v3 (H): 'saved' must keep tabs with unsaved changes.
+             * The "Close saved" menu item previously reused the 'all' handler,
+             * so it closed unsaved editors too — silent data loss. Read the live
+             * unsaved-files set from the store so this stays correct without
+             * adding a render dependency to the callback.
+             */
+            const unsaved = workbenchStore.unsavedFiles.get();
 
-          const tabs = leaf.tabs.filter((tab, index) => {
-            if (tab.pinned) {
-              return true;
+            const tabs = leaf.tabs.filter((tab, index) => {
+              if (tab.pinned) {
+                return true;
+              }
+
+              if (mode === 'saved') {
+                return unsaved instanceof Set && !!tab.filePath && unsaved.has(tab.filePath);
+              }
+
+              if (mode === 'all') {
+                return false;
+              }
+
+              if (mode === 'others') {
+                return tab.id === tabId;
+              }
+
+              return targetIndex < 0 || index <= targetIndex;
+            });
+
+            const safeTabs = tabs;
+
+            const activeTabId = safeTabs.some((tab) => tab.id === leaf.activeTabId)
+              ? leaf.activeTabId
+              : safeTabs[0]?.id;
+
+            return { ...leaf, tabs: safeTabs, activeTabId };
+          }),
+        );
+      },
+      [updateCurrentProjectEditorWindow],
+    );
+
+    const togglePaneTabPinned = useCallback(
+      (paneId: string, tabId?: string) => {
+        updateCurrentProjectEditorWindow((windowState) =>
+          updatePane(windowState, paneId, (leaf) => {
+            const targetTabId = tabId ?? leaf.activeTabId ?? leaf.tabs[0]?.id;
+
+            if (!targetTabId) {
+              return leaf;
             }
 
-            if (mode === 'saved') {
-              return unsaved instanceof Set && !!tab.filePath && unsaved.has(tab.filePath);
-            }
-
-            if (mode === 'all') {
-              return false;
-            }
-
-            if (mode === 'others') {
-              return tab.id === tabId;
-            }
-
-            return targetIndex < 0 || index <= targetIndex;
-          });
-
-          const safeTabs = tabs;
-          const activeTabId = safeTabs.some((tab) => tab.id === leaf.activeTabId) ? leaf.activeTabId : safeTabs[0]?.id;
-
-          return { ...leaf, tabs: safeTabs, activeTabId };
-        }),
-      );
-    }, []);
-
-    const togglePaneTabPinned = useCallback((paneId: string, tabId?: string) => {
-      setPaneTree((currentTree) =>
-        updateLeaf(currentTree, paneId, (leaf) => {
-          const targetTabId = tabId ?? leaf.activeTabId ?? leaf.tabs[0]?.id;
-
-          if (!targetTabId) {
-            return leaf;
-          }
-
-          return {
-            ...leaf,
-            tabs: leaf.tabs.map((tab) => (tab.id === targetTabId ? { ...tab, pinned: !tab.pinned } : tab)),
-          };
-        }),
-      );
-    }, []);
-
-    const splitPaneRight = useCallback((paneId: string, tabId?: string) => {
-      let nextActivePaneId: string | undefined;
-
-      setPaneTree((currentTree) =>
-        updateLeaf(currentTree, paneId, (leaf) => {
-          const targetTab =
-            leaf.tabs.find((tab) => tab.id === tabId) ??
-            leaf.tabs.find((tab) => tab.id === leaf.activeTabId) ??
-            leaf.tabs[leaf.tabs.length - 1];
-
-          if (!targetTab || leaf.tabs.length < 2) {
-            return leaf;
-          }
-
-          const remainingTabs = leaf.tabs.filter((tab) => tab.id !== targetTab.id);
-          const nextPaneId = `pane-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-          nextActivePaneId = nextPaneId;
-
-          return {
-            type: 'split',
-            id: `split-${leaf.id}-${nextPaneId}`,
-            direction: 'horizontal',
-            first: {
+            return {
               ...leaf,
-              tabs: remainingTabs,
-              activeTabId: remainingTabs.some((tab) => tab.id === leaf.activeTabId)
-                ? leaf.activeTabId
-                : remainingTabs[remainingTabs.length - 1]?.id,
-            },
-            second: {
-              type: 'leaf',
-              id: nextPaneId,
-              tabs: [targetTab],
-              activeTabId: targetTab.id,
-            },
-          };
-        }),
-      );
+              tabs: leaf.tabs.map((tab) => (tab.id === targetTabId ? { ...tab, pinned: !tab.pinned } : tab)),
+            };
+          }),
+        );
+      },
+      [updateCurrentProjectEditorWindow],
+    );
 
-      if (nextActivePaneId) {
-        setActivePaneId(nextActivePaneId);
-      }
-    }, []);
+    const splitPane = useCallback(
+      (paneId: string, direction: 'horizontal' | 'vertical', tabId?: string) => {
+        updateCurrentProjectEditorWindow((windowState) =>
+          splitProjectEditorPane(windowState, {
+            paneId,
+            direction,
+            tabId,
+          }),
+        );
+      },
+      [updateCurrentProjectEditorWindow],
+    );
+
+    const splitPaneRight = useCallback(
+      (paneId: string, tabId?: string) => splitPane(paneId, 'horizontal', tabId),
+      [splitPane],
+    );
+    const splitPaneDown = useCallback(
+      (paneId: string, tabId?: string) => splitPane(paneId, 'vertical', tabId),
+      [splitPane],
+    );
+
+    const togglePaneMaximized = useCallback(
+      (paneId: string) => {
+        updateCurrentProjectEditorWindow((windowState) => toggleMaximizedPane(windowState, paneId));
+      },
+      [updateCurrentProjectEditorWindow],
+    );
+
+    const togglePaneFloating = useCallback(
+      (paneId: string) => {
+        updateCurrentProjectEditorWindow((windowState) => {
+          const floating = windowState.floatingPanes.find((entry) => entry.pane.id === paneId);
+
+          if (floating) {
+            return dockPane(windowState, { paneId });
+          }
+
+          const container = document.querySelector<HTMLElement>(
+            `.bolt-project-main-panes[data-window-id="${CSS.escape(projectEditorWindowId)}"]`,
+          );
+
+          const width = Math.min(760, Math.max(320, (container?.clientWidth ?? 960) * 0.68));
+          const height = Math.min(560, Math.max(240, (container?.clientHeight ?? 720) * 0.72));
+          const x = Math.max(16, ((container?.clientWidth ?? 960) - width) / 2);
+          const y = Math.max(16, ((container?.clientHeight ?? 720) - height) / 2);
+
+          return floatPane(windowState, {
+            paneId,
+            bounds: { x, y, width, height },
+          });
+        });
+      },
+      [projectEditorWindowId, updateCurrentProjectEditorWindow],
+    );
+
+    const changeFloatingPaneBounds = useCallback(
+      (paneId: string, bounds: { x: number; y: number; width: number; height: number }) => {
+        updateCurrentProjectEditorWindow((windowState) => updateFloatingBounds(windowState, paneId, bounds));
+      },
+      [updateCurrentProjectEditorWindow],
+    );
+
+    const focusFloatingPane = useCallback(
+      (paneId: string) => {
+        updateCurrentProjectEditorWindow((windowState) => bringFloatingPaneToFront(windowState, paneId));
+      },
+      [updateCurrentProjectEditorWindow],
+    );
+
+    const openProjectEditorWindow = useCallback(
+      (sourceTab?: IdePaneTab) => {
+        const nextWindowId =
+          typeof crypto !== 'undefined' && 'randomUUID' in crypto
+            ? crypto.randomUUID()
+            : `window-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+        const nextWindow = sourceTab
+          ? createProjectEditorWindowForTab(nextWindowId, sourceTab)
+          : createDefaultProjectEditorWindow(nextWindowId, cloneDefaultPaneTree());
+        const cachedLayout = normalizeProjectEditorLayout(
+          (projectId ? getProjectIdeMemorySync(projectId, currentWorkspaceId)?.ui?.projectEditorLayout : undefined) ??
+            projectEditorLayout,
+          { windowId: projectEditorWindowId },
+        );
+        const nextLayout: ProjectEditorLayoutState = {
+          version: PROJECT_EDITOR_LAYOUT_VERSION,
+          activeWindowId: nextWindowId,
+          windows: {
+            ...cachedLayout.windows,
+            [projectEditorWindowId]: projectEditorWindow,
+            [nextWindowId]: nextWindow,
+          },
+        };
+
+        setProjectEditorLayout(nextLayout);
+
+        if (projectId) {
+          void saveProjectIdeMemory(projectId, { ui: { projectEditorLayout: nextLayout } }, currentWorkspaceId).catch(
+            (error) => console.error('Failed to persist the new Project Editor Window', error),
+          );
+        }
+
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set('window', nextWindowId);
+
+        if (sourceTab) {
+          nextUrl.searchParams.set('panel', sourceTab.panel);
+        }
+
+        window.open(nextUrl.toString(), '_blank', 'noopener,noreferrer');
+      },
+      [currentWorkspaceId, projectEditorLayout, projectEditorWindow, projectEditorWindowId, projectId],
+    );
 
     const swapPaneTabs = useCallback(
       (sourcePaneId: string, sourceTabId: string, targetPaneId: string, targetTabId?: string) => {
-        if (sourcePaneId === targetPaneId) {
-          setPaneTree((currentTree) =>
-            updateLeaf(currentTree, sourcePaneId, (leaf) => {
-              const sourceIndex = leaf.tabs.findIndex((tab) => tab.id === sourceTabId);
-
-              const targetIndex = targetTabId
-                ? leaf.tabs.findIndex((tab) => tab.id === targetTabId)
-                : leaf.tabs.length - 1;
-
-              if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
-                return leaf;
-              }
-
-              const tabs = [...leaf.tabs];
-              const [sourceTab] = tabs.splice(sourceIndex, 1);
-              const insertionIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
-              tabs.splice(insertionIndex, 0, sourceTab);
-
-              return {
-                ...leaf,
-                tabs,
-                activeTabId: sourceTab.id,
-              };
-            }),
-          );
-          return;
-        }
-
-        const sourceLeaf = findLeaf(paneTree, sourcePaneId);
-        const targetLeaf = findLeaf(paneTree, targetPaneId);
+        const sourceLeaf = findPane(projectEditorWindow, sourcePaneId);
+        const targetLeaf = findPane(projectEditorWindow, targetPaneId);
         const sourceTab = sourceLeaf?.tabs.find((tab) => tab.id === sourceTabId);
 
-        const targetTab =
-          targetLeaf?.tabs.find((tab) => tab.id === targetTabId) ??
-          targetLeaf?.tabs.find((tab) => tab.id === targetLeaf.activeTabId) ??
-          targetLeaf?.tabs[0];
-
-        if (!sourceLeaf || !targetLeaf || !sourceTab || !targetTab) {
+        if (!sourceLeaf || !targetLeaf || !sourceTab) {
           return;
         }
 
-        setPaneTree((currentTree) => {
-          const withTargetInSource = updateLeaf(currentTree, sourcePaneId, (leaf) => ({
-            ...leaf,
-            tabs: leaf.tabs.map((tab) => (tab.id === sourceTab.id ? targetTab : tab)),
-            activeTabId: targetTab.id,
-          }));
+        const targetIndex = targetTabId
+          ? targetLeaf.tabs.findIndex((tab) => tab.id === targetTabId)
+          : targetLeaf.tabs.length;
 
-          return updateLeaf(withTargetInSource, targetPaneId, (leaf) => ({
-            ...leaf,
-            tabs: leaf.tabs.map((tab) => (tab.id === targetTab.id ? sourceTab : tab)),
-            activeTabId: sourceTab.id,
-          }));
-        });
+        updateCurrentProjectEditorWindow((windowState) =>
+          moveTab(windowState, {
+            sourcePaneId,
+            tabId: sourceTabId,
+            targetPaneId,
+            toIndex: targetIndex < 0 ? targetLeaf.tabs.length : targetIndex,
+          }),
+        );
 
         setActivePaneId(targetPaneId);
         setActiveWorkspacePanel(sourceTab.panel);
         setRecentTabIds((ids) => [sourceTab.id, ...ids.filter((id) => id !== sourceTab.id)].slice(0, 20));
         setProjectPanelSearchParam(sourceTab.panel);
       },
-      [paneTree, setProjectPanelSearchParam],
+      [projectEditorWindow, setActivePaneId, setProjectPanelSearchParam, updateCurrentProjectEditorWindow],
     );
 
     const clearPaneDropTarget = useCallback(() => setPaneDropTarget(null), []);
 
     const renderPaneContent = useCallback(
-      (panel: IdeWorkspacePanel) => {
+      (panel: IdeWorkspacePanel, tab?: IdePaneTab) => {
         if (panel === 'editor') {
+          const editorDocument = tab?.filePath ? resolveWorkspacePathEntry(editorDocuments, tab.filePath) : undefined;
+
           return (
             <div
               className="bolt-project-editor-tool min-h-0 flex-1 overflow-hidden"
               data-testid="responsive-code-editor"
             >
               <ProjectEditorToolbar
-                fileLabel={currentDocument?.filePath?.replace(WORK_DIR, '') || 'No file selected'}
-                hasDocument={Boolean(currentDocument)}
+                fileLabel={editorDocument?.filePath?.replace(WORK_DIR, '') || 'No file selected'}
+                hasDocument={Boolean(editorDocument)}
                 minimapEnabled={editorMinimapEnabled}
                 monacoActive={editorKindForLayout(layout) === 'monaco'}
                 onToggleMinimap={() => setEditorMinimapEnabled((enabled) => !enabled)}
@@ -6727,21 +6682,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 onFindReferences={() => runProjectEditorCommand('findReferences')}
                 onRenameSymbol={() => runProjectEditorCommand('renameSymbol')}
                 onRefactor={() => runProjectEditorCommand('refactor')}
-                onSave={onProjectEditorSave}
+                onSave={() => {
+                  if (editorDocument?.filePath) {
+                    void saveProjectEditorFile(editorDocument.filePath);
+                  } else {
+                    void onProjectEditorSave();
+                  }
+                }}
               />
-              {currentDocument && !currentDocument.isBinary ? (
+              {editorDocument && !editorDocument.isBinary ? (
                 <EditorAdapter
                   className="bolt-project-editor-adapter"
-                  value={currentDocument.value}
-                  filePath={currentDocument.filePath}
+                  value={editorDocument.value}
+                  filePath={editorDocument.filePath}
                   theme={theme === 'dark' ? 'dark' : 'light'}
                   minimapEnabled={editorMinimapEnabled}
                   projectFiles={editorProjectFiles}
-                  onSave={onProjectEditorSave}
+                  onSave={() => saveProjectEditorFile(editorDocument.filePath)}
                   onChange={(update) => {
-                    workbenchStore.setCurrentDocumentContent(update.value);
+                    workbenchStore.setDocumentContent(editorDocument.filePath, update.value);
 
-                    const filePath = currentDocument.filePath;
+                    const filePath = editorDocument.filePath;
                     workbenchStore.scheduleFileAutosave(filePath, update.value);
 
                     let line = 1;
@@ -6781,7 +6742,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               files={projectFiles}
               selectedFile={selectedFile}
               unsavedFiles={unsavedFiles}
-              openEditors={flattenTabs(paneTree)
+              openEditors={projectEditorWindowTabs(projectEditorWindow)
                 .filter((tab) => tab.filePath)
                 .map((tab) => ({
                   id: tab.id,
@@ -6838,8 +6799,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       }
                     }}
                     onOpenLogsRight={() => {
-                      setRightPanelMode('preview-logs');
-                      setRightPanelOpen(true);
+                      openIdeTool('logs');
                       setTerminalBottomOpen(false);
                     }}
                   />
@@ -6863,8 +6823,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         );
       },
       [
-        currentDocument,
         editorMinimapEnabled,
+        editorDocuments,
         editorProjectFiles,
         initialIdePanels,
         layout,
@@ -6873,9 +6833,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         openProjectFile,
         previewDevice,
         projectFiles,
+        projectEditorWindow,
         projectId,
         recentProjectFiles,
         runProjectEditorCommand,
+        saveProjectEditorFile,
         selectedFile,
         setSelectedElement,
         setMobileIdePanel,
@@ -6912,7 +6874,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             data-pane-id={leaf.id}
             data-active={activePaneId === leaf.id}
             data-drop-target={paneDropTarget === leaf.id ? 'true' : undefined}
-            onMouseDown={() => setActivePaneId(leaf.id)}
+            onMouseDown={() => {
+              setActivePaneId(leaf.id);
+
+              if (activeTab?.panel === 'editor' && activeTab.filePath) {
+                workbenchStore.setSelectedFile(activeTab.filePath);
+              }
+            }}
             onDragEnter={activatePaneDrop}
             onDragOver={activatePaneDrop}
             onDragLeave={(event) => {
@@ -6934,15 +6902,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             }}
           >
             <IdeTabBar
+              paneId={leaf.id}
               activePanel={activeTab?.panel ?? 'editor'}
               activeTabId={activeTab?.id}
+              paneTargets={collectPanes(projectEditorWindow)
+                .map((pane, index) => ({ pane, index }))
+                .filter(({ pane }) => pane.id !== leaf.id)
+                .map(({ pane, index }) => ({
+                  id: pane.id,
+                  label: `Pane ${index + 1}: ${panelTitle(
+                    pane.tabs.find((tab) => tab.id === pane.activeTabId)?.panel ?? pane.tabs[0]?.panel ?? 'editor',
+                  )}`,
+                }))}
+              isMaximized={projectEditorWindow.maximizedPaneId === leaf.id}
+              isFloating={projectEditorWindow.floatingPanes.some((floating) => floating.pane.id === leaf.id)}
+              canFloat
               tabs={leaf.tabs.map((tab) => {
                 const label =
-                  tab.panel === 'editor'
-                    ? tab.filePath?.replace(WORK_DIR, '') ||
-                      currentDocument?.filePath?.replace(WORK_DIR, '') ||
-                      'Editor'
-                    : panelTitle(tab.panel);
+                  tab.panel === 'editor' ? tab.filePath?.replace(WORK_DIR, '') || 'Editor' : panelTitle(tab.panel);
 
                 return {
                   ...tab,
@@ -6952,10 +6929,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   preview: tab.preview,
                   dirty:
                     tab.panel === 'editor' &&
-                    !!currentDocument &&
-                    !!(tab.filePath ?? currentDocument.filePath) &&
+                    !!tab.filePath &&
                     unsavedFiles instanceof Set &&
-                    unsavedFiles.has(tab.filePath ?? currentDocument.filePath),
+                    unsavedFiles.has(tab.filePath),
                   onSave:
                     tab.panel === 'editor'
                       ? tab.filePath
@@ -6981,6 +6957,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               onCloseAll={() => closePaneTabs(leaf.id, 'all')}
               onCloseSaved={() => closePaneTabs(leaf.id, 'saved')}
               onSplitActiveRight={(tabId) => splitPaneRight(leaf.id, tabId)}
+              onSplitActiveDown={(tabId) => splitPaneDown(leaf.id, tabId)}
+              onMoveTabToPane={(tabId, targetPaneId) => swapPaneTabs(leaf.id, tabId, targetPaneId)}
+              onToggleMaximize={() => togglePaneMaximized(leaf.id)}
+              onToggleFloating={() => togglePaneFloating(leaf.id)}
+              onOpenNewWindow={openProjectEditorWindow}
               onSwapTab={(sourcePaneId, sourceTabId, targetTabId) =>
                 swapPaneTabs(sourcePaneId, sourceTabId, leaf.id, targetTabId)
               }
@@ -7024,7 +7005,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     unsavedChanges: unsavedFiles instanceof Set ? unsavedFiles.size : 0,
                   })}
                 >
-                  {renderPaneContent(activeTab.panel)}
+                  {renderPaneContent(activeTab.panel, activeTab)}
                 </PanelErrorBoundary>
               ) : (
                 <ProjectWelcomeState
@@ -7042,7 +7023,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         clearPaneDropTarget,
         closePaneTabs,
         closeWorkspacePanel,
-        currentDocument,
         onProjectEditorSave,
         saveProjectEditorFile,
         openIdeTool,
@@ -7051,9 +7031,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         recentProjectFiles,
         renderPaneContent,
         selectPaneTab,
+        setActivePaneId,
+        splitPaneDown,
         splitPaneRight,
+        openProjectEditorWindow,
+        projectEditorWindow,
         scrollPositions,
         swapPaneTabs,
+        togglePaneFloating,
+        togglePaneMaximized,
         unsavedFiles,
       ],
     );
@@ -7064,15 +7050,40 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return renderPaneLeaf(node);
         }
 
+        const ratio = Math.min(0.8, Math.max(0.2, node.ratio ?? 0.5));
+
         return (
-          <div key={node.id} className="bolt-project-pane-split" data-direction={node.direction}>
-            {renderPaneNode(node.first)}
-            <div className="bolt-project-pane-split-divider" aria-hidden />
-            {renderPaneNode(node.second)}
-          </div>
+          <PanelGroup
+            key={node.id}
+            id={`project-pane-split-${node.id}`}
+            className="bolt-project-pane-split"
+            data-direction={node.direction}
+            direction={node.direction}
+            onLayout={(sizes) => {
+              const nextRatio = Math.min(0.8, Math.max(0.2, (sizes[0] ?? 50) / 100));
+
+              if (Math.abs(nextRatio - ratio) < 0.002) {
+                return;
+              }
+
+              updateCurrentProjectEditorWindow((windowState) => setSplitRatio(windowState, node.id, nextRatio));
+            }}
+          >
+            <Panel id={`${node.id}-first`} order={1} defaultSize={ratio * 100} minSize={20}>
+              {renderPaneNode(node.first)}
+            </Panel>
+            <PanelResizeHandle
+              className="bolt-project-pane-split-divider"
+              aria-label={node.direction === 'horizontal' ? 'Resize panes horizontally' : 'Resize panes vertically'}
+              data-testid={`pane-resize-${node.id}`}
+            />
+            <Panel id={`${node.id}-second`} order={2} defaultSize={(1 - ratio) * 100} minSize={20}>
+              {renderPaneNode(node.second)}
+            </Panel>
+          </PanelGroup>
         );
       },
-      [renderPaneLeaf],
+      [renderPaneLeaf, updateCurrentProjectEditorWindow],
     );
 
     const ideRailToolItems = [
@@ -7086,7 +7097,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             ? `${visibleProjectFilePaths.length} file${visibleProjectFilePaths.length === 1 ? '' : 's'}`
             : undefined,
         tone: 'neutral',
-        active: rightPanelOpen && rightPanelMode === 'files',
+        active: activeWorkspacePanel === 'files',
         title: `${visibleProjectFilePaths.length} file${visibleProjectFilePaths.length === 1 ? '' : 's'} in the project`,
       },
       { panel: 'search', label: 'Search', icon: 'i-ph:magnifying-glass', badge: undefined, tone: 'neutral' },
@@ -7121,7 +7132,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const renderIdeRailToolItem = (item: (typeof ideRailToolItems)[number]) => {
       const badgeLabel = 'badgeLabel' in item ? item.badgeLabel : undefined;
-      const title = 'title' in item && item.title ? item.title : IDE_TOOL_DESCRIPTIONS[item.panel];
+      const title = 'title' in item && item.title ? item.title : projectEditorToolMetadata(item.panel).description;
       const tooltip = formatRailItemTooltip(item.label, title, badgeLabel);
       const active = 'active' in item ? item.active : activeWorkspacePanel === item.panel;
 
@@ -7130,6 +7141,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <button
             type="button"
             className="bolt-project-ide-rail-item"
+            disabled={!projectStateReady}
             aria-current={active ? 'page' : undefined}
             aria-label={formatRailItemLabel(item.label, badgeLabel)}
             title={tooltip}
@@ -7169,54 +7181,91 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [getProjectPanelAvailableWidth],
     );
 
-    const panelPixelsToPercent = useCallback(
-      (pixels: number) => {
-        const clampedPixels = Math.min(MAX_RIGHT_PANEL_WIDTH, Math.max(MIN_RIGHT_PANEL_WIDTH, pixels));
-
-        return (clampedPixels / getProjectPanelAvailableWidth()) * 100;
-      },
-      [MAX_RIGHT_PANEL_WIDTH, MIN_RIGHT_PANEL_WIDTH, getProjectPanelAvailableWidth],
-    );
-
-    const rightPanelDefaultSize = panelPixelsToPercent(rightPanelWidth);
-    const rightPanelMinSize = panelPixelsToPercent(MIN_RIGHT_PANEL_WIDTH);
-    const rightPanelMaxSize = panelPixelsToPercent(MAX_RIGHT_PANEL_WIDTH);
     const agentPanelDefaultSize = 24;
+    const workspacePanelDefaultSize = projectAgentPanelOpen ? 100 - agentPanelDefaultSize : 100;
 
-    const workspacePanelDefaultSize = rightPanelOpen
-      ? projectAgentPanelOpen
-        ? Math.max(35, 100 - agentPanelDefaultSize - rightPanelDefaultSize)
-        : Math.max(35, 100 - rightPanelDefaultSize)
-      : projectAgentPanelOpen
-        ? 100 - agentPanelDefaultSize
-        : 100;
+    /*
+     * Narrow viewports project the active Pane from the exact same canonical
+     * Window state used on desktop. Splits, moved tabs and floating state stay
+     * intact; mobile/tablet show one focused Pane at a time instead of mounting
+     * the unrelated legacy Workbench state tree.
+     */
+    const responsiveProjectEditorPane =
+      findPane(projectEditorWindow, activePaneId) ?? collectPanes(projectEditorWindow)[0];
+    const responsiveProjectEditorPaneIsFloating = Boolean(
+      responsiveProjectEditorPane &&
+        projectEditorWindow.floatingPanes.some((floating) => floating.pane.id === responsiveProjectEditorPane.id),
+    );
+    const responsiveProjectEditorPanel = responsiveProjectEditorPane ? (
+      <div
+        className="bolt-project-responsive-pane-projection"
+        data-testid="responsive-project-editor-layout"
+        data-window-id={projectEditorWindowId}
+        data-pane-id={responsiveProjectEditorPane.id}
+        data-floating={responsiveProjectEditorPaneIsFloating ? 'true' : 'false'}
+      >
+        {responsiveProjectEditorPaneIsFloating ? (
+          <div className="bolt-project-responsive-floating-bar" data-testid="responsive-floating-pane-bar">
+            <span>
+              <span className="i-ph:picture-in-picture" aria-hidden />
+              Floating pane
+            </span>
+            <button
+              type="button"
+              data-testid={`responsive-dock-floating-pane-${responsiveProjectEditorPane.id}`}
+              onClick={() => togglePaneFloating(responsiveProjectEditorPane.id)}
+            >
+              <span className="i-ph:sidebar-simple" aria-hidden />
+              Dock
+            </button>
+          </div>
+        ) : null}
+        {renderPaneLeaf(responsiveProjectEditorPane)}
+      </div>
+    ) : null;
 
     const projectIdePanels = (
       <div
         className="bolt-project-ide-panels"
+        aria-busy={!projectStateReady}
+        data-project-state-ready={projectStateReady ? 'true' : 'false'}
         style={
           {
             '--project-agent-width': `${agentWidth}px`,
             '--project-agent-statusbar-left-offset': projectAgentPanelOpen ? `${agentWidth}px` : '0px',
             '--project-agent-min-width': `${PROJECT_AGENT_PANEL_MIN_WIDTH}px`,
-            '--project-right-panel-width': rightPanelOpen ? `${rightPanelWidth}px` : '0px',
           } as React.CSSProperties
         }
       >
         <ZoneErrorBoundary
           zone="sidebar"
-          title="Workspace tools"
+          title="Project Editor tools"
           boundaryId={`project:${projectId}:sidebar`}
           projectId={projectId}
           getSnapshot={() => ({
             activeWorkspacePanel,
-            rightPanelMode,
-            rightPanelOpen,
             changedFiles: statusbarChangedFiles,
           })}
         >
-          <aside className="bolt-project-ide-rail" aria-label="Workspace tools">
+          <aside className="bolt-project-ide-rail" aria-label="Project Editor tools" data-testid="project-tools-dock">
             <div className="bolt-project-ide-rail-tools">{ideRailToolItems.map(renderIdeRailToolItem)}</div>
+            <div className="bolt-project-ide-rail-footer">
+              <HeaderTip label="All tools. Search and open any Project Editor tool." side="right">
+                <button
+                  type="button"
+                  className="bolt-project-ide-rail-item bolt-project-ide-all-tools"
+                  disabled={!projectStateReady}
+                  aria-label="All tools"
+                  title="All tools"
+                  data-vc-tooltip="All tools. Search and open any Project Editor tool."
+                  data-testid="all-tools-button"
+                  onClick={() => openCommandPalette('tools')}
+                >
+                  <span className="i-ph:squares-four" aria-hidden />
+                  <span className="bolt-project-ide-rail-label">All tools</span>
+                </button>
+              </HeaderTip>
+            </div>
           </aside>
         </ZoneErrorBoundary>
         <PanelGroup direction="horizontal" className="bolt-project-panel-group">
@@ -7229,7 +7278,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           >
             <ZoneErrorBoundary
               zone="editor"
-              title="Workspace"
+              title="Project Editor"
               boundaryId={`project:${projectId}:workspace`}
               projectId={projectId}
               getSnapshot={() => ({
@@ -7237,7 +7286,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 activePaneId,
                 terminalBottomOpen,
                 bottomTerminalView,
-                tabCount: flattenTabs(paneTree).length,
+                tabCount: projectEditorWindowTabs(projectEditorWindow).length,
               })}
             >
               <div className="bolt-project-workspace-shell">
@@ -7245,13 +7294,48 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <div className="bolt-project-main-stack">
                     <div
                       className="bolt-project-main-panes"
+                      data-window-id={projectEditorWindowId}
                       style={
                         {
                           '--project-terminal-bottom-height': terminalBottomOpen ? `${terminalBottomHeight}px` : '0px',
                         } as React.CSSProperties
                       }
                     >
-                      {renderPaneNode(paneTree)}
+                      {projectEditorWindow.maximizedPaneId ? (
+                        renderPaneLeaf(
+                          findPane(projectEditorWindow, projectEditorWindow.maximizedPaneId) ??
+                            collectPanes(projectEditorWindow)[0],
+                        )
+                      ) : (
+                        <>
+                          {projectEditorWindow.root ? (
+                            renderPaneNode(projectEditorWindow.root)
+                          ) : (
+                            <div className="bolt-project-floating-canvas" aria-hidden />
+                          )}
+                          {projectEditorWindow.floatingPanes.map((floating) => {
+                            const activeTab =
+                              floating.pane.tabs.find((tab) => tab.id === floating.pane.activeTabId) ??
+                              floating.pane.tabs[0];
+
+                            return (
+                              <FloatingPaneFrame
+                                key={floating.id}
+                                paneId={floating.pane.id}
+                                title={activeTab ? panelTitle(activeTab.panel) : 'Project Editor'}
+                                bounds={floating.bounds}
+                                zIndex={20 + floating.zIndex}
+                                active={projectEditorWindow.activePaneId === floating.pane.id}
+                                onBoundsChange={(bounds) => changeFloatingPaneBounds(floating.pane.id, bounds)}
+                                onDock={() => togglePaneFloating(floating.pane.id)}
+                                onFocus={() => focusFloatingPane(floating.pane.id)}
+                              >
+                                {renderPaneLeaf(floating.pane)}
+                              </FloatingPaneFrame>
+                            );
+                          })}
+                        </>
+                      )}
                     </div>
                     {terminalBottomOpen && (
                       <div
@@ -7282,97 +7366,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </div>
             </ZoneErrorBoundary>
           </Panel>
-          {rightPanelOpen && (
-            <>
-              <PanelResizeHandle
-                className="bolt-project-panel-resize-handle"
-                aria-label="Resize files panel"
-                title="Resize files panel"
-              />
-              <Panel
-                id="project-right-panel"
-                order={projectAgentPanelOpen ? 3 : 2}
-                defaultSize={rightPanelDefaultSize}
-                minSize={rightPanelMinSize}
-                maxSize={rightPanelMaxSize}
-                collapsible
-                collapsedSize={0}
-                className="bolt-project-panel-slot bolt-project-panel-slot-right"
-                onCollapse={() => {
-                  setRightPanelOpen(false);
-                  setProjectPanelSearchParam();
-                }}
-                onResize={(size) => {
-                  const nextWidth = Math.min(
-                    MAX_RIGHT_PANEL_WIDTH,
-                    Math.max(MIN_RIGHT_PANEL_WIDTH, panelPercentToPixels(size)),
-                  );
-                  setRightPanelWidth(nextWidth);
-                }}
-              >
-                <aside
-                  className="bolt-project-right-panel-shell"
-                  aria-label={rightPanelMode === 'files' ? 'Project library panel' : 'Preview logs panel'}
-                  style={{ '--project-right-panel-width': `${rightPanelWidth}px` } as React.CSSProperties}
-                >
-                  <div className="bolt-project-right-files-header">
-                    <span className={rightPanelMode === 'files' ? 'i-ph:files' : 'i-ph:terminal-window'} aria-hidden />
-                    <span>{rightPanelMode === 'files' ? 'Library' : 'Preview logs'}</span>
-                    <button
-                      type="button"
-                      className="bolt-project-ide-icon-button ml-auto"
-                      aria-label="Close right panel"
-                      onClick={() => {
-                        setRightPanelOpen(false);
-                        setProjectPanelSearchParam();
-                      }}
-                    >
-                      <span className="i-ph:x" aria-hidden />
-                    </button>
-                  </div>
-                  <div className="bolt-project-right-panel-content">
-                    <PanelErrorBoundary
-                      panel={rightPanelMode === 'files' ? 'Library' : 'Preview logs'}
-                      boundaryId={`project:${projectId}:right:${rightPanelMode}`}
-                      projectId={projectId}
-                      getSnapshot={() => ({
-                        rightPanelMode,
-                        selectedFile,
-                        fileCount: projectFilePaths.length,
-                        changedFiles: statusbarChangedFiles,
-                      })}
-                    >
-                      {rightPanelMode === 'files' ? (
-                        <ProjectFilesTool
-                          files={projectFiles}
-                          selectedFile={selectedFile}
-                          unsavedFiles={unsavedFiles}
-                          openEditors={flattenTabs(paneTree)
-                            .filter((tab) => tab.filePath)
-                            .map((tab) => ({
-                              id: tab.id,
-                              filePath: tab.filePath,
-                              dirty: unsavedFiles instanceof Set && unsavedFiles.has(tab.filePath!),
-                              pinned: Boolean(tab.pinned),
-                            }))}
-                          changedFiles={projectBackendState.git?.fileStatuses ?? projectBackendState.git?.changedFiles}
-                          onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
-                          onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
-                        />
-                      ) : (
-                        <ProjectIdeServicePanel
-                          key={`${projectId ?? 'project'}:right:logs`}
-                          projectId={projectId}
-                          panel="logs"
-                          initialPayload={initialIdePanels?.logs}
-                        />
-                      )}
-                    </PanelErrorBoundary>
-                  </div>
-                </aside>
-              </Panel>
-            </>
-          )}
           {projectAgentPanelOpen && (
             <>
               <PanelResizeHandle
@@ -7660,36 +7653,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             kind: 'file' as const,
             filePath,
           })),
-          ...[
-            ['files', 'Files', 'Browse project files', formatKeybindingCombo('cmd+p')],
-            ['search', 'Search', 'Find in files', ''],
-            ['terminal', SHELL_TERMINAL_LABEL, 'Workspace shell', formatKeybindingCombo('cmd+`')],
-            ['preview', 'Webview', 'App preview', formatKeybindingCombo('cmd+enter')],
-            ['database', 'Database', 'SQL browser', ''],
-            ['object-storage', 'Object Storage', 'File storage', ''],
-            ['env', 'Environment variables', 'Environment variables', ''],
-            ['secrets', 'Secrets', 'Encrypted project secrets', ''],
-            ['git', 'Git', 'Version control', ''],
-            ['packages', 'Packages', 'Dependencies manager', ''],
-            ['skills', 'Skills', 'Agent skills', ''],
-            ['integrations', 'Integrations', 'Connected services', ''],
-            ['workflows', 'Workflows', 'Task automation', ''],
-            ['deployments', 'Deployments', 'Publish your app', ''],
-            ['security', 'Security', 'Security scanner', ''],
-            ['monitoring', 'Monitoring', 'App metrics', ''],
-            ['ports', 'Ports', 'Forwarded ports', ''],
-            ['extensions', 'Extensions', 'Marketplace', ''],
-            ['snapshots', 'Snapshots', 'Create or restore checkpoints', ''],
-            ['settings', 'Settings', 'Project settings', formatKeybindingCombo('cmd+,')],
-          ].map(([panel, title, description, shortcut]) => ({
-            id: `tool:${panel}`,
+          ...PROJECT_EDITOR_TOOL_CATALOG.map((tool) => ({
+            id: `tool:${tool.id}`,
             section: 'Tools',
-            title,
-            description,
-            shortcut,
-            icon: panelIcon(panel),
+            title: tool.title,
+            description: tool.description,
+            shortcut:
+              tool.id === 'files'
+                ? formatKeybindingCombo('cmd+p')
+                : tool.id === 'terminal'
+                  ? formatKeybindingCombo('cmd+`')
+                  : tool.id === 'preview'
+                    ? formatKeybindingCombo('cmd+enter')
+                    : tool.id === 'settings'
+                      ? formatKeybindingCombo('cmd+,')
+                      : '',
+            icon: tool.icon,
             kind: 'tool' as const,
-            panel: panel as IdeWorkspacePanel | IdeRightPanel,
+            panel: tool.id,
           })),
           ...[
             ['run', 'Run app', 'Open preview runtime', ''],
@@ -7707,7 +7688,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             kind: 'command' as const,
             command,
           })),
-          ...flattenTabs(paneTree).map((tab) => ({
+          ...projectEditorWindowTabs(projectEditorWindow).map((tab) => ({
             id: `recent:${tab.id}`,
             section: 'Recent',
             title: tab.filePath?.replace(WORK_DIR, '') || panelTitle(tab.panel),
@@ -7736,7 +7717,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             return `${entry.title} ${entry.description} ${entry.section}`.toLowerCase().includes(query);
           })
           .slice(0, 60),
-      [commandPaletteMode, commandPaletteQuery, paneTree, projectFilePaths],
+      [commandPaletteMode, commandPaletteQuery, projectEditorWindow, projectFilePaths],
     );
 
     const runCommandPaletteEntry = (entry = commandPaletteEntries[commandPaletteIndex]) => {
@@ -7749,7 +7730,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       } else if (entry.kind === 'tool') {
         openIdeTool(entry.panel);
       } else if (entry.kind === 'recent') {
-        const leaf = findLeafContainingTab(paneTree, entry.tabId);
+        const leaf = findPaneContainingTab(projectEditorWindow, entry.tabId);
         const tab = leaf?.tabs.find((item) => item.id === entry.tabId);
 
         if (leaf && tab) {
@@ -7757,8 +7738,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
       } else if (entry.kind === 'command') {
         if (entry.command === 'reset-layout') {
-          setPaneTree(cloneDefaultPaneTree());
-          setActivePaneId('pane-main');
+          updateCurrentProjectEditorWindow(() =>
+            createDefaultProjectEditorWindow(projectEditorWindowId, cloneDefaultPaneTree()),
+          );
         } else if (entry.command === 'deploy') {
           openWorkspacePanel('deployments');
         } else if (entry.command === 'run') {
@@ -7799,8 +7781,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       activeMobileOpenTabId === 'agent' ||
       activeMobileOpenTabId === 'assistant' ||
       activeMobileOpenTabId === 'actions';
-    const mobileServiceHeaderTab =
-      useMobileIde && mobilePanel === 'deploy' && activeMobileOpenTabId ? mobileHeaderTab : undefined;
     const mobileMoreMenuItems = useMemo(
       () =>
         ECODE_MOBILE_MORE_ITEMS.map((itemId) => {
@@ -7858,6 +7838,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             : undefined
         }
         data-chat-visible={showChat}
+        data-project-editor-window-id={projectIdeMode ? projectEditorWindowId : undefined}
+        data-project-state-ready={projectIdeMode ? String(projectStateReady) : undefined}
+        aria-busy={projectIdeMode ? !projectStateReady : undefined}
         data-mobile-panel={mobilePanel}
         data-mobile-agent-context={showMobileChrome && isMobileAgentActive ? 'true' : 'false'}
         {...(useMobileIde ? mobileSwipeHandlers : {})}
@@ -7896,11 +7879,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 )}
                 <span>
                   <strong>{mobileHeaderTab.name}</strong>
-                  {isMobileAgentActive ? <small>{mobileAgentStatusLabel}</small> : null}
+                  {projectId && projectName && mobilePanel !== 'terminal' ? (
+                    <ProjectSpotlightButton
+                      projectName={projectName}
+                      tooltip={projectName}
+                      triggerTestId="mobile-project-spotlight-trigger"
+                    />
+                  ) : isMobileAgentActive ? (
+                    <small>{mobileAgentStatusLabel}</small>
+                  ) : null}
                 </span>
               </div>
 
               <div className="bolt-mobile-ecode-header-side bolt-mobile-ecode-header-side--right">
+                {projectId && projectName && mobilePanel !== 'terminal' ? (
+                  <ProjectResourcesPopover
+                    projectId={projectId}
+                    projectName={projectName}
+                    workspaceId={currentWorkspaceId}
+                    triggerTestId="mobile-project-resources-trigger"
+                  />
+                ) : null}
                 <button
                   type="button"
                   aria-label="Open tools"
@@ -7927,7 +7926,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <div className="bolt-mobile-agent-context-bar" data-running={isAgentRunning ? 'true' : 'false'}>
                 <span className={isAgentRunning ? 'i-svg-spinners:3-dots-fade' : 'i-ph:check-circle'} aria-hidden />
                 <span>
-                  <strong>{isAgentRunning ? 'Working on this workspace' : 'Ready for the next change'}</strong>
+                  <strong>{isAgentRunning ? 'Working on this project' : 'Ready for the next change'}</strong>
                   <small>{mobileAgentContextLabel}</small>
                 </span>
                 <button type="button" aria-label="Focus Agent prompt" onClick={() => textareaRef?.current?.focus()}>
@@ -7938,7 +7937,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           </header>
         )}
         <div className="bolt-connection-status" role="status" aria-live="polite" data-online={isOnline}>
-          {!isOnline ? 'Offline mode: edits stay local until the workspace connection returns.' : 'Connection healthy'}
+          {!isOnline ? 'Offline mode: edits stay local until the runtime connection returns.' : 'Connection healthy'}
         </div>
         {commandPaletteOpen && (
           <>
@@ -7949,14 +7948,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               data-testid="command-palette-backdrop"
               onClick={() => setCommandPaletteOpen(false)}
             />
-            <div className="bolt-project-command-palette" role="dialog" aria-modal="true" aria-label="Command palette">
+            <div
+              className="bolt-project-command-palette"
+              role="dialog"
+              aria-modal="true"
+              aria-label={commandPaletteMode === 'tools' ? 'All tools' : 'Command palette'}
+              data-mode={commandPaletteMode}
+              data-testid={commandPaletteMode === 'tools' ? 'all-tools-popup' : 'command-palette'}
+            >
               <input
                 type="text"
                 autoFocus
                 autoComplete="off"
                 inputMode="search"
-                placeholder="Search tools, files, and commands..."
-                aria-label="Search commands"
+                placeholder={
+                  commandPaletteMode === 'tools'
+                    ? 'Search all Project Editor tools...'
+                    : 'Search tools, files, and commands...'
+                }
+                aria-label={commandPaletteMode === 'tools' ? 'Search all tools' : 'Search commands'}
                 role="combobox"
                 aria-expanded
                 aria-controls="project-command-listbox"
@@ -8039,7 +8049,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <header className="bolt-project-keybindings-head">
               <div>
                 <strong>Keyboard shortcuts</strong>
-                <span>{projectKeybindings.length} active bindings in this workspace</span>
+                <span>{projectKeybindings.length} active bindings in this Project Editor</span>
               </div>
               <button
                 type="button"
@@ -8090,33 +8100,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           ) : (
             <>
               {agentPanel}
-              {useMobileIde && mobilePanel === 'locks' ? (
-                <PanelBoundary title="Locks">
-                  <div
-                    className="bolt-workbench-mobile bolt-workbench-mobile-service fixed left-0 z-0 w-full"
-                    data-testid="mobile-locks-panel"
-                  >
-                    <LockManager />
-                  </div>
-                </PanelBoundary>
-              ) : useMobileIde && mobilePanel === 'deploy' ? (
-                <PanelBoundary title={IDE_TOOL_DESCRIPTIONS[activeMobileServicePanel] ?? 'Project tools'}>
-                  <div className="bolt-workbench-mobile bolt-workbench-mobile-service fixed left-0 z-0 w-full">
-                    <ProjectIdeServicePanel
-                      key={`${projectId ?? 'project'}:mobile:${activeMobileServicePanel}`}
-                      projectId={projectId}
-                      panel={activeMobileServicePanel}
-                      displayTitle={mobileServiceHeaderTab?.name}
-                      displayIcon={mobileServiceHeaderTab?.icon === 'agent' ? undefined : mobileServiceHeaderTab?.icon}
-                      initialPayload={initialIdePanels?.[activeMobileServicePanel]}
-                    />
-                  </div>
-                </PanelBoundary>
+              {useMobileIde && projectIdeMode && mobilePanel !== 'chat' && mobilePanel !== 'terminal' ? (
+                responsiveProjectEditorPanel
               ) : useMobileIde && mobilePanel === 'chat' ? null : (
                 <ClientOnly>
                   {() => (
                     <PanelBoundary title="Workbench">
-                      <Suspense fallback={<PanelLoading title="Loading workspace panels" />}>
+                      <Suspense fallback={<PanelLoading title="Loading Project Editor panels" />}>
                         <LazyWorkbench
                           chatStarted={chatStarted || useMobileIde}
                           isStreaming={isStreaming}
@@ -8602,8 +8592,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   statusbarConnection.label === 'Offline'
                     ? 'Offline — edits stay local until the connection returns'
                     : statusbarConnection.label === 'Reconnecting'
-                      ? 'Workspace runtime is starting or reconnecting'
-                      : 'Workspace connection healthy'
+                      ? 'Project runtime is starting or reconnecting'
+                      : 'Project runtime connection healthy'
                 }
               >
                 <span
@@ -8735,14 +8725,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 className="bolt-project-statusbar-pill bolt-project-statusbar-workspace"
                 onClick={() => openBottomTerminal('terminal')}
                 title={workspaceStatusTitle}
-                aria-label={workspaceStatusTitle || 'Open workspace terminal'}
+                aria-label={workspaceStatusTitle || 'Open project runtime terminal'}
               >
                 <span
                   className="bolt-project-statusbar-runtime-dot"
                   data-state={workspaceError ? 'error' : workspaceLoading ? 'starting' : runtimeUiState}
                   aria-hidden
                 />
-                <span className="bolt-project-statusbar-label">Workspace</span>
+                <span className="bolt-project-statusbar-label">Runtime</span>
                 <strong>{workspaceStatusLabel}</strong>
                 {workspaceError ? <span className="bolt-project-statusbar-error-count">!</span> : null}
                 {quotaWarning || billingUpgradePrompt ? (
@@ -8763,13 +8753,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     }
                   }}
                   title={
-                    useMobileIde
-                      ? 'Show workspace logs'
-                      : terminalBottomOpen
-                        ? 'Hide workspace logs'
-                        : 'Show workspace logs'
+                    useMobileIde ? 'Show runtime logs' : terminalBottomOpen ? 'Hide runtime logs' : 'Show runtime logs'
                   }
-                  aria-label={`${terminalBottomOpen ? 'Hide' : 'Show'} workspace logs. ${workspaceLogs.length} log lines.`}
+                  aria-label={`${terminalBottomOpen ? 'Hide' : 'Show'} runtime logs. ${workspaceLogs.length} log lines.`}
                 >
                   <span className="i-ph:list-magnifying-glass" aria-hidden />
                   <span className="bolt-project-statusbar-label">
@@ -9618,7 +9604,7 @@ function ProjectIdeServicePanel({
                 className="flex flex-col items-center gap-2 text-center text-xs text-bolt-elements-textSecondary"
                 role="status"
               >
-                <span>This is taking longer than usual — the workspace may still be starting.</span>
+                <span>This is taking longer than usual — the project runtime may still be starting.</span>
                 <button
                   type="button"
                   className="rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
@@ -9632,7 +9618,9 @@ function ProjectIdeServicePanel({
         ) : payload?.status === 'empty' && !error && !rendersEmptyStateActions ? (
           <div className="rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6 text-center text-sm text-bolt-elements-textSecondary">
             <div className="mb-1 font-medium text-bolt-elements-textPrimary">No {title.toLowerCase()} yet</div>
-            <div className="text-[12px]">Once your workspace produces data, it will appear here automatically.</div>
+            <div className="text-[12px]">
+              Once your project runtime produces data, it will appear here automatically.
+            </div>
           </div>
         ) : (
           <PanelErrorBoundary
@@ -9772,8 +9760,8 @@ function ProjectBottomTerminal({
   const runtimeUiState = workspaceUiState(effectiveWorkspace, { ports: runtimePreviews });
 
   const workspaceLabel = effectiveWorkspace
-    ? `${runtimeUiState === 'running' ? 'running' : runtimeUiState === 'starting' ? 'starting' : (effectiveWorkspace.status ?? 'unknown')} workspace`
-    : 'No backend workspace';
+    ? `${runtimeUiState === 'running' ? 'running' : runtimeUiState === 'starting' ? 'starting' : (effectiveWorkspace.status ?? 'unknown')} runtime`
+    : 'No project runtime';
 
   const terminalTabs = [
     ['terminal', SHELL_TERMINAL_LABEL, 'i-ph:terminal-window'],
@@ -9980,7 +9968,7 @@ function ProjectProblemsPanel() {
         <div>
           <h3 tabIndex={-1}>Problems</h3>
           <p>
-            {errors} errors · {warnings} warnings in the current workspace
+            {errors} errors · {warnings} warnings in the current project
           </p>
         </div>
         <div
@@ -10188,7 +10176,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
       setMessage(
         result.fingerprint
           ? `Key pair generated (${result.keyType ?? 'ed25519'} · ${result.fingerprint}). Public key shown on the connection below.`
-          : 'Action applied to the workspace backend.',
+          : 'Action applied to the project runtime.',
       );
       await loadPanel();
     } catch (requestError) {
@@ -10283,7 +10271,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
         <div>
           <h3>Shell Environment</h3>
           <p>
-            Live workspace shell, runtime files, processes, ports, project environment and SSH checks for{' '}
+            Live project shell, runtime files, processes, ports, project environment and SSH checks for{' '}
             {workspaceId ?? 'this project'}.
           </p>
         </div>
@@ -10317,7 +10305,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
               <span className="i-ph:files" aria-hidden />
               File Navigator
             </h4>
-            <small>Workspace root</small>
+            <small>Project root</small>
             <div className="bolt-terminal-file-tree">
               {runtimeFiles.length ? (
                 renderFileTree(runtimeFiles)
@@ -10334,7 +10322,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
             </h4>
             <PanelRows
               rows={[
-                ['Workspace', workspaceId ?? 'none'],
+                ['Runtime session', workspaceId ?? 'none'],
                 [
                   'Status',
                   runtimeStatusText({
@@ -10484,7 +10472,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
           {activeTab === 'shell' && (
             <section className="bolt-terminal-live-card" data-testid="card-shell-terminal">
               <div className="bolt-terminal-live-toolbar">
-                <strong>Interactive workspace shell</strong>
+                <strong>Interactive project shell</strong>
                 <small>{workspace?.status ?? 'runtime status loading'}</small>
               </div>
               <ClientOnly fallback={<TerminalTabsFallback />}>
@@ -10655,7 +10643,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
               <div className="bolt-terminal-section-head">
                 <div>
                   <strong>Processes and Ports</strong>
-                  <small>Live process and preview port state from the workspace agent.</small>
+                  <small>Live process and preview port state from the project runtime agent.</small>
                 </div>
               </div>
               <div className="bolt-terminal-process-list">
@@ -10912,9 +10900,14 @@ function ProjectFilesTool({
 }
 
 function IdeTabBar({
+  paneId,
   activePanel: _activePanel,
   activeTabId,
   tabs,
+  paneTargets = [],
+  isMaximized = false,
+  isFloating = false,
+  canFloat = true,
   trailing,
   onSelect,
   onClose,
@@ -10924,12 +10917,18 @@ function IdeTabBar({
   onCloseAll,
   onCloseSaved,
   onSplitActiveRight,
+  onSplitActiveDown,
+  onMoveTabToPane,
+  onToggleMaximize,
+  onToggleFloating,
+  onOpenNewWindow,
   onSwapTab,
   onDragEnd,
   onTogglePin,
   recentFiles = [],
   onOpenFile,
 }: {
+  paneId: string;
   activePanel: IdeWorkspacePanel;
   activeTabId?: string;
   tabs: Array<{
@@ -10938,21 +10937,31 @@ function IdeTabBar({
     label: string;
     icon: string;
     pinned?: boolean;
+    filePath?: string;
     preview?: boolean;
     dirty?: boolean;
     closable?: boolean;
     displayLabel?: string;
     onSave?: () => void;
   }>;
+  paneTargets?: Array<{ id: string; label: string }>;
+  isMaximized?: boolean;
+  isFloating?: boolean;
+  canFloat?: boolean;
   trailing?: React.ReactNode;
   onSelect: (tabId: string, panel: IdeWorkspacePanel) => void;
   onClose?: (tabId: string, panel: IdeWorkspacePanel) => void;
-  onOpenTool?: (panel: IdeWorkspacePanel | IdeRightPanel) => void;
+  onOpenTool?: (panel: IdeWorkspacePanel) => void;
   onCloseOthers?: (tabId: string) => void;
   onCloseToRight?: (tabId: string) => void;
   onCloseAll?: () => void;
   onCloseSaved?: () => void;
   onSplitActiveRight?: (tabId?: string) => void;
+  onSplitActiveDown?: (tabId?: string) => void;
+  onMoveTabToPane?: (tabId: string, targetPaneId: string) => void;
+  onToggleMaximize?: () => void;
+  onToggleFloating?: () => void;
+  onOpenNewWindow?: (tab: IdePaneTab) => void;
   onSwapTab?: (sourcePaneId: string, sourceTabId: string, targetTabId?: string) => void;
   onDragEnd?: () => void;
   onTogglePin?: (tabId?: string) => void;
@@ -10964,6 +10973,8 @@ function IdeTabBar({
   const [toolQuery, setToolQuery] = useState('');
   const addTabButtonRef = useRef<HTMLButtonElement | null>(null);
   const toolMenuRef = useRef<HTMLDivElement | null>(null);
+  const optionsButtonRef = useRef<HTMLButtonElement | null>(null);
+  const optionsMenuRef = useRef<HTMLDivElement | null>(null);
   const commandPaletteShortcut = formatKeybindingCombo('cmd+k');
 
   const closeToolMenu = useCallback((options: { restoreFocus?: boolean } = {}) => {
@@ -10979,6 +10990,14 @@ function IdeTabBar({
     setActionsOpen(false);
     setToolQuery('');
     setOpen(true);
+  }, []);
+
+  const closeOptions = useCallback((restoreFocus = false) => {
+    setActionsOpen(false);
+
+    if (restoreFocus) {
+      window.requestAnimationFrame(() => optionsButtonRef.current?.focus());
+    }
   }, []);
 
   useEffect(() => {
@@ -11014,56 +11033,40 @@ function IdeTabBar({
     };
   }, [closeToolMenu, open]);
 
-  const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> = [
-    ['overview', 'Overview', 'Project summary', 'i-ph:gauge', 'var(--vc-ide-accent-action)', 'Workspace'],
-    ['editor', 'Code', 'Code editor', 'i-ph:code', 'var(--vc-ide-accent-action)', 'Workspace'],
-    ['files', 'Files', 'Browse project files', 'i-ph:files', 'var(--vc-ide-accent-warning)', 'Workspace'],
-    ['search', 'Search', 'Find in files', 'i-ph:magnifying-glass', 'var(--vc-ide-accent-action)', 'Workspace'],
-    ['locks', 'Locks', 'Locked files', 'i-ph:lock', 'var(--vc-ide-accent-warning)', 'Workspace'],
-    [
-      'terminal',
-      SHELL_TERMINAL_LABEL,
-      'Workspace shell',
-      'i-ph:terminal-window',
-      'var(--vc-ide-accent-success)',
-      'Runtime',
-    ],
-    ['logs', 'Logs', 'Runtime logs', 'i-ph:list-magnifying-glass', 'var(--vc-ide-accent-success)', 'Runtime'],
-    ['preview', 'Webview', 'App preview', 'i-ph:browser', 'var(--vc-ide-accent-action)', 'Runtime'],
-    ['database', 'Database', 'SQL browser', 'i-ph:database', 'var(--vc-ide-accent-action)', 'Data'],
-    ['object-storage', 'Object Storage', 'File storage', 'i-ph:package', 'var(--vc-ide-accent-warning)', 'Data'],
-    [
-      'env',
-      'Environment variables',
-      'Environment variables',
-      'i-ph:brackets-curly',
-      'var(--vc-ide-accent-warning)',
-      'Configuration',
-    ],
-    ['secrets', 'Secrets', 'Encrypted project secrets', 'i-ph:lock', 'var(--vc-ide-accent-warning)', 'Configuration'],
-    ['git', 'Git', 'Version control', 'i-ph:git-branch', 'var(--vc-ide-accent-success)', 'Project'],
-    ['packages', 'Packages', 'Dependencies manager', 'i-ph:cube', 'var(--vc-ide-accent-warning)', 'Project'],
-    ['skills', 'Skills', 'Agent skills', 'i-ph:sparkle', 'var(--vc-ide-accent-action)', 'Project'],
-    [
-      'integrations',
-      'Integrations',
-      'Connected services',
-      'i-ph:plugs-connected',
-      'var(--vc-ide-accent-success)',
-      'Project',
-    ],
-    ['workflows', 'Workflows', 'Task automation', 'i-ph:git-branch', 'var(--vc-ide-accent-success)', 'Project'],
-    ['debugger', 'Debugger', 'Breakpoints and launch configs', 'i-ph:bug', 'var(--vc-ide-accent-action)', 'Project'],
-    ['deployments', 'Deployments', 'Publish your app', 'i-ph:rocket-launch', 'var(--vc-ide-accent-action)', 'Delivery'],
-    ['security', 'Security', 'Security scanner', 'i-ph:shield-check', 'var(--vc-ide-accent-error)', 'Security'],
-    ['monitoring', 'Monitoring', 'App metrics', 'i-ph:chart-line', 'var(--vc-ide-accent-action)', 'Delivery'],
-    ['ports', 'Ports', 'Forwarded ports', 'i-ph:plugs', 'var(--vc-ide-accent-success)', 'Runtime'],
-    ['extensions', 'Extensions', 'Marketplace', 'i-ph:puzzle-piece', 'var(--vc-ide-text-secondary)', 'Project'],
-    ['snapshots', 'Snapshots', 'Rollback points', 'i-ph:stack', 'var(--vc-ide-accent-action)', 'Project'],
-    ['activity', 'Activity', 'Project timeline', 'i-ph:activity', 'var(--vc-ide-accent-action)', 'Team'],
-    ['collaborators', 'Collaborators', 'Team access', 'i-ph:users', 'var(--vc-ide-text-secondary)', 'Team'],
-    ['settings', 'Settings', 'Project settings', 'i-ph:gear', 'var(--vc-ide-text-secondary)', 'Configuration'],
-  ];
+  useEffect(() => {
+    if (!actionsOpen) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeOptions(true);
+      }
+    };
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+
+      if (target && (optionsMenuRef.current?.contains(target) || optionsButtonRef.current?.contains(target))) {
+        return;
+      }
+
+      closeOptions();
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    document.addEventListener('pointerdown', handlePointerDown, true);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+    };
+  }, [actionsOpen, closeOptions]);
+
+  const tools: Array<[IdeWorkspacePanel, string, string, string, string, string]> = PROJECT_EDITOR_TOOL_CATALOG.map(
+    (tool) => [tool.id, tool.title, tool.description, tool.icon, tool.color, tool.category],
+  );
 
   const normalizedToolQuery = toolQuery.trim().toLowerCase();
 
@@ -11100,7 +11103,7 @@ function IdeTabBar({
           <div className="bolt-project-tool-menu-title">
             <span>
               <strong>Add tab</strong>
-              <small>Open a tool, project file, or command in this workspace.</small>
+              <small>Open a tool, project file, or command in this Project Editor.</small>
             </span>
             <kbd>{commandPaletteShortcut}</kbd>
           </div>
@@ -11361,79 +11364,206 @@ function IdeTabBar({
           </button>
         </div>
         <div className="bolt-project-tool-popover">
-          <button
-            type="button"
-            className="bolt-project-tab-action"
-            aria-label="Tab actions"
-            title="Tab actions"
-            aria-expanded={actionsOpen}
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={() => {
-              closeToolMenu();
-              setActionsOpen((value) => !value);
+          <Popover.Root
+            open={actionsOpen}
+            onOpenChange={(nextOpen) => {
+              if (nextOpen) {
+                closeToolMenu();
+              }
+
+              setActionsOpen(nextOpen);
             }}
           >
-            <span className="i-ph:dots-three" aria-hidden />
-          </button>
-          {actionsOpen && (
-            <div className="bolt-project-tab-actions-menu">
+            <Popover.Trigger asChild>
               <button
+                ref={optionsButtonRef}
                 type="button"
-                onClick={() => {
-                  onTogglePin?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
+                className="bolt-project-tab-action"
+                aria-label="Options for active tab"
+                title="Options for active tab"
+                aria-haspopup="menu"
+                aria-expanded={actionsOpen}
+                data-testid={`pane-options-${paneId}`}
+                onMouseDown={(event) => event.stopPropagation()}
+              >
+                <span className="i-ph:dots-three" aria-hidden />
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content
+                ref={optionsMenuRef}
+                className="bolt-project-tab-actions-menu"
+                style={{ position: 'relative' }}
+                role="menu"
+                aria-label="Window, pane, and tab options"
+                data-testid={`pane-options-menu-${paneId}`}
+                align="end"
+                side="bottom"
+                sideOffset={4}
+                collisionPadding={8}
+                avoidCollisions
+                onEscapeKeyDown={(event) => {
+                  event.preventDefault();
+                  closeOptions(true);
                 }}
               >
-                <span className="i-ph:push-pin-simple" aria-hidden />
-                {tabs.find((tab) => tab.id === activeTabId)?.pinned ? 'Unpin tab' : 'Pin tab'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseOthers?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                Close others
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseToRight?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                Close to right
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseAll?.();
-                  setActionsOpen(false);
-                }}
-              >
-                Close all
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseSaved?.();
-                  setActionsOpen(false);
-                }}
-              >
-                Close saved
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onSplitActiveRight?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                Split active right
-              </button>
-            </div>
-          )}
+                <div className="bolt-project-tab-actions-section">Window</div>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="open-new-project-editor-window"
+                  onClick={() => {
+                    const selected = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
+
+                    if (selected) {
+                      onOpenNewWindow?.({
+                        id: selected.id,
+                        panel: selected.panel,
+                        pinned: selected.pinned,
+                        filePath: selected.filePath,
+                        preview: selected.preview,
+                      });
+                    }
+
+                    setActionsOpen(false);
+                  }}
+                >
+                  <span className="i-ph:arrow-square-out" aria-hidden />
+                  Open in new window
+                </button>
+
+                <div className="bolt-project-tab-actions-section">Pane</div>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="split-pane-right"
+                  onClick={() => {
+                    onSplitActiveRight?.(activeTabId ?? tabs[0]?.id);
+                    setActionsOpen(false);
+                  }}
+                >
+                  <span className="i-ph:columns" aria-hidden />
+                  Split right
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="split-pane-down"
+                  onClick={() => {
+                    onSplitActiveDown?.(activeTabId ?? tabs[0]?.id);
+                    setActionsOpen(false);
+                  }}
+                >
+                  <span className="i-ph:rows" aria-hidden />
+                  Split down
+                </button>
+                {onToggleMaximize ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="toggle-maximize-pane"
+                    onClick={() => {
+                      onToggleMaximize();
+                      setActionsOpen(false);
+                    }}
+                  >
+                    <span className={isMaximized ? 'i-ph:arrows-in' : 'i-ph:arrows-out'} aria-hidden />
+                    {isMaximized ? 'Restore pane layout' : 'Maximize pane'}
+                  </button>
+                ) : null}
+                {onToggleFloating ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid={isFloating ? 'dock-floating-pane' : 'float-pane'}
+                    disabled={!isFloating && !canFloat}
+                    title={!isFloating && !canFloat ? 'Split the layout before floating a pane' : undefined}
+                    onClick={() => {
+                      onToggleFloating();
+                      setActionsOpen(false);
+                    }}
+                  >
+                    <span className={isFloating ? 'i-ph:sidebar-simple' : 'i-ph:picture-in-picture'} aria-hidden />
+                    {isFloating ? 'Dock pane' : 'Float pane'}
+                  </button>
+                ) : null}
+
+                {paneTargets.length && activeTabId && onMoveTabToPane ? (
+                  <>
+                    <div className="bolt-project-tab-actions-section">Move active tab</div>
+                    {paneTargets.map((target, index) => (
+                      <button
+                        key={target.id}
+                        type="button"
+                        role="menuitem"
+                        data-testid={`move-tab-to-${target.id}`}
+                        onClick={() => {
+                          onMoveTabToPane(activeTabId, target.id);
+                          setActionsOpen(false);
+                        }}
+                      >
+                        <span className="i-ph:arrow-right" aria-hidden />
+                        {target.label || `Pane ${index + 1}`}
+                      </button>
+                    ))}
+                  </>
+                ) : null}
+
+                <div className="bolt-project-tab-actions-section">Tab</div>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    onTogglePin?.(activeTabId ?? tabs[0]?.id);
+                    setActionsOpen(false);
+                  }}
+                >
+                  <span className="i-ph:push-pin-simple" aria-hidden />
+                  {tabs.find((tab) => tab.id === activeTabId)?.pinned ? 'Unpin tab' : 'Pin tab'}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    onCloseOthers?.(activeTabId ?? tabs[0]?.id);
+                    setActionsOpen(false);
+                  }}
+                >
+                  Close others
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    onCloseToRight?.(activeTabId ?? tabs[0]?.id);
+                    setActionsOpen(false);
+                  }}
+                >
+                  Close to right
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    onCloseAll?.();
+                    setActionsOpen(false);
+                  }}
+                >
+                  Close all
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    onCloseSaved?.();
+                    setActionsOpen(false);
+                  }}
+                >
+                  Close saved
+                </button>
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
         </div>
       </div>
       {toolMenu}
@@ -11447,10 +11577,10 @@ function ProjectWelcomeState({
   onOpenFile,
 }: {
   files: string[];
-  onOpenTool?: (panel: IdeWorkspacePanel | IdeRightPanel) => void;
+  onOpenTool?: (panel: IdeWorkspacePanel) => void;
   onOpenFile?: (filePath: string) => void;
 }) {
-  const shortcuts: Array<[string, string, string, IdeWorkspacePanel | IdeRightPanel]> = [
+  const shortcuts: Array<[string, string, string, IdeWorkspacePanel]> = [
     ['i-ph:files', 'Open Files', formatKeybindingCombo('cmd+p'), 'files'],
     ['i-ph:terminal-window', `Open ${SHELL_TERMINAL_LABEL}`, formatKeybindingCombo('cmd+`'), 'terminal'],
     ['i-ph:browser', 'View Preview', formatKeybindingCombo('cmd+enter'), 'preview'],
@@ -11803,7 +11933,7 @@ function ProjectIdePanelContent({
             <div className="bolt-project-collaboration-role-guide" aria-label="Role permissions">
               {[
                 ['viewer', 'Can view files, preview and comments without editing.'],
-                ['member', 'Can edit files, comment, and collaborate in the workspace.'],
+                ['member', 'Can edit files, comment, and collaborate in the project.'],
                 ['admin', 'Can manage collaborators, sharing, comments and access settings.'],
               ].map(([role, description]) => (
                 <span key={role} title={description}>
@@ -12623,8 +12753,8 @@ function ProjectSettingsPanel({
     items: Array<[string, string, string]>;
   }> = [
     {
-      // Replit parity: three settings groups — Workspace / Account / User.
-      group: 'Workspace',
+      // Project Editor settings are project-scoped; Workspace denotes the organization.
+      group: 'Project',
       description: 'Shared project configuration and governance.',
       items: [
         ['project', 'Project', 'Metadata, repository and export controls'],
@@ -13782,7 +13912,7 @@ function ProjectSettingsPanel({
                 <input name="intent" value="preferences" type="hidden" />
                 <div className="bolt-project-settings-card-title">
                   <h4>Appearance & Keyboard</h4>
-                  <small>Workspace preferences are stored per project and default to dark mode.</small>
+                  <small>Project Editor preferences are stored per project and default to dark mode.</small>
                 </div>
                 <label>
                   Theme
@@ -14256,7 +14386,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
         <div className="bolt-project-empty-panel grid gap-2 text-sm">
           <strong className="text-bolt-elements-textPrimary">Object Storage is not available yet</strong>
           <span className="text-bolt-elements-textSecondary">
-            Cloud Object Storage hasn’t been turned on for this workspace’s platform. Once an administrator enables it,
+            Cloud Object Storage hasn’t been turned on for this project’s platform. Once an administrator enables it,
             you’ll be able to create this project’s bucket and manage files right here — no further setup on your side.
           </span>
         </div>
@@ -14772,7 +14902,7 @@ function ProjectSkillsPanel({
 
   const tabs: Array<{ id: SkillsTab; label: string; count: number }> = [
     { id: 'project', label: 'Project', count: skills.filter((s) => s.enabled).length + installedProject.length },
-    { id: 'workspace', label: 'Workspace', count: installedWorkspace.length },
+    { id: 'workspace', label: 'Runtime', count: installedWorkspace.length },
     { id: 'community', label: 'Community', count: catalog.length },
   ];
 
@@ -14876,12 +15006,12 @@ function ProjectSkillsPanel({
         <section className="mt-3 grid gap-4">
           {!hasWorkspace ? (
             <div className="bolt-project-empty-panel">
-              This project has no workspace yet. Open the project once, then install workspace-scoped skills.
+              This project has no runtime environment yet. Open the project once, then install runtime-scoped skills.
             </div>
           ) : (
             <InstalledSkillsList
-              title="Installed from GitHub (workspace)"
-              emptyLabel="No workspace-scoped skills installed yet."
+              title="Installed from GitHub (runtime)"
+              emptyLabel="No runtime-scoped skills installed yet."
               skills={installedWorkspace}
               scope="workspace"
               busy={busy}
@@ -14921,7 +15051,7 @@ function ProjectSkillsPanel({
                     : 'border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3'
                 }`}
               >
-                {scope}
+                {scope === 'workspace' ? 'runtime' : scope}
               </button>
             ))}
           </div>
@@ -15173,7 +15303,7 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
           <h3>{manifests.length ? `${dependencies.length} dependencies detected` : 'No package manifest detected'}</h3>
           <p>
             E-Code reads package manifests and lockfiles directly from the project/runtime, then runs install, audit,
-            and outdated checks against the real workspace terminal.
+            and outdated checks against the real project runtime terminal.
           </p>
         </div>
         <form onSubmit={onSubmit}>
@@ -15186,7 +15316,7 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
       <section className="bolt-project-package-manager-card">
         <div className="bolt-project-package-summary-header">
           <div>
-            <span>Workspace package summary</span>
+            <span>Project package summary</span>
             <strong>{packageManager}</strong>
           </div>
           <small>{lockfiles.length ? `${lockfiles.length} lockfile(s) detected` : 'No lockfile detected yet'}</small>
@@ -15207,7 +15337,7 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
           <article>
             <span>Runtime</span>
             <strong>{data.workspace?.status ?? 'unknown'}</strong>
-            <small>{data.workspace?.runtimeMode ?? 'Workspace command runner'}</small>
+            <small>{data.workspace?.runtimeMode ?? 'Project runtime command runner'}</small>
           </article>
           <article>
             <span>Lockfiles</span>
@@ -15223,7 +15353,7 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
         <div className="bolt-project-package-action-header">
           <div>
             <span>Add package</span>
-            <h4>Install into the real workspace</h4>
+            <h4>Install into the project runtime</h4>
             <p>Choose the detected package manager, then install one or more packages against this project.</p>
           </div>
           <div className="bolt-project-package-manager-options" role="group" aria-label="Package manager">
@@ -15331,7 +15461,7 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
                 </article>
               ))
             ) : (
-              <p>No package.json has been indexed for this workspace.</p>
+              <p>No package.json has been indexed for this project.</p>
             )}
           </div>
           <div>
@@ -15361,9 +15491,7 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
                 );
               })
             ) : (
-              <p>
-                Install a package, or run audit/outdated, to capture real package-manager output from the workspace.
-              </p>
+              <p>Install a package, or run audit/outdated, to capture real package-manager output from the runtime.</p>
             )}
           </div>
         </aside>
@@ -15398,7 +15526,7 @@ function ProjectPortsPanel({
     <div className="bolt-project-managed-panel bolt-project-ports-panel">
       <section className="grid gap-3">
         <p className="text-xs text-bolt-elements-textSecondary">
-          Ports opened by the running workspace. Open a port&apos;s preview, choose the primary port, or set its
+          Ports opened by the running project runtime. Open a port&apos;s preview, choose the primary port, or set its
           visibility.
         </p>
 
@@ -16115,7 +16243,7 @@ function ProjectMonitoringPanel({
     : 'No deployment recorded';
 
   const metrics = [
-    ['Workspace', workspaceLabel, workspace?.runtimeMode ?? 'No runtime session reported'],
+    ['Runtime', workspaceLabel, workspace?.runtimeMode ?? 'No runtime session reported'],
     ['Deployments', String(deployments.length), lastDeploymentDetail],
     ['User events', String(userFacingEvents.length), `${windowSize} window · ${hiddenRoutineCount} routine hidden`],
     ['Tracked files', String(data.files?.length ?? 0), `${windowSize} window`],
@@ -16496,7 +16624,7 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
         )}
         {legacyInstalled.length ? (
           <p className="bolt-project-extension-legacy-note">
-            Legacy workspace extensions (read-only): {legacyInstalled.join(', ')}
+            Legacy project extensions (read-only): {legacyInstalled.join(', ')}
           </p>
         ) : null}
       </section>
@@ -17011,7 +17139,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
         <div>
           <h3>Workflows</h3>
           <p>
-            Project automation runs against the active isolated workspace
+            Project automation runs against the active isolated runtime
             {workspace?.id ? ` (${workspace.id})` : ''}.
           </p>
         </div>
@@ -18253,8 +18381,8 @@ function ProjectSecurityPanel({
         <div>
           <h3>Security and privacy scanner</h3>
           <p>
-            Runs SCA, secret scanning and lightweight SAST against the active workspace. Findings, schedules and reports
-            are stored in project backend state.
+            Runs SCA, secret scanning and lightweight SAST against the active project runtime. Findings, schedules and
+            reports are stored in project backend state.
           </p>
         </div>
         <form onSubmit={runScan} className="bolt-project-security-scan-form">
@@ -18362,7 +18490,7 @@ function ProjectSecurityPanel({
               <label>
                 <span>Scanner profile</span>
                 <select name="scannerProfile" defaultValue={settings.scannerProfile ?? 'workspace-runtime'}>
-                  <option value="workspace-runtime">Full workspace runtime</option>
+                  <option value="workspace-runtime">Full project runtime</option>
                   <option value="sca">SCA only</option>
                   <option value="secrets">Secrets only</option>
                   <option value="sast">SAST only</option>
@@ -18596,7 +18724,7 @@ function buildSecurityReport(project: any, state: any) {
   return {
     project: {
       id: project?.id ?? 'unknown',
-      name: project?.name ?? 'Workspace project',
+      name: project?.name ?? 'Project',
     },
     generatedAt: new Date().toISOString(),
     latestScan: scans[0] ?? null,
@@ -18785,7 +18913,7 @@ function ProjectDebuggerPanel({
               <div>
                 <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Debug sessions</h3>
                 <p className="text-xs text-bolt-elements-textSecondary">
-                  Launches run in the real workspace runtime. Paused frames, variables and stepping appear when the
+                  Launches run in the real project runtime. Paused frames, variables and stepping appear when the
                   configured adapter reports a paused state.
                 </p>
               </div>
@@ -19063,7 +19191,7 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
   const activeStreamEmptyMessage = cleared
     ? 'Visible logs were cleared for this session. Reload to fetch the latest runtime output.'
     : activeStreamLogs.length === 0
-      ? `No ${activeStream} logs yet. Start the workspace or run a command to stream output here.`
+      ? `No ${activeStream} logs yet. Start the runtime or run a command to stream output here.`
       : filtersActive
         ? `No ${activeStream} log results for this filter.`
         : `No ${activeStream} logs are visible right now.`;
@@ -19124,7 +19252,7 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
             {label}
           </button>
         ))}
-        <span className="bolt-project-console-status" title={`Workspace ${workspaceStatus}`}>
+        <span className="bolt-project-console-status" title={`Runtime ${workspaceStatus}`}>
           {workspaceStatus}
         </span>
         <div className="bolt-project-console-level-chips" role="group" aria-label="Filter logs by level">
@@ -19191,7 +19319,7 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
           empty={
             filtersActive
               ? 'No secondary stream log results for this filter.'
-              : 'No secondary stream logs yet. Start the workspace or run a command to stream output here.'
+              : 'No secondary stream logs yet. Start the runtime or run a command to stream output here.'
           }
         />
       )}
@@ -19295,8 +19423,8 @@ function buildSystemLogEvents(data: any) {
       level: workspace?.status === 'failed' ? 'error' : 'info',
       source: 'system',
       message: workspace
-        ? `Workspace ${workspace.id ?? data.workspaceId} is ${workspace.status ?? 'unknown'} (${workspace.runtimeMode ?? 'runtime'})`
-        : `Workspace ${data.workspaceId ?? 'unknown'} has no dashboard record; using runtime snapshot`,
+        ? `Runtime ${workspace.id ?? data.workspaceId} is ${workspace.status ?? 'unknown'} (${workspace.runtimeMode ?? 'runtime'})`
+        : `Runtime ${data.workspaceId ?? 'unknown'} has no dashboard record; using runtime snapshot`,
       timestamp: new Date().toISOString(),
       context: 'workspace',
     },
@@ -20218,10 +20346,10 @@ function MobileAgentStartState({
     ? `Focused on ${selectedFileLabel}`
     : fileCount > 0
       ? `${fileCount} project files indexed`
-      : 'Workspace context ready';
+      : 'Project context ready';
 
   return (
-    <section className="bolt-mobile-agent-start-state" aria-label="Agent workspace context">
+    <section className="bolt-mobile-agent-start-state" aria-label="Agent project context">
       <div className="bolt-mobile-agent-start-card">
         <header>
           <span className="bolt-mobile-agent-start-icon">
@@ -20235,7 +20363,7 @@ function MobileAgentStartState({
             {isRunning ? 'Live' : 'Idle'}
           </span>
         </header>
-        <div className="bolt-mobile-agent-start-steps" aria-label="Workspace readiness">
+        <div className="bolt-mobile-agent-start-steps" aria-label="Project readiness">
           <div>
             <span className="i-ph:check-circle" aria-hidden />
             <span>Context loaded</span>
@@ -20282,73 +20410,28 @@ function MobileReplitAgentIcon({ className }: { className?: string }) {
 }
 
 function panelTitle(panel: string) {
+  if (isIdeWorkspacePanel(panel)) {
+    return projectEditorToolMetadata(panel).title;
+  }
+
   const titles: Record<string, string> = {
-    editor: 'Editor',
-    preview: 'Webview',
     webview: 'Webview',
     console: 'Console',
     network: 'Network',
-    database: 'Database',
-    'object-storage': 'Object Storage',
-    packages: 'Packages',
-    monitoring: 'Monitoring',
-    extensions: 'Extensions',
-    integrations: 'Integrations',
-    workflows: 'Workflows',
-    debugger: 'Debugger',
-    files: 'Library',
-    search: 'Search',
-    locks: 'Locks',
-    overview: 'Overview',
-    deployments: 'Deployments',
-    security: 'Security',
-    env: 'Environment variables',
-    secrets: 'Secrets',
-    git: 'Git',
-    activity: 'Activity',
-    terminal: SHELL_TERMINAL_LABEL,
-    logs: 'Logs',
-    collaborators: 'Collaborators',
-    domains: 'Domains',
-    snapshots: 'Snapshots',
-    settings: 'Settings',
   };
 
   return titles[panel] ?? panel;
 }
 
 function panelIcon(panel: string) {
+  if (isIdeWorkspacePanel(panel)) {
+    return projectEditorToolMetadata(panel).icon;
+  }
+
   const icons: Record<string, string> = {
-    studio: 'i-ph:robot',
-    editor: 'i-ph:code',
-    preview: 'i-ph:browser',
     webview: 'i-ph:browser',
     console: 'i-ph:terminal-window',
     network: 'i-ph:activity',
-    database: 'i-ph:database',
-    'object-storage': 'i-ph:package',
-    packages: 'i-ph:cube',
-    monitoring: 'i-ph:chart-line',
-    extensions: 'i-ph:puzzle-piece',
-    integrations: 'i-ph:plugs-connected',
-    workflows: 'i-ph:git-branch',
-    debugger: 'i-ph:bug',
-    files: 'i-ph:files',
-    search: 'i-ph:magnifying-glass',
-    locks: 'i-ph:lock',
-    overview: 'i-ph:gauge',
-    deployments: 'i-ph:rocket-launch',
-    security: 'i-ph:shield-check',
-    env: 'i-ph:brackets-curly',
-    secrets: 'i-ph:lock',
-    git: 'i-ph:git-branch',
-    activity: 'i-ph:activity',
-    terminal: 'i-ph:terminal-window',
-    logs: 'i-ph:list-magnifying-glass',
-    collaborators: 'i-ph:users',
-    domains: 'i-ph:globe',
-    snapshots: 'i-ph:stack',
-    settings: 'i-ph:gear',
   };
 
   return icons[panel] ?? 'i-ph:squares-four';

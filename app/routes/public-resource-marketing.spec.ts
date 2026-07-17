@@ -14,24 +14,20 @@ function loaderArgs(url: string): Parameters<typeof templatesLoader>[0] {
 }
 
 describe('public resource marketing routes', () => {
-  it('serves /templates as Remix data for the marketing page instead of the E-Code app shell', async () => {
+  it('redirects /templates to the canonical in-product community Gallery', async () => {
     const response = toResponse(await templatesLoader(loaderArgs('http://app.e-code.ai/templates')));
-    const payload = (await response.json()) as { categories: unknown[]; templates: unknown[] };
 
-    expect(response.headers.get('content-type')).toContain('application/json');
-    expect(response.headers.get('x-vibecore-marketing-shell')).toBeNull();
-    expect(payload.categories.length).toBeGreaterThan(0);
-    expect(payload.templates.length).toBeGreaterThan(0);
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe('/dashboard/templates');
   });
 
-  it('serves /marketplace/templates with the same public template marketing data', async () => {
+  it('redirects the legacy marketplace alias to the same canonical Gallery', async () => {
     const response = toResponse(
       await marketplaceTemplatesLoader(loaderArgs('http://app.e-code.ai/marketplace/templates')),
     );
 
-    const payload = (await response.json()) as { templates: Array<{ name: string }> };
-
-    expect(payload.templates.some((template) => template.name.toLowerCase().includes('agent'))).toBe(true);
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe('/dashboard/templates');
   });
 
   it('serves /community as public marketing data without authenticated workspace chrome', async () => {

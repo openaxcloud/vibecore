@@ -40,7 +40,6 @@ import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { debounce } from '~/utils/debounce';
 import type { ProviderInfo } from '~/types/model';
 import { createSampler } from '~/utils/sampler';
-import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTemplate';
 import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
@@ -188,12 +187,14 @@ export function Chat({
   forceWorkbench = false,
   projectIdeMode = false,
   projectId,
+  projectName,
   projectUrl,
   initialIdePanels,
 }: {
   forceWorkbench?: boolean;
   projectIdeMode?: boolean;
   projectId?: string;
+  projectName?: string;
   projectUrl?: string;
   initialIdePanels?: Record<string, unknown>;
 }) {
@@ -212,6 +213,7 @@ export function Chat({
         chatStarted={forceWorkbench}
         projectIdeMode={projectIdeMode}
         projectId={projectId}
+        projectName={projectName}
         projectUrl={projectUrl}
         initialIdePanels={initialIdePanels}
       />
@@ -223,6 +225,7 @@ export function Chat({
       forceWorkbench={forceWorkbench}
       projectIdeMode={projectIdeMode}
       projectId={projectId}
+      projectName={projectName}
       projectUrl={projectUrl}
       initialIdePanels={initialIdePanels}
       description={title}
@@ -257,6 +260,7 @@ interface ChatProps {
   forceWorkbench?: boolean;
   projectIdeMode?: boolean;
   projectId?: string;
+  projectName?: string;
   projectUrl?: string;
   initialIdePanels?: Record<string, unknown>;
   initialMessages: Message[];
@@ -271,6 +275,7 @@ export const ChatImpl = memo(
     forceWorkbench = false,
     projectIdeMode = false,
     projectId,
+    projectName,
     projectUrl,
     initialIdePanels,
     description,
@@ -299,7 +304,7 @@ export const ChatImpl = memo(
     );
 
     const supabaseAlert = useStore(workbenchStore.supabaseAlert);
-    const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
+    const { activeProviders, promptId, contextOptimizationEnabled } = useSettings();
     const [llmErrorAlert, setLlmErrorAlert] = useState<LlmErrorAlertType | undefined>(undefined);
     const initialSelectionRef = useRef(projectIdeMode ? initialProjectModelSelection() : null);
 
@@ -1060,15 +1065,7 @@ export const ChatImpl = memo(
     const abort = () => {
       stop();
 
-      /*
-       * On the very first message, sendMessage() sets fakeLoading=true and then
-       * awaits selectStarterTemplate()/getTemplates() (LLM calls) BEFORE any chat
-       * request exists. During that window the composer shows a Stop button, but
-       * stop() is a no-op (nothing in flight) and fakeLoading would stay true,
-       * leaving the composer permanently stuck on Stop. Clear it here so a Stop
-       * during template selection releases the composer; the `aborted` flag below
-       * lets the in-flight template chain bail before it reload()s a generation.
-       */
+      // Release the composer immediately even when no network request has started yet.
       setFakeLoading(false);
       chatStore.setKey('aborted', true);
       workbenchStore.abortAllActions();
@@ -1730,91 +1727,11 @@ export const ChatImpl = memo(
       );
 
       if (!conversationStarted) {
-        console.info('[send] branch=starter-template/new-chat (reload, no append)');
+        console.info('[send] branch=new-chat (blank workspace + Agent generation)');
         setFakeLoading(true);
 
-        /*
-         * Clear any stale aborted flag so a Stop pressed DURING the upcoming
-         * template-selection LLM calls is observable below. abort() sets it true
-         * and clears fakeLoading; we re-check it after each await and bail before
-         * kicking off a generation the user already cancelled.
-         */
+        // Every prompt now starts from the project's own blank workspace.
         chatStore.setKey('aborted', false);
-
-        if (autoSelectTemplate) {
-          const { template, title } = await selectStarterTemplate({
-            message: finalMessageContent,
-            model,
-            provider,
-          });
-
-          if (template !== 'blank') {
-            const temResp = await getTemplates(template, title).catch((e) => {
-              if (e.message.includes('rate limit')) {
-                toast.warning('Rate limit exceeded. Skipping starter template\n Continuing with blank template');
-              } else {
-                toast.warning('Failed to import starter template\n Continuing with blank template');
-              }
-
-              return null;
-            });
-
-            if (temResp) {
-              /*
-               * The user may have pressed Stop while selectStarterTemplate()/
-               * getTemplates() were resolving. abort() set `aborted` and released
-               * the composer; honor it instead of force-starting a generation.
-               */
-              if (chatStore.get().aborted) {
-                return;
-              }
-
-              const { assistantMessage, userMessage } = temResp;
-              const userMessageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
-
-              setMessages([
-                {
-                  id: `1-${new Date().getTime()}`,
-                  role: 'user',
-                  content: userMessageText,
-                  parts: createMessageParts(userMessageText, imageDataList),
-                },
-                {
-                  id: `2-${new Date().getTime()}`,
-                  role: 'assistant',
-                  content: assistantMessage,
-                },
-                {
-                  id: `3-${new Date().getTime()}`,
-                  role: 'user',
-                  content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}`,
-                  annotations: ['hidden'],
-                },
-              ]);
-
-              const reloadOptions =
-                uploadedFiles.length > 0
-                  ? { experimental_attachments: await filesToAttachments(uploadedFiles) }
-                  : undefined;
-
-              reload(reloadOptions);
-              setInput('');
-              Cookies.remove(PROMPT_COOKIE_KEY);
-
-              setUploadedFiles([]);
-              setImageDataList([]);
-
-              resetEnhancer();
-
-              textareaRef.current?.blur();
-              setFakeLoading(false);
-
-              return;
-            }
-          }
-        }
-
-        // If autoSelectTemplate is disabled or template selection failed, proceed with normal message
         const userMessageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`;
         const attachments = uploadedFiles.length > 0 ? await filesToAttachments(uploadedFiles) : undefined;
 
@@ -2050,6 +1967,7 @@ export const ChatImpl = memo(
         chatStarted={forceWorkbench || chatStarted}
         projectIdeMode={projectIdeMode}
         projectId={projectId}
+        projectName={projectName}
         projectUrl={projectUrl}
         initialIdePanels={initialIdePanels}
         isStreaming={isLoading || fakeLoading}

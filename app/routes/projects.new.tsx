@@ -7,7 +7,6 @@ import {
   Gamepad2,
   Github,
   Globe2,
-  ImagePlus,
   Layers,
   Loader2,
   Palette,
@@ -30,7 +29,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useLoaderData, useNavigation, useRouteError, useSubmit } from 'react-router';
-import { AppShell, TemplateGallery } from '~/components/dashboard/SaaSLayout';
+import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { readPersistedModelId } from '~/components/marketing/ecode-exact/resolve-preferred-model';
 import {
   Select,
@@ -474,22 +473,22 @@ const heroAttachShortcuts: Array<{
   hint: string;
 }> = [
   {
-    to: '/import-zip',
+    to: '/dashboard/templates?section=import&source=zip',
     icon: Paperclip,
-    label: 'Attach',
-    hint: 'Upload a zip archive (code, screenshots, images)',
+    label: 'ZIP import',
+    hint: 'Validate and import a source-code ZIP archive',
   },
   {
-    to: '/import-github',
+    to: '/dashboard/templates?section=import&source=github',
     icon: Github,
     label: 'GitHub repo URL',
-    hint: 'Import an existing GitHub repository',
+    hint: 'Validate and import a GitHub repository',
   },
   {
-    to: '/import-zip',
-    icon: ImagePlus,
-    label: 'Design palette',
-    hint: 'Drop a Figma export or design screenshots inside a zip archive',
+    to: '/dashboard/templates?section=import&source=empty',
+    icon: Terminal,
+    label: 'Empty project',
+    hint: 'No Agent, framework, files, or scaffolding',
   },
 ];
 
@@ -1320,7 +1319,7 @@ export default function NewProjectPage() {
               aria-describedby="vc-new-project-prompt-status"
             />
             <div className="vc-new-project-composer-footer">
-              <div className="vc-new-project-attach-row" role="group" aria-label="Attach context">
+              <div className="vc-new-project-attach-row" role="group" aria-label="Import existing work">
                 {heroAttachShortcuts.map((shortcut) => {
                   const Icon = shortcut.icon;
                   return (
@@ -1533,17 +1532,22 @@ export default function NewProjectPage() {
       <section
         id="vc-new-project-templates"
         className="vc-new-project-templates"
-        aria-label="Production templates"
+        aria-label="Published applications"
         data-open={advancedOpen ? 'true' : 'false'}
       >
         <header className="vc-new-project-templates-header">
           <div>
-            <p className="vc-new-project-meta-label">Templates</p>
-            <h2 className="vc-new-project-templates-title">Start from the existing catalog</h2>
+            <p className="vc-new-project-meta-label">Community Gallery</p>
+            <h2 className="vc-new-project-templates-title">Start from an app that already works</h2>
           </div>
-          <p className="vc-new-project-templates-subtitle">Choose a curated starter and customize it with the agent.</p>
+          <p className="vc-new-project-templates-subtitle">
+            Explore published CRM, booking, dashboard, game and internal-tool apps, preview them, then Remix a safe
+            copy.
+          </p>
         </header>
-        <TemplateGallery compact mode="authenticated" />
+        <Link to="/dashboard/templates" className="vc-new-project-submit inline-flex w-fit">
+          Browse published apps
+        </Link>
       </section>
     </AppShell>
   );

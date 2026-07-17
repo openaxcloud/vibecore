@@ -366,7 +366,7 @@ export const marketingPages = {
       {
         title: 'Solution partners',
         body: 'E-Code supports implementation teams building internal tools, SaaS platforms and AI products for customers.',
-        items: ['Migration services', 'Custom templates', 'Enterprise enablement', 'Security advisory'],
+        items: ['Migration services', 'Custom application delivery', 'Enterprise enablement', 'Security advisory'],
       },
     ],
   },
@@ -426,7 +426,7 @@ export const marketingPages = {
     kind: 'standard',
     icon: MonitorSmartphone,
     primaryAction: ['Start building', '/signup'],
-    secondaryAction: ['See templates', '/templates'],
+    secondaryAction: ['Open Community Gallery', '/templates'],
     highlights: ['Phone workflows', 'Tablet layouts', 'Preview access', 'Team collaboration'],
     sections: [
       {
@@ -467,25 +467,25 @@ export const marketingPages = {
   },
   languages: {
     slug: 'languages',
-    title: 'Languages',
+    title: 'Community App Gallery',
     eyebrow: 'Resources',
     description:
-      'Start from production templates across TypeScript, React, Remix, Node.js, Python, Go, Rust and database-backed apps.',
+      'Discover working applications published by the community, inspect a functional preview and remix an isolated copy.',
     kind: 'resource',
     icon: Code2,
-    primaryAction: ['Browse templates', '/templates'],
+    primaryAction: ['Open Community Gallery', '/templates'],
     secondaryAction: ['Read docs', '/docs'],
-    highlights: ['TypeScript', 'React', 'Node.js', 'Python', 'PostgreSQL', 'Docker'],
+    highlights: ['Published apps', 'Functional previews', 'Remix controls', 'Source provenance'],
     sections: [
       {
-        title: 'Template coverage',
-        body: 'E-Code language environments map prompts to real project structures, dependencies and validation commands.',
-        items: ['Frontend apps', 'API services', 'Database-backed products', 'AI tools'],
+        title: 'Start from an application that works',
+        body: 'Gallery entries are products and demos with a visible author, technology metadata and a preview you can inspect before remixing.',
+        items: ['Community authors', 'App categories', 'Technology filters', 'Preview before remix'],
       },
       {
-        title: 'Runtime support',
-        body: 'Language templates are useful only when they can run, preview and deploy with clear feedback.',
-        items: ['Install dependencies', 'Run previews', 'Validate tests', 'Deploy safely'],
+        title: 'A real isolated remix',
+        body: 'A remix creates a new project and workspace without copying creator secrets or shared data resources.',
+        items: ['New ownership', 'New internal repository', 'No creator secrets', 'Source provenance'],
       },
     ],
   },
@@ -494,11 +494,11 @@ export const marketingPages = {
     title: 'Tutorials',
     eyebrow: 'Resources',
     description:
-      'Step-by-step guides for building apps with E-Code prompts, templates, previews, deployments and team workflows.',
+      'Step-by-step guides for building apps with E-Code prompts, Gallery remixes, previews, deployments and team workflows.',
     kind: 'resource',
     icon: BookOpen,
     primaryAction: ['Open docs', '/docs'],
-    secondaryAction: ['Browse templates', '/templates'],
+    secondaryAction: ['Open Community Gallery', '/templates'],
     highlights: ['First app', 'Deployments', 'AI agent', 'Team review'],
     sections: [
       {
@@ -527,8 +527,8 @@ export const marketingPages = {
     sections: [
       {
         title: 'Enterprise delivery',
-        body: 'Common success patterns include stronger preview discipline, faster template reuse and clearer runtime ownership.',
-        items: ['Shorter build cycles', 'Shared project context', 'Governed deployments', 'Reusable starters'],
+        body: 'Common success patterns include stronger preview discipline, safer application remixing and clearer runtime ownership.',
+        items: ['Shorter build cycles', 'Shared project context', 'Governed deployments', 'Isolated remixes'],
       },
       {
         title: 'Evaluation criteria',
@@ -542,7 +542,7 @@ export const marketingPages = {
     title: 'Customers and showcase',
     eyebrow: 'Customers',
     description:
-      'The imported E-Code customer showcase for internal tools, AI products and education teams building with Cloud Run deployment and validated templates.',
+      'The E-Code customer showcase for internal tools, AI products and education teams building with validated previews and governed deployments.',
     kind: 'resource',
     icon: Users,
     primaryAction: ['Read case studies', '/case-studies'],
@@ -556,18 +556,18 @@ export const marketingPages = {
       },
       {
         title: 'AI products',
-        body: 'Founders generate, iterate and ship model-powered apps from validated templates.',
-        items: ['Model-powered apps', 'Validated templates', 'Iteration loops', 'Preview before release'],
+        body: 'Founders generate, iterate and ship model-powered apps with preview validation before release.',
+        items: ['Model-powered apps', 'Validated previews', 'Iteration loops', 'Preview before release'],
       },
       {
         title: 'Education',
-        body: 'Classrooms run safe project environments with reproducible templates.',
-        items: ['Safe environments', 'Reproducible templates', 'Student projects', 'Teacher review'],
+        body: 'Classrooms run safe project environments with reproducible demo applications.',
+        items: ['Safe environments', 'Remixable demos', 'Student projects', 'Teacher review'],
       },
       {
         title: 'Showcase paths',
         body: 'The imported showcase now routes through real E-Code pages instead of a detached static HTML file.',
-        items: ['Templates', 'Marketplace', 'Community', 'Case studies'],
+        items: ['Community Gallery', 'Marketplace', 'Community', 'Case studies'],
       },
     ],
   },
@@ -600,12 +600,12 @@ export const marketingPages = {
     title: 'Community Forum',
     eyebrow: 'Community',
     description:
-      'Discuss templates, workflows, AI agent behavior and production deployment patterns with other E-Code builders.',
+      'Discuss published applications, remixes, AI agent behavior and production deployment patterns with other E-Code builders.',
     kind: 'resource',
     icon: Users,
     primaryAction: ['Open support', '/support'],
-    secondaryAction: ['Browse templates', '/templates'],
-    highlights: ['Builder discussions', 'Template feedback', 'Workflow tips', 'Release notes'],
+    secondaryAction: ['Open Community Gallery', '/templates'],
+    highlights: ['Builder discussions', 'App feedback', 'Workflow tips', 'Release notes'],
     sections: [
       {
         title: 'Community topics',
@@ -614,8 +614,8 @@ export const marketingPages = {
       },
       {
         title: 'Share work',
-        body: 'Use community posts to share templates, ask for review and compare implementation approaches.',
-        items: ['Template demos', 'Debug threads', 'Feature requests', 'Integration notes'],
+        body: 'Use community posts to share published applications, ask for review and compare implementation approaches.',
+        items: ['Application demos', 'Debug threads', 'Feature requests', 'Integration notes'],
       },
     ],
   },
@@ -693,19 +693,19 @@ export const marketingPages = {
   },
   polyglot: {
     slug: 'polyglot',
-    title: 'Polyglot Backends',
+    title: 'JavaScript & TypeScript Runtime',
     eyebrow: 'Product',
     description:
-      'Generate and run backend services across common languages while keeping previews, logs and deployment checks visible.',
+      'Run current JavaScript and TypeScript web applications with preview, logs and deployment checks visible in the workspace.',
     kind: 'standard',
     icon: Code2,
-    primaryAction: ['Browse templates', '/templates'],
+    primaryAction: ['Open Import Hub', '/dashboard/templates?section=import'],
     secondaryAction: ['Read docs', '/docs'],
-    highlights: ['Node.js', 'Python', 'Go', 'Rust', 'PostgreSQL'],
+    highlights: ['JavaScript', 'TypeScript', 'Node.js', 'Vite', 'Express'],
     sections: [
       {
-        title: 'Backend generation',
-        body: 'E-Code helps teams create APIs, workers and data-backed services with real project files and tests.',
+        title: 'Validated web runtime',
+        body: 'Current project creation and import paths detect supported JavaScript and TypeScript applications before opening the workspace.',
         items: ['REST APIs', 'Background jobs', 'Database schemas', 'Auth flows'],
       },
       {
@@ -835,24 +835,29 @@ export const marketingPages = {
   marketplace: {
     slug: 'marketplace',
     title: 'Marketplace',
-    eyebrow: 'Templates',
+    eyebrow: 'Extensions',
     description:
-      'Discover E-Code starters, implementation patterns and reusable project foundations for production apps.',
+      'Discover integrations and reusable platform capabilities; published applications live in the Community Gallery.',
     kind: 'resource',
     icon: Layers,
-    primaryAction: ['Browse templates', '/templates'],
+    primaryAction: ['Open Community Gallery', '/templates'],
     secondaryAction: ['Explore solutions', '/solutions/app-builder'],
-    highlights: ['Production starters', 'Reusable patterns', 'Runtime-ready', 'Deployment paths'],
+    highlights: ['Integrations', 'Reusable capabilities', 'Governed access', 'Community Gallery'],
     sections: [
       {
         title: 'What the marketplace contains',
-        body: 'Marketplace entries are designed to become real projects, not screenshots. Each starter should map to files, dependencies, validation and preview expectations.',
-        items: ['SaaS templates', 'Dashboard starters', 'AI tools', 'Website systems'],
+        body: 'Marketplace entries extend workflows and integrations, while application discovery and remixing stay in the dedicated Gallery.',
+        items: ['Source connectors', 'AI tools', 'Workflow integrations', 'Governed access'],
       },
       {
-        title: 'How teams use it',
-        body: 'Teams can standardize project starts while preserving code ownership and review discipline.',
-        items: ['Fork a starter', 'Adapt with the AI agent', 'Run preview checks', 'Deploy through controlled flows'],
+        title: 'How teams reuse applications',
+        body: 'Teams open the Community Gallery to preview an application and create an isolated remix with provenance.',
+        items: [
+          'Preview a published app',
+          'Check remix permission',
+          'Create an isolated copy',
+          'Keep source provenance',
+        ],
       },
     ],
   },
@@ -861,16 +866,16 @@ export const marketingPages = {
     title: 'Community',
     eyebrow: 'Builders',
     description:
-      'A public space for E-Code builders to share project patterns, template ideas, workflow notes and launch feedback.',
+      'A public space for E-Code builders to share published applications, remix ideas, workflow notes and launch feedback.',
     kind: 'resource',
     icon: Users,
     primaryAction: ['Open forum', '/forum'],
     secondaryAction: ['Browse marketplace', '/marketplace'],
-    highlights: ['Project showcases', 'Template feedback', 'Workflow notes', 'Release discussions'],
+    highlights: ['Project showcases', 'App feedback', 'Workflow notes', 'Release discussions'],
     sections: [
       {
         title: 'Builder network',
-        body: 'Community content connects practical implementation notes with the templates and product surfaces teams use every day.',
+        body: 'Community content connects practical implementation notes with the published applications and product surfaces teams use every day.',
         items: ['Showcase posts', 'Prompt patterns', 'Debug discussions', 'Deployment advice'],
       },
       {
@@ -890,17 +895,17 @@ export const marketingPages = {
     title: 'Explore E-Code',
     eyebrow: 'Discovery',
     description:
-      'Explore solutions, templates, community examples and platform capabilities before starting a project.',
+      'Explore solutions, published applications, community examples and platform capabilities before starting a project.',
     kind: 'resource',
     icon: Compass,
-    primaryAction: ['Browse templates', '/templates'],
+    primaryAction: ['Open Community Gallery', '/templates'],
     secondaryAction: ['View features', '/features'],
-    highlights: ['Solutions', 'Templates', 'Community', 'Comparisons'],
+    highlights: ['Solutions', 'Community Gallery', 'Community', 'Comparisons'],
     sections: [
       {
         title: 'Discovery paths',
-        body: 'Use Explore to move from a broad product idea to the right starter, guide or comparison page.',
-        items: ['Solution pages', 'Template gallery', 'Community posts', 'Platform comparisons'],
+        body: 'Use Explore to move from a broad product idea to a working app, guide or comparison page.',
+        items: ['Solution pages', 'Community Gallery', 'Community posts', 'Platform comparisons'],
       },
       {
         title: 'Next step',
@@ -914,17 +919,17 @@ export const marketingPages = {
     title: 'Search',
     eyebrow: 'Discovery',
     description:
-      'Search across E-Code docs, templates, projects, marketplace entries and community knowledge from one public entry point.',
+      'Search across E-Code docs, Gallery applications, projects, marketplace entries and community knowledge from one public entry point.',
     kind: 'resource',
     icon: Search,
-    primaryAction: ['Search templates', '/templates'],
+    primaryAction: ['Search Community Gallery', '/templates'],
     secondaryAction: ['Open docs', '/docs'],
-    highlights: ['Docs', 'Templates', 'Projects', 'Community'],
+    highlights: ['Docs', 'Community Gallery', 'Projects', 'Community'],
     sections: [
       {
         title: 'Search surfaces',
         body: 'Public search routes people to the most useful source of truth for their task.',
-        items: ['Documentation guides', 'Template starters', 'Community examples', 'Product pages'],
+        items: ['Documentation guides', 'Published applications', 'Community examples', 'Product pages'],
       },
       {
         title: 'Signed-in search',
@@ -1052,13 +1057,13 @@ export const solutionPages = {
   startups: makeSolution(
     'startups',
     'Startups',
-    'Ship products quickly with templates, AI generation, hosted previews and a path from prototype to production.',
-    ['MVP launch', 'Investor demos', 'SaaS starters', 'Fast iteration'],
+    'Ship products quickly with AI generation, application remixes, hosted previews and a path from prototype to production.',
+    ['MVP launch', 'Investor demos', 'Working app remixes', 'Fast iteration'],
   ),
   freelancers: makeSolution(
     'freelancers',
     'Freelancers',
-    'Deliver client projects faster with repeatable templates, preview links and production handoff workflows.',
+    'Deliver client projects faster with remixable applications, preview links and production handoff workflows.',
     ['Client portals', 'Portfolio sites', 'Retainers', 'Handoff docs'],
   ),
 } as const satisfies Record<string, MarketingPageDefinition>;
@@ -1120,17 +1125,17 @@ export const newsletterPages = {
     title: 'E-Code Newsletter',
     eyebrow: 'Newsletter',
     description:
-      'Product updates, engineering notes, template drops and security announcements for teams building with E-Code.',
+      'Product updates, engineering notes, Gallery spotlights and security announcements for teams building with E-Code.',
     kind: 'resource',
     icon: Newspaper,
     primaryAction: ['Confirm preferences', '/newsletter/confirm'],
     secondaryAction: ['Read changelog', '/changelog'],
-    highlights: ['Product updates', 'Engineering notes', 'Template drops', 'Security notices'],
+    highlights: ['Product updates', 'Engineering notes', 'Gallery spotlights', 'Security notices'],
     sections: [
       {
         title: 'What ships in the newsletter',
         body: 'Newsletter content focuses on useful release notes, practical workflow guidance and production AI development patterns.',
-        items: ['Feature releases', 'Template launches', 'Security notes', 'Operational guidance'],
+        items: ['Feature releases', 'Published app spotlights', 'Security notes', 'Operational guidance'],
       },
       {
         title: 'Preference controls',
@@ -1149,7 +1154,7 @@ export const newsletterPages = {
     icon: CheckCircle2,
     primaryAction: ['Read changelog', '/changelog'],
     secondaryAction: ['Start building', '/signup'],
-    highlights: ['Product updates', 'Engineering notes', 'Release highlights', 'Template drops'],
+    highlights: ['Product updates', 'Engineering notes', 'Release highlights', 'Gallery spotlights'],
     sections: [
       {
         title: 'What to expect',
@@ -1172,7 +1177,7 @@ export const newsletterPages = {
       {
         title: 'Email preferences',
         body: 'Use this page to confirm that E-Code can send product updates to your inbox.',
-        items: ['Changelog', 'Templates', 'Security notes', 'Platform guides'],
+        items: ['Changelog', 'Community Gallery', 'Security notes', 'Platform guides'],
       },
     ],
   },

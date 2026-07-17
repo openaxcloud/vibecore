@@ -7,6 +7,7 @@ import {
   gitStatusForPath,
   materialFileIcon,
   normalizeWorkspacePath,
+  resolveWorkspacePathEntry,
 } from './fileExplorerMetadata';
 import type { FileMap } from '~/lib/stores/files';
 
@@ -28,6 +29,23 @@ describe('fileExplorerMetadata', () => {
     expect(gitStatusForPath(statusByPath, `${WORK_DIR}/src/App.tsx`)).toBe('modified');
     expect(gitStatusForPath(statusByPath, `${WORK_DIR}/src/new-file.ts`)).toBe('added');
     expect(gitStatusForPath(statusByPath, `${WORK_DIR}/src/conflict.ts`)).toBe('conflicted');
+  });
+
+  it('resolves an exact document first, then the canonical relative path across namespaces', () => {
+    const runtimeDocument = { filePath: `${WORK_DIR}/src/App.tsx`, value: 'runtime' };
+    const storageDocument = { filePath: '/src/App.tsx', value: 'storage' };
+
+    const documents = {
+      '/src/App.tsx': storageDocument,
+      [`${WORK_DIR}/src/App.tsx`]: runtimeDocument,
+    };
+
+    expect(resolveWorkspacePathEntry(documents, `${WORK_DIR}/src/App.tsx`)).toBe(runtimeDocument);
+    expect(resolveWorkspacePathEntry({ [`${WORK_DIR}/src/App.tsx`]: runtimeDocument }, '/src/App.tsx')).toBe(
+      runtimeDocument,
+    );
+    expect(resolveWorkspacePathEntry(documents, '\\home\\project\\src\\App.tsx')).toBe(storageDocument);
+    expect(resolveWorkspacePathEntry(documents, '/src/missing.ts')).toBeUndefined();
   });
 
   it('builds a useful outline for code and markdown files', () => {

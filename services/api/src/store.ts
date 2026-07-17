@@ -2,6 +2,7 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import type { ProjectGalleryStore } from './project-gallery.js';
 
 export interface UserRecord {
   id: string;
@@ -83,7 +84,23 @@ export interface ProjectRecord {
   name: string;
   slug: string;
   description?: string;
-  sourceType: 'blank' | 'template' | 'ai' | 'github' | 'gitlab' | 'bitbucket' | 'zip' | 'duplicate';
+  sourceType:
+    | 'blank'
+    | 'gallery-remix'
+    | 'ai'
+    | 'github'
+    | 'gitlab'
+    | 'bitbucket'
+    | 'vercel'
+    | 'figma'
+    | 'claude'
+    | 'bolt'
+    | 'lovable'
+    | 'base44'
+    | 'zip'
+    | 'spreadsheet'
+    | 'previous-agent'
+    | 'duplicate';
   templateName?: string;
   gitRepositoryUrl?: string;
   gitDefaultBranch?: string;
@@ -259,13 +276,91 @@ export interface ProjectActivityListOptions {
   order?: 'asc' | 'desc';
 }
 
-export interface ProjectTemplateRecord {
+export const PROJECT_IMPORT_SOURCES = [
+  'github',
+  'bitbucket',
+  'vercel',
+  'figma',
+  'claude',
+  'bolt',
+  'lovable',
+  'base44',
+  'zip',
+  'spreadsheet',
+  'previous-agent',
+  'empty',
+] as const;
+
+export type ProjectImportSource = (typeof PROJECT_IMPORT_SOURCES)[number];
+export type ProjectImportStatus = 'VALIDATING' | 'READY' | 'CREATING' | 'COMPLETE' | 'FAILED' | 'CANCELED';
+
+export interface ProjectImportJobRecord {
   id: string;
-  sourceProjectId: string;
   organizationId: string;
-  name: string;
-  description?: string;
+  userId: string;
+  source: ProjectImportSource;
+  status: ProjectImportStatus;
+  idempotencyKey: string;
+  requestHash: string;
+  sourceReference?: string;
+  sourceLabel?: string;
+  stage: string;
+  progress: number;
+  validation: Record<string, unknown>;
+  runtimeDetection: Record<string, unknown>;
+  missingSecretNames: string[];
+  generatedConfig: Array<{ path: string; content: string }>;
+  preview: Record<string, unknown>;
+  usesAgent: boolean;
+  creditsDisclosure?: string;
+  destinationProjectId?: string;
+  errorCode?: string;
+  errorMessage?: string;
+  recoverable: boolean;
+  completedAt?: string;
+  failedAt?: string;
+  canceledAt?: string;
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateProjectImportJobInput {
+  organizationId: string;
+  userId: string;
+  source: ProjectImportSource;
+  idempotencyKey: string;
+  requestHash: string;
+  sourceReference?: string;
+  sourceLabel?: string;
+  stage: string;
+  progress?: number;
+  validation?: Record<string, unknown>;
+  runtimeDetection?: Record<string, unknown>;
+  missingSecretNames?: string[];
+  generatedConfig?: Array<{ path: string; content: string }>;
+  preview?: Record<string, unknown>;
+  usesAgent?: boolean;
+  creditsDisclosure?: string;
+}
+
+export interface UpdateProjectImportJobInput {
+  importJobId: string;
+  organizationId: string;
+  status?: ProjectImportStatus;
+  stage?: string;
+  progress?: number;
+  validation?: Record<string, unknown>;
+  runtimeDetection?: Record<string, unknown>;
+  missingSecretNames?: string[];
+  generatedConfig?: Array<{ path: string; content: string }>;
+  preview?: Record<string, unknown>;
+  destinationProjectId?: string | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  recoverable?: boolean;
+  completedAt?: string | null;
+  failedAt?: string | null;
+  canceledAt?: string | null;
 }
 
 export interface DeploymentRecord {
@@ -291,6 +386,8 @@ export interface DeploymentRecord {
   parentDeploymentId?: string;
   /** Replit-parity deploy metering idempotency marker (ISO); set once metered. */
   lastMeteredAt?: string;
+  /** Rate-card machine size key picked at publish (server deploys). */
+  machineSize?: string;
   startedAt?: string;
   finishedAt?: string;
   canceledAt?: string;
@@ -1078,7 +1175,7 @@ export interface ContactRequestRecord {
   createdAt: string;
 }
 
-export interface ApiStore {
+export interface ApiStore extends ProjectGalleryStore {
   /**
    * Lightweight liveness probe that issues a trivial query against the backing
    * database. Resolves when the database is reachable, rejects otherwise.
@@ -1234,13 +1331,17 @@ export interface ApiStore {
   hardDeleteProject(projectId: string): Promise<ProjectRecord>;
   transferProject(input: { projectId: string; targetOrganizationId: string }): Promise<ProjectRecord>;
   duplicateProject(input: { projectId: string; name: string; slug: string }): Promise<ProjectRecord>;
-  createProjectTemplate(input: {
-    sourceProjectId: string;
+  createProjectImportJob(input: CreateProjectImportJobInput): Promise<ProjectImportJobRecord>;
+  getProjectImportJob(input: {
+    importJobId: string;
     organizationId: string;
-    name: string;
-    description?: string;
-  }): Promise<ProjectTemplateRecord>;
-  listProjectTemplates(organizationId: string): Promise<ProjectTemplateRecord[]>;
+  }): Promise<ProjectImportJobRecord | undefined>;
+  getProjectImportJobByIdempotency(input: {
+    organizationId: string;
+    idempotencyKey: string;
+  }): Promise<ProjectImportJobRecord | undefined>;
+  updateProjectImportJob(input: UpdateProjectImportJobInput): Promise<ProjectImportJobRecord>;
+  listProjectImportJobs(organizationId: string, limit?: number): Promise<ProjectImportJobRecord[]>;
   upsertProjectEnvVar(input: {
     projectId: string;
     key: string;
@@ -1549,6 +1650,7 @@ export interface ApiStore {
     metadata?: Record<string, unknown>;
     rolledBackFromId?: string;
     parentDeploymentId?: string;
+    machineSize?: string;
     startedAt?: string;
     finishedAt?: string;
     canceledAt?: string;
@@ -1569,6 +1671,16 @@ export interface ApiStore {
    * which fails builds orphaned by an api/worker crash so they never hang.
    */
   listStaleDeployments(cutoffIso: string): Promise<DeploymentRecord[]>;
+  /**
+   * READY server deployments (provider 'server') — the runtime-metering sweep
+   * walks these to bill active machine time against their machineSize.
+   */
+  listActiveServerDeployments(): Promise<DeploymentRecord[]>;
+  /**
+   * The ACTIVE versioned Rate Card row (undefined when none is active — the
+   * caller falls back to the built-in card). `data` is the serialized RateCard.
+   */
+  getActiveRateCard(): Promise<{ version: number; data: unknown } | undefined>;
   createSupportTicket(input: {
     organizationId: string;
     userId: string;

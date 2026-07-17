@@ -238,6 +238,10 @@ const adminSections: Record<string, AdminSectionConfig> = {
     description:
       'Operational diagnostics (Debug, Local data, Service Status, Event Logs) — hidden from the user settings panel; reachable here by platform admins only.',
   },
+  'gallery-moderation': {
+    title: 'Gallery moderation',
+    description: 'Review submitted applications, featured placement and community reports.',
+  },
 };
 
 /*
@@ -260,7 +264,14 @@ const navGroups: Array<{ label: string; items: string[] }> = [
   },
   {
     label: 'Security',
-    items: ['abuse-events', 'security-events', 'audit-logs', 'admin-audit-logs', 'oauth-providers'],
+    items: [
+      'gallery-moderation',
+      'abuse-events',
+      'security-events',
+      'audit-logs',
+      'admin-audit-logs',
+      'oauth-providers',
+    ],
   },
   {
     label: 'AI',
