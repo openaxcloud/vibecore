@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecode/parity/domain/import-staging",
+  "x-schemaVersion": 1,
+  "x-repoCommit": "fee92bd0b09159247383814023ae63db8875dd7d",
+  "title": "ImportStaging",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "importId",
+    "state",
+    "targetWorkspaceMounted",
+    "commitMode"
+  ],
+  "properties": {
+    "importId": {
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "QUARANTINED",
+        "AWAITING_USER_ACTION",
+        "COMMITTING",
+        "ROLLING_BACK",
+        "EXPIRED"
+      ]
+    },
+    "targetWorkspaceMounted": {
+      "const": false
+    },
+    "commitMode": {
+      "const": "ATOMIC_OR_FULL_ROLLBACK"
+    },
+    "silentDeletions": {
+      "const": 0
+    }
+  }
+}

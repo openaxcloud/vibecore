@@ -1,0 +1,33 @@
+[
+  {
+    "action": {
+      "type": "Keep"
+    },
+    "mostRecentVersions": {
+      "keepCount": 20
+    },
+    "name": "keep-recent-20-per-image"
+  },
+  {
+    "action": {
+      "type": "Keep"
+    },
+    "condition": {
+      "tagPrefixes": [
+        "running-",
+        "helm-active-"
+      ],
+      "tagState": "TAGGED"
+    },
+    "name": "keep-running-or-helm-active"
+  },
+  {
+    "action": {
+      "type": "Delete"
+    },
+    "condition": {
+      "olderThan": "604800s"
+    },
+    "name": "delete-older-than-7d"
+  }
+]

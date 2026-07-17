@@ -10,13 +10,11 @@ import {
   promptStore,
   providersStore,
   latestBranchStore,
-  autoSelectStarterTemplate,
   enableContextOptimizationStore,
   tabConfigurationStore,
   resetTabConfiguration as resetTabConfig,
   updateProviderSettings as updateProviderSettingsStore,
   updateLatestBranch,
-  updateAutoSelectTemplate,
   updateContextOptimization,
   updateEventLogs,
   updatePromptId,
@@ -54,8 +52,6 @@ export interface UseSettingsReturn {
   setPromptId: (promptId: string) => void;
   isLatestBranch: boolean;
   enableLatestBranch: (enabled: boolean) => void;
-  autoSelectTemplate: boolean;
-  setAutoSelectTemplate: (enabled: boolean) => void;
   contextOptimizationEnabled: boolean;
   enableContextOptimization: (enabled: boolean) => void;
 
@@ -75,7 +71,6 @@ export function useSettings(): UseSettingsReturn {
   const eventLogs = useStore(isEventLogsEnabled);
   const promptId = useStore(promptStore);
   const isLatestBranch = useStore(latestBranchStore);
-  const autoSelectTemplate = useStore(autoSelectStarterTemplate);
   const [activeProviders, setActiveProviders] = useState<ProviderInfo[]>([]);
   const contextOptimizationEnabled = useStore(enableContextOptimizationStore);
   const tabConfiguration = useStore(tabConfigurationStore);
@@ -134,11 +129,6 @@ export function useSettings(): UseSettingsReturn {
     logStore.logSystem(`Main branch updates ${enabled ? 'enabled' : 'disabled'}`);
   }, []);
 
-  const setAutoSelectTemplate = useCallback((enabled: boolean) => {
-    updateAutoSelectTemplate(enabled);
-    logStore.logSystem(`Auto select template ${enabled ? 'enabled' : 'disabled'}`);
-  }, []);
-
   const enableContextOptimization = useCallback((enabled: boolean) => {
     updateContextOptimization(enabled);
     logStore.logSystem(`Context optimization ${enabled ? 'enabled' : 'disabled'}`);
@@ -194,8 +184,6 @@ export function useSettings(): UseSettingsReturn {
     setPromptId,
     isLatestBranch,
     enableLatestBranch,
-    autoSelectTemplate,
-    setAutoSelectTemplate,
     contextOptimizationEnabled,
     enableContextOptimization,
     setTheme,

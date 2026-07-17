@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecode/parity/ecode.lock",
+  "x-schemaVersion": 1,
+  "x-repoCommit": "fee92bd0b09159247383814023ae63db8875dd7d",
+  "title": "ecode.lock.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "lockVersion",
+    "storeGeneration",
+    "nixpkgsRev",
+    "bundles"
+  ],
+  "properties": {
+    "lockVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "storeGeneration": {
+      "type": "string",
+      "description": "ex: v2"
+    },
+    "nixpkgsRev": {
+      "type": "string",
+      "description": "rev pinn\u00e9e, ex 8eeec934ae0d"
+    },
+    "bundles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "storePath",
+          "sha256"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "storePath": {
+            "type": "string",
+            "pattern": "^/nix/store/"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  }
+}

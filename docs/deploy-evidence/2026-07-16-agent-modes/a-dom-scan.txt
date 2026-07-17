@@ -1,0 +1,18 @@
+# (a) Mesure DOM live — plus AUCUN nom de modèle sur les 3 surfaces × 3 formats
+# (scan innerText + tous attributs, regex claude|gpt|gemini|opus|sonnet|haiku|fable|mistral|llama|grok|luna|nano-banana|robotics-er)
+
+## Landing e-code.ai (web c94f2fdf70)
+landing-desktop-full-scroll (1280px) : textLength 5566, aiModelSelection=false, hits=[]  → 0 nom de modèle
+landing-mobile-375            (375px) : textLength 5391, aiModelSelection=false, hits=[]  → 0 nom de modèle
+landing-tablet-768           (768px) : textLength 1920, aiModelSelection=false, hits=[]  → 0 nom de modèle
+
+## Création de projet app.e-code.ai/projects/new
+projects-new-desktop (1280px) : providerDropdown=false, modelDropdown=false, hits=[]     → sélecteurs supprimés, 0 nom
+projects-new-mobile  (375px)  : AVANT fix → hit « Web · Claude Sonnet 4.5 » dans le résumé Advanced options
+                                 APRÈS fix (web c94f2fdf70, Advanced déplié) → textLength 1521, hits=[] ✅ fuite disparue
+
+## IDE app.e-code.ai/@qa-agm-free1-mrnhozjc/agm-proof
+segmented=true, modes=[lite(false),economy(TRUE),power(false)], advancedBtn=true,
+oldModelCombobox=false, hint="The right balance.", hits=[]                                → 3 modes, Economy défaut, 0 nom de modèle
+
+# Le « AI Model Selection — 147 available » n'existe plus nulle part.

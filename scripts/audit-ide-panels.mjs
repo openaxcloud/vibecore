@@ -282,17 +282,41 @@ async function registerAuditUser() {
 }
 
 async function createAuditProject(token, organizationId) {
-  const result = await http(`${apiBaseUrl}/orgs/${organizationId}/projects/from-template`, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ name: 'IDE Panel Audit App', templateName: 'react-basic-starter' }),
+  const gallery = await http(`${apiBaseUrl}/gallery/apps?limit=50&sort=FEATURED`, {
+    headers: { authorization: `Bearer ${token}` },
   });
+  const source = gallery.body?.apps?.find((app) => app.id === 'demo:react-saas');
 
-  if (!result.response.ok) {
-    throw new Error(`Audit project creation failed (${result.response.status}): ${result.text}`);
+  if (!gallery.response.ok || !source) {
+    throw new Error(`Gallery audit source lookup failed (${gallery.response.status}): ${gallery.text}`);
   }
 
-  return result.body.project;
+  const result = await http(
+    `${apiBaseUrl}/organizations/${organizationId}/gallery/apps/${encodeURIComponent(source.id)}/remix`,
+    {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+        'idempotency-key': `ide-panel-audit-${Date.now()}`,
+      },
+      body: JSON.stringify({ name: 'IDE Panel Audit App' }),
+    },
+  );
+
+  if (!result.response.ok) {
+    throw new Error(`Audit Gallery Remix failed (${result.response.status}): ${result.text}`);
+  }
+
+  const project = await http(`${apiBaseUrl}/projects/${result.body.projectId}`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+
+  if (!project.response.ok) {
+    throw new Error(`Audit remixed project lookup failed (${project.response.status}): ${project.text}`);
+  }
+
+  return project.body.project;
 }
 
 function form(values) {

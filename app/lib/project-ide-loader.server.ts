@@ -17,6 +17,7 @@ export type ProjectLoaderData = {
     name: string;
     slug?: string;
     organizationId?: string;
+    sourceType?: string;
     gitDefaultBranch?: string;
 
     /** Number of deployments; drives the top bar's Publish vs Republish label. */

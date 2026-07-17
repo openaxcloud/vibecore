@@ -1,0 +1,8 @@
+version: 1 | negativeLines: []
+lite         anthropic  claude-haiku-4-5   revient 100/500 ¢/M ×0.5 prix 325/1625 marge_in 69.2% vol30j 0 calls
+economy      anthropic  claude-opus-4-8    revient 500/2500 ¢/M ×1 prix 650/3250 marge_in 23.1% vol30j 0 calls
+power        anthropic  claude-fable-5     revient 1000/5000 ¢/M ×2 prix 1300/6500 marge_in 23.1% vol30j 0 calls
+high-effort  anthropic  claude-fable-5     revient 1000/5000 ¢/M ×2 prix 1300/6500 marge_in 23.1% vol30j 0 calls
+turbo        openai     gpt-5.6-sol        revient 500/3000 ¢/M ×2 prix 1300/6500 marge_in 61.5% vol30j 0 calls
+classifier   anthropic  claude-haiku-4-5   revient 100/500 ¢/M ×0 prix 0/0 marge_in —% vol30j 0 calls
+history: [(1, True)]

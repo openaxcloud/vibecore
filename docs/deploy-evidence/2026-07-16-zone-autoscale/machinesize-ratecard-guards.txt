@@ -1,0 +1,89 @@
+=== GET rate-card (2026-07-16T06:11:35Z) ===
+{
+    "version": 1,
+    "effectiveAt": "2026-07-16T00:00:00.000Z",
+    "currency": "usd",
+    "compute": {
+        "cpuSecondUnits": 18,
+        "gbSecondUnits": 2,
+        "unitCents": 0.00032,
+        "requestCents": 0.00012,
+        "baseCentsPerMonth": 100,
+        "egressCentsPerGib": 10
+    },
+    "planKey": "free",
+    "defaultMachineSize": "shared-0.5",
+    "machineSizes": [
+        {
+            "key": "shared-0.25",
+            "label": "0.25 vCPU \u00b7 1 GiB",
+            "vcpu": 0.25,
+            "ramGb": 1,
+            "cpuMillicores": 250,
+            "ramMb": 1024,
+            "computeUnitsPerSecond": 6.5,
+            "available": true
+        },
+        {
+            "key": "shared-0.5",
+            "label": "0.5 vCPU \u00b7 2 GiB",
+            "vcpu": 0.5,
+            "ramGb": 2,
+            "cpuMillicores": 500,
+            "ramMb": 2048,
+            "computeUnitsPerSecond": 13,
+            "available": true
+        },
+        {
+            "key": "dedicated-1",
+            "label": "1 vCPU \u00b7 4 GiB",
+            "vcpu": 1,
+            "ramGb": 4,
+            "cpuMillicores": 1000,
+            "ramMb": 4096,
+            "computeUnitsPerSecond": 26,
+            "available": true
+        },
+        {
+            "key": "dedicated-2",
+            "label": "2 vCPU \u00b7 8 GiB",
+            "vcpu": 2,
+            "ramGb": 8,
+            "cpuMillicores": 2000,
+            "ramMb": 8192,
+            "computeUnitsPerSecond": 52,
+            "available": true
+        },
+        {
+            "key": "dedicated-4",
+            "label": "4 vCPU \u00b7 16 GiB",
+            "vcpu": 4,
+            "ramGb": 16,
+            "cpuMillicores": 4000,
+            "ramMb": 16384,
+            "computeUnitsPerSecond": 104,
+            "available": false,
+            "reason": "capacity"
+        },
+        {
+            "key": "dedicated-8",
+            "label": "8 vCPU \u00b7 32 GiB",
+            "vcpu": 8,
+            "ramGb": 32,
+            "cpuMillicores": 8000,
+            "ramMb": 32768,
+            "computeUnitsPerSecond": 208,
+            "available": false,
+            "reason": "plan"
+        }
+    ]
+}
+=== Garde plan : machineSize=dedicated-8 sur org free ===
+{"error":"The 8 vCPU · 32 GiB size is not available on the free plan.","code":"MACHINE_SIZE_PLAN"}
+HTTP 400
+=== Garde capacité : machineSize=dedicated-4 (plafond 2 vCPU) ===
+{"error":"The 4 vCPU · 16 GiB size is temporarily unavailable (capacity).","code":"MACHINE_SIZE_CAPACITY"}
+HTTP 400
+=== Taille inconnue ===
+{"error":"Unknown machine size 'mega-64'.","code":"MACHINE_SIZE_UNKNOWN"}
+HTTP 400

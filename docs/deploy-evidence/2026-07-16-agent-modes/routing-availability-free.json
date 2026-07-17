@@ -1,0 +1,1 @@
+{"defaultMode":"economy","plan":"free","routingVersion":1,"modes":[{"mode":"lite","available":true,"multiplier":0.5},{"mode":"economy","available":true,"multiplier":1},{"mode":"power","available":true,"multiplier":2}],"highEffort":{"available":false},"turbo":{"available":false,"planAllowed":false,"orgEnabled":false}}

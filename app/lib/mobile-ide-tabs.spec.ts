@@ -60,6 +60,13 @@ describe('mobile IDE tab configuration', () => {
     }
   });
 
+  it('describes the terminal as a project runtime tool, not an organization Workspace', () => {
+    const terminal = ECODE_MOBILE_TOOLS.find((tool) => tool.id === 'terminal');
+
+    expect(terminal?.description).toBe('Project runtime shell terminal');
+    expect(terminal?.description).not.toMatch(/\bworkspace\b/i);
+  });
+
   it('every More/Panels item that names a management panel can be opened', () => {
     const nonPanelActions = new Set(['agent', 'files', 'editor', 'preview', 'search', 'locks', 'terminal', 'commands']);
 

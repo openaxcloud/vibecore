@@ -1,0 +1,36 @@
+# Phase A server-deploy — raw live evidence, 2026-07-15
+# Captured from prod GKE vibecore-prod-app / api.e-code.ai by the QA session.
+
+## Published app images (each deploy runs ITS OWN image from vibecore-prod-apps)
+europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmrlqwq1100070nbix9cgjzfc
+europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmrltiuai00070ngisjz024mb
+
+## kubectl -n workspaces get deploy -l vibecore.ai/server-deploy -o wide
+NAME                            READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES                                                                                                                 SELECTOR
+app-cmrm2wzre00040nbtn4sneanf   1/1     1            1           39m   app          europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmrlqwq1100070nbix9cgjzfc:cmrm2wzre00040nbtn4sneanf   app=app-cmrm2wzre00040nbtn4sneanf
+app-cmrm32k6x000a0n6hyey8kkqk   1/1     1            1           34m   app          europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmrltiuai00070ngisjz024mb:cmrm32k6x000a0n6hyey8kkqk   app=app-cmrm32k6x000a0n6hyey8kkqk
+
+## NODE — curl -si https://d-cmrm2wzre00040nbtn4sneanf.preview.e-code.ai/
+HTTP/2 200 
+date: Wed, 15 Jul 2026 13:31:37 GMT
+content-type: text/plain; charset=utf-8
+content-length: 66
+etag: W/"42-92vh3fY80I0gYNwryygU6aHRQmM"
+x-powered-by: Express
+cross-origin-resource-policy: cross-origin
+cross-origin-embedder-policy: credentialless
+referrer-policy: no-referrer
+strict-transport-security: max-age=31536000; includeSubDomains
+
+Phase A Node proof — imaged workspace deploy. ECODE_DEPLOYMENT=1
+## PYTHON — curl -si https://d-cmrm32k6x000a0n6hyey8kkqk.preview.e-code.ai/
+HTTP/2 200 
+date: Wed, 15 Jul 2026 13:31:39 GMT
+content-type: text/plain
+content-length: 69
+cross-origin-resource-policy: cross-origin
+cross-origin-embedder-policy: credentialless
+referrer-policy: no-referrer
+strict-transport-security: max-age=31536000; includeSubDomains
+
+Phase A Python proof — imaged workspace deploy. ECODE_DEPLOYMENT=1

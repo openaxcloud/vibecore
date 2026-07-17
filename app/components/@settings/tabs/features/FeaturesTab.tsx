@@ -107,11 +107,9 @@ const FeatureSection = memo(
 
 export default function FeaturesTab() {
   const {
-    autoSelectTemplate,
     isLatestBranch,
     contextOptimizationEnabled,
     eventLogs,
-    setAutoSelectTemplate,
     enableLatestBranch,
     enableContextOptimization,
     setEventLogs,
@@ -128,10 +126,6 @@ export default function FeaturesTab() {
 
     if (contextOptimizationEnabled === undefined) {
       enableContextOptimization(true); // Default: ON - Enable context optimization
-    }
-
-    if (autoSelectTemplate === undefined) {
-      setAutoSelectTemplate(true); // Default: ON - Enable auto-select templates
     }
 
     if (promptId === undefined) {
@@ -152,12 +146,6 @@ export default function FeaturesTab() {
           break;
         }
 
-        case 'autoSelectTemplate': {
-          setAutoSelectTemplate(enabled);
-          toast.success(`Auto select template ${enabled ? 'enabled' : 'disabled'}`);
-          break;
-        }
-
         case 'contextOptimization': {
           enableContextOptimization(enabled);
           toast.success(`Context optimization ${enabled ? 'enabled' : 'disabled'}`);
@@ -174,7 +162,7 @@ export default function FeaturesTab() {
           break;
       }
     },
-    [enableLatestBranch, setAutoSelectTemplate, enableContextOptimization, setEventLogs],
+    [enableLatestBranch, enableContextOptimization, setEventLogs],
   );
 
   const features = {
@@ -186,14 +174,6 @@ export default function FeaturesTab() {
         icon: 'i-ph:git-branch',
         enabled: isLatestBranch,
         tooltip: 'Enabled by default to receive updates from the main development branch',
-      },
-      {
-        id: 'autoSelectTemplate',
-        title: 'Auto Select Template',
-        description: 'Automatically select starter template',
-        icon: 'i-ph:selection',
-        enabled: autoSelectTemplate,
-        tooltip: 'Enabled by default to automatically select the most appropriate starter template',
       },
       {
         id: 'contextOptimization',

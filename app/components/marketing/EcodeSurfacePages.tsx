@@ -23,7 +23,6 @@ import {
   ShieldCheck,
   Sparkles,
   Terminal,
-  Upload,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -97,7 +96,7 @@ const categoryCopy = {
   builder: {
     eyebrow: 'Builder surface',
     primaryAction: ['Create project', '/projects/new'],
-    secondaryAction: ['Browse templates', '/templates'],
+    secondaryAction: ['Open Community Gallery', '/templates'],
     stats: [
       { label: 'Route status', value: 'Live page' },
       { label: 'Source', value: 'E-Code import' },
@@ -106,7 +105,11 @@ const categoryCopy = {
     controls: ['Typed project files', 'Preview verification', 'Agent patch review', 'Deployment handoff'],
     relatedRoutes: [
       { label: 'New project', to: '/projects/new', description: 'Start a governed E-Code workspace.' },
-      { label: 'Templates', to: '/templates', description: 'Use production starters as a foundation.' },
+      {
+        label: 'Community Gallery',
+        to: '/templates',
+        description: 'Preview a published application and remix an isolated copy.',
+      },
       { label: 'Features', to: '/features', description: 'Review the imported E-Code product surface.' },
     ],
   },
@@ -187,7 +190,7 @@ const categoryCopy = {
       { label: 'Examples', value: 'Routable' },
       { label: 'Depth', value: 'Beginner to advanced' },
     ],
-    controls: ['Guided tutorials', 'Reference docs', 'Template examples', 'Troubleshooting paths'],
+    controls: ['Guided tutorials', 'Reference docs', 'Remix examples', 'Troubleshooting paths'],
     relatedRoutes: [
       { label: 'Learn', to: '/learn', description: 'Follow structured E-Code learning paths.' },
       { label: 'Tutorials', to: '/tutorials', description: 'Build real projects step by step.' },
@@ -196,17 +199,17 @@ const categoryCopy = {
   },
   marketplace: {
     eyebrow: 'Marketplace surface',
-    primaryAction: ['Explore apps', '/apps'],
+    primaryAction: ['Open Community Gallery', '/templates'],
     secondaryAction: ['Browse marketplace', '/marketplace'],
     stats: [
       { label: 'Catalog', value: 'Curated' },
-      { label: 'Launch path', value: 'Template to app' },
+      { label: 'Launch path', value: 'Preview to remix' },
       { label: 'Reuse', value: 'Team-ready' },
     ],
-    controls: ['Reusable starters', 'Extension points', 'App templates', 'Review before release'],
+    controls: ['Published applications', 'Functional previews', 'Remix provenance', 'Review before release'],
     relatedRoutes: [
-      { label: 'Apps', to: '/apps', description: 'Browse imported app and product surfaces.' },
-      { label: 'Marketplace', to: '/marketplace', description: 'Discover reusable starters and patterns.' },
+      { label: 'Community Gallery', to: '/templates', description: 'Discover published, remixable applications.' },
+      { label: 'Marketplace', to: '/marketplace', description: 'Discover integrations and platform extensions.' },
       { label: 'Extensions', to: '/extensions', description: 'Extend workspaces with approved tools.' },
     ],
   },
@@ -228,7 +231,7 @@ const categoryCopy = {
   },
   integration: {
     eyebrow: 'Integration surface',
-    primaryAction: ['Connect GitHub', '/import-github'],
+    primaryAction: ['Open Import Hub', '/dashboard/templates?section=import&source=github'],
     secondaryAction: ['View integrations', '/integrations'],
     stats: [
       { label: 'Source', value: 'Importable' },
@@ -237,7 +240,11 @@ const categoryCopy = {
     ],
     controls: ['Repository import', 'Provider adapters', 'API contracts', 'Connection health'],
     relatedRoutes: [
-      { label: 'GitHub import', to: '/import-github', description: 'Import repositories into E-Code.' },
+      {
+        label: 'Import Hub',
+        to: '/dashboard/templates?section=import&source=github',
+        description: 'Validate repositories and other supported sources before creating a project.',
+      },
       { label: 'Integrations', to: '/integrations', description: 'Connect approved product tools.' },
       { label: 'API SDK', to: '/api-sdk', description: 'Build against typed platform interfaces.' },
     ],
@@ -306,10 +313,10 @@ export const ecodeSurfacePages = {
     slug: 'new',
     title: 'New E-Code Project',
     description:
-      'A direct creation route for teams starting a new AI-built application from a prompt, template or import.',
+      'A direct creation route for teams starting a new AI-built application from a prompt, Gallery remix or import.',
     category: 'builder',
     icon: Plus,
-    highlights: ['Natural-language brief', 'Template selection', 'Git/import choices', 'Preview-first validation'],
+    highlights: ['Natural-language brief', 'Gallery remix', 'Git/import choices', 'Preview-first validation'],
   }),
   home: makeSurfacePage({
     slug: 'home',
@@ -335,7 +342,7 @@ export const ecodeSurfacePages = {
       'The imported E-Code app catalog for internal tools, SaaS surfaces, AI workflows and reusable product kits.',
     category: 'marketplace',
     icon: Boxes,
-    highlights: ['Internal tools', 'SaaS starters', 'AI applications', 'Reusable workspace kits'],
+    highlights: ['Internal tools', 'Published SaaS apps', 'AI applications', 'Reusable workspace kits'],
   }),
   teams: makeSurfacePage({
     slug: 'teams',
@@ -378,7 +385,7 @@ export const ecodeSurfacePages = {
     description: 'Education program guidance for classrooms, bootcamps and universities adopting E-Code safely.',
     category: 'learning',
     icon: Users,
-    highlights: ['Student workspaces', 'Classroom templates', 'Privacy controls', 'Instructor review'],
+    highlights: ['Student workspaces', 'Classroom demo apps', 'Privacy controls', 'Instructor review'],
   }),
   'api-sdk': makeSurfacePage({
     slug: 'api-sdk',
@@ -396,7 +403,7 @@ export const ecodeSurfacePages = {
       'Mobile application delivery paths that connect Expo-style projects, previews and release preparation.',
     category: 'builder',
     icon: MonitorSmartphone,
-    highlights: ['Phone previews', 'Tablet workflows', 'Expo starters', 'Release assets'],
+    highlights: ['Phone previews', 'Tablet workflows', 'Mobile applications', 'Release assets'],
   }),
   profile: makeSurfacePage({
     slug: 'profile',
@@ -428,7 +435,7 @@ export const ecodeSurfacePages = {
     slug: 'search-advanced',
     title: 'Advanced Search',
     description:
-      'Search across projects, files, docs, templates, community content and agent activity with clearer scopes.',
+      'Search across projects, files, docs, Gallery applications, community content and agent activity with clearer scopes.',
     category: 'builder',
     icon: Search,
     highlights: ['Project scope', 'File search', 'Docs search', 'Agent context'],
@@ -518,10 +525,11 @@ export const ecodeSurfacePages = {
   powerups: makeSurfacePage({
     slug: 'powerups',
     title: 'Powerups',
-    description: 'Enhancement packs for agents, templates, integrations and runtime capabilities inside E-Code.',
+    description:
+      'Enhancement packs for agents, Gallery workflows, integrations and runtime capabilities inside E-Code.',
     category: 'marketplace',
     icon: Sparkles,
-    highlights: ['Agent boosts', 'Template packs', 'Runtime add-ons', 'Integration kits'],
+    highlights: ['Agent boosts', 'Gallery workflows', 'Runtime add-ons', 'Integration kits'],
   }),
   badges: makeSurfacePage({
     slug: 'badges',
@@ -600,10 +608,11 @@ export const ecodeSurfacePages = {
   'code-search': makeSurfacePage({
     slug: 'code-search',
     title: 'Code Search',
-    description: 'Code search across generated files, templates, dependencies and team-owned project repositories.',
+    description:
+      'Code search across generated files, Gallery remixes, dependencies and team-owned project repositories.',
     category: 'builder',
     icon: FileCode2,
-    highlights: ['File search', 'Symbol discovery', 'Template lookup', 'Team context'],
+    highlights: ['File search', 'Symbol discovery', 'Remix provenance', 'Team context'],
   }),
   problems: makeSurfacePage({
     slug: 'problems',
@@ -713,16 +722,16 @@ export const ecodeSurfacePages = {
   'solartech-ai-chat': makeSurfacePage({
     slug: 'solartech-ai-chat',
     title: 'SolarTech AI Chat',
-    description:
-      'A real app route for the imported SolarTech AI chat template with support, sales and workflow patterns.',
+    description: 'A real app route for the published SolarTech AI chat demo with support, sales and workflow patterns.',
     category: 'ai',
     icon: Sparkles,
-    highlights: ['AI chat UX', 'Support workflows', 'Knowledge routing', 'Template-ready app'],
+    highlights: ['AI chat UX', 'Support workflows', 'Knowledge routing', 'Remixable app'],
   }),
   'solartech-crm': makeSurfacePage({
     slug: 'solartech-crm',
     title: 'SolarTech CRM',
-    description: 'A CRM app template route for pipeline management, accounts, opportunities and operational workflows.',
+    description:
+      'A published CRM demo route for pipeline management, accounts, opportunities and operational workflows.',
     category: 'marketplace',
     icon: Boxes,
     highlights: ['Pipeline views', 'Accounts', 'Opportunities', 'Operational dashboards'],
@@ -730,7 +739,7 @@ export const ecodeSurfacePages = {
   'salesforcepro-crm': makeSurfacePage({
     slug: 'salesforcepro-crm',
     title: 'SalesforcePro CRM',
-    description: 'An enterprise CRM template route adapted from E-Code for sales operations and account intelligence.',
+    description: 'An enterprise CRM demo route adapted for sales operations and account intelligence.',
     category: 'marketplace',
     icon: Users,
     highlights: ['Sales operations', 'Account intelligence', 'Team workflows', 'Executive reporting'],
@@ -788,7 +797,8 @@ export const ecodeAdvancedSurfacePages = {
     slug: 'advanced/community',
     route: '/advanced/community',
     title: 'Advanced Community',
-    description: 'Community architecture for posts, profiles, moderation, templates and builder discovery.',
+    description:
+      'Community architecture for posts, profiles, app moderation, Gallery publishing and builder discovery.',
     category: 'marketplace',
     icon: Users,
     highlights: ['Profiles', 'Posts', 'Moderation', 'Builder discovery'],
@@ -846,9 +856,6 @@ export const ecodeCompatibilityRoutePatterns = [
   ...Object.values(ecodeSurfacePages).map((page) => page.route),
   ...Object.values(ecodeAdvancedSurfacePages).map((page) => page.route),
   ...Object.values(ecodeStandaloneSurfacePages).map((page) => page.route),
-  '/projects/:id/import/figma',
-  '/projects/:id/import/bolt',
-  '/projects/:id/import/lovable',
   '/projects/:id/database',
   '/projects/:id/preview',
   '/project/:id',
@@ -1072,46 +1079,6 @@ function EcodeSurfaceActionLink({
       <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
     </Link>
   );
-}
-
-const PROJECT_IMPORT_SOURCE_LABELS = {
-  figma: 'Figma',
-
-  /*
-   * The 'bolt' route key is an internal identifier kept for backwards
-   * compatibility; its user-facing label is brand-neutral so the upstream
-   * codename never surfaces in titles, descriptions or the browser tab.
-   */
-  bolt: 'Legacy export',
-  lovable: 'Lovable',
-} as const satisfies Record<string, string>;
-
-export type ProjectImportSource = keyof typeof PROJECT_IMPORT_SOURCE_LABELS;
-
-/** Supported `:source` values for the project import surface route. */
-export const PROJECT_IMPORT_SOURCES = Object.keys(PROJECT_IMPORT_SOURCE_LABELS) as ProjectImportSource[];
-
-export function createProjectImportSurfacePage(projectId: string, source: string): EcodeSurfacePageDefinition {
-  const label = PROJECT_IMPORT_SOURCE_LABELS[source as ProjectImportSource];
-
-  if (!label) {
-    throw new Response('Unsupported E-Code import source', { status: 404 });
-  }
-
-  return makeSurfacePage({
-    slug: `projects/${projectId}/import/${source}`,
-    route: `/projects/${projectId}/import/${source}`,
-    title: `${label} Project Import`,
-    description: `Import ${label} work into project ${projectId} with asset mapping, route planning and validation checks.`,
-    category: 'integration',
-    icon: Upload,
-    highlights: [`${label} source mapping`, 'Project context', 'Dependency planning', 'Preview validation'],
-    relatedRoutes: [
-      { label: 'GitHub import', to: '/import-github', description: 'Import repository-backed projects.' },
-      { label: 'Project overview', to: `/projects/${projectId}`, description: 'Return to the project workspace.' },
-      { label: 'Preview', to: `/projects/${projectId}/preview`, description: 'Validate the imported app visually.' },
-    ],
-  });
 }
 
 export function createProjectDatabaseSurfacePage(projectId: string): EcodeSurfacePageDefinition {

@@ -1,14 +1,18 @@
-import type { MetaFunction } from 'react-router';
-import Languages from '~/components/marketing/ecode-exact/pages/Languages';
+import { redirect, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 
 export const meta: MetaFunction = () => [
-  { title: 'Languages — E-Code' },
+  { title: 'Community App Gallery — E-Code' },
   {
     name: 'description',
-    content: 'E-Code supports every major programming language — Python, JavaScript, TypeScript, Go, Rust and more.',
+    content: 'Framework and language starter listings have moved to the community application Gallery.',
   },
 ];
 
+/** Language starter discovery is retired; working published applications are canonical. */
+export function loader(_args: LoaderFunctionArgs) {
+  return redirect('/templates');
+}
+
 export default function LanguagesRoute() {
-  return <Languages />;
+  return null;
 }

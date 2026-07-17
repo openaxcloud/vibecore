@@ -1,0 +1,17 @@
+=== MACHINE SIZE dedicated-1 (1 vCPU / 4 GiB) — deployment cmrn4qhjy00090nesh8nxs756 (2026-07-16T06:31:04Z) ===
+--- kubectl get deploy -o yaml (extrait resources + replicas + image) :
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: "1"
+            memory: 4Gi
+          requests:
+            cpu: "1"
+            memory: 4Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+replicas=1  ready=1  image=europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmrn21vdl00040nal6xus1ehj:cmrn4qhjy00090nesh8nxs756
+--- URL publique :
+{"ok":true,"phase":"machinesize","size":"dedicated-1","hits":27}
+HTTP 200 time_total=0.580324s

@@ -185,6 +185,41 @@ async function expectNoHorizontalOverflow(page: Page) {
   ).toBeLessThanOrEqual(overflow.viewportWidth);
 }
 
+async function expectProjectCardLayout(page: Page, viewportWidth: 390 | 768 | 1024 | 1440) {
+  const grid = page.getByTestId('project-grid');
+  const cards = grid.locator(':scope > *');
+
+  await expect(grid).toBeVisible();
+  await expect(cards).toHaveCount(2);
+  await expect(grid.getByText('Activity')).toHaveCount(2);
+  await expect(grid.getByText('Deployments')).toHaveCount(2);
+  await expect(grid.locator('[aria-label^="Project status:"]')).toHaveCount(2);
+
+  const cardMeasurements = await cards.evaluateAll((elements) =>
+    elements.map((element) => {
+      const rect = element.getBoundingClientRect();
+
+      return { left: Math.round(rect.left), width: rect.width };
+    }),
+  );
+
+  const visibleColumns = new Set(cardMeasurements.map((measurement) => measurement.left)).size;
+
+  expect(Math.max(...cardMeasurements.map((measurement) => measurement.width))).toBeLessThanOrEqual(417);
+  expect(
+    visibleColumns,
+    `Expected responsive columns at ${viewportWidth}px; cards: ${JSON.stringify(cardMeasurements)}`,
+  ).toBe(viewportWidth === 390 ? 1 : 2);
+
+  const openIdeHeights = await grid
+    .getByRole('link', { name: 'Open IDE', exact: true })
+    .evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().height));
+
+  expect(openIdeHeights).toHaveLength(2);
+  expect(Math.min(...openIdeHeights)).toBeGreaterThanOrEqual(44);
+  await expectNoHorizontalOverflow(page);
+}
+
 async function expectDashboardReady(page: Page) {
   await expectUserAreaReady(page, 'Dashboard');
 }
@@ -316,7 +351,7 @@ test('project actions and user navigation remain usable across responsive sizes'
   expect(projectTitles.indexOf('Operations dashboard')).toBeGreaterThanOrEqual(0);
   expect(projectTitles.indexOf('Operations dashboard')).toBeLessThan(projectTitles.indexOf('Customer portal'));
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await expectNoHorizontalOverflow(page);
+  await expectProjectCardLayout(page, 1440);
   await captureEvidence(page, 'dashboard-project-actions-light.jpg');
 
   await setTheme(page, 'dark');
@@ -325,12 +360,16 @@ test('project actions and user navigation remain usable across responsive sizes'
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(page.getByRole('link', { name: /^Resume / })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Choose project', exact: true })).toHaveCount(0);
+  await expectProjectCardLayout(page, 1440);
   await captureEvidence(page, 'dashboard-project-actions-dark.jpg');
 
   await setTheme(page, 'light');
   await openAndScrollMobileNavigation(page, 390);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await captureEvidence(page, 'mobile-navigation-scroll-light.jpg');
+  await page.keyboard.press('Escape');
+  await expectProjectCardLayout(page, 390);
+  await captureEvidence(page, 'dashboard-project-cards-light-390.jpg');
 
   await setTheme(page, 'dark');
 
@@ -338,11 +377,18 @@ test('project actions and user navigation remain usable across responsive sizes'
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(darkNavigation.getByRole('link', { name: 'Data & privacy' })).toBeInViewport();
   await captureEvidence(page, 'mobile-navigation-scroll-dark.jpg');
+  await page.keyboard.press('Escape');
+  await expectProjectCardLayout(page, 390);
+  await captureEvidence(page, 'dashboard-project-cards-dark-390.jpg');
 
   await openAndScrollMobileNavigation(page, 768);
+  await page.keyboard.press('Escape');
+  await expectProjectCardLayout(page, 768);
+  await captureEvidence(page, 'dashboard-project-cards-dark-768.jpg');
 
   await page.setViewportSize({ width: 1024, height: 600 });
   await page.goto('/dashboard');
+  await expectDashboardReady(page);
   await expect(page.getByRole('button', { name: 'Open navigation menu' })).toBeHidden();
 
   const tabletRailNavigation = page.locator('nav[aria-label="Application navigation"]:visible');
@@ -371,14 +417,15 @@ test('project actions and user navigation remain usable across responsive sizes'
     element.scrollTo({ top: element.scrollHeight, behavior: 'instant' }),
   );
   await expect.poll(() => tabletRailNavigation.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
-  await expectNoHorizontalOverflow(page);
+  await expectProjectCardLayout(page, 1024);
+  await captureEvidence(page, 'dashboard-project-cards-dark-1024.jpg');
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/dashboard');
   await expectDashboardReady(page);
   await expect(page.getByRole('button', { name: 'Open navigation menu' })).toBeHidden();
   await expect(page.locator('nav[aria-label="Application navigation"]:visible')).toHaveCount(1);
-  await expectNoHorizontalOverflow(page);
+  await expectProjectCardLayout(page, 1440);
   expect(hydrationErrors).toEqual([]);
 });
 
@@ -490,8 +537,10 @@ test('user-area SPA navigation shows a local skeleton while a real route respons
   await installHydrationObserver(page);
 
   for (const viewport of [
-    { width: 1440, height: 900, theme: 'light' as const },
-    { width: 390, height: 844, theme: 'dark' as const },
+    { width: 1440, height: 900, theme: 'light' as const, capture: true },
+    { width: 768, height: 900, theme: 'light' as const, capture: false },
+    { width: 1024, height: 768, theme: 'dark' as const, capture: false },
+    { width: 390, height: 844, theme: 'dark' as const, capture: true },
   ]) {
     await setTheme(page, viewport.theme);
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
@@ -544,6 +593,81 @@ test('user-area SPA navigation shows a local skeleton while a real route respons
     await expect(page.getByTestId('user-area-navigation-skeleton')).toHaveCount(0);
     await expect(page.locator('#main-content')).not.toHaveAttribute('aria-busy', 'true');
     await page.unroute('**/*', delayApiKeysData);
+  }
+});
+
+test('notification preference failures preserve the panel and retry the real request', async ({ page }) => {
+  test.setTimeout(240_000);
+
+  await provisionWorkspace(page);
+  await installHydrationObserver(page);
+
+  for (const viewport of [
+    { width: 1440, height: 900, theme: 'light' as const },
+    { width: 390, height: 844, theme: 'dark' as const },
+  ]) {
+    await setTheme(page, viewport.theme);
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await page.goto('/notifications');
+    await expectUserAreaReady(page, 'Notifications');
+
+    const preference = page.getByRole('switch', { name: 'Billing alerts via In-app' });
+    await expect(preference).toBeVisible();
+
+    const previousValue = await preference.getAttribute('aria-checked');
+    const intendedValue = previousValue === 'true' ? 'false' : 'true';
+
+    let failedFirstPatch = false;
+
+    const failFirstPreferencePatch = async (route: import('@playwright/test').Route) => {
+      if (route.request().method() === 'PATCH' && !failedFirstPatch) {
+        failedFirstPatch = true;
+        await route.abort('failed');
+
+        return;
+      }
+
+      await route.continue();
+    };
+
+    await page.route('**/api/user/preferences', failFirstPreferencePatch);
+    await preference.click();
+    await expect.poll(() => failedFirstPatch).toBe(true);
+    await expect(page.getByRole('heading', { name: 'Preferences were not saved' })).toBeVisible();
+    await expect(preference).toHaveAttribute('aria-checked', previousValue ?? 'false');
+
+    const retry = page.getByRole('button', { name: 'Try again' });
+    await expect(retry).toBeVisible();
+    expect(await retry.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+    await expectNoHorizontalOverflow(page);
+
+    if (viewport.capture) {
+      await captureEvidence(page, `notification-preferences-error-${viewport.theme}-${viewport.width}.jpg`);
+    }
+
+    const persistedResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'PATCH' &&
+        new URL(response.url()).pathname === '/api/user/preferences' &&
+        response.ok(),
+    );
+    await retry.click();
+    await persistedResponse;
+    await expect(page.getByRole('heading', { name: 'Preferences were not saved' })).toHaveCount(0);
+    await expect(preference).toHaveAttribute('aria-checked', intendedValue);
+
+    await page.unroute('**/api/user/preferences', failFirstPreferencePatch);
+    await page.reload();
+    await expectUserAreaReady(page, 'Notifications');
+    await expect(page.getByRole('switch', { name: 'Billing alerts via In-app' })).toHaveAttribute(
+      'aria-checked',
+      intendedValue,
+    );
+    await expectNoHorizontalOverflow(page);
+
+    if (viewport.capture) {
+      await captureEvidence(page, `notification-preferences-recovered-${viewport.theme}-${viewport.width}.jpg`);
+    }
   }
 });
 

@@ -45,9 +45,9 @@ export const ProjectEditorToolbar = memo(
     const languageServiceDisabled = !hasDocument || !monacoActive;
 
     return (
-      <div className="bolt-project-editor-toolbar">
+      <div className="bolt-project-editor-toolbar" role="toolbar" aria-label="Editor actions">
         <span className="bolt-project-editor-toolbar-file">{fileLabel}</span>
-        <div className="bolt-project-editor-toolbar-actions" role="toolbar" aria-label="Editor actions">
+        <div className="bolt-project-editor-toolbar-actions">
           <div className="bolt-project-editor-toolbar-group" data-toolbar-group="view" role="group" aria-label="View">
             <button
               type="button"
@@ -114,14 +114,12 @@ export const ProjectEditorToolbar = memo(
               Refactor
             </button>
           </div>
-
-          <ToolbarDivider />
-
-          <div className="bolt-project-editor-toolbar-group" data-toolbar-group="save" role="group" aria-label="Save">
-            <button type="button" className="bolt-project-editor-save-button" onClick={onSave} disabled={!hasDocument}>
-              Save
-            </button>
-          </div>
+        </div>
+        <ToolbarDivider />
+        <div className="bolt-project-editor-toolbar-group" data-toolbar-group="save" role="group" aria-label="Save">
+          <button type="button" className="bolt-project-editor-save-button" onClick={onSave} disabled={!hasDocument}>
+            Save
+          </button>
         </div>
       </div>
     );

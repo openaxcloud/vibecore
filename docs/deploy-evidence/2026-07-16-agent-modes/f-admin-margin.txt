@@ -1,0 +1,33 @@
+# (f) Marge affichée + alerte marge négative BLOQUANTE — preuve API live (admin, api.e-code.ai afd741d5)
+
+## Table admin GET /admin/agent-routing (marges calculées en direct, v1) :
+lite         anthropic  claude-haiku-4-5   revient 100/500 ¢/M ×0.5  prix 325/1625   marge_in 69.2%   vol30j 0
+economy      anthropic  claude-opus-4-8    revient 500/2500 ¢/M ×1   prix 650/3250   marge_in 23.1%   vol30j (2 appels après test c/d)
+power        anthropic  claude-fable-5     revient 1000/5000 ¢/M ×2  prix 1300/6500  marge_in 23.1%
+high-effort  anthropic  claude-fable-5     revient 1000/5000 ¢/M ×2  prix 1300/6500  marge_in 23.1%
+turbo        openai     gpt-5.6-sol        revient 500/3000 ¢/M ×2   prix 1300/6500  marge_in 61.5%
+classifier   anthropic  claude-haiku-4-5   revient 100/500 ¢/M ×0    prix 0/0        marge —  (non facturé)
+negativeLines: []   history: [(v1, active)]
+
+## Alerte marge négative BLOQUANTE — brouillon avec revient economy = 100000 ¢/M :
+POST /admin/agent-routing (sans confirmNegativeMargin)
+  → HTTP 409 {"error":"Negative margin on: economy. Confirm explicitly to publish anyway.",
+              "code":"AGENT_ROUTING_NEGATIVE_MARGIN","negativeLines":["economy"]}
+  → la carte active v1 reste intacte (publication refusée).
+
+## Simulateur POST /admin/agent-routing/simulate (même brouillon) :
+  → {"windowDays":30,"negativeLines":["economy"],"totals":{...}}  (répond, volume réel rejoué)
+
+# Capture SPA de l'alerte visuelle : voir f-admin-spa-*.png (panel AgentRoutingPanel,
+# image admin:agm-proof bumpée sur le tier admin interne le temps de la preuve).
+
+## Capture SPA (image admin agm-proof bumpée temporairement sur le tier interne) :
+- f-admin-spa-table.png : table Agent routing rendue live (6 lignes, marges %,
+  volume 30j des tests c/d, classifieur « not billed (our operating cost) »,
+  historique v1 ● active).
+- f-admin-spa-negative-alert.png : coût Economy porté à 100000 ¢/M → alerte rouge
+  « ⚠ Negative margin on: Economy. Publishing is blocked unless you explicitly
+  confirm losing money on these lines. »
+# Tier admin RESTAURÉ à l'image d'origine ef05fea502 juste après (helm rev 854) —
+# l'image agm-proof avait un VITE_API_URL=localhost (build ponctuel), inadaptée
+# aux vrais admins ; prod remise dans son état initial.

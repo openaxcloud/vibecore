@@ -1,0 +1,32 @@
+[
+  {
+    "action": {
+      "type": "Keep"
+    },
+    "mostRecentVersions": {
+      "keepCount": 10
+    },
+    "name": "keep-recent-10-per-app"
+  },
+  {
+    "action": {
+      "type": "Keep"
+    },
+    "condition": {
+      "tagPrefixes": [
+        "active-"
+      ],
+      "tagState": "TAGGED"
+    },
+    "name": "keep-active-deployments"
+  },
+  {
+    "action": {
+      "type": "Delete"
+    },
+    "condition": {
+      "olderThan": "5184000s"
+    },
+    "name": "delete-older-than-60d"
+  }
+]

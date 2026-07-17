@@ -96,7 +96,31 @@ export function materialFileIcon(filePathOrName: string): MaterialFileIcon {
 }
 
 export function normalizeWorkspacePath(filePath: string): string {
-  return filePath.replace(/^\/+/, '').replace(new RegExp(`^${WORK_DIR.replace(/^\/+/, '')}/?`), '');
+  return filePath
+    .replaceAll('\\', '/')
+    .replace(/^\/+/, '')
+    .replace(new RegExp(`^${WORK_DIR.replace(/^\/+/, '')}/?`), '');
+}
+
+/**
+ * Resolves an entry across runtime path namespaces while preferring the exact
+ * key. Project storage may expose `/src/App.tsx` before the runtime later
+ * refreshes it as `/home/project/src/App.tsx`; both identify the same file.
+ */
+export function resolveWorkspacePathEntry<T>(entries: Record<string, T>, filePath: string): T | undefined {
+  if (Object.prototype.hasOwnProperty.call(entries, filePath)) {
+    return entries[filePath];
+  }
+
+  const normalizedTarget = normalizeWorkspacePath(filePath);
+
+  for (const [candidate, entry] of Object.entries(entries)) {
+    if (normalizeWorkspacePath(candidate) === normalizedTarget) {
+      return entry;
+    }
+  }
+
+  return undefined;
 }
 
 export function gitStatusForPath(
