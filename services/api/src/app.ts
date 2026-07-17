@@ -21762,6 +21762,74 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   });
 
+  const adminGalleryListingSchema = z.object({
+    slug: z
+      .string()
+      .min(2)
+      .regex(/^[a-z0-9-]+$/, 'slug must be lowercase alphanumeric with dashes'),
+    title: z.string().min(1),
+    description: z.string().min(1),
+    category: z.string().min(1),
+    tags: z.array(z.string().min(1)).max(12).optional(),
+    sourceProjectId: z.string().min(1),
+    sourceSnapshotId: z.string().min(1),
+    authorName: z.string().min(1),
+    authorUserId: z.string().min(1).optional(),
+    appUrl: z.string().url().optional(),
+    featured: z.boolean().optional(),
+    status: z.enum(['PUBLISHED', 'PENDING_REVIEW', 'UNPUBLISHED']).optional(),
+  });
+
+  /*
+   * Curator endpoint (TPL-02). This is the ONLY way a Gallery listing is created:
+   * a platform admin curates a submission into a listing (DEC-GALLERY-NO-SELF-
+   * PUBLISH — there is deliberately no in-product self-service Publish). The
+   * source project + the immutable snapshot it pins are validated to exist and to
+   * belong together, so every published listing is remixable and reproducible.
+   */
+  app.post('/admin/gallery-listings', async (request, reply) => {
+    await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
+
+    const body = parse(adminGalleryListingSchema, request.body ?? {});
+
+    const sourceProject = await store.getProject(body.sourceProjectId);
+    if (!sourceProject) {
+      return reply.status(404).send({ error: 'Source project not found', code: 'GALLERY_SOURCE_MISSING' });
+    }
+
+    const snapshot = await store.getSnapshot(body.sourceSnapshotId);
+    if (!snapshot || snapshot.projectId !== body.sourceProjectId) {
+      return reply
+        .status(400)
+        .send({ error: 'Pinned snapshot does not belong to the source project', code: 'GALLERY_SNAPSHOT_INVALID' });
+    }
+
+    try {
+      const listing = await store.createGalleryListing(body);
+
+      await audit(request, store, {
+        action: 'admin.gallery_listing.create',
+        resourceType: 'galleryListing',
+        resourceId: listing.id,
+        metadata: {
+          slug: listing.slug,
+          sourceProjectId: listing.sourceProjectId,
+          sourceSnapshotId: listing.sourceSnapshotId,
+          status: listing.status,
+        },
+      });
+
+      return reply.code(201).send({ listing });
+    } catch (error) {
+      // Unique-slug collision → 409 rather than a 500.
+      if (error instanceof Error && /unique|slug/i.test(error.message)) {
+        return reply.status(409).send({ error: 'A listing with that slug already exists', code: 'GALLERY_SLUG_TAKEN' });
+      }
+      throw error;
+    }
+  });
+
   app.post('/projects/:projectId/duplicate', async (request, reply) => {
     const project = await requireProject(
       request,

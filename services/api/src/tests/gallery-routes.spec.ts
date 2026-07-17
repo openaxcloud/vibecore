@@ -307,3 +307,86 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
     expect(res.statusCode).toBe(404);
   });
 });
+
+describe('POST /admin/gallery-listings — curator publish (no self-service)', () => {
+  async function setupCurator() {
+    const store = new TestApiStore();
+    const projectStorage = new SnapshotProjectStorage();
+    const app = await buildApiApp({ store, projectStorage, emailProvider: new QuietEmailProvider() });
+
+    const admin = await store.createUser({
+      email: 'curator@example.com',
+      name: 'Curator',
+      passwordHash: hashPassword('password123'),
+      platformAdmin: true,
+    });
+    await store.updateUser({ userId: admin.id, mfaEnabled: true });
+    await store.createSession({ userId: admin.id, token: 'admin-token', expiresAt: new Date(Date.now() + 3600_000) });
+    await app.inject({ method: 'POST', url: '/auth/reauth', headers: auth('admin-token'), payload: { password: 'password123' } });
+
+    const org = await store.createOrganization({ name: 'Curator Org', slug: 'curator-org', ownerUserId: admin.id });
+    const source = await store.createProject({ organizationId: org.id, name: 'Sample', slug: 'sample' });
+    const files: ProjectFile[] = [{ path: 'index.js', content: 'console.log(1);\n', updatedAt: '' }];
+    await projectStorage.writeFiles(source.id, files);
+    const archive = await projectStorage.createSnapshot({ projectId: source.id, files });
+    const snapshot = await store.createSnapshot({ projectId: source.id, kind: 'manual', manifest: {}, storageKey: archive.storageKey });
+
+    return { app, store, source, snapshot };
+  }
+
+  const listingBody = (source: string, snapshot: string) => ({
+    slug: 'sample-app',
+    title: 'Sample App',
+    description: 'A curated sample',
+    category: 'web',
+    tags: ['demo'],
+    sourceProjectId: source,
+    sourceSnapshotId: snapshot,
+    authorName: 'Curator',
+  });
+
+  it('a platform admin curates a listing; it then shows up in the public gallery', async () => {
+    const { app, source, snapshot } = await setupCurator();
+
+    const created = await app.inject({
+      method: 'POST',
+      url: '/admin/gallery-listings',
+      headers: auth('admin-token'),
+      payload: listingBody(source.id, snapshot.id),
+    });
+    expect(created.statusCode).toBe(201);
+    expect(created.json().listing.slug).toBe('sample-app');
+
+    // It is now publicly browsable.
+    const list = await app.inject({ method: 'GET', url: '/gallery' });
+    expect(list.json().results.map((r: { slug: string }) => r.slug)).toContain('sample-app');
+  });
+
+  it('rejects a snapshot that does not belong to the source project (400)', async () => {
+    const { app, store, source } = await setupCurator();
+    const otherProject = await store.createProject({ organizationId: source.organizationId, name: 'Other', slug: 'other' });
+    const otherSnap = await store.createSnapshot({ projectId: otherProject.id, kind: 'manual', manifest: {}, storageKey: 'x' });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/admin/gallery-listings',
+      headers: auth('admin-token'),
+      payload: listingBody(source.id, otherSnap.id),
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('is NOT self-service — a non-admin user cannot create a listing', async () => {
+    const { app, store, source, snapshot } = await setupCurator();
+    const user = await store.createUser({ email: 'joe@example.com', name: 'Joe', passwordHash: hashPassword('password123') });
+    await store.createSession({ userId: user.id, token: 'user-token', expiresAt: new Date(Date.now() + 3600_000) });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/admin/gallery-listings',
+      headers: auth('user-token'),
+      payload: listingBody(source.id, snapshot.id),
+    });
+    expect(res.statusCode).toBe(403);
+  });
+});
