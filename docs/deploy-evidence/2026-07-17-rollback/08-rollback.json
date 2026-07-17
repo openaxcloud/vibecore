@@ -1,0 +1,4 @@
+{
+  "error": "Body cannot be empty when content-type is set to 'application/json'",
+  "code": "FST_ERR_CTP_EMPTY_JSON_BODY"
+}

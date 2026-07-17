@@ -131,3 +131,20 @@ proofs:
     status: PROVEN
     provenAt: "2026-07-17"
     vertical: observe
+  - proofId: E2E-VERTICAL-ROLLBACK
+    title: "Rollback: l'app revient depuis son digest retenu APRÈS suppression de la révision (I-REL-1)"
+    fixtures: { account: throwaway (register+QuotaOverride), plan: quota-override, region: europe-west9, client: api }
+    steps:
+      - "deploy v1 (server) → READY, digest_v1 sha256:657271c5…, sert 'ROLLBACK-PROOF v1'"
+      - "deploy v2 → READY, digest_v2 sha256:2eb96530… (différent), sert 'v2'"
+      - "kubectl delete deploy app-<v1> (révision supprimée) → URL v1 = HTTP 410"
+      - "POST /projects/:id/deployments/:v1/rollback (flag SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=1)"
+      - "GET l'URL du rollback"
+    expected: "rollback re-déploie p-…@sha256:657271c5 dans un NOUVEau deploy (pull-by-digest, ready 1/1) et sert 'ROLLBACK-PROOF v1' — révision-indépendant ; 2 négatifs 409 (no-digest, PINNED-unsatisfiable)"
+    evidenceId: docs/deploy-evidence/2026-07-17-rollback/
+    screenshots: n/a
+    logs: yes
+    traceIds: "v1 cmro606md digest 657271c5 ; rollback cmro7pqzx rolledBackFromDigest=657271c5 secretPolicy=CURRENT ; app-cmro7pqzx img p-cmro5znqg@sha256:657271c5 ready 1/1 sert 'ROLLBACK-PROOF v1' (10-rollback-fixed.json, 11-kubectl-evidence.txt, 12-rollback-body.txt) ; négatifs 409 ROLLBACK_NO_RETAINED_DIGEST + ROLLBACK_SECRET_POLICY_UNSATISFIABLE (13/14-negative*.json) ; fix ec0ad6bd (row non-terminal vs monotonic guard)"
+    status: PROVEN
+    provenAt: "2026-07-17"
+    vertical: rollback

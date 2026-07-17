@@ -1,0 +1,4 @@
+{
+  "error": "Rollback target cmro611st000m0nbznuj27kyc has no retained image digest \u2014 cannot re-deploy from the catalog (would point at a possibly-dead URL).",
+  "code": "ROLLBACK_NO_RETAINED_DIGEST"
+}

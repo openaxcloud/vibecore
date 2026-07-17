@@ -1,0 +1,123 @@
+{
+  "deployment": {
+    "id": "cmro611st000m0nbznuj27kyc",
+    "projectId": "cmro5znqg000i0nbz8a467qg2",
+    "provider": "server",
+    "environment": "preview",
+    "status": "READY",
+    "url": "https://d-cmro611st000m0nbznuj27kyc.preview.e-code.ai",
+    "previewUrl": "https://d-cmro611st000m0nbznuj27kyc.preview.e-code.ai",
+    "framework": "vite",
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "logs": [
+      {
+        "level": "info",
+        "message": "Queued server deployment for Rollback Proof rbk1784245978",
+        "timestamp": "2026-07-16T23:54:42.957Z"
+      },
+      {
+        "level": "info",
+        "message": "Environment: preview",
+        "timestamp": "2026-07-16T23:54:42.957Z"
+      },
+      {
+        "level": "info",
+        "message": "Framework detected: vite",
+        "timestamp": "2026-07-16T23:54:42.957Z"
+      },
+      {
+        "level": "info",
+        "message": "Build command: npm run build",
+        "timestamp": "2026-07-16T23:54:42.957Z"
+      },
+      {
+        "level": "info",
+        "message": "Output directory: dist",
+        "timestamp": "2026-07-16T23:54:42.957Z"
+      },
+      {
+        "level": "info",
+        "message": "Environment variables: none",
+        "timestamp": "2026-07-16T23:54:42.957Z"
+      },
+      {
+        "level": "info",
+        "message": "Injected user-scoped secrets: none",
+        "timestamp": "2026-07-16T23:54:42.957Z"
+      },
+      {
+        "level": "info",
+        "message": "Server deploy: starting runtime for d-cmro611st000m0nbznuj27kyc.preview.e-code.ai",
+        "timestamp": "2026-07-16T23:54:08.121Z"
+      },
+      {
+        "level": "info",
+        "message": "Server deploy: declared (.ecode/deploy.json) \u2014 build \"(none)\", start \"node server.js\"",
+        "timestamp": "2026-07-16T23:54:08.170Z"
+      },
+      {
+        "level": "info",
+        "message": "[snapshot] image context: 522 bytes (deps included)",
+        "timestamp": "2026-07-16T23:54:08.369Z"
+      },
+      {
+        "level": "info",
+        "message": "[snapshot] uploaded 522 bytes to object storage",
+        "timestamp": "2026-07-16T23:54:08.592Z"
+      },
+      {
+        "level": "info",
+        "message": "[image] build 38928799-7472-4353-a470-a2cba5f6416a queued (context gs://vc-cmro5znqg000i0nbz8a467qg2/tmp/server-deploy/cmro611st000m0nbznuj27kyc-context.tgz)",
+        "timestamp": "2026-07-16T23:54:09.595Z"
+      },
+      {
+        "level": "info",
+        "message": "[image] build 38928799-7472-4353-a470-a2cba5f6416a: WORKING",
+        "timestamp": "2026-07-16T23:54:14.669Z"
+      },
+      {
+        "level": "info",
+        "message": "[image] build 38928799-7472-4353-a470-a2cba5f6416a: SUCCESS",
+        "timestamp": "2026-07-16T23:54:35.001Z"
+      },
+      {
+        "level": "info",
+        "message": "Server deploy: image ready europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmro5znqg000i0nbz8a467qg2:cmro611st000m0nbznuj27kyc (162 MB) in 26s",
+        "timestamp": "2026-07-16T23:54:35.101Z"
+      },
+      {
+        "level": "info",
+        "message": "Server deploy: ready with 1 replica(s) at https://d-cmro611st000m0nbznuj27kyc.preview.e-code.ai",
+        "timestamp": "2026-07-16T23:54:42.957Z"
+      }
+    ],
+    "metadata": {
+      "envVars": {},
+      "serverDeploy": {
+        "host": "d-cmro611st000m0nbznuj27kyc.preview.e-code.ai",
+        "image": {
+          "buildId": "38928799-7472-4353-a470-a2cba5f6416a",
+          "buildMs": 26474,
+          "imageRef": "europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmro5znqg000i0nbz8a467qg2",
+          "imageUri": "europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmro5znqg000i0nbz8a467qg2:cmro611st000m0nbznuj27kyc",
+          "imageDigest": "sha256:2eb96530fdecf9dec370decb10c45d3ffb9ab150d590f5107ac496ca602f03ad",
+          "imageSizeBytes": 162430720
+        },
+        "ready": true,
+        "applied": true,
+        "readyReplicas": 1
+      },
+      "timeoutSeconds": 600,
+      "injectedSecrets": [],
+      "previewDeployment": true,
+      "artifactSizeLimitMb": 250
+    },
+    "machineSize": "shared-0.5",
+    "lastMeteredAt": "2026-07-16T23:54:46.672Z",
+    "startedAt": "2026-07-16T23:54:08.092Z",
+    "finishedAt": "2026-07-16T23:54:42.957Z",
+    "createdAt": "2026-07-16T23:54:08.093Z",
+    "updatedAt": "2026-07-16T23:54:46.676Z"
+  }
+}

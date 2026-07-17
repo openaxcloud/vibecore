@@ -31,7 +31,7 @@ Priorité A, B d'abord, puis C→I. UNKNOWN partout où on ne sait pas.
 | H. APPROVAL_STATUS : algorithme EXACT à 6 conditions (P0, fichiers+schemaVersion, refs sans orphelin, vertical vert, sources fraîches, décisions/unknowns) | ✅ | ✅ `ca299f87` | ✅ 16/07 | conditions[] ; validateur : approvalReady==6-pass ; **approvalReady=false honnête** (vertical : seuls execute+publish verts) ; hand-flip→DRIFT prouvé |
 | I. 14 contrats manquants (17 groupes) + private deployments RPL-23 (4 modes, accessPolicyVersion) | ✅ | ✅ `b20eb6bc` | ✅ 16/07 | 14 CONTRACT.md header-checkés (22 md) ; RPL-23 cité SRC-LLMS-FULL-TXT ; AUTH_ACCESS_CONTRACT ; UNK-AUTH-ACCESS-LIVE + UNK-REGRESSION-HARNESS |
 
-**Réserve honnête** — le ✅ ci-dessus = « codé + prouvé en unitaire/validateur » (machines à états pures avec tests négatifs, registres validés, refus prouvés). Le vertical d'approbation e2e reste **RED** (`approvalReady=false`) : seuls les stages `execute` (E2E-AGM-C) et `publish` (E2E-PHASEB-NODE) sont prouvés ; `create/modify/preview/observe/rollback` n'ont pas encore de preuve e2e taggée. C'est l'état réel, calculé, non maquillé.
+**État du vertical d'approbation (calculé)** — **7/7 GREEN, `approvalReady=true`** au 2026-07-17. Les 7 stages ont une preuve e2e taggée : `create` (E2E-VERTICAL-CREATE), `modify` (E2E-VERTICAL-MODIFY), `execute` (E2E-AGM-C), `preview` (E2E-VERTICAL-PREVIEW), `publish` (E2E-PHASEB-NODE), `observe` (E2E-VERTICAL-OBSERVE), `rollback` (E2E-VERTICAL-ROLLBACK). `approvalReady=true` = les 6 conditions de l'algorithme passent (pas d'approbation humaine — c'est le calcul, pas un jugement). Validateur vert, refus prouvés.
 
 ### Vertical d'approbation — chantier rollback (le plus critique)
 
@@ -39,8 +39,9 @@ Priorité A, B d'abord, puis C→I. UNKNOWN partout où on ne sait pas.
 
 | Point | 📤 | 💻 | ✅ | Notes |
 |---|:---:|:---:|:---:|---|
-| ROLLBACK-core. Mécanisme rollback-depuis-digest-retenu (`retainRelease` + `resolveRollbackImage`) | ✅ | ✅ `ec0e50ca` | 🟡 unitaire | 7 tests dont révision-supprimée→résout quand même v1 + sans-digest→`ROLLBACK_NO_RETAINED_DIGEST` (refuse l'URL morte). Pur, pas encore câblé |
-| ROLLBACK-live. Persistance digest + câblage reconcile + **preuve e2e** v1→v2→supprimer révision v1→rollback→sert v1 | ✅ | ⬜ | ⬜ | `UNK-ROLLBACK-LIVE` (priorité 1). **Stage `rollback` du vertical = RED**. Preuve live non exécutée — souvenir ≠ preuve |
+| ROLLBACK-core. Mécanisme rollback-depuis-digest-retenu + policy secret (`resolveRollbackImage` + `resolveRollbackSecrets`) | ✅ | ✅ `ec0e50ca`+`b9413417` | ✅ | 10 tests (révision-supprimée→résout v1 ; sans-digest→`ROLLBACK_NO_RETAINED_DIGEST` ; PINNED-sans-snapshot→`ROLLBACK_SECRET_POLICY_UNSATISFIABLE`) |
+| ROLLBACK-wiring. Persistance digest (build) + câblage handler + test handler | ✅ | ✅ `9680b20e`+`6b78dc50` | ✅ | `deployment-rollback-digest.spec.ts` : endpoint réel re-déploie par digest, refuse sans digest/PINNED. Fix `ec0ad6bd` (ligne non-terminale vs garde monotone — bug prod que le test handler ratait) |
+| ROLLBACK-live. **Preuve e2e LIVE** v1→v2→supprimer révision v1→rollback→sert v1 | ✅ | ✅ `ec0ad6bd` | ✅ 17/07 | **E2E-VERTICAL-ROLLBACK PROVEN** : app-`<rb>` pull-by-digest `@sha256:657271c5` ready 1/1 sert « ROLLBACK-PROOF v1 » après delete révision (410) ; 2 négatifs 409 live. `docs/deploy-evidence/2026-07-17-rollback/`. **Stage `rollback` = GREEN → vertical 7/7, `approvalReady=true`** |
 
 ## REMIX — pipeline de fork sécurisé (décision Avi 16/07)
 

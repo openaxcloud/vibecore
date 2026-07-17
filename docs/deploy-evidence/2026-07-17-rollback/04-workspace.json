@@ -1,0 +1,11 @@
+{
+  "id": "ws-113b50cc3f29c190",
+  "runtimeMode": "remote-kubernetes",
+  "status": "starting",
+  "workdir": "/workspace",
+  "createdAt": "2026-07-16T23:53:20.967Z",
+  "updatedAt": "2026-07-16T23:53:20.967Z",
+  "metadata": {
+    "provisioning": true
+  }
+}

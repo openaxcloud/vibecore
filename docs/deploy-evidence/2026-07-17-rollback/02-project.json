@@ -1,0 +1,12 @@
+{
+  "project": {
+    "id": "cmro52hzr00040naba63xylhu",
+    "organizationId": "cmro52g7f00060nbz2tsavec9",
+    "name": "Rollback Proof rbk1784244432",
+    "slug": "rollback-proof-rbk1784244432",
+    "sourceType": "blank",
+    "persistentVolumeClaim": "pvc-cmro52g7f00060nbz2tsavec9-rollback-proof-rbk1784244432",
+    "createdAt": "2026-07-16T23:27:16.178Z",
+    "updatedAt": "2026-07-16T23:27:16.178Z"
+  }
+}

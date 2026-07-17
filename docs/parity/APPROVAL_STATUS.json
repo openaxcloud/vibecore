@@ -12,10 +12,8 @@
   ],
   "note": "COMPUTED by scripts/parity/generate-approval-status.mjs — never edit by hand. The validator fails the build on drift.",
   "algorithm": "APPROVED iff all 6 conditions pass (audit v4 H). See conditions[].",
-  "approvalReady": false,
-  "blocking": [
-    "condition 4 (vertical créer→modifier→exécuter→preview→publier→observer→rollback is green) FAILED: stage \"rollback\" has no PROVEN e2e proof (tag a proof with vertical: rollback)"
-  ],
+  "approvalReady": true,
+  "blocking": [],
   "conditions": [
     {
       "id": 1,
@@ -38,10 +36,8 @@
     {
       "id": 4,
       "description": "vertical créer→modifier→exécuter→preview→publier→observer→rollback is green",
-      "passed": false,
-      "reasons": [
-        "stage \"rollback\" has no PROVEN e2e proof (tag a proof with vertical: rollback)"
-      ],
+      "passed": true,
+      "reasons": [],
       "stages": [
         {
           "stage": "create",
@@ -87,8 +83,10 @@
         },
         {
           "stage": "rollback",
-          "green": false,
-          "proofIds": []
+          "green": true,
+          "proofIds": [
+            "E2E-VERTICAL-ROLLBACK"
+          ]
         }
       ]
     },
@@ -129,8 +127,8 @@
       "done": 4
     },
     "e2e": {
-      "total": 11,
-      "proven": 11
+      "total": 12,
+      "proven": 12
     }
   },
   "p0": [

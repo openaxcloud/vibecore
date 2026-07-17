@@ -56,16 +56,31 @@ Un rollback réel n'a jamais été possible, encore moins prouvé.
   re-déploie par digest, refuse sans digest (409), refuse PINNED sans snapshot
   (409), providers externes intacts.
 
-**Reste ⬜ (preuve e2e LIVE)** : déployer v1 → v2 → **supprimer la révision de
-v1** → rollback → l'app sert v1 depuis le digest retenu, en prod. Prérequis :
-`SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=1` sur l'api (le flag n'est pas encore dans le
-configmap prod). Tracé `UNK-ROLLBACK-LIVE`. Le stage `rollback` du vertical reste
-**RED** tant que ce cycle live n'est pas exécuté — le câblage est prouvé, le
-parcours prod ne l'est pas encore.
+**PROUVÉ LIVE (E2E-VERTICAL-ROLLBACK, 2026-07-17, api `ec0ad6bd3e`)** : déployé
+v1 (digest 657271c5, sert « v1 ») → v2 (digest 2eb96530, sert « v2 ») →
+**supprimé la révision de v1** (`kubectl delete deploy app-<v1>`, URL v1 = HTTP
+410) → rollback → NOUVeau déploiement `app-<rb>` **pull-by-digest**
+`p-…@sha256:657271c5` ready 1/1, `rolledBackFromDigest=657271c5`,
+`secretPolicy=CURRENT`, **sert « ROLLBACK-PROOF v1 »** — ressuscité du digest après
+suppression de la révision. Les 2 négatifs live : sans digest → 409
+`ROLLBACK_NO_RETAINED_DIGEST` ; PINNED sans snapshot → 409
+`ROLLBACK_SECRET_POLICY_UNSATISFIABLE`. Artefacts :
+`docs/deploy-evidence/2026-07-17-rollback/`.
+
+**Bug prod attrapé par la preuve live** (que le test handler n'a pas vu, `TestApiStore`
+ne modélise pas le garde monotone) : la ligne de rollback était créée `READY`
+(terminal) ⇒ `updateDeployment` du re-déploiement silencieusement ignoré ⇒ vieux
+chemin URL-copie. Fix `ec0ad6bd` : ligne créée NON-terminale (`QUEUED`) sur le
+chemin digest-rollback. Le stage `rollback` du vertical d'approbation est **GREEN**.
+
+🟡 Permanence du flag : `SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=1` est activé sur l'api
+(kubectl-set) ; pour du permanent → `values-prod.yaml` (décision : ON change le
+rollback des déploiements SANS digest en 409 — cf. `UNK-ROLLBACK-FLAG-PERMANENCE`).
 
 ## Preuves
 
 - E2E-PHASEB-NODE (PROVEN, vertical: publish) — Publish Node → URL 200,
   artefact rejouable, 62s.
 - 🟡 Promotion réelle contre AR live (referrers) = follow-up (UNK-AR-LIVE-PROMOTION).
-- ⬜ Rollback live = non exécuté (UNK-ROLLBACK-LIVE) — mécanisme prouvé unitaire only.
+- ✅ E2E-VERTICAL-ROLLBACK (PROVEN, vertical: rollback) — v1 ressuscité du digest
+  après suppression de la révision + 2 négatifs 409. `docs/deploy-evidence/2026-07-17-rollback/`.

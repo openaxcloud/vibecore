@@ -1,0 +1,9 @@
+# v1 original revision — DELETED before rollback
+Error from server (NotFound): deployments.apps "app-cmro606md000i0nabollmjxq9" not found
+
+# rollback re-created deployment — PINNED BY DIGEST
+NAME                            READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES                                                                                                                                                               SELECTOR
+app-cmro7pqzx00040n89j2pbotqq   1/1     1            1           56s   app          europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmro5znqg000i0nbz8a467qg2@sha256:657271c5e72b32885d428d6243df57d489744bf4bf234c8ded00a811e9d9b34c   app=app-cmro7pqzx00040n89j2pbotqq
+
+# image (pull-by-digest):
+europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmro5znqg000i0nbz8a467qg2@sha256:657271c5e72b32885d428d6243df57d489744bf4bf234c8ded00a811e9d9b34c

@@ -1,0 +1,14 @@
+{
+  "token": "<REDACTED>",
+  "user": {
+    "id": "cmro5zkok00080nbek9vbwmrw",
+    "email": "rollback-proof-rbk1784245978@e-code.local",
+    "name": "Rollback Proof"
+  },
+  "organization": {
+    "id": "cmro5zkr0000a0nbeic7jrzyq",
+    "slug": "rollback-proof-rbk1784245978",
+    "name": "Rollback Proof rbk1784245978",
+    "createdAt": "2026-07-16T23:52:59.340Z"
+  }
+}
