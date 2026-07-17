@@ -72,5 +72,12 @@ docs/instructions/Roadmap.md
 !docs/*.md
 !docs/**/*.md
 !outputs/SECURITY_ENV_LEAK_REMEDIATION.md
+# Root-level LIVE tracking files (CLAUDE.md « Suivi ») — versioned despite *.md,
+# so a clone sees them and they never drift as untracked local-only files again.
+!BUG_INVENTORY_LIVE.md
+!PLAN_REMAINING_UNIFIED.md
+!REPLIT_PARITY.md
+!DESIGN_PROGRAM_MASTER.md
+!DESIGN_AUDIT_LIVE.md
 .qodo
 .vibecore-audit/
