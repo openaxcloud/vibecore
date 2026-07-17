@@ -81,6 +81,13 @@ unknowns:
     nextAction: "Avi indique quelles apps réelles publier ; chaque app doit DÉMARRER et RENDRE (validation 6/6 HTTP 200 + DOM). NE PAS fabriquer de faux listings — un catalogue d'apps mortes est pire que vide."
     targetDate: "2026-07-24"
     expiration: "2026-08-15"
+  - unknownId: UNK-SOL-SPEC-MISSING
+    question: "Où est DESIGN_BATCH_SOLUTIONS_SPEC.md ? (spec détaillée du lot SOL-2026-07 / gabarit SOL-01, référencée par DESIGN_PROGRAM_MASTER.md mais INTROUVABLE sur disque — même mal que REPLIT_PARITY.md hors git)"
+    owner: avi
+    priority: 2
+    nextAction: "Avi fournit le fichier s'il existe (disque local ?) — NE PAS le recréer de mémoire. Le versionner comme les 4 fichiers de suivi. Captures SOL-01 réelles présentes : docs/ui-ux-evidence/2026-07-17/app-builder-review/.../app-builder/{en,fr}/ide-agent-{preview,iteration}.png"
+    targetDate: "2026-07-22"
+    expiration: "2026-08-15"
   - unknownId: UNK-REGRESSION-HARNESS
     question: "Existe-t-il un harnais de rejeu automatisé (cron) des preuves e2e pour détecter les régressions de parité ?"
     owner: claude

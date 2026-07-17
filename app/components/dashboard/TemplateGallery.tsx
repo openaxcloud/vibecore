@@ -791,7 +791,13 @@ function GalleryThumbnail({ app, eager, list }: { app: GalleryApp; eager: boolea
     <div
       className={classNames(
         'relative aspect-[16/10] min-w-0 overflow-hidden border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1',
-        list && 'md:h-full md:min-h-52 md:self-stretch md:border-b-0 md:border-r',
+
+        /*
+         * List (desktop): fill the fixed grid column and stretch height WITHOUT the
+         * 16:10 aspect-ratio — keeping it made width balloon out of the column and
+         * overlap the title/description. md:aspect-auto overrides the base ratio.
+         */
+        list && 'md:aspect-auto md:h-full md:min-h-52 md:self-stretch md:border-b-0 md:border-r',
       )}
     >
       {app.thumbnailUrl && !loaded && !failed ? (
