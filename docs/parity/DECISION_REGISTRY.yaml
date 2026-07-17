@@ -1,8 +1,147 @@
 # DECISION_REGISTRY — décisions E-CODE explicites (PAS de la parité Replit).
 # Chaque décision porte owner, priorité, rationale, coût, statut.
 schemaVersion: 1
-repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
+repoCommit: 5ac64e52f15dc9388483d8ba94fa676c592f3da2
 decisions:
+  # ---- D1–D6 : APPROUVÉES par Avi le 17/07/2026 ------------------------------
+  # Preuve d'approbation : message Avi du 17/07/2026, réponse « Oui » à la question
+  # consolidée « tu adoptes D2 à D6 tels qu'écrits dans le document de ton expert ? ».
+  # D1 + fichiers de suivi : approbations antérieures citées ci-dessous.
+  - decisionId: DEC-D1-GIT-RECONCILE
+    title: "Réconcilier le split-brain Git sur branche d'intégration (pas de merge local)"
+    rationale: >
+      Approbation Avi antérieure : « Merge toi même et vérifie les commits des
+      autres sessions si ils sont bon tu les prend » (17/07). L'expert a REJETÉ la
+      méthode -s ours directe dans le local ⇒ branche integration/parity-reconcile-20260717,
+      backups immuables des deux pointes, inventaire, CI, PR, main protégée.
+    consequence: "Le worktree local n'est plus jamais une source de vérité."
+    owner: claude
+    priority: 1
+    cost: "néant"
+    status: DECIDED
+    approvalSource: "message Avi 17/07/2026 (« Merge toi même… »)"
+    nextAction: "Cherry-pick par groupes + PR + protection main"
+    targetDate: "2026-07-18"
+  - decisionId: DEC-D2-ROLLBACK-PERMANENT
+    title: "Rollback par digest permanent et fail-closed"
+    rationale: >
+      SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=1 durable dans values-prod.yaml + staging
+      + JSON schema Helm + test de rendu. Legacy sans digest : 409 typé
+      (rollbackUnavailableReason=NO_RETAINED_DIGEST), backfill retainedDigest quand
+      l'artefact existe, AUCUN fallback URL-only (supprimé après migration). Canary
+      puis généralisation. Alerte si flag absent après helm upgrade + test post-deploy.
+    consequence: "Un 409 explicite vaut mieux qu'un faux succès vers une URL morte."
+    owner: avi
+    priority: 1
+    cost: "néant (config) ; migration/backfill à câbler"
+    status: DECIDED
+    approvalSource: "message Avi 17/07/2026 (« Oui » D2–D6 tels qu'écrits)"
+    nextAction: "Helm values + schema + canary ; backfill ; supprimer fallback URL-only"
+    targetDate: "2026-07-20"
+  - decisionId: DEC-D3-NIX-MULTIZONE
+    title: "Store Nix multi-zone (topologie réelle, coût mesuré)"
+    rationale: >
+      GO. Snapshot signé par génération → clone zonal identique par zone active,
+      montage topology-aware, même generationId/contentHash/signature partout,
+      dérive ⇒ pod bloqué, aucune mutation en place. Alternative regional PD à
+      benchmarker. Python PAS activé par défaut avant test de perte de zone
+      (drain zone-a → projet Python zone-b → uv/python → Preview → Publish →
+      restaurer sans split-brain de génération). Coût mesuré sur SKU europe-west9
+      + capacité provisionnée (GiB provisionnés, pas données utilisées) — pas « 10 $ » figé.
+    consequence: "Débloque Python zéro-manuel sans SPOF zonal."
+    owner: avi
+    priority: 2
+    cost: "à MESURER (SKU + capacité) ; ~10$ = hypothèse non validée"
+    status: DECIDED
+    approvalSource: "message Avi 17/07/2026 (« Oui » D2–D6)"
+    nextAction: "Chiffrage réel + architecture clones zonaux + test perte de zone"
+    targetDate: "2026-07-25"
+  - decisionId: DEC-D4-BILLING-THEN-CONNECTORS
+    title: "Billing minimal sûr AVANT connecteurs Import par lots"
+    rationale: >
+      UsageReservation (idempotency key, montant max, expiration, release/commit) ·
+      débit après étape billable · compensation auto sur cancel/timeout/échec ·
+      hard limit à une frontière sûre (avant migration/Agent, jamais au milieu d'un
+      commit atomique) · UsageEvent immuable · corrélation importJobId↔reservationId↔
+      ledgerEntryId · UI estimation/plafond/résultat. Puis connecteurs par lots :
+      Lot 1 Git-backed (Vercel, Previous Agent export, Bolt, Lovable, Base44) →
+      Lot 2 design (Figma, Claude) → Lot 3 données (Spreadsheet).
+    consequence: "Un import billable ne démarre jamais sans réservation idempotente."
+    owner: avi
+    priority: 3
+    cost: "dev billing minimal"
+    status: DECIDED
+    approvalSource: "message Avi 17/07/2026 (« Oui » D2–D6)"
+    nextAction: "UsageReservation d'abord ; connecteurs par lots ensuite"
+    targetDate: "2026-08-01"
+  - decisionId: DEC-D5-DEDICATED-E2E
+    title: "Compte E2E dédié pour les preuves (pas le Chrome personnel d'Avi)"
+    rationale: >
+      Deux preuves reproductibles avec utilisateur E2E dédié + workspace de test +
+      fixtures nettoyables + login Playwright automatisé (jamais les cookies du
+      profil perso). Preuve 1 : Gallery → Remix authentifié → nouvel ID → IDE →
+      Preview. Preuve 2 : projet Python neuf → auto-mount Nix sans allowlist → uv
+      install → Run → Preview → Publish. Puis régression CI/staging.
+    consequence: "Preuve produit reproductible, indépendante du profil d'Avi."
+    owner: claude
+    priority: 2
+    cost: "setup compte E2E + Playwright auth"
+    status: DECIDED
+    approvalSource: "message Avi 17/07/2026 (« Oui » D2–D6)"
+    nextAction: "Créer le compte E2E + automatiser les 2 parcours"
+    targetDate: "2026-07-22"
+  - decisionId: DEC-D6-POSTHOC-VALIDATION
+    title: "Validation a posteriori TPL-02.PROOF + gate déplacé au merge/release/testé-live"
+    rationale: >
+      Captures validées a posteriori si conformes + liées au commit poussé ; on ne
+      retire PAS de code valide. Champ proofApproval{reviewer, timestamp, evidenceIds} ;
+      CI bloque merge/release si chantier « capture-required ». Règle « aucun push »
+      remplacée par « aucun merge vers main / déploiement prod / passage TESTÉ LIVE
+      sans preuve approuvée ».
+    consequence: "Push sur branche de travail autorisé ; le gate est au merge/release."
+    owner: claude
+    priority: 3
+    cost: "champ proofApproval + gate CI"
+    status: DECIDED
+    approvalSource: "message Avi 17/07/2026 (« Oui » D2–D6)"
+    nextAction: "Ajouter proofApproval + gate CI capture-required"
+    targetDate: "2026-07-26"
+  - decisionId: DEC-TRACKING-FILES-VERSIONED
+    title: "Versionner les 4 fichiers de suivi CLAUDE.md au repo (root)"
+    rationale: >
+      Approbation Avi : « Oui si il faut le faire et c'est sans risque ». Scan
+      sécurité clean (aucun secret). REPLIT_PARITY.md / DESIGN_PROGRAM_MASTER.md /
+      DESIGN_AUDIT_LIVE.md étaient UNTRACKED (ignorés par .gitignore *.md) → négations
+      explicites + commit (5ac64e52).
+    consequence: "Un clone voit les fichiers de suivi ; plus de dérive local-only."
+    owner: claude
+    priority: 2
+    cost: "néant"
+    status: DECIDED
+    approvalSource: "message Avi 17/07/2026 (« Oui si il faut le faire et c'est sans risque »)"
+    nextAction: "Aucun — appliqué (5ac64e52)"
+    targetDate: "2026-07-17"
+  - decisionId: DEC-GALLERY-OPTION-B
+    title: "Gallery : garder notre noyau prouvé + greffer la substance de l'autre session (option B)"
+    rationale: >
+      Avi laisse trancher ; décision B confirmée sur MESURE, pas sur goût :
+      (1) sa passation annonce « 6 cartes converties en apps de démo (Orbit CRM,
+      Northstar, Pulse, Launchline, Kindred, Relay) » mais ses artefacts
+      public/gallery-apps/ s'appellent ai-agent/fastify-api/landing-page/
+      mobile-starter/next-dashboard = les noms framework — LA CONVERSION N'A PAS EU
+      LIEU ; (2) sa vue liste est cassée (chevauchement vignettes/titres, documenté
+      par lui) ; (3) rien de son travail n'est prouvé live, notre noyau l'est (pin
+      immuable + secrets:[] en base). ⇒ noyau prouvé nôtre + greffe de TOUTE sa
+      substance (modération, signalement, provenance, versions, hub 12 sources avec
+      adaptateurs réels, catalogue package, probe SSRF/DNS-rebinding, Empty sans Agent).
+    consequence: "Ne jette rien ; réconcilie sur la branche d'intégration, pas d'écrasement."
+    owner: claude
+    priority: 2
+    cost: "reconcile deux modèles DB (GalleryListing vs ProjectTemplateGallery) + renum migration"
+    status: DECIDED
+    approvalSource: "message Avi 17/07/2026 (« Gallery option B — il me laisse trancher »)"
+    nextAction: "Reconcile sur integration branch (BLOQUÉ jusqu'au GO explicite d'Avi sur le timing)"
+    targetDate: "2026-07-24"
   - decisionId: DEC-GALLERY-NO-SELF-PUBLISH
     title: "Pas de bouton « Publish to Gallery » self-service"
     rationale: >
@@ -19,7 +158,7 @@ decisions:
     cost: "modération humaine + anti-abus (non chiffré)"
     status: OPEN
     nextAction: "Trancher : intake curé (parité) vs self-service modéré (décision E-CODE chiffrée)"
-    targetDate: UNKNOWN
+    targetDate: "2026-07-31"
   - decisionId: DEC-IMPORT-CREDIT-RESERVE
     title: "Réservation de crédits Agent idempotente avant import"
     rationale: >
@@ -32,7 +171,7 @@ decisions:
     cost: "néant (marqueur) ; débit réel à câbler"
     status: OPEN
     nextAction: "Câbler le débit réel ou garder shadow"
-    targetDate: UNKNOWN
+    targetDate: "2026-07-31"
   - decisionId: DEC-TENANT-NO-FOLDER-PER-TENANT
     title: "Pas de folder GCP par tenant par défaut"
     rationale: >

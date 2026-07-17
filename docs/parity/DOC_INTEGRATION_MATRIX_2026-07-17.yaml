@@ -16,285 +16,339 @@ sourceDocuments:
 # d'Avi. Tout le reste (D2→D6, le « message décisions Avi » de REP §9) = expert →
 # RECOMMENDATION + OPEN_DECISION.
 items:
-  # ---------- EVALUATION : verdict + corrections bloquantes ----------
   - itemId: EVAL-VERDICT
     sourceDocument: EVAL
-    sourceSection: "Verdict / §8"
-    sourceQuoteOrSummary: "Bonne trajectoire ; approvalReady:true = faux positif de couverture ; ne pas présenter comme approuvé/parité/prêt lancement public."
+    sourceSection: Verdict / §8
+    sourceQuoteOrSummary: Bonne trajectoire ; approvalReady:true = faux positif de
+      couverture ; ne pas présenter comme approuvé/parité/prêt lancement public.
     classification: CORRECTION
     severity: high
-    currentPlanSection: "11 Conditions d'approbation"
-    currentRepoStatus: "approvalReady tué → readiness 4 niveaux (5d937afb)"
+    currentPlanSection: 11 Conditions d'approbation
+    currentRepoStatus: approvalReady tué → readiness 4 niveaux (5d937afb)
     decisionStatus: OWNER_ALIGNED
     integrationStatus: INTEGRATED
-    actionTaken: "readiness 4 niveaux ; mission §4 exige 8 niveaux → extension requise"
+    actionTaken: readiness 4 niveaux ; mission §4 exige 8 niveaux → extension requise
     targetFile: scripts/parity/generate-approval-status.mjs
-    targetSection: "readiness"
+    targetSection: readiness
     owner: claude
-    targetDate: "2026-07-18"
-    evidenceIds: [docs/parity/APPROVAL_STATUS.json]
-    commit: "5d937afb"
-    notes: "8 niveaux nommés (mission §4) restent à implémenter — voir MATRIX-READINESS-8."
+    targetDate: 2026-07-18
+    evidenceIds:
+      - docs/parity/APPROVAL_STATUS.json
+    commit: 5d937afb
+    notes: 8 niveaux nommés (mission §4) restent à implémenter — voir
+      MATRIX-READINESS-8.
   - itemId: EVAL-3.1-RENAME
     sourceDocument: EVAL
     sourceSection: "3.1"
-    sourceQuoteOrSummary: "Renommer approvalReady (trop large) en registryConformanceReady/declaredScopeReady."
+    sourceQuoteOrSummary: Renommer approvalReady (trop large) en
+      registryConformanceReady/declaredScopeReady.
     classification: CORRECTION
     severity: high
-    currentRepoStatus: "renommé, approvalReady interdit par schéma+validateur"
+    currentRepoStatus: renommé, approvalReady interdit par schéma+validateur
     decisionStatus: OWNER_ALIGNED
     integrationStatus: INTEGRATED
-    actionTaken: "readiness{registryConformance,coreVertical,publicBeta,parityBaseline}"
+    actionTaken: readiness{registryConformance,coreVertical,publicBeta,parityBaseline}
     owner: claude
-    targetDate: "2026-07-17"
-    commit: "5d937afb"
+    targetDate: 2026-07-17
+    commit: 5d937afb
   - itemId: EVAL-3.1-P0LIST
     sourceDocument: EVAL
     sourceSection: "3.1"
-    sourceQuoteOrSummary: "CI compare l'ensemble EXACT des 15 P0 attendus ; ID manquant bloque."
+    sourceQuoteOrSummary: CI compare l'ensemble EXACT des 15 P0 attendus ; ID manquant bloque.
     classification: CORRECTION
     severity: high
-    currentRepoStatus: "P0_EXPECTED.yaml (4/15) ; count gap bloque registryConformance"
+    currentRepoStatus: P0_EXPECTED.yaml (4/15) ; count gap bloque registryConformance
     decisionStatus: OWNER_ALIGNED
     integrationStatus: IMPLEMENTATION_REQUIRED
-    actionTaken: "mécanisme fait ; les 11 IDs restants de l'audit externe à transcrire (non fabriqués)"
+    actionTaken: mécanisme fait ; les 11 IDs restants de l'audit externe à
+      transcrire (non fabriqués)
     targetFile: docs/parity/P0_EXPECTED.yaml
     owner: avi
-    targetDate: "2026-07-24"
-    commit: "5d937afb"
+    targetDate: 2026-07-24
+    commit: 5d937afb
     notes: "BLOQUANT réel : 11 P0 IDs manquants — j'ai refusé de les inventer."
   - itemId: EVAL-3.1-TARGETDATE
     sourceDocument: EVAL
     sourceSection: "3.1"
-    sourceQuoteOrSummary: "Interdire targetDate:UNKNOWN — date ISO + owner + priorité + nextAction obligatoires."
+    sourceQuoteOrSummary: Interdire targetDate:UNKNOWN — date ISO + owner + priorité
+      + nextAction obligatoires.
     classification: CORRECTION
     severity: high
-    currentRepoStatus: "validateur hard-fail sur non-ISO ; 12 dates UNKNOWN → 2026-07-31"
+    currentRepoStatus: validateur hard-fail sur non-ISO ; 12 dates UNKNOWN → 2026-07-31
     decisionStatus: OWNER_ALIGNED
     integrationStatus: INTEGRATED
-    actionTaken: "isIsoDate() ; ACCEPTED_RISK non encore implémenté (mission §4 l'autorise)"
+    actionTaken: isIsoDate() ; ACCEPTED_RISK non encore implémenté (mission §4 l'autorise)
     owner: claude
-    targetDate: "2026-07-17"
-    commit: "5d937afb"
+    targetDate: 2026-07-17
+    commit: 5d937afb
   - itemId: EVAL-3.1-TRIAGE
     sourceDocument: EVAL
     sourceSection: "3.1"
-    sourceQuoteOrSummary: "Aucun événement critique PENDING au-delà du SLA ; changelog 10/07 ne peut coexister avec vert."
+    sourceQuoteOrSummary: Aucun événement critique PENDING au-delà du SLA ;
+      changelog 10/07 ne peut coexister avec vert.
     classification: CORRECTION
     severity: high
-    currentRepoStatus: "cond9 triage SLA 5j ; RPL-20/21/22 PENDING bloque"
+    currentRepoStatus: cond9 triage SLA 5j ; RPL-20/21/22 PENDING bloque
     decisionStatus: OWNER_ALIGNED
     integrationStatus: INTEGRATED
     owner: claude
-    targetDate: "2026-07-17"
-    commit: "5d937afb"
+    targetDate: 2026-07-17
+    commit: 5d937afb
   - itemId: EVAL-3.1-COLLECTOR-CI
     sourceDocument: EVAL
     sourceSection: "3.1"
-    sourceQuoteOrSummary: "Prouver le collecteur JS en CI (routes rendues client capturées automatiquement)."
+    sourceQuoteOrSummary: Prouver le collecteur JS en CI (routes rendues client
+      capturées automatiquement).
     classification: IMPLEMENTATION_GAP
     severity: high
-    currentRepoStatus: "UNK-COLLECTOR-CI-RENDER ouvert ; cond10 bloque registryConformance"
+    currentRepoStatus: UNK-COLLECTOR-CI-RENDER ouvert ; cond10 bloque registryConformance
     decisionStatus: OWNER_ALIGNED
     integrationStatus: IMPLEMENTATION_REQUIRED
-    actionTaken: "gate en place ; chromium-in-CI à câbler"
+    actionTaken: gate en place ; chromium-in-CI à câbler
     targetFile: .github/workflows/parity-registries.yml
     owner: claude
-    targetDate: "2026-07-22"
+    targetDate: 2026-07-22
   - itemId: EVAL-3.2-GIT
     sourceDocument: EVAL
     sourceSection: "3.2"
-    sourceQuoteOrSummary: "Split-brain = incident source de vérité ; réconcilier sur branche d'intégration, backups, CI, PR, main protégée."
+    sourceQuoteOrSummary: Split-brain = incident source de vérité ; réconcilier sur
+      branche d'intégration, backups, CI, PR, main protégée.
     classification: OWNER_DECISION
     severity: high
-    currentRepoStatus: "git sécurisé : merge ouvert clos, tags immuables, branche integration/parity-reconcile-20260717, 98 stashes intacts"
+    currentRepoStatus: "git sécurisé : merge ouvert clos, tags immuables, branche
+      integration/parity-reconcile-20260717, 98 stashes intacts"
     decisionStatus: OWNER_APPROVED
     integrationStatus: IMPLEMENTATION_REQUIRED
-    actionTaken: "D1 stop-the-line fait ; cherry-pick par groupes + PR + protection main = reste"
+    actionTaken: D1 stop-the-line fait ; cherry-pick par groupes + PR + protection
+      main = reste
     owner: claude
-    targetDate: "2026-07-18"
-    evidenceIds: ["tag:backup-immutable/*"]
-    notes: "Avi a approuvé la réconciliation ; l'expert a REJETÉ ma méthode -s ours → plus de merge local."
+    targetDate: 2026-07-18
+    evidenceIds:
+      - tag:backup-immutable/*
+    notes: Avi a approuvé la réconciliation ; l'expert a REJETÉ ma méthode -s ours →
+      plus de merge local.
   - itemId: EVAL-3.3-CLOUDRUN
     sourceDocument: EVAL
-    sourceSection: "3.3 + Sources"
-    sourceQuoteOrSummary: "EVAL: Cloud Run Service Health GA le 29/06/2026 → failover/failback auto ; corriger notre claim périmé."
+    sourceSection: 3.3 + Sources
+    sourceQuoteOrSummary: "EVAL: Cloud Run Service Health GA le 29/06/2026 →
+      failover/failback auto ; corriger notre claim périmé."
     classification: OPEN_QUESTION
     severity: medium
-    currentRepoStatus: "claim non trouvé dans nos docs parité (probablement dans PLAN_PARITE_REPLIT_v5 non présent au repo)"
+    currentRepoStatus: claim non trouvé dans nos docs parité (probablement dans
+      PLAN_PARITE_REPLIT_v5 non présent au repo)
     decisionStatus: CONFLICT
     integrationStatus: OPEN_DECISION
-    actionTaken: "CONFLIT : EVAL dit GA 29/06 ; Avi a lu la doc = « Preview — Pre-GA Offerings Terms ». Priorité §3 : lecture live d'Avi > doc expert → traiter comme Preview + fallback + exit strategy. Reclasser RPL-23→GCP-11."
+    actionTaken: "CONFLIT : EVAL dit GA 29/06 ; Avi a lu la doc = « Preview — Pre-GA
+      Offerings Terms ». Priorité §3 : lecture live d'Avi > doc expert → traiter
+      comme Preview + fallback + exit strategy. Reclasser RPL-23→GCP-11."
     targetFile: docs/parity/PLAN_PARITE_REPLIT.md
     owner: avi
-    targetDate: "2026-07-20"
-    notes: "UNE question consolidée : Cloud Run Service Health est-il GA ou Preview au commit courant ? (re-vérifier release-notes). En attendant : Preview + fallback."
+    targetDate: 2026-07-20
+    notes: "UNE question consolidée : Cloud Run Service Health est-il GA ou Preview
+      au commit courant ? (re-vérifier release-notes). En attendant : Preview +
+      fallback."
   - itemId: EVAL-3.4-AR-PREVIEW
     sourceDocument: EVAL+REP
-    sourceSection: "EVAL 3.4 / REP §10"
-    sourceQuoteOrSummary: "AR attachments encore en Preview → ne pas en dépendre sans fallback (BinAuthz/Container Analysis + copie referrers via ORAS, manifest signé, vérif tenant)."
+    sourceSection: EVAL 3.4 / REP §10
+    sourceQuoteOrSummary: AR attachments encore en Preview → ne pas en dépendre sans
+      fallback (BinAuthz/Container Analysis + copie referrers via ORAS, manifest
+      signé, vérif tenant).
     classification: RISK
     severity: high
-    currentPlanSection: "5 Contrats sécurité / DOMAIN_MODEL §5"
-    currentRepoStatus: "artifact-promotion.ts prouvé unitaire ; adapter AR live = UNK-AR-LIVE-PROMOTION"
+    currentPlanSection: 5 Contrats sécurité / DOMAIN_MODEL §5
+    currentRepoStatus: artifact-promotion.ts prouvé unitaire ; adapter AR live =
+      UNK-AR-LIVE-PROMOTION
     decisionStatus: OWNER_ALIGNED
     integrationStatus: IMPLEMENTATION_REQUIRED
-    actionTaken: "documenter le statut Preview + fallback ORAS/BinAuthz dans le contrat"
+    actionTaken: documenter le statut Preview + fallback ORAS/BinAuthz dans le contrat
     targetFile: docs/parity/RELEASE_PUBLISH_CONTRACT.md
     owner: claude
-    targetDate: "2026-07-25"
+    targetDate: 2026-07-25
   - itemId: EVAL-3.5-IMPORT
     sourceDocument: EVAL+REP
-    sourceSection: "EVAL 3.5 / REP §5"
-    sourceQuoteOrSummary: "Hub = 12 entrées (Empty inclus) ; l'état en compte 11, Previous Agent export manque."
+    sourceSection: EVAL 3.5 / REP §5
+    sourceQuoteOrSummary: Hub = 12 entrées (Empty inclus) ; l'état en compte 11,
+      Previous Agent export manque.
     classification: CORRECTION
     severity: medium
-    currentRepoStatus: "NOTRE code IMPORT_HUB_PROVIDERS = 12 incl previous-agent-export ✓ ; l'impl DE L'AUTRE SESSION (stash) = 11"
+    currentRepoStatus: NOTRE code IMPORT_HUB_PROVIDERS = 12 incl
+      previous-agent-export ✓ ; l'impl DE L'AUTRE SESSION (stash) = 11
     decisionStatus: OWNER_ALIGNED
     integrationStatus: ALREADY_COVERED
-    actionTaken: "notre registre correct ; ajouter previous-agent-export à l'impl stashée lors du reconcile Gallery/Import"
+    actionTaken: notre registre correct ; ajouter previous-agent-export à l'impl
+      stashée lors du reconcile Gallery/Import
     targetFile: services/api/src/import-pipeline.ts
     owner: claude
-    targetDate: "2026-07-24"
-    notes: "Le « 11 » de l'expert = son impl, pas la nôtre."
+    targetDate: 2026-07-24
+    notes: Le « 11 » de l'expert = son impl, pas la nôtre.
   - itemId: EVAL-3.6-FAMILIES
     sourceDocument: EVAL
     sourceSection: "3.6"
-    sourceQuoteOrSummary: "§1 du plan annonce 4 familles vs 5 dans le tableau."
+    sourceQuoteOrSummary: §1 du plan annonce 4 familles vs 5 dans le tableau.
     classification: DOCUMENTATION_GAP
     severity: low
-    currentRepoStatus: "NOTRE collect-baseline : familles COMPUTÉES depuis SOURCES = 7 (jamais dérivant, corrigé 5d937afb). Le '4 vs 5' vise PLAN_PARITE_REPLIT_v5 (non présent au repo)."
+    currentRepoStatus: "NOTRE collect-baseline : familles COMPUTÉES depuis SOURCES =
+      7 (jamais dérivant, corrigé 5d937afb). Le '4 vs 5' vise
+      PLAN_PARITE_REPLIT_v5 (non présent au repo)."
     decisionStatus: OWNER_ALIGNED
     integrationStatus: INTEGRATED
     owner: claude
-    targetDate: "2026-07-17"
-    commit: "5d937afb"
+    targetDate: 2026-07-17
+    commit: 5d937afb
   - itemId: EVAL-5-READINESS-8
     sourceDocument: EVAL+REP
-    sourceSection: "EVAL 5 / mission §4"
-    sourceQuoteOrSummary: "Modèle readiness ; mission exige 8 niveaux nommés : documentReady registryComplete architectureContracted implementationReady verticalReady betaReady publicLaunchReady parityBaselineReady."
+    sourceSection: EVAL 5 / mission §4
+    sourceQuoteOrSummary: "Modèle readiness ; mission exige 8 niveaux nommés :
+      documentReady registryComplete architectureContracted implementationReady
+      verticalReady betaReady publicLaunchReady parityBaselineReady."
     classification: RECOMMENDATION
     severity: high
-    currentRepoStatus: "4 niveaux implémentés ; 8 niveaux = extension requise"
+    currentRepoStatus: 4 niveaux implémentés ; 8 niveaux = extension requise
     decisionStatus: OWNER_ALIGNED
     integrationStatus: IMPLEMENTATION_REQUIRED
     targetFile: scripts/parity/generate-approval-status.mjs
     owner: claude
-    targetDate: "2026-07-18"
-  # ---------- REPONSES : D1–D6 (expert = RECOMMENDATION, sauf D1-reconcile) ----------
+    targetDate: 2026-07-18
   - itemId: REP-D1
     sourceDocument: REP
-    sourceSection: "§2"
-    sourceQuoteOrSummary: "D1 OUI sous procédure contrôlée (branche intégration, backups, inventaire, CI, PR). Méthode -s ours REJETÉE."
+    sourceSection: §2
+    sourceQuoteOrSummary: D1 OUI sous procédure contrôlée (branche intégration,
+      backups, inventaire, CI, PR). Méthode -s ours REJETÉE.
     classification: OWNER_DECISION
     severity: high
-    currentRepoStatus: "git sécurisé + branche intégration ; reconcile en cours"
+    currentRepoStatus: git sécurisé + branche intégration ; reconcile en cours
     decisionStatus: OWNER_APPROVED
     integrationStatus: IMPLEMENTATION_REQUIRED
     owner: claude
-    targetDate: "2026-07-18"
+    targetDate: 2026-07-18
+    notes: APPROUVÉ Avi 17/07/2026 (« Oui » D2–D6) — voir DECISION_REGISTRY DEC-D1.
   - itemId: REP-D2
     sourceDocument: REP
-    sourceSection: "§3"
-    sourceQuoteOrSummary: "D2 rollback permanent fail-closed : Helm values+schema+canary, 409 typé legacy, backfill retainedDigest, aucun fallback URL-only, alerte flag post-helm."
-    classification: RECOMMENDATION
+    sourceSection: §3
+    sourceQuoteOrSummary: "D2 rollback permanent fail-closed : Helm
+      values+schema+canary, 409 typé legacy, backfill retainedDigest, aucun
+      fallback URL-only, alerte flag post-helm."
+    classification: OWNER_DECISION
     severity: high
-    currentRepoStatus: "mécanisme+preuve live faits (ec0ad6bd) ; flag kubectl-set éphémère ; permanence Helm = à faire"
-    decisionStatus: OPEN_DECISION
-    integrationStatus: OPEN_DECISION
-    actionTaken: "recommandation expert, PAS décision Avi explicite → attend GO"
+    currentRepoStatus: mécanisme+preuve live faits (ec0ad6bd) ; flag kubectl-set
+      éphémère ; permanence Helm = à faire
+    decisionStatus: OWNER_APPROVED
+    integrationStatus: IMPLEMENTATION_REQUIRED
+    actionTaken: recommandation expert, PAS décision Avi explicite → attend GO
     targetFile: infra/helm/platform/templates/configmap.yaml
     owner: avi
-    targetDate: "2026-07-20"
-    evidenceIds: [docs/deploy-evidence/2026-07-17-rollback/]
+    targetDate: 2026-07-20
+    evidenceIds:
+      - docs/deploy-evidence/2026-07-17-rollback/
+    notes: APPROUVÉ Avi 17/07/2026 (« Oui » D2–D6) — voir DECISION_REGISTRY DEC-D2.
   - itemId: REP-D3
     sourceDocument: REP
-    sourceSection: "§4"
-    sourceQuoteOrSummary: "D3 GO multi-zone : snapshot signé/génération + clone zonal identique par zone, topology-aware, generationId/hash, test perte de zone, coût mesuré (pas 10$ figé)."
-    classification: RECOMMENDATION
+    sourceSection: §4
+    sourceQuoteOrSummary: "D3 GO multi-zone : snapshot signé/génération + clone
+      zonal identique par zone, topology-aware, generationId/hash, test perte de
+      zone, coût mesuré (pas 10$ figé)."
+    classification: OWNER_DECISION
     severity: high
-    currentRepoStatus: "store Nix zonal ; multi-zone non implémenté"
-    decisionStatus: OPEN_DECISION
-    integrationStatus: OPEN_DECISION
+    currentRepoStatus: store Nix zonal ; multi-zone non implémenté
+    decisionStatus: OWNER_APPROVED
+    integrationStatus: IMPLEMENTATION_REQUIRED
     owner: avi
-    targetDate: "2026-07-25"
+    targetDate: 2026-07-25
+    notes: APPROUVÉ Avi 17/07/2026 (« Oui » D2–D6) — voir DECISION_REGISTRY DEC-D3.
   - itemId: REP-D4
     sourceDocument: REP
-    sourceSection: "§5"
-    sourceQuoteOrSummary: "D4 billing minimal d'abord (UsageReservation idempotence/compensation/hard-limit) puis connecteurs par lots (Git-backed / design / spreadsheet)."
-    classification: RECOMMENDATION
+    sourceSection: §5
+    sourceQuoteOrSummary: D4 billing minimal d'abord (UsageReservation
+      idempotence/compensation/hard-limit) puis connecteurs par lots (Git-backed
+      / design / spreadsheet).
+    classification: OWNER_DECISION
     severity: medium
-    currentRepoStatus: "réservation crédits idempotente shadow (DEC-IMPORT-CREDIT-RESERVE) ; billing minimal non fait"
-    decisionStatus: OPEN_DECISION
-    integrationStatus: OPEN_DECISION
+    currentRepoStatus: réservation crédits idempotente shadow
+      (DEC-IMPORT-CREDIT-RESERVE) ; billing minimal non fait
+    decisionStatus: OWNER_APPROVED
+    integrationStatus: IMPLEMENTATION_REQUIRED
     owner: avi
-    targetDate: "2026-08-01"
+    targetDate: 2026-08-01
+    notes: APPROUVÉ Avi 17/07/2026 (« Oui » D2–D6) — voir DECISION_REGISTRY DEC-D4.
   - itemId: REP-D5
     sourceDocument: REP
-    sourceSection: "§6"
-    sourceQuoteOrSummary: "D5 deux preuves MAINTENANT avec compte E2E dédié (pas Chrome perso) : Gallery→Remix auth→IDE→Preview ; projet Python neuf→auto-mount→uv→Run→Preview→Publish ; puis régression CI."
-    classification: RECOMMENDATION
+    sourceSection: §6
+    sourceQuoteOrSummary: "D5 deux preuves MAINTENANT avec compte E2E dédié (pas
+      Chrome perso) : Gallery→Remix auth→IDE→Preview ; projet Python
+      neuf→auto-mount→uv→Run→Preview→Publish ; puis régression CI."
+    classification: OWNER_DECISION
     severity: high
-    currentRepoStatus: "preuves partielles (handoff Chrome Avi) ; compte E2E dédié non créé"
-    decisionStatus: OPEN_DECISION
-    integrationStatus: OPEN_DECISION
+    currentRepoStatus: preuves partielles (handoff Chrome Avi) ; compte E2E dédié non créé
+    decisionStatus: OWNER_APPROVED
+    integrationStatus: IMPLEMENTATION_REQUIRED
     owner: claude
-    targetDate: "2026-07-22"
+    targetDate: 2026-07-22
+    notes: APPROUVÉ Avi 17/07/2026 (« Oui » D2–D6) — voir DECISION_REGISTRY DEC-D5.
   - itemId: REP-D6
     sourceDocument: REP
-    sourceSection: "§7"
-    sourceQuoteOrSummary: "D6 validation a posteriori si conforme+liée au commit ; ne pas retirer de code valide ; règle = merge/release/TESTÉ-LIVE bloqués sans preuve approuvée ; champ proofApproval{reviewer,timestamp,evidenceIds}."
-    classification: RECOMMENDATION
+    sourceSection: §7
+    sourceQuoteOrSummary: D6 validation a posteriori si conforme+liée au commit ; ne
+      pas retirer de code valide ; règle = merge/release/TESTÉ-LIVE bloqués sans
+      preuve approuvée ; champ proofApproval{reviewer,timestamp,evidenceIds}.
+    classification: OWNER_DECISION
     severity: medium
-    currentRepoStatus: "pas de champ proofApproval ; règle no-push obsolète"
-    decisionStatus: OPEN_DECISION
-    integrationStatus: OPEN_DECISION
+    currentRepoStatus: pas de champ proofApproval ; règle no-push obsolète
+    decisionStatus: OWNER_APPROVED
+    integrationStatus: IMPLEMENTATION_REQUIRED
     owner: claude
-    targetDate: "2026-07-26"
+    targetDate: 2026-07-26
+    notes: APPROUVÉ Avi 17/07/2026 (« Oui » D2–D6) — voir DECISION_REGISTRY DEC-D6.
   - itemId: REP-Q-MULTIZONE-COST
     sourceDocument: REP
-    sourceSection: "§10"
-    sourceQuoteOrSummary: "Coût mensuel exact multi-zone : mesurer SKU + capacité provisionnée réels (GiB provisionnés, pas données utilisées)."
+    sourceSection: §10
+    sourceQuoteOrSummary: "Coût mensuel exact multi-zone : mesurer SKU + capacité
+      provisionnée réels (GiB provisionnés, pas données utilisées)."
     classification: OPEN_QUESTION
     severity: medium
     integrationStatus: OPEN_DECISION
     owner: avi
-    targetDate: "2026-07-25"
+    targetDate: 2026-07-25
   - itemId: REP-Q-REGIONALPD
     sourceDocument: REP
-    sourceSection: "§10"
-    sourceQuoteOrSummary: "Regional PD vs clones zonaux : benchmark attachement/latence/nœuds/coût/failover."
+    sourceSection: §10
+    sourceQuoteOrSummary: "Regional PD vs clones zonaux : benchmark
+      attachement/latence/nœuds/coût/failover."
     classification: OPEN_QUESTION
     severity: medium
     integrationStatus: OPEN_DECISION
     owner: claude
-    targetDate: "2026-07-25"
+    targetDate: 2026-07-25
   - itemId: REP-Q-IMPORT-AVAIL
     sourceDocument: REP
-    sourceSection: "§10"
-    sourceQuoteOrSummary: "Disponibilité exacte de certains imports par compte/plan : observation UI authentifiée + registre versionné."
+    sourceSection: §10
+    sourceQuoteOrSummary: "Disponibilité exacte de certains imports par compte/plan
+      : observation UI authentifiée + registre versionné."
     classification: OPEN_QUESTION
     severity: low
     integrationStatus: OPEN_DECISION
     owner: claude
-    targetDate: "2026-08-01"
+    targetDate: 2026-08-01
   - itemId: REP-Q-AR-MATURITY
     sourceDocument: REP
-    sourceSection: "§10"
-    sourceQuoteOrSummary: "Maturité AR attachments : feature lifecycle + fallback avant dépendance prod."
+    sourceSection: §10
+    sourceQuoteOrSummary: "Maturité AR attachments : feature lifecycle + fallback
+      avant dépendance prod."
     classification: OPEN_QUESTION
     severity: high
     integrationStatus: OPEN_DECISION
     owner: claude
-    targetDate: "2026-07-25"
+    targetDate: 2026-07-25
   - itemId: REP-Q-CHECKPOINT
     sourceDocument: REP
-    sourceSection: "§10"
-    sourceQuoteOrSummary: "Checkpoint cohérent : aucune promesse tant que protocole volume+DB+runtime non implémenté et restauré."
+    sourceSection: §10
+    sourceQuoteOrSummary: "Checkpoint cohérent : aucune promesse tant que protocole
+      volume+DB+runtime non implémenté et restauré."
     classification: RISK
     severity: high
-    currentRepoStatus: "machines à états checkpoint prouvées unitaire (lifecycle-state-machines) ; implémentation live = non"
+    currentRepoStatus: machines à états checkpoint prouvées unitaire
+      (lifecycle-state-machines) ; implémentation live = non
     integrationStatus: IMPLEMENTATION_REQUIRED
     owner: claude
-    targetDate: "2026-08-05"
-    notes: "Interdit mission §9 : ne pas présenter Checkpoint comme implémenté car contracté."
+    targetDate: 2026-08-05
+    notes: "Interdit mission §9 : ne pas présenter Checkpoint comme implémenté car
+      contracté."
