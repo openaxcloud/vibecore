@@ -401,17 +401,29 @@ function checkHeader(file, doc) {
   const p0 = loadYaml(join(parityRoot, 'P0_REGISTRY.yaml'));
   const decisions = loadYaml(join(parityRoot, 'DECISION_REGISTRY.yaml'));
   const unknowns = loadYaml(join(parityRoot, 'UNKNOWN_REGISTRY.yaml'));
+  const p0Expected = loadYaml(join(parityRoot, 'P0_EXPECTED.yaml'));
   checkHeader('P0_REGISTRY.yaml', p0);
   checkHeader('DECISION_REGISTRY.yaml', decisions);
   checkHeader('UNKNOWN_REGISTRY.yaml', unknowns);
+  checkHeader('P0_EXPECTED.yaml', p0Expected);
+
+  // CI RULE (2026-07-17): targetDate must be a real ISO date — `UNKNOWN`/missing forbidden.
+  const isIsoDate = (d) => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d));
 
   for (const item of p0.p0s ?? []) {
     requireFields(
       'P0_REGISTRY.yaml',
       item,
-      ['p0Id', 'title', 'priority', 'owner', 'status', 'nextAction'],
+      ['p0Id', 'title', 'priority', 'owner', 'status', 'nextAction', 'targetDate'],
       item?.p0Id ?? 'p0',
     );
+
+    if (!isIsoDate(item.targetDate)) {
+      fail(
+        'P0_REGISTRY.yaml',
+        `${item.p0Id}: targetDate must be an ISO date (got ${JSON.stringify(item.targetDate)}) — UNKNOWN forbidden`,
+      );
+    }
 
     // CI RULE: no P0 CLOSED without commit + reviewer + proof.
     if (item.status === 'CLOSED' && (!item.commit || !item.reviewer || item.reviewer === 'UNKNOWN' || !item.proof)) {
@@ -442,10 +454,31 @@ function checkHeader(file, doc) {
       ['unknownId', 'question', 'owner', 'priority', 'nextAction', 'targetDate', 'expiration'],
       unknown?.unknownId ?? 'unknown',
     );
+
+    if (!isIsoDate(unknown.targetDate)) {
+      fail(
+        'UNKNOWN_REGISTRY.yaml',
+        `${unknown.unknownId}: targetDate must be an ISO date (got ${JSON.stringify(unknown.targetDate)}) — UNKNOWN forbidden`,
+      );
+    }
+  }
+
+  /*
+   * CI RULE: P0_EXPECTED lists the audit's exact P0 IDs; every knownExpectedId
+   * must exist in P0_REGISTRY (a missing id is a structural gap, not just a
+   * non-ready signal). The count gap (present vs expectedCount) is surfaced by
+   * registryConformanceReady, not hard-failed here (it needs the audit's 11 IDs).
+   */
+  const registeredIds = new Set((p0.p0s ?? []).map((p) => p.p0Id));
+
+  for (const id of p0Expected.knownExpectedIds ?? []) {
+    if (!registeredIds.has(id)) {
+      fail('P0_EXPECTED.yaml', `expected P0 ${id} is absent from P0_REGISTRY.yaml`);
+    }
   }
 
   checked.push(
-    `P0/DECISION/UNKNOWN registries (${(p0.p0s ?? []).length}/${(decisions.decisions ?? []).length}/${(unknowns.unknowns ?? []).length})`,
+    `P0/DECISION/UNKNOWN registries (${(p0.p0s ?? []).length}/${(decisions.decisions ?? []).length}/${(unknowns.unknowns ?? []).length}); P0_EXPECTED ${(p0Expected.knownExpectedIds ?? []).length}/${p0Expected.expectedCount} enumerated`,
   );
 }
 
@@ -534,27 +567,30 @@ function checkHeader(file, doc) {
       );
     } else {
       /*
-       * Consistency of the 6-condition algorithm (audit v4 H): approvalReady must
-       * equal "every condition passed" — no other path to APPROVED.
+       * Consistency of the 4-stage readiness model (2026-07-17): each stage's
+       * readiness must equal "every one of its conditions passed" — no other path.
+       * There is no single `approvalReady`; `registryConformanceReady` is a strict
+       * registry-hygiene gate, not a product-approval signal.
        */
       const status = JSON.parse(computed);
-      const conds = status.conditions ?? [];
+      const stages = status.stages ?? {};
+      const readiness = status.readiness ?? {};
 
-      if (conds.length !== 6) {
-        fail('APPROVAL_STATUS.json', `expected exactly 6 approval conditions, got ${conds.length}`);
+      for (const [key, stage] of Object.entries(stages)) {
+        const stageReady = (stage.conditions ?? []).every((c) => c.passed === true);
+
+        if (stage.ready !== stageReady || readiness[`${key}Ready`] !== stageReady) {
+          fail('APPROVAL_STATUS.json', `stage ${key}: ready flag inconsistent with its conditions`);
+        }
       }
 
-      const allPass = conds.every((c) => c.passed === true);
-
-      if (status.approvalReady !== allPass) {
-        fail(
-          'APPROVAL_STATUS.json',
-          `approvalReady (${status.approvalReady}) ≠ all-conditions-pass (${allPass}) — the algorithm is inconsistent`,
-        );
+      // Guard against a re-introduced blanket `approvalReady` (the false positive).
+      if ('approvalReady' in status) {
+        fail('APPROVAL_STATUS.json', 'obsolete field `approvalReady` present — use the 4-stage `readiness` instead');
       }
 
       checked.push(
-        `APPROVAL_STATUS.json is up to date (computed; 6-condition algorithm consistent, approvalReady=${status.approvalReady})`,
+        `APPROVAL_STATUS.json up to date (4-stage: registryConformance=${readiness.registryConformanceReady} coreVertical=${readiness.coreVerticalReady} publicBeta=${readiness.publicBetaReady} parityBaseline=${readiness.parityBaselineReady})`,
       );
     }
   }

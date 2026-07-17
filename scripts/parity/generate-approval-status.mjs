@@ -36,6 +36,7 @@ const REQUIRED_REGISTRIES = [
   'E2E_PROOFS.yaml',
   'OBSERVATION_REGISTRY.yaml',
   'SOURCE_REGISTRY.yaml',
+  'P0_EXPECTED.yaml',
 ];
 
 /** Services a surface may legitimately reference (orphan check, cond. 3). */
@@ -64,6 +65,16 @@ function yaml(name) {
 /** Freshness SLA for a public source (days since lastVerified). */
 const SOURCE_FRESHNESS_SLA_DAYS = 30;
 
+/**
+ * Triage SLA: a critical collected event (a baseline claim or observation) may
+ * not sit `PENDING`/untriaged longer than this. The 2026-07-10 changelog cannot
+ * coexist with a green registry status.
+ */
+const TRIAGE_SLA_DAYS = 5;
+
+/** UNKNOWN whose resolution is a hard registry-conformance gate. */
+const COLLECTOR_CI_UNKNOWN_ID = 'UNK-COLLECTOR-CI-RENDER';
+
 export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
   const p0 = yaml('P0_REGISTRY.yaml');
   const decisions = yaml('DECISION_REGISTRY.yaml');
@@ -71,6 +82,13 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
   const baseline = yaml('PUBLIC_BASELINE_REPLIT_2026.yaml');
   const surfaces = yaml('SURFACE_REGISTRY.yaml');
   const e2e = yaml('E2E_PROOFS.yaml');
+
+  const observations = existsSync(join(parityRoot, 'OBSERVATION_REGISTRY.yaml'))
+    ? yaml('OBSERVATION_REGISTRY.yaml')
+    : { observations: [] };
+  const p0Expected = existsSync(join(parityRoot, 'P0_EXPECTED.yaml'))
+    ? yaml('P0_EXPECTED.yaml')
+    : { expectedCount: 0, knownExpectedIds: [] };
 
   const nowMs = Date.parse(now);
 
@@ -249,7 +267,148 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
     reasons: [...expiredDecisions.map((d) => `decision ${d} is OPEN past its expiration`), ...p0UnknownGaps],
   };
 
-  const conditions = [cond1, cond2, cond3, cond4, cond5, cond6];
+  /* ===== NEW registry-conformance gates (hardening, 2026-07-17) ===== */
+
+  /*
+   * (7) The P0_REGISTRY must contain the EXACT expected set of P0 IDs (the 15
+   *     from the external audit). A missing id — or a count mismatch — blocks.
+   */
+  const registeredP0Ids = new Set((p0.p0s ?? []).map((p) => p.p0Id));
+  const missingExpectedP0 = (p0Expected.knownExpectedIds ?? []).filter((id) => !registeredP0Ids.has(id));
+  const p0CountOk = registeredP0Ids.size === (p0Expected.expectedCount ?? -1);
+
+  const cond7 = {
+    id: 7,
+    description: `P0_REGISTRY covers the exact expected set (${p0Expected.expectedCount} P0)`,
+    passed: missingExpectedP0.length === 0 && p0CountOk,
+    reasons: [
+      ...missingExpectedP0.map((id) => `expected P0 ${id} missing from P0_REGISTRY`),
+      ...(p0CountOk
+        ? []
+        : [
+            `P0 count ${registeredP0Ids.size} ≠ expected ${p0Expected.expectedCount} (${(p0Expected.expectedCount ?? 0) - registeredP0Ids.size} not yet enumerated)`,
+          ]),
+    ],
+  };
+
+  /*
+   * (8) No `targetDate: UNKNOWN` (or missing) on any P0 or UNKNOWN entry — an
+   *     open item without a real ISO date is not a plan.
+   */
+  const isBadDate = (d) => !d || d === 'UNKNOWN' || Number.isNaN(Date.parse(d));
+
+  const p0BadDates = (p0.p0s ?? [])
+    .filter((p) => isBadDate(p.targetDate))
+    .map((p) => `${p.p0Id}: targetDate=${p.targetDate ?? 'missing'}`);
+  const unkBadDates = (unknowns.unknowns ?? [])
+    .filter((u) => isBadDate(u.targetDate))
+    .map((u) => `${u.unknownId}: targetDate=${u.targetDate ?? 'missing'}`);
+
+  const cond8 = {
+    id: 8,
+    description: 'no targetDate: UNKNOWN/missing on any P0 or UNKNOWN entry (ISO date required)',
+    passed: p0BadDates.length === 0 && unkBadDates.length === 0,
+    reasons: [...p0BadDates, ...unkBadDates],
+  };
+
+  /*
+   * (9) Triage SLA: no critical collected event stays PENDING beyond the SLA.
+   *     Scans baseline claims + observations carrying a triageState.
+   */
+  const triageOverdue = [];
+
+  const triageAge = (evt) => {
+    const t = Date.parse(evt.firstSeen ?? evt.eventDate ?? evt.observedAt ?? '');
+    return Number.isFinite(t) ? (nowMs - t) / 86_400_000 : Infinity;
+  };
+
+  for (const c of baseline.claims ?? []) {
+    if (c.triageState && c.triageState !== 'DONE' && c.triageState !== 'TRIAGED' && triageAge(c) > TRIAGE_SLA_DAYS) {
+      triageOverdue.push(
+        `${c.claimId} triageState=${c.triageState} for ${Math.round(triageAge(c))}d (SLA ${TRIAGE_SLA_DAYS}d)`,
+      );
+    }
+  }
+
+  for (const o of observations.observations ?? []) {
+    if (o.triageState && o.triageState !== 'DONE' && o.triageState !== 'TRIAGED' && triageAge(o) > TRIAGE_SLA_DAYS) {
+      triageOverdue.push(`${o.observationId ?? o.id} triageState=${o.triageState} overdue`);
+    }
+  }
+
+  const cond9 = {
+    id: 9,
+    description: `no critical event PENDING beyond the ${TRIAGE_SLA_DAYS}-day triage SLA`,
+    passed: triageOverdue.length === 0,
+    reasons: triageOverdue,
+  };
+
+  // (10) The JS collector must be proven in CI (UNK-COLLECTOR-CI-RENDER resolved).
+  const collectorUnknownOpen = (unknowns.unknowns ?? []).some((u) => u.unknownId === COLLECTOR_CI_UNKNOWN_ID);
+
+  const cond10 = {
+    id: 10,
+    description: `JS collector proven in CI (${COLLECTOR_CI_UNKNOWN_ID} resolved)`,
+    passed: !collectorUnknownOpen,
+    reasons: collectorUnknownOpen ? [`${COLLECTOR_CI_UNKNOWN_ID} still open in UNKNOWN_REGISTRY`] : [],
+  };
+
+  /* ===== 4-stage readiness model (2026-07-17) ===== */
+  /*
+   * Named precisely: registryConformanceReady is a REGISTRY-HYGIENE gate, NOT a
+   * product-approval signal. Stages are cumulative.
+   */
+  const allP0Closed = p0Rollup.length > 0 && p0Rollup.every((p) => p.derived === 'CLOSED');
+
+  /*
+   * Stages 1 and 2 are INDEPENDENT gates (the core product flow can be E2E-green
+   * while the registry paperwork is not, and vice-versa). Stages 3 and 4 are
+   * HIGHER maturity bars that explicitly REQUIRE the lower stages as conditions.
+   */
+  const registryConformance = {
+    ready: [cond2, cond3, cond6, cond7, cond8, cond9, cond10].every((c) => c.passed),
+    conditions: [cond2, cond3, cond6, cond7, cond8, cond9, cond10],
+  };
+  const coreVertical = {
+    ready: [cond1, cond4].every((c) => c.passed),
+    conditions: [cond1, cond4],
+  };
+
+  const gate = (id, description, passed, reason) => ({ id, description, passed, reasons: passed ? [] : [reason] });
+
+  const publicBetaConds = [
+    gate(13, 'registryConformanceReady', registryConformance.ready, 'registry conformance not met'),
+    gate(14, 'coreVerticalReady', coreVertical.ready, 'core vertical not green'),
+    cond5,
+    gate(
+      11,
+      'all P0 CLOSED (commit+reviewer+proof)',
+      allP0Closed,
+      'not every P0 is CLOSED (PROVEN without a human reviewer does not count)',
+    ),
+  ];
+
+  const publicBeta = { ready: publicBetaConds.every((c) => c.passed), conditions: publicBetaConds };
+
+  const noOpenUnknown = (unknowns.unknowns ?? []).length === 0;
+
+  const parityBaselineConds = [
+    gate(15, 'publicBetaReady', publicBeta.ready, 'public beta not ready'),
+    gate(16, 'no open UNKNOWN remains', noOpenUnknown, `${(unknowns.unknowns ?? []).length} UNKNOWN still open`),
+  ];
+
+  const parityBaseline = { ready: parityBaselineConds.every((c) => c.passed), conditions: parityBaselineConds };
+
+  const stages = { registryConformance, coreVertical, publicBeta, parityBaseline };
+
+  const readiness = {
+    registryConformanceReady: registryConformance.ready,
+    coreVerticalReady: coreVertical.ready,
+    publicBetaReady: publicBeta.ready,
+    parityBaselineReady: parityBaseline.ready,
+  };
+
+  const conditions = [cond1, cond2, cond3, cond4, cond5, cond6, cond7, cond8, cond9, cond10];
 
   const blocking = conditions
     .filter((c) => !c.passed)
@@ -273,11 +432,13 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
   };
 
   return {
-    schemaVersion: 2,
-    generatedFrom: REQUIRED_REGISTRIES,
+    schemaVersion: 3,
+    generatedFrom: [...REQUIRED_REGISTRIES, 'P0_EXPECTED.yaml'],
     note: 'COMPUTED by scripts/parity/generate-approval-status.mjs — never edit by hand. The validator fails the build on drift.',
-    algorithm: 'APPROVED iff all 6 conditions pass (audit v4 H). See conditions[].',
-    approvalReady: blocking.length === 0,
+    algorithm:
+      '4-stage cumulative readiness: registryConformance → coreVertical → publicBeta → parityBaseline. registryConformanceReady is a REGISTRY-HYGIENE gate, NOT a product-approval signal.',
+    readiness,
+    stages,
     blocking,
     conditions,
     counts,

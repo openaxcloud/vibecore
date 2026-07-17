@@ -1,0 +1,18 @@
+# P0_EXPECTED — the AUTHORITATIVE set of P0 IDs the external audit v4 defined.
+# registryConformanceReady requires P0_REGISTRY.yaml to contain EVERY id below
+# AND exactly `expectedCount` P0s. A missing id — or a count mismatch — BLOCKS.
+#
+# The external audit stated 15 P0. Only 4 are enumerated here so far; the 11
+# others must be transcribed from the audit before the registry is conformant.
+# Until then the count gap (4 ≠ 15) BLOCKS on purpose — that is the honest signal
+# the previous `approvalReady: true` hid.
+schemaVersion: 1
+repoCommit: 5ac64e52f15dc9388483d8ba94fa676c592f3da2
+expectedCount: 15
+knownExpectedIds:
+  - P0-V4-1 # collecteur aveugle
+  - P0-V4-2 # gallery requalifiée
+  - P0-V4-3 # hiérarchie GCP folder-per-tenant
+  - P0-V4-4 # promotion Artifact Registry referrers
+# TODO(audit): transcrire les 11 P0 restants de l'audit externe v4 avec leurs IDs
+# réels. Tant qu'ils manquent, registryConformanceReady = false (bloquant voulu).

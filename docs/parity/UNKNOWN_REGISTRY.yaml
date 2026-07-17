@@ -8,75 +8,75 @@ unknowns:
     owner: claude
     priority: 4
     nextAction: "Implémenter l'adapter AR live (API OCI referrers) + une promotion réelle + test négatif attachment manquant"
-    targetDate: UNKNOWN
+    targetDate: "2026-07-31"
     expiration: "2026-08-31"
   - unknownId: UNK-GALLERY-REPORT-FLOW
     question: "Le flux de signalement Trust & Safety d'une app Gallery a-t-il une URL/archive rejouable ?"
     owner: avi
     priority: 2
     nextAction: "Capturer le flux de report (rendu) si accessible ; sinon garder CONFIRMED via canal"
-    targetDate: UNKNOWN
+    targetDate: "2026-07-31"
     expiration: "2026-09-30"
   - unknownId: UNK-COLLECTOR-CI-RENDER
     question: "Le rendu JS (playwright) tourne-t-il en CI GitHub sans blocage bot ?"
     owner: claude
     priority: 1
     nextAction: "Installer chromium en CI + run réel ; sinon renderer via service dédié"
-    targetDate: UNKNOWN
+    targetDate: "2026-07-31"
     expiration: "2026-08-15"
   - unknownId: UNK-CAPACITY-RATE-MEASURED
     question: "Le 0,1 req/s de création de folders est-il stable par projet/région (mesure live) ?"
     owner: avi
     priority: 3
     nextAction: "Mesurer le débit réel de création de folders en prod GCP"
-    targetDate: UNKNOWN
+    targetDate: "2026-07-31"
     expiration: "2026-09-30"
   - unknownId: UNK-GALLERY-SELF-PUBLISH
     question: "Existe-t-il un Publish/Unpublish self-service DANS l'IDE Replit (vs Typeform externe curé) ?"
     owner: avi
     priority: 2
     nextAction: "Observer un compte auteur Replit ; sinon rester UNKNOWN — ne jamais présumer un self-service (cf. DEC-GALLERY-NO-SELF-PUBLISH)"
-    targetDate: UNKNOWN
+    targetDate: "2026-07-31"
     expiration: "2026-09-30"
   - unknownId: UNK-GALLERY-EMBED-PREVIEW
     question: "La carte Gallery embarque-t-elle une preview live (iframe) ou seulement un lien sortant ?"
     owner: claude
     priority: 2
     nextAction: "Capturer le DOM de la carte détail ; le rendu actuel ne montre qu'un lien"
-    targetDate: UNKNOWN
+    targetDate: "2026-07-31"
     expiration: "2026-09-30"
   - unknownId: UNK-GALLERY-REVIEW-WORKFLOW
     question: "Quel est le workflow interne de revue / sanctions / appels d'une soumission Gallery ?"
     owner: avi
     priority: 3
     nextAction: "Back-office non observable ; documenter si Replit publie sa politique, sinon rester UNKNOWN"
-    targetDate: UNKNOWN
+    targetDate: "2026-07-31"
     expiration: "2026-10-31"
   - unknownId: UNK-GALLERY-REMIX-LICENSE
     question: "Quelle licence / attribution s'applique au remix d'une app Gallery ?"
     owner: avi
     priority: 3
     nextAction: "Aucune mention de licence sur le rendu détail ; chercher CGU Replit ou rester UNKNOWN"
-    targetDate: UNKNOWN
+    targetDate: "2026-07-31"
     expiration: "2026-10-31"
   - unknownId: UNK-AUTH-ACCESS-LIVE
     question: "Les 4 modes d'accès déploiement (Public/Password/Workspace/Invite) + sign-in forcé + gouvernance admin sont-ils implémentés et prouvés live côté E-Code ?"
     owner: claude
     priority: 2
     nextAction: "Implémenter accessPolicyVersion sur ReleaseManifest + parcours e2e (mode Private → login forcé) ; cf. AUTH_ACCESS_CONTRACT.md"
-    targetDate: UNKNOWN
+    targetDate: "2026-07-31"
     expiration: "2026-09-30"
   - unknownId: UNK-REGRESSION-HARNESS
     question: "Existe-t-il un harnais de rejeu automatisé (cron) des preuves e2e pour détecter les régressions de parité ?"
     owner: claude
     priority: 2
     nextAction: "Câbler un RegressionRun rejouant les proofs PROVEN + verdict GREEN/RED ; cf. REGRESSION_RUN_CONTRACT.md"
-    targetDate: UNKNOWN
+    targetDate: "2026-07-31"
     expiration: "2026-10-31"
   - unknownId: UNK-ROLLBACK-FLAG-PERMANENCE
     question: "Le flag SERVER_DEPLOY_ROLLBACK_FROM_DIGEST doit-il passer par défaut prod-wide (values-prod.yaml) — sachant que ON change le rollback des déploiements SANS digest (pre-fix) en 409 au lieu d'une URL-copie possiblement morte ?"
     owner: avi
     priority: 3
     nextAction: "Décider l'activation permanente (values-prod.yaml) ; le mécanisme est PROUVÉ live (E2E-VERTICAL-ROLLBACK). Flag actuellement kubectl-set, tombera au prochain helm upgrade."
-    targetDate: UNKNOWN
+    targetDate: "2026-07-31"
     expiration: "2026-09-30"

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "generatedFrom": [
     "P0_REGISTRY.yaml",
     "DECISION_REGISTRY.yaml",
@@ -8,12 +8,205 @@
     "SURFACE_REGISTRY.yaml",
     "E2E_PROOFS.yaml",
     "OBSERVATION_REGISTRY.yaml",
-    "SOURCE_REGISTRY.yaml"
+    "SOURCE_REGISTRY.yaml",
+    "P0_EXPECTED.yaml",
+    "P0_EXPECTED.yaml"
   ],
   "note": "COMPUTED by scripts/parity/generate-approval-status.mjs — never edit by hand. The validator fails the build on drift.",
-  "algorithm": "APPROVED iff all 6 conditions pass (audit v4 H). See conditions[].",
-  "approvalReady": true,
-  "blocking": [],
+  "algorithm": "4-stage cumulative readiness: registryConformance → coreVertical → publicBeta → parityBaseline. registryConformanceReady is a REGISTRY-HYGIENE gate, NOT a product-approval signal.",
+  "readiness": {
+    "registryConformanceReady": false,
+    "coreVerticalReady": true,
+    "publicBetaReady": false,
+    "parityBaselineReady": false
+  },
+  "stages": {
+    "registryConformance": {
+      "ready": false,
+      "conditions": [
+        {
+          "id": 2,
+          "description": "all required registries exist and validate schemaVersion",
+          "passed": true,
+          "reasons": []
+        },
+        {
+          "id": 3,
+          "description": "no orphan claimId / surfaceId / serviceId / evidenceId reference",
+          "passed": true,
+          "reasons": []
+        },
+        {
+          "id": 6,
+          "description": "no expired decision; no P0-linked unknown without owner + targetDate",
+          "passed": true,
+          "reasons": []
+        },
+        {
+          "id": 7,
+          "description": "P0_REGISTRY covers the exact expected set (15 P0)",
+          "passed": false,
+          "reasons": [
+            "P0 count 4 ≠ expected 15 (11 not yet enumerated)"
+          ]
+        },
+        {
+          "id": 8,
+          "description": "no targetDate: UNKNOWN/missing on any P0 or UNKNOWN entry (ISO date required)",
+          "passed": true,
+          "reasons": []
+        },
+        {
+          "id": 9,
+          "description": "no critical event PENDING beyond the 5-day triage SLA",
+          "passed": false,
+          "reasons": [
+            "RPL-20 triageState=PENDING for 6d (SLA 5d)",
+            "RPL-21 triageState=PENDING for 6d (SLA 5d)",
+            "RPL-22 triageState=PENDING for 6d (SLA 5d)",
+            "OBS-2026-07-10-DOMAIN-PURCHASE triageState=PENDING overdue",
+            "OBS-2026-07-10-EXCALIDRAW-AGENT triageState=PENDING overdue",
+            "OBS-2026-07-10-EDITORS-ANSWER-AGENT triageState=PENDING overdue"
+          ]
+        },
+        {
+          "id": 10,
+          "description": "JS collector proven in CI (UNK-COLLECTOR-CI-RENDER resolved)",
+          "passed": false,
+          "reasons": [
+            "UNK-COLLECTOR-CI-RENDER still open in UNKNOWN_REGISTRY"
+          ]
+        }
+      ]
+    },
+    "coreVertical": {
+      "ready": true,
+      "conditions": [
+        {
+          "id": 1,
+          "description": "no P0 OPEN or BLOCKED",
+          "passed": true,
+          "reasons": []
+        },
+        {
+          "id": 4,
+          "description": "vertical créer→modifier→exécuter→preview→publier→observer→rollback is green",
+          "passed": true,
+          "reasons": [],
+          "stages": [
+            {
+              "stage": "create",
+              "green": true,
+              "proofIds": [
+                "E2E-VERTICAL-CREATE"
+              ]
+            },
+            {
+              "stage": "modify",
+              "green": true,
+              "proofIds": [
+                "E2E-VERTICAL-MODIFY"
+              ]
+            },
+            {
+              "stage": "execute",
+              "green": true,
+              "proofIds": [
+                "E2E-AGM-C"
+              ]
+            },
+            {
+              "stage": "preview",
+              "green": true,
+              "proofIds": [
+                "E2E-VERTICAL-PREVIEW"
+              ]
+            },
+            {
+              "stage": "publish",
+              "green": true,
+              "proofIds": [
+                "E2E-PHASEB-NODE"
+              ]
+            },
+            {
+              "stage": "observe",
+              "green": true,
+              "proofIds": [
+                "E2E-VERTICAL-OBSERVE"
+              ]
+            },
+            {
+              "stage": "rollback",
+              "green": true,
+              "proofIds": [
+                "E2E-VERTICAL-ROLLBACK"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "publicBeta": {
+      "ready": false,
+      "conditions": [
+        {
+          "id": 13,
+          "description": "registryConformanceReady",
+          "passed": false,
+          "reasons": [
+            "registry conformance not met"
+          ]
+        },
+        {
+          "id": 14,
+          "description": "coreVerticalReady",
+          "passed": true,
+          "reasons": []
+        },
+        {
+          "id": 5,
+          "description": "critical sources within the 30-day freshness SLA",
+          "passed": true,
+          "reasons": []
+        },
+        {
+          "id": 11,
+          "description": "all P0 CLOSED (commit+reviewer+proof)",
+          "passed": false,
+          "reasons": [
+            "not every P0 is CLOSED (PROVEN without a human reviewer does not count)"
+          ]
+        }
+      ]
+    },
+    "parityBaseline": {
+      "ready": false,
+      "conditions": [
+        {
+          "id": 15,
+          "description": "publicBetaReady",
+          "passed": false,
+          "reasons": [
+            "public beta not ready"
+          ]
+        },
+        {
+          "id": 16,
+          "description": "no open UNKNOWN remains",
+          "passed": false,
+          "reasons": [
+            "11 UNKNOWN still open"
+          ]
+        }
+      ]
+    }
+  },
+  "blocking": [
+    "condition 7 (P0_REGISTRY covers the exact expected set (15 P0)) FAILED: P0 count 4 ≠ expected 15 (11 not yet enumerated)",
+    "condition 9 (no critical event PENDING beyond the 5-day triage SLA) FAILED: RPL-20 triageState=PENDING for 6d (SLA 5d); RPL-21 triageState=PENDING for 6d (SLA 5d); RPL-22 triageState=PENDING for 6d (SLA 5d); OBS-2026-07-10-DOMAIN-PURCHASE triageState=PENDING overdue; OBS-2026-07-10-EXCALIDRAW-AGENT triageState=PENDING overdue; OBS-2026-07-10-EDITORS-ANSWER-AGENT triageState=PENDING overdue",
+    "condition 10 (JS collector proven in CI (UNK-COLLECTOR-CI-RENDER resolved)) FAILED: UNK-COLLECTOR-CI-RENDER still open in UNKNOWN_REGISTRY"
+  ],
   "conditions": [
     {
       "id": 1,
@@ -101,6 +294,41 @@
       "description": "no expired decision; no P0-linked unknown without owner + targetDate",
       "passed": true,
       "reasons": []
+    },
+    {
+      "id": 7,
+      "description": "P0_REGISTRY covers the exact expected set (15 P0)",
+      "passed": false,
+      "reasons": [
+        "P0 count 4 ≠ expected 15 (11 not yet enumerated)"
+      ]
+    },
+    {
+      "id": 8,
+      "description": "no targetDate: UNKNOWN/missing on any P0 or UNKNOWN entry (ISO date required)",
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "id": 9,
+      "description": "no critical event PENDING beyond the 5-day triage SLA",
+      "passed": false,
+      "reasons": [
+        "RPL-20 triageState=PENDING for 6d (SLA 5d)",
+        "RPL-21 triageState=PENDING for 6d (SLA 5d)",
+        "RPL-22 triageState=PENDING for 6d (SLA 5d)",
+        "OBS-2026-07-10-DOMAIN-PURCHASE triageState=PENDING overdue",
+        "OBS-2026-07-10-EXCALIDRAW-AGENT triageState=PENDING overdue",
+        "OBS-2026-07-10-EDITORS-ANSWER-AGENT triageState=PENDING overdue"
+      ]
+    },
+    {
+      "id": 10,
+      "description": "JS collector proven in CI (UNK-COLLECTOR-CI-RENDER resolved)",
+      "passed": false,
+      "reasons": [
+        "UNK-COLLECTOR-CI-RENDER still open in UNKNOWN_REGISTRY"
+      ]
     }
   ],
   "counts": {

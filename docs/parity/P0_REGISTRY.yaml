@@ -46,4 +46,4 @@ p0s:
     evidenceId: services/api/src/artifact-promotion.spec.ts
     proof: "promoteArtifact découvre+relie+vérifie+BinAuthz ; 4 tests négatifs (SBOM manquant, relink échoué, BinAuthz refusé, source absente) prouvent le blocage. Adapter AR live = follow-up (🟡)"
     nextAction: "Implémenter l'adapter Artifact Registry live + promotion réelle"
-    targetDate: UNKNOWN
+    targetDate: "2026-07-31"

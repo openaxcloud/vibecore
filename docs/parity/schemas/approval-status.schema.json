@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "ecode/parity/approval-status",
-  "x-schemaVersion": 2,
-  "x-repoCommit": "b8186f2f",
+  "x-schemaVersion": 3,
+  "x-repoCommit": "5ac64e52",
   "title": "APPROVAL_STATUS",
   "type": "object",
   "additionalProperties": true,
@@ -10,64 +10,68 @@
     "schemaVersion",
     "generatedFrom",
     "algorithm",
-    "approvalReady",
+    "readiness",
+    "stages",
     "blocking",
     "conditions",
     "counts",
     "p0"
   ],
   "properties": {
-    "schemaVersion": {
-      "const": 2
-    },
-    "algorithm": {
-      "type": "string"
-    },
+    "schemaVersion": { "const": 3 },
+    "algorithm": { "type": "string" },
     "approvalReady": {
-      "type": "boolean"
+      "not": {},
+      "description": "FORBIDDEN — the blanket approvalReady was a coverage false positive. Use the 4-stage readiness."
     },
-    "blocking": {
-      "type": "array",
-      "items": {
-        "type": "string"
+    "readiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["registryConformanceReady", "coreVerticalReady", "publicBetaReady", "parityBaselineReady"],
+      "properties": {
+        "registryConformanceReady": { "type": "boolean" },
+        "coreVerticalReady": { "type": "boolean" },
+        "publicBetaReady": { "type": "boolean" },
+        "parityBaselineReady": { "type": "boolean" }
       }
     },
+    "stages": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["registryConformance", "coreVertical", "publicBeta", "parityBaseline"],
+      "patternProperties": {
+        "^(registryConformance|coreVertical|publicBeta|parityBaseline)$": {
+          "type": "object",
+          "required": ["ready", "conditions"],
+          "properties": {
+            "ready": { "type": "boolean" },
+            "conditions": { "type": "array", "items": { "type": "object", "required": ["id", "description", "passed", "reasons"] } }
+          }
+        }
+      }
+    },
+    "blocking": { "type": "array", "items": { "type": "string" } },
     "conditions": {
-      "description": "The 6 approval conditions (audit v4 H). approvalReady iff every condition passed.",
+      "description": "All raw conditions (audit v4 H + 2026-07-17 hardening). Stage readiness = every stage condition passed.",
       "type": "array",
-      "minItems": 6,
-      "maxItems": 6,
       "items": {
         "type": "object",
         "required": ["id", "description", "passed", "reasons"],
         "properties": {
-          "id": { "type": "integer", "minimum": 1, "maximum": 6 },
+          "id": { "type": "integer" },
           "description": { "type": "string" },
           "passed": { "type": "boolean" },
           "reasons": { "type": "array", "items": { "type": "string" } }
         }
       }
     },
-    "counts": {
-      "type": "object"
-    },
+    "counts": { "type": "object" },
     "p0": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "p0Id",
-          "derived"
-        ],
-        "properties": {
-          "derived": {
-            "enum": [
-              "OPEN",
-              "PROVEN",
-              "CLOSED"
-            ]
-          }
-        }
+        "required": ["p0Id", "derived"],
+        "properties": { "derived": { "enum": ["OPEN", "PROVEN", "CLOSED"] } }
       }
     }
   }
