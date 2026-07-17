@@ -21364,7 +21364,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     storagePolicy: RemixStoragePolicy;
     name: string;
     slug?: string;
-    sourceFiles: Array<{ path: string; content: string; encoding?: string }>;
+    sourceFiles: ProjectFile[];
     sourceSnapshotId?: string;
     sourceListingId?: string;
   }): Promise<
