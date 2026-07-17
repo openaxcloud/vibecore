@@ -81,3 +81,7 @@ docs/instructions/Roadmap.md
 !DESIGN_AUDIT_LIVE.md
 .qodo
 .vibecore-audit/
+
+# D5 E2E journeys artifacts
+test-results-journeys/
+playwright-report-journeys/
