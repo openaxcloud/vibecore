@@ -3,8 +3,15 @@ name: Parity registries
 # P0-02: the registry validator FAILS the build when any docs/parity/ registry
 # violates its schema. P0-04: the baseline collector runs DAILY (the Replit
 # changelog publishes on arbitrary weekdays — llms.txt lists Sunday 2025-11-16
-# and Wednesday 2025-11-26 — so Friday-keyed automation is forbidden) and
-# commits the day's snapshot with its SHA-256 hashes.
+# and Wednesday 2025-11-26 — so Friday-keyed automation is forbidden) AND
+# event-driven (workflow_dispatch / repository_dispatch type=parity-collect),
+# and commits the day's snapshot with its SHA-256 hashes.
+#
+# UNK-COLLECTOR-CI-RENDER: the `render-smoke` job is the PROOF that JS
+# rendering works from GitHub-hosted runners (chromium installed, no bot
+# wall). It runs the collector with --require-render, which exits 2 unless
+# EVERY rendered source captured OK — a bot-blocked render fails the job
+# honestly instead of committing empty shells.
 
 on:
   pull_request:
@@ -22,6 +29,8 @@ on:
     # DAILY at 05:17 UTC — deliberately not Friday-anything.
     - cron: '17 5 * * *'
   workflow_dispatch: {}
+  repository_dispatch:
+    types: [parity-collect]
 
 permissions:
   contents: write
@@ -132,12 +141,43 @@ jobs:
             git push origin HEAD:main
           fi
 
+  render-smoke:
+    name: JS render smoke (proves chromium + no bot wall on GitHub runners)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install collector deps (isolated dir — root npm install breaks on pnpm workspace:)
+        run: |
+          mkdir -p /tmp/parity-deps
+          cd /tmp/parity-deps
+          npm init -y >/dev/null
+          npm install yaml@2 playwright@1.59.1 >/dev/null
+          npx playwright install --with-deps chromium
+      - name: Collect with --require-render (exit 2 = a rendered source was blocked/failed — reported, never papered over)
+        run: |
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/collect-baseline.mjs --require-render 2>&1 | tee /tmp/collect-smoke.log
+      - name: Upload snapshot + log as proof artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-smoke-snapshot
+          path: |
+            docs/parity/baseline/snapshots/
+            docs/parity/baseline/observations/
+            /tmp/collect-smoke.log
+          retention-days: 30
+
   collect-baseline:
-    name: Daily baseline snapshot (schedule only)
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    name: Daily baseline snapshot (schedule + event-driven)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch'
     needs: validate
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -145,14 +185,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node scripts/parity/collect-baseline.mjs | tee /tmp/collect.log
-      - run: mkdir -p /tmp/parity-deps && cd /tmp/parity-deps && npm init -y >/dev/null && npm install yaml@2 >/dev/null
+      - name: Install collector deps (yaml for the validator, playwright for rendered families)
+        run: |
+          mkdir -p /tmp/parity-deps
+          cd /tmp/parity-deps
+          npm init -y >/dev/null
+          npm install yaml@2 playwright@1.59.1 >/dev/null
+          npx playwright install --with-deps chromium
+      - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/collect-baseline.mjs | tee /tmp/collect.log
       - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/validate-registries.mjs
-      - name: Commit the day's snapshot
+      - name: Commit the day's snapshot + observation ledger
         run: |
           git config user.name "parity-baseline-bot"
           git config user.email "noreply@e-code.ai"
-          git add docs/parity/baseline/snapshots
+          git add docs/parity/baseline/snapshots docs/parity/baseline/observations
           if git diff --cached --quiet; then
             echo "no snapshot change to commit"
           else
