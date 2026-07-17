@@ -501,6 +501,7 @@ export function PublicMarketingHeader() {
             <MarketingMenu label="Solutions" items={publicMarketingMenus.solutions} icon={Rocket} />
             <MarketingMenu label="Resources" items={publicMarketingMenus.resources} icon={BookOpen} />
             <MarketingMenu label="Company" items={publicMarketingMenus.company} icon={ShieldCheck} />
+            <NavButton to="/gallery">Gallery</NavButton>
             <NavButton to="/pricing">Pricing</NavButton>
             <NavButton to="/team">Teams</NavButton>
           </div>
