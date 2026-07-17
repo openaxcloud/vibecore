@@ -58,3 +58,41 @@ tant qu'une source vérifiable n'existe pas. Chacun a une entrée dans
   transforme jamais en `CONFIRMED` par ressemblance.
 - I-GAL-3 : self-service Publish = décision E-CODE explicite
   (`DEC-GALLERY-NO-SELF-PUBLISH`), jamais un acquis de parité.
+
+## C. E-CODE IMPLEMENTATION (TPL-02) — « on l'a construit », distinct de « Replit le fait »
+
+**États TPL-02** — 📤 Dispatché ✅ · 💻 Codé ✅ (`266fefac`/`e6afdfbf`/`c59674e8`/
+`3181b31f` sur `origin/main`, 23 tests verts, build strict runtime vert) · ✅ Testé
+live ⏳ (parcours réel Gallery→détail→Remix→IDE dans le Chrome d'Avi + preuve
+secret-absent — après déploiement CD). Un point n'est « fait » qu'au ✅ Testé live.
+
+
+Ce qui suit est CODÉ chez E-Code (commits `266fefac`/`e6afdfbf`/`c59674e8`/
+`3181b31f`). Chaque ligne dit explicitement si notre implémentation **rejoint une
+capacité CONFIRMÉE** (§A, adossée au rendu Replit) ou si c'est une **DÉCISION
+E-CODE** dont le pendant Replit reste **UNKNOWN** (§B). On n'écrit jamais
+« comme Replit » sur un mécanisme interne qu'on n'a pas observé.
+
+| ce qu'on a construit | surface | statut parité |
+|---|---|---|
+| Browse (grille DB) + auteur + stats publiques | `GET /gallery`, `/gallery` (web) | **rejoint CONFIRMÉ** RPL-17 |
+| Recherche + catégories (facettes) | `GET /gallery?category=&q=` | **rejoint CONFIRMÉ** RPL-17 |
+| Page détail par app | `GET /gallery/:slug`, `/gallery/:slug` (web) | **rejoint CONFIRMÉ** RPL-17 |
+| « View App » (lien sortant) | `appUrl` → `_blank rel=noopener` | **rejoint CONFIRMÉ** RPL-17 (lien sortant, PAS une preview embarquée) |
+| Remix / Use Template (CTA → clone → IDE) | `POST /gallery/:slug/remix` | **rejoint CONFIRMÉ** RPL-17 (le CTA existe) ; la **licence/attribution** du remix reste `UNK-GALLERY-REMIX-LICENSE` |
+| Report (Trust & Safety) | affordance mailto trust-safety | **rejoint CONFIRMÉ** RPL-18 (l'affordance) ; le **workflow review/sanctions/appels** reste `UNK-GALLERY-REVIEW-WORKFLOW` |
+| Stats « Used N times » = compteur de remix | `useCount++` au remix | **DÉCISION E-CODE** : Replit affiche la stat (CONFIRMÉ) mais l'assiette exacte du compteur n'est pas observable → notre choix (uses == remix), pas une parité prouvée |
+| **Pin de release immuable** au remix (`sourceSnapshotId`) + secrets détachés | `runSecureRemixClone` | **DÉCISION E-CODE** (notre modèle de repro + sécurité). Non observable chez Replit → ne se présente pas comme parité |
+| **Curation = admin, pas self-service** | `POST /admin/gallery-listings` (platform-admin) | **DÉCISION E-CODE** conforme à `DEC-GALLERY-NO-SELF-PUBLISH`. On n'a construit QUE l'étape « créer un listing » ; le workflow d'intake/review complet reste `UNK-GALLERY-REVIEW-WORKFLOW` |
+
+**Ce qu'on n'a PAS construit (reste UNKNOWN, inchangé)** :
+- `UNK-GALLERY-SELF-PUBLISH` — pas de bouton « Publish to Gallery » self-service (choix assumé).
+- `UNK-GALLERY-EMBED-PREVIEW` — la fiche ne montre PAS de preview live embarquée ; seulement le lien sortant « View App » (fidèle au rendu Replit observé).
+- `UNK-GALLERY-REVIEW-WORKFLOW` — pas de back-office review/sanctions/appels ; seulement l'affordance Report + la création de listing par un admin.
+- `UNK-GALLERY-REMIX-LICENSE` — aucune licence/attribution de remix par défaut affichée.
+
+**Invariant de sécurité prouvé (test)** : le remix depuis la galerie détache les
+secrets AVANT le clone et re-scanne le clone ; une valeur de secret n'apparaît ni
+dans les fichiers, ni en base, ni dans le job du clone — et le clone reproduit le
+**snapshot épinglé** (V1), pas une édition ultérieure de la source (V2). Voir
+`services/api/src/tests/gallery-routes.spec.ts` (I-RMX-1/2 + I-GAL-PIN).
