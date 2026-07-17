@@ -144,6 +144,27 @@ export interface SnapshotRecord {
   createdAt: string;
 }
 
+export interface GalleryListingRecord {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  category: string;
+  tags: string[];
+  status: string;
+  featured: boolean;
+  sourceProjectId: string;
+  /** Immutable ProjectSnapshot id the clone reproduces. */
+  sourceSnapshotId: string;
+  authorName: string;
+  authorUserId?: string;
+  appUrl?: string;
+  viewCount: number;
+  useCount: number;
+  createdAt: string;
+  publishedAt?: string;
+}
+
 export interface ProjectStorageObjectRecord {
   id: string;
   projectId?: string;
@@ -1235,7 +1256,13 @@ export interface ApiStore {
    */
   hardDeleteProject(projectId: string): Promise<ProjectRecord>;
   transferProject(input: { projectId: string; targetOrganizationId: string }): Promise<ProjectRecord>;
-  duplicateProject(input: { projectId: string; name: string; slug: string }): Promise<ProjectRecord>;
+  duplicateProject(input: {
+    projectId: string;
+    name: string;
+    slug: string;
+    /** Target org for the clone. Defaults to the source project's org. */
+    organizationId?: string;
+  }): Promise<ProjectRecord>;
   createProjectTemplate(input: {
     sourceProjectId: string;
     organizationId: string;
@@ -1264,6 +1291,10 @@ export interface ApiStore {
     organizationId: string;
     actorUserId?: string;
     storagePolicy: string;
+    /** Immutable release pin (ProjectSnapshot id) the clone reproduces. */
+    sourceSnapshotId?: string;
+    /** The gallery listing the remix was launched from (provenance). */
+    sourceListingId?: string;
   }): Promise<{ id: string; state: string }>;
   /** Advance / annotate a remix job. Partial patch. */
   updateRemixJob(
@@ -1276,6 +1307,8 @@ export interface ApiStore {
       scrubbedCount?: number;
       dbForked?: boolean;
       error?: string;
+      sourceSnapshotId?: string;
+      sourceListingId?: string;
     },
   ): Promise<void>;
   getRemixJob(id: string): Promise<
@@ -1291,10 +1324,40 @@ export interface ApiStore {
         scrubbedCount: number;
         dbForked: boolean;
         error?: string;
+        sourceSnapshotId?: string;
+        sourceListingId?: string;
         createdAt: string;
       }
     | undefined
   >;
+  /** Create a curated Gallery listing (TPL-02). Not self-service — curator/seed. */
+  createGalleryListing(input: {
+    slug: string;
+    title: string;
+    description: string;
+    category: string;
+    tags?: string[];
+    status?: string;
+    featured?: boolean;
+    sourceProjectId: string;
+    sourceSnapshotId: string;
+    authorName: string;
+    authorUserId?: string;
+    appUrl?: string;
+    publishedAt?: string;
+  }): Promise<GalleryListingRecord>;
+  /** Browse published listings, filtered by category / free-text / featured. */
+  listGalleryListings(opts?: {
+    status?: string;
+    category?: string;
+    query?: string;
+    featured?: boolean;
+    limit?: number;
+  }): Promise<GalleryListingRecord[]>;
+  getGalleryListingBySlug(slug: string): Promise<GalleryListingRecord | undefined>;
+  getGalleryListingById(id: string): Promise<GalleryListingRecord | undefined>;
+  incrementGalleryListingViews(id: string): Promise<void>;
+  incrementGalleryListingUses(id: string): Promise<void>;
   /** Create an import-job row (secure import state machine). */
   createImportJob(input: {
     organizationId: string;

@@ -69,6 +69,7 @@ import type {
   DatabaseInstanceRecord,
   DatabaseSnapshotRecord,
   DatabaseRestoreRecord,
+  GalleryListingRecord,
   ProjectTemplateRecord,
   RecoveryCodeRecord,
   ScimTokenRecord,
@@ -758,7 +759,7 @@ export class TestApiStore implements ApiStore {
     return project;
   }
 
-  async duplicateProject(input: { projectId: string; name: string; slug: string }) {
+  async duplicateProject(input: { projectId: string; name: string; slug: string; organizationId?: string }) {
     const source = this.projects.get(input.projectId);
 
     if (!source) {
@@ -766,7 +767,7 @@ export class TestApiStore implements ApiStore {
     }
 
     return this.createProject({
-      organizationId: source.organizationId,
+      organizationId: input.organizationId ?? source.organizationId,
       name: input.name,
       slug: input.slug,
       description: source.description,
@@ -1879,6 +1880,8 @@ export class TestApiStore implements ApiStore {
       scrubbedCount: number;
       dbForked: boolean;
       error?: string;
+      sourceSnapshotId?: string;
+      sourceListingId?: string;
       createdAt: string;
     }
   >();
@@ -1888,6 +1891,8 @@ export class TestApiStore implements ApiStore {
     organizationId: string;
     actorUserId?: string;
     storagePolicy: string;
+    sourceSnapshotId?: string;
+    sourceListingId?: string;
   }) {
     const row = {
       id: id('remix'),
@@ -1897,6 +1902,8 @@ export class TestApiStore implements ApiStore {
       storagePolicy: input.storagePolicy,
       scrubbedCount: 0,
       dbForked: false,
+      sourceSnapshotId: input.sourceSnapshotId,
+      sourceListingId: input.sourceListingId,
       createdAt: now(),
     };
     this.remixJobs.set(row.id, row);
@@ -1913,6 +1920,8 @@ export class TestApiStore implements ApiStore {
       scrubbedCount?: number;
       dbForked?: boolean;
       error?: string;
+      sourceSnapshotId?: string;
+      sourceListingId?: string;
     },
   ) {
     const row = this.remixJobs.get(id);
@@ -1924,6 +1933,91 @@ export class TestApiStore implements ApiStore {
 
   async getRemixJob(id: string) {
     return this.remixJobs.get(id);
+  }
+
+  galleryListings = new Map<string, GalleryListingRecord>();
+
+  async createGalleryListing(input: {
+    slug: string;
+    title: string;
+    description: string;
+    category: string;
+    tags?: string[];
+    status?: string;
+    featured?: boolean;
+    sourceProjectId: string;
+    sourceSnapshotId: string;
+    authorName: string;
+    authorUserId?: string;
+    appUrl?: string;
+    publishedAt?: string;
+  }): Promise<GalleryListingRecord> {
+    const status = input.status ?? 'PUBLISHED';
+    const row: GalleryListingRecord = {
+      id: id('gallery'),
+      slug: input.slug,
+      title: input.title,
+      description: input.description,
+      category: input.category,
+      tags: input.tags ?? [],
+      status,
+      featured: input.featured ?? false,
+      sourceProjectId: input.sourceProjectId,
+      sourceSnapshotId: input.sourceSnapshotId,
+      authorName: input.authorName,
+      authorUserId: input.authorUserId,
+      appUrl: input.appUrl,
+      viewCount: 0,
+      useCount: 0,
+      createdAt: now(),
+      publishedAt: input.publishedAt ?? (status === 'PUBLISHED' ? now() : undefined),
+    };
+    this.galleryListings.set(row.id, row);
+    return row;
+  }
+
+  async listGalleryListings(opts?: {
+    status?: string;
+    category?: string;
+    query?: string;
+    featured?: boolean;
+    limit?: number;
+  }): Promise<GalleryListingRecord[]> {
+    const status = opts?.status ?? 'PUBLISHED';
+    const query = opts?.query?.trim().toLowerCase();
+    let rows = [...this.galleryListings.values()].filter((row) => {
+      if (row.status !== status) return false;
+      if (opts?.category && opts.category !== 'all' && row.category !== opts.category) return false;
+      if (opts?.featured !== undefined && row.featured !== opts.featured) return false;
+      if (query) {
+        const hay = [row.title, row.description, row.authorName, ...row.tags].join(' ').toLowerCase();
+        if (!hay.includes(query)) return false;
+      }
+      return true;
+    });
+    rows = rows.sort((a, b) => {
+      if (a.featured !== b.featured) return a.featured ? -1 : 1;
+      return (b.publishedAt ?? b.createdAt).localeCompare(a.publishedAt ?? a.createdAt);
+    });
+    return opts?.limit ? rows.slice(0, opts.limit) : rows;
+  }
+
+  async getGalleryListingBySlug(slug: string) {
+    return [...this.galleryListings.values()].find((row) => row.slug === slug);
+  }
+
+  async getGalleryListingById(id: string) {
+    return this.galleryListings.get(id);
+  }
+
+  async incrementGalleryListingViews(id: string) {
+    const row = this.galleryListings.get(id);
+    if (row) row.viewCount += 1;
+  }
+
+  async incrementGalleryListingUses(id: string) {
+    const row = this.galleryListings.get(id);
+    if (row) row.useCount += 1;
   }
 
   importJobs = new Map<

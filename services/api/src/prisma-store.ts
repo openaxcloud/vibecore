@@ -68,6 +68,7 @@ import type {
   DatabaseInstanceRecord,
   DatabaseSnapshotRecord,
   DatabaseRestoreRecord,
+  GalleryListingRecord,
   RecoveryCodeRecord,
   ScimTokenRecord,
   SessionRecord,
@@ -1058,14 +1059,14 @@ export class PrismaApiStore implements ApiStore {
     }
   }
 
-  async duplicateProject(input: { projectId: string; name: string; slug: string }) {
+  async duplicateProject(input: { projectId: string; name: string; slug: string; organizationId?: string }) {
     const source = assertFound(
       await this.prisma.project.findUnique({ where: { id: input.projectId } }),
       'Project not found',
       'PROJECT_NOT_FOUND',
     );
     return this.createProject({
-      organizationId: source.organizationId,
+      organizationId: input.organizationId ?? source.organizationId,
       name: input.name,
       slug: input.slug,
       description: source.description ?? undefined,
@@ -1163,6 +1164,8 @@ export class PrismaApiStore implements ApiStore {
     organizationId: string;
     actorUserId?: string;
     storagePolicy: string;
+    sourceSnapshotId?: string;
+    sourceListingId?: string;
   }) {
     const row = await this.prisma.remixJob.create({
       data: {
@@ -1170,6 +1173,8 @@ export class PrismaApiStore implements ApiStore {
         organizationId: input.organizationId,
         actorUserId: input.actorUserId ?? null,
         storagePolicy: input.storagePolicy,
+        sourceSnapshotId: input.sourceSnapshotId ?? null,
+        sourceListingId: input.sourceListingId ?? null,
         state: 'SNAPSHOT_PINNED',
       },
     });
@@ -1187,6 +1192,8 @@ export class PrismaApiStore implements ApiStore {
       scrubbedCount?: number;
       dbForked?: boolean;
       error?: string;
+      sourceSnapshotId?: string;
+      sourceListingId?: string;
     },
   ) {
     await this.prisma.remixJob.update({
@@ -1199,6 +1206,8 @@ export class PrismaApiStore implements ApiStore {
         ...(patch.scrubbedCount !== undefined ? { scrubbedCount: patch.scrubbedCount } : {}),
         ...(patch.dbForked !== undefined ? { dbForked: patch.dbForked } : {}),
         ...(patch.error !== undefined ? { error: patch.error } : {}),
+        ...(patch.sourceSnapshotId !== undefined ? { sourceSnapshotId: patch.sourceSnapshotId } : {}),
+        ...(patch.sourceListingId !== undefined ? { sourceListingId: patch.sourceListingId } : {}),
       },
     });
   }
@@ -1222,8 +1231,145 @@ export class PrismaApiStore implements ApiStore {
       scrubbedCount: row.scrubbedCount,
       dbForked: row.dbForked,
       error: row.error ?? undefined,
+      sourceSnapshotId: row.sourceSnapshotId ?? undefined,
+      sourceListingId: row.sourceListingId ?? undefined,
       createdAt: row.createdAt.toISOString(),
     };
+  }
+
+  private mapGalleryListing(row: {
+    id: string;
+    slug: string;
+    title: string;
+    description: string;
+    category: string;
+    tags: string[];
+    status: string;
+    featured: boolean;
+    sourceProjectId: string;
+    sourceSnapshotId: string;
+    authorName: string;
+    authorUserId: string | null;
+    appUrl: string | null;
+    viewCount: number;
+    useCount: number;
+    createdAt: Date;
+    publishedAt: Date | null;
+  }): GalleryListingRecord {
+    return {
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      description: row.description,
+      category: row.category,
+      tags: row.tags,
+      status: row.status,
+      featured: row.featured,
+      sourceProjectId: row.sourceProjectId,
+      sourceSnapshotId: row.sourceSnapshotId,
+      authorName: row.authorName,
+      authorUserId: row.authorUserId ?? undefined,
+      appUrl: row.appUrl ?? undefined,
+      viewCount: row.viewCount,
+      useCount: row.useCount,
+      createdAt: row.createdAt.toISOString(),
+      publishedAt: row.publishedAt?.toISOString(),
+    };
+  }
+
+  async createGalleryListing(input: {
+    slug: string;
+    title: string;
+    description: string;
+    category: string;
+    tags?: string[];
+    status?: string;
+    featured?: boolean;
+    sourceProjectId: string;
+    sourceSnapshotId: string;
+    authorName: string;
+    authorUserId?: string;
+    appUrl?: string;
+    publishedAt?: string;
+  }) {
+    const status = input.status ?? 'PUBLISHED';
+    const row = await this.prisma.galleryListing.create({
+      data: {
+        slug: input.slug,
+        title: input.title,
+        description: input.description,
+        category: input.category,
+        tags: input.tags ?? [],
+        status,
+        featured: input.featured ?? false,
+        sourceProjectId: input.sourceProjectId,
+        sourceSnapshotId: input.sourceSnapshotId,
+        authorName: input.authorName,
+        authorUserId: input.authorUserId ?? null,
+        appUrl: input.appUrl ?? null,
+        // A row published at creation records publishedAt so the detail page
+        // can show a real date; a PENDING_REVIEW row leaves it null.
+        publishedAt: input.publishedAt
+          ? new Date(input.publishedAt)
+          : status === 'PUBLISHED'
+            ? new Date()
+            : null,
+      },
+    });
+
+    return this.mapGalleryListing(row);
+  }
+
+  async listGalleryListings(opts?: {
+    status?: string;
+    category?: string;
+    query?: string;
+    featured?: boolean;
+    limit?: number;
+  }) {
+    const status = opts?.status ?? 'PUBLISHED';
+    const query = opts?.query?.trim();
+    const rows = await this.prisma.galleryListing.findMany({
+      where: {
+        status,
+        ...(opts?.category && opts.category !== 'all' ? { category: opts.category } : {}),
+        ...(opts?.featured !== undefined ? { featured: opts.featured } : {}),
+        ...(query
+          ? {
+              OR: [
+                { title: { contains: query, mode: 'insensitive' } },
+                { description: { contains: query, mode: 'insensitive' } },
+                { authorName: { contains: query, mode: 'insensitive' } },
+                { tags: { has: query.toLowerCase() } },
+              ],
+            }
+          : {}),
+      },
+      // Featured first, then most recently published, so the grid leads with
+      // the curated highlights (mirrors the replit.com/gallery ordering).
+      orderBy: [{ featured: 'desc' }, { publishedAt: 'desc' }, { createdAt: 'desc' }],
+      ...(opts?.limit ? { take: opts.limit } : {}),
+    });
+
+    return rows.map((row) => this.mapGalleryListing(row));
+  }
+
+  async getGalleryListingBySlug(slug: string) {
+    const row = await this.prisma.galleryListing.findUnique({ where: { slug } });
+    return row ? this.mapGalleryListing(row) : undefined;
+  }
+
+  async getGalleryListingById(id: string) {
+    const row = await this.prisma.galleryListing.findUnique({ where: { id } });
+    return row ? this.mapGalleryListing(row) : undefined;
+  }
+
+  async incrementGalleryListingViews(id: string) {
+    await this.prisma.galleryListing.update({ where: { id }, data: { viewCount: { increment: 1 } } });
+  }
+
+  async incrementGalleryListingUses(id: string) {
+    await this.prisma.galleryListing.update({ where: { id }, data: { useCount: { increment: 1 } } });
   }
 
   async createImportJob(input: {

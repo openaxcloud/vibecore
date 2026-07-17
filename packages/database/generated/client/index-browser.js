@@ -1433,6 +1433,8 @@ exports.Prisma.RemixJobScalarFieldEnum = {
   organizationId: 'organizationId',
   actorUserId: 'actorUserId',
   state: 'state',
+  sourceSnapshotId: 'sourceSnapshotId',
+  sourceListingId: 'sourceListingId',
   detachedKeys: 'detachedKeys',
   storagePolicy: 'storagePolicy',
   scanFindings: 'scanFindings',
@@ -1460,6 +1462,26 @@ exports.Prisma.ImportJobScalarFieldEnum = {
   expiresAt: 'expiresAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GalleryListingScalarFieldEnum = {
+  id: 'id',
+  slug: 'slug',
+  title: 'title',
+  description: 'description',
+  category: 'category',
+  tags: 'tags',
+  status: 'status',
+  featured: 'featured',
+  sourceProjectId: 'sourceProjectId',
+  sourceSnapshotId: 'sourceSnapshotId',
+  authorName: 'authorName',
+  authorUserId: 'authorUserId',
+  appUrl: 'appUrl',
+  viewCount: 'viewCount',
+  useCount: 'useCount',
+  createdAt: 'createdAt',
+  publishedAt: 'publishedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -1733,7 +1755,8 @@ exports.Prisma.ModelName = {
   AgentRoutingCard: 'AgentRoutingCard',
   AgentCallLog: 'AgentCallLog',
   RemixJob: 'RemixJob',
-  ImportJob: 'ImportJob'
+  ImportJob: 'ImportJob',
+  GalleryListing: 'GalleryListing'
 };
 
 /**

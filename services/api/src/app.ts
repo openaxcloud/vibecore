@@ -9380,7 +9380,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * capability. Only the token-scoped GET path is exempt; POST /chat-shares
        * (create) has no trailing slash and still requires authentication.
        */
-      (request.method === 'GET' && request.url.startsWith('/chat-shares/'))
+      (request.method === 'GET' && request.url.startsWith('/chat-shares/')) ||
+      /*
+       * Public Gallery browse/detail (TPL-02) — anonymous browsing like
+       * replit.com/gallery. GET only: POST /gallery/:slug/remix creates a project
+       * and stays authenticated.
+       */
+      (request.method === 'GET' &&
+        (request.url === '/gallery' || request.url.startsWith('/gallery?') || request.url.startsWith('/gallery/')))
     ) {
       return;
     }
@@ -21338,6 +21345,163 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /*
+   * Shared secure-remix orchestrator. The credentials-detached-BEFORE-cloning
+   * invariant and the secret-scrub/scan proof live here in ONE place, so the
+   * project-to-project remix and the gallery remix cannot drift apart on the
+   * security-critical path. The caller resolves the source file set (live files
+   * for a plain remix, or a PINNED snapshot archive for a gallery remix) and the
+   * target org (same org for a plain remix, the remixer's org for a gallery
+   * remix); everything downstream — detach, clone, scrub, scan — is identical.
+   *
+   * Returns a discriminated result: `{ ok: false }` carries the SCANNING
+   * quarantine findings (key + location only, never a value) so the caller can
+   * answer 409 REMIX_SECRET_LEAK without this helper owning the reply.
+   */
+  const runSecureRemixClone = async (params: {
+    request: FastifyRequest;
+    sourceProject: { id: string; organizationId: string };
+    targetOrganizationId: string;
+    storagePolicy: RemixStoragePolicy;
+    name: string;
+    slug?: string;
+    sourceFiles: Array<{ path: string; content: string; encoding?: string }>;
+    sourceSnapshotId?: string;
+    sourceListingId?: string;
+  }): Promise<
+    | {
+        ok: true;
+        duplicate: Awaited<ReturnType<typeof store.duplicateProject>>;
+        jobId: string;
+        state: RemixState;
+        detached: ReturnType<typeof detachCredentials>;
+        scrubbedValueLines: number;
+      }
+    | { ok: false; findings: ReturnType<typeof scanClonedFilesForSecrets>; remixJobId: string }
+  > => {
+    const { request, sourceProject, targetOrganizationId, storagePolicy } = params;
+
+    const job = await store.createRemixJob({
+      sourceProjectId: sourceProject.id,
+      organizationId: targetOrganizationId,
+      actorUserId: request.currentUser?.id,
+      storagePolicy,
+      sourceSnapshotId: params.sourceSnapshotId,
+      sourceListingId: params.sourceListingId,
+    });
+
+    let state: RemixState = 'SNAPSHOT_PINNED';
+    const advance = async (to: RemixState, patch: Record<string, unknown> = {}) => {
+      assertRemixTransition(state, to);
+      state = to;
+      await store.updateRemixJob(job.id, { state: to, ...patch });
+    };
+
+    try {
+      // (1) SNAPSHOT_PINNED — the caller already resolved & pinned the source
+      // file set (live or a snapshot archive); nothing to read here.
+      const sourceFiles = params.sourceFiles;
+
+      // (2) CREDENTIALS_DETACHED — references (keys) only, recorded BEFORE any clone.
+      const sourceSecrets = await store.listProjectSecrets(sourceProject.id);
+      const sourceEnvVars = await store.listProjectEnvVars(sourceProject.id);
+      const detached = detachCredentials(sourceSecrets, sourceEnvVars);
+      await advance('CREDENTIALS_DETACHED', { detachedKeys: detached });
+
+      /*
+       * Resolve the source's actual secret VALUES — used ONLY in-memory to scrub
+       * any materialized copy out of the clone files. Never persisted onto the clone.
+       */
+      const materializedValues: Array<{ key: string; value: string }> = [];
+      for (const ref of detached.secretKeys) {
+        const full = await store.getProjectSecret(sourceProject.id, ref);
+        if (full?.valueEncrypted) {
+          try {
+            materializedValues.push({ key: ref, value: decryptJson<{ value: string }>(full.valueEncrypted).value });
+          } catch {
+            // undecryptable ciphertext — nothing to scrub for this key
+          }
+        }
+      }
+      for (const envVar of sourceEnvVars) {
+        if (typeof envVar.value === 'string' && envVar.value.length > 0) {
+          materializedValues.push({ key: envVar.key, value: envVar.value });
+        }
+      }
+
+      // (3) CLONING — new project (metadata only) in the TARGET org + files scrubbed.
+      const duplicate = await store.withSerializedMutation(`projects:${targetOrganizationId}`, async () => {
+        await ensureQuota(request, targetOrganizationId, 'projects.count');
+        return store.duplicateProject({
+          projectId: sourceProject.id,
+          organizationId: targetOrganizationId,
+          name: params.name,
+          slug: params.slug ?? params.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        });
+      });
+
+      const { files: scrubbedFiles, removed } = scrubSecretsFromFiles(
+        sourceFiles.map((file) => ({ path: file.path, content: file.content, encoding: file.encoding })),
+        materializedValues,
+      );
+      const writtenFiles = await projectStorage.writeFiles(
+        duplicate.id,
+        scrubbedFiles.map((file, index) => ({ ...sourceFiles[index], content: file.content })),
+      );
+      await persistProjectFileManifest(store, duplicate.id, writtenFiles, request.currentUser!.id);
+      await advance('CLONING', { targetProjectId: duplicate.id, scrubbedCount: removed.length });
+
+      // (4) DB_FORKING — isolation, not copy (honest marker; no source DATABASE_URL carried).
+      await advance('DB_FORKING', { dbForked: false });
+
+      // (5) STORAGE_POLICY_APPLIED — clone gets its own bucket ref; CLONE/SHARE deferred.
+      await advance('STORAGE_POLICY_APPLIED');
+
+      // (6) SCANNING — re-verify NO materialized secret value survived into the clone.
+      const findings = scanClonedFilesForSecrets(
+        scrubbedFiles.map((file) => ({ path: file.path, content: file.content, encoding: file.encoding })),
+        materializedValues,
+      );
+
+      if (findings.length > 0) {
+        await store.updateRemixJob(job.id, {
+          state: 'FAILED',
+          scanFindings: findings,
+          error: `SCANNING found ${findings.length} materialized secret value(s) in the clone`,
+        });
+        return { ok: false, findings, remixJobId: job.id };
+      }
+      await advance('SCANNING', { scanFindings: [] });
+
+      // (7) INDEXING — honest completion marker (project code index does not exist yet).
+      await advance('INDEXING');
+      await advance('COMPLETED');
+
+      await audit(request, store, {
+        organizationId: duplicate.organizationId,
+        action: 'project.remix',
+        resourceType: 'project',
+        resourceId: duplicate.id,
+        metadata: {
+          sourceProjectId: sourceProject.id,
+          remixJobId: job.id,
+          sourceSnapshotId: params.sourceSnapshotId ?? null,
+          sourceListingId: params.sourceListingId ?? null,
+          detachedSecretKeys: detached.secretKeys.length,
+          detachedEnvVarKeys: detached.envVarKeys.length,
+          scrubbedValueLines: removed.length,
+          storagePolicy,
+        },
+      });
+
+      return { ok: true, duplicate, jobId: job.id, state, detached, scrubbedValueLines: removed.length };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await store.updateRemixJob(job.id, { state: 'FAILED', error: message }).catch(() => undefined);
+      throw error;
+    }
+  };
+
+  /*
    * Secure project remix (DOMAIN_MODEL §1). Runs the normative state machine
    * server-side with the credentials-detached-before-cloning invariant enforced
    * by assertRemixTransition(). A secret VALUE never enters the clone: source
@@ -21358,146 +21522,45 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(remixSchema, request.body);
     const storagePolicy = body.storagePolicy as RemixStoragePolicy;
 
-    const job = await store.createRemixJob({
-      sourceProjectId: project.id,
-      organizationId: project.organizationId,
-      actorUserId: request.currentUser?.id,
-      storagePolicy,
-    });
-
-    let state: RemixState = 'SNAPSHOT_PINNED';
-    const advance = async (to: RemixState, patch: Record<string, unknown> = {}) => {
-      assertRemixTransition(state, to);
-      state = to;
-      await store.updateRemixJob(job.id, { state: to, ...patch });
-    };
-
     try {
-      // (1) SNAPSHOT_PINNED already set at creation. Pin the source file set now.
+      // Plain project-to-project remix: pin the LIVE source file set, clone into
+      // the SAME org. (A gallery remix pins a snapshot and targets the remixer's
+      // org — see POST /gallery/:slug/remix.)
       const sourceFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
 
-      // (2) CREDENTIALS_DETACHED — references (keys) only, recorded BEFORE any clone.
-      const sourceSecrets = await store.listProjectSecrets(project.id);
-      const sourceEnvVars = await store.listProjectEnvVars(project.id);
-      const detached = detachCredentials(sourceSecrets, sourceEnvVars);
-      await advance('CREDENTIALS_DETACHED', { detachedKeys: detached });
-
-      /*
-       * Resolve the source's actual secret VALUES — used ONLY in-memory to scrub
-       * any materialized copy out of the clone files. They are never persisted
-       * onto the clone. ProjectSecret is AES-GCM (decrypt); ProjectEnvVar is
-       * plaintext already.
-       */
-      const materializedValues: Array<{ key: string; value: string }> = [];
-      for (const ref of detached.secretKeys) {
-        const full = await store.getProjectSecret(project.id, ref);
-        if (full?.valueEncrypted) {
-          try {
-            materializedValues.push({ key: ref, value: decryptJson<{ value: string }>(full.valueEncrypted).value });
-          } catch {
-            // undecryptable ciphertext — nothing to scrub for this key
-          }
-        }
-      }
-      for (const envVar of sourceEnvVars) {
-        if (typeof envVar.value === 'string' && envVar.value.length > 0) {
-          materializedValues.push({ key: envVar.key, value: envVar.value });
-        }
-      }
-
-      // (3) CLONING — new project (metadata only) + files scrubbed of any secret value.
-      const duplicate = await store.withSerializedMutation(`projects:${project.organizationId}`, async () => {
-        await ensureQuota(request, project.organizationId, 'projects.count');
-        return store.duplicateProject({
-          projectId: project.id,
-          name: body.name,
-          slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        });
+      const result = await runSecureRemixClone({
+        request,
+        sourceProject: project,
+        targetOrganizationId: project.organizationId,
+        storagePolicy,
+        name: body.name,
+        slug: body.slug,
+        sourceFiles,
       });
 
-      const { files: scrubbedFiles, removed } = scrubSecretsFromFiles(
-        sourceFiles.map((file) => ({ path: file.path, content: file.content, encoding: file.encoding })),
-        materializedValues,
-      );
-      const writtenFiles = await projectStorage.writeFiles(
-        duplicate.id,
-        scrubbedFiles.map((file, index) => ({ ...sourceFiles[index], content: file.content })),
-      );
-      await persistProjectFileManifest(store, duplicate.id, writtenFiles, request.currentUser!.id);
-      await advance('CLONING', { targetProjectId: duplicate.id, scrubbedCount: removed.length });
-
-      /*
-       * (4) DB_FORKING — isolation, not copy. The clone gets a FRESH, isolated
-       * database binding; the source DATABASE_URL secret is deliberately NOT
-       * carried over (it's only a reference key on the clone). Physical CNPG
-       * provisioning is reconciled lazily by the Database panel, so here we
-       * record the isolation decision honestly rather than fake a fork.
-       */
-      await advance('DB_FORKING', { dbForked: false });
-
-      // (5) STORAGE_POLICY_APPLIED — per-project bucket; policy chosen by caller.
-      // DETACH (default): clone gets its own empty bucket ref, source untouched.
-      // CLONE / SHARE_WITH_CONSENT: recorded; object copy/sharing is a follow-up
-      // reconcile (Object Storage is flag-gated), so we record the intent.
-      await advance('STORAGE_POLICY_APPLIED');
-
-      // (6) SCANNING — re-verify NO materialized secret value survived into the clone.
-      const findings = scanClonedFilesForSecrets(
-        scrubbedFiles.map((file) => ({ path: file.path, content: file.content, encoding: file.encoding })),
-        materializedValues,
-      );
-
-      if (findings.length > 0) {
-        // Invariant breach — quarantine, never ship.
-        await store.updateRemixJob(job.id, {
-          state: 'FAILED',
-          scanFindings: findings,
-          error: `SCANNING found ${findings.length} materialized secret value(s) in the clone`,
-        });
+      if (!result.ok) {
         return reply.status(409).send({
           error: 'Remix blocked: a secret value materialized into the clone.',
           code: 'REMIX_SECRET_LEAK',
-          findings, // key + location only, never the value
-          remixJobId: job.id,
+          findings: result.findings, // key + location only, never the value
+          remixJobId: result.remixJobId,
         });
       }
-      await advance('SCANNING', { scanFindings: [] });
-
-      // (7) INDEXING — honest completion marker (project code index does not exist yet).
-      await advance('INDEXING');
-      await advance('COMPLETED');
-
-      await audit(request, store, {
-        organizationId: duplicate.organizationId,
-        action: 'project.remix',
-        resourceType: 'project',
-        resourceId: duplicate.id,
-        metadata: {
-          sourceProjectId: project.id,
-          remixJobId: job.id,
-          detachedSecretKeys: detached.secretKeys.length,
-          detachedEnvVarKeys: detached.envVarKeys.length,
-          scrubbedValueLines: removed.length,
-          storagePolicy,
-        },
-      });
 
       return reply.code(201).send({
-        project: duplicate,
+        project: result.duplicate,
         remix: {
-          remixJobId: job.id,
-          state,
-          detachedKeys: detached,
-          scrubbedValueLines: removed.length,
+          remixJobId: result.jobId,
+          state: result.state,
+          detachedKeys: result.detached,
+          scrubbedValueLines: result.scrubbedValueLines,
           storagePolicy,
         },
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      await store.updateRemixJob(job.id, { state: 'FAILED', error: message }).catch(() => undefined);
-
       if (error instanceof RemixInvariantError) {
-        return reply.status(error.statusCode).send({ error: message, code: error.code, remixJobId: job.id });
+        const message = error instanceof Error ? error.message : String(error);
+        return reply.status(error.statusCode).send({ error: message, code: error.code });
       }
 
       throw error;
@@ -21519,6 +21582,184 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return { remix: job };
+  });
+
+  /*
+   * Gallery (TPL-02). CONFIRMED replit.com/gallery surface only: browse, search,
+   * categories, a per-app detail page, author, public stats, an outbound View App
+   * link, and a Remix CTA. Submission stays a CURATED intake (Typeform → human),
+   * never an in-product self-service Publish — see DEC-GALLERY-NO-SELF-PUBLISH /
+   * GALLERY_COMMUNITY_CONTRACT.md. Reads are PUBLIC (GET /gallery exempt from auth
+   * in the preHandler); the Remix POST is authenticated.
+   */
+  const toPublicListing = (row: {
+    id: string;
+    slug: string;
+    title: string;
+    description: string;
+    category: string;
+    tags: string[];
+    featured: boolean;
+    authorName: string;
+    appUrl?: string;
+    viewCount: number;
+    useCount: number;
+    publishedAt?: string;
+  }) => ({
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    description: row.description,
+    category: row.category,
+    tags: row.tags,
+    featured: row.featured,
+    author: row.authorName,
+    appUrl: row.appUrl ?? null,
+    views: row.viewCount,
+    uses: row.useCount,
+    publishedAt: row.publishedAt ?? null,
+  });
+
+  const galleryListQuery = z.object({
+    category: z.string().min(1).optional(),
+    q: z.string().optional(),
+    featured: z.enum(['true', 'false']).optional(),
+    limit: z.coerce.number().int().min(1).max(200).optional(),
+  });
+
+  app.get('/gallery', async (request) => {
+    const query = parse(galleryListQuery, request.query);
+    const listings = await store.listGalleryListings({
+      category: query.category,
+      query: query.q,
+      featured: query.featured === undefined ? undefined : query.featured === 'true',
+      limit: query.limit,
+    });
+
+    /*
+     * Category facets with counts are computed over ALL published listings (not
+     * the filtered set) so the chips stay stable while the user narrows down —
+     * mirrors the ~22 category list on the real gallery.
+     */
+    const all = query.category || query.q ? await store.listGalleryListings({}) : listings;
+    const counts = new Map<string, number>();
+    for (const listing of all) {
+      counts.set(listing.category, (counts.get(listing.category) ?? 0) + 1);
+    }
+    const categories = [...counts.entries()]
+      .map(([id, count]) => ({ id, count }))
+      .sort((a, b) => b.count - a.count || a.id.localeCompare(b.id));
+
+    return {
+      results: listings.map(toPublicListing),
+      total: listings.length,
+      categories,
+    };
+  });
+
+  app.get('/gallery/:slug', async (request, reply) => {
+    const slug = z.string().min(1).parse((request.params as { slug: string }).slug);
+    const listing = await store.getGalleryListingBySlug(slug);
+
+    if (!listing || listing.status !== 'PUBLISHED') {
+      return reply.status(404).send({ error: 'Listing not found', code: 'GALLERY_LISTING_NOT_FOUND' });
+    }
+
+    // A public detail view counts once per request (best-effort; never blocks the
+    // read). Capture the post-view count BEFORE incrementing so the response is
+    // correct regardless of whether the store returns a fresh row or a live ref.
+    const views = listing.viewCount + 1;
+    await store.incrementGalleryListingViews(listing.id).catch(() => undefined);
+
+    return {
+      listing: {
+        ...toPublicListing(listing),
+        // detail-only: the immutable release the Remix reproduces (provenance, no secret)
+        sourceSnapshotId: listing.sourceSnapshotId,
+        views,
+      },
+    };
+  });
+
+  const galleryRemixSchema = z.object({
+    organizationId: z.string().min(1),
+    name: z.string().min(1).optional(),
+    slug: z.string().min(2).optional(),
+  });
+
+  /*
+   * Remix a gallery listing into the CURRENT user's org. The clone is pinned to
+   * the listing's IMMUTABLE snapshot (so a fork reproduces the PUBLISHED release,
+   * not whatever the source project looks like now), and the same secret-detach /
+   * scrub / scan invariant as POST /projects/:id/remix applies (shared helper).
+   */
+  app.post('/gallery/:slug/remix', async (request, reply) => {
+    const slug = z.string().min(1).parse((request.params as { slug: string }).slug);
+    const body = parse(galleryRemixSchema, request.body);
+
+    // The clone lands in the remixer's org — authorize membership there.
+    await requireOrg(request, store, body.organizationId, 'projects:write');
+
+    const listing = await store.getGalleryListingBySlug(slug);
+    if (!listing || listing.status !== 'PUBLISHED') {
+      return reply.status(404).send({ error: 'Listing not found', code: 'GALLERY_LISTING_NOT_FOUND' });
+    }
+
+    const sourceProject = await store.getProject(listing.sourceProjectId);
+    if (!sourceProject) {
+      return reply.status(409).send({ error: 'Source project unavailable', code: 'GALLERY_SOURCE_MISSING' });
+    }
+
+    // Pin the IMMUTABLE release: read the clone's files from the listing's snapshot
+    // archive, NOT the live source project.
+    const snapshot = await store.getSnapshot(listing.sourceSnapshotId);
+    if (!snapshot || snapshot.projectId !== listing.sourceProjectId) {
+      return reply.status(409).send({ error: 'Pinned release unavailable', code: 'GALLERY_SNAPSHOT_MISSING' });
+    }
+    const sourceFiles = await getSnapshotFiles(snapshot);
+
+    try {
+      const result = await runSecureRemixClone({
+        request,
+        sourceProject: { id: sourceProject.id, organizationId: sourceProject.organizationId },
+        targetOrganizationId: body.organizationId,
+        storagePolicy: 'DETACH',
+        name: body.name ?? listing.title,
+        slug: body.slug,
+        sourceFiles,
+        sourceSnapshotId: listing.sourceSnapshotId,
+        sourceListingId: listing.id,
+      });
+
+      if (!result.ok) {
+        return reply.status(409).send({
+          error: 'Remix blocked: a secret value materialized into the clone.',
+          code: 'REMIX_SECRET_LEAK',
+          findings: result.findings,
+          remixJobId: result.remixJobId,
+        });
+      }
+
+      // Successful fork counts as a "use" (the "Used N times" public stat).
+      await store.incrementGalleryListingUses(listing.id).catch(() => undefined);
+
+      return reply.code(201).send({
+        project: result.duplicate,
+        remix: {
+          remixJobId: result.jobId,
+          state: result.state,
+          sourceSnapshotId: listing.sourceSnapshotId,
+          sourceListingId: listing.id,
+          scrubbedValueLines: result.scrubbedValueLines,
+        },
+      });
+    } catch (error) {
+      if (error instanceof RemixInvariantError) {
+        const message = error instanceof Error ? error.message : String(error);
+        return reply.status(error.statusCode).send({ error: message, code: error.code });
+      }
+      throw error;
+    }
   });
 
   app.post('/projects/:projectId/duplicate', async (request, reply) => {
