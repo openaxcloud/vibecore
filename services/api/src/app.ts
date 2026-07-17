@@ -30834,6 +30834,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       target.provider as (typeof providerRollbackProviders)[number],
     );
 
+    /*
+     * Server digest-rollback re-deploys the retained image via the manager and
+     * then promotes the row to READY. Create it NON-TERMINAL (QUEUED) too — the
+     * monotonic updateDeployment guard refuses to mutate a row already at a
+     * terminal READY, which would silently drop the re-deploy + its metadata.
+     */
+    const willServerDigestRollback =
+      !willTriggerProviderRollback &&
+      target.provider === 'server' &&
+      process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST === '1';
+
     const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
       await ensureQuota(request, project.organizationId, 'deployments.count');
 
@@ -30842,7 +30853,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         workspaceId: target.workspaceId,
         provider: target.provider,
         environment: target.environment,
-        status: willTriggerProviderRollback ? 'QUEUED' : 'READY',
+        status: willTriggerProviderRollback || willServerDigestRollback ? 'QUEUED' : 'READY',
         url: target.url,
         previewUrl: target.previewUrl,
         productionUrl: target.productionUrl,
@@ -30914,11 +30925,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * providers and static are untouched. Refuses loudly (no retained digest /
      * unsatisfiable secret policy) instead of leaving a dead-URL row.
      */
-    if (
-      !willTriggerProviderRollback &&
-      target.provider === 'server' &&
-      process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST === '1'
-    ) {
+    if (willServerDigestRollback) {
       try {
         const serverMeta = (target.metadata as Record<string, unknown>)?.serverDeploy as
           | { image?: { imageRef?: string; imageUri?: string; imageDigest?: string }; secretPolicy?: string }
