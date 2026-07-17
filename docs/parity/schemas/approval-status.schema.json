@@ -1,30 +1,80 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "ecode/parity/approval-status",
-  "x-schemaVersion": 2,
-  "x-repoCommit": "b8186f2f",
+  "x-schemaVersion": 3,
+  "x-repoCommit": "b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5",
   "title": "APPROVAL_STATUS",
+  "description": "v3 (2026-07-17, évaluation v5) : le booléen global `approvalReady` est SUPPRIMÉ (faux positif de couverture). Le statut = des NIVEAUX NOMMÉS calculés (levels[]) + le plus haut niveau contigu atteint (approved.level). « APPROVED » n'est admis que si le niveau exact est nommé.",
   "type": "object",
   "additionalProperties": true,
   "required": [
     "schemaVersion",
     "generatedFrom",
     "algorithm",
-    "approvalReady",
+    "levels",
+    "approved",
     "blocking",
     "conditions",
     "counts",
     "p0"
   ],
+  "not": {
+    "required": ["approvalReady"]
+  },
   "properties": {
     "schemaVersion": {
-      "const": 2
+      "const": 3
     },
     "algorithm": {
       "type": "string"
     },
-    "approvalReady": {
-      "type": "boolean"
+    "levels": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "required": ["name", "passed", "reasons"],
+        "properties": {
+          "name": {
+            "enum": [
+              "documentReady",
+              "registryComplete",
+              "architectureContracted",
+              "implementationReady",
+              "verticalReady",
+              "betaReady",
+              "publicLaunchReady",
+              "parityBaselineReady"
+            ]
+          },
+          "passed": { "type": "boolean" },
+          "reasons": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "approved": {
+      "type": "object",
+      "required": ["level"],
+      "properties": {
+        "level": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "enum": [
+                "documentReady",
+                "registryComplete",
+                "architectureContracted",
+                "implementationReady",
+                "verticalReady",
+                "betaReady",
+                "publicLaunchReady",
+                "parityBaselineReady"
+              ]
+            }
+          ]
+        }
+      }
     },
     "blocking": {
       "type": "array",
@@ -33,7 +83,7 @@
       }
     },
     "conditions": {
-      "description": "The 6 approval conditions (audit v4 H). approvalReady iff every condition passed.",
+      "description": "Les 6 signaux de base (audit v4 H) — conservés comme sous-calculs des niveaux.",
       "type": "array",
       "minItems": 6,
       "maxItems": 6,

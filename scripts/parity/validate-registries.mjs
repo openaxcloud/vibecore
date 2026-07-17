@@ -11,6 +11,10 @@
  *
  * Honesty rule: `UNKNOWN` is a VALID value everywhere a field allows it —
  * the validator enforces structure, never invents data.
+ * EXCEPTION (évaluation v5, 2026-07-17): `targetDate: UNKNOWN` est INTERDIT
+ * dans P0/UNKNOWN/DECISION — date ISO réelle, ou `state: ACCEPTED_RISK`
+ * justifié (owner + expiration + reviewCondition). Une échéance inconnue
+ * n'est pas une donnée, c'est une échappatoire.
  */
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -405,6 +409,42 @@ function checkHeader(file, doc) {
   checkHeader('DECISION_REGISTRY.yaml', decisions);
   checkHeader('UNKNOWN_REGISTRY.yaml', unknowns);
 
+  /*
+   * targetDate: UNKNOWN interdit (évaluation v5) — date ISO, ou ACCEPTED_RISK
+   * justifié avec owner + expiration + reviewCondition.
+   */
+  const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+  function checkTargetDate(file, entry, id) {
+    const acceptedRisk =
+      entry.state === 'ACCEPTED_RISK' && entry.owner && entry.expiration && entry.reviewCondition;
+
+    if (acceptedRisk) {
+      return;
+    }
+
+    if (typeof entry.targetDate !== 'string' || !ISO_DATE.test(entry.targetDate)) {
+      fail(
+        file,
+        `${id}: targetDate "${entry.targetDate}" forbidden — real ISO date required (or state: ACCEPTED_RISK with owner + expiration + reviewCondition)`,
+      );
+    }
+  }
+
+  /*
+   * Complétude (évaluation v5): l'ensemble EXACT des P0 attendus (les 15 du
+   * dernier audit + les 4 de l'audit v4) doit être présent — un ID absent
+   * casse le build.
+   */
+  const { EXPECTED_P0_IDS } = await import(join(here, 'generate-approval-status.mjs'));
+  const presentP0Ids = new Set((p0.p0s ?? []).map((i) => i.p0Id));
+
+  for (const id of EXPECTED_P0_IDS) {
+    if (!presentP0Ids.has(id)) {
+      fail('P0_REGISTRY.yaml', `expected P0 "${id}" is MISSING — the registry cannot silently shrink`);
+    }
+  }
+
   for (const item of p0.p0s ?? []) {
     requireFields(
       'P0_REGISTRY.yaml',
@@ -412,6 +452,7 @@ function checkHeader(file, doc) {
       ['p0Id', 'title', 'priority', 'owner', 'status', 'nextAction'],
       item?.p0Id ?? 'p0',
     );
+    checkTargetDate('P0_REGISTRY.yaml', item, item?.p0Id ?? 'p0');
 
     // CI RULE: no P0 CLOSED without commit + reviewer + proof.
     if (item.status === 'CLOSED' && (!item.commit || !item.reviewer || item.reviewer === 'UNKNOWN' || !item.proof)) {
@@ -433,6 +474,7 @@ function checkHeader(file, doc) {
       ['decisionId', 'title', 'rationale', 'owner', 'priority', 'status', 'nextAction'],
       decision?.decisionId ?? 'decision',
     );
+    checkTargetDate('DECISION_REGISTRY.yaml', decision, decision?.decisionId ?? 'decision');
   }
 
   for (const unknown of unknowns.unknowns ?? []) {
@@ -442,6 +484,7 @@ function checkHeader(file, doc) {
       ['unknownId', 'question', 'owner', 'priority', 'nextAction', 'targetDate', 'expiration'],
       unknown?.unknownId ?? 'unknown',
     );
+    checkTargetDate('UNKNOWN_REGISTRY.yaml', unknown, unknown?.unknownId ?? 'unknown');
   }
 
   checked.push(
@@ -534,8 +577,9 @@ function checkHeader(file, doc) {
       );
     } else {
       /*
-       * Consistency of the 6-condition algorithm (audit v4 H): approvalReady must
-       * equal "every condition passed" — no other path to APPROVED.
+       * Consistency of the NAMED-LEVELS algorithm (évaluation v5): the global
+       * approvalReady boolean is FORBIDDEN (faux positif de couverture);
+       * approved.level must be the highest CONTIGUOUS passed level.
        */
       const status = JSON.parse(computed);
       const conds = status.conditions ?? [];
@@ -544,17 +588,48 @@ function checkHeader(file, doc) {
         fail('APPROVAL_STATUS.json', `expected exactly 6 approval conditions, got ${conds.length}`);
       }
 
-      const allPass = conds.every((c) => c.passed === true);
-
-      if (status.approvalReady !== allPass) {
+      if ('approvalReady' in status) {
         fail(
           'APPROVAL_STATUS.json',
-          `approvalReady (${status.approvalReady}) ≠ all-conditions-pass (${allPass}) — the algorithm is inconsistent`,
+          'the "approvalReady" boolean is FORBIDDEN — APPROVED is only admissible with the exact level named (approved.level)',
+        );
+      }
+
+      const LEVEL_ORDER = [
+        'documentReady',
+        'registryComplete',
+        'architectureContracted',
+        'implementationReady',
+        'verticalReady',
+        'betaReady',
+        'publicLaunchReady',
+        'parityBaselineReady',
+      ];
+      const levels = status.levels ?? [];
+
+      if (levels.map((l) => l.name).join(',') !== LEVEL_ORDER.join(',')) {
+        fail('APPROVAL_STATUS.json', `levels[] must be exactly [${LEVEL_ORDER.join(', ')}] in order`);
+      }
+
+      let expectedApproved = null;
+
+      for (const level of levels) {
+        if (!level.passed) {
+          break;
+        }
+
+        expectedApproved = level.name;
+      }
+
+      if ((status.approved?.level ?? null) !== expectedApproved) {
+        fail(
+          'APPROVAL_STATUS.json',
+          `approved.level (${status.approved?.level}) ≠ highest contiguous passed level (${expectedApproved})`,
         );
       }
 
       checked.push(
-        `APPROVAL_STATUS.json is up to date (computed; 6-condition algorithm consistent, approvalReady=${status.approvalReady})`,
+        `APPROVAL_STATUS.json is up to date (computed; named levels consistent, approved.level=${status.approved?.level ?? 'null'})`,
       );
     }
   }

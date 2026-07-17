@@ -141,3 +141,36 @@ claims:
     client: web
     status: VERIFIED
     triageState: PENDING
+  - claimId: RPL-24
+    statement: "Le hub « Import from a provider » compte EXACTEMENT 12 entrées (table « Supported sources ») : GitHub, Bitbucket, Vercel, Figma, Claude, Bolt, Lovable, Base44, ZIP, Spreadsheet, Previous Agent export, Empty. Convention unique : 12 entrées DONT Empty. « Previous Agent export » manquait à notre comptage (11) — corrigé."
+    sourceId: SRC-REPLIT-IMPORT-PROVIDERS
+    observedAt: "2026-07-17T09:51:51Z"
+    firstSeen: "2026-07-17"
+    lastVerified: "2026-07-17"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-11
+    statement: "Cloud Run service health automatise le failover/failback inter-régions (readiness probes + serverless NEGs, LB externe global et LB interne cross-region). GA le 29/06/2026 d'après les release notes (Preview interne 21/11/2025, externe 24/02/2026). Reclassé depuis « RPL-23 » du plan v5 : source cloud, pas produit Replit. NOTE divergence : la lecture owner du 17/07 rapportait une bannière Preview ; le snapshot hashé du 17/07 ne la montre pas sur cette page (les badges Preview du snapshot concernent d'autres pages : Ephemeral Disk, Sandboxes, Cloud Service Mesh). Exigence E-Code inchangée : fallback + exit strategy obligatoires (stratégie de données, cohérence sessions, idempotence, dégradation partielle)."
+    sourceId: SRC-CLOUDRUN-RELEASE-NOTES
+    observedAt: "2026-07-17T09:51:51Z"
+    firstSeen: "2025-11-21"
+    lastVerified: "2026-07-17"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-12
+    statement: "Artifact Registry attachments (métadonnées liées par referrers OCI) est en PREVIEW — bannière « Pre-GA Offerings Terms … available \"as is\" and might have limited support » présente dans le snapshot hashé. Dépendance production INTERDITE sans fallback (attestations Binary Authorization / Container Analysis, copie des referrers via ORAS) + exit strategy."
+    sourceId: SRC-AR-ATTACHMENTS
+    observedAt: "2026-07-17T09:51:51Z"
+    firstSeen: "2026-07-17"
+    lastVerified: "2026-07-17"
+    plan: all
+    rollout: PREVIEW
+    region: UNKNOWN
+    client: web
+    status: VERIFIED

@@ -1,7 +1,7 @@
 # PARITY_STATUS — état de parité, 3 états SÉPARÉS par point
 
 schemaVersion: 1
-repoCommit: 2b421a4598389d4402e3b3f5ad0db4cd13b11057
+repoCommit: b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5
 États: 📤 Dispatché · 💻 Codé (commité+poussé main) · ✅ Testé live (écran +
 greps, web/tablette/mobile). Un point n'est « fait » QUE quand ✅ est coché.
 Règle de ce fichier : on ne coche ✅ QUE ce qui a un `evidenceId` vérifiable —
@@ -9,10 +9,15 @@ jamais par déduction ni « couvert par ailleurs ». Ce qui est codé mais pas
 prouvé reste 💻 avec ✅ ⬜. Sources de détail : `REPLIT_PARITY.md`,
 `PLAN_REMAINING_UNIFIED.md`, `DESIGN_PROGRAM_MASTER.md`, `BUG_INVENTORY_LIVE.md`.
 
+Plan canonique : `PLAN_PARITE_REPLIT.md` (supersède le v5 hors-repo). Statut
+global : `APPROVAL_STATUS.json` — **niveaux nommés** (`approved.level`), le
+booléen `approvalReady` est supprimé (interdit par le validateur).
+
 ## Vue par chantier
 
 | Chantier | 📤 | 💻 | ✅ | evidenceId / détail |
 |---|:---:|:---:|:---:|---|
+| Plan canonique + réconciliation registres (19 P0, targetDate ISO, niveaux nommés, sources GCP-11/12/RPL-24 hashées) | ✅ | ✅ cette PR | ⬜ | `docs/parity/PLAN_PARITE_REPLIT.md`, `APPROVAL_STATUS.json` (approved.level=architectureContracted) — ✅ après merge + CI parity-registries verte sur main |
 | Server deploy Phase A (A1–A10) | ✅ | ✅ | ✅ 15/07 | `docs/deploy-evidence/…` — snapshot→image→run prouvé Node+Python |
 | Phase B pipeline reproductible + Nix v2 (B0–B5,B8) | ✅ | ✅ | ✅ 15/07 | `docs/deploy-evidence/2026-07-15-phase-b/` ; B6/B7 (gates, cosign) ⬜ |
 | Zone autoscale/tailles machine/AR (Z1–Z5) | ✅ | ✅ `1ea573b4` | ✅ 16/07 | `docs/deploy-evidence/2026-07-16-zone-autoscale/` |

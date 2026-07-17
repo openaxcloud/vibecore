@@ -1,0 +1,4803 @@
+
+
+
+
+
+
+
+
+
+<!doctype html>
+<html 
+      lang="en"
+      dir="ltr">
+  <head>
+    <meta name="google-signin-client-id" content="721724668570-nbkv1cfusk7kk4eni4pjvepaus73b13t.apps.googleusercontent.com"><meta name="google-signin-scope"
+          content="profile email https://www.googleapis.com/auth/developerprofiles https://www.googleapis.com/auth/developerprofiles.award https://www.googleapis.com/auth/devprofiles.full_control.firstparty"><meta property="og:site_name" content="Google Cloud Documentation">
+    <meta property="og:type" content="website"><meta name="theme-color" content="#1a73e8"><meta charset="utf-8">
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+
+    <link rel="manifest" href="/_pwa/clouddocs/manifest.json"
+          crossorigin="use-credentials">
+    <link rel="preconnect" href="//www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="//fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="//www.google-analytics.com" crossorigin><link rel="stylesheet" href="//fonts.googleapis.com/css?family=Google+Sans:400,500|Roboto:400,400italic,500,500italic,700,700italic|Roboto+Mono:400,500,700&display=swap">
+      <link rel="stylesheet"
+            href="//fonts.googleapis.com/css2?family=Material+Icons&family=Material+Symbols+Outlined&display=block"><link rel="stylesheet" href="https://www.gstatic.com/devrel-devsite/prod/v7669de8735de7fa899c49c793af6b01f3bfef3435bb66621d079ef252c528b54/clouddocs/css/app.css">
+      
+        <link rel="stylesheet" href="https://www.gstatic.com/devrel-devsite/prod/v7669de8735de7fa899c49c793af6b01f3bfef3435bb66621d079ef252c528b54/clouddocs/css/dark-theme.css" disabled>
+      <link rel="shortcut icon" href="https://www.gstatic.com/devrel-devsite/prod/v7669de8735de7fa899c49c793af6b01f3bfef3435bb66621d079ef252c528b54/clouddocs/images/favicons/onecloud/favicon.ico">
+    <link rel="apple-touch-icon" href="https://www.gstatic.com/devrel-devsite/prod/v7669de8735de7fa899c49c793af6b01f3bfef3435bb66621d079ef252c528b54/clouddocs/images/favicons/onecloud/super_cloud.png"><link rel="canonical" href="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments"><link rel="search" type="application/opensearchdescription+xml"
+            title="Google Cloud Documentation" href="https://docs.cloud.google.com/s/opensearch.xml">
+      <link rel="alternate" hreflang="en"
+          href="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments" /><link rel="alternate" hreflang="x-default" href="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments" /><link rel="alternate" hreflang="zh-Hans"
+          href="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments?hl=zh-cn" /><link rel="alternate" hreflang="zh-Hant"
+          href="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments?hl=zh-tw" /><link rel="alternate" hreflang="fr"
+          href="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments?hl=fr" /><link rel="alternate" hreflang="de"
+          href="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments?hl=de" /><link rel="alternate" hreflang="he"
+          href="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments?hl=he" /><link rel="alternate" hreflang="id"
+          href="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments?hl=id" /><link rel="alternate" hreflang="it"
+          href="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments?hl=it" /><link rel="alternate" hreflang="ja"
+          href="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments?hl=ja" /><link rel="alternate" hreflang="ko"
+          href="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments?hl=ko" /><link rel="alternate" hreflang="pt-BR"
+          href="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments?hl=pt-br" /><link rel="alternate" hreflang="pt"
+          href="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments?hl=pt" /><link rel="alternate" hreflang="es"
+          href="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments?hl=es" /><link rel="alternate" hreflang="es-419"
+          href="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments?hl=es-419" /><link rel="alternate" hreflang="en"
+          href="https://berlin.devsitetest.how/artifact-registry/docs/manage-metadata-with-attachments" /><link rel="alternate" hreflang="x-default" href="https://berlin.devsitetest.how/artifact-registry/docs/manage-metadata-with-attachments" /><link rel="alternate" hreflang="zh-Hans"
+          href="https://berlin.devsitetest.how/artifact-registry/docs/manage-metadata-with-attachments?hl=zh-cn" /><link rel="alternate" hreflang="zh-Hant"
+          href="https://berlin.devsitetest.how/artifact-registry/docs/manage-metadata-with-attachments?hl=zh-tw" /><link rel="alternate" hreflang="fr"
+          href="https://berlin.devsitetest.how/artifact-registry/docs/manage-metadata-with-attachments?hl=fr" /><link rel="alternate" hreflang="de"
+          href="https://berlin.devsitetest.how/artifact-registry/docs/manage-metadata-with-attachments?hl=de" /><link rel="alternate" hreflang="he"
+          href="https://berlin.devsitetest.how/artifact-registry/docs/manage-metadata-with-attachments?hl=he" /><link rel="alternate" hreflang="id"
+          href="https://berlin.devsitetest.how/artifact-registry/docs/manage-metadata-with-attachments?hl=id" /><link rel="alternate" hreflang="it"
+          href="https://berlin.devsitetest.how/artifact-registry/docs/manage-metadata-with-attachments?hl=it" /><link rel="alternate" hreflang="ja"
+          href="https://berlin.devsitetest.how/artifact-registry/docs/manage-metadata-with-attachments?hl=ja" /><link rel="alternate" hreflang="ko"
+          href="https://berlin.devsitetest.how/artifact-registry/docs/manage-metadata-with-attachments?hl=ko" /><link rel="alternate" hreflang="pt-BR"
+          href="https://berlin.devsitetest.how/artifact-registry/docs/manage-metadata-with-attachments?hl=pt-br" /><link rel="alternate" hreflang="pt"
+          href="https://berlin.devsitetest.how/artifact-registry/docs/manage-metadata-with-attachments?hl=pt" /><link rel="alternate" hreflang="es"
+          href="https://berlin.devsitetest.how/artifact-registry/docs/manage-metadata-with-attachments?hl=es" /><link rel="alternate" hreflang="es-419"
+          href="https://berlin.devsitetest.how/artifact-registry/docs/manage-metadata-with-attachments?hl=es-419" /><title>Manage artifact metadata &nbsp;|&nbsp; Artifact Registry &nbsp;|&nbsp; Google Cloud Documentation</title>
+
+<meta property="og:title" content="Manage artifact metadata &nbsp;|&nbsp; Artifact Registry &nbsp;|&nbsp; Google Cloud Documentation"><meta property="og:url" content="https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments"><meta property="og:image" content="https://docs.cloud.google.com/_static/cloud/images/social-icon-google-cloud-1200-630.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630"><meta property="og:locale" content="en"><meta name="twitter:card" content="summary_large_image"><script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    
+    "headline": "Manage artifact metadata"
+  }
+</script><script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [{
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Artifact Registry",
+      "item": "https://docs.cloud.google.com/artifact-registry/docs"
+    },{
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Manage artifact metadata",
+      "item": "https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments"
+    }]
+  }
+  </script>
+  
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+    
+ .  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+    
+    
+    
+    
+    
+    
+  
+
+    </head>
+  <body class="color-scheme--light"
+        template="page"
+        theme="clouddocs-theme"
+        type="article"
+        
+        appearance
+        
+        layout="docs"
+        
+        
+        free-trial
+        
+        
+        display-toc
+        pending>
+  
+    <devsite-progress type="indeterminate" id="app-progress"></devsite-progress>
+  
+  
+    <a href="#main-content" class="skip-link button">
+      
+      Skip to main content
+    </a>
+    <section class="devsite-wrapper">
+      <devsite-cookie-notification-bar></devsite-cookie-notification-bar>
+        <cloudx-track userCountry="IL"></cloudx-track>
+
+<devsite-header role="banner" keep-tabs-visible>
+  
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="devsite-header--inner" data-nosnippet>
+  <div class="devsite-top-logo-row-wrapper-wrapper">
+    <div class="devsite-top-logo-row-wrapper">
+      <div class="devsite-top-logo-row">
+        <button type="button" id="devsite-hamburger-menu"
+          class="devsite-header-icon-button button-flat material-icons gc-analytics-event"
+          data-category="Site-Wide Custom Events"
+          data-label="Navigation menu button"
+          visually-hidden
+          aria-label="Open menu">
+        </button>
+        
+<div class="devsite-product-name-wrapper">
+
+  <a href="/" class="devsite-site-logo-link gc-analytics-event"
+   data-category="Site-Wide Custom Events" data-label="Site logo" track-type="globalNav"
+   track-name="googleCloudDocumentation" track-metadata-position="nav"
+   track-metadata-eventDetail="nav">
+  
+  <picture>
+    
+    <source srcset="https://www.gstatic.com/devrel-devsite/prod/v7669de8735de7fa899c49c793af6b01f3bfef3435bb66621d079ef252c528b54/clouddocs/images/lockup_dark_theme.svg"
+            media="(prefers-color-scheme: dark)"
+            class="devsite-dark-theme">
+    
+    <img src="https://www.gstatic.com/devrel-devsite/prod/v7669de8735de7fa899c49c793af6b01f3bfef3435bb66621d079ef252c528b54/clouddocs/images/lockup_full_color.svg" class="devsite-site-logo" alt="Google Cloud Documentation">
+  </picture>
+  
+</a>
+
+
+
+</div>
+        <div class="devsite-top-logo-row-middle">
+          <div class="devsite-header-upper-tabs">
+            
+              
+              
+  <devsite-tabs class="upper-tabs">
+
+    <nav class="devsite-tabs-wrapper" aria-label="Upper tabs">
+      
+        
+          <tab class="devsite-dropdown
+    
+    devsite-active
+    devsite-clickable
+    ">
+  
+    <a href="https://docs.cloud.google.com/docs"
+    class="devsite-tabs-content gc-analytics-event "
+      track-metadata-eventdetail="https://docs.cloud.google.com/docs"
+    
+       track-type="nav"
+       track-metadata-position="nav - docs-home"
+       track-metadata-module="primary nav"
+       aria-label="Technology areas, selected" 
+       
+         
+           data-category="Site-Wide Custom Events"
+         
+           data-label="Tab: Technology areas"
+         
+           track-name="docs-home"
+         
+           track-link-column-type="single-column"
+         
+       >
+    Technology areas
+  
+    </a>
+    
+      <button
+         aria-haspopup="menu"
+         aria-expanded="false"
+         aria-label="Dropdown menu for Technology areas"
+         track-type="nav"
+         track-metadata-eventdetail="https://docs.cloud.google.com/docs"
+         track-metadata-position="nav - docs-home"
+         track-metadata-module="primary nav"
+         
+          
+            data-category="Site-Wide Custom Events"
+          
+            data-label="Tab: Technology areas"
+          
+            track-name="docs-home"
+          
+            track-link-column-type="single-column"
+          
+        
+         class="devsite-tabs-dropdown-toggle devsite-icon devsite-icon-arrow-drop-down"></button>
+    
+  
+  <div class="devsite-tabs-dropdown" role="menu" aria-label="submenu" hidden>
+    <div class="devsite-tabs-dropdown-content">
+      
+        <button class="devsite-tabs-close-button material-icons button-flat gc-analytics-event"
+                data-category="Site-Wide Custom Events"
+                data-label="Close dropdown menu"
+                aria-label="Close dropdown menu"
+                track-type="nav"
+                track-name="close"
+                track-metadata-eventdetail="#"
+                track-metadata-position="nav - docs-home"
+                track-metadata-module="tertiary nav">close</button>
+      
+      
+        <div class="devsite-tabs-dropdown-column
+                    ">
+          
+            <ul class="devsite-tabs-dropdown-section
+                       ">
+              
+              
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/ai-ml"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/ai-ml"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      AI and ML
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/application-development"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/application-development"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Application development
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/application-hosting"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/application-hosting"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Application hosting
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/compute-area"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/compute-area"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Compute
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/data"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/data"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Data analytics and pipelines
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/databases"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/databases"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Databases
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/dhm-cloud"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/dhm-cloud"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Distributed, hybrid, and multicloud
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/industry"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/industry"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Industry solutions
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/migration"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/migration"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Migration
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/networking"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/networking"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Networking
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/observability"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/observability"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Observability and monitoring
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/security"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/security"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Security
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/storage"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/storage"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Storage
+                    </div>
+                    
+                  </a>
+                </li>
+              
+            </ul>
+          
+        </div>
+      
+    </div>
+  </div>
+</tab>
+        
+      
+        
+          <tab class="devsite-dropdown
+    
+    
+    devsite-clickable
+    ">
+  
+    <a href="https://docs.cloud.google.com/docs/cross-product-overviews"
+    class="devsite-tabs-content gc-analytics-event "
+      track-metadata-eventdetail="https://docs.cloud.google.com/docs/cross-product-overviews"
+    
+       track-type="nav"
+       track-metadata-position="nav - crossproduct"
+       track-metadata-module="primary nav"
+       
+       
+         
+           data-category="Site-Wide Custom Events"
+         
+           data-label="Tab: Cross-product tools"
+         
+           track-name="crossproduct"
+         
+           track-link-column-type="single-column"
+         
+       >
+    Cross-product tools
+  
+    </a>
+    
+      <button
+         aria-haspopup="menu"
+         aria-expanded="false"
+         aria-label="Dropdown menu for Cross-product tools"
+         track-type="nav"
+         track-metadata-eventdetail="https://docs.cloud.google.com/docs/cross-product-overviews"
+         track-metadata-position="nav - crossproduct"
+         track-metadata-module="primary nav"
+         
+          
+            data-category="Site-Wide Custom Events"
+          
+            data-label="Tab: Cross-product tools"
+          
+            track-name="crossproduct"
+          
+            track-link-column-type="single-column"
+          
+        
+         class="devsite-tabs-dropdown-toggle devsite-icon devsite-icon-arrow-drop-down"></button>
+    
+  
+  <div class="devsite-tabs-dropdown" role="menu" aria-label="submenu" hidden>
+    <div class="devsite-tabs-dropdown-content">
+      
+        <button class="devsite-tabs-close-button material-icons button-flat gc-analytics-event"
+                data-category="Site-Wide Custom Events"
+                data-label="Close dropdown menu"
+                aria-label="Close dropdown menu"
+                track-type="nav"
+                track-name="close"
+                track-metadata-eventdetail="#"
+                track-metadata-position="nav - crossproduct"
+                track-metadata-module="tertiary nav">close</button>
+      
+      
+        <div class="devsite-tabs-dropdown-column
+                    ">
+          
+            <ul class="devsite-tabs-dropdown-section
+                       ">
+              
+              
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/access-resources"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/access-resources"
+                     track-metadata-position="nav - crossproduct"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Access and resources management
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/costs-usage"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/costs-usage"
+                     track-metadata-position="nav - crossproduct"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Costs and usage management
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/iac"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/iac"
+                     track-metadata-position="nav - crossproduct"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Infrastructure as code
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/devtools"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/devtools"
+                     track-metadata-position="nav - crossproduct"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      SDK, languages, frameworks, and tools
+                    </div>
+                    
+                  </a>
+                </li>
+              
+            </ul>
+          
+        </div>
+      
+    </div>
+  </div>
+</tab>
+        
+      
+    </nav>
+
+  </devsite-tabs>
+
+            
+           </div>
+          
+<devsite-search
+    enable-signin
+    enable-search
+    enable-suggestions
+      
+    
+    enable-search-summaries
+    project-name="Artifact Registry"
+    tenant-name="Google Cloud Documentation"
+    project-scope="/artifact-registry/docs"
+    url-scoped="https://docs.cloud.google.com/s/results/artifact-registry/docs"
+    
+    
+    
+    >
+  <form class="devsite-search-form" action="https://docs.cloud.google.com/s/results" method="GET">
+    <div class="devsite-search-container">
+      <button type="button"
+              search-open
+              class="devsite-search-button devsite-header-icon-button button-flat material-icons"
+              
+              aria-label="Open search"></button>
+      <div class="devsite-searchbox">
+        <input
+          aria-activedescendant=""
+          aria-autocomplete="list"
+          
+          aria-label="Search"
+          aria-expanded="false"
+          aria-haspopup="listbox"
+          autocomplete="off"
+          class="devsite-search-field devsite-search-query"
+          name="q"
+          
+          placeholder="Search"
+          role="combobox"
+          type="text"
+          value=""
+          >
+          <div class="devsite-search-image material-icons" aria-hidden="true">
+            
+              <svg class="devsite-search-ai-image" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <g clip-path="url(#clip0_6641_386)">
+                    <path d="M19.6 21L13.3 14.7C12.8 15.1 12.225 15.4167 11.575 15.65C10.925 15.8833 10.2333 16 9.5 16C7.68333 16 6.14167 15.375 4.875 14.125C3.625 12.8583 3 11.3167 3 9.5C3 7.68333 3.625 6.15 4.875 4.9C6.14167 3.63333 7.68333 3 9.5 3C10.0167 3 10.5167 3.05833 11 3.175C11.4833 3.275 11.9417 3.43333 12.375 3.65L10.825 5.2C10.6083 5.13333 10.3917 5.08333 10.175 5.05C9.95833 5.01667 9.73333 5 9.5 5C8.25 5 7.18333 5.44167 6.3 6.325C5.43333 7.19167 5 8.25 5 9.5C5 10.75 5.43333 11.8167 6.3 12.7C7.18333 13.5667 8.25 14 9.5 14C10.6667 14 11.6667 13.625 12.5 12.875C13.35 12.1083 13.8417 11.15 13.975 10H15.975C15.925 10.6333 15.7833 11.2333 15.55 11.8C15.3333 12.3667 15.05 12.8667 14.7 13.3L21 19.6L19.6 21ZM17.5 12C17.5 10.4667 16.9667 9.16667 15.9 8.1C14.8333 7.03333 13.5333 6.5 12 6.5C13.5333 6.5 14.8333 5.96667 15.9 4.9C16.9667 3.83333 17.5 2.53333 17.5 0.999999C17.5 2.53333 18.0333 3.83333 19.1 4.9C20.1667 5.96667 21.4667 6.5 23 6.5C21.4667 6.5 20.1667 7.03333 19.1 8.1C18.0333 9.16667 17.5 10.4667 17.5 12Z" fill="#5F6368"/>
+                  </g>
+                <defs>
+                <clipPath id="clip0_6641_386">
+                <rect width="24" height="24" fill="white"/>
+                </clipPath>
+                </defs>
+              </svg>
+            
+          </div>
+          <div class="devsite-search-shortcut-icon-container" aria-hidden="true">
+            <kbd class="devsite-search-shortcut-icon">/</kbd>
+          </div>
+      </div>
+    </div>
+  </form>
+  <button type="button"
+          search-close
+          class="devsite-search-button devsite-header-icon-button button-flat material-icons"
+          
+          aria-label="Close search"></button>
+</devsite-search>
+
+        </div>
+
+        
+
+  
+
+  
+    <a class="devsite-header-link devsite-top-button button gc-analytics-event button-with-icon"
+    href="//console.cloud.google.com/"
+    data-category="Site-Wide Custom Events"
+    data-label="Site header link: Console"
+    
+      
+        track-name="console"
+      
+        track-type="globalNav"
+      
+        referrerpolicy="no-referrer-when-downgrade"
+      
+        track-metadata-position="nav"
+      
+        track-metadata-eventDetail="nav"
+      
+    >
+  Console
+</a>
+  
+
+  
+
+  <devsite-appearance-selector></devsite-appearance-selector>
+
+  
+<devsite-language-selector>
+  <ul role="presentation">
+    
+    
+    <li role="presentation">
+      <a role="menuitem" lang="en"
+        >English</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="de"
+        >Deutsch</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="es"
+        >Español</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="es_419"
+        >Español – América Latina</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="fr"
+        >Français</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="id"
+        >Indonesia</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="it"
+        >Italiano</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="pt"
+        >Português</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="pt_br"
+        >Português – Brasil</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="he"
+        >עברית</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="zh_cn"
+        >中文 – 简体</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="zh_tw"
+        >中文 – 繁體</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="ja"
+        >日本語</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="ko"
+        >한국어</a>
+    </li>
+    
+  </ul>
+</devsite-language-selector>
+
+
+
+
+        
+          <devsite-user 
+                        
+                        
+                          enable-profiles
+                        
+                        
+                          fp-auth
+                        
+                        id="devsite-user">
+            
+              
+              <span class="button devsite-top-button" aria-hidden="true" visually-hidden>Sign in</span>
+            
+          </devsite-user>
+        
+        
+        
+      </div>
+    </div>
+  </div>
+
+
+
+  <div class="devsite-collapsible-section
+    ">
+    <div class="devsite-header-background">
+      
+        
+          <div class="devsite-product-id-row"
+           >
+            <div class="devsite-product-description-row">
+              
+                
+                <div class="devsite-product-id">
+                  
+                    
+  
+  <a href="https://docs.cloud.google.com/artifact-registry/docs">
+    
+  <div class="devsite-product-logo-container"
+       
+       
+       
+    size="medium"
+  >
+  
+    <picture>
+      
+      <source class="devsite-dark-theme"
+              media="(prefers-color-scheme: dark)"
+              srcset=" /_static/clouddocs/images/icons/categories/devops-white.svg"
+              sizes="64px">
+      
+      <img class="devsite-product-logo"
+           alt=""
+           src="https://docs.cloud.google.com/_static/clouddocs/images/icons/categories/devops-color.svg"
+           srcset=" /_static/clouddocs/images/icons/categories/devops-color.svg"
+           sizes="64px"
+           loading="lazy"
+           >
+    </picture>
+  
+  </div>
+  
+  </a>
+  
+
+                  
+                  
+                  
+                    <ul class="devsite-breadcrumb-list"
+  >
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/artifact-registry/docs"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Lower Header"
+      
+        data-value="1"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="1"
+      
+        track-metadata-eventdetail="Artifact Registry"
+      
+    >
+    
+          Artifact Registry
+        
+  </a>
+  
+      
+    
+  </li>
+  
+</ul>
+                </div>
+                
+              
+              
+            </div>
+            
+              <div class="devsite-product-button-row">
+  
+
+  
+  <a href="//console.cloud.google.com/freetrial"
+  
+    class="cloud-free-trial-button button button-primary
+      "
+    
+    
+      
+        track-type="freeTrial"
+      
+        referrerpolicy="no-referrer-when-downgrade"
+      
+        track-metadata-eventDetail="nav"
+      
+        track-metadata-position="nav"
+      
+        track-name="gcpCta"
+      
+    
+    >Start free</a>
+
+</div>
+            
+          </div>
+          
+        
+      
+      
+        <div class="devsite-doc-set-nav-row">
+          
+          
+            
+            
+  <devsite-tabs class="lower-tabs">
+
+    <nav class="devsite-tabs-wrapper" aria-label="Lower tabs">
+      
+        
+          <tab  >
+            
+    <a href="https://docs.cloud.google.com/artifact-registry/docs"
+    class="devsite-tabs-content gc-analytics-event "
+      track-metadata-eventdetail="https://docs.cloud.google.com/artifact-registry/docs"
+    
+       track-type="nav"
+       track-metadata-position="nav - overview"
+       track-metadata-module="primary nav"
+       
+       
+         
+           data-category="Site-Wide Custom Events"
+         
+           data-label="Tab: Overview"
+         
+           track-name="overview"
+         
+       >
+    Overview
+  
+    </a>
+    
+  
+          </tab>
+        
+      
+        
+          <tab  class="devsite-active">
+            
+    <a href="https://docs.cloud.google.com/artifact-registry/docs/overview"
+    class="devsite-tabs-content gc-analytics-event "
+      track-metadata-eventdetail="https://docs.cloud.google.com/artifact-registry/docs/overview"
+    
+       track-type="nav"
+       track-metadata-position="nav - guides"
+       track-metadata-module="primary nav"
+       aria-label="Guides, selected" 
+       
+         
+           data-category="Site-Wide Custom Events"
+         
+           data-label="Tab: Guides"
+         
+           track-name="guides"
+         
+       >
+    Guides
+  
+    </a>
+    
+  
+          </tab>
+        
+      
+        
+          <tab  >
+            
+    <a href="https://docs.cloud.google.com/artifact-registry/docs/apis"
+    class="devsite-tabs-content gc-analytics-event "
+      track-metadata-eventdetail="https://docs.cloud.google.com/artifact-registry/docs/apis"
+    
+       track-type="nav"
+       track-metadata-position="nav - reference"
+       track-metadata-module="primary nav"
+       
+       
+         
+           data-category="Site-Wide Custom Events"
+         
+           data-label="Tab: Reference"
+         
+           track-name="reference"
+         
+       >
+    Reference
+  
+    </a>
+    
+  
+          </tab>
+        
+      
+        
+          <tab  >
+            
+    <a href="https://docs.cloud.google.com/artifact-registry/docs/resources"
+    class="devsite-tabs-content gc-analytics-event "
+      track-metadata-eventdetail="https://docs.cloud.google.com/artifact-registry/docs/resources"
+    
+       track-type="nav"
+       track-metadata-position="nav - resources"
+       track-metadata-module="primary nav"
+       
+       
+         
+           data-category="Site-Wide Custom Events"
+         
+           data-label="Tab: Resources"
+         
+           track-name="resources"
+         
+       >
+    Resources
+  
+    </a>
+    
+  
+          </tab>
+        
+      
+    </nav>
+
+  </devsite-tabs>
+
+          
+          
+        </div>
+      
+    </div>
+  </div>
+
+</div>
+
+
+
+  
+
+  
+</devsite-header>
+        <devsite-book-nav scrollbars >
+          
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="devsite-book-nav-filter"
+     >
+  <span class="filter-list-icon material-icons" aria-hidden="true"></span>
+  <input type="text"
+         placeholder="Filter"
+         
+         aria-label="Type to filter"
+         role="searchbox">
+  
+  <span class="filter-clear-button hidden"
+        data-title="Clear filter"
+        aria-label="Clear filter"
+        role="button"
+        tabindex="0"></span>
+</div>
+
+<nav class="devsite-book-nav devsite-nav nocontent" data-nosnippet
+     aria-label="Side menu">
+  <div class="devsite-mobile-header">
+    <button type="button"
+            id="devsite-close-nav"
+            class="devsite-header-icon-button button-flat material-icons gc-analytics-event"
+            data-category="Site-Wide Custom Events"
+            data-label="Close navigation"
+            aria-label="Close navigation">
+    </button>
+    <div class="devsite-product-name-wrapper">
+
+  <a href="/" class="devsite-site-logo-link gc-analytics-event"
+   data-category="Site-Wide Custom Events" data-label="Site logo" track-type="globalNav"
+   track-name="googleCloudDocumentation" track-metadata-position="nav"
+   track-metadata-eventDetail="nav">
+  
+  <picture>
+    
+    <source srcset="https://www.gstatic.com/devrel-devsite/prod/v7669de8735de7fa899c49c793af6b01f3bfef3435bb66621d079ef252c528b54/clouddocs/images/lockup_dark_theme.svg"
+            media="(prefers-color-scheme: dark)"
+            class="devsite-dark-theme">
+    
+    <img src="https://www.gstatic.com/devrel-devsite/prod/v7669de8735de7fa899c49c793af6b01f3bfef3435bb66621d079ef252c528b54/clouddocs/images/lockup_full_color.svg" class="devsite-site-logo" alt="Google Cloud Documentation">
+  </picture>
+  
+</a>
+
+
+</div>
+  </div>
+
+  <div class="devsite-book-nav-wrapper">
+    <div class="devsite-mobile-nav-top">
+      
+        <ul class="devsite-nav-list">
+          
+            <li class="devsite-nav-item">
+              
+  
+  <a href="/docs"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              devsite-nav-active"
+    
+
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Technology areas"
+      
+        track-name="docs-home"
+      
+        track-link-column-type="single-column"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Technology areas"
+     track-type="globalNav"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Technology areas
+   </span>
+    
+  
+  </a>
+  
+
+  
+    <ul class="devsite-nav-responsive-tabs devsite-nav-has-menu
+               ">
+      
+<li class="devsite-nav-item">
+
+  
+  <span
+    
+       class="devsite-nav-title"
+       tooltip
+    
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Technology areas"
+      
+        track-name="docs-home"
+      
+        track-link-column-type="single-column"
+      
+    >
+  
+    <span class="devsite-nav-text" tooltip menu="Technology areas">
+      More
+   </span>
+    
+    <span class="devsite-nav-icon material-icons" data-icon="forward"
+          menu="Technology areas">
+    </span>
+    
+  
+  </span>
+  
+
+</li>
+
+    </ul>
+  
+              
+                <ul class="devsite-nav-responsive-tabs">
+                  
+                    
+                    
+                    
+                    <li class="devsite-nav-item">
+                      
+  
+  <a href="/artifact-registry/docs"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Overview"
+      
+        track-name="overview"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Overview"
+     track-type="globalNav"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Overview
+   </span>
+    
+  
+  </a>
+  
+
+  
+                    </li>
+                  
+                    
+                    
+                    
+                    <li class="devsite-nav-item">
+                      
+  
+  <a href="/artifact-registry/docs/overview"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              devsite-nav-active"
+    
+
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Guides"
+      
+        track-name="guides"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Guides"
+     track-type="globalNav"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip menu="_book">
+      Guides
+   </span>
+    
+  
+  </a>
+  
+
+  
+                    </li>
+                  
+                    
+                    
+                    
+                    <li class="devsite-nav-item">
+                      
+  
+  <a href="/artifact-registry/docs/apis"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Reference"
+      
+        track-name="reference"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Reference"
+     track-type="globalNav"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Reference
+   </span>
+    
+  
+  </a>
+  
+
+  
+                    </li>
+                  
+                    
+                    
+                    
+                    <li class="devsite-nav-item">
+                      
+  
+  <a href="/artifact-registry/docs/resources"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Resources"
+      
+        track-name="resources"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Resources"
+     track-type="globalNav"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Resources
+   </span>
+    
+  
+  </a>
+  
+
+  
+                    </li>
+                  
+                </ul>
+              
+            </li>
+          
+            <li class="devsite-nav-item">
+              
+  
+  <a href="/docs/cross-product-overviews"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Cross-product tools"
+      
+        track-name="crossproduct"
+      
+        track-link-column-type="single-column"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Cross-product tools"
+     track-type="globalNav"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Cross-product tools
+   </span>
+    
+  
+  </a>
+  
+
+  
+    <ul class="devsite-nav-responsive-tabs devsite-nav-has-menu
+               ">
+      
+<li class="devsite-nav-item">
+
+  
+  <span
+    
+       class="devsite-nav-title"
+       tooltip
+    
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Cross-product tools"
+      
+        track-name="crossproduct"
+      
+        track-link-column-type="single-column"
+      
+    >
+  
+    <span class="devsite-nav-text" tooltip menu="Cross-product tools">
+      More
+   </span>
+    
+    <span class="devsite-nav-icon material-icons" data-icon="forward"
+          menu="Cross-product tools">
+    </span>
+    
+  
+  </span>
+  
+
+</li>
+
+    </ul>
+  
+              
+            </li>
+          
+          
+    
+    
+<li class="devsite-nav-item">
+
+  
+  <a href="//console.cloud.google.com/"
+    
+       class="devsite-nav-title gc-analytics-event button-with-icon"
+    
+
+    
+      
+        track-name="console"
+      
+        track-type="globalNav"
+      
+        referrerpolicy="no-referrer-when-downgrade"
+      
+        track-metadata-position="nav"
+      
+        track-metadata-eventDetail="nav"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Console"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Console
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+  
+          
+        </ul>
+      
+    </div>
+    
+      <div class="devsite-mobile-nav-bottom">
+        
+          
+          <ul class="devsite-nav-list" menu="_book">
+            <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Discover</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/overview"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Product overview</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/software-supply-chain-security"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Software supply chain security</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Get started</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/enable-service"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Enable and disable Artifact Registry</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/supported-formats"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Supported formats</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/gcloud-defaults"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Set defaults for gcloud commands</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Repository overview</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/remote-overview"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Remote repository overview</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/virtual-overview"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Virtual repository overview</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Quickstarts</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/create-dockerhub-remote-repository"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Create a Docker Hub remote repository</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/docker/store-docker-container-images"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Store Docker container images</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/go/store-go"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Store Go modules</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/helm/store-helm-charts"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Store Helm charts</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/java/store-java"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Store Java packages</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/nodejs/store-nodejs"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Store Node.js packages</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/python/store-python"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Store Python packages</span></a></li><li class="devsite-nav-item
+           devsite-nav-preview"><a href="/artifact-registry/docs/ruby/store-ruby"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Store Ruby gems</span><span class="devsite-nav-icon material-icons"
+        data-icon="preview"
+        data-title="Preview"
+        aria-hidden="true"></span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/os-packages/debian/store-apt"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Store Apt packages</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/os-packages/rpm/store-rpm"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Store RPM packages</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/generic/store-generic"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Store other formats</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Create</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/create-repos"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Create standard repositories</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/remote-repo"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Create remote repositories</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/virtual-repo"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Create virtual repositories</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/store-artifact-metadata-in-attachments"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Store artifact metadata in attachments</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Configure</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/configure-remote-authentication"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure authentication to remote repository upstreams</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Cleanup policies</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/cleanup-policy-overview"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Cleanup policy overview</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/cleanup-policy"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure cleanup policies</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/terraform"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Provision Artifact Registry resources with Terraform</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Manage</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/list-repos"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>View and list repositories</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/update-repo-settings"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Update repository settings</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/label-repos"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Label repositories</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/tag-repos"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Tag repositories</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/manage-metadata-with-attachments"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Manage artifact metadata</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/download-files"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Download files</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/repositories/delete-repos"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Delete repositories</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Manage container images</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/container-concepts"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Container concepts</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Container images</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/artifact-registry/docs/docker"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/docker/authentication"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure Docker authentication to Artifact Registry</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/docker/configure-remote-auth-docker-hub"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure remote repository authentication to Docker Hub</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/docker/pushing-and-pulling"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Push and pull container images</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/pull-cached-dockerhub-images"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Pull cached container images from mirror.gcr.io</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/prewarm-images"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Reduce latency with image prewarming</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/docker/manage-images"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Manage container images</span></a></li><li class="devsite-nav-item
+           devsite-nav-preview"><a href="/artifact-registry/docs/docker/learn-about-your-container-images-with-gemini-assistance"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Learn about your container images with Gemini assistance</span><span class="devsite-nav-icon material-icons"
+        data-icon="preview"
+        data-title="Preview"
+        aria-hidden="true"></span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/docker/copy-images"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Copy container images between repositories</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/docker/migrate-external-containers"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Migrate container images from a third-party registry</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/docker/names"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Repository and container image names</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Helm charts</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/artifact-registry/docs/helm"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/helm/authentication"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Set up authentication</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/helm/manage-charts"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Manage charts</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Manage language packages</span>
+      </div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Go</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/artifact-registry/docs/go"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/go/authentication"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure authentication to Artifact Registry</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/go/manage-modules"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Manage modules</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Java</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/artifact-registry/docs/java"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/java/authentication"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure authentication to Artifact Registry</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/java/configure-remote-auth-maven-central"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure authentication to remote repository upstreams</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/java/manage-packages"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Manage packages</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Node.js</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/artifact-registry/docs/nodejs"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/nodejs/authentication"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure authentication to Artifact Registry</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/nodejs/configure-remote-auth-npm-registry"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure authentication to remote repository upstreams</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/nodejs/manage-packages"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Manage packages</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Python</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/artifact-registry/docs/python"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/python/authentication"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure authentication to Artifact Registry</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/python/configure-remote-auth-pypi"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure authentication to remote repository upstreams</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/python/manage-packages"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Manage packages</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable
+           devsite-nav-preview"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Ruby</span><span class="devsite-nav-icon material-icons"
+        data-icon="preview"
+        data-title="Preview"
+        aria-hidden="true"></span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/artifact-registry/docs/ruby"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/ruby/authentication"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure authentication to Artifact Registry</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/ruby/manage-packages"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Manage packages</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/ruby/troubleshooting"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Troubleshoot Ruby repository errors</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Manage OS packages</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/os-packages"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Debian packages</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/artifact-registry/docs/os-packages/debian"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/os-packages/debian/configure"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure VMs to install packages</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/os-packages/debian/manage-packages"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Manage packages</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>RPM</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/artifact-registry/docs/os-packages/rpm"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/os-packages/rpm/configure"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure VMs to install packages</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/os-packages/rpm/manage-packages"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Manage packages</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Manage other artifacts</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/kfp"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Work with Kubeflow Pipeline templates</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/generic"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Work with other artifact formats</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Transition from Container Registry</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/transition/transition-from-gcr"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/transition/gcr-repositories"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>gcr.io repositories in Artifact Registry</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Control access and protect artifacts</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/protect-artifacts"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/access-control"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Access control with IAM</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/custom-constraints"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Use custom organization policies</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/restrict-artifact-downloads"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Restrict artifact downloads</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/securing-with-vpc-sc"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Protect repositories in a service perimeter</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/gke-private-clusters"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure restricted access for GKE private clusters</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/cmek"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Use customer-managed encryption keys</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/ar-service-account"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Artifact Registry Service Agent</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-preview"><a href="/artifact-registry/docs/fingerprint"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Use fingerprints to verify package version identities</span><span class="devsite-nav-icon material-icons"
+        data-icon="preview"
+        data-title="Preview"
+        aria-hidden="true"></span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Connect</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/analysis"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Artifact analysis and vulnerability scanning</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/connect-gitlab"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Connect GitLab to Artifact Registry</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Connect to build services</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/artifact-registry/docs/build"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/configure-cloud-build"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Connect to Cloud Build</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/configure-jenkins"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Connect to Jenkins</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Connect to deploy services</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/artifact-registry/docs/deploy"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/integrate-functions"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Connect to Cloud Run functions</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/integrate-cloud-run"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Connect to Cloud Run</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/integrate-app-engine"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Connect to App Engine</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/integrate-gke"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Connect to Google Kubernetes Engine</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/integrate-compute"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Connect to Compute Engine</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/secure-deployments"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Control deployments</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Monitor and notify</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/observability-artifact-registry"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Observability in Artifact Registry</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/audit-logging"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Audit logging</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/platform-logs"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Access and use platform logs</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/chart-request-counts"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Chart request counts per repository in the Metrics Explorer</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/configure-monitoring-notifications"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure monitoring notifications for repository growth</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/configure-notifications"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure Pub/Sub notifications</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Troubleshoot</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/troubleshooting"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>General troubleshooting</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/troubleshoot-remote"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Remote repositories</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Docker repositories</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/artifact-registry/docs/docker/troubleshoot"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Container images</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/helm/troubleshoot"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Helm charts</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Language package repositories</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/artifact-registry/docs/java/troubleshoot"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Java</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/nodejs/troubleshoot"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Node.js</span></a></li><li class="devsite-nav-item"><a href="/artifact-registry/docs/python/troubleshoot"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Python</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item"><a href="/artifact-registry/docs/os-packages/troubleshoot"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>OS package repositories</span></a></li>
+          </ul>
+        
+        
+          
+    
+      
+      <ul class="devsite-nav-list" menu="Technology areas"
+          aria-label="Side menu" hidden>
+        
+          
+            
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/ai-ml"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: AI and ML"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      AI and ML
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/application-development"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Application development"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Application development
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/application-hosting"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Application hosting"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Application hosting
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/compute-area"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Compute"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Compute
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/data"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Data analytics and pipelines"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Data analytics and pipelines
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/databases"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Databases"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Databases
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/dhm-cloud"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Distributed, hybrid, and multicloud"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Distributed, hybrid, and multicloud
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/industry"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Industry solutions"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Industry solutions
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/migration"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Migration"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Migration
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/networking"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Networking"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Networking
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/observability"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Observability and monitoring"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Observability and monitoring
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/security"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Security"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Security
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/storage"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Storage"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Storage
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+          
+        
+      </ul>
+    
+  
+    
+      
+      <ul class="devsite-nav-list" menu="Cross-product tools"
+          aria-label="Side menu" hidden>
+        
+          
+            
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/access-resources"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Access and resources management"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Access and resources management
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/costs-usage"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Costs and usage management"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Costs and usage management
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/iac"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Infrastructure as code"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Infrastructure as code
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/devtools"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: SDK, languages, frameworks, and tools"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      SDK, languages, frameworks, and tools
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+          
+        
+      </ul>
+    
+  
+        
+        
+          
+    
+  
+    
+  
+    
+  
+    
+  
+        
+      </div>
+    
+  </div>
+</nav>
+          
+        </devsite-book-nav>
+      
+      <section id="gc-wrapper">
+        <main role="main" id="main-content" class="devsite-main-content"
+            
+              has-book-nav
+              has-sidebar
+            >
+          <div class="devsite-sidebar">
+            <div class="devsite-sidebar-content">
+                
+                <devsite-toc class="devsite-nav"
+                            role="navigation"
+                            aria-label="On this page"
+                            depth="2"
+                            scrollbars
+                            data-nosnippet
+                  ></devsite-toc>
+                <devsite-recommendations-sidebar class="nocontent devsite-nav" data-nosnippet>
+                </devsite-recommendations-sidebar>
+            </div>
+          </div>
+          <devsite-content>
+            
+              
+
+
+
+
+
+
+
+
+
+
+<article class="devsite-article">
+  
+  
+  
+  
+  
+
+  <div class="devsite-article-meta nocontent" role="navigation" data-nosnippet>
+    
+    
+    <ul class="devsite-breadcrumb-list"
+  
+    aria-label="Breadcrumb">
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Breadcrumbs"
+      
+        data-value="1"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="1"
+      
+        track-metadata-eventdetail="Google Cloud Documentation"
+      
+    >
+    
+          Home
+        
+  </a>
+  
+      
+    
+  </li>
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+      
+      <div class="devsite-breadcrumb-guillemet material-icons" aria-hidden="true"></div>
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/docs"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Breadcrumbs"
+      
+        data-value="2"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="2"
+      
+        track-metadata-eventdetail="Documentation"
+      
+    >
+    
+          Documentation
+        
+  </a>
+  
+      
+    
+  </li>
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+      
+      <div class="devsite-breadcrumb-guillemet material-icons" aria-hidden="true"></div>
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/docs/application-development"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Breadcrumbs"
+      
+        data-value="3"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="3"
+      
+        track-metadata-eventdetail="Application development"
+      
+    >
+    
+          Application development
+        
+  </a>
+  
+      
+    
+  </li>
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+      
+      <div class="devsite-breadcrumb-guillemet material-icons" aria-hidden="true"></div>
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/artifact-registry/docs"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Breadcrumbs"
+      
+        data-value="4"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="4"
+      
+        track-metadata-eventdetail="Artifact Registry"
+      
+    >
+    
+          Artifact Registry
+        
+  </a>
+  
+      
+    
+  </li>
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+      
+      <div class="devsite-breadcrumb-guillemet material-icons" aria-hidden="true"></div>
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/artifact-registry/docs/overview"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Breadcrumbs"
+      
+        data-value="5"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="5"
+      
+        track-metadata-eventdetail=""
+      
+    >
+    
+          Guides
+        
+  </a>
+  
+      
+    
+  </li>
+  
+</ul>
+    
+      
+    <devsite-thumb-rating position="header">
+    </devsite-thumb-rating>
+  
+    
+  </div>
+  
+    <devsite-feedback
+  position="header"
+  project-name="Artifact Registry"
+  product-id="5123950"
+  bucket="Documentation"
+  context=""
+  version="t-devsite-webserver-20260709-r00-rc00.478872387797661841"
+  data-label="Send Feedback Button"
+  track-type="feedback"
+  track-name="sendFeedbackLink"
+  track-metadata-position="header"
+  class="nocontent"
+  data-nosnippet
+  
+  
+  
+    
+      project-icon="https://docs.cloud.google.com/_static/clouddocs/images/icons/categories/devops-color.svg"
+    
+  
+  
+  
+  >
+
+  <button>
+  
+    
+    Send feedback
+  
+  </button>
+</devsite-feedback>
+  
+    <h1 class="devsite-page-title" tabindex="-1">
+      Manage artifact metadata<devsite-actions hidden data-nosnippet><devsite-feature-tooltip
+      ack-key="AckCollectionsBookmarkTooltipDismiss"
+      analytics-category="Site-Wide Custom Events"
+      analytics-action-show="Callout Profile displayed"
+      analytics-action-close="Callout Profile dismissed"
+      analytics-label="Create Collection Callout"
+      class="devsite-page-bookmark-tooltip nocontent"
+      data-nosnippet
+      dismiss-button="true"
+      id="devsite-collections-dropdown"
+      
+      dismiss-button-text="Dismiss"
+
+      
+      close-button-text="Got it">
+
+    
+    
+      <devsite-bookmark></devsite-bookmark>
+    
+
+    <span slot="popout-heading">
+      
+      Stay organized with collections
+    </span>
+    <span slot="popout-contents">
+      
+      Save and categorize content based on your preferences.
+    </span>
+  </devsite-feature-tooltip>
+    <devsite-llm-tools></devsite-llm-tools></devsite-actions>
+  
+      
+    </h1>
+  
+
+  <devsite-toc class="devsite-nav"
+    depth="2"
+    devsite-toc-embedded
+    >
+  </devsite-toc>
+  
+    
+  <div class="devsite-article-body clearfix
+  ">
+
+  
+    
+    
+    
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <aside class="beta">
+
+    <p>
+      <strong>
+      
+        Preview
+      
+        
+    </strong>
+    </p>
+
+    <p>
+      
+      
+        
+          This product or feature is
+        
+        subject to the "Pre-GA Offerings Terms" in the General Service Terms section
+        of the <a href="/terms/service-terms#1" track-type="commonIncludes">Service Specific
+        Terms</a>.
+        
+        Pre-GA products and features are available "as is" and might have limited support.
+      
+      For more information, see the
+      <a href="https://cloud.google.com/products/#product-launch-stages"
+      track-type="commonIncludes">launch stage descriptions</a>.
+  </p>
+  
+  </aside>
+
+
+
+<p>This page describes how to manage metadata related to an artifact stored in
+Artifact Registry as an <em>attachment</em>.</p>
+
+<p><em>Attachments</em> are files that store metadata about a related artifact stored in
+Artifact Registry. To learn how to create an attachment, see
+<a href="/artifact-registry/docs/store-artifact-metadata-in-attachments">Store artifact metadata in attachments</a>.</p>
+
+<h2 id="before_you_begin" data-text="Before you begin" tabindex="-1">Before you begin</h2>
+
+<p>Optional: <a href="/artifact-registry/docs/repositories/gcloud-defaults">Configure defaults for Google Cloud CLI commands</a>.</p>
+
+<h3 id="required_roles" data-text="Required roles" tabindex="-1">Required roles</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+
+  
+  
+    
+    
+    
+    
+    
+    
+      
+      
+        
+        
+      
+      
+    
+    
+    
+    
+    
+  
+
+  
+  
+    
+    
+    
+    
+    
+    
+      
+      
+        
+        
+      
+      
+    
+    
+    
+    
+    
+  
+
+  
+  
+    
+    
+    
+    
+    
+    
+      
+      
+        
+        
+      
+      
+    
+    
+    
+    
+    
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <p>
+    
+      To get the permissions that
+      you need to manage attachments,
+    
+      ask your administrator to grant you the
+    following IAM roles on the repository:
+  
+    </p>
+  
+
+  
+
+  
+    <ul>
+      
+          <li>
+            View and download attachments:
+              <a href="/iam/docs/roles-permissions/artifactregistry#artifactregistry.reader">Artifact Registry Reader </a> (<code translate="no" dir="ltr">roles/artifactregistry.reader</code>)
+            
+          </li>
+        
+      
+          <li>
+            Create attachments:
+              <a href="/iam/docs/roles-permissions/artifactregistry#artifactregistry.writer">Artifact Registry Writer </a> (<code translate="no" dir="ltr">roles/artifactregistry.writer</code>)
+            
+          </li>
+        
+      
+          <li>
+            Delete attachments:
+              <a href="/iam/docs/roles-permissions/artifactregistry#artifactregistry.repoAdmin">Artifact Registry Repository Administrator </a> (<code translate="no" dir="ltr">roles/artifactregistry.repoAdmin</code>)
+            
+          </li>
+        
+      
+    </ul>
+
+    <p>
+  
+  
+  For more information about granting roles, see <a href="/iam/docs/granting-changing-revoking-access">Manage access to projects, folders, and organizations</a>.
+  
+  </p>
+
+  
+  
+      
+      
+      <p>
+        You might also be able to get
+        the required permissions through <a href="/iam/docs/creating-custom-roles">custom
+        roles</a> or other <a href="/iam/docs/roles-overview#predefined">predefined
+        roles</a>.
+      </p>
+    
+  
+
+  
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h2 id="view" data-text="List attachments" tabindex="-1">List attachments</h2>
+
+<p>An artifact in Artifact Registry can have any number of attachments that
+refer to it. You can list attachments by using the Google Cloud console,
+the gcloud CLI, or, for Docker-format container images only, Oras.</p>
+<div><devsite-selector data-ds-scope="code-sample">
+<section><h3 id="console" data-text=" Console " tabindex="-1"> Console </h3><aside class="note"><strong>Note:</strong><span> Viewing attachments for non-Docker Artifact Registry repositories
+in the Google Cloud console is in
+<a href="https://cloud.google.com/products/#product-launch-stages">public preview</a>.</span></aside>
+<ol>
+<li><p>In the Google Cloud console, open the <strong>Repositories</strong> page.</p>
+
+
+
+
+        <p><a
+        class="button button-primary"
+        href="https://console.cloud.google.com/artifacts" target="console"
+        track-type="quickstart" track-name="consoleLink" track-metadata-position="body"
+        track-metadata-end-goal="listRepository">Open the Repositories page</a></p>
+
+</li>
+<li><p>Click the repository name to see images in your repository.</p></li>
+<li><p>To see the versions of an image, click the image name.</p></li>
+<li><p>Click the appropriate image version.</p></li>
+<li><p>To see the attachments for that version, click the <strong>Attachments</strong> tab.</p></li>
+</ol></section>
+<section><h3 id="gcloud" data-text=" gcloud " tabindex="-1"> gcloud </h3><p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<p>
+  Before using any of the command data below,
+  make the following replacements:
+</p>
+
+<ul>
+  <li><code translate="no" dir="ltr"><var class="edit" scope="TARGET" translate="no">TARGET</var></code>: the fully qualified version name.
+    For Docker images only, you can also use the Artifact Registry URI of the artifact the
+    attachment refers to. In the URI, you can use the digest or, for Docker images, the tag&mdash;for example,
+    <code translate="no" dir="ltr">us-west1-docker.pkg.dev/my-project/my-repo/my-image:tag1</code>.</li>
+</ul>
+
+
+
+
+
+<p>
+  Execute the
+  
+  following
+  
+  command:
+</p>
+
+<devsite-expandable expanded>
+  <h4 class="showalways" id="linux,-macos,-or-cloud-shell" data-text="Linux, macOS, or Cloud Shell" tabindex="-1">Linux, macOS, or Cloud Shell</h4>
+  
+<aside class="note"><b>Note:</b>
+  Ensure you have initialized the Google Cloud CLI with authentication and a project
+  by running either
+  <a href="/sdk/gcloud/reference/init">gcloud init</a>;
+  or
+  <a href="/sdk/gcloud/reference/auth/login">gcloud auth login</a>
+  and
+  <a href="/sdk/gcloud/reference/config/set">gcloud config set project</a>.
+</aside>
+
+  <div></div><devsite-code><pre class="devsite-click-to-copy" data-label="Linux command" translate="no" dir="ltr" is-upgraded syntax="Bash">gcloud<span class="devsite-syntax-w"> </span>artifacts<span class="devsite-syntax-w"> </span>attachments<span class="devsite-syntax-w"> </span>list<span class="devsite-syntax-w"> </span><span class="devsite-syntax-se">\</span>
+<span class="devsite-syntax-w">    </span>--target<span class="devsite-syntax-o">=</span><var translate="no">TARGET</var></pre></devsite-code>
+</devsite-expandable>
+
+
+
+<devsite-expandable>
+  <h4 class="showalways" id="windows-powershell" data-text="Windows (PowerShell)" tabindex="-1">Windows (PowerShell)</h4>
+  
+<aside class="note"><b>Note:</b>
+  Ensure you have initialized the Google Cloud CLI with authentication and a project
+  by running either
+  <a href="/sdk/gcloud/reference/init">gcloud init</a>;
+  or
+  <a href="/sdk/gcloud/reference/auth/login">gcloud auth login</a>
+  and
+  <a href="/sdk/gcloud/reference/config/set">gcloud config set project</a>.
+</aside>
+
+  <div></div><devsite-code><pre class="devsite-click-to-copy" data-label="PowerShell command" translate="no" dir="ltr" is-upgraded syntax="Bash">gcloud<span class="devsite-syntax-w"> </span>artifacts<span class="devsite-syntax-w"> </span>attachments<span class="devsite-syntax-w"> </span>list<span class="devsite-syntax-w"> </span><span class="devsite-syntax-sb">`</span>
+<span class="devsite-syntax-w">    </span>--target<span class="devsite-syntax-o">=</span><var translate="no">TARGET</var></pre></devsite-code>
+</devsite-expandable>
+
+<devsite-expandable>
+  <h4 class="showalways" id="windows-cmd.exe" data-text="Windows (cmd.exe)" tabindex="-1">Windows (cmd.exe)</h4>
+  
+<aside class="note"><b>Note:</b>
+  Ensure you have initialized the Google Cloud CLI with authentication and a project
+  by running either
+  <a href="/sdk/gcloud/reference/init">gcloud init</a>;
+  or
+  <a href="/sdk/gcloud/reference/auth/login">gcloud auth login</a>
+  and
+  <a href="/sdk/gcloud/reference/config/set">gcloud config set project</a>.
+</aside>
+
+  
+  <div></div><devsite-code><pre class="devsite-click-to-copy" data-label="cmd.exe command" translate="no" dir="ltr" is-upgraded syntax="Bash">gcloud<span class="devsite-syntax-w"> </span>artifacts<span class="devsite-syntax-w"> </span>attachments<span class="devsite-syntax-w"> </span>list<span class="devsite-syntax-w"> </span>^
+<span class="devsite-syntax-w">    </span>--target<span class="devsite-syntax-o">=</span><var translate="no">TARGET</var></pre></devsite-code>
+</devsite-expandable>
+
+
+
+
+
+  
+For more information, see the
+<a href="/sdk/gcloud/reference/artifacts/attachments/list"><code translate="no" dir="ltr">gcloud artifacts attachments list</code></a> command.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</p></section>
+<section><h3 id="oras-docker-only" data-text=" Oras (Docker only) " tabindex="-1"> Oras (Docker only) </h3><p>Before running the command, make the following replacement:</p>
+
+<ul>
+<li><code translate="no" dir="ltr"><var class="edit" scope="IMAGE_URI" translate="no">IMAGE_URI</var></code>: the URI of
+the target image referred to by any listed attachments.</li>
+</ul>
+<div></div><devsite-code><pre class="devsite-click-to-copy" translate="no" dir="ltr" is-upgraded syntax="Bash"><code translate="no" dir="ltr">oras<span class="devsite-syntax-w"> </span>discover<span class="devsite-syntax-w"> </span>--distribution-spec<span class="devsite-syntax-w"> </span>v1.1-referrers-api<span class="devsite-syntax-w"> </span><var translate="no">IMAGE_URI</var>
+</code></pre></devsite-code>
+<p>The following example lists attachments for a container image, <code translate="no" dir="ltr">my-image</code>,
+identified by its URI and tag:</p>
+<div></div><devsite-code><pre class="devsite-click-to-copy devsite-disable-click-to-copy" translate="no" dir="ltr" is-upgraded syntax="Bash"><code translate="no" dir="ltr">oras<span class="devsite-syntax-w"> </span>discover<span class="devsite-syntax-w"> </span>--distribution-spec<span class="devsite-syntax-w"> </span>v1.1-referrers-api<span class="devsite-syntax-w"> </span><span class="devsite-syntax-se">\</span>
+us-west1-docker.pkg.dev/my-project/my-repo/my-image:tag1
+</code></pre></devsite-code>
+<p>Where:</p>
+
+<ul>
+<li><p><code translate="no" dir="ltr">v1.1-referrers-api</code> is the Referrer API used. For more information, see
+the details in the <a href="https://github.com/opencontainers/distribution-spec/blob/main/spec.md#listing-referrers">distribution spec</a>.</p></li>
+<li><p><code translate="no" dir="ltr">us-west1-docker.pkg.dev/my-project/my-repo/my-image:tag1</code>
+is the URI including the tag of the container image version to list
+attachments for.</p></li>
+</ul>
+
+<p>For a full guide and more examples, see the <a href="https://oras.land/docs/commands/oras_discover/"><code translate="no" dir="ltr">oras discover</code> documentation</a>.</p></section>
+</devsite-selector></div>
+<h2 id="describe-attachments" data-text="Describe attachments" tabindex="-1">Describe attachments</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<p>
+  Before using any of the command data below,
+  make the following replacements:
+</p>
+
+<ul>
+  <li><code translate="no" dir="ltr"><var class="edit" scope="ATTACHMENT" translate="no">ATTACHMENT</var></code>: the fully qualified name
+    of the attachment, such as
+    <code translate="no" dir="ltr">projects/my-project/locations/us-west1/repositories/my-repo/attachments/my-attachment</code>.
+    Alternatively, provide only the attachment ID and use the <code translate="no" dir="ltr">--location</code> and
+    <code translate="no" dir="ltr">--repository</code> flags.</li>
+</ul>
+
+
+
+
+
+<p>
+  Execute the
+  
+  following
+  
+  command:
+</p>
+
+<devsite-expandable expanded>
+  <h4 class="showalways" id="linux,-macos,-or-cloud-shell_1" data-text="Linux, macOS, or Cloud Shell" tabindex="-1">Linux, macOS, or Cloud Shell</h4>
+  
+<aside class="note"><b>Note:</b>
+  Ensure you have initialized the Google Cloud CLI with authentication and a project
+  by running either
+  <a href="/sdk/gcloud/reference/init">gcloud init</a>;
+  or
+  <a href="/sdk/gcloud/reference/auth/login">gcloud auth login</a>
+  and
+  <a href="/sdk/gcloud/reference/config/set">gcloud config set project</a>.
+</aside>
+
+  <div></div><devsite-code><pre class="devsite-click-to-copy" data-label="Linux command" translate="no" dir="ltr" is-upgraded syntax="Bash">gcloud<span class="devsite-syntax-w"> </span>artifacts<span class="devsite-syntax-w"> </span>attachments<span class="devsite-syntax-w"> </span>describe<span class="devsite-syntax-w"> </span><var translate="no">ATTACHMENT</var></pre></devsite-code>
+</devsite-expandable>
+
+
+
+<devsite-expandable>
+  <h4 class="showalways" id="windows-powershell_1" data-text="Windows (PowerShell)" tabindex="-1">Windows (PowerShell)</h4>
+  
+<aside class="note"><b>Note:</b>
+  Ensure you have initialized the Google Cloud CLI with authentication and a project
+  by running either
+  <a href="/sdk/gcloud/reference/init">gcloud init</a>;
+  or
+  <a href="/sdk/gcloud/reference/auth/login">gcloud auth login</a>
+  and
+  <a href="/sdk/gcloud/reference/config/set">gcloud config set project</a>.
+</aside>
+
+  <div></div><devsite-code><pre class="devsite-click-to-copy" data-label="PowerShell command" translate="no" dir="ltr" is-upgraded syntax="Bash">gcloud<span class="devsite-syntax-w"> </span>artifacts<span class="devsite-syntax-w"> </span>attachments<span class="devsite-syntax-w"> </span>describe<span class="devsite-syntax-w"> </span><var translate="no">ATTACHMENT</var></pre></devsite-code>
+</devsite-expandable>
+
+<devsite-expandable>
+  <h4 class="showalways" id="windows-cmd.exe_1" data-text="Windows (cmd.exe)" tabindex="-1">Windows (cmd.exe)</h4>
+  
+<aside class="note"><b>Note:</b>
+  Ensure you have initialized the Google Cloud CLI with authentication and a project
+  by running either
+  <a href="/sdk/gcloud/reference/init">gcloud init</a>;
+  or
+  <a href="/sdk/gcloud/reference/auth/login">gcloud auth login</a>
+  and
+  <a href="/sdk/gcloud/reference/config/set">gcloud config set project</a>.
+</aside>
+
+  
+  <div></div><devsite-code><pre class="devsite-click-to-copy" data-label="cmd.exe command" translate="no" dir="ltr" is-upgraded syntax="Bash">gcloud<span class="devsite-syntax-w"> </span>artifacts<span class="devsite-syntax-w"> </span>attachments<span class="devsite-syntax-w"> </span>describe<span class="devsite-syntax-w"> </span><var translate="no">ATTACHMENT</var></pre></devsite-code>
+</devsite-expandable>
+
+
+
+
+
+  
+For more information, see the
+<a href="/sdk/gcloud/reference/artifacts/attachments/describe"><code translate="no" dir="ltr">gcloud artifacts attachments describe</code></a> command.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h2 id="download" data-text="Download attachments" tabindex="-1">Download attachments</h2>
+
+<p>You can download attachments by using the gcloud CLI or, for
+Docker-format container images only, Oras.</p>
+<div><devsite-selector data-ds-scope="code-sample">
+<section><h3 id="gcloud_1" data-text=" gcloud " tabindex="-1"> gcloud </h3><p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<p>
+  Before using any of the command data below,
+  make the following replacements:
+</p>
+
+<ul>
+  <li><code translate="no" dir="ltr"><var class="edit" scope="ATTACHMENT" translate="no">ATTACHMENT</var></code>: the fully qualified name
+    of the attachment, such as
+    <code translate="no" dir="ltr">projects/my-project/locations/us-west1/repositories/my-repo/attachments/my-attachment</code>.
+    Alternatively, provide only the attachment ID and use the <code translate="no" dir="ltr">--location</code> and
+    <code translate="no" dir="ltr">--repository</code> flags.</li>
+  <li><code translate="no" dir="ltr"><var class="edit" scope="DESTINATION" translate="no">DESTINATION</var></code>: the path in your local
+    file system to download the attachment to.</li>
+</ul>
+
+
+
+
+
+<p>
+  Execute the
+  
+  following
+  
+  command:
+</p>
+
+<devsite-expandable expanded>
+  <h4 class="showalways" id="linux,-macos,-or-cloud-shell_2" data-text="Linux, macOS, or Cloud Shell" tabindex="-1">Linux, macOS, or Cloud Shell</h4>
+  
+<aside class="note"><b>Note:</b>
+  Ensure you have initialized the Google Cloud CLI with authentication and a project
+  by running either
+  <a href="/sdk/gcloud/reference/init">gcloud init</a>;
+  or
+  <a href="/sdk/gcloud/reference/auth/login">gcloud auth login</a>
+  and
+  <a href="/sdk/gcloud/reference/config/set">gcloud config set project</a>.
+</aside>
+
+  <div></div><devsite-code><pre class="devsite-click-to-copy" data-label="Linux command" translate="no" dir="ltr" is-upgraded syntax="Bash">gcloud<span class="devsite-syntax-w"> </span>artifacts<span class="devsite-syntax-w"> </span>attachments<span class="devsite-syntax-w"> </span>download<span class="devsite-syntax-w"> </span><var translate="no">ATTACHMENT</var><span class="devsite-syntax-w"> </span><span class="devsite-syntax-se">\</span>
+<span class="devsite-syntax-w">    </span>--destination<span class="devsite-syntax-o">=</span><var translate="no">DESTINATION</var></pre></devsite-code>
+</devsite-expandable>
+
+
+
+<devsite-expandable>
+  <h4 class="showalways" id="windows-powershell_2" data-text="Windows (PowerShell)" tabindex="-1">Windows (PowerShell)</h4>
+  
+<aside class="note"><b>Note:</b>
+  Ensure you have initialized the Google Cloud CLI with authentication and a project
+  by running either
+  <a href="/sdk/gcloud/reference/init">gcloud init</a>;
+  or
+  <a href="/sdk/gcloud/reference/auth/login">gcloud auth login</a>
+  and
+  <a href="/sdk/gcloud/reference/config/set">gcloud config set project</a>.
+</aside>
+
+  <div></div><devsite-code><pre class="devsite-click-to-copy" data-label="PowerShell command" translate="no" dir="ltr" is-upgraded syntax="Bash">gcloud<span class="devsite-syntax-w"> </span>artifacts<span class="devsite-syntax-w"> </span>attachments<span class="devsite-syntax-w"> </span>download<span class="devsite-syntax-w"> </span><var translate="no">ATTACHMENT</var><span class="devsite-syntax-w"> </span><span class="devsite-syntax-sb">`</span>
+<span class="devsite-syntax-w">    </span>--destination<span class="devsite-syntax-o">=</span><var translate="no">DESTINATION</var></pre></devsite-code>
+</devsite-expandable>
+
+<devsite-expandable>
+  <h4 class="showalways" id="windows-cmd.exe_2" data-text="Windows (cmd.exe)" tabindex="-1">Windows (cmd.exe)</h4>
+  
+<aside class="note"><b>Note:</b>
+  Ensure you have initialized the Google Cloud CLI with authentication and a project
+  by running either
+  <a href="/sdk/gcloud/reference/init">gcloud init</a>;
+  or
+  <a href="/sdk/gcloud/reference/auth/login">gcloud auth login</a>
+  and
+  <a href="/sdk/gcloud/reference/config/set">gcloud config set project</a>.
+</aside>
+
+  
+  <div></div><devsite-code><pre class="devsite-click-to-copy" data-label="cmd.exe command" translate="no" dir="ltr" is-upgraded syntax="Bash">gcloud<span class="devsite-syntax-w"> </span>artifacts<span class="devsite-syntax-w"> </span>attachments<span class="devsite-syntax-w"> </span>download<span class="devsite-syntax-w"> </span><var translate="no">ATTACHMENT</var><span class="devsite-syntax-w"> </span>^
+<span class="devsite-syntax-w">    </span>--destination<span class="devsite-syntax-o">=</span><var translate="no">DESTINATION</var></pre></devsite-code>
+</devsite-expandable>
+
+
+
+
+
+  
+For attachments in Docker-format repositories, as an alternative to providing
+<code translate="no" dir="ltr"><var translate="no">ATTACHMENT</var></code>, you can provide the
+<code translate="no" dir="ltr">--oci-version-name</code> flag followed by the attachment's full version name or
+Artifact Registry URI. You can use either the digest or the tag&mdash;for example,
+<code translate="no" dir="ltr">projects/my-project/locations/us-west1/repositories/my-repo/packages/my-package/versions/sha256:abc123</code>.<br><br>
+For more information, see the
+<a href="/sdk/gcloud/reference/artifacts/attachments/download"><code translate="no" dir="ltr">gcloud artifacts attachments download</code></a> command.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</p></section>
+<section><h3 id="oras-docker-only_1" data-text=" Oras (Docker only) " tabindex="-1"> Oras (Docker only) </h3><p>Before running the command, make the following replacements:</p>
+
+<ul>
+<li><p><code translate="no" dir="ltr"><var class="edit" scope="DESTINATION" translate="no">DESTINATION</var></code>: the
+destination directory for your attachment.</p></li>
+<li><p><code translate="no" dir="ltr"><var class="edit" scope="ATTACHMENT_URI" translate="no">ATTACHMENT_URI</var></code>: the
+URI of the attachment to download. This is the URI for the image container the
+attachment refers to, followed by the attachment&#39;s unique SHA.</p></li>
+</ul>
+<div></div><devsite-code><pre class="devsite-click-to-copy" translate="no" dir="ltr" is-upgraded syntax="Bash"><code translate="no" dir="ltr">oras<span class="devsite-syntax-w"> </span>pull<span class="devsite-syntax-w"> </span>-o<span class="devsite-syntax-w"> </span><var translate="no">DESTINATION</var><span class="devsite-syntax-w"> </span><var translate="no">ATTACHMENT_URI</var>
+</code></pre></devsite-code>
+<p>The following example downloads an attachment identified by its URI and digest:</p>
+<div></div><devsite-code><pre class="devsite-click-to-copy devsite-disable-click-to-copy" translate="no" dir="ltr" is-upgraded syntax="Bash"><code translate="no" dir="ltr">oras<span class="devsite-syntax-w"> </span>pull<span class="devsite-syntax-w"> </span>-o<span class="devsite-syntax-w"> </span>.<span class="devsite-syntax-w"> </span>us-west1-docker.pkg.dev/my-project/my-repo/my-image@sha256:xxxx
+</code></pre></devsite-code>
+<p>Where:</p>
+
+<ul>
+<li><p><code translate="no" dir="ltr">-o .</code> names the current directory as the download destination.</p></li>
+<li><p><code translate="no" dir="ltr">us-west1-docker.pkg.dev/my-project/my-repo/my-image@sha256:xxxx</code>
+is the image URI including the digest of the attachment to download.</p></li>
+</ul>
+
+<p>For a full guide and more examples, see the <a href="https://oras.land/docs/commands/oras_pull/"><code translate="no" dir="ltr">oras pull</code> documentation</a>.</p></section>
+</devsite-selector></div>
+<h2 id="delete" data-text="Delete attachments" tabindex="-1">Delete attachments</h2>
+
+<p>You can delete attachments directly by using the Google Cloud console or
+the gcloud CLI. You can delete attachments indirectly by deleting the
+artifact it refers to.</p>
+
+<h3 id="delete_direct" data-text="Delete attachments directly" tabindex="-1">Delete attachments directly</h3>
+
+<p>You can delete attachments directly with one of the following options:</p>
+<div><devsite-selector data-ds-scope="code-sample">
+<section><h3 id="console-docker-only" data-text=" Console (Docker only) " tabindex="-1"> Console (Docker only) </h3><ol>
+<li><p>In the Google Cloud console, open the <strong>Repositories</strong> page.</p>
+
+
+
+
+        <p><a
+        class="button button-primary"
+        href="https://console.cloud.google.com/artifacts" target="console"
+        track-type="quickstart" track-name="consoleLink" track-metadata-position="body"
+        track-metadata-end-goal="listRepository">Open the Repositories page</a></p>
+
+</li>
+<li><p>Click the repository name to see images in your repository.</p></li>
+<li><p>Click the image name to see versions of that image.</p></li>
+<li><p>Click the version of the image you to see attachments for.</p></li>
+<li><p>Click the <strong>Attachments</strong> tab to see attachments for that version.</p></li>
+<li><p>Click the digest of the attachment to delete.</p></li>
+<li><p>Click <strong>DELETE</strong>.</p></li>
+<li><p>In the confirmation dialog, click <strong>DELETE</strong>.</p></li>
+</ol></section>
+<section><h3 id="gcloud_2" data-text=" gcloud " tabindex="-1"> gcloud </h3><p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<p>
+  Before using any of the command data below,
+  make the following replacements:
+</p>
+
+<ul>
+  <li><code translate="no" dir="ltr"><var class="edit" scope="ATTACHMENT" translate="no">ATTACHMENT</var></code>: the fully qualified name
+    of the attachment, such as
+    <code translate="no" dir="ltr">projects/my-project/locations/us-west1/repositories/my-repo/attachments/my-attachment</code>.
+    Alternatively, provide only the attachment ID and use the <code translate="no" dir="ltr">--location</code> and
+    <code translate="no" dir="ltr">--repository</code> flags.</li>
+</ul>
+
+
+
+
+
+<p>
+  Execute the
+  
+  following
+  
+  command:
+</p>
+
+<devsite-expandable expanded>
+  <h4 class="showalways" id="linux,-macos,-or-cloud-shell_3" data-text="Linux, macOS, or Cloud Shell" tabindex="-1">Linux, macOS, or Cloud Shell</h4>
+  
+<aside class="note"><b>Note:</b>
+  Ensure you have initialized the Google Cloud CLI with authentication and a project
+  by running either
+  <a href="/sdk/gcloud/reference/init">gcloud init</a>;
+  or
+  <a href="/sdk/gcloud/reference/auth/login">gcloud auth login</a>
+  and
+  <a href="/sdk/gcloud/reference/config/set">gcloud config set project</a>.
+</aside>
+
+  <div></div><devsite-code><pre class="devsite-click-to-copy" data-label="Linux command" translate="no" dir="ltr" is-upgraded syntax="Bash">gcloud<span class="devsite-syntax-w"> </span>artifacts<span class="devsite-syntax-w"> </span>attachments<span class="devsite-syntax-w"> </span>delete<span class="devsite-syntax-w"> </span><var translate="no">ATTACHMENT</var></pre></devsite-code>
+</devsite-expandable>
+
+
+
+<devsite-expandable>
+  <h4 class="showalways" id="windows-powershell_3" data-text="Windows (PowerShell)" tabindex="-1">Windows (PowerShell)</h4>
+  
+<aside class="note"><b>Note:</b>
+  Ensure you have initialized the Google Cloud CLI with authentication and a project
+  by running either
+  <a href="/sdk/gcloud/reference/init">gcloud init</a>;
+  or
+  <a href="/sdk/gcloud/reference/auth/login">gcloud auth login</a>
+  and
+  <a href="/sdk/gcloud/reference/config/set">gcloud config set project</a>.
+</aside>
+
+  <div></div><devsite-code><pre class="devsite-click-to-copy" data-label="PowerShell command" translate="no" dir="ltr" is-upgraded syntax="Bash">gcloud<span class="devsite-syntax-w"> </span>artifacts<span class="devsite-syntax-w"> </span>attachments<span class="devsite-syntax-w"> </span>delete<span class="devsite-syntax-w"> </span><var translate="no">ATTACHMENT</var></pre></devsite-code>
+</devsite-expandable>
+
+<devsite-expandable>
+  <h4 class="showalways" id="windows-cmd.exe_3" data-text="Windows (cmd.exe)" tabindex="-1">Windows (cmd.exe)</h4>
+  
+<aside class="note"><b>Note:</b>
+  Ensure you have initialized the Google Cloud CLI with authentication and a project
+  by running either
+  <a href="/sdk/gcloud/reference/init">gcloud init</a>;
+  or
+  <a href="/sdk/gcloud/reference/auth/login">gcloud auth login</a>
+  and
+  <a href="/sdk/gcloud/reference/config/set">gcloud config set project</a>.
+</aside>
+
+  
+  <div></div><devsite-code><pre class="devsite-click-to-copy" data-label="cmd.exe command" translate="no" dir="ltr" is-upgraded syntax="Bash">gcloud<span class="devsite-syntax-w"> </span>artifacts<span class="devsite-syntax-w"> </span>attachments<span class="devsite-syntax-w"> </span>delete<span class="devsite-syntax-w"> </span><var translate="no">ATTACHMENT</var></pre></devsite-code>
+</devsite-expandable>
+
+
+
+
+
+  
+For more information, see the
+<a href="/sdk/gcloud/reference/artifacts/attachments/delete"><code translate="no" dir="ltr">gcloud artifacts attachments delete</code></a> command.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</p></section>
+</devsite-selector></div>
+<h3 id="delete_indirect" data-text="Delete attachments indirectly" tabindex="-1">Delete attachments indirectly</h3>
+
+<p>If an artifact is deleted, all attachments with the deleted artifact&#39;s version
+name as their <code translate="no" dir="ltr">target</code> are also deleted. This applies to both the manual
+deletion of artifacts and to deletions caused by cleanup policies.</p>
+<aside class="note"><strong>Note:</strong><span> Cleanup policies don&#39;t apply directly to attachments. However, if a
+cleanup policy deletes an artifact, all attachments that have the deleted
+artifact&#39;s version as their <code translate="no" dir="ltr">target</code> are deleted.</span></aside>
+<h2 id="whats-next" data-text="What's next" tabindex="-1">What's next</h2>
+
+<ul>
+<li>Read about <a href="/software-supply-chain-security/docs/overview">Software supply chain security</a>.</li>
+<li>Learn more about <a href="https://www.cisa.gov/sbom">Software Bill of Materials (SBOM)</a></li>
+</ul>
+
+
+  
+  
+
+  
+    <devsite-hats-survey class="nocontent" data-nosnippet
+      hats-id="Nd7nTix2o0eU5NUYprb0ThtUc5jf"
+      listnr-id="83405"></devsite-hats-survey>
+  
+
+  
+</div>
+
+  
+    
+    
+      
+    <devsite-thumb-rating position="footer">
+    </devsite-thumb-rating>
+  
+       
+         <devsite-feedback
+  position="footer"
+  project-name="Artifact Registry"
+  product-id="5123950"
+  bucket="Documentation"
+  context=""
+  version="t-devsite-webserver-20260709-r00-rc00.478872387797661841"
+  data-label="Send Feedback Button"
+  track-type="feedback"
+  track-name="sendFeedbackLink"
+  track-metadata-position="footer"
+  class="nocontent"
+  data-nosnippet
+  
+  
+  
+    
+      project-icon="https://docs.cloud.google.com/_static/clouddocs/images/icons/categories/devops-color.svg"
+    
+  
+  
+  
+  >
+
+  <button>
+  
+    
+    Send feedback
+  
+  </button>
+</devsite-feedback>
+       
+    
+    
+  
+
+  <div class="devsite-floating-action-buttons"></div></article>
+
+
+<devsite-content-footer class="nocontent" data-nosnippet>
+  <p>Except as otherwise noted, the content of this page is licensed under the <a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 License</a>, and code samples are licensed under the <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache 2.0 License</a>. For details, see the <a href="https://developers.google.com/site-policies">Google Developers Site Policies</a>. Java is a registered trademark of Oracle and/or its affiliates.</p>
+  <p>Last updated 2026-07-10 UTC.</p>
+</devsite-content-footer>
+
+
+<devsite-notification
+>
+</devsite-notification>
+
+
+  
+<div class="devsite-content-data">
+  
+    
+    
+    <template class="devsite-thumb-rating-feedback">
+      <devsite-feedback
+  position="thumb-rating"
+  project-name="Artifact Registry"
+  product-id="5123950"
+  bucket="Documentation"
+  context=""
+  version="t-devsite-webserver-20260709-r00-rc00.478872387797661841"
+  data-label="Send Feedback Button"
+  track-type="feedback"
+  track-name="sendFeedbackLink"
+  track-metadata-position="thumb-rating"
+  class="nocontent"
+  data-nosnippet
+  
+  
+  
+    
+      project-icon="https://docs.cloud.google.com/_static/clouddocs/images/icons/categories/devops-color.svg"
+    
+  
+  
+  
+  >
+
+  <button>
+  
+    Need to tell us more?
+  
+  </button>
+</devsite-feedback>
+    </template>
+  
+  
+    <template class="devsite-content-data-template">
+      [[["Easy to understand","easyToUnderstand","thumb-up"],["Solved my problem","solvedMyProblem","thumb-up"],["Other","otherUp","thumb-up"]],[["Hard to understand","hardToUnderstand","thumb-down"],["Incorrect information or sample code","incorrectInformationOrSampleCode","thumb-down"],["Missing the information/samples I need","missingTheInformationSamplesINeed","thumb-down"],["Other","otherDown","thumb-down"]],["Last updated 2026-07-10 UTC."],[],[]]
+    </template>
+  
+</div>
+            
+          </devsite-content>
+        </main>
+        <devsite-footer-promos class="devsite-footer">
+          
+            
+          
+        </devsite-footer-promos>
+        <devsite-footer-linkboxes class="devsite-footer">
+          
+            
+<nav class="devsite-footer-linkboxes nocontent"
+     aria-label="Footer links"
+     data-nosnippet>
+  
+  <ul class="devsite-footer-linkboxes-list">
+    
+    <li class="devsite-footer-linkbox ">
+    <h3 class="devsite-footer-linkbox-heading no-link">Products and pricing</h3>
+      <ul class="devsite-footer-linkbox-list">
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/products/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 1)"
+            track-metadata-eventDetail="cloud.google.com/products/"track-metadata-position="footer"track-metadata-module="footer"track-type="footer link"track-metadata-child_headline="products and pricing"track-name="see all products">
+            
+          
+            See all products
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/pricing/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 2)"
+            track-metadata-position="footer"track-metadata-eventDetail="cloud.google.com/pricing/"track-metadata-module="footer"track-type="footer link"track-name="google cloud pricing"track-metadata-child_headline="products and pricing">
+            
+          
+            Google Cloud pricing
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/marketplace/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 3)"
+            track-type="footer link"track-metadata-module="footer"track-metadata-eventDetail="cloud.google.com/marketplace/"track-metadata-position="footer"track-metadata-child_headline="resources"track-name="google cloud marketplace">
+            
+          
+            Google Cloud Marketplace
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/contact/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 4)"
+            track-metadata-child_headline="engage"track-name="contact sales"track-metadata-module="footer"track-type="footer link"track-metadata-eventDetail="cloud.google.com/contact/"track-metadata-position="footer">
+            
+              
+              
+            
+          
+            Contact sales
+          
+          </a>
+          
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+    <li class="devsite-footer-linkbox ">
+    <h3 class="devsite-footer-linkbox-heading no-link">Support</h3>
+      <ul class="devsite-footer-linkbox-list">
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//discuss.google.dev/c/google-cloud/14/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 1)"
+            track-metadata-position="footer"rel="noopener"target="_blank"track-metadata-eventDetail="www.googlecloudcommunity.com"track-type="footer link"track-metadata-module="footer"track-name="google cloud community"track-metadata-child_headline="engage">
+            
+          
+            Community forums
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/support-hub/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 2)"
+            track-name="support"track-metadata-child_headline="resources"track-type="footer link"track-metadata-module="footer"track-metadata-position="footer"track-metadata-eventDetail="cloud.google.com/support-hub/">
+            
+          
+            Support
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//docs.cloud.google.com/release-notes"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 3)"
+            track-metadata-module="footer"track-type="footer link"track-metadata-eventDetail="cloud.google.com/release-notes/"track-metadata-position="footer"track-metadata-child_headline="resources"track-name="release notes">
+            
+          
+            Release Notes
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//status.cloud.google.com"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 4)"
+            target="_blank"track-metadata-eventDetail="status.cloud.google.com"track-metadata-position="footer"track-type="footer link"track-metadata-module="footer"track-metadata-child_headline="resources"track-name="system status">
+            
+              
+              
+            
+          
+            System status
+          
+          </a>
+          
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+    <li class="devsite-footer-linkbox ">
+    <h3 class="devsite-footer-linkbox-heading no-link">Resources</h3>
+      <ul class="devsite-footer-linkbox-list">
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//github.com/googlecloudPlatform/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 1)"
+            track-metadata-eventDetail="github.com/googlecloudPlatform/"track-metadata-position="footer"track-type="footer link"track-metadata-module="footer"track-metadata-child_headline="resources"track-name="github">
+            
+          
+            GitHub
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="/docs/get-started/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 2)"
+            track-metadata-eventDetail="cloud.google.com/docs/get-started/"track-metadata-position="footer"track-type="footer link"track-metadata-module="footer"track-metadata-child_headline="resources"track-name="google cloud quickstarts">
+            
+          
+            Getting Started with Google Cloud
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="/docs/samples"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 3)"
+            track-name="code samples"track-metadata-child_headline="resources"track-type="footer link"track-metadata-module="footer"track-metadata-position="footer"track-metadata-eventDetail="cloud.google.com/docs/samples">
+            
+          
+            Code samples
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="/architecture/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 4)"
+            track-type="footer link"track-metadata-module="footer"track-metadata-eventDetail="cloud.google.com/architecture/"track-metadata-position="footer"track-metadata-child_headline="resources"track-name="cloud architecture center">
+            
+          
+            Cloud Architecture Center
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/learn/training/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 5)"
+            track-name="training"track-metadata-child_headline="resources"track-metadata-position="footer"track-metadata-eventDetail="cloud.google.com/learn/training/"track-type="footer link"track-metadata-module="footer">
+            
+              
+              
+            
+          
+            Training and Certification
+          
+          </a>
+          
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+    <li class="devsite-footer-linkbox ">
+    <h3 class="devsite-footer-linkbox-heading no-link">Engage</h3>
+      <ul class="devsite-footer-linkbox-list">
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/blog/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 1)"
+            track-metadata-eventDetail="cloud.google.com/blog/"track-metadata-position="footer"track-type="footer link"track-metadata-module="footer"track-metadata-child_headline="engage"track-name="blog">
+            
+          
+            Blog
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/events/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 2)"
+            track-name="events"track-metadata-child_headline="engage"track-metadata-position="footer"track-metadata-eventDetail="cloud.google.com/events/"track-metadata-module="footer"track-type="footer link">
+            
+          
+            Events
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//x.com/googlecloud"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 3)"
+            track-name="follow on x"track-metadata-child_headline="engage"track-metadata-position="footer"track-metadata-eventDetail="x.com/googlecloud"rel="noopener"target="_blank"track-metadata-module="footer"track-type="footer link">
+            
+          
+            X (Twitter)
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//www.youtube.com/googlecloud"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 4)"
+            track-metadata-position="footer"track-metadata-eventDetail="www.youtube.com/googlecloud"rel="noopener"target="_blank"track-metadata-module="footer"track-type="footer link"track-name="google cloud on youtube"track-metadata-child_headline="engage">
+            
+          
+            Google Cloud on YouTube
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//www.youtube.com/googlecloudplatform"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 5)"
+            track-metadata-position="footer"track-metadata-eventDetail="www.youtube.com/googlecloudplatform"rel="noopener"target="_blank"track-metadata-module="footer"track-type="footer link"track-name="google cloud tech on youtube"track-metadata-child_headline="engage">
+            
+              
+              
+            
+          
+            Google Cloud Tech on YouTube
+          
+          </a>
+          
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+  </ul>
+  
+</nav>
+          
+        </devsite-footer-linkboxes>
+        <devsite-footer-utility class="devsite-footer">
+          
+            
+
+<div class="devsite-footer-utility nocontent" data-nosnippet>
+  
+
+  
+  <nav class="devsite-footer-utility-links" aria-label="Utility links">
+    
+    <ul class="devsite-footer-utility-list">
+      
+      <li class="devsite-footer-utility-item
+                 ">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//about.google/"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer About Google link"
+         
+           track-metadata-eventDetail="//about.google/"
+         
+           target="_blank"
+         
+           track-metadata-position="footer"
+         
+           track-type="footer link"
+         
+           track-metadata-module="utility footer"
+         
+           track-name="about google"
+         >
+          About Google
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 devsite-footer-privacy-link">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//policies.google.com/privacy"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Privacy link"
+         
+           track-metadata-module="utility footer"
+         
+           track-type="footer link"
+         
+           track-metadata-eventDetail="//policies.google.com/privacy"
+         
+           target="_blank"
+         
+           track-metadata-position="footer"
+         
+           track-name="privacy"
+         >
+          Privacy
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 ">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//policies.google.com/terms?hl=en"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Site terms link"
+         
+           target="_blank"
+         
+           track-metadata-eventDetail="//www.google.com/intl/en/policies/terms/regional.html"
+         
+           track-metadata-position="footer"
+         
+           track-metadata-module="utility footer"
+         
+           track-type="footer link"
+         
+           track-name="site terms"
+         >
+          Site terms
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 ">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//cloud.google.com/product-terms"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Google Cloud terms link"
+         
+           track-name="google cloud terms"
+         
+           track-type="footer link"
+         
+           track-metadata-module="utility footer"
+         
+           track-metadata-position="footer"
+         
+           track-metadata-eventDetail="//cloud.google.com/product-terms"
+         >
+          Google Cloud terms
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 glue-cookie-notification-bar-control">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="#"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Manage cookies link"
+         
+           aria-hidden="true"
+         
+           track-name="Manage cookies"
+         
+           track-metadata-position="footer"
+         
+           track-metadata-eventDetail="#"
+         
+           track-metadata-module="utility footer"
+         
+           track-type="footer link"
+         >
+          Manage cookies
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 devsite-footer-carbon-button">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//cloud.google.com/sustainability"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Our third decade of climate action: join us link"
+         
+           track-type="footer link"
+         
+           track-metadata-module="utility footer"
+         
+           track-metadata-position="footer"
+         
+           track-metadata-eventDetail="/sustainability/"
+         
+           track-name="Our third decade of climate action: join us"
+         >
+          Our third decade of climate action: join us
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 devsite-footer-utility-button">
+        
+        <span class="devsite-footer-utility-description">Sign up for the Google Cloud newsletter</span>
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//cloud.google.com/newsletter/"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Subscribe link"
+         
+           track-metadata-position="footer"
+         
+           track-metadata-eventDetail="/newsletter/"
+         
+           track-metadata-module="utility footer"
+         
+           track-type="footer link"
+         
+           track-name="subscribe"
+         >
+          Subscribe
+        </a>
+        
+      </li>
+      
+    </ul>
+    
+    
+<devsite-language-selector>
+  <ul role="presentation">
+    
+    
+    <li role="presentation">
+      <a role="menuitem" lang="en"
+        >English</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="de"
+        >Deutsch</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="es"
+        >Español</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="es_419"
+        >Español – América Latina</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="fr"
+        >Français</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="id"
+        >Indonesia</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="it"
+        >Italiano</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="pt"
+        >Português</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="pt_br"
+        >Português – Brasil</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="he"
+        >עברית</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="zh_cn"
+        >中文 – 简体</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="zh_tw"
+        >中文 – 繁體</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="ja"
+        >日本語</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="ko"
+        >한국어</a>
+    </li>
+    
+  </ul>
+</devsite-language-selector>
+
+  </nav>
+</div>
+          
+        </devsite-footer-utility>
+        <devsite-panel>
+          
+        </devsite-panel>
+        
+      </section>
+      </section>
+    <devsite-sitemask></devsite-sitemask>
+    <devsite-snackbar></devsite-snackbar>
+    <devsite-tooltip ></devsite-tooltip>
+    <devsite-heading-link></devsite-heading-link>
+    <devsite-analytics>
+      
+        <script type="application/json" analytics>[]</script>
+<script type="application/json" tag-management>{&#34;at&#34;: &#34;True&#34;, &#34;ga4&#34;: [], &#34;ga4p&#34;: [], &#34;gtm&#34;: [{&#34;id&#34;: &#34;GTM-5CVQBG&#34;, &#34;purpose&#34;: 1}], &#34;parameters&#34;: {&#34;internalUser&#34;: &#34;False&#34;, &#34;language&#34;: {&#34;machineTranslated&#34;: &#34;False&#34;, &#34;requested&#34;: &#34;en&#34;, &#34;served&#34;: &#34;en&#34;}, &#34;pageType&#34;: &#34;article&#34;, &#34;projectName&#34;: &#34;Artifact Registry&#34;, &#34;signedIn&#34;: &#34;False&#34;, &#34;tenant&#34;: &#34;clouddocs&#34;, &#34;recommendations&#34;: {&#34;sourcePage&#34;: &#34;&#34;, &#34;sourceType&#34;: 0, &#34;sourceRank&#34;: 0, &#34;sourceIdenticalDescriptions&#34;: 0, &#34;sourceTitleWords&#34;: 0, &#34;sourceDescriptionWords&#34;: 0, &#34;experiment&#34;: &#34;&#34;}, &#34;experiment&#34;: {&#34;ids&#34;: &#34;&#34;}}}</script>
+      
+    </devsite-analytics>
+    
+      <devsite-badger></devsite-badger>
+    
+    
+    <cloudx-user></cloudx-user>
+
+
+
+  <cloudx-free-trial-eligible-store freeTrialEligible="true"></cloudx-free-trial-eligible-store>
+
+    
+<script nonce="3GuCgQZ+YHxRNwwEt35dgCYt1VTwdD">
+  
+  (function(d,e,v,s,i,t,E){d['GoogleDevelopersObject']=i;
+    t=e.createElement(v);t.async=1;t.src=s;E=e.getElementsByTagName(v)[0];
+    E.parentNode.insertBefore(t,E);})(window, document, 'script',
+    'https://www.gstatic.com/devrel-devsite/prod/v7669de8735de7fa899c49c793af6b01f3bfef3435bb66621d079ef252c528b54/clouddocs/js/app_loader.js', '[39,"en",null,"/js/devsite_app_module.js","https://www.gstatic.com/devrel-devsite/prod/v7669de8735de7fa899c49c793af6b01f3bfef3435bb66621d079ef252c528b54","https://www.gstatic.com/devrel-devsite/prod/v7669de8735de7fa899c49c793af6b01f3bfef3435bb66621d079ef252c528b54/clouddocs","https://clouddocs-dot-devsite-v2-prod.appspot.com",null,null,["/_pwa/clouddocs/manifest.json","https://www.gstatic.com/devrel-devsite/prod/v7669de8735de7fa899c49c793af6b01f3bfef3435bb66621d079ef252c528b54/images/video-placeholder.svg","https://www.gstatic.com/devrel-devsite/prod/v7669de8735de7fa899c49c793af6b01f3bfef3435bb66621d079ef252c528b54/clouddocs/images/favicons/onecloud/favicon.ico","https://www.gstatic.com/devrel-devsite/prod/v7669de8735de7fa899c49c793af6b01f3bfef3435bb66621d079ef252c528b54/clouddocs/images/lockup_full_color.svg","https://fonts.googleapis.com/css?family=Google+Sans:400,500|Roboto:400,400italic,500,500italic,700,700italic|Roboto+Mono:400,500,700&display=swap"],1,null,[1,6,8,12,14,17,21,25,50,52,63,70,75,76,80,87,91,92,93,97,98,100,101,102,103,104,105,107,108,109,110,112,113,117,118,120,122,124,125,126,127,129,130,131,132,133,134,135,136,138,140,141,147,148,149,151,152,156,157,158,159,161,163,164,168,169,170,179,180,182,183,186,191,193,196],"AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","docs.cloud.google.com","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000",null,null,null,["Profiles__enable_page_saving","Profiles__enable_callout_notifications","Analytics__enable_devpro_interaction_logging","Cloud__enable_cloud_shell","Profiles__enable_awarding_url","DevPro__enable_developer_subscriptions","Profiles__enable_complete_playlist_endpoint","MiscFeatureFlags__enable_explicit_template_dependencies","Cloud__enable_free_trial_server_call","DevPro__enable_embed_profile_creation","Search__enable_ai_search_summaries_for_all","DevPro__enable_google_payments_buyflow","DevPro__enable_g1_ineligible_redirect","DevPro__enable_free_benefits","SignIn__enable_l1_signup_flow","TpcFeatures__enable_unmirrored_page_left_nav","Profiles__enable_join_program_group_endpoint","BookNav__enable_tenant_cache_key","MiscFeatureFlags__enable_view_transitions","Cloud__enable_cloud_shell_fte_user_flow","Cloud__enable_cloudx_experiment_ids","Profiles__enable_completequiz_endpoint","Profiles__enable_developer_profile_pages_as_content","DevPro__enable_devsite_captcha","MiscFeatureFlags__remove_cross_domain_tracking_params","DevPro__enable_google_one_card","Cloud__enable_cloud_dlp_service","MiscFeatureFlags__developers_footer_image","Profiles__enable_profile_collections","DevPro__enable_nvidia_credits_card","CloudShell__cloud_shell_button","Search__enable_ai_eligibility_checks","Cloud__fast_free_trial","Profiles__enable_dashboard_curated_recommendations","MiscFeatureFlags__enable_explain_this_code","MiscFeatureFlags__enable_variable_operator_index_yaml","Profiles__enable_completecodelab_endpoint","Profiles__enable_public_developer_profiles","Experiments__reqs_query_experiments","MiscFeatureFlags__enable_variable_operator","Profiles__enable_auto_apply_credits","Profiles__enable_user_type","Search__enable_page_map","Profiles__enable_stripe_subscription_management","DevPro__enable_g1_integration","Cloud__enable_legacy_calculator_redirect","Profiles__enable_playlist_community_acl","MiscFeatureFlags__enable_dark_theme","DevPro__enable_code_assist","Cloud__cache_serialized_dynamic_content","MiscFeatureFlags__enable_project_variables","Concierge__enable_actions_menu","Profiles__enable_purchase_prompts","EngEduTelemetry__enable_engedu_telemetry","MiscFeatureFlags__developers_footer_dark_image","TpcFeatures__proxy_prod_host","MiscFeatureFlags__enable_framebox_badge_methods","DevPro__enable_credits_banner","CloudShell__cloud_code_overflow_menu","Concierge__enable_pushui","OnSwitch__enable","DevPro__enable_vertex_credit_card","Profiles__enable_developer_profiles_callout","Concierge__enable_remove_info_panel_tags","MiscFeatureFlags__enable_firebase_utm","DevPro__enable_firebase_workspaces_card","Profiles__enable_developer_profile_benefits_ui_redesign","AIStudioInteractionsToggle__interactions_are_default","Profiles__require_profile_eligibility_for_signin","DevPro__enable_devpro_offers","DevPro__remove_eu_tax_intake_form","Search__enable_dynamic_content_confidential_banner","Concierge__enable_devsite_llm_tools","Profiles__enable_recognition_badges","MiscFeatureFlags__gdp_dashboard_reskin_enabled","Search__enable_suggestions_from_borg","DevPro__enable_cloud_innovators_plus","Profiles__enable_targeted_hero","Analytics__enable_clearcut_logging","MiscFeatureFlags__enable_appearance_cookies","MiscFeatureFlags__fix_lower_breadcrumbs","Concierge__enable_concierge_restricted","DevPro__enable_enterprise"],null,null,"AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","https://developerscontentserving-pa.clients6.google.com","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","https://developerscontentsearch-pa.clients6.google.com",1,4,1,"https://developerprofiles-pa.clients6.google.com",[39,"clouddocs","Google Cloud Documentation","docs.cloud.google.com",null,"clouddocs-dot-devsite-v2-prod.appspot.com",null,null,[1,1,null,null,null,null,null,null,null,null,null,[1],null,null,null,null,null,1,[1],[null,null,null,[1,20],"/terms/recommendations"],[1],null,[1],[1,null,1],null,[1]],null,[54,null,null,null,null,null,"/images/lockup_full_color.svg","/images/favicons/onecloud/apple-icon.png",null,null,null,1,1,1,1,null,[],null,null,[[],[],[],[],[],[],[],[]],null,1,null,null,null,"/images/lockup_dark_theme.svg",[]],[],null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,[6,1,14,15,22,23,29,37],null,[[null,null,null,null,null,null,[1,[["docType","Choose a content type",[["ApiReference",null,null,null,null,null,null,null,null,"API reference"],["Sample",null,null,null,null,null,null,null,null,"Code sample"],["ReferenceArchitecture",null,null,null,null,null,null,null,null,"Reference architecture"],["Tutorial",null,null,null,null,null,null,null,null,"Tutorial"]]],["category","Choose a topic",[["AiAndMachineLearning",null,null,null,null,null,null,null,null,"Artificial intelligence and machine learning (AI/ML)"],["ApplicationDevelopment",null,null,null,null,null,null,null,null,"Application development"],["BigDataAndAnalytics",null,null,null,null,null,null,null,null,"Big data and analytics"],["Compute",null,null,null,null,null,null,null,null,"Compute"],["Containers",null,null,null,null,null,null,null,null,"Containers"],["Databases",null,null,null,null,null,null,null,null,"Databases"],["HybridCloud",null,null,null,null,null,null,null,null,"Hybrid and multicloud"],["LoggingAndMonitoring",null,null,null,null,null,null,null,null,"Logging and monitoring"],["Migrations",null,null,null,null,null,null,null,null,"Migrations"],["Networking",null,null,null,null,null,null,null,null,"Networking"],["SecurityAndCompliance",null,null,null,null,null,null,null,null,"Security and compliance"],["Serverless",null,null,null,null,null,null,null,null,"Serverless"],["Storage",null,null,null,null,null,null,null,null,"Storage"]]]]]],[1],null,1],[[null,null,null,null,null,["GTM-5CVQBG"],null,null,null,null,null,[["GTM-5CVQBG",2]],1],null,null,null,null,null,1],"mwETRvWii0eU5NUYprb0Y9z5GVbc",4],null,"pk_live_5170syrHvgGVmSx9sBrnWtA5luvk9BwnVcvIi7HizpwauFG96WedXsuXh790rtij9AmGllqPtMLfhe2RSwD6Pn38V00uBCydV4m",1,null,"https://developerscontentinsights-pa.clients6.google.com","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","https://developers.clients6.google.com",null,null,"AIza_REDACTED_PUBLIC_WEB_KEY_x0000000\n",null,null,"https://developers.googleapis.com"]')
+  
+</script>
+
+    <devsite-a11y-announce></devsite-a11y-announce>
+  </body>
+</html>

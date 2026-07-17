@@ -13,9 +13,10 @@
  *   node scripts/parity/generate-approval-status.mjs           # write the file
  *   node scripts/parity/generate-approval-status.mjs --check   # exit 1 if stale
  */
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -41,6 +42,125 @@ const REQUIRED_REGISTRIES = [
 /** Services a surface may legitimately reference (orphan check, cond. 3). */
 const KNOWN_SERVICE_IDS = ['web', 'api', 'worker', 'runtime', 'admin'];
 
+/*
+ * Évaluation v5 (2026-07-17): la CI compare l'ensemble EXACT des P0 attendus à
+ * l'ensemble présent dans P0_REGISTRY — l'absence d'un ID bloque. Les 15 P0 du
+ * dernier audit externe (Audit_complet_PLAN_PARITE_REPLIT_v3_2026) + les 4 P0
+ * de l'audit v4.
+ */
+export const EXPECTED_P0_IDS = [
+  'P0-V4-1', 'P0-V4-2', 'P0-V4-3', 'P0-V4-4',
+  'P0-V3-01', 'P0-V3-02', 'P0-V3-03', 'P0-V3-04', 'P0-V3-05',
+  'P0-V3-06', 'P0-V3-07', 'P0-V3-08', 'P0-V3-09', 'P0-V3-10',
+  'P0-V3-11', 'P0-V3-12', 'P0-V3-13', 'P0-V3-14', 'P0-V3-15',
+];
+
+/** Contract files whose presence defines the architectureContracted level. */
+const CONTRACT_FILES = [
+  'DOMAIN_MODEL.md',
+  'AUTH_ACCESS_CONTRACT.md',
+  'GALLERY_COMMUNITY_CONTRACT.md',
+  'RELEASE_PUBLISH_CONTRACT.md',
+  'PROJECT_FACTORY_CONTRACT.md',
+  'IAM_POLICY_BASELINE.md',
+  'EDGE_CONTRACT.md',
+  'WORKSPACE_STORAGE_CONTRACT.md',
+  'CHECKPOINT_CONTRACT.md',
+  'IMPORT_REMIX_CONTRACT.md',
+  'AGENT_TOOL_BROKER_CONTRACT.md',
+  'DATABASE_CONTRACT.md',
+  'APP_STORAGE_CONTRACT.md',
+  'EVIDENCE_ARTIFACT_CONTRACT.md',
+  'REGRESSION_RUN_CONTRACT.md',
+  'BILLING_LEDGER_CONTRACT.md',
+  'RUNTIME_NIX_CONTRACT.md',
+  'OPERATIONS_DR.md',
+  'SECURITY_PRIVACY_COMPLIANCE.md',
+];
+
+/*
+ * Gates bêta (évaluation v5 §6, décisions D1–D6): tant que ces UNKNOWNs
+ * existent dans UNKNOWN_REGISTRY, betaReady est faux. Un contrat n'est pas une
+ * capacité — ces IDs tracent précisément les capacités manquantes.
+ */
+const BETA_GATE_UNKNOWN_IDS = [
+  'UNK-GIT-RECONCILE-DONE',
+  'UNK-ROLLBACK-FLAG-APPLIED',
+  'UNK-NIX-MULTIZONE-IMPL',
+  'UNK-AR-LIVE-PROMOTION',
+  'UNK-CLOUDTENANT-IMPL',
+  'UNK-BILLING-MINIMAL-IMPL',
+];
+
+/** Mapping sourceType → classe de SLA de triage (OBSERVATION_REGISTRY.triageSla). */
+const TRIAGE_SLA_CLASS = {
+  security: 'security',
+  'trust-safety': 'trust-safety',
+  legal: 'legal',
+  changelog: 'product',
+  'product-route': 'product',
+  blog: 'product',
+  status: 'product',
+  pricing: 'product',
+  docs: 'docs',
+};
+
+/** Business days (Mon–Fri) between two dates, exclusive of the start day. */
+function businessDaysBetween(fromMs, toMs) {
+  let days = 0;
+  const d = new Date(fromMs);
+
+  while (d.getTime() < toMs) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    const dow = d.getUTCDay();
+
+    if (dow !== 0 && dow !== 6) {
+      days += 1;
+    }
+  }
+
+  return days;
+}
+
+/**
+ * Deterministic sha256 over an evidence path (file or directory): hash of every
+ * file's relative path + content, sorted. "Preuves avec artefacts présents ET
+ * hashes" — a proof whose evidence changes silently changes the status file.
+ */
+function hashEvidencePath(repoRoot, relPath) {
+  const abs = join(repoRoot, relPath);
+
+  if (!existsSync(abs)) {
+    return { fileCount: 0, sha256: null };
+  }
+
+  const files = [];
+
+  (function walk(p) {
+    const st = statSync(p);
+
+    if (st.isDirectory()) {
+      for (const name of readdirSync(p).sort()) {
+        walk(join(p, name));
+      }
+    } else if (st.isFile()) {
+      files.push(p);
+    }
+  })(abs);
+
+  files.sort();
+  const h = createHash('sha256');
+
+  for (const f of files) {
+    h.update(relative(repoRoot, f));
+    h.update('\0');
+    h.update(readFileSync(f));
+    h.update('\0');
+  }
+
+  return { fileCount: files.length, sha256: files.length > 0 ? h.digest('hex') : null };
+}
+
 const require = createRequire(import.meta.url);
 
 function loadYamlModule() {
@@ -64,19 +184,22 @@ function yaml(name) {
 /** Freshness SLA for a public source (days since lastVerified). */
 const SOURCE_FRESHNESS_SLA_DAYS = 30;
 
-export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
+export function computeApprovalStatus(now = '2026-07-17T12:00:00Z') {
   const p0 = yaml('P0_REGISTRY.yaml');
   const decisions = yaml('DECISION_REGISTRY.yaml');
   const unknowns = yaml('UNKNOWN_REGISTRY.yaml');
   const baseline = yaml('PUBLIC_BASELINE_REPLIT_2026.yaml');
   const surfaces = yaml('SURFACE_REGISTRY.yaml');
   const e2e = yaml('E2E_PROOFS.yaml');
+  const observations = yaml('OBSERVATION_REGISTRY.yaml');
 
   const nowMs = Date.parse(now);
 
   /*
    * P0 rollup: a P0 is only CLOSED with commit+reviewer+proof; PROVEN has
-   * evidence but no human reviewer yet; OPEN otherwise.
+   * evidence but no human reviewer yet; OPEN otherwise. Le statut DÉCLARÉ est
+   * un PLANCHER: un P0 déclaré OPEN reste OPEN même s'il porte des preuves
+   * partielles — la preuve d'une partie n'est pas la preuve du tout.
    */
   const p0Rollup = (p0.p0s ?? []).map((item) => {
     const hasProof = Boolean(item.commit && item.proof && item.evidenceId);
@@ -84,10 +207,12 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
 
     let derived = 'OPEN';
 
-    if (hasProof && reviewed) {
-      derived = 'CLOSED';
-    } else if (hasProof) {
-      derived = 'PROVEN';
+    if (item.status !== 'OPEN' && item.status !== 'BLOCKED') {
+      if (hasProof && reviewed) {
+        derived = 'CLOSED';
+      } else if (hasProof) {
+        derived = 'PROVEN';
+      }
     }
 
     return { p0Id: item.p0Id, priority: item.priority, declared: item.status, derived, hasProof, reviewed };
@@ -132,7 +257,7 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
     description: 'no P0 OPEN or BLOCKED',
     passed: openP0.length === 0 && blockedP0.length === 0,
     reasons: [
-      ...openP0.map((p) => `${p.p0Id} is OPEN (no reviewer yet)`),
+      ...openP0.map((p) => `${p.p0Id} is OPEN`),
       ...blockedP0.map((id) => `${id} is BLOCKED`),
     ],
   };
@@ -190,9 +315,23 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
     }
   }
 
+  /*
+   * Preuves: artefacts PRÉSENTS et HASHÉS (évaluation v5). Un evidenceId qui
+   * pointe un chemin absent OU un dossier vide est un orphelin.
+   */
+  const evidence = [];
+
   for (const proof of e2e.proofs ?? []) {
-    if (proof.status === 'PROVEN' && proof.evidenceId && !existsSync(join(repoRoot, proof.evidenceId))) {
-      orphans.push(`${proof.proofId} → evidenceId path missing on disk (${proof.evidenceId})`);
+    if (proof.status !== 'PROVEN' || !proof.evidenceId) {
+      continue;
+    }
+
+    const { fileCount, sha256 } = hashEvidencePath(repoRoot, proof.evidenceId);
+
+    if (fileCount === 0) {
+      orphans.push(`${proof.proofId} → evidenceId path missing or empty on disk (${proof.evidenceId})`);
+    } else {
+      evidence.push({ proofId: proof.proofId, evidenceId: proof.evidenceId, fileCount, evidenceSha256: sha256 });
     }
   }
 
@@ -203,13 +342,23 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
     reasons: orphans,
   };
 
-  // (4) The end-to-end vertical is green (each stage has a PROVEN proof).
+  /*
+   * (4) The end-to-end vertical is green (each stage has a PROVEN proof).
+   * Une preuve API n'est PAS une preuve UI: le client de la preuve
+   * (fixtures.client) est exposé par étage, et les étages sans preuve UI sont
+   * listés dans uiGaps — jamais confondus avec un étage prouvé à l'écran.
+   */
   const verticalStages = APPROVAL_VERTICAL.map((stage) => {
     const proofs = (e2e.proofs ?? []).filter(
       (p) => isProven(p) && (p.vertical === stage || (Array.isArray(p.vertical) && p.vertical.includes(stage))),
     );
-    return { stage, green: proofs.length > 0, proofIds: proofs.map((p) => p.proofId) };
+    const clients = [...new Set(proofs.map((p) => String(p.fixtures?.client ?? 'UNKNOWN')))];
+    const uiProven = clients.some((c) => c.startsWith('web'));
+
+    return { stage, green: proofs.length > 0, proofIds: proofs.map((p) => p.proofId), clients, uiProven };
   });
+
+  const uiGaps = verticalStages.filter((v) => v.green && !v.uiProven).map((v) => v.stage);
 
   const missingStages = verticalStages.filter((v) => !v.green).map((v) => v.stage);
 
@@ -251,9 +400,140 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
 
   const conditions = [cond1, cond2, cond3, cond4, cond5, cond6];
 
-  const blocking = conditions
-    .filter((c) => !c.passed)
-    .map((c) => `condition ${c.id} (${c.description}) FAILED: ${c.reasons.join('; ')}`);
+  /* ===== Niveaux nommés (évaluation v5 — remplace le booléen approvalReady,
+     qui était un faux positif de couverture) ===== */
+
+  // Complétude du registre P0: l'ensemble EXACT des IDs attendus doit être présent.
+  const presentP0Ids = new Set((p0.p0s ?? []).map((i) => i.p0Id));
+  const missingP0Ids = EXPECTED_P0_IDS.filter((id) => !presentP0Ids.has(id));
+
+  // targetDate: UNKNOWN interdit (P0 / UNKNOWN / DECISION), sauf ACCEPTED_RISK justifié.
+  const forbiddenTargetDates = [];
+
+  for (const [label, entries, idKey] of [
+    ['P0_REGISTRY', p0.p0s ?? [], 'p0Id'],
+    ['UNKNOWN_REGISTRY', unknowns.unknowns ?? [], 'unknownId'],
+    ['DECISION_REGISTRY', decisions.decisions ?? [], 'decisionId'],
+  ]) {
+    for (const entry of entries) {
+      const acceptedRisk =
+        entry.state === 'ACCEPTED_RISK' && entry.owner && entry.expiration && entry.reviewCondition;
+
+      if ((entry.targetDate === 'UNKNOWN' || entry.targetDate === undefined) && !acceptedRisk) {
+        forbiddenTargetDates.push(`${label}: ${entry[idKey]} has targetDate UNKNOWN/absent without ACCEPTED_RISK`);
+      }
+    }
+  }
+
+  // Triage: aucun événement critique PENDING au-delà de son SLA (jours ouvrés).
+  const triageSla = observations.triageSla ?? {};
+  const triageBreaches = (observations.observations ?? [])
+    .filter((o) => o.triageState === 'PENDING')
+    .filter((o) => {
+      const slaDays = triageSla[TRIAGE_SLA_CLASS[o.sourceType] ?? 'product'];
+      const detected = Date.parse(o.detectionDate);
+
+      return (
+        Number.isFinite(detected) && typeof slaDays === 'number' && businessDaysBetween(detected, nowMs) > slaDays
+      );
+    })
+    .map((o) => `${o.observationId} PENDING past its triage SLA`);
+
+  const pendingClaims = (baseline.claims ?? []).filter((c) => c.triageState === 'PENDING').map((c) => c.claimId);
+
+  const planPath = join(parityRoot, 'PLAN_PARITE_REPLIT.md');
+  const planText = existsSync(planPath) ? readFileSync(planPath, 'utf8') : '';
+  const planOk = /schemaVersion:\s*\d+/.test(planText) && /measuredRepoCommit:\s*[0-9a-f]{7,40}/.test(planText);
+
+  const gateUnknownsPresent = BETA_GATE_UNKNOWN_IDS.filter((id) =>
+    (unknowns.unknowns ?? []).some((u) => u.unknownId === id),
+  );
+
+  const openDecisions = (decisions.decisions ?? []).filter((d) => d.status === 'OPEN').map((d) => d.decisionId);
+  const notClosedP0 = p0Rollup.filter((x) => x.derived !== 'CLOSED').map((x) => x.p0Id);
+  const missingContracts = CONTRACT_FILES.filter((f) => !existsSync(join(parityRoot, f)));
+  const surfacesNotDone = surfaceRollup.filter((s) => !s.done).map((s) => s.surfaceId);
+
+  const lvlDocument = {
+    name: 'documentReady',
+    passed: cond2.passed && planOk,
+    reasons: [...cond2.reasons, ...(planOk ? [] : ['PLAN_PARITE_REPLIT.md missing or lacks schemaVersion/measuredRepoCommit'])],
+  };
+  const lvlRegistry = {
+    name: 'registryComplete',
+    passed:
+      missingP0Ids.length === 0 && forbiddenTargetDates.length === 0 && cond3.passed && triageBreaches.length === 0,
+    reasons: [
+      ...missingP0Ids.map((id) => `expected P0 missing from P0_REGISTRY: ${id}`),
+      ...forbiddenTargetDates,
+      ...cond3.reasons,
+      ...triageBreaches,
+    ],
+  };
+  const lvlContracts = {
+    name: 'architectureContracted',
+    passed: missingContracts.length === 0,
+    reasons: missingContracts.map((f) => `contract file missing: ${f}`),
+  };
+  const lvlImplementation = {
+    name: 'implementationReady',
+    passed: cond1.passed,
+    reasons: cond1.reasons,
+  };
+  const lvlVertical = {
+    name: 'verticalReady',
+    passed: cond4.passed,
+    reasons: cond4.reasons,
+  };
+  const lvlBeta = {
+    name: 'betaReady',
+    passed:
+      lvlRegistry.passed && lvlVertical.passed && cond5.passed && cond6.passed && gateUnknownsPresent.length === 0,
+    reasons: [
+      ...(lvlRegistry.passed ? [] : ['registryComplete not passed']),
+      ...(lvlVertical.passed ? [] : ['verticalReady not passed']),
+      ...cond5.reasons,
+      ...cond6.reasons,
+      ...gateUnknownsPresent.map((id) => `beta gate capability still unknown: ${id}`),
+    ],
+  };
+  const lvlPublic = {
+    name: 'publicLaunchReady',
+    passed: lvlBeta.passed && notClosedP0.length === 0 && openDecisions.length === 0 && pendingClaims.length === 0,
+    reasons: [
+      ...(lvlBeta.passed ? [] : ['betaReady not passed']),
+      ...notClosedP0.map((id) => `${id} not CLOSED (needs a real reviewer)`),
+      ...openDecisions.map((id) => `decision ${id} still OPEN`),
+      ...pendingClaims.map((id) => `claim ${id} triage PENDING`),
+    ],
+  };
+  const lvlParity = {
+    name: 'parityBaselineReady',
+    passed: surfacesNotDone.length === 0 && cond5.passed && pendingClaims.length === 0 && triageBreaches.length === 0,
+    reasons: [
+      ...surfacesNotDone.map((id) => `surface ${id} not done`),
+      ...cond5.reasons,
+      ...pendingClaims.map((id) => `claim ${id} triage PENDING`),
+      ...triageBreaches,
+    ],
+  };
+
+  const levels = [lvlDocument, lvlRegistry, lvlContracts, lvlImplementation, lvlVertical, lvlBeta, lvlPublic, lvlParity];
+
+  // Le niveau approuvé = le plus haut niveau CONTIGU atteint (échelle stricte).
+  let approvedLevel = null;
+
+  for (const level of levels) {
+    if (!level.passed) {
+      break;
+    }
+
+    approvedLevel = level.name;
+  }
+
+  const blocking = levels
+    .filter((l) => !l.passed)
+    .map((l) => `level ${l.name} FAILED: ${l.reasons.join('; ')}`);
 
   const counts = {
     p0: {
@@ -273,16 +553,20 @@ export function computeApprovalStatus(now = '2026-07-16T00:00:00Z') {
   };
 
   return {
-    schemaVersion: 2,
-    generatedFrom: REQUIRED_REGISTRIES,
+    schemaVersion: 3,
+    generatedFrom: [...REQUIRED_REGISTRIES, 'PLAN_PARITE_REPLIT.md'],
     note: 'COMPUTED by scripts/parity/generate-approval-status.mjs — never edit by hand. The validator fails the build on drift.',
-    algorithm: 'APPROVED iff all 6 conditions pass (audit v4 H). See conditions[].',
-    approvalReady: blocking.length === 0,
+    algorithm:
+      'NAMED LEVELS (évaluation v5, 2026-07-17): no global approvalReady boolean — APPROVED is only admissible with the exact level named. approved.level = highest CONTIGUOUS passed level in levels[]. The 6 audit-v4 conditions remain as sub-signals.',
+    levels,
+    approved: { level: approvedLevel },
     blocking,
     conditions,
     counts,
     p0: p0Rollup,
     surfaces: surfaceRollup,
+    evidence,
+    uiGaps,
     staleSources,
   };
 }

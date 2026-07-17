@@ -46,4 +46,240 @@ p0s:
     evidenceId: services/api/src/artifact-promotion.spec.ts
     proof: "promoteArtifact découvre+relie+vérifie+BinAuthz ; 4 tests négatifs (SBOM manquant, relink échoué, BinAuthz refusé, source absente) prouvent le blocage. Adapter AR live = follow-up (🟡)"
     nextAction: "Implémenter l'adapter Artifact Registry live + promotion réelle"
-    targetDate: UNKNOWN
+    targetDate: "2026-08-15"
+
+  # ============================================================================
+  # Les 15 P0 du DERNIER AUDIT EXTERNE (Audit_complet_PLAN_PARITE_REPLIT_v3_2026,
+  # expert externe, 2026-07-16) — tracés INDIVIDUELLEMENT (exigence évaluation
+  # v5 du 17/07 : « P0_REGISTRY ne contient que 4 des 15 P0 »).
+  # Règles : un statut PROVEN exige commit + proof + evidenceId sur disque ;
+  # CLOSED exige en plus un reviewer humain réel. « Un contrat n'est pas une
+  # capacité » : quand la correction demandée par l'audit était SPÉCIFICATIVE,
+  # le P0 peut être PROVEN sur preuve documentaire, et l'IMPLÉMENTATION reste
+  # tracée par un UNKNOWN dédié (listé dans dependances) + gate bêta.
+  # ============================================================================
+  - p0Id: P0-V3-01
+    title: "Baseline 16/07 incomplète (Community Profiles absent, canal de lancement non surveillé)"
+    description: "La baseline publique ne contenait ni Community Profiles ni Ramp for Agents ; le collecteur documentaire seul est aveugle aux routes produit rendues JS."
+    source: "Audit_complet_PLAN_PARITE_REPLIT_v3_2026.docx (expert externe, 2026-07-16), P0-01"
+    priority: 1
+    owner: claude
+    status: OPEN
+    commit: "07ced1c5"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/baseline/snapshots/2026-07-16/
+    proof: "PARTIEL : collecteur 5 familles + rendu JS + hash (community.rendered.html capturé, OBS-COMMUNITY-PROFILES TRIAGED). RESTE : rendu JS prouvé en CI (UNK-COLLECTOR-CI-RENDER) + triage Ramp for Agents."
+    dependances: [UNK-COLLECTOR-CI-RENDER]
+    conditionDeCloture: "Run CI réel du collecteur avec rendu JS (chromium) vert + Ramp for Agents trié dans OBSERVATION_REGISTRY"
+    nextAction: "Prouver le rendu JS en CI GitHub ; trier Ramp for Agents"
+    targetDate: "2026-08-01"
+  - p0Id: P0-V3-02
+    title: "Table Gallery factuellement dépassée"
+    description: "Des fonctions observables (Submit, auteurs, stats, View App, report) étaient classées inconnues."
+    source: "Audit v3 (2026-07-16), P0-02"
+    priority: 2
+    owner: claude
+    status: PROVEN
+    commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
+    reviewer: UNKNOWN
+    evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
+    proof: "RPL-17/18/19 VERIFIED/CONFIRMED sur rendu JS hashé (SRC-GALLERY-RENDERED sha256 fad9ec75…) ; inconnues restantes légitimes (self-publish IDE, review interne, licence) tracées ACCEPTED_RISK/UNKNOWN."
+    dependances: []
+    conditionDeCloture: "Revue humaine (reviewer réel) de la table §3 du plan canonique"
+    nextAction: "Revue"
+    targetDate: "2026-07-16"
+  - p0Id: P0-V3-03
+    title: "Hiérarchie folder-per-tenant non scalable (300 enfants max, 0,1 folder/s)"
+    description: "Un folder GCP par tenant est cassé par construction ; sharding explicite requis."
+    source: "Audit v3 (2026-07-16), P0-03"
+    priority: 3
+    owner: claude
+    status: PROVEN
+    commit: "07ced1c5"
+    reviewer: UNKNOWN
+    evidenceId: services/api/src/capacity-policy.spec.ts
+    proof: "capacity-policy.ts : 1000 tenants sharded=admissible (~40s), folder-per-tenant=2,78h inadmissible ; DOMAIN_MODEL §3 corrigé ; DEC-TENANT-NO-FOLDER-PER-TENANT DECIDED."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-16"
+  - p0Id: P0-V3-04
+    title: "Cycle de vie CloudTenant incomplet (owner, transfert, merge/split, résidence)"
+    description: "customerId seul ne définit pas le client ; transfert personnel→organisation = migration de sécurité non spécifiée."
+    source: "Audit v3 (2026-07-16), P0-04"
+    priority: 4
+    owner: claude
+    status: PROVEN
+    commit: "4a61800c"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/PROJECT_FACTORY_CONTRACT.md
+    proof: "SPEC UNIQUEMENT : CloudTenant{customerBoundaryType,billingPrincipalId,legalEntityId,ownershipVersion,residencyPolicy} + machines à états transfer/merge/split/suspension/restoration contractualisées (DOMAIN_MODEL §3, PROJECT_FACTORY_CONTRACT). L'implémentation N'EST PAS commencée — un contrat n'est pas une capacité."
+    dependances: [UNK-CLOUDTENANT-IMPL]
+    conditionDeCloture: "Le P0 audit (spécifier) est clos sur revue ; la capacité est gatée bêta via UNK-CLOUDTENANT-IMPL"
+    nextAction: "Implémentation minimale pour les apps publiées de la bêta"
+    targetDate: "2026-08-31"
+  - p0Id: P0-V3-05
+    title: "Remix incomplet juridiquement et pour les données (licence, PII, historique Git)"
+    description: "Détacher les credentials est nécessaire mais insuffisant ; licence/consentement + masking PII requis."
+    source: "Audit v3 (2026-07-16), P0-05"
+    priority: 5
+    owner: claude
+    status: OPEN
+    commit: "bd4c334e"
+    reviewer: UNKNOWN
+    evidenceId: docs/deploy-evidence/2026-07-16-remix/
+    proof: "PARTIEL : invariant sécurité PROUVÉ live (le test cherche la valeur du secret dans fichiers+DB+job et échoue à la trouver ; valeur survivante ⇒ quarantaine 409 ; CLONING refusé avant CREDENTIALS_DETACHED). RESTE : remixAllowed/licenseSnapshot/consentVersion effectifs, masking PII DB dev, fork DB physique + copie objets (RMX-3/4/5)."
+    dependances: []
+    conditionDeCloture: "Licence+consentement appliqués au listing ET masking PII prouvé sur un clone réel"
+    nextAction: "RMX-3/4/5 + champs licence sur GalleryListing"
+    targetDate: "2026-08-31"
+  - p0Id: P0-V3-06
+    title: "Import incomplet malgré la quarantaine (rétention, appel, scanners reproductibles, Git complexe)"
+    description: "Durée de quarantaine, procédure d'appel, reproductibilité des scans, LFS/submodules/OAuth non couverts."
+    source: "Audit v3 (2026-07-16), P0-06"
+    priority: 6
+    owner: claude
+    status: OPEN
+    commit: "7d45c2cb"
+    reviewer: UNKNOWN
+    evidenceId: docs/deploy-evidence/2026-07-16-import/
+    proof: "PARTIEL : aucune suppression silencieuse + staging jetable sans montage du workspace cible + commit tardif refusé (22 tests, IMP-1/2/3/5). RESTE : IMP-4 (timeout sweeper), IMP-6 (7 connecteurs non exécutés — inventaire corrigé à 12 entrées dont Previous Agent export, RPL-24), IMP-7 (débit crédits, gaté D4)."
+    dependances: [UNK-BILLING-MINIMAL-IMPL]
+    conditionDeCloture: "Rétention+appel spécifiés ET lots de connecteurs D4 exécutés ET débit crédits réel après réservation"
+    nextAction: "Billing minimal (D4) puis lot 1 connecteurs Git-backed"
+    targetDate: "2026-08-31"
+  - p0Id: P0-V3-07
+    title: "Promotion Artifact Registry non fermée (referrers/attachments non copiés)"
+    description: "Copier une image par digest ne copie ni signature ni SBOM ni provenance ; vérification dans le contexte tenant requise."
+    source: "Audit v3 (2026-07-16), P0-07"
+    priority: 7
+    owner: claude
+    status: OPEN
+    commit: "07ced1c5"
+    reviewer: UNKNOWN
+    evidenceId: services/api/src/artifact-promotion.spec.ts
+    proof: "PARTIEL : machine à états PROMOTION_PREPARED→…→PROMOTION_COMMITTED + 4 tests négatifs bloquants (SBOM manquant, relink échoué, BinAuthz refusé, source absente). RESTE : adapter AR LIVE (OCI referrers) + promotion réelle vérifiée dans le repo tenant. CONTRAINTE (GCP-12) : attachments = PREVIEW ⇒ fallback BinAuthz/Container Analysis + ORAS + exit strategy OBLIGATOIRES."
+    dependances: [UNK-AR-LIVE-PROMOTION]
+    conditionDeCloture: "Promotion réelle : copie image + referrers + vérif signatures + policy tenant + déploiement, avec fallback prouvé"
+    nextAction: "Adapter AR live + preuve dans le contexte cible"
+    targetDate: "2026-08-15"
+  - p0Id: P0-V3-08
+    title: "Rollback non reproductible avec de simples refs secrets"
+    description: "Une ref vers latest rejoue une autre application ; le manifest doit pinner versions de secrets, accès, domaines, migrations."
+    source: "Audit v3 (2026-07-16), P0-08"
+    priority: 8
+    owner: claude
+    status: PROVEN
+    commit: "ec0ad6bd"
+    reviewer: UNKNOWN
+    evidenceId: docs/deploy-evidence/2026-07-17-rollback/
+    proof: "PROUVÉ LIVE (E2E-VERTICAL-ROLLBACK) : rollback par digest APRÈS suppression de la révision (410→re-déploiement p-…@sha256:657271c5, sert v1) ; 2 négatifs 409 (ROLLBACK_NO_RETAINED_DIGEST, ROLLBACK_SECRET_POLICY_UNSATISFIABLE). Permanence du flag = D2 DECIDED, application Helm tracée UNK-ROLLBACK-FLAG-APPLIED."
+    dependances: [UNK-ROLLBACK-FLAG-APPLIED]
+    conditionDeCloture: "Revue humaine + flag permanent dans values-prod.yaml (D2 appliqué)"
+    nextAction: "Appliquer D2 (Helm values + schéma + canary + test post-deploy)"
+    targetDate: "2026-07-24"
+  - p0Id: P0-V3-09
+    title: "Atomicité du checkpoint surpromise"
+    description: "Une séquence d'étapes ne crée pas un instant atomique ; le niveau de cohérence doit être déclaré et une barrière établie avant tout snapshot."
+    source: "Audit v3 (2026-07-16), P0-09"
+    priority: 9
+    owner: claude
+    status: PROVEN
+    commit: "b8186f2f"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/CHECKPOINT_CONTRACT.md
+    proof: "SPEC UNIQUEMENT : protocole barrière 2 phases (BARRIER_ESTABLISHED avant SNAPSHOTTING), niveaux crash/application/transaction-consistent, quiesce avec dégel obligatoire ; transition CHECKPOINT_SNAPSHOT_BEFORE_BARRIER refusée par test. Implémentation non commencée — un contrat n'est pas une capacité."
+    dependances: [UNK-CHECKPOINT-IMPL]
+    conditionDeCloture: "P0 audit (définir le protocole) clos sur revue ; capacité tracée UNK-CHECKPOINT-IMPL"
+    nextAction: "Implémentation volume+DB+manifest avec preuve de restore"
+    targetDate: "2026-09-30"
+  - p0Id: P0-V3-10
+    title: "Contrat Nix incomplet et pin mal classé"
+    description: "Nix 2.34.8 = décision E-Code (pas parité) ; system/arch, clés, révocation, réplication zonale, upgrade DB Nix à fixer."
+    source: "Audit v3 (2026-07-16), P0-10"
+    priority: 10
+    owner: claude
+    status: PROVEN
+    commit: "9a21f56f"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/RUNTIME_NIX_CONTRACT.md
+    proof: "Pin reclassé DÉCISION E-CODE ; v1=x86_64-linux ; contrat complété (clés/rotation/révocation, provenance builder, reprise corruption, réplication zonale, upgrade schéma DB Nix, E2E offline). Store v2 PROUVÉ live (Node 62s + Python 3.12.13). RESTE (capacité) : multi-zone D3 GO — tracé UNK-NIX-MULTIZONE-IMPL, préalable au Python zéro-manuel."
+    dependances: [UNK-NIX-MULTIZONE-IMPL]
+    conditionDeCloture: "Revue humaine ; multi-zone gaté bêta via UNK-NIX-MULTIZONE-IMPL"
+    nextAction: "Exécuter D3 (clones zonaux signés par génération, test de perte de zone, coût mesuré)"
+    targetDate: "2026-08-01"
+  - p0Id: P0-V3-11
+    title: "Database : « Agent mute DEV » erroné + protocole publish insuffisant"
+    description: "Texte corrigé en « Agent peut modifier DEV » ; migration au publish sous concurrence/échec à spécifier."
+    source: "Audit v3 (2026-07-16), P0-11"
+    priority: 11
+    owner: claude
+    status: PROVEN
+    commit: "57ab0a67"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/DATABASE_CONTRACT.md
+    proof: "SPEC : DBMigrationExecution (PLANNED→…→COMMITTED, FAILED_SAFE/FORWARD_FIX_REQUIRED/MANUAL_RECOVERY), idempotencyKey, une migration active/env, aucune mutation PROD par l'Agent ; transition MIGRATION_APPLY_BEFORE_BACKUP refusée par test. Implémentation publish-migration non prouvée live — tracée UNK-DB-MIGRATION-PUBLISH-IMPL."
+    dependances: [UNK-DB-MIGRATION-PUBLISH-IMPL]
+    conditionDeCloture: "Revue humaine ; capacité tracée par l'UNKNOWN dédié"
+    nextAction: "Prouver une migration au publish réelle (lock, backup, validation)"
+    targetDate: "2026-09-30"
+  - p0Id: P0-V3-12
+    title: "Ledger de billing insuffisant"
+    description: "Invariants comptables requis : double entrée, decimal exact, FX/cutoff, PaymentAuthorization distincte de UsageReservation."
+    source: "Audit v3 (2026-07-16), P0-12"
+    priority: 12
+    owner: claude
+    status: PROVEN
+    commit: "07ced1c5"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/BILLING_LEDGER_CONTRACT.md
+    proof: "SPEC : contrat ledger avec double entrée, corrections compensatoires, RateCardVersion, webhooks PSP idempotents, rapprochement GCP+PSP+ledger. Implémentation du minimum sûr (réservation+idempotence+compensation) = D4 étape 1, tracée UNK-BILLING-MINIMAL-IMPL."
+    dependances: [UNK-BILLING-MINIMAL-IMPL]
+    conditionDeCloture: "Revue humaine ; minimum billing sûr implémenté avant tout connecteur payant"
+    nextAction: "Implémenter UsageReservation + compensation (D4 étape 1)"
+    targetDate: "2026-08-15"
+  - p0Id: P0-V3-13
+    title: "Matrice des surfaces inexploitable"
+    description: "Matrice infinie compte×plan×région×client remplacée par une matrice supportée déclarée."
+    source: "Audit v3 (2026-07-16), P0-13"
+    priority: 13
+    owner: claude
+    status: PROVEN
+    commit: "b8186f2f"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/SURFACE_REGISTRY.yaml
+    proof: "SURFACE_REGISTRY schemaVersion 2 : availability ∈ {SUPPORTED|UNSUPPORTED|NOT_APPLICABLE|ROLLOUT|UNKNOWN}, clientKind, a11y (WCAG 2.2 AA), locale/RTL, performanceBudget ; test négatif availability:MAYBE ⇒ exit 1."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-16"
+  - p0Id: P0-V3-14
+    title: "Paquet documentaire et calcul d'approbation absents"
+    description: "17 groupes de livrables + APPROVAL_STATUS calculé par CI, jamais écrit à la main."
+    source: "Audit v3 (2026-07-16), P0-14"
+    priority: 14
+    owner: claude
+    status: PROVEN
+    commit: "97759a77"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/APPROVAL_STATUS.json
+    proof: "Registres + schémas + validateur (exit 0/1 prouvé, test négatif 3 violations) + CI parity-registries verte + APPROVAL_STATUS généré avec drift-check (édition manuelle = build cassé)."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-16"
+  - p0Id: P0-V3-15
+    title: "Règles normatives violées par le plan lui-même (historique d'audit, étiquetage, P0 non traçables)"
+    description: "Le plan portait son historique d'audit et exigeait la clôture de 19 P0 sans les identifier."
+    source: "Audit v3 (2026-07-16), P0-15"
+    priority: 15
+    owner: claude
+    status: PROVEN
+    commit: "48eb78a5f5fbf8ab8ce8c1c7ea8ed348a81ec417"
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
+    proof: "Plan canonique sans récit autobiographique (historique → CHANGELOG_AUDIT.md) ; étiquetage limité aux assertions factuelles externes ; les 15 P0 du dernier audit tracés individuellement dans CE registre (cette entrée incluse)."
+    dependances: []
+    conditionDeCloture: "PLAN_PARITE_REPLIT.md mergé + revue humaine"
+    nextAction: "Merge du plan canonique + revue"
+    targetDate: "2026-07-17"

@@ -81,3 +81,36 @@ sources:
     accessedAt: "2026-07-16T16:56:05Z"
     contentHash: "sha256:010fb57a8c421f2f4351569033abd0843df7452df6a075ff78ac55b773420f57"
     snapshot: docs/parity/baseline/sources/2026-07-10-changelog.md
+  # --- Sources cloud (GCP) — ajoutées 2026-07-17 pour ancrer les claims GCP-11/GCP-12.
+  # Snapshots ASSAINIS : les clés web publiques Google embarquées dans le HTML
+  # devsite (motif AIza…, non-secrets) sont caviardées avant hash, pour ne pas
+  # déclencher le secret-scan. Le contentHash est celui du fichier assaini.
+  # Le registre accepte des sources non-Replit dès lors qu'un claim du plan les cite.
+  - sourceId: SRC-CLOUDRUN-SERVICE-HEALTH
+    url: https://docs.cloud.google.com/run/docs/configuring/configure-service-health
+    title: "Automate cross-region failover with Cloud Run service health"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-17T09:51:51Z"
+    contentHash: "sha256:dcfbdee7dfb69eb27897b49ae53adf38836c313acb42ffb5cff7dfeddc4ae612"
+    snapshot: docs/parity/baseline/sources/2026-07-17-cloudrun-service-health.html
+  - sourceId: SRC-CLOUDRUN-RELEASE-NOTES
+    url: https://docs.cloud.google.com/run/docs/release-notes
+    title: "Cloud Run release notes (GA de service health le 29/06/2026 ; Preview interne 21/11/2025, externe 24/02/2026)"
+    publishedAt: "2026-06-29"
+    accessedAt: "2026-07-17T09:51:51Z"
+    contentHash: "sha256:54ecea8ffa86274de7e27f278745bb75a1b88a41ac19a2a38e9e6db22289a894"
+    snapshot: docs/parity/baseline/sources/2026-07-17-cloudrun-release-notes.html
+  - sourceId: SRC-AR-ATTACHMENTS
+    url: https://docs.cloud.google.com/artifact-registry/docs/manage-metadata-with-attachments
+    title: "Artifact Registry — Manage metadata with attachments (bannière Pre-GA « Preview » présente dans le snapshot)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-17T09:51:51Z"
+    contentHash: "sha256:df666b6ca552a61237284babed7921682669364a21cc34720122a801d4a645c6"
+    snapshot: docs/parity/baseline/sources/2026-07-17-ar-attachments.html
+  - sourceId: SRC-REPLIT-IMPORT-PROVIDERS
+    url: https://docs.replit.com/build/import-from-providers.md
+    title: "Replit — Import from a provider (table « Supported sources » : 12 entrées dont Previous Agent export et Empty)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-17T09:51:51Z"
+    contentHash: "sha256:56b145555f6d82a4cb94c07bfc35345cd6fade908b1f3ec4e3a727138b9f70e3"
+    snapshot: docs/parity/baseline/sources/2026-07-17-import-from-providers.md

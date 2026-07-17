@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "generatedFrom": [
     "P0_REGISTRY.yaml",
     "DECISION_REGISTRY.yaml",
@@ -8,18 +8,116 @@
     "SURFACE_REGISTRY.yaml",
     "E2E_PROOFS.yaml",
     "OBSERVATION_REGISTRY.yaml",
-    "SOURCE_REGISTRY.yaml"
+    "SOURCE_REGISTRY.yaml",
+    "PLAN_PARITE_REPLIT.md"
   ],
   "note": "COMPUTED by scripts/parity/generate-approval-status.mjs — never edit by hand. The validator fails the build on drift.",
-  "algorithm": "APPROVED iff all 6 conditions pass (audit v4 H). See conditions[].",
-  "approvalReady": true,
-  "blocking": [],
+  "algorithm": "NAMED LEVELS (évaluation v5, 2026-07-17): no global approvalReady boolean — APPROVED is only admissible with the exact level named. approved.level = highest CONTIGUOUS passed level in levels[]. The 6 audit-v4 conditions remain as sub-signals.",
+  "levels": [
+    {
+      "name": "documentReady",
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "name": "registryComplete",
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "name": "architectureContracted",
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "name": "implementationReady",
+      "passed": false,
+      "reasons": [
+        "P0-V3-01 is OPEN",
+        "P0-V3-05 is OPEN",
+        "P0-V3-06 is OPEN",
+        "P0-V3-07 is OPEN"
+      ]
+    },
+    {
+      "name": "verticalReady",
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "name": "betaReady",
+      "passed": false,
+      "reasons": [
+        "beta gate capability still unknown: UNK-GIT-RECONCILE-DONE",
+        "beta gate capability still unknown: UNK-ROLLBACK-FLAG-APPLIED",
+        "beta gate capability still unknown: UNK-NIX-MULTIZONE-IMPL",
+        "beta gate capability still unknown: UNK-AR-LIVE-PROMOTION",
+        "beta gate capability still unknown: UNK-CLOUDTENANT-IMPL",
+        "beta gate capability still unknown: UNK-BILLING-MINIMAL-IMPL"
+      ]
+    },
+    {
+      "name": "publicLaunchReady",
+      "passed": false,
+      "reasons": [
+        "betaReady not passed",
+        "P0-V4-1 not CLOSED (needs a real reviewer)",
+        "P0-V4-2 not CLOSED (needs a real reviewer)",
+        "P0-V4-3 not CLOSED (needs a real reviewer)",
+        "P0-V4-4 not CLOSED (needs a real reviewer)",
+        "P0-V3-01 not CLOSED (needs a real reviewer)",
+        "P0-V3-02 not CLOSED (needs a real reviewer)",
+        "P0-V3-03 not CLOSED (needs a real reviewer)",
+        "P0-V3-04 not CLOSED (needs a real reviewer)",
+        "P0-V3-05 not CLOSED (needs a real reviewer)",
+        "P0-V3-06 not CLOSED (needs a real reviewer)",
+        "P0-V3-07 not CLOSED (needs a real reviewer)",
+        "P0-V3-08 not CLOSED (needs a real reviewer)",
+        "P0-V3-09 not CLOSED (needs a real reviewer)",
+        "P0-V3-10 not CLOSED (needs a real reviewer)",
+        "P0-V3-11 not CLOSED (needs a real reviewer)",
+        "P0-V3-12 not CLOSED (needs a real reviewer)",
+        "P0-V3-13 not CLOSED (needs a real reviewer)",
+        "P0-V3-14 not CLOSED (needs a real reviewer)",
+        "P0-V3-15 not CLOSED (needs a real reviewer)",
+        "decision DEC-GALLERY-NO-SELF-PUBLISH still OPEN",
+        "claim RPL-20 triage PENDING",
+        "claim RPL-21 triage PENDING",
+        "claim RPL-22 triage PENDING",
+        "claim RPL-23 triage PENDING"
+      ]
+    },
+    {
+      "name": "parityBaselineReady",
+      "passed": false,
+      "reasons": [
+        "claim RPL-20 triage PENDING",
+        "claim RPL-21 triage PENDING",
+        "claim RPL-22 triage PENDING",
+        "claim RPL-23 triage PENDING"
+      ]
+    }
+  ],
+  "approved": {
+    "level": "architectureContracted"
+  },
+  "blocking": [
+    "level implementationReady FAILED: P0-V3-01 is OPEN; P0-V3-05 is OPEN; P0-V3-06 is OPEN; P0-V3-07 is OPEN",
+    "level betaReady FAILED: beta gate capability still unknown: UNK-GIT-RECONCILE-DONE; beta gate capability still unknown: UNK-ROLLBACK-FLAG-APPLIED; beta gate capability still unknown: UNK-NIX-MULTIZONE-IMPL; beta gate capability still unknown: UNK-AR-LIVE-PROMOTION; beta gate capability still unknown: UNK-CLOUDTENANT-IMPL; beta gate capability still unknown: UNK-BILLING-MINIMAL-IMPL",
+    "level publicLaunchReady FAILED: betaReady not passed; P0-V4-1 not CLOSED (needs a real reviewer); P0-V4-2 not CLOSED (needs a real reviewer); P0-V4-3 not CLOSED (needs a real reviewer); P0-V4-4 not CLOSED (needs a real reviewer); P0-V3-01 not CLOSED (needs a real reviewer); P0-V3-02 not CLOSED (needs a real reviewer); P0-V3-03 not CLOSED (needs a real reviewer); P0-V3-04 not CLOSED (needs a real reviewer); P0-V3-05 not CLOSED (needs a real reviewer); P0-V3-06 not CLOSED (needs a real reviewer); P0-V3-07 not CLOSED (needs a real reviewer); P0-V3-08 not CLOSED (needs a real reviewer); P0-V3-09 not CLOSED (needs a real reviewer); P0-V3-10 not CLOSED (needs a real reviewer); P0-V3-11 not CLOSED (needs a real reviewer); P0-V3-12 not CLOSED (needs a real reviewer); P0-V3-13 not CLOSED (needs a real reviewer); P0-V3-14 not CLOSED (needs a real reviewer); P0-V3-15 not CLOSED (needs a real reviewer); decision DEC-GALLERY-NO-SELF-PUBLISH still OPEN; claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING",
+    "level parityBaselineReady FAILED: claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING"
+  ],
   "conditions": [
     {
       "id": 1,
       "description": "no P0 OPEN or BLOCKED",
-      "passed": true,
-      "reasons": []
+      "passed": false,
+      "reasons": [
+        "P0-V3-01 is OPEN",
+        "P0-V3-05 is OPEN",
+        "P0-V3-06 is OPEN",
+        "P0-V3-07 is OPEN"
+      ]
     },
     {
       "id": 2,
@@ -44,49 +142,77 @@
           "green": true,
           "proofIds": [
             "E2E-VERTICAL-CREATE"
-          ]
+          ],
+          "clients": [
+            "web"
+          ],
+          "uiProven": true
         },
         {
           "stage": "modify",
           "green": true,
           "proofIds": [
             "E2E-VERTICAL-MODIFY"
-          ]
+          ],
+          "clients": [
+            "web"
+          ],
+          "uiProven": true
         },
         {
           "stage": "execute",
           "green": true,
           "proofIds": [
             "E2E-AGM-C"
-          ]
+          ],
+          "clients": [
+            "web"
+          ],
+          "uiProven": true
         },
         {
           "stage": "preview",
           "green": true,
           "proofIds": [
             "E2E-VERTICAL-PREVIEW"
-          ]
+          ],
+          "clients": [
+            "web"
+          ],
+          "uiProven": true
         },
         {
           "stage": "publish",
           "green": true,
           "proofIds": [
             "E2E-PHASEB-NODE"
-          ]
+          ],
+          "clients": [
+            "api"
+          ],
+          "uiProven": false
         },
         {
           "stage": "observe",
           "green": true,
           "proofIds": [
             "E2E-VERTICAL-OBSERVE"
-          ]
+          ],
+          "clients": [
+            "web"
+          ],
+          "uiProven": true
         },
         {
           "stage": "rollback",
           "green": true,
           "proofIds": [
             "E2E-VERTICAL-ROLLBACK"
-          ]
+          ],
+          "clients": [
+            "api"
+          ],
+          "uiProven": false
         }
       ]
     },
@@ -105,21 +231,21 @@
   ],
   "counts": {
     "p0": {
-      "total": 4,
+      "total": 19,
       "closed": 0,
-      "proven": 4,
-      "open": 0
+      "proven": 15,
+      "open": 4
     },
     "decisions": {
-      "total": 3,
-      "open": 2
+      "total": 11,
+      "open": 1
     },
     "unknowns": {
-      "total": 11,
+      "total": 19,
       "p0Linked": 0
     },
     "claims": {
-      "total": 12,
+      "total": 15,
       "stale": 0
     },
     "surfaces": {
@@ -163,6 +289,126 @@
       "derived": "PROVEN",
       "hasProof": true,
       "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-01",
+      "priority": 1,
+      "declared": "OPEN",
+      "derived": "OPEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-02",
+      "priority": 2,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-03",
+      "priority": 3,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-04",
+      "priority": 4,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-05",
+      "priority": 5,
+      "declared": "OPEN",
+      "derived": "OPEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-06",
+      "priority": 6,
+      "declared": "OPEN",
+      "derived": "OPEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-07",
+      "priority": 7,
+      "declared": "OPEN",
+      "derived": "OPEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-08",
+      "priority": 8,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-09",
+      "priority": 9,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-10",
+      "priority": 10,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-11",
+      "priority": 11,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-12",
+      "priority": 12,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-13",
+      "priority": 13,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-14",
+      "priority": 14,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
+    },
+    {
+      "p0Id": "P0-V3-15",
+      "priority": 15,
+      "declared": "PROVEN",
+      "derived": "PROVEN",
+      "hasProof": true,
+      "reviewed": false
     }
   ],
   "surfaces": [
@@ -190,6 +436,84 @@
       "proofsProven": 1,
       "done": true
     }
+  ],
+  "evidence": [
+    {
+      "proofId": "E2E-PHASEB-NODE",
+      "evidenceId": "docs/deploy-evidence/2026-07-15-phase-b/",
+      "fileCount": 8,
+      "evidenceSha256": "bdc9e89824cb10582d9f7b8a904e125caa4f00b22834bc4fc63c3c44e071b657"
+    },
+    {
+      "proofId": "E2E-AUTOSCALE-Z",
+      "evidenceId": "docs/deploy-evidence/2026-07-16-zone-autoscale/",
+      "fileCount": 10,
+      "evidenceSha256": "997a83259c7d02d9add5ec05edc053e86e0cafbc996dc5291d50f9072399f184"
+    },
+    {
+      "proofId": "E2E-AGM-A",
+      "evidenceId": "docs/deploy-evidence/2026-07-16-agent-modes/",
+      "fileCount": 24,
+      "evidenceSha256": "6e19d9022633233b02703b5ef47eafc462d450ef2c2e2e1d8018c2d38ff25213"
+    },
+    {
+      "proofId": "E2E-AGM-B",
+      "evidenceId": "docs/deploy-evidence/2026-07-16-agent-modes/",
+      "fileCount": 24,
+      "evidenceSha256": "6e19d9022633233b02703b5ef47eafc462d450ef2c2e2e1d8018c2d38ff25213"
+    },
+    {
+      "proofId": "E2E-AGM-C",
+      "evidenceId": "docs/deploy-evidence/2026-07-16-agent-modes/",
+      "fileCount": 24,
+      "evidenceSha256": "6e19d9022633233b02703b5ef47eafc462d450ef2c2e2e1d8018c2d38ff25213"
+    },
+    {
+      "proofId": "E2E-AGM-E",
+      "evidenceId": "docs/deploy-evidence/2026-07-16-agent-modes/",
+      "fileCount": 24,
+      "evidenceSha256": "6e19d9022633233b02703b5ef47eafc462d450ef2c2e2e1d8018c2d38ff25213"
+    },
+    {
+      "proofId": "E2E-AGM-F",
+      "evidenceId": "docs/deploy-evidence/2026-07-16-agent-modes/",
+      "fileCount": 24,
+      "evidenceSha256": "6e19d9022633233b02703b5ef47eafc462d450ef2c2e2e1d8018c2d38ff25213"
+    },
+    {
+      "proofId": "E2E-VERTICAL-CREATE",
+      "evidenceId": "docs/deploy-evidence/2026-07-17-vertical/",
+      "fileCount": 4,
+      "evidenceSha256": "2d0b863e14e50bf915b85bd3d40f31a03f3c4d0f2f76c39d4c9e6d11ba3a5d58"
+    },
+    {
+      "proofId": "E2E-VERTICAL-MODIFY",
+      "evidenceId": "docs/deploy-evidence/2026-07-17-vertical/",
+      "fileCount": 4,
+      "evidenceSha256": "2d0b863e14e50bf915b85bd3d40f31a03f3c4d0f2f76c39d4c9e6d11ba3a5d58"
+    },
+    {
+      "proofId": "E2E-VERTICAL-PREVIEW",
+      "evidenceId": "docs/deploy-evidence/2026-07-17-vertical/",
+      "fileCount": 4,
+      "evidenceSha256": "2d0b863e14e50bf915b85bd3d40f31a03f3c4d0f2f76c39d4c9e6d11ba3a5d58"
+    },
+    {
+      "proofId": "E2E-VERTICAL-OBSERVE",
+      "evidenceId": "docs/deploy-evidence/2026-07-17-vertical/",
+      "fileCount": 4,
+      "evidenceSha256": "2d0b863e14e50bf915b85bd3d40f31a03f3c4d0f2f76c39d4c9e6d11ba3a5d58"
+    },
+    {
+      "proofId": "E2E-VERTICAL-ROLLBACK",
+      "evidenceId": "docs/deploy-evidence/2026-07-17-rollback/",
+      "fileCount": 24,
+      "evidenceSha256": "866402b1c298167ee1066005728251697b6bb93d17202d87471dbf79313042ea"
+    }
+  ],
+  "uiGaps": [
+    "publish",
+    "rollback"
   ],
   "staleSources": []
 }
