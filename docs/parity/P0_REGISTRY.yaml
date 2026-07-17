@@ -275,7 +275,7 @@ p0s:
     priority: 15
     owner: claude
     status: PROVEN
-    commit: "48eb78a5f5fbf8ab8ce8c1c7ea8ed348a81ec417"
+    commit: "d1040286a4000c84372ca540943bee6eca6cace5"
     reviewer: UNKNOWN
     evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
     proof: "Plan canonique sans récit autobiographique (historique → CHANGELOG_AUDIT.md) ; étiquetage limité aux assertions factuelles externes ; les 15 P0 du dernier audit tracés individuellement dans CE registre (cette entrée incluse)."
