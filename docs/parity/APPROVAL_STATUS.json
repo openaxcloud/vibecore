@@ -196,7 +196,7 @@
           "description": "no open UNKNOWN remains",
           "passed": false,
           "reasons": [
-            "11 UNKNOWN still open"
+            "13 UNKNOWN still open"
           ]
         }
       ]
@@ -343,7 +343,7 @@
       "open": 2
     },
     "unknowns": {
-      "total": 11,
+      "total": 13,
       "p0Linked": 0
     },
     "claims": {

@@ -66,6 +66,21 @@ unknowns:
     nextAction: "Implémenter accessPolicyVersion sur ReleaseManifest + parcours e2e (mode Private → login forcé) ; cf. AUTH_ACCESS_CONTRACT.md"
     targetDate: "2026-07-31"
     expiration: "2026-09-30"
+  - unknownId: UNK-GALLERY-UI-GRAFT
+    question: "L'UI riche de la Gallery (cartes complètes boutons View/Remix/Report + vraie image preview, recherche/filtres/tri, vue grille+liste, pagination, détail avec Preview, modération, signalement, probe SSRF) est-elle greffée sur notre noyau prouvé et déployée ?"
+    owner: claude
+    priority: 1
+    nextAction: "Option B (DEC-GALLERY-OPTION-B) : porter TemplateGallery.tsx (1211l) + gallery.$slug.tsx + GalleryModerationPanel.tsx + gallery-preview-probe.ts (stash@{0}^3) sur l'API GalleryListing ; corriger vue liste (chevauchement) + centrer previews SANS changer containerW ; captures grille+détail desktop/tablette/mobile light/dark ; comparer à RPL-17 (~22 catégories, compteur résultats, Load all apps, Views/Used, View App)"
+    owner_note: "Écart produit #1 — Avi le voit live sur app.e-code.ai/gallery : « il manque les boutons, l'image preview, plus de projets, compare avec Replit »"
+    targetDate: "2026-07-19"
+    expiration: "2026-07-31"
+  - unknownId: UNK-GALLERY-REAL-APPS
+    question: "Quelles VRAIES apps peupler la Gallery ? (nos 6 « démos » ai-agent/fastify-api/landing-page/mobile-starter/next-dashboard = starters framework déguisés, PAS de vraies apps)"
+    owner: avi
+    priority: 1
+    nextAction: "Avi indique quelles apps réelles publier ; chaque app doit DÉMARRER et RENDRE (validation 6/6 HTTP 200 + DOM). NE PAS fabriquer de faux listings — un catalogue d'apps mortes est pire que vide."
+    targetDate: "2026-07-24"
+    expiration: "2026-08-15"
   - unknownId: UNK-REGRESSION-HARNESS
     question: "Existe-t-il un harnais de rejeu automatisé (cron) des preuves e2e pour détecter les régressions de parité ?"
     owner: claude
