@@ -62,9 +62,13 @@ tant qu'une source vérifiable n'existe pas. Chacun a une entrée dans
 ## C. E-CODE IMPLEMENTATION (TPL-02) — « on l'a construit », distinct de « Replit le fait »
 
 **États TPL-02** — 📤 Dispatché ✅ · 💻 Codé ✅ (`266fefac`/`e6afdfbf`/`c59674e8`/
-`3181b31f` sur `origin/main`, 23 tests verts, build strict runtime vert) · ✅ Testé
-live ⏳ (parcours réel Gallery→détail→Remix→IDE dans le Chrome d'Avi + preuve
-secret-absent — après déploiement CD). Un point n'est « fait » qu'au ✅ Testé live.
+`3181b31f`, 23 tests + build strict verts) · ✅ **Testé live** (prod, 2026-07-17) :
+curation admin → browse anonyme → détail (vues comptées 0→3) → **remix → clone dans
+l'org du remixeur, RemixJob COMPLETED épinglé `sourceSnapshotId`+`sourceListingId`**,
+clone = 7 fichiers du snapshot épinglé, `secrets:[]` (DB-absent live), `useCount=1` ;
+rendu UI grille + détail (desktop + mobile). Preuves : `docs/deploy-evidence/2026-07-17-gallery/`.
+**Reste** : le clic-connecté « Remix » → IDE en navigateur (handoff Chrome d'Avi, comme
+PUBLISH-UI-01) ; secret-absent fichiers+DB+job exhaustif = test `gallery-routes.spec.ts`.
 
 
 Ce qui suit est CODÉ chez E-Code (commits `266fefac`/`e6afdfbf`/`c59674e8`/
