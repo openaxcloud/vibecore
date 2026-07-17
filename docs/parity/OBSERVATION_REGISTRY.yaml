@@ -74,3 +74,52 @@ observations:
     client: web
     rollout: GA
     triageState: PENDING
+
+  # --- Pointeur (2026-07-17) : parcours agent App Builder — AUTRE agent, HORS ---
+  # de notre périmètre (AGM/parité). Consigné ici comme pointeur, JAMAIS reprouvé.
+  - observationId: OBS-APPBUILDER-AGENT-JOURNEY
+    sourceType: internal-evidence
+    observedAt: "2026-07-17T00:00:00Z"      # date-level (time non significatif)
+    eventDate: "2026-07-17"
+    detectionDate: "2026-07-17"
+    blindnessGapDays: 0
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: UNKNOWN
+    triageState: TRIAGED                     # hors périmètre — pointeur, pas d'action ici
+    archiveUri: docs/ui-ux-evidence/2026-07-17/app-builder-review/   # captures (evidence NON versionnée)
+    note: >-
+      Vrai parcours agent produit par l'AUTRE agent (App Builder), HORS du périmètre
+      AGM/parité Replit : prompt → plan 4 tasks / 4 agents (ARCHITECT / FRONTEND /
+      DEVOPS / QA) → 24 fichiers / 22 en FR → rendu dans la Webview → erreur runtime
+      « Cannot destructure property 'future' of React.useContext(...) ». C'est du
+      matériau de preuve RÉEL mais il appartient à App Builder ; il est capturé
+      ailleurs (docs/ui-ux-evidence/2026-07-17/app-builder-review/, evidence locale
+      non-suivie). NE PAS le reprouver deux fois ici — ce pointeur suffit.
+
+  # --- RISQUE matérialisé (2026-07-17) : resynchro concurrente destructrice ------
+  - observationId: OBS-RISK-CONCURRENT-RESYNC-WORKTREE
+    sourceType: internal-incident
+    observedAt: "2026-07-17T00:00:00Z"      # date-level (time non significatif)
+    eventDate: "2026-07-17"
+    detectionDate: "2026-07-17"
+    blindnessGapDays: 0
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: UNKNOWN
+    triageState: PENDING                     # risque réel à mitiger (process, pas produit)
+    note: >-
+      RISQUE MATÉRIALISÉ : une resynchro concurrente (process automatisé dirty-tree
+      qui stash/reset puis auto-commit/push — cf. « Dirty/volatile tree ») a effacé
+      ~1 jour de travail d'un worktree, et son build a échoué sur un changement
+      CONCURRENT du manifeste scheduled-tasks (services/api/src/scheduled-tasks*.ts).
+      Travail App Builder préservé dans le stash zone-sync-66c0c245-dirty-tree-preserved
+      (commit bc512943, non-suivis à bc512943^3) — NE PAS `git stash pop` sur le main
+      SALE, NE PAS toucher ce travail. Autre instance du MÊME risque : le main local
+      (3e2d7013) LAG origin/main (b774bfa3) et sert encore l'ancien design AGM
+      « Power · Economy » alors que le fix segmenté (84c860b5) est déjà en amont.
+      Mitigation : worktrees isolés HORS de origin/main, commit/push rapides, ne
+      JAMAIS resync-reset un worktree tiers, et le manifeste scheduled-tasks doit être
+      édité par un seul agent à la fois (verrou logique).
