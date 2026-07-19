@@ -205,7 +205,11 @@ describe('<ChatBox /> agent power controls', () => {
      * live behind the Advanced popover. The live cost estimate stays visible.
      */
     const segmented = screen.getByRole('radiogroup', { name: /Agent mode/i });
-    expect(within(segmented).getByRole('radio', { name: /Economy/i }).getAttribute('aria-checked')).toBe('true');
+    expect(
+      within(segmented)
+        .getByRole('radio', { name: /Economy/i })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
     expect(within(segmented).getByRole('radio', { name: /^Lite/i })).toBeTruthy();
     expect(within(segmented).getByRole('radio', { name: /^Power/i })).toBeTruthy();
 
@@ -245,7 +249,13 @@ describe('<ChatBox /> agent power controls', () => {
 
   it('honors a parent-controlled power value (Turbo in Power mode)', () => {
     renderChatBox({
-      agentPower: { highEffort: false, highPowerModel: false, extendedThinking: false, turboMode: true, buildTier: 'power' },
+      agentPower: {
+        highEffort: false,
+        highPowerModel: false,
+        extendedThinking: false,
+        turboMode: true,
+        buildTier: 'power',
+      },
       onAgentPowerChange: vi.fn(),
     });
 

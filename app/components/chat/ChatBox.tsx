@@ -31,7 +31,6 @@ import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
-import { normalizeModelList } from './modelList';
 
 const DEFAULT_AGENT_POWER: AgentPowerControlsValue = {
   highEffort: false,
@@ -122,7 +121,6 @@ interface ChatBoxProps {
 }
 
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
-  const modelList = normalizeModelList(props.modelList);
   const providerList = Array.isArray(props.providerList) ? props.providerList : (PROVIDER_LIST as ProviderInfo[]);
 
   const hasComposerPayload = props.input.trim().length > 0 || props.uploadedFiles.length > 0;

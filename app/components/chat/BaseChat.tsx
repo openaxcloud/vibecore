@@ -6332,15 +6332,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     }}
                   />
                 )}
+                {/*
+                 * AGM: no model names in the UI, ever — the "retry with a
+                 * different model" dropdown is gone. An empty list hides the
+                 * control; plain retry re-routes through the user's MODE.
+                 */}
                 {llmErrorAlert && (
                   <LlmErrorAlert
                     alert={llmErrorAlert}
                     clearAlert={() => clearLlmErrorAlert?.()}
-                    /*
-                     * AGM: no model names in the UI, ever — the "retry with a
-                     * different model" dropdown is gone. An empty list hides the
-                     * control; plain retry re-routes through the user's MODE.
-                     */
                     alternativeModels={[]}
                   />
                 )}
