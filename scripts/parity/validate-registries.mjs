@@ -704,6 +704,20 @@ function checkHeader(file, doc) {
   }
 }
 
+/* ---- 12. Complétude du backlog dans le PLAN (audit 2026-07-19) --------- */
+{
+  const { checkPlanCompleteness } = await import(join(here, 'check-plan-completeness.mjs'));
+  const { errors: backlogErrors, counts } = checkPlanCompleteness();
+
+  for (const e of backlogErrors) {
+    fail('PLAN_PARITE_REPLIT.md (backlog)', e);
+  }
+
+  checked.push(
+    `plan backlog completeness (${counts.total} points — NON FAIT: ${counts.nonFait}, DÉJÀ FAIT: ${counts.dejaFait}, PÉRIMÉ: ${counts.perime})`,
+  );
+}
+
 /* ---- report ------------------------------------------------------------ */
 for (const line of checked) {
   console.log(`[validate-registries] OK ${line}`);

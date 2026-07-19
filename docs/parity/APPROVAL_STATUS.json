@@ -270,14 +270,20 @@
       "open": 8
     },
     "boltDebt": {
-      "total": 26,
-      "nonFait": 26,
+      "total": 29,
+      "nonFait": 29,
       "faitProuve": 0
     },
     "prodReadiness": {
-      "total": 48,
-      "nonFait": 48,
+      "total": 50,
+      "nonFait": 50,
       "faitProuve": 0
+    },
+    "backlog": {
+      "total": 336,
+      "nonFait": 332,
+      "dejaFait": 1,
+      "perime": 3
     }
   },
   "p0": [

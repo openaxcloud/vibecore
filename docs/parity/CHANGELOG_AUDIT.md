@@ -159,3 +159,19 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
   §9 P1 en deux familles, §13 « périmètres complémentaires », §7 régénéré.
 - Raison : « un registre ne bloque pas sur un trou qu'il ignore » (§1, loi 3) —
   les ~300 points ne pouvaient plus rester implicites.
+
+## 2026-07-19 (bis) — versement du backlog complet DANS le plan (§14)
+
+- Demande propriétaire : plus de fichier de couverture « à côté » — chaque
+  point DANS le plan. §14 ajouté : **336 points**, un par ligne (ID,
+  description simple, statut, owner, échéance, suivi) — 332 NON FAIT,
+  1 DÉJÀ FAIT (GC idle, preuve BUG-CRON-001), 3 PÉRIMÉS (ancien pipeline
+  deploy-prod, preuve deploy-main.yml).
+- Certification calculable : `check-plan-completeness.mjs` (appelé par le
+  validateur, donc la CI) verrouille compte exact (336) + SHA-256 de la liste
+  triée des IDs + schéma des lignes + résolution des références « suivi par ».
+  Preuves négatives exécutées : ligne OUT-QA-17 retirée → exit 1 (compte+hash).
+- Registres complétés en support : BD-28/29 (Monitoring partiel, chats
+  standalone), PR-INFRA-01 (staging Terraform), PR-MISC-07 (surfaces admin) ;
+  4 gates « deploy providers » re-mappées sur BD-22.
+- Version du plan : 2026-07-19.2 ; §7 régénéré (counts.backlog inclus).

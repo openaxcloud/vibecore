@@ -75,12 +75,13 @@ export const EXPECTED_BOLT_DEBT_IDS = [
   'BD-01', 'BD-02', 'BD-03', 'BD-04', 'BD-05', 'BD-06', 'BD-07',
   'BD-08', 'BD-09', 'BD-10', 'BD-11', 'BD-12', 'BD-13', 'BD-14',
   'BD-15', 'BD-16', 'BD-17', 'BD-18', 'BD-19', 'BD-20', 'BD-21',
-  'BD-22', 'BD-23', 'BD-24', 'BD-25', 'BD-26',
+  'BD-22', 'BD-23', 'BD-24', 'BD-25', 'BD-26', 'BD-27', 'BD-28', 'BD-29',
 ];
 
 export const EXPECTED_PROD_READINESS_IDS = [
   'PR-RUN-01',
   'PR-ISO-01', 'PR-ISO-02', 'PR-ISO-03', 'PR-ISO-04',
+  'PR-INFRA-01',
   'PR-CFG-01', 'PR-CFG-02', 'PR-CFG-03',
   'PR-STRIPE-01', 'PR-STRIPE-02', 'PR-QUOTA-01',
   'PR-DR-01', 'PR-DR-02', 'PR-DR-03',
@@ -94,7 +95,7 @@ export const EXPECTED_PROD_READINESS_IDS = [
   'PR-LEGAL-01', 'PR-LEGAL-02',
   'PR-RR7-01',
   'PR-QA-01', 'PR-QA-02',
-  'PR-MISC-01', 'PR-MISC-02', 'PR-MISC-03', 'PR-MISC-04', 'PR-MISC-05', 'PR-MISC-06',
+  'PR-MISC-01', 'PR-MISC-02', 'PR-MISC-03', 'PR-MISC-04', 'PR-MISC-05', 'PR-MISC-06', 'PR-MISC-07',
 ];
 
 /** Contract files whose presence defines the architectureContracted level. */
@@ -214,6 +215,7 @@ function loadYamlModule() {
 }
 
 const YAML = loadYamlModule();
+const { checkPlanCompleteness } = await import('./check-plan-completeness.mjs');
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..', '..');
@@ -502,6 +504,13 @@ export function computeApprovalStatus(now = '2026-07-17T12:00:00Z') {
   const planText = existsSync(planPath) ? readFileSync(planPath, 'utf8') : '';
   const planOk = /schemaVersion:\s*\d+/.test(planText) && /measuredRepoCommit:\s*[0-9a-f]{7,40}/.test(planText);
 
+  /*
+   * Backlog complet (§14 du plan, audit de couverture 2026-07-19) : comptes
+   * dérivés du plan lui-même via le même parseur que le contrôle de
+   * complétude — la partie mesurée reflète le backlog, jamais l'inverse.
+   */
+  const backlogCounts = checkPlanCompleteness().counts;
+
   const gateUnknownsPresent = BETA_GATE_UNKNOWN_IDS.filter((id) =>
     (unknowns.unknowns ?? []).some((u) => u.unknownId === id),
   );
@@ -631,6 +640,7 @@ export function computeApprovalStatus(now = '2026-07-17T12:00:00Z') {
       nonFait: (prodReadiness.items ?? []).filter((i) => i.status === 'NON_FAIT').length,
       faitProuve: (prodReadiness.items ?? []).filter((i) => i.status === 'FAIT_PROUVE').length,
     },
+    backlog: backlogCounts,
   };
 
   return {

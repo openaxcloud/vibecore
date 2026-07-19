@@ -249,3 +249,30 @@ items:
     nextAction: "Acter la requalification par une note documentaire (matrice de placement)"
     conditionDeCloture: "Note écrite dans docs/BOLT_FEATURE_PLACEMENT_MATRIX.md (ou successeur)"
     targetDate: "2026-08-31"
+  - id: BD-27
+    title: "Dashboards Prometheus in-app avancés (per-org lifecycle P50/P95) — option jamais décidée"
+    source: "outputs/BOLT_SURFACING_STATUS.md:147 ; outputs/VIBECORE_AUDIT_LOG.md:39"
+    priority: 4
+    owner: claude
+    status: NON_FAIT
+    nextAction: "Décider : construire les dashboards in-app ou s'appuyer sur Grafana (PR-OPS-01)"
+    conditionDeCloture: "Décision tracée ; si GO, dashboards peuplés prouvés"
+    targetDate: "2026-11-30"
+  - id: BD-28
+    title: "Panneau Monitoring du projet : lecture seule partielle, pas de service métriques dédié"
+    source: "outputs/ETAT_FINAL_100.md (panneau Monitoring partiel) ; outputs/BOLT_SURFACING_STATUS.md:31"
+    priority: 3
+    owner: claude
+    status: NON_FAIT
+    nextAction: "Câbler des métriques réelles ou requalifier honnêtement le panneau"
+    conditionDeCloture: "Métriques réelles affichées (preuve) ou requalification tracée"
+    targetDate: "2026-10-31"
+  - id: BD-29
+    title: "Chats hors-projet (standalone) stockés en IndexedDB local, jamais synchronisés entre appareils"
+    source: "outputs/ETAT_FINAL_100.md:53-58 (chip task_56a3627f)"
+    priority: 3
+    owner: claude
+    status: NON_FAIT
+    nextAction: "Synchroniser côté serveur ou afficher clairement « local uniquement »"
+    conditionDeCloture: "Sync prouvée cross-device OU mention explicite dans l'UI"
+    targetDate: "2026-11-30"

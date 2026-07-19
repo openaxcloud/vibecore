@@ -72,6 +72,16 @@ items:
     nextAction: "Planifier la fenêtre avec Avi ; procédure exacte dans DEFERRED_HARDENING §2a"
     conditionDeCloture: "Ancien pool supprimé, workloads sains sur le nouveau, scopes vérifiés"
     targetDate: "2026-11-30"
+  - id: PR-INFRA-01
+    title: "Environnement staging complet : Terraform appliqué sur un projet GCP staging dédié, clusters app+workspace joignables, ingress selector conforme, Cloud SQL PITR/Redis HA/Secret Manager/cert-manager vérifiés"
+    source: "GLC:49-51,60-64 ; CM:64 (Terraform apply réel)"
+    priority: 2
+    owner: avi
+    status: NON_FAIT
+    note: "Terraform apply = gated Avi (SA + state bucket réels) ; aujourd'hui les preuves se font directement en prod, un staging dédié n'existe pas."
+    nextAction: "Décider staging dédié vs preuves en prod assumées ; si staging : apply Terraform réel"
+    conditionDeCloture: "Staging joignable avec les 7 vérifications vertes, OU décision « pas de staging » tracée"
+    targetDate: "2026-11-30"
   # ---- Config prod & secrets externes -------------------------------------
   - id: PR-CFG-01
     title: "Config prod entreprise : OIDC (8 vars) + un set SAML complet"
@@ -483,3 +493,13 @@ items:
     nextAction: "Corriger en passant ou confirmer le report avec justification"
     conditionDeCloture: "Corrigés ou report re-justifié"
     targetDate: "2026-12-31"
+  - id: PR-MISC-07
+    title: "Surfaces admin/compte restantes : advanced plan/quota editing (admin) ; Profile/Preferences/Data/MCP-perso rendus en pages Dashboard avec me.isPlatformAdmin"
+    source: "docs/REPLIT_PARITY_DELIVERY.md:83,90"
+    priority: 3
+    owner: claude
+    status: NON_FAIT
+    note: "DELIVERY:90 est peut-être couvert par /account-settings/* livré depuis — aucune clôture tracée, donc NON_FAIT jusqu'à preuve."
+    nextAction: "Vérifier l'existant à l'écran puis clore avec preuve ou implémenter"
+    conditionDeCloture: "Chaque surface prouvée à l'écran ou implémentée"
+    targetDate: "2026-10-31"
