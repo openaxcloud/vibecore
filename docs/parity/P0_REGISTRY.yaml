@@ -283,3 +283,90 @@ p0s:
     conditionDeCloture: "PLAN_PARITE_REPLIT.md mergé + revue humaine"
     nextAction: "Merge du plan canonique + revue"
     targetDate: "2026-07-17"
+
+# ============================================================================
+# P1 — audit de couverture 2026-07-19 (COVERAGE_GAP_AUDIT_2026-07-17.md,
+# famille A + B). Ce sont les features Replit qu'on suivait AILLEURS et que le
+# plan canonique ne mentionnait pas. DISTINCTS des 18 P1 de l'audit externe v3
+# (toujours non tracés individuellement, cible 2026-08-15, cf. plan §9/§12.8).
+# Mêmes règles que les P0 : la CI compare l'ensemble EXACT (EXPECTED_P1_IDS) ;
+# targetDate ISO ; rien n'est « fait » sans preuve. Statut OPEN par défaut.
+# ============================================================================
+p1s:
+  - p1Id: P1-COV-01
+    title: "File History : historique par fichier indépendant de Git (bouton History, slider, Compare Latest, restore append-only, playback)"
+    source: "COVERAGE_GAP_AUDIT famille A ; PLAN_REMAINING_UNIFIED TASK3-FH-1..4 ; DESIGN_PROGRAM_MASTER RPL-FH-001.1–.6 ; doc Replit features/version-control/file-history"
+    priority: 1
+    owner: claude
+    status: OPEN
+    surfaceId: SRF-IDE-FILE-HISTORY
+    nextAction: "Exécuter le lot TASK3-FH (déjà dispatché) et tracer les preuves dans E2E_PROOFS"
+    conditionDeCloture: "Les 6 points RPL-FH-001 ✅ testés live (écran + greps, web/tablette/mobile)"
+    targetDate: "2026-09-15"
+  - p1Id: P1-COV-02
+    title: "Agent Skills : .agents/skills/<name>/SKILL.md, progressive disclosure, audit anti-prompt-injection du catalogue externe"
+    source: "COVERAGE_GAP_AUDIT famille A ; PLAN_REMAINING_UNIFIED TASK3-SK-1..3+QA-1 ; DESIGN_PROGRAM_MASTER RPL-SK-001.1–.4 ; standard agentskills.io/specification"
+    priority: 1
+    owner: claude
+    status: OPEN
+    surfaceId: SRF-IDE-AGENT-SKILLS
+    nextAction: "Exécuter le lot TASK3-SK (déjà dispatché) avec le pipeline de quarantaine"
+    conditionDeCloture: "Skill réel chargé à la demande + skill malveillant refusé avec journal d'audit, prouvés live"
+    targetDate: "2026-09-15"
+  - p1Id: P1-COV-03
+    title: "Project Editor : layout Window→Panes→Tabs, Tools dock, Resources panel, Spotlight, terminologie"
+    source: "COVERAGE_GAP_AUDIT famille A ; PLAN_REMAINING_UNIFIED IDE-LAYOUT-1..10 ; DESIGN_PROGRAM_MASTER RPL-IDE-001.1–.10 ; doc Replit editor-and-tools.md"
+    priority: 1
+    owner: claude
+    status: OPEN
+    surfaceId: SRF-IDE-PANES-LAYOUT
+    nextAction: "Exécuter le lot IDE-LAYOUT (déjà dispatché ; IDE Bolt préservé, captures avant/après à Avi avant push)"
+    conditionDeCloture: "Les 10 points RPL-IDE-001 ✅ testés live aux 3 formats"
+    targetDate: "2026-09-30"
+  - p1Id: P1-COV-04
+    title: "Types de déploiement Replit : tiers Reserved VM ($20/$40/$80/$160), changement de type en place, et traçabilité de Scheduled (preuve SCHEDULED-01 à inscrire dans E2E_PROOFS)"
+    source: "COVERAGE_GAP_AUDIT famille A ; docs/REPLIT_PARITY_SPEC.md:618-624 ; PLAN_REMAINING_UNIFIED:76 (note « Reste hors Phase A »)"
+    priority: 2
+    owner: claude
+    status: OPEN
+    surfaceId: SRF-DEPLOY-RESERVED-VM
+    nextAction: "1) tracer la preuve scheduled existante ; 2) spécifier puis implémenter Reserved VM + changement de type"
+    conditionDeCloture: "Scheduled tracé dans E2E_PROOFS ; Reserved VM déployable avec les 4 tiers facturés ; changement de type prouvé sans perte"
+    targetDate: "2026-09-30"
+  - p1Id: P1-COV-05
+    title: "Entitlements par plan (enforcement) : Starter 1 app publiée / 2 GB / liens 30 j, retrait badge « Made with », publish regions, Pro 50 viewers, parallel agents 1/2/10, allowances egress, per-user caps + single-tenant/static-IP/VPC/data-warehouse/Security-Center Enterprise"
+    source: "COVERAGE_GAP_AUDIT famille A ; docs/REPLIT_PARITY_SPEC.md:555,562,563,569,575,638,658,662 ; docs/REPLIT_PARITY_MATRIX.md:112,123"
+    priority: 2
+    owner: claude
+    status: OPEN
+    nextAction: "Inventorier l'existant (cap 20 apps fait) puis implémenter chaque enforcement avec test négatif"
+    conditionDeCloture: "Chaque limite listée a un enforcement serveur prouvé par test négatif (ou une décision hors-scope tracée)"
+    targetDate: "2026-10-31"
+  - p1Id: P1-COV-06
+    title: "Starters → démos publiées/remixables (TPL-02.5) + branche import→IDE→publish de TPL-02.PROOF (D5 ne couvre que remix + Python neuf)"
+    source: "COVERAGE_GAP_AUDIT famille A ; REPLIT_PARITY.md TPL-02.5/TPL-02.PROOF ; DESIGN_PROGRAM_MASTER TPL-02.5"
+    priority: 2
+    owner: claude
+    status: OPEN
+    surfaceId: SRF-GALLERY-STARTER-DEMOS
+    nextAction: "Publier les 6 démos via le pipeline Gallery réel ; ajouter la preuve import→publish au harness D5"
+    conditionDeCloture: "6 démos visibles/remixables en prod + preuve import→IDE→publish PROVEN"
+    targetDate: "2026-08-31"
+  - p1Id: P1-COV-07
+    title: "Parité pixel avec périmètre : appliquer les mesures live (tokens, panneaux Deploy+Git), re-vérifier REPLIT #1-4 (chrome IDE), décision light-theme (Avi)"
+    source: "COVERAGE_GAP_AUDIT famille A ; .vibecore-audit/replit-measurements.md ; outputs/ETAT_FINAL_100.md:23-26 ; outputs/REPLIT_PARITY.md:48-67"
+    priority: 2
+    owner: claude
+    status: OPEN
+    nextAction: "Décision thème (ACTIONS_AVI #8) puis application des mesures + captures comparatives"
+    conditionDeCloture: "Mesures appliquées avec captures avant/après ; REPLIT #1-4 re-vérifiés contre Replit"
+    targetDate: "2026-09-30"
+  - p1Id: P1-COV-08
+    title: "Réconciliation billing : ancien système crédits (SHADOW, codé+certifié) vs nouveau ledger (plan §3.7) — migration, remplacement ou go-live, à arbitrer puis exécuter"
+    source: "COVERAGE_GAP_AUDIT famille B ; docs/REPLIT_PARITY_MATRIX.md:61-124 ; docs/REPLIT_BILLING_PARITY.md:203-228 ; docs/REPLIT_PARITY_DELIVERY.md:61,381-389"
+    priority: 1
+    owner: claude
+    status: OPEN
+    nextAction: "Faire trancher DEC-BILLING-LEGACY-VS-LEDGER (Avi) puis exécuter UNK-BILLING-LEGACY-GOLIVE"
+    conditionDeCloture: "Décision DECIDED + chemin choisi exécuté avec preuve (facturation réelle OU migration prouvée)"
+    targetDate: "2026-08-15"

@@ -37,6 +37,10 @@ const REQUIRED_REGISTRIES = [
   'E2E_PROOFS.yaml',
   'OBSERVATION_REGISTRY.yaml',
   'SOURCE_REGISTRY.yaml',
+  // Audit de couverture 2026-07-19 — ces registres tracent ce que le plan
+  // n'absorbe pas ; leur disparition casse le build (cond. 2).
+  'BOLT_DEBT_REGISTRY.yaml',
+  'PRODUCTION_READINESS_REGISTRY.yaml',
 ];
 
 /** Services a surface may legitimately reference (orphan check, cond. 3). */
@@ -53,6 +57,45 @@ export const EXPECTED_P0_IDS = [
   'P0-V3-01', 'P0-V3-02', 'P0-V3-03', 'P0-V3-04', 'P0-V3-05',
   'P0-V3-06', 'P0-V3-07', 'P0-V3-08', 'P0-V3-09', 'P0-V3-10',
   'P0-V3-11', 'P0-V3-12', 'P0-V3-13', 'P0-V3-14', 'P0-V3-15',
+];
+
+/*
+ * Audit de couverture 2026-07-19 (COVERAGE_GAP_AUDIT_2026-07-17.md) : les IDs
+ * qui tracent les ~300 points manquants des anciens plans. MÊME MÉCANISME que
+ * les P0 — la CI compare l'ensemble EXACT attendu à l'ensemble présent ; un ID
+ * qui disparaît d'un registre casse le build. Retirer un ID de CES listes est
+ * un acte de revue explicite, jamais un effet de bord.
+ */
+export const EXPECTED_P1_IDS = [
+  'P1-COV-01', 'P1-COV-02', 'P1-COV-03', 'P1-COV-04',
+  'P1-COV-05', 'P1-COV-06', 'P1-COV-07', 'P1-COV-08',
+];
+
+export const EXPECTED_BOLT_DEBT_IDS = [
+  'BD-01', 'BD-02', 'BD-03', 'BD-04', 'BD-05', 'BD-06', 'BD-07',
+  'BD-08', 'BD-09', 'BD-10', 'BD-11', 'BD-12', 'BD-13', 'BD-14',
+  'BD-15', 'BD-16', 'BD-17', 'BD-18', 'BD-19', 'BD-20', 'BD-21',
+  'BD-22', 'BD-23', 'BD-24', 'BD-25', 'BD-26', 'BD-27', 'BD-28', 'BD-29',
+];
+
+export const EXPECTED_PROD_READINESS_IDS = [
+  'PR-RUN-01',
+  'PR-ISO-01', 'PR-ISO-02', 'PR-ISO-03', 'PR-ISO-04',
+  'PR-INFRA-01',
+  'PR-CFG-01', 'PR-CFG-02', 'PR-CFG-03',
+  'PR-STRIPE-01', 'PR-STRIPE-02', 'PR-QUOTA-01',
+  'PR-DR-01', 'PR-DR-02', 'PR-DR-03',
+  'PR-LOAD-01', 'PR-LOAD-02', 'PR-LOAD-03', 'PR-LOAD-04', 'PR-LOAD-05',
+  'PR-SCALE-01',
+  'PR-SEC-01', 'PR-SEC-02', 'PR-SEC-03', 'PR-SEC-04', 'PR-SEC-05',
+  'PR-OPS-01', 'PR-OPS-02',
+  'PR-PROD-01', 'PR-PROD-02', 'PR-PROD-03', 'PR-PROD-04',
+  'PR-MOB-01', 'PR-MOB-02', 'PR-MOB-03', 'PR-MOB-04', 'PR-MOB-05',
+  'PR-DESK-01',
+  'PR-LEGAL-01', 'PR-LEGAL-02',
+  'PR-RR7-01',
+  'PR-QA-01', 'PR-QA-02',
+  'PR-MISC-01', 'PR-MISC-02', 'PR-MISC-03', 'PR-MISC-04', 'PR-MISC-05', 'PR-MISC-06', 'PR-MISC-07',
 ];
 
 /** Contract files whose presence defines the architectureContracted level. */
@@ -172,6 +215,7 @@ function loadYamlModule() {
 }
 
 const YAML = loadYamlModule();
+const { checkPlanCompleteness } = await import('./check-plan-completeness.mjs');
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..', '..');
@@ -192,6 +236,8 @@ export function computeApprovalStatus(now = '2026-07-17T12:00:00Z') {
   const surfaces = yaml('SURFACE_REGISTRY.yaml');
   const e2e = yaml('E2E_PROOFS.yaml');
   const observations = yaml('OBSERVATION_REGISTRY.yaml');
+  const boltDebt = yaml('BOLT_DEBT_REGISTRY.yaml');
+  const prodReadiness = yaml('PRODUCTION_READINESS_REGISTRY.yaml');
 
   const nowMs = Date.parse(now);
 
@@ -407,6 +453,19 @@ export function computeApprovalStatus(now = '2026-07-17T12:00:00Z') {
   const presentP0Ids = new Set((p0.p0s ?? []).map((i) => i.p0Id));
   const missingP0Ids = EXPECTED_P0_IDS.filter((id) => !presentP0Ids.has(id));
 
+  /*
+   * Complétude des registres de couverture (audit 2026-07-19) : même règle —
+   * un ID attendu absent casse registryComplete (et le validateur casse le
+   * build). Les statuts, eux, restent honnêtes : NON_FAIT tant qu'aucune
+   * preuve n'existe.
+   */
+  const presentP1Ids = new Set((p0.p1s ?? []).map((i) => i.p1Id));
+  const missingP1Ids = EXPECTED_P1_IDS.filter((id) => !presentP1Ids.has(id));
+  const presentBoltDebtIds = new Set((boltDebt.items ?? []).map((i) => i.id));
+  const missingBoltDebtIds = EXPECTED_BOLT_DEBT_IDS.filter((id) => !presentBoltDebtIds.has(id));
+  const presentProdReadinessIds = new Set((prodReadiness.items ?? []).map((i) => i.id));
+  const missingProdReadinessIds = EXPECTED_PROD_READINESS_IDS.filter((id) => !presentProdReadinessIds.has(id));
+
   // targetDate: UNKNOWN interdit (P0 / UNKNOWN / DECISION), sauf ACCEPTED_RISK justifié.
   const forbiddenTargetDates = [];
 
@@ -445,6 +504,13 @@ export function computeApprovalStatus(now = '2026-07-17T12:00:00Z') {
   const planText = existsSync(planPath) ? readFileSync(planPath, 'utf8') : '';
   const planOk = /schemaVersion:\s*\d+/.test(planText) && /measuredRepoCommit:\s*[0-9a-f]{7,40}/.test(planText);
 
+  /*
+   * Backlog complet (§14 du plan, audit de couverture 2026-07-19) : comptes
+   * dérivés du plan lui-même via le même parseur que le contrôle de
+   * complétude — la partie mesurée reflète le backlog, jamais l'inverse.
+   */
+  const backlogCounts = checkPlanCompleteness().counts;
+
   const gateUnknownsPresent = BETA_GATE_UNKNOWN_IDS.filter((id) =>
     (unknowns.unknowns ?? []).some((u) => u.unknownId === id),
   );
@@ -462,9 +528,18 @@ export function computeApprovalStatus(now = '2026-07-17T12:00:00Z') {
   const lvlRegistry = {
     name: 'registryComplete',
     passed:
-      missingP0Ids.length === 0 && forbiddenTargetDates.length === 0 && cond3.passed && triageBreaches.length === 0,
+      missingP0Ids.length === 0 &&
+      missingP1Ids.length === 0 &&
+      missingBoltDebtIds.length === 0 &&
+      missingProdReadinessIds.length === 0 &&
+      forbiddenTargetDates.length === 0 &&
+      cond3.passed &&
+      triageBreaches.length === 0,
     reasons: [
       ...missingP0Ids.map((id) => `expected P0 missing from P0_REGISTRY: ${id}`),
+      ...missingP1Ids.map((id) => `expected P1 missing from P0_REGISTRY.p1s: ${id}`),
+      ...missingBoltDebtIds.map((id) => `expected item missing from BOLT_DEBT_REGISTRY: ${id}`),
+      ...missingProdReadinessIds.map((id) => `expected item missing from PRODUCTION_READINESS_REGISTRY: ${id}`),
       ...forbiddenTargetDates,
       ...cond3.reasons,
       ...triageBreaches,
@@ -550,6 +625,22 @@ export function computeApprovalStatus(now = '2026-07-17T12:00:00Z') {
     claims: { total: (baseline.claims ?? []).length, stale: staleSources.length },
     surfaces: { total: surfaceRollup.length, done: surfaceRollup.filter((s) => s.done).length },
     e2e: { total: (e2e.proofs ?? []).length, proven: (e2e.proofs ?? []).filter((p) => p.status === 'PROVEN').length },
+    // Audit de couverture 2026-07-19 — comptes honnêtes : NON_FAIT domine.
+    p1: {
+      total: (p0.p1s ?? []).length,
+      open: (p0.p1s ?? []).filter((i) => i.status === 'OPEN').length,
+    },
+    boltDebt: {
+      total: (boltDebt.items ?? []).length,
+      nonFait: (boltDebt.items ?? []).filter((i) => i.status === 'NON_FAIT').length,
+      faitProuve: (boltDebt.items ?? []).filter((i) => i.status === 'FAIT_PROUVE').length,
+    },
+    prodReadiness: {
+      total: (prodReadiness.items ?? []).length,
+      nonFait: (prodReadiness.items ?? []).filter((i) => i.status === 'NON_FAIT').length,
+      faitProuve: (prodReadiness.items ?? []).filter((i) => i.status === 'FAIT_PROUVE').length,
+    },
+    backlog: backlogCounts,
   };
 
   return {

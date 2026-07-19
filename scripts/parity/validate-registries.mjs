@@ -436,13 +436,37 @@ function checkHeader(file, doc) {
    * dernier audit + les 4 de l'audit v4) doit être présent — un ID absent
    * casse le build.
    */
-  const { EXPECTED_P0_IDS } = await import(join(here, 'generate-approval-status.mjs'));
+  const { EXPECTED_P0_IDS, EXPECTED_P1_IDS, EXPECTED_BOLT_DEBT_IDS, EXPECTED_PROD_READINESS_IDS } = await import(
+    join(here, 'generate-approval-status.mjs')
+  );
   const presentP0Ids = new Set((p0.p0s ?? []).map((i) => i.p0Id));
 
   for (const id of EXPECTED_P0_IDS) {
     if (!presentP0Ids.has(id)) {
       fail('P0_REGISTRY.yaml', `expected P0 "${id}" is MISSING — the registry cannot silently shrink`);
     }
+  }
+
+  /*
+   * P1 de l'audit de couverture (2026-07-19) : même règle de complétude que
+   * les P0 — l'ensemble EXACT des IDs attendus doit être présent.
+   */
+  const presentP1Ids = new Set((p0.p1s ?? []).map((i) => i.p1Id));
+
+  for (const id of EXPECTED_P1_IDS) {
+    if (!presentP1Ids.has(id)) {
+      fail('P0_REGISTRY.yaml', `expected P1 "${id}" is MISSING from p1s — the registry cannot silently shrink`);
+    }
+  }
+
+  for (const item of p0.p1s ?? []) {
+    requireFields(
+      'P0_REGISTRY.yaml',
+      item,
+      ['p1Id', 'title', 'source', 'priority', 'owner', 'status', 'nextAction', 'conditionDeCloture'],
+      item?.p1Id ?? 'p1',
+    );
+    checkTargetDate('P0_REGISTRY.yaml', item, item?.p1Id ?? 'p1');
   }
 
   for (const item of p0.p0s ?? []) {
@@ -488,8 +512,53 @@ function checkHeader(file, doc) {
   }
 
   checked.push(
-    `P0/DECISION/UNKNOWN registries (${(p0.p0s ?? []).length}/${(decisions.decisions ?? []).length}/${(unknowns.unknowns ?? []).length})`,
+    `P0/DECISION/UNKNOWN registries (${(p0.p0s ?? []).length}/${(decisions.decisions ?? []).length}/${(unknowns.unknowns ?? []).length}, p1s: ${(p0.p1s ?? []).length})`,
   );
+
+  /*
+   * ---- 9c. Registres de couverture (audit 2026-07-19) --------------------
+   * BOLT_DEBT_REGISTRY + PRODUCTION_READINESS_REGISTRY : mêmes règles —
+   * ensemble EXACT d'IDs attendus, statuts honnêtes (FAIT_PROUVE exige un
+   * evidenceId présent sur disque), targetDate ISO réelle.
+   */
+  const COVERAGE_STATUSES = ['NON_FAIT', 'EN_COURS', 'FAIT_PROUVE'];
+
+  for (const [file, expectedIds] of [
+    ['BOLT_DEBT_REGISTRY.yaml', EXPECTED_BOLT_DEBT_IDS],
+    ['PRODUCTION_READINESS_REGISTRY.yaml', EXPECTED_PROD_READINESS_IDS],
+  ]) {
+    const doc = loadYaml(join(parityRoot, file));
+    checkHeader(file, doc);
+
+    const presentIds = new Set((doc.items ?? []).map((i) => i.id));
+
+    for (const id of expectedIds) {
+      if (!presentIds.has(id)) {
+        fail(file, `expected item "${id}" is MISSING — the registry cannot silently shrink`);
+      }
+    }
+
+    for (const item of doc.items ?? []) {
+      requireFields(
+        file,
+        item,
+        ['id', 'title', 'source', 'priority', 'owner', 'status', 'nextAction', 'conditionDeCloture'],
+        item?.id ?? 'item',
+      );
+      checkTargetDate(file, item, item?.id ?? 'item');
+
+      if (item.status && !COVERAGE_STATUSES.includes(item.status)) {
+        fail(file, `${item.id}: status "${item.status}" not in {${COVERAGE_STATUSES.join('|')}}`);
+      }
+
+      // Honnêteté : FAIT_PROUVE sans preuve sur disque est interdit.
+      if (item.status === 'FAIT_PROUVE' && (!item.evidenceId || !existsSync(join(repoRoot, item.evidenceId)))) {
+        fail(file, `${item.id}: FAIT_PROUVE requires an evidenceId present on disk`);
+      }
+    }
+
+    checked.push(`${file} (${(doc.items ?? []).length} items, expected set complete)`);
+  }
 }
 
 /* ---- 9b. OBSERVATION_REGISTRY (audit v4 A) ----------------------------- */
@@ -633,6 +702,20 @@ function checkHeader(file, doc) {
       );
     }
   }
+}
+
+/* ---- 12. Complétude du backlog dans le PLAN (audit 2026-07-19) --------- */
+{
+  const { checkPlanCompleteness } = await import(join(here, 'check-plan-completeness.mjs'));
+  const { errors: backlogErrors, counts } = checkPlanCompleteness();
+
+  for (const e of backlogErrors) {
+    fail('PLAN_PARITE_REPLIT.md (backlog)', e);
+  }
+
+  checked.push(
+    `plan backlog completeness (${counts.total} points — NON FAIT: ${counts.nonFait}, DÉJÀ FAIT: ${counts.dejaFait}, PÉRIMÉ: ${counts.perime})`,
+  );
 }
 
 /* ---- report ------------------------------------------------------------ */

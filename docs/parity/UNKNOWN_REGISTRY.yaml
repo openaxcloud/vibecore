@@ -153,3 +153,18 @@ unknowns:
     nextAction: "Exécuter la procédure D1 telle qu'écrite (DEC-OWNER-D1) ; régénérer les 4 fichiers de suivi ensuite"
     targetDate: "2026-07-20"
     expiration: "2026-07-31"
+  # --- Audit de couverture 2026-07-19 (famille B — billing legacy) ----------
+  - unknownId: UNK-BILLING-LEGACY-GOLIVE
+    question: "Le système de crédits EXISTANT (CreditWallet/checkpoints/packs/PAYG, certifié SHADOW en prod) est-il mis en route : produits+clé Stripe (Avi), flip BILLING_CREDITS_ENABLED, backfill migrateLegacyPlanKey (pro→core, team→pro, free→starter), toggle annuel UI, sortie du DRY-RUN d'INACTIVITY_GC_ENABLED — OU remplacé selon DEC-BILLING-LEGACY-VS-LEDGER ?"
+    owner: avi
+    priority: 1
+    nextAction: "D'abord trancher DEC-BILLING-LEGACY-VS-LEDGER ; si go-live : actions Stripe (ACTIONS_AVI #1) puis flip + backfill prouvés"
+    targetDate: "2026-08-15"
+    expiration: "2026-08-31"
+  - unknownId: UNK-DB-COMPUTE-METERING
+    question: "Le metering DB-compute par heures ACTIVES (dernier émetteur legacy manquant ; requiert l'idle-tracking DB) est-il implémenté et prouvé ?"
+    owner: claude
+    priority: 2
+    nextAction: "Implémenter l'émetteur sur la base de l'idle-tracking CNPG, prouver un événement facturé exact (modèle Z3)"
+    targetDate: "2026-09-30"
+    expiration: "2026-10-31"

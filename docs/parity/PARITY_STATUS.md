@@ -52,3 +52,4 @@ l'artefact précis, ou reste ⬜ si l'aspect n'a pas été capturé live.
 (4,5,9,10 — l'aspect central est prouvé, un sous-aspect ne l'est pas) ; 1 non
 testé (11 nudge). Le chantier n'est PAS « fait » à 100 % — il est déployé et le
 cœur (suppression des noms de modèle + routage réel + marge admin) est prouvé.
+| Backlog complet DANS le plan (§14 : 336 points exacts, 332 NON FAIT) + registres (P1-COV ×8, BD ×29, PR ×50) + certification calculable check-plan-completeness (compte+SHA-256, preuve négative exit 1) | ✅ | ✅ cette PR | ⬜ | `docs/parity/COVERAGE_GAP_AUDIT_2026-07-17.md` + `BOLT_DEBT_REGISTRY.yaml` + `PRODUCTION_READINESS_REGISTRY.yaml` — ✅ après merge + CI parity-registries verte sur main ; contenu 100 % NON_FAIT/OPEN (traçage, pas réalisation) |

@@ -202,3 +202,15 @@ decisions:
     decidedAt: "2026-07-17"
     nextAction: "Inscrire le contenu exact (UNK-GALLERY-OPTION-B-CONTENT, 2026-07-24)"
     targetDate: "2026-07-24"
+  # --- Audit de couverture 2026-07-19 (famille B) ---------------------------
+  - decisionId: DEC-BILLING-LEGACY-VS-LEDGER
+    title: "Ancien système de crédits (SHADOW) vs nouveau ledger (plan §3.7) : migration, remplacement ou go-live de l'un des deux"
+    rationale: "L'audit de couverture (COVERAGE_GAP_AUDIT_2026-07-17.md famille B) montre que ~35 points « go-live billing legacy » n'apparaissent nulle part dans le plan, et que la relation entre le wallet existant (codé, testé, certifié SHADOW en prod : REPLIT_PARITY_MATRIX §1-19) et le ledger double-entrée du plan §3.7 n'est arbitrée nulle part. Sans décision, les deux chantiers avancent en aveugle l'un de l'autre."
+    owner: avi
+    priority: 1
+    status: OPEN
+    options: "A) go-live du wallet existant maintenant, ledger ensuite en dessous ; B) attendre le ledger minimal (UNK-BILLING-MINIMAL-IMPL) et brancher le wallet dessus ; C) remplacer le wallet par le ledger avant tout go-live"
+    nextAction: "Présenter les 3 options à Avi avec coûts/risques ; consigner la réponse exacte ici"
+    conditionDeCloture: "Statut DECIDED avec la citation d'Avi + le chemin choisi tracé (UNK-BILLING-LEGACY-GOLIVE et/ou UNK-BILLING-MINIMAL-IMPL mis à jour)"
+    targetDate: "2026-08-01"
+    expiration: "2026-08-15"

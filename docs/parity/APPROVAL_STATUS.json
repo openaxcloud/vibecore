@@ -9,6 +9,8 @@
     "E2E_PROOFS.yaml",
     "OBSERVATION_REGISTRY.yaml",
     "SOURCE_REGISTRY.yaml",
+    "BOLT_DEBT_REGISTRY.yaml",
+    "PRODUCTION_READINESS_REGISTRY.yaml",
     "PLAN_PARITE_REPLIT.md"
   ],
   "note": "COMPUTED by scripts/parity/generate-approval-status.mjs — never edit by hand. The validator fails the build on drift.",
@@ -81,6 +83,7 @@
         "P0-V3-14 not CLOSED (needs a real reviewer)",
         "P0-V3-15 not CLOSED (needs a real reviewer)",
         "decision DEC-GALLERY-NO-SELF-PUBLISH still OPEN",
+        "decision DEC-BILLING-LEGACY-VS-LEDGER still OPEN",
         "claim RPL-20 triage PENDING",
         "claim RPL-21 triage PENDING",
         "claim RPL-22 triage PENDING",
@@ -91,6 +94,12 @@
       "name": "parityBaselineReady",
       "passed": false,
       "reasons": [
+        "surface SRF-IDE-FILE-HISTORY not done",
+        "surface SRF-IDE-AGENT-SKILLS not done",
+        "surface SRF-IDE-PANES-LAYOUT not done",
+        "surface SRF-DEPLOY-RESERVED-VM not done",
+        "surface SRF-DEPLOY-SCHEDULED not done",
+        "surface SRF-GALLERY-STARTER-DEMOS not done",
         "claim RPL-20 triage PENDING",
         "claim RPL-21 triage PENDING",
         "claim RPL-22 triage PENDING",
@@ -104,8 +113,8 @@
   "blocking": [
     "level implementationReady FAILED: P0-V3-01 is OPEN; P0-V3-05 is OPEN; P0-V3-06 is OPEN; P0-V3-07 is OPEN",
     "level betaReady FAILED: beta gate capability still unknown: UNK-GIT-RECONCILE-DONE; beta gate capability still unknown: UNK-ROLLBACK-FLAG-APPLIED; beta gate capability still unknown: UNK-NIX-MULTIZONE-IMPL; beta gate capability still unknown: UNK-AR-LIVE-PROMOTION; beta gate capability still unknown: UNK-CLOUDTENANT-IMPL; beta gate capability still unknown: UNK-BILLING-MINIMAL-IMPL",
-    "level publicLaunchReady FAILED: betaReady not passed; P0-V4-1 not CLOSED (needs a real reviewer); P0-V4-2 not CLOSED (needs a real reviewer); P0-V4-3 not CLOSED (needs a real reviewer); P0-V4-4 not CLOSED (needs a real reviewer); P0-V3-01 not CLOSED (needs a real reviewer); P0-V3-02 not CLOSED (needs a real reviewer); P0-V3-03 not CLOSED (needs a real reviewer); P0-V3-04 not CLOSED (needs a real reviewer); P0-V3-05 not CLOSED (needs a real reviewer); P0-V3-06 not CLOSED (needs a real reviewer); P0-V3-07 not CLOSED (needs a real reviewer); P0-V3-08 not CLOSED (needs a real reviewer); P0-V3-09 not CLOSED (needs a real reviewer); P0-V3-10 not CLOSED (needs a real reviewer); P0-V3-11 not CLOSED (needs a real reviewer); P0-V3-12 not CLOSED (needs a real reviewer); P0-V3-13 not CLOSED (needs a real reviewer); P0-V3-14 not CLOSED (needs a real reviewer); P0-V3-15 not CLOSED (needs a real reviewer); decision DEC-GALLERY-NO-SELF-PUBLISH still OPEN; claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING",
-    "level parityBaselineReady FAILED: claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING"
+    "level publicLaunchReady FAILED: betaReady not passed; P0-V4-1 not CLOSED (needs a real reviewer); P0-V4-2 not CLOSED (needs a real reviewer); P0-V4-3 not CLOSED (needs a real reviewer); P0-V4-4 not CLOSED (needs a real reviewer); P0-V3-01 not CLOSED (needs a real reviewer); P0-V3-02 not CLOSED (needs a real reviewer); P0-V3-03 not CLOSED (needs a real reviewer); P0-V3-04 not CLOSED (needs a real reviewer); P0-V3-05 not CLOSED (needs a real reviewer); P0-V3-06 not CLOSED (needs a real reviewer); P0-V3-07 not CLOSED (needs a real reviewer); P0-V3-08 not CLOSED (needs a real reviewer); P0-V3-09 not CLOSED (needs a real reviewer); P0-V3-10 not CLOSED (needs a real reviewer); P0-V3-11 not CLOSED (needs a real reviewer); P0-V3-12 not CLOSED (needs a real reviewer); P0-V3-13 not CLOSED (needs a real reviewer); P0-V3-14 not CLOSED (needs a real reviewer); P0-V3-15 not CLOSED (needs a real reviewer); decision DEC-GALLERY-NO-SELF-PUBLISH still OPEN; decision DEC-BILLING-LEGACY-VS-LEDGER still OPEN; claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING",
+    "level parityBaselineReady FAILED: surface SRF-IDE-FILE-HISTORY not done; surface SRF-IDE-AGENT-SKILLS not done; surface SRF-IDE-PANES-LAYOUT not done; surface SRF-DEPLOY-RESERVED-VM not done; surface SRF-DEPLOY-SCHEDULED not done; surface SRF-GALLERY-STARTER-DEMOS not done; claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING"
   ],
   "conditions": [
     {
@@ -237,11 +246,11 @@
       "open": 4
     },
     "decisions": {
-      "total": 11,
-      "open": 1
+      "total": 12,
+      "open": 2
     },
     "unknowns": {
-      "total": 19,
+      "total": 21,
       "p0Linked": 0
     },
     "claims": {
@@ -249,12 +258,32 @@
       "stale": 0
     },
     "surfaces": {
-      "total": 4,
+      "total": 10,
       "done": 4
     },
     "e2e": {
       "total": 12,
       "proven": 12
+    },
+    "p1": {
+      "total": 8,
+      "open": 8
+    },
+    "boltDebt": {
+      "total": 29,
+      "nonFait": 29,
+      "faitProuve": 0
+    },
+    "prodReadiness": {
+      "total": 50,
+      "nonFait": 50,
+      "faitProuve": 0
+    },
+    "backlog": {
+      "total": 336,
+      "nonFait": 332,
+      "dejaFait": 1,
+      "perime": 3
     }
   },
   "p0": [
@@ -435,6 +464,42 @@
       "proofsReferenced": 1,
       "proofsProven": 1,
       "done": true
+    },
+    {
+      "surfaceId": "SRF-IDE-FILE-HISTORY",
+      "proofsReferenced": 0,
+      "proofsProven": 0,
+      "done": false
+    },
+    {
+      "surfaceId": "SRF-IDE-AGENT-SKILLS",
+      "proofsReferenced": 0,
+      "proofsProven": 0,
+      "done": false
+    },
+    {
+      "surfaceId": "SRF-IDE-PANES-LAYOUT",
+      "proofsReferenced": 0,
+      "proofsProven": 0,
+      "done": false
+    },
+    {
+      "surfaceId": "SRF-DEPLOY-RESERVED-VM",
+      "proofsReferenced": 0,
+      "proofsProven": 0,
+      "done": false
+    },
+    {
+      "surfaceId": "SRF-DEPLOY-SCHEDULED",
+      "proofsReferenced": 0,
+      "proofsProven": 0,
+      "done": false
+    },
+    {
+      "surfaceId": "SRF-GALLERY-STARTER-DEMOS",
+      "proofsReferenced": 0,
+      "proofsProven": 0,
+      "done": false
     }
   ],
   "evidence": [
