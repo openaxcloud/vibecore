@@ -54,7 +54,7 @@ class SnapshotProjectStorage implements ProjectStorage {
   }
   async deleteFiles() {}
   async exportZip() {
-    return Buffer.from('');
+    return { storageKey: 'export', byteLength: 0, base64: '', createdAt: new Date().toISOString() };
   }
   async importZip() {
     return [];
@@ -225,7 +225,7 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
 
     // ---- Mutate the LIVE source AFTER the snapshot: the pin must ignore this. ----
     await projectStorage.writeFiles(source.id, [
-      { path: 'src/app.ts', content: 'console.log("LIVE_EDIT_V2_AFTER_SNAPSHOT");\n', updatedAt: '' },
+      { path: 'src/app.ts', content: 'console.log("LIVE_EDIT_V2_AFTER_SNAPSHOT");\n' },
     ]);
 
     // The remixer: a DIFFERENT user + org.
