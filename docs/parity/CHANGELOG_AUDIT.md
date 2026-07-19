@@ -35,3 +35,24 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
 - Prochain chantier ouvert : implémentation Remix (DOMAIN_MODEL §1),
   invariant sécurité « une valeur de secret n'entre jamais dans l'artefact de
   clone ; CREDENTIALS_DETACHED précède CLONING ».
+
+## 2026-07-19 (assainissement secret-scan des snapshots du 16/07 — porté sur main)
+
+- (triage sécurité) Les 3 détections du scan bloquant sur l'arbre (règle
+  generic-api-key, mêmes 3 depuis le 16/07) ont été examinées une à une :
+  (1)(2) `pricing.html` / `pricing.rendered.html` = jeton CLIENT public
+  Datadog (préfixe `pub…`) embarqué par replit.com dans sa propre page — public
+  par conception ; (3) `gallery-detail-journey-mapper.rendered.html` = valeur
+  `"_key"` interne du CMS de la page (identifiant aléatoire, pas un
+  credential). **Verdict : 3 faux positifs, aucun secret réel, aucun secret
+  E-Code — pas d'incident, pas de rotation.** Snapshots des 17/18/19-07
+  vérifiés : aucun motif présent.
+- (assainissement) Valeurs caviardées dans les 3 snapshots ; sha256 recalculés
+  dans `SOURCE_REGISTRY.yaml` (SRC-PRICING, SRC-GALLERY-DETAIL-JOURNEY-MAPPER,
+  annotés « snapshot assaini ») et `baseline/snapshots/2026-07-16/manifest.json`.
+- (prévention) `collect-baseline.mjs` caviarde AUTOMATIQUEMENT ces motifs
+  publics (AIza…, dd-api-key=pub…) avant écriture et hash. Aucun motif de
+  vrai secret n'est caviardé : un vrai secret doit faire échouer le scan.
+- (note) Même contenu que le commit 9eab2990 de la PR #3 (hashes identiques) —
+  porté sur main séparément pour débloquer le scan de toutes les PR ; le merge
+  ultérieur de la PR #3 sera sans divergence sur ces fichiers.
