@@ -118,3 +118,24 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
   RPL-20/21/22 repo ; v5 RPL-22 (modes d'accès) = RPL-23 repo ; v5 RPL-23
   (Cloud Run) = GCP-11. Étiquettes héritées non encore ancrées
   individuellement : UNK-CLAIMS-ANCHORING (2026-08-15).
+
+## 2026-07-17 (assainissement secret-scan des snapshots du 16/07)
+
+- (triage sécurité) Les 3 détections du scan bloquant sur l'arbre (règle
+  generic-api-key) ont été examinées une à une : (1) et (2)
+  `pricing.html` / `pricing.rendered.html` = jeton CLIENT public Datadog
+  (préfixe `pub…`) embarqué par replit.com dans sa page pricing — public par
+  conception ; (3) `gallery-detail-journey-mapper.rendered.html` = valeur
+  `"_key"` interne du CMS de la page (identifiant aléatoire, pas un
+  credential). **Verdict : 3 faux positifs, aucun secret réel, aucun secret
+  E-Code — pas d'incident, pas de rotation nécessaire.**
+- (assainissement) Valeurs caviardées dans les 3 snapshots (remplacements
+  courts non-matchables) ; sha256 recalculés et mis à jour dans
+  `SOURCE_REGISTRY.yaml` (SRC-PRICING, SRC-GALLERY-DETAIL-JOURNEY-MAPPER,
+  annotés « snapshot assaini ») et `baseline/snapshots/2026-07-16/manifest.json`
+  (entrée pricing).
+- (prévention) `collect-baseline.mjs` assainit désormais AUTOMATIQUEMENT les
+  captures avant écriture et hash (motifs étroits : clé web publique Google
+  `AIza…`, jeton browser Datadog `dd-api-key=pub…`). Aucun motif de vrai
+  secret n'est caviardé : un vrai secret doit faire échouer le scan, pas être
+  masqué.

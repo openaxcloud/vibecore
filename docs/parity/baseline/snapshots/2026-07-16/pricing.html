@@ -175,7 +175,7 @@ function canSendPreloadWithoutReferrer() {
   }
 }
 function sendPreloadLog(body) {
-  var url = 'https://http-intake.logs.us5.datadoghq.com/api/v2/logs?dd-api-key=pub31a5047a3a4692afb84a423db984dc57';
+  var url = 'https://http-intake.logs.us5.datadoghq.com/api/v2/logs?dd-api-key=REDACTED';
   if (window.location.search || window.location.hash) {
     if (!canSendPreloadWithoutReferrer()) {
       return;
