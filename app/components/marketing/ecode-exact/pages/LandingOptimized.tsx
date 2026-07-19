@@ -24,7 +24,6 @@ import {
 import { useState, useEffect } from 'react';
 import { buildPromptForMode, resolveDemoScrollTarget } from './landing-build-intent';
 import {
-  AIModelSelector,
   BuildModeSelector,
   type BuildMode,
   useEcodeToast,
