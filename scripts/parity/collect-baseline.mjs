@@ -68,6 +68,24 @@ function sha256(buffer) {
   return createHash('sha256').update(buffer).digest('hex');
 }
 
+/*
+ * Assainissement AVANT écriture et hash (2026-07-19) : les pages tierces
+ * embarquent des jetons CLIENT publics (clé web Google AIza…, jeton Datadog
+ * browser pub…) qui déclenchent le secret-scan bloquant de la CI alors que ce
+ * ne sont pas des secrets. On les caviarde à la capture ; le sha256 du
+ * manifest est celui du fichier assaini. Motifs volontairement étroits —
+ * aucun motif de VRAI secret n'est caviardé : un vrai secret doit faire
+ * échouer le scan, pas être masqué en silence.
+ */
+function sanitizeSnapshot(buffer) {
+  const text = buffer.toString('utf8');
+  const sanitized = text
+    .replace(/AIza[0-9A-Za-z_-]{35}/g, 'AIza_REDACTED_PUBLIC_WEB_KEY_x0000000')
+    .replace(/dd-api-key=pub[a-f0-9]{32}/g, 'dd-api-key=REDACTED');
+
+  return sanitized === text ? buffer : Buffer.from(sanitized, 'utf8');
+}
+
 /** Markdown link lines in llms.txt / URLs in a sitemap — the diffable units. */
 function extractLinks(sourceId, text) {
   if (sourceId === 'llms-txt' || sourceId === 'llms-full-txt') {
@@ -245,6 +263,8 @@ for (const result of results) {
   }
 
   okCount += 1;
+
+  result.body = sanitizeSnapshot(result.body);
 
   const text = result.body.toString('utf8');
   const links = extractLinks(source.id, text);

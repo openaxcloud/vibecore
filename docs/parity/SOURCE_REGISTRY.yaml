@@ -44,7 +44,7 @@ sources:
     title: "Replit pricing"
     publishedAt: UNKNOWN
     accessedAt: "2026-07-16T12:56:16Z"
-    contentHash: "sha256:ebf2013a406b0db0c2429825da98523b90f47adf2f3980b57fd0660e61f6ea2e"
+    contentHash: "sha256:c33462034ba3ec900fea43ab915c619158eb5db8bf08de716cf83a8530864a61"  # snapshot assaini (jeton client public Datadog caviardé)
     snapshot: docs/parity/baseline/snapshots/2026-07-16/pricing.html
   - sourceId: SRC-CHANGELOG-2026-04-17
     url: https://docs.replit.com/updates/2026/04/17/changelog.md
@@ -65,7 +65,7 @@ sources:
     title: "Replit Gallery — page détail Journey Mapper (rendu JS)"
     publishedAt: UNKNOWN
     accessedAt: "2026-07-16T16:45:51Z"
-    contentHash: "sha256:5e1d57296d5c035518f3423cddc3c00a294f1b135269698b79533df517691b28"
+    contentHash: "sha256:885a7c3772643090a3833f41c9cd43a5b14f22e5dabd22679660416f9a514ddf"  # snapshot assaini (identifiant interne CMS caviardé)
     snapshot: docs/parity/baseline/snapshots/2026-07-16/gallery-detail-journey-mapper.rendered.html
   - sourceId: SRC-COMMUNITY-RENDERED
     url: https://replit.com/community
