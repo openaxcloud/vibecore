@@ -139,3 +139,23 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
   `AIza…`, jeton browser Datadog `dd-api-key=pub…`). Aucun motif de vrai
   secret n'est caviardé : un vrai secret doit faire échouer le scan, pas être
   masqué.
+
+## 2026-07-19 — traçage de l'audit de couverture (~300 points)
+
+- `COVERAGE_GAP_AUDIT_2026-07-17.md` (audit du 19/07) : ~320 points ouverts des
+  anciens plans, ~13 référencés dans le plan → traçage complet :
+  - `P0_REGISTRY.yaml` +section `p1s` (P1-COV-01…08, famille A+B) ;
+  - `SURFACE_REGISTRY.yaml` +6 surfaces déclarées (UNSUPPORTED/UNKNOWN) ;
+  - `BOLT_DEBT_REGISTRY.yaml` créé (BD-01…26, famille C, NON_FAIT) ;
+  - `PRODUCTION_READINESS_REGISTRY.yaml` créé (48 items PR-*, familles D+E, NON_FAIT) ;
+  - `UNKNOWN_REGISTRY` +UNK-BILLING-LEGACY-GOLIVE, +UNK-DB-COMPUTE-METERING ;
+  - `DECISION_REGISTRY` +DEC-BILLING-LEGACY-VS-LEDGER (OPEN, owner avi) ;
+  - `ACTIONS_AVI.md` créé (11 actions propriétaire consolidées).
+- CI durcie : `EXPECTED_P1_IDS`/`EXPECTED_BOLT_DEBT_IDS`/`EXPECTED_PROD_READINESS_IDS`
+  (même mécanisme que les 19 P0 — un ID absent casse le build ; preuve négative
+  exécutée : retrait de BD-26 → exit 1) ; les 2 nouveaux registres ajoutés à
+  REQUIRED_REGISTRIES ; FAIT_PROUVE exige un evidenceId sur disque.
+- Plan : version 2026-07-19.1 — §3.7 note « legacy vs ledger à réconcilier »,
+  §9 P1 en deux familles, §13 « périmètres complémentaires », §7 régénéré.
+- Raison : « un registre ne bloque pas sur un trou qu'il ignore » (§1, loi 3) —
+  les ~300 points ne pouvaient plus rester implicites.

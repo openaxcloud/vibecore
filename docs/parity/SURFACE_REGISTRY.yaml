@@ -103,3 +103,160 @@ surfaces:
     performanceBudget: UNKNOWN
     e2eProofIds: [E2E-AGM-F]
     observedAt: "2026-07-16"
+  # ==========================================================================
+  # Surfaces DÉCLARÉES ABSENTES ou NON MESURÉES (audit de couverture 19/07,
+  # COVERAGE_GAP_AUDIT_2026-07-17.md famille A) — « une combinaison absente est
+  # déclarée, pas oubliée » (plan §6). availability=UNSUPPORTED : la surface
+  # n'existe pas encore chez nous ; UNKNOWN : existence/preuve non mesurée.
+  # Chaque surface est portée par un P1 (P0_REGISTRY.p1s) qui la fera exister.
+  # ==========================================================================
+  - surfaceId: SRF-IDE-FILE-HISTORY
+    route: "IDE > panneau File History (feature Replit features/version-control/file-history)"
+    clientKind: web
+    clientVersion: UNKNOWN
+    plan: authenticated
+    entitlement: workspaces:read
+    region: global
+    rolloutCohort: none
+    availability: UNSUPPORTED
+    permissions: session
+    serverAuthz: UNKNOWN
+    states: [absent]
+    errors: []
+    recovery: []
+    serviceIds: [web, api]
+    events: []
+    responsiveContract: { web: UNKNOWN, tablet: UNKNOWN, mobile: UNKNOWN }
+    accessibilityContract: UNKNOWN
+    locale: en
+    rtl: UNKNOWN
+    timezoneBehavior: UNKNOWN
+    performanceBudget: UNKNOWN
+    e2eProofIds: []
+    observedAt: "2026-07-19"
+    notes: "Tracé P1-COV-01 ; détail dans PLAN_REMAINING_UNIFIED (TASK3-FH) + DESIGN_PROGRAM_MASTER (RPL-FH-001)."
+  - surfaceId: SRF-IDE-AGENT-SKILLS
+    route: "IDE > Skills (.agents/skills/<name>/SKILL.md, standard agentskills.io)"
+    clientKind: web
+    clientVersion: UNKNOWN
+    plan: authenticated
+    entitlement: workspaces:read
+    region: global
+    rolloutCohort: none
+    availability: UNSUPPORTED
+    permissions: session
+    serverAuthz: UNKNOWN
+    states: [absent]
+    errors: []
+    recovery: []
+    serviceIds: [web, api]
+    events: []
+    responsiveContract: { web: UNKNOWN, tablet: UNKNOWN, mobile: UNKNOWN }
+    accessibilityContract: UNKNOWN
+    locale: en
+    rtl: UNKNOWN
+    timezoneBehavior: UNKNOWN
+    performanceBudget: UNKNOWN
+    e2eProofIds: []
+    observedAt: "2026-07-19"
+    notes: "Tracé P1-COV-02 ; détail TASK3-SK + RPL-SK-001."
+  - surfaceId: SRF-IDE-PANES-LAYOUT
+    route: "IDE > layout Window→Panes→Tabs + Tools dock + Resources + Spotlight (doc Replit editor-and-tools)"
+    clientKind: web
+    clientVersion: UNKNOWN
+    plan: authenticated
+    entitlement: workspaces:read
+    region: global
+    rolloutCohort: none
+    availability: UNSUPPORTED
+    permissions: session
+    serverAuthz: UNKNOWN
+    states: [absent]
+    errors: []
+    recovery: []
+    serviceIds: [web]
+    events: []
+    responsiveContract: { web: UNKNOWN, tablet: UNKNOWN, mobile: UNKNOWN }
+    accessibilityContract: UNKNOWN
+    locale: en
+    rtl: UNKNOWN
+    timezoneBehavior: UNKNOWN
+    performanceBudget: UNKNOWN
+    e2eProofIds: []
+    observedAt: "2026-07-19"
+    notes: "Tracé P1-COV-03 ; détail IDE-LAYOUT-1..10 + RPL-IDE-001."
+  - surfaceId: SRF-DEPLOY-RESERVED-VM
+    route: "panneau Deploy > type Reserved VM (tiers $20/$40/$80/$160) + changement de type en place"
+    clientKind: web
+    clientVersion: UNKNOWN
+    plan: authenticated
+    entitlement: deployments:write
+    region: global
+    rolloutCohort: none
+    availability: UNSUPPORTED
+    permissions: session
+    serverAuthz: "backend marque reserved-vm indisponible (spec deployment-types)"
+    states: [absent]
+    errors: []
+    recovery: []
+    serviceIds: [web, api]
+    events: []
+    responsiveContract: { web: UNKNOWN, tablet: UNKNOWN, mobile: UNKNOWN }
+    accessibilityContract: UNKNOWN
+    locale: en
+    rtl: UNKNOWN
+    timezoneBehavior: UNKNOWN
+    performanceBudget: UNKNOWN
+    e2eProofIds: []
+    observedAt: "2026-07-19"
+    notes: "Tracé P1-COV-04 ; source REPLIT_PARITY_SPEC:618-624 + note PLAN_REMAINING:76."
+  - surfaceId: SRF-DEPLOY-SCHEDULED
+    route: "panneau Deploy > type Scheduled (cron)"
+    clientKind: web
+    clientVersion: UNKNOWN
+    plan: authenticated
+    entitlement: deployments:write
+    region: global
+    rolloutCohort: UNKNOWN
+    availability: UNKNOWN
+    permissions: session
+    serverAuthz: UNKNOWN
+    states: [UNKNOWN]
+    errors: []
+    recovery: []
+    serviceIds: [web, api]
+    events: []
+    responsiveContract: { web: UNKNOWN, tablet: UNKNOWN, mobile: UNKNOWN }
+    accessibilityContract: UNKNOWN
+    locale: en
+    rtl: UNKNOWN
+    timezoneBehavior: UNKNOWN
+    performanceBudget: UNKNOWN
+    e2eProofIds: []
+    observedAt: "2026-07-19"
+    notes: "availability=UNKNOWN à dessein : le suivi main dit SCHEDULED-01 prouvé (commits 616f0bad/3e2d7013) mais AUCUNE preuve n'est tracée dans E2E_PROOFS — P1-COV-04 exige de la tracer, pas de la re-faire."
+  - surfaceId: SRF-GALLERY-STARTER-DEMOS
+    route: "/gallery > 6 starters historiques requalifiés en apps de démo publiées/remixables"
+    clientKind: web
+    clientVersion: UNKNOWN
+    plan: public
+    entitlement: none
+    region: global
+    rolloutCohort: none
+    availability: UNSUPPORTED
+    permissions: anonymous
+    serverAuthz: none
+    states: [absent]
+    errors: []
+    recovery: []
+    serviceIds: [web, api]
+    events: []
+    responsiveContract: { web: UNKNOWN, tablet: UNKNOWN, mobile: UNKNOWN }
+    accessibilityContract: UNKNOWN
+    locale: en
+    rtl: UNKNOWN
+    timezoneBehavior: UNKNOWN
+    performanceBudget: UNKNOWN
+    e2eProofIds: []
+    observedAt: "2026-07-19"
+    notes: "Tracé P1-COV-06 (TPL-02.5)."

@@ -12,10 +12,11 @@
 
 ```yaml
 schemaVersion: 1
-version: 2026-07-17.1
+version: 2026-07-19.1
 baseline: périmètre public Replit observé au 16–17/07/2026 (PUBLIC_BASELINE_REPLIT_2026.yaml)
 measuredRepoCommit: b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5   # origin/main lu le 17/07/2026 ~09:50Z
-date: "2026-07-17T09:51:51Z"
+date: "2026-07-19T00:00:00Z"
+auditCouverture: docs/parity/COVERAGE_GAP_AUDIT_2026-07-17.md   # confrontation à TOUS les anciens plans (2026-07-19)
 branche: docs/plan-parite-replit-canonique
 statutCalcule: docs/parity/APPROVAL_STATUS.json (niveaux nommés — JAMAIS saisi ici, voir §7 et §11)
 limiteDeCertification: >
@@ -254,6 +255,15 @@ par mutation. `RateCardVersion` datée · `Entitlement` · `Budget` ·
 `InvoiceLine` · proration, rollover/expiration de crédits, taxes/VAT, facture,
 remboursement, dispute, chargeback · webhooks PSP idempotents · rapprochement
 GCP + PSP + ledger · hard limits aux **frontières sûres**.
+
+**Nouveau ledger vs ancien système : à réconcilier.** Un système de crédits
+COMPLET existe déjà dans le code (CreditWallet/checkpoints/packs/PAYG, certifié
+SHADOW en prod — audit de couverture du 19/07, famille B) et ce plan décrit un
+ledger NOUVEAU sans dire ce que devient l'ancien. Cet arbitrage est une
+décision propriétaire OUVERTE : `DEC-BILLING-LEGACY-VS-LEDGER` ; la mise en
+route (Stripe, bascule `BILLING_CREDITS_ENABLED`, backfill des plans) est
+tracée `UNK-BILLING-LEGACY-GOLIVE` + `P1-COV-08`. Aucun des deux systèmes ne
+facture réellement tant que la décision n'est pas prise.
 
 ### 3.8 Agent — modes et routage
 
@@ -616,6 +626,7 @@ présents (et hashés, §11).
         "P0-V3-14 not CLOSED (needs a real reviewer)",
         "P0-V3-15 not CLOSED (needs a real reviewer)",
         "decision DEC-GALLERY-NO-SELF-PUBLISH still OPEN",
+        "decision DEC-BILLING-LEGACY-VS-LEDGER still OPEN",
         "claim RPL-20 triage PENDING",
         "claim RPL-21 triage PENDING",
         "claim RPL-22 triage PENDING",
@@ -626,6 +637,12 @@ présents (et hashés, §11).
       "name": "parityBaselineReady",
       "passed": false,
       "reasons": [
+        "surface SRF-IDE-FILE-HISTORY not done",
+        "surface SRF-IDE-AGENT-SKILLS not done",
+        "surface SRF-IDE-PANES-LAYOUT not done",
+        "surface SRF-DEPLOY-RESERVED-VM not done",
+        "surface SRF-DEPLOY-SCHEDULED not done",
+        "surface SRF-GALLERY-STARTER-DEMOS not done",
         "claim RPL-20 triage PENDING",
         "claim RPL-21 triage PENDING",
         "claim RPL-22 triage PENDING",
@@ -645,11 +662,11 @@ présents (et hashés, §11).
       "open": 4
     },
     "decisions": {
-      "total": 11,
-      "open": 1
+      "total": 12,
+      "open": 2
     },
     "unknowns": {
-      "total": 19,
+      "total": 21,
       "p0Linked": 0
     },
     "claims": {
@@ -657,12 +674,26 @@ présents (et hashés, §11).
       "stale": 0
     },
     "surfaces": {
-      "total": 4,
+      "total": 10,
       "done": 4
     },
     "e2e": {
       "total": 12,
       "proven": 12
+    },
+    "p1": {
+      "total": 8,
+      "open": 8
+    },
+    "boltDebt": {
+      "total": 26,
+      "nonFait": 26,
+      "faitProuve": 0
+    },
+    "prodReadiness": {
+      "total": 48,
+      "nonFait": 48,
+      "faitProuve": 0
     }
   }
 }
@@ -714,9 +745,20 @@ condition de clôture.
 - **PROVEN** (preuve présente, revue humaine manquante) : les 15 autres.
 - **CLOSED** : 0 — aucun P0 n'est clos sans commit + reviewer réel + preuve.
 
-**P1** — les 18 P1 du même audit ne sont pas encore tracés individuellement en
-registre ; ils restent portés par les contrats de domaine (§3–§5). Trace :
-`UNK-CLAIMS-ANCHORING` + prochaine itération du registre (cible 2026-08-15).
+**P1** — deux familles distinctes :
+- les **18 P1 de l'audit externe v3** ne sont pas encore tracés
+  individuellement en registre ; ils restent portés par les contrats de domaine
+  (§3–§5). Trace : `UNK-CLAIMS-ANCHORING` + prochaine itération du registre
+  (cible 2026-08-15) ;
+- les **8 P1 de l'audit de couverture du 19/07** (`P1-COV-01…08`,
+  section `p1s` de `P0_REGISTRY.yaml`) tracent les features Replit que ce plan
+  ne mentionnait pas alors qu'elles étaient suivies ailleurs : File History,
+  Agent Skills, Project Editor en panneaux, types de déploiement
+  Reserved VM/Scheduled, entitlements par plan, starters→démos, parité pixel,
+  réconciliation billing. Même mécanisme CI que les P0 (ensemble EXACT attendu,
+  `EXPECTED_P1_IDS`) ; chacun porte une surface déclarée dans
+  `SURFACE_REGISTRY.yaml` quand il en a une (`availability: UNSUPPORTED` —
+  une absence déclarée, pas oubliée, §6).
 
 ---
 
@@ -789,4 +831,32 @@ plan/registres est structurellement impossible sur les états.
 7. **Split-brain Git** : tant que D1 n'est pas exécutée, les fichiers de suivi
    du checkout local peuvent mentir par construction ; ce plan est ancré sur
    `origin/main` uniquement.
-8. **P1** : 18 P1 du dernier audit non tracés individuellement (§9).
+8. **P1** : 18 P1 du dernier audit externe non tracés individuellement (§9) ;
+   les 8 P1 de l'audit de couverture, eux, le sont (`P1-COV-*`, §9).
+
+---
+
+## 13. Périmètres complémentaires — tracés, pas flottants
+
+L'audit de couverture du 19/07 (`COVERAGE_GAP_AUDIT_2026-07-17.md`) a confronté
+ce plan à TOUS les anciens plans et fichiers de tâches : ~320 points encore
+ouverts, ~13 seulement référencés ici. Règle : **tout ce que ce plan n'absorbe
+pas est tracé dans un registre nommé ou explicitement délégué à un fichier de
+suivi actif — rien ne flotte.** La CI compare l'ensemble EXACT des IDs attendus
+(`EXPECTED_P1_IDS`, `EXPECTED_BOLT_DEBT_IDS`, `EXPECTED_PROD_READINESS_IDS`
+dans `scripts/parity/generate-approval-status.mjs`) : un ID qui disparaît casse
+le build, comme pour les 19 P0. Tout y est **NON FAIT par défaut** — rien ne
+passe FAIT_PROUVE sans `evidenceId` présent sur disque (validateur).
+
+| Périmètre | Où c'est tracé | Dans ce plan ? |
+|---|---|---|
+| Features Replit absentes du plan (File History, Skills, éditeur en panneaux, types de déploiement, entitlements par plan, starters→démos, pixel) | `P0_REGISTRY.yaml` section `p1s` (P1-COV-01…08) + surfaces `UNSUPPORTED` dans `SURFACE_REGISTRY.yaml` | OUI (§9) — à intégrer au périmètre produit lors de la prochaine itération |
+| Mise en route du billing existant (SHADOW) et arbitrage vs ledger §3.7 | `DEC-BILLING-LEGACY-VS-LEDGER` (OPEN) + `UNK-BILLING-LEGACY-GOLIVE` + `UNK-DB-COMPUTE-METERING` + P1-COV-08 | OUI (§3.7) |
+| Dette héritée du fork bolt (26 items : Workflows morts, Debugger factice, panneaux localStorage…) | `BOLT_DEBT_REGISTRY.yaml` (BD-01…26) | NON — hors périmètre parité, suivi par ce registre |
+| Programme mise-en-production (48 items : isolation, k6, restore RTO/RPO, pentest, mobile/desktop, juridique, React Router 7…) | `PRODUCTION_READINESS_REGISTRY.yaml` (PR-*) | NON — hors périmètre parité, suivi par ce registre |
+| Actions qui n'attendent qu'Avi | `ACTIONS_AVI.md` (liste consolidée, mots simples) | NON — délégué |
+| Design marketing (SOL-*), bugs live, chantiers en cours | `DESIGN_PROGRAM_MASTER.md` / `DESIGN_AUDIT_LIVE.md`, `BUG_INVENTORY_LIVE.md`, `PLAN_REMAINING_UNIFIED.md`, `REPLIT_PARITY.md` (fichiers de suivi actifs, règle CLAUDE.md) | NON — délégué explicitement |
+
+Exclusion volontaire : la fuite `tokenHash` des invitations (famille E de
+l'audit) est traitée par une session dédiée (PR #6) — pas d'ID ici pour ne pas
+dupliquer le suivi.
