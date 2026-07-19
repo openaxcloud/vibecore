@@ -17289,7 +17289,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'members:manage');
 
-    return { invitations: await store.listOrganizationInvites(orgId) };
+    /*
+     * Strip the secret `tokenHash` from every row, exactly like the create /
+     * resend / expire / accept endpoints do. The invite token (and its hash)
+     * must never leave the server; listing invitees must not become a side
+     * channel that exposes it.
+     */
+    const invitations = await store.listOrganizationInvites(orgId);
+
+    return { invitations: invitations.map((invitation) => ({ ...invitation, tokenHash: undefined })) };
   });
   app.post(
     '/orgs/:orgId/invitations',
