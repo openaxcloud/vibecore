@@ -17289,7 +17289,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'members:manage');
 
-    return { invitations: await store.listOrganizationInvites(orgId) };
+    /*
+     * tokenHash must never leave the server: with the hash an org admin (or a
+     * response captured in logs/proxies) can offline-match intercepted tokens.
+     * Every other invitation endpoint already strips it — the list must too.
+     */
+    return {
+      invitations: (await store.listOrganizationInvites(orgId)).map(
+        ({ tokenHash: _tokenHash, ...invitation }) => invitation,
+      ),
+    };
   });
   app.post(
     '/orgs/:orgId/invitations',

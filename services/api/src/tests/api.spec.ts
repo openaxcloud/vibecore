@@ -1068,6 +1068,40 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('never exposes tokenHash (or the raw token) when listing organization invitations', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const owner = await register(app, { email: 'listleak-owner@example.com', organizationName: 'ListLeak Org' });
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/invitations`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { email: 'listleak-invitee@example.com', roleKey: 'member' },
+    });
+    expect(created.statusCode).toBe(201);
+
+    const listed = await app.inject({
+      method: 'GET',
+      url: `/orgs/${owner.organization.id}/invitations`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(listed.statusCode).toBe(200);
+
+    const { invitations } = listed.json() as { invitations: Record<string, unknown>[] };
+    expect(invitations.length).toBeGreaterThanOrEqual(1);
+
+    for (const invitation of invitations) {
+      expect(invitation).not.toHaveProperty('tokenHash');
+      expect(invitation).not.toHaveProperty('token');
+    }
+
+    // Belt and braces: the hash must not appear ANYWHERE in the serialized payload.
+    expect(listed.body).not.toContain('tokenHash');
+    await app.close();
+  });
+
   it('throttles invitation resends to once per minute per invite', async () => {
     const store = new TestApiStore();
     const emailProvider = new TestEmailProvider();
