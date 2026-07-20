@@ -1,0 +1,4513 @@
+
+
+
+
+
+
+
+
+
+<!doctype html>
+<html 
+      lang="en"
+      dir="ltr">
+  <head>
+    <meta name="google-signin-client-id" content="721724668570-nbkv1cfusk7kk4eni4pjvepaus73b13t.apps.googleusercontent.com"><meta name="google-signin-scope"
+          content="profile email https://www.googleapis.com/auth/developerprofiles https://www.googleapis.com/auth/developerprofiles.award https://www.googleapis.com/auth/devprofiles.full_control.firstparty"><meta property="og:site_name" content="Google Cloud Documentation">
+    <meta property="og:type" content="website"><meta name="theme-color" content="#1a73e8"><meta charset="utf-8">
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+
+    <link rel="manifest" href="/_pwa/clouddocs/manifest.json"
+          crossorigin="use-credentials">
+    <link rel="preconnect" href="//www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="//fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="//www.google-analytics.com" crossorigin><link rel="stylesheet" href="//fonts.googleapis.com/css?family=Google+Sans:400,500|Roboto:400,400italic,500,500italic,700,700italic|Roboto+Mono:400,500,700&display=swap">
+      <link rel="stylesheet"
+            href="//fonts.googleapis.com/css2?family=Material+Icons&family=Material+Symbols+Outlined&display=block"><link rel="stylesheet" href="https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/css/app.css">
+      
+        <link rel="stylesheet" href="https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/css/dark-theme.css" disabled>
+      <link rel="shortcut icon" href="https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/images/favicons/onecloud/favicon.ico">
+    <link rel="apple-touch-icon" href="https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/images/favicons/onecloud/super_cloud.png"><link rel="canonical" href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox"><link rel="search" type="application/opensearchdescription+xml"
+            title="Google Cloud Documentation" href="https://docs.cloud.google.com/s/opensearch.xml">
+      <link rel="alternate" hreflang="en"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox" /><link rel="alternate" hreflang="x-default" href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox" /><link rel="alternate" hreflang="zh-Hans"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=zh-cn" /><link rel="alternate" hreflang="zh-Hant"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=zh-tw" /><link rel="alternate" hreflang="fr"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=fr" /><link rel="alternate" hreflang="de"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=de" /><link rel="alternate" hreflang="he"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=he" /><link rel="alternate" hreflang="id"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=id" /><link rel="alternate" hreflang="it"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=it" /><link rel="alternate" hreflang="ja"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=ja" /><link rel="alternate" hreflang="ko"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=ko" /><link rel="alternate" hreflang="pt-BR"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=pt-br" /><link rel="alternate" hreflang="es-419"
+          href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=es-419" /><link rel="alternate" hreflang="en"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox" /><link rel="alternate" hreflang="x-default" href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox" /><link rel="alternate" hreflang="zh-Hans"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=zh-cn" /><link rel="alternate" hreflang="zh-Hant"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=zh-tw" /><link rel="alternate" hreflang="fr"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=fr" /><link rel="alternate" hreflang="de"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=de" /><link rel="alternate" hreflang="he"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=he" /><link rel="alternate" hreflang="id"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=id" /><link rel="alternate" hreflang="it"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=it" /><link rel="alternate" hreflang="ja"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=ja" /><link rel="alternate" hreflang="ko"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=ko" /><link rel="alternate" hreflang="pt-BR"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=pt-br" /><link rel="alternate" hreflang="es-419"
+          href="https://berlin.devsitetest.how/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox?hl=es-419" /><title>About GKE Agent Sandbox &nbsp;|&nbsp; GKE AI/ML &nbsp;|&nbsp; Google Cloud Documentation</title>
+
+<meta property="og:title" content="About GKE Agent Sandbox &nbsp;|&nbsp; GKE AI/ML &nbsp;|&nbsp; Google Cloud Documentation"><meta name="description" content="Learn about GKE Agent Sandbox, a feature that provides isolated, stateful, and singleton environments for workloads like AI agents.">
+  <meta property="og:description" content="Learn about GKE Agent Sandbox, a feature that provides isolated, stateful, and singleton environments for workloads like AI agents."><meta property="og:url" content="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox"><meta property="og:image" content="https://docs.cloud.google.com/_static/cloud/images/social-icon-google-cloud-1200-630.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630"><meta property="og:locale" content="en"><meta name="twitter:card" content="summary_large_image"><script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    
+    "headline": "About GKE Agent Sandbox"
+  }
+</script><script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [{
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Google Kubernetes Engine (GKE)",
+      "item": "https://docs.cloud.google.com/kubernetes-engine/docs"
+    },{
+      "@type": "ListItem",
+      "position": 2,
+      "name": "GKE AI/ML",
+      "item": "https://docs.cloud.google.com/kubernetes-engine/docs/integrations/ai-infra"
+    },{
+      "@type": "ListItem",
+      "position": 3,
+      "name": "About GKE Agent Sandbox",
+      "item": "https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox"
+    }]
+  }
+  </script>
+  
+    
+
+
+
+    
+    
+
+
+
+
+
+
+
+ 
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+ 
+
+ 
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+
+
+
+ 
+ 
+
+ 
+ 
+ 
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- Lowercase versions of the archetype names -->
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- IT administrators IT administrators doesn't need a lowercase version -->
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+    
+    
+    
+
+
+
+<meta name="gtm_var" data-key="docType" data-value="concept">
+
+    
+    
+    
+    
+    
+    
+  
+
+    </head>
+  <body class="color-scheme--light"
+        template="page"
+        theme="clouddocs-theme"
+        type="article"
+        
+        appearance
+        
+        layout="docs"
+        
+        
+        free-trial
+        
+        
+        display-toc
+        pending>
+  
+    <devsite-progress type="indeterminate" id="app-progress"></devsite-progress>
+  
+  
+    <a href="#main-content" class="skip-link button">
+      
+      Skip to main content
+    </a>
+    <section class="devsite-wrapper">
+      <devsite-cookie-notification-bar></devsite-cookie-notification-bar>
+        <cloudx-track userCountry="IL"></cloudx-track>
+
+<devsite-header role="banner" keep-tabs-visible>
+  
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="devsite-header--inner" data-nosnippet>
+  <div class="devsite-top-logo-row-wrapper-wrapper">
+    <div class="devsite-top-logo-row-wrapper">
+      <div class="devsite-top-logo-row">
+        <button type="button" id="devsite-hamburger-menu"
+          class="devsite-header-icon-button button-flat material-icons gc-analytics-event"
+          data-category="Site-Wide Custom Events"
+          data-label="Navigation menu button"
+          visually-hidden
+          aria-label="Open menu">
+        </button>
+        
+<div class="devsite-product-name-wrapper">
+
+  <a href="/" class="devsite-site-logo-link gc-analytics-event"
+   data-category="Site-Wide Custom Events" data-label="Site logo" track-type="globalNav"
+   track-name="googleCloudDocumentation" track-metadata-position="nav"
+   track-metadata-eventDetail="nav">
+  
+  <picture>
+    
+    <source srcset="https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/images/lockup_dark_theme.svg"
+            media="(prefers-color-scheme: dark)"
+            class="devsite-dark-theme">
+    
+    <img src="https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/images/lockup_full_color.svg" class="devsite-site-logo" alt="Google Cloud Documentation">
+  </picture>
+  
+</a>
+
+
+
+</div>
+        <div class="devsite-top-logo-row-middle">
+          <div class="devsite-header-upper-tabs">
+            
+              
+              
+  <devsite-tabs class="upper-tabs">
+
+    <nav class="devsite-tabs-wrapper" aria-label="Upper tabs">
+      
+        
+          <tab class="devsite-dropdown
+    
+    devsite-active
+    devsite-clickable
+    ">
+  
+    <a href="https://docs.cloud.google.com/docs"
+    class="devsite-tabs-content gc-analytics-event "
+      track-metadata-eventdetail="https://docs.cloud.google.com/docs"
+    
+       track-type="nav"
+       track-metadata-position="nav - docs-home"
+       track-metadata-module="primary nav"
+       aria-label="Technology areas, selected" 
+       
+         
+           data-category="Site-Wide Custom Events"
+         
+           data-label="Tab: Technology areas"
+         
+           track-name="docs-home"
+         
+           track-link-column-type="single-column"
+         
+       >
+    Technology areas
+  
+    </a>
+    
+      <button
+         aria-haspopup="menu"
+         aria-expanded="false"
+         aria-label="Dropdown menu for Technology areas"
+         track-type="nav"
+         track-metadata-eventdetail="https://docs.cloud.google.com/docs"
+         track-metadata-position="nav - docs-home"
+         track-metadata-module="primary nav"
+         
+          
+            data-category="Site-Wide Custom Events"
+          
+            data-label="Tab: Technology areas"
+          
+            track-name="docs-home"
+          
+            track-link-column-type="single-column"
+          
+        
+         class="devsite-tabs-dropdown-toggle devsite-icon devsite-icon-arrow-drop-down"></button>
+    
+  
+  <div class="devsite-tabs-dropdown" role="menu" aria-label="submenu" hidden>
+    <div class="devsite-tabs-dropdown-content">
+      
+        <button class="devsite-tabs-close-button material-icons button-flat gc-analytics-event"
+                data-category="Site-Wide Custom Events"
+                data-label="Close dropdown menu"
+                aria-label="Close dropdown menu"
+                track-type="nav"
+                track-name="close"
+                track-metadata-eventdetail="#"
+                track-metadata-position="nav - docs-home"
+                track-metadata-module="tertiary nav">close</button>
+      
+      
+        <div class="devsite-tabs-dropdown-column
+                    ">
+          
+            <ul class="devsite-tabs-dropdown-section
+                       ">
+              
+              
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/ai-ml"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/ai-ml"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      AI and ML
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/application-development"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/application-development"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Application development
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/application-hosting"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/application-hosting"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Application hosting
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/compute-area"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/compute-area"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Compute
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/data"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/data"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Data analytics and pipelines
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/databases"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/databases"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Databases
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/dhm-cloud"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/dhm-cloud"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Distributed, hybrid, and multicloud
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/industry"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/industry"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Industry solutions
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/migration"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/migration"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Migration
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/networking"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/networking"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Networking
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/observability"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/observability"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Observability and monitoring
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/security"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/security"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Security
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/storage"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/storage"
+                     track-metadata-position="nav - docs-home"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Storage
+                    </div>
+                    
+                  </a>
+                </li>
+              
+            </ul>
+          
+        </div>
+      
+    </div>
+  </div>
+</tab>
+        
+      
+        
+          <tab class="devsite-dropdown
+    
+    
+    devsite-clickable
+    ">
+  
+    <a href="https://docs.cloud.google.com/docs/cross-product-overviews"
+    class="devsite-tabs-content gc-analytics-event "
+      track-metadata-eventdetail="https://docs.cloud.google.com/docs/cross-product-overviews"
+    
+       track-type="nav"
+       track-metadata-position="nav - crossproduct"
+       track-metadata-module="primary nav"
+       
+       
+         
+           data-category="Site-Wide Custom Events"
+         
+           data-label="Tab: Cross-product tools"
+         
+           track-name="crossproduct"
+         
+           track-link-column-type="single-column"
+         
+       >
+    Cross-product tools
+  
+    </a>
+    
+      <button
+         aria-haspopup="menu"
+         aria-expanded="false"
+         aria-label="Dropdown menu for Cross-product tools"
+         track-type="nav"
+         track-metadata-eventdetail="https://docs.cloud.google.com/docs/cross-product-overviews"
+         track-metadata-position="nav - crossproduct"
+         track-metadata-module="primary nav"
+         
+          
+            data-category="Site-Wide Custom Events"
+          
+            data-label="Tab: Cross-product tools"
+          
+            track-name="crossproduct"
+          
+            track-link-column-type="single-column"
+          
+        
+         class="devsite-tabs-dropdown-toggle devsite-icon devsite-icon-arrow-drop-down"></button>
+    
+  
+  <div class="devsite-tabs-dropdown" role="menu" aria-label="submenu" hidden>
+    <div class="devsite-tabs-dropdown-content">
+      
+        <button class="devsite-tabs-close-button material-icons button-flat gc-analytics-event"
+                data-category="Site-Wide Custom Events"
+                data-label="Close dropdown menu"
+                aria-label="Close dropdown menu"
+                track-type="nav"
+                track-name="close"
+                track-metadata-eventdetail="#"
+                track-metadata-position="nav - crossproduct"
+                track-metadata-module="tertiary nav">close</button>
+      
+      
+        <div class="devsite-tabs-dropdown-column
+                    ">
+          
+            <ul class="devsite-tabs-dropdown-section
+                       ">
+              
+              
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/access-resources"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/access-resources"
+                     track-metadata-position="nav - crossproduct"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Access and resources management
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/costs-usage"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/costs-usage"
+                     track-metadata-position="nav - crossproduct"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Costs and usage management
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/iac"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/iac"
+                     track-metadata-position="nav - crossproduct"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      Infrastructure as code
+                    </div>
+                    
+                  </a>
+                </li>
+              
+                <li class="devsite-nav-item">
+                  <a href="https://docs.cloud.google.com/docs/devtools"
+                    
+                     track-type="nav"
+                     track-metadata-eventdetail="https://docs.cloud.google.com/docs/devtools"
+                     track-metadata-position="nav - crossproduct"
+                     track-metadata-module="tertiary nav"
+                     
+                     tooltip
+                  >
+                    
+                    <div class="devsite-nav-item-title">
+                      SDK, languages, frameworks, and tools
+                    </div>
+                    
+                  </a>
+                </li>
+              
+            </ul>
+          
+        </div>
+      
+    </div>
+  </div>
+</tab>
+        
+      
+    </nav>
+
+  </devsite-tabs>
+
+            
+           </div>
+          
+<devsite-search
+    enable-signin
+    enable-search
+    enable-suggestions
+      
+    
+    enable-search-summaries
+    project-name="GKE AI/ML"
+    tenant-name="Google Cloud Documentation"
+    project-scope="/kubernetes-engine/docs/integrations/ai-infra"
+    url-scoped="https://docs.cloud.google.com/s/results/kubernetes-engine/docs/integrations/ai-infra"
+    
+    
+    
+    >
+  <form class="devsite-search-form" action="https://docs.cloud.google.com/s/results" method="GET">
+    <div class="devsite-search-container">
+      <button type="button"
+              search-open
+              class="devsite-search-button devsite-header-icon-button button-flat material-icons"
+              
+              aria-label="Open search"></button>
+      <div class="devsite-searchbox">
+        <input
+          aria-activedescendant=""
+          aria-autocomplete="list"
+          
+          aria-label="Search"
+          aria-expanded="false"
+          aria-haspopup="listbox"
+          autocomplete="off"
+          class="devsite-search-field devsite-search-query"
+          name="q"
+          
+          placeholder="Search"
+          role="combobox"
+          type="text"
+          value=""
+          >
+          <div class="devsite-search-image material-icons" aria-hidden="true">
+            
+              <svg class="devsite-search-ai-image" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <g clip-path="url(#clip0_6641_386)">
+                    <path d="M19.6 21L13.3 14.7C12.8 15.1 12.225 15.4167 11.575 15.65C10.925 15.8833 10.2333 16 9.5 16C7.68333 16 6.14167 15.375 4.875 14.125C3.625 12.8583 3 11.3167 3 9.5C3 7.68333 3.625 6.15 4.875 4.9C6.14167 3.63333 7.68333 3 9.5 3C10.0167 3 10.5167 3.05833 11 3.175C11.4833 3.275 11.9417 3.43333 12.375 3.65L10.825 5.2C10.6083 5.13333 10.3917 5.08333 10.175 5.05C9.95833 5.01667 9.73333 5 9.5 5C8.25 5 7.18333 5.44167 6.3 6.325C5.43333 7.19167 5 8.25 5 9.5C5 10.75 5.43333 11.8167 6.3 12.7C7.18333 13.5667 8.25 14 9.5 14C10.6667 14 11.6667 13.625 12.5 12.875C13.35 12.1083 13.8417 11.15 13.975 10H15.975C15.925 10.6333 15.7833 11.2333 15.55 11.8C15.3333 12.3667 15.05 12.8667 14.7 13.3L21 19.6L19.6 21ZM17.5 12C17.5 10.4667 16.9667 9.16667 15.9 8.1C14.8333 7.03333 13.5333 6.5 12 6.5C13.5333 6.5 14.8333 5.96667 15.9 4.9C16.9667 3.83333 17.5 2.53333 17.5 0.999999C17.5 2.53333 18.0333 3.83333 19.1 4.9C20.1667 5.96667 21.4667 6.5 23 6.5C21.4667 6.5 20.1667 7.03333 19.1 8.1C18.0333 9.16667 17.5 10.4667 17.5 12Z" fill="#5F6368"/>
+                  </g>
+                <defs>
+                <clipPath id="clip0_6641_386">
+                <rect width="24" height="24" fill="white"/>
+                </clipPath>
+                </defs>
+              </svg>
+            
+          </div>
+          <div class="devsite-search-shortcut-icon-container" aria-hidden="true">
+            <kbd class="devsite-search-shortcut-icon">/</kbd>
+          </div>
+      </div>
+    </div>
+  </form>
+  <button type="button"
+          search-close
+          class="devsite-search-button devsite-header-icon-button button-flat material-icons"
+          
+          aria-label="Close search"></button>
+</devsite-search>
+
+        </div>
+
+        
+
+  
+
+  
+    <a class="devsite-header-link devsite-top-button button gc-analytics-event button-with-icon"
+    href="//console.cloud.google.com/"
+    data-category="Site-Wide Custom Events"
+    data-label="Site header link: Console"
+    
+      
+        track-name="console"
+      
+        referrerpolicy="no-referrer-when-downgrade"
+      
+        track-type="globalNav"
+      
+        track-metadata-position="nav"
+      
+        track-metadata-eventDetail="nav"
+      
+    >
+  Console
+</a>
+  
+
+  
+
+  <devsite-appearance-selector></devsite-appearance-selector>
+
+  
+<devsite-language-selector>
+  <ul role="presentation">
+    
+    
+    <li role="presentation">
+      <a role="menuitem" lang="en"
+        >English</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="de"
+        >Deutsch</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="es_419"
+        >Español – América Latina</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="fr"
+        >Français</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="id"
+        >Indonesia</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="it"
+        >Italiano</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="pt_br"
+        >Português – Brasil</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="he"
+        >עברית</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="zh_cn"
+        >中文 – 简体</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="zh_tw"
+        >中文 – 繁體</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="ja"
+        >日本語</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="ko"
+        >한국어</a>
+    </li>
+    
+  </ul>
+</devsite-language-selector>
+
+
+
+
+        
+          <devsite-user 
+                        
+                        
+                          enable-profiles
+                        
+                        
+                          fp-auth
+                        
+                        id="devsite-user">
+            
+              
+              <span class="button devsite-top-button" aria-hidden="true" visually-hidden>Sign in</span>
+            
+          </devsite-user>
+        
+        
+        
+      </div>
+    </div>
+  </div>
+
+
+
+  <div class="devsite-collapsible-section
+    ">
+    <div class="devsite-header-background">
+      
+        
+          <div class="devsite-product-id-row"
+           >
+            <div class="devsite-product-description-row">
+              
+                
+                <div class="devsite-product-id">
+                  
+                    
+  
+  <a href="https://docs.cloud.google.com/kubernetes-engine/docs/integrations/ai-infra">
+    
+  <div class="devsite-product-logo-container"
+       
+       
+       
+    size="medium"
+  >
+  
+    <picture>
+      
+      <source class="devsite-dark-theme"
+              media="(prefers-color-scheme: dark)"
+              srcset=" /_static/clouddocs/images/icons/products/kubernetes-engine-white.svg"
+              sizes="64px">
+      
+      <img class="devsite-product-logo"
+           alt=""
+           src="https://docs.cloud.google.com/_static/clouddocs/images/icons/products/kubernetes-engine-color.svg"
+           srcset=" /_static/clouddocs/images/icons/products/kubernetes-engine-color.svg"
+           sizes="64px"
+           loading="lazy"
+           >
+    </picture>
+  
+  </div>
+  
+  </a>
+  
+
+                  
+                  
+                  
+                    <ul class="devsite-breadcrumb-list"
+  
+    aria-label="Lower header breadcrumb">
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/kubernetes-engine/docs"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Lower Header"
+      
+        data-value="1"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="1"
+      
+        track-metadata-eventdetail="Google Kubernetes Engine (GKE)"
+      
+    >
+    
+          Google Kubernetes Engine (GKE)
+        
+  </a>
+  
+      
+    
+  </li>
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+      
+      <div class="devsite-breadcrumb-guillemet material-icons" aria-hidden="true"></div>
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/kubernetes-engine/docs/integrations/ai-infra"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Lower Header"
+      
+        data-value="2"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="2"
+      
+        track-metadata-eventdetail="GKE AI/ML"
+      
+    >
+    
+          GKE AI/ML
+        
+  </a>
+  
+      
+    
+  </li>
+  
+</ul>
+                </div>
+                
+              
+              
+            </div>
+            
+              <div class="devsite-product-button-row">
+  
+
+  
+  <a href="//console.cloud.google.com/freetrial"
+  
+    class="cloud-free-trial-button button button-primary
+      "
+    
+    
+      
+        track-metadata-eventDetail="nav"
+      
+        track-type="freeTrial"
+      
+        track-metadata-position="nav"
+      
+        track-name="gcpCta"
+      
+        referrerpolicy="no-referrer-when-downgrade"
+      
+    
+    >Start free</a>
+
+</div>
+            
+          </div>
+          
+        
+      
+      
+        <div class="devsite-doc-set-nav-row">
+          
+          
+            
+            
+  <devsite-tabs class="lower-tabs">
+
+    <nav class="devsite-tabs-wrapper" aria-label="Lower tabs">
+      
+        
+          <tab  >
+            
+    <a href="https://docs.cloud.google.com/kubernetes-engine/docs/integrations/ai-infra"
+    class="devsite-tabs-content gc-analytics-event "
+      track-metadata-eventdetail="https://docs.cloud.google.com/kubernetes-engine/docs/integrations/ai-infra"
+    
+       track-type="nav"
+       track-metadata-position="nav - overview"
+       track-metadata-module="primary nav"
+       
+       
+         
+           data-category="Site-Wide Custom Events"
+         
+           data-label="Tab: Overview"
+         
+           track-name="overview"
+         
+       >
+    Overview
+  
+    </a>
+    
+  
+          </tab>
+        
+      
+        
+          <tab  class="devsite-active">
+            
+    <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning"
+    class="devsite-tabs-content gc-analytics-event "
+      track-metadata-eventdetail="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning"
+    
+       track-type="nav"
+       track-metadata-position="nav - guides"
+       track-metadata-module="primary nav"
+       aria-label="Guides, selected" 
+       
+         
+           data-category="Site-Wide Custom Events"
+         
+           data-label="Tab: Guides"
+         
+           track-name="guides"
+         
+       >
+    Guides
+  
+    </a>
+    
+  
+          </tab>
+        
+      
+    </nav>
+
+  </devsite-tabs>
+
+          
+          
+        </div>
+      
+    </div>
+  </div>
+
+</div>
+
+
+
+  
+
+  
+</devsite-header>
+        <devsite-book-nav scrollbars >
+          
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="devsite-book-nav-filter"
+     >
+  <span class="filter-list-icon material-icons" aria-hidden="true"></span>
+  <input type="text"
+         placeholder="Filter"
+         
+         aria-label="Type to filter"
+         role="searchbox">
+  
+  <span class="filter-clear-button hidden"
+        data-title="Clear filter"
+        aria-label="Clear filter"
+        role="button"
+        tabindex="0"></span>
+</div>
+
+<nav class="devsite-book-nav devsite-nav nocontent" data-nosnippet
+     aria-label="Side menu">
+  <div class="devsite-mobile-header">
+    <button type="button"
+            id="devsite-close-nav"
+            class="devsite-header-icon-button button-flat material-icons gc-analytics-event"
+            data-category="Site-Wide Custom Events"
+            data-label="Close navigation"
+            aria-label="Close navigation">
+    </button>
+    <div class="devsite-product-name-wrapper">
+
+  <a href="/" class="devsite-site-logo-link gc-analytics-event"
+   data-category="Site-Wide Custom Events" data-label="Site logo" track-type="globalNav"
+   track-name="googleCloudDocumentation" track-metadata-position="nav"
+   track-metadata-eventDetail="nav">
+  
+  <picture>
+    
+    <source srcset="https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/images/lockup_dark_theme.svg"
+            media="(prefers-color-scheme: dark)"
+            class="devsite-dark-theme">
+    
+    <img src="https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/images/lockup_full_color.svg" class="devsite-site-logo" alt="Google Cloud Documentation">
+  </picture>
+  
+</a>
+
+
+</div>
+  </div>
+
+  <div class="devsite-book-nav-wrapper">
+    <div class="devsite-mobile-nav-top">
+      
+        <ul class="devsite-nav-list">
+          
+            <li class="devsite-nav-item">
+              
+  
+  <a href="/docs"
+    
+       class="devsite-nav-title gc-analytics-event
+              devsite-nav-has-children
+              devsite-nav-active"
+    
+
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Technology areas"
+      
+        track-name="docs-home"
+      
+        track-link-column-type="single-column"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Technology areas"
+     track-type="globalNav"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Technology areas
+   </span>
+    
+    <span class="devsite-nav-icon material-icons" data-icon="forward"
+          >
+    </span>
+    
+  
+  </a>
+  
+
+  
+    <ul class="devsite-nav-responsive-tabs devsite-nav-has-menu
+               ">
+      
+<li class="devsite-nav-item">
+
+  
+  <span
+    
+       class="devsite-nav-title"
+       tooltip
+    
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Technology areas"
+      
+        track-name="docs-home"
+      
+        track-link-column-type="single-column"
+      
+    >
+  
+    <span class="devsite-nav-text" tooltip menu="Technology areas">
+      More
+   </span>
+    
+    <span class="devsite-nav-icon material-icons" data-icon="forward"
+          menu="Technology areas">
+    </span>
+    
+  
+  </span>
+  
+
+</li>
+
+    </ul>
+  
+              
+                <ul class="devsite-nav-responsive-tabs">
+                  
+                    
+                    
+                    
+                    <li class="devsite-nav-item">
+                      
+  
+  <a href="/kubernetes-engine/docs/integrations/ai-infra"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Overview"
+      
+        track-name="overview"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Overview"
+     track-type="globalNav"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Overview
+   </span>
+    
+  
+  </a>
+  
+
+  
+                    </li>
+                  
+                    
+                    
+                    
+                    <li class="devsite-nav-item">
+                      
+  
+  <a href="/kubernetes-engine/docs/concepts/machine-learning"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              devsite-nav-active"
+    
+
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Guides"
+      
+        track-name="guides"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Guides"
+     track-type="globalNav"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip menu="_book">
+      Guides
+   </span>
+    
+  
+  </a>
+  
+
+  
+                    </li>
+                  
+                </ul>
+              
+            </li>
+          
+            <li class="devsite-nav-item">
+              
+  
+  <a href="/docs/cross-product-overviews"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Cross-product tools"
+      
+        track-name="crossproduct"
+      
+        track-link-column-type="single-column"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Cross-product tools"
+     track-type="globalNav"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Cross-product tools
+   </span>
+    
+  
+  </a>
+  
+
+  
+    <ul class="devsite-nav-responsive-tabs devsite-nav-has-menu
+               ">
+      
+<li class="devsite-nav-item">
+
+  
+  <span
+    
+       class="devsite-nav-title"
+       tooltip
+    
+    
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Tab: Cross-product tools"
+      
+        track-name="crossproduct"
+      
+        track-link-column-type="single-column"
+      
+    >
+  
+    <span class="devsite-nav-text" tooltip menu="Cross-product tools">
+      More
+   </span>
+    
+    <span class="devsite-nav-icon material-icons" data-icon="forward"
+          menu="Cross-product tools">
+    </span>
+    
+  
+  </span>
+  
+
+</li>
+
+    </ul>
+  
+              
+            </li>
+          
+          
+    
+    
+<li class="devsite-nav-item">
+
+  
+  <a href="//console.cloud.google.com/"
+    
+       class="devsite-nav-title gc-analytics-event button-with-icon"
+    
+
+    
+      
+        track-name="console"
+      
+        referrerpolicy="no-referrer-when-downgrade"
+      
+        track-type="globalNav"
+      
+        track-metadata-position="nav"
+      
+        track-metadata-eventDetail="nav"
+      
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Console"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Console
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+  
+          
+        </ul>
+      
+    </div>
+    
+      <div class="devsite-mobile-nav-bottom">
+        
+          
+          <ul class="devsite-nav-list" menu="_book">
+            <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Discover</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/machine-learning"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Introduction to AI/ML workloads on GKE</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Explore GKE documentation</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/ai-ml/explore-gke-docs"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/kubernetes-engine-overview"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Main GKE documentation</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/machine-learning"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>GKE AI/ML documentation</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/explore-gke-networking-docs-use-cases"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>GKE networking documentation</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/security-overview"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>GKE security documentation</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/fleet-management/docs"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>GKE fleet management documentation</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/consumption-option"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Select how to obtain and consume accelerators on GKE</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-new"><a href="/kubernetes-engine/docs/concepts/gke-ai-conformance"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>GKE AI/ML conformance</span><span class="devsite-nav-icon material-icons"
+        data-icon="new"
+        data-title="New!"
+        aria-hidden="true"></span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Get started</span>
+      </div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-new"><a href="/kubernetes-engine/docs/concepts/machine-learning/why-use-gke-ai-ml-overview"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Why use GKE for AI/ML inference</span><span class="devsite-nav-icon material-icons"
+        data-icon="new"
+        data-title="New!"
+        aria-hidden="true"></span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-new"><a href="/kubernetes-engine/docs/concepts/machine-learning/understand-autoscaling"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Simplified autoscaling concepts for AI/ML workloads in GKE</span><span class="devsite-nav-icon material-icons"
+        data-icon="new"
+        data-title="New!"
+        aria-hidden="true"></span></a></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/serve-open-models-terraform"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Quickstart: Serve your first AI model on GKE</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Serve AI models for inference</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/machine-learning/inference"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About AI/ML model inference on GKE</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/machine-learning/inference/inference-quickstart"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Analyze model serving performance and costs with GKE Inference Quickstart</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-external"><a href="/kubernetes-engine/docs/concepts/about-gke-inference-gateway"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Expose AI applications with GKE Inference Gateway</span><span class="devsite-nav-icon material-icons"
+        data-icon="external"
+        data-title="External"
+        aria-hidden="true"></span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Best practices for inference</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/best-practices/machine-learning/inference"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/machine-learning/choose-lb-strategy"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Choose a load balancing strategy for inference</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/best-practices/machine-learning/inference/autoscaling"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Autoscale inference workloads on GPUs</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/best-practices/machine-learning/inference/autoscaling-tpu"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Autoscale LLM inference workloads on TPUs</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/best-practices/machine-learning/inference/llm-optimization"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Optimize LLM inference workloads on GPUs</span></a></li><li class="devsite-nav-item
+           devsite-nav-new"><a href="/kubernetes-engine/docs/best-practices/machine-learning/inference/batch-inference"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Optimize batch inference workloads</span><span class="devsite-nav-icon material-icons"
+        data-icon="new"
+        data-title="New!"
+        aria-hidden="true"></span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Try inference examples</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>GPUs</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/serve-gemma-gpu-vllm"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Serve Gemma open models using GPUs with vLLM</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/serve-multihost-gpu"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Serve LLMs like DeepSeek-R1 671B or Llama 3.1 405B</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/serve-with-gke-inference-gateway"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Serve an LLM with GKE Inference Gateway</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/serve-multiple-gpu"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Serve an LLM with multiple GPUs</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/scalable-ml-models-torchserve"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Serve T5 with Torch Serve</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/finetune-gemma-gpu"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Fine-tune Gemma open models using multiple GPUs</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/integrate-model-armor-guardrails"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Secure a serving workload on GKE with Model Armor</span></a></li></ul></div></li><li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>TPUs</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/serve-vllm-tpu"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Serve Llama on TPUs with vLLM</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/serve-multihost-tpu-jetstream"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Serve LLMs using multi-host TPUs with JetStream and Pathways</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/serve-sdxl-tpu"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Serve Stable Diffusion XL on TPUs with MaxDiffusion</span></a></li><li class="devsite-nav-item
+           devsite-nav-new"><a href="/kubernetes-engine/docs/tutorials/serve-open-models-tpu-terraform"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Serve open models on TPUs with Terraform</span><span class="devsite-nav-icon material-icons"
+        data-icon="new"
+        data-title="New!"
+        aria-hidden="true"></span></a></li></ul></div></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Train AI models at scale</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/machine-learning/training/multi-tier-checkpointing"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Train large-scale models with Multi-tier Checkpointing</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Try training examples</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/quickstarts/train-model-gpus-standard"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Train a model with GPUs on GKE Standard mode</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/quickstarts/train-model-gpus-autopilot"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Train a model with GPUs on GKE Autopilot mode</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/quickstarts/training-megatron-llama-workload"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Train a Llama model on GPUs with Megatron-LM</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/train-llm-tpus-gke-jax"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Fine-tune a LLM using TPUs on GKE with JAX</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Run reinforcement learning workloads on GKE</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/scaling-rl-verl-gke"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Fine-tune and scale reinforcement learning with verl</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/nemo-rl-gke"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Fine-tune and scale reinforcement learning with NeMo RL</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/monitor-reinforcement-learning-workloads"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Monitor reinforcement learning workloads with OpenTelemetry</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Deploy and orchestrate AI agents</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/agentic-adk-vertex"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Deploy AI agents with the ADK and Agent Platform API</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/agentic-adk-vllm"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Deploy AI agents with the ADK and a self-hosted LLM</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Secure AI agentic workloads with Agent Sandbox</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item
+           devsite-nav-new"><a href="/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About Agent Sandbox</span><span class="devsite-nav-icon material-icons"
+        data-icon="new"
+        data-title="New!"
+        aria-hidden="true"></span></a></li><li class="devsite-nav-item
+           devsite-nav-new"><a href="/kubernetes-engine/docs/how-to/how-install-agent-sandbox"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Enable Agent Sandbox on GKE</span><span class="devsite-nav-icon material-icons"
+        data-icon="new"
+        data-title="New!"
+        aria-hidden="true"></span></a></li><li class="devsite-nav-item
+           devsite-nav-new"><a href="/kubernetes-engine/docs/how-to/agent-sandbox"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Isolate AI code execution with Agent Sandbox</span><span class="devsite-nav-icon material-icons"
+        data-icon="new"
+        data-title="New!"
+        aria-hidden="true"></span></a></li><li class="devsite-nav-item
+           devsite-nav-new"><a href="/kubernetes-engine/docs/how-to/agent-sandbox-pod-snapshots"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Save and restore Agent Sandbox environments</span><span class="devsite-nav-icon material-icons"
+        data-icon="new"
+        data-title="New!"
+        aria-hidden="true"></span></a></li><li class="devsite-nav-item
+           devsite-nav-new"><a href="/kubernetes-engine/docs/how-to/sandbox-trigger-inside-cluster"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Trigger Agent Sandbox snapshots from inside a cluster</span><span class="devsite-nav-icon material-icons"
+        data-icon="new"
+        data-title="New!"
+        aria-hidden="true"></span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Use Ray for distributed AI/ML applications</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/add-on/ray-on-gke/concepts/overview"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About Ray on GKE</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/add-on/ray-on-gke/quickstarts/ray-gpu-cluster"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Quickstart: Deploy your first Ray application on GKE</span></a></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/add-on/ray-on-gke/how-to/enable-ray-on-gke"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Enable managed KubeRay with the Ray Operator add-on</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Deploy AI/ML workloads with Ray on GKE</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Serve AI models with Ray Serve on GKE</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/serve-llm-l4-ray"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Serve an LLM on GPUs with Ray Serve</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/serve-multi-cluster-ray-inference-gateway"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Serve an LLM with multi-cluster Ray Serve and Inference Gateway</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/serve-llm-tpu-ray"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Serve an LLM on TPUs with Ray Serve</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/serve-multi-host-tpu-llm"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Serve Gemma open models using multi-host TPUs on GKE with Ray</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/add-on/ray-on-gke/tutorials/deploy-ray-serve-stable-diffusion"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Serve a diffusion model on GPUs with Ray</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/add-on/ray-on-gke/tutorials/deploy-ray-serve-stable-diffusion-tpu"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Serve a diffusion model on TPUs with Ray</span></a></li></ul></div></li><li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Train AI models with Ray on GKE</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/add-on/ray-on-gke/tutorials/train-model-ray-pytorch"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Train with PyTorch, Ray, and GKE</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/distributed-training-tpu"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Train an LLM using Jax and Ray Train on TPUs with GKE</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/multi-slice-training-ray"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Multislice and Elastic Training on TPUs using Ray Train on GKE</span></a></li></ul></div></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Use GPUs with Ray on GKE</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item
+           devsite-nav-new"><a href="/kubernetes-engine/docs/add-on/ray-on-gke/how-to/ray-a4x"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Set up Ray on GKE with A4X and GB200</span><span class="devsite-nav-icon material-icons"
+        data-icon="new"
+        data-title="New!"
+        aria-hidden="true"></span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Use TPUs with Ray on GKE</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/kuberay-trillium"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Set up Ray on GKE with TPU Trillium</span></a></li><li class="devsite-nav-item
+           devsite-nav-new"><a href="/kubernetes-engine/docs/tutorials/ray-kueue-dws"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Optimize AI training on TPUs with DWS and Kueue</span><span class="devsite-nav-icon material-icons"
+        data-icon="new"
+        data-title="New!"
+        aria-hidden="true"></span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Monitor Ray on GKE</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/add-on/ray-on-gke/how-to/view-ray-operator-logs"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>View logs for the Ray Operator on GKE</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/add-on/ray-on-gke/how-to/collect-view-logs-metrics"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>View logs and metrics for Ray clusters on GKE</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/add-on/ray-on-gke/how-to/enable-ray-history-server"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Debug completed Ray Jobs with Ray History Server</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Use Slurm Operator for HPC and AI/ML workloads</span>
+      </div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-preview"><a href="/kubernetes-engine/docs/add-on/slurm-on-gke/concepts/overview"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About Slurm on GKE</span><span class="devsite-nav-icon material-icons"
+        data-icon="preview"
+        data-title="Preview"
+        aria-hidden="true"></span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-preview"><a href="/kubernetes-engine/docs/add-on/slurm-on-gke/quickstarts/deploy-slurm-on-gke"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Quickstart: Deploy a Slurm cluster on GKE</span><span class="devsite-nav-icon material-icons"
+        data-icon="preview"
+        data-title="Preview"
+        aria-hidden="true"></span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-preview"><a href="/kubernetes-engine/docs/add-on/slurm-on-gke/how-to/enable-slurm-operator-addon"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Enable the Slurm Operator add-on</span><span class="devsite-nav-icon material-icons"
+        data-icon="preview"
+        data-title="Preview"
+        aria-hidden="true"></span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-preview"><a href="/kubernetes-engine/docs/add-on/slurm-on-gke/how-to/slurm-custom-images"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Build custom Slurm Docker images</span><span class="devsite-nav-icon material-icons"
+        data-icon="preview"
+        data-title="Preview"
+        aria-hidden="true"></span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Configure shared storage for Slurm on GKE</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item
+           devsite-nav-preview"><a href="/kubernetes-engine/docs/add-on/slurm-on-gke/how-to/slurm-shared-storage-filestore"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure Filestore for Slurm</span><span class="devsite-nav-icon material-icons"
+        data-icon="preview"
+        data-title="Preview"
+        aria-hidden="true"></span></a></li><li class="devsite-nav-item
+           devsite-nav-preview"><a href="/kubernetes-engine/docs/add-on/slurm-on-gke/how-to/slurm-shared-storage-lustre"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Managed Lustre for Slurm</span><span class="devsite-nav-icon material-icons"
+        data-icon="preview"
+        data-title="Preview"
+        aria-hidden="true"></span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Manage GPUs on GKE</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/gpus"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About GPUs</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Configure GPUs for AI/ML workloads</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item
+           devsite-nav-external"><a href="/ai-hypercomputer/docs/create/gke-ai-hypercompute-custom"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure A3 or A4 VMs with AI Hypercomputer</span><span class="devsite-nav-icon material-icons"
+        data-icon="external"
+        data-title="External"
+        aria-hidden="true"></span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/gpus"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Deploy GPU workloads in Standard clusters</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/autopilot-gpus"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Deploy GPU workloads in Autopilot clusters</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/machine-learning/inference/autoscaling"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure autoscaling for LLM workloads on GPUs</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/gpu-operator"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Manage the GPU stack with the NVIDIA GPU Operator</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/gpus-confidential-nodes"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Encrypt GPU workloads in-place</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Provision resources for high performance computing (HPC)</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item
+           devsite-nav-external"><a href="/ai-hypercomputer/docs/create/gke-ai-hypercompute"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Deploy AI Hypercomputer clusters (A3, A4 VMs)</span><span class="devsite-nav-icon material-icons"
+        data-icon="external"
+        data-title="External"
+        aria-hidden="true"></span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Optimize GPU utilization with GPU sharing strategies</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/timesharing-gpus"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About GPU sharing strategies on GKE</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/gpus-multi"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Use multi-instance GPUs</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/timesharing-gpus"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure timesharing GPUs</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/nvidia-mps-gpus"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Use NVIDIA MPS</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Optimize GPU provisioning with flex-start</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/dws"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/provisioningrequest"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Run a large-scale workload with flex-start</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/dws-flex-start-training"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Run a small batch workload with GPUs and flex-start</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Manage TPUs on GKE</span>
+      </div></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/tpus"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About TPUs</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Versions</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/tpu-ironwood"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Ironwood (TPU7x)</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/plan-tpus"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Plan TPUs on GKE</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Configure TPUs for AI/ML workloads</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/tpus"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Deploy TPU workloads on Standard clusters</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/tpus-autopilot"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Deploy TPU workloads on Autopilot clusters</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/config-auto-net-for-accelerators"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Deploy high-performance TPU workloads with auto-networking</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/tpu-multislice"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Deploy TPU Multislices on GKE</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/tpu-multislice-kueue"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Orchestrate TPU Multislice workloads using JobSet and Kueue</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/machine-learning/inference/autoscaling-tpu"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure autoscaling for LLM workloads on TPUs</span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Optimize TPU provisioning with flex-start</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/dws"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/dws-flex-start-training-tpu"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Run a small batch workload with TPUs and flex-start</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/tpu-calendar-mode"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Request TPUs with future reservation in calendar mode</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Optimize TPU utilization with dynamic slicing</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/tpu-all-capacity-mode"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About TPU All Capacity mode</span></a></li><li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>About TPU dynamic slicing</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/concepts/dynamic-slicing"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Overview</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/create-dynamic-slices"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Use dynamic slicing with a custom scheduler</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/how-to/use-gke-dynamic-slicing"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Schedule dynamic slices with Kueue and TAS</span></a></li></ul></div></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Manage GKE node disruption for GPUs and TPUs</span>
+      </div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-external"><a href="/kubernetes-engine/docs/concepts/handle-disruption-gpu-tpu"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About node disruption for GPUs and TPUs</span><span class="devsite-nav-icon material-icons"
+        data-icon="external"
+        data-title="External"
+        aria-hidden="true"></span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Use Kueue for job queuing and resource optimization</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item
+           devsite-nav-external"><a href="/kubernetes-engine/docs/best-practices/batch-platform-on-gke"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Best practices for running batch workloads on GKE</span><span class="devsite-nav-icon material-icons"
+        data-icon="external"
+        data-title="External"
+        aria-hidden="true"></span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/kueue-intro"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Deploy a batch system using Kueue</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/kueue-cohort"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Implement a Job queuing system with quota sharing</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/mixed-workloads"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Optimize resource utilization for mixed AI/ML training and inference workloads</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/best-practices/optimize-ai-utilization"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Optimize AI/ML workload prioritization</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/tutorials/tpu-multislice-kueue"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Orchestrate TPU Multislice workloads using JobSet and Kueue</span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Manage networking for AI/ML workloads</span>
+      </div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-external"><a href="/kubernetes-engine/docs/how-to/allocate-network-resources-dra"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Allocate network resources using GKE managed DRANET</span><span class="devsite-nav-icon material-icons"
+        data-icon="external"
+        data-title="External"
+        aria-hidden="true"></span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-external"><a href="/kubernetes-engine/docs/how-to/config-auto-net-for-accelerators"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Configure auto-networking for accelerators</span><span class="devsite-nav-icon material-icons"
+        data-icon="external"
+        data-title="External"
+        aria-hidden="true"></span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Manage data and storage for AI/ML workloads</span>
+      </div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-external"><a href="/kubernetes-engine/docs/concepts/storage-overview"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About storage for GKE clusters</span><span class="devsite-nav-icon material-icons"
+        data-icon="external"
+        data-title="External"
+        aria-hidden="true"></span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Accelerate data access and performance</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item
+           devsite-nav-new"><a href="/kubernetes-engine/docs/how-to/persistent-volumes/run-ai-model-streamer"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Accelerate model loading with Run:ai Model Streamer and vLLM</span><span class="devsite-nav-icon material-icons"
+        data-icon="new"
+        data-title="New!"
+        aria-hidden="true"></span></a></li><li class="devsite-nav-item
+           devsite-nav-external"><a href="/kubernetes-engine/docs/concepts/cloud-storage-fuse-csi-driver"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>About Cloud Storage FUSE CSI driver for GKE</span><span class="devsite-nav-icon material-icons"
+        data-icon="external"
+        data-title="External"
+        aria-hidden="true"></span></a></li><li class="devsite-nav-item
+           devsite-nav-external"><a href="/kubernetes-engine/docs/how-to/persistent-volumes/hyperdisk-ml"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Accelerate AI/ML data loading with Hyperdisk ML</span><span class="devsite-nav-icon material-icons"
+        data-icon="external"
+        data-title="External"
+        aria-hidden="true"></span></a></li><li class="devsite-nav-item
+           devsite-nav-external"><a href="/kubernetes-engine/docs/how-to/persistent-volumes/data-cache"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Accelerate read performance of stateful workloads with GKE Data Cache</span><span class="devsite-nav-icon material-icons"
+        data-icon="external"
+        data-title="External"
+        aria-hidden="true"></span></a></li><li class="devsite-nav-item
+           devsite-nav-external"><a href="/kubernetes-engine/docs/how-to/persistent-volumes/volume-populator"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Transfer data from Cloud Storage using GKE Volume Populator</span><span class="devsite-nav-icon material-icons"
+        data-icon="external"
+        data-title="External"
+        aria-hidden="true"></span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Build applications with vector databases and RAG</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item
+           devsite-nav-external"><a href="/kubernetes-engine/docs/tutorials/build-rag-chatbot"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Build a RAG chatbot with GKE and Cloud Storage</span><span class="devsite-nav-icon material-icons"
+        data-icon="external"
+        data-title="External"
+        aria-hidden="true"></span></a></li><li class="devsite-nav-item
+           devsite-nav-external"><a href="/kubernetes-engine/docs/tutorials/deploy-qdrant"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Deploy a Qdrant vector database on GKE</span><span class="devsite-nav-icon material-icons"
+        data-icon="external"
+        data-title="External"
+        aria-hidden="true"></span></a></li></ul></div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Secure AI/ML workloads</span>
+      </div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-external"><a href="/kubernetes-engine/security/ai-security-best-practices"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Best practices for AI workload security on GKE</span><span class="devsite-nav-icon material-icons"
+        data-icon="external"
+        data-title="External"
+        aria-hidden="true"></span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-new"><a href="/kubernetes-engine/docs/tutorials/integrate-model-armor-guardrails"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Secure a serving workload on GKE with Model Armor</span><span class="devsite-nav-icon material-icons"
+        data-icon="new"
+        data-title="New!"
+        aria-hidden="true"></span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Monitor AI/ML workloads</span>
+      </div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-external"><a href="/kubernetes-engine/docs/how-to/configure-automatic-application-monitoring"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Deploy automatic application monitoring for AI/ML workloads</span><span class="devsite-nav-icon material-icons"
+        data-icon="external"
+        data-title="External"
+        aria-hidden="true"></span></a></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-heading"><div class="devsite-nav-title devsite-nav-title-no-path">
+        <span class="devsite-nav-text" tooltip>Troubleshoot</span>
+      </div></li>
+
+  <li class="devsite-nav-item
+           devsite-nav-expandable"><div class="devsite-expandable-nav">
+      <a class="devsite-nav-toggle" aria-hidden="true"></a><div class="devsite-nav-title devsite-nav-title-no-path" tabindex="0" role="button">
+        <span class="devsite-nav-text" tooltip>Troubleshoot accelerator issues</span>
+      </div><ul class="devsite-nav-section"><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/troubleshooting/gpus"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Troubleshoot GPU issues</span></a></li><li class="devsite-nav-item"><a href="/kubernetes-engine/docs/troubleshooting/tpus"
+        class="devsite-nav-title"
+      ><span class="devsite-nav-text" tooltip>Troubleshoot TPU issues</span></a></li></ul></div></li>
+          </ul>
+        
+        
+          
+    
+      
+      <ul class="devsite-nav-list" menu="Technology areas"
+          aria-label="Side menu" hidden>
+        
+          
+            
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/ai-ml"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: AI and ML"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      AI and ML
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/application-development"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Application development"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Application development
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/application-hosting"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Application hosting"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Application hosting
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/compute-area"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Compute"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Compute
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/data"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Data analytics and pipelines"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Data analytics and pipelines
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/databases"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Databases"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Databases
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/dhm-cloud"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Distributed, hybrid, and multicloud"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Distributed, hybrid, and multicloud
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/industry"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Industry solutions"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Industry solutions
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/migration"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Migration"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Migration
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/networking"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Networking"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Networking
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/observability"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Observability and monitoring"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Observability and monitoring
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/security"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Security"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Security
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/storage"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Storage"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Storage
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+          
+        
+      </ul>
+    
+  
+    
+      
+      <ul class="devsite-nav-list" menu="Cross-product tools"
+          aria-label="Side menu" hidden>
+        
+          
+            
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/access-resources"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Access and resources management"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Access and resources management
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/costs-usage"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Costs and usage management"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Costs and usage management
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/iac"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: Infrastructure as code"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      Infrastructure as code
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+              
+<li class="devsite-nav-item">
+
+  
+  <a href="/docs/devtools"
+    
+       class="devsite-nav-title gc-analytics-event
+              
+              "
+    
+
+    
+     data-category="Site-Wide Custom Events"
+     data-label="Responsive Tab: SDK, languages, frameworks, and tools"
+     track-type="navMenu"
+     track-metadata-eventDetail="globalMenu"
+     track-metadata-position="nav">
+  
+    <span class="devsite-nav-text" tooltip >
+      SDK, languages, frameworks, and tools
+   </span>
+    
+  
+  </a>
+  
+
+</li>
+
+            
+          
+        
+      </ul>
+    
+  
+        
+        
+          
+    
+  
+    
+  
+        
+      </div>
+    
+  </div>
+</nav>
+          
+        </devsite-book-nav>
+      
+      <section id="gc-wrapper">
+        <main role="main" id="main-content" class="devsite-main-content"
+            
+              has-book-nav
+              has-sidebar
+            >
+          <div class="devsite-sidebar">
+            <div class="devsite-sidebar-content">
+                
+                <devsite-toc class="devsite-nav"
+                            role="navigation"
+                            aria-label="On this page"
+                            depth="2"
+                            scrollbars
+                            data-nosnippet
+                  ></devsite-toc>
+                <devsite-recommendations-sidebar class="nocontent devsite-nav" data-nosnippet>
+                </devsite-recommendations-sidebar>
+            </div>
+          </div>
+          <devsite-content>
+            
+              
+
+
+
+
+
+
+
+
+
+
+<article class="devsite-article"><style>
+      /* Styles inlined from /kubernetes-engine/kubernetes-engine.css */
+/* Checklist in a table */
+table.checklist ul.checklist-items {
+  list-style-type: none;
+  list-style-position:outside;
+}
+
+table.checklist input[type="checkbox"],
+table.checklist input[type="checkbox"]:focus {
+  margin-left: -1.3em;
+  margin-top: 0;
+  margin-bottom: 0;
+  font-size: 20px;
+}
+
+table.gke-release-schedule td + td {
+  white-space: nowrap;
+  font-size: 88%;
+  padding-left: 3px;
+  padding-right: 3px;
+}
+      </style>
+  
+  
+  
+  
+  
+
+  <div class="devsite-article-meta nocontent" role="navigation" data-nosnippet>
+    
+    
+    <ul class="devsite-breadcrumb-list"
+  
+    aria-label="Breadcrumb">
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Breadcrumbs"
+      
+        data-value="1"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="1"
+      
+        track-metadata-eventdetail="Google Cloud Documentation"
+      
+    >
+    
+          Home
+        
+  </a>
+  
+      
+    
+  </li>
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+      
+      <div class="devsite-breadcrumb-guillemet material-icons" aria-hidden="true"></div>
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/docs"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Breadcrumbs"
+      
+        data-value="2"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="2"
+      
+        track-metadata-eventdetail="Documentation"
+      
+    >
+    
+          Documentation
+        
+  </a>
+  
+      
+    
+  </li>
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+      
+      <div class="devsite-breadcrumb-guillemet material-icons" aria-hidden="true"></div>
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/docs/application-hosting"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Breadcrumbs"
+      
+        data-value="3"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="3"
+      
+        track-metadata-eventdetail="Application hosting"
+      
+    >
+    
+          Application hosting
+        
+  </a>
+  
+      
+    
+  </li>
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+      
+      <div class="devsite-breadcrumb-guillemet material-icons" aria-hidden="true"></div>
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/kubernetes-engine/docs"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Breadcrumbs"
+      
+        data-value="4"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="4"
+      
+        track-metadata-eventdetail="Google Kubernetes Engine (GKE)"
+      
+    >
+    
+          Google Kubernetes Engine (GKE)
+        
+  </a>
+  
+      
+    
+  </li>
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+      
+      <div class="devsite-breadcrumb-guillemet material-icons" aria-hidden="true"></div>
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/kubernetes-engine/docs/integrations/ai-infra"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Breadcrumbs"
+      
+        data-value="5"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="5"
+      
+        track-metadata-eventdetail="GKE AI/ML"
+      
+    >
+    
+          GKE AI/ML
+        
+  </a>
+  
+      
+    
+  </li>
+  
+  <li class="devsite-breadcrumb-item
+             ">
+    
+      
+      <div class="devsite-breadcrumb-guillemet material-icons" aria-hidden="true"></div>
+    
+    
+    
+      
+        
+  <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning"
+      
+        class="devsite-breadcrumb-link gc-analytics-event"
+      
+        data-category="Site-Wide Custom Events"
+      
+        data-label="Breadcrumbs"
+      
+        data-value="6"
+      
+        track-type="globalNav"
+      
+        track-name="breadcrumb"
+      
+        track-metadata-position="6"
+      
+        track-metadata-eventdetail=""
+      
+    >
+    
+          Guides
+        
+  </a>
+  
+      
+    
+  </li>
+  
+</ul>
+    
+      
+    <devsite-thumb-rating position="header">
+    </devsite-thumb-rating>
+  
+    
+  </div>
+  
+    <devsite-feedback
+  position="header"
+  project-name="GKE AI/ML"
+  product-id="101662"
+  bucket="documentation"
+  context=""
+  version="t-devsite-webserver-20260714-r01-rc00.478945198367210522"
+  data-label="Send Feedback Button"
+  track-type="feedback"
+  track-name="sendFeedbackLink"
+  track-metadata-position="header"
+  class="nocontent"
+  data-nosnippet
+  
+  
+    project-feedback-url="https://issuetracker.google.com/issues/new?component=187077"
+  
+  
+    
+      project-icon="https://docs.cloud.google.com/_static/clouddocs/images/icons/products/kubernetes-engine-color.svg"
+    
+  
+  
+  
+  >
+
+  <button>
+  
+    
+    Send feedback
+  
+  </button>
+</devsite-feedback>
+  
+    <h1 class="devsite-page-title" tabindex="-1">
+      About GKE Agent Sandbox<devsite-actions hidden data-nosnippet><devsite-feature-tooltip
+      ack-key="AckCollectionsBookmarkTooltipDismiss"
+      analytics-category="Site-Wide Custom Events"
+      analytics-action-show="Callout Profile displayed"
+      analytics-action-close="Callout Profile dismissed"
+      analytics-label="Create Collection Callout"
+      class="devsite-page-bookmark-tooltip nocontent"
+      data-nosnippet
+      dismiss-button="true"
+      id="devsite-collections-dropdown"
+      
+      dismiss-button-text="Dismiss"
+
+      
+      close-button-text="Got it">
+
+    
+    
+      <devsite-bookmark></devsite-bookmark>
+    
+
+    <span slot="popout-heading">
+      
+      Stay organized with collections
+    </span>
+    <span slot="popout-contents">
+      
+      Save and categorize content based on your preferences.
+    </span>
+  </devsite-feature-tooltip>
+    <devsite-llm-tools></devsite-llm-tools></devsite-actions>
+  
+      
+    </h1>
+  
+
+  <devsite-toc class="devsite-nav"
+    depth="2"
+    devsite-toc-embedded
+    >
+  </devsite-toc>
+  
+    
+  <div class="devsite-article-body clearfix
+  ">
+
+  
+    
+    
+    
+
+    
+    <div id="tags" class="nocontent">
+    
+      
+      
+        
+        
+        
+
+  <a href="/kubernetes-engine/docs/concepts/autopilot-overview"
+
+    class="devsite-label"
+    data-title="Applies to GKE Autopilot mode." track-type="docChip" track-name="Autopilot"
+    >
+    
+      Autopilot
+    
+
+  </a>
+
+      
+    
+      
+      
+        
+        
+        
+
+  <a href="/kubernetes-engine/docs/concepts/choose-cluster-mode"
+
+    class="devsite-label"
+    data-title="Applies to GKE Standard mode." track-type="docChip" track-name="Standard"
+    >
+    
+      Standard
+    
+
+  </a>
+
+      
+    
+    </div>
+  
+
+    
+
+<p>Google Kubernetes Engine (GKE) Agent Sandbox helps you manage isolated, stateful,
+and single-replica workloads on GKE. It is optimized
+for use cases like AI agent runtimes, where untrusted, LLM-generated code must
+be executed in a secure and performant environment.</p>
+
+<p>The GKE Agent
+Sandbox add-on is based on the <a href="https://github.com/kubernetes-sigs/agent-sandbox/">open-source Agent Sandbox controller
+project</a> and follows its
+release cycles. As a managed GKE
+add-on, Google manages the full lifecycle of the controller, including automatic
+upgrades and security patches.</p>
+
+<p>This document provides a conceptual overview of GKE Agent
+Sandbox.</p>
+
+<h2 id="why" data-text="Why use GKE Agent Sandbox" tabindex="-1">Why use GKE Agent Sandbox</h2>
+
+<p>GKE Agent Sandbox is built for agentic workloads that require
+high-level scale, extensibility, and security. Key benefits include:</p>
+
+<ul>
+<li><p><strong>Kernel-level isolation</strong>: Provides strong, kernel-level isolation for
+untrusted, LLM-generated code. Agent Sandbox also works with open source
+<a href="https://katacontainers.io/">Kata Containers</a>. For a tutorial about using
+open source Kata Containers with GKE Agent Sandbox, see
+<a href="https://github.com/kubernetes-sigs/agent-sandbox/tree/main/examples/kata-gke-sandbox">Enabling Kata Containers on GKE</a>.</p>
+<aside class="note"><strong>Note:</strong><span> Kata Containers isn&#39;t a Google Cloud product. If you install and
+use this software, then you&#39;re responsible for management and
+troubleshooting. Google&#39;s support and SLAs don&#39;t apply to Kata Containers.</span></aside></li>
+<li><p><strong>Sub-second provisioning</strong>: Offers an out-of-the-box mechanism to provide
+sandboxes significantly faster than standard Kubernetes Pod scheduling
+allows (typically &lt;1s).</p></li>
+<li><p><strong>Cloud-native extensibility</strong>: Leverages the power of the Kubernetes
+paradigm and the managed infrastructure of GKE.</p></li>
+</ul>
+
+<p>By providing a declarative, standardized API, GKE Agent Sandbox
+offers a single-container experience that provides isolation and persistence
+characteristics similar to a virtual machine (VM), built entirely on Kubernetes
+primitives.</p>
+
+<h2 id="when" data-text="Common use cases for Agent Sandbox" tabindex="-1">Common use cases for Agent Sandbox</h2>
+
+<p>Use GKE Agent Sandbox for workloads that require isolation,
+persistence, and a stable identity. Example use cases include:</p>
+
+<ul>
+<li><strong>AI agent runtimes</strong>: Safely execute untrusted code in an environment
+isolated by security-focused runtimes like <a href="https://gvisor.dev/">gVisor</a>.</li>
+<li><strong>Development environments</strong>: Provide developers with persistent, isolated
+cloud-based coding environments.</li>
+<li><strong>Notebooks and research tools</strong>: Host single-container sessions for
+interactive tools like Jupyter Notebooks.</li>
+<li><strong>Stateful single-Pod services</strong>: Run applications that need a stable
+identity and storage without the complexity of a <code translate="no" dir="ltr">StatefulSet</code>.</li>
+<li><strong>Programmatic environment management</strong>: Use provided client library SDKS, such as the <a href="https://github.com/kubernetes-sigs/agent-sandbox/tree/main/clients/python/agentic-sandbox-client">Agent Sandbox Python SDK</a>, to request and manage sandboxes directly from your application logic without managing Kubernetes YAML.</li>
+</ul>
+
+<h2 id="how-it-works" data-text="How GKE Agent Sandbox works" tabindex="-1">How GKE Agent Sandbox works</h2>
+
+<p>GKE Agent Sandbox uses a custom controller and several Kubernetes
+Custom Resource Definitions (CRDs) to manage the lifecycle of sandboxed
+environments.</p>
+
+<h3 id="core-architecture" data-text="Core architecture" tabindex="-1">Core architecture</h3>
+
+<ul>
+<li><strong><a href="/kubernetes-engine/docs/reference/crds/agentsandbox">Sandbox CRD</a></strong>: The primary resource that represents a single, stateful
+Pod. It manages stable hostnames, network identity, and persistent storage.</li>
+<li><strong>Sandbox Router</strong>: A component that provides a stable endpoint and tunnels
+traffic to the appropriate Sandbox Pods, abstracting the underlying
+networking complexity.</li>
+<li><strong>Integration with Pod snapshots</strong>: GKE Agent Sandbox
+integrates with the <a href="/kubernetes-engine/docs/how-to/agent-sandbox-pod-snapshots">GKE Pod snapshots</a> feature to allow
+pausing and resuming workloads by saving and restoring the full state of a
+container.</li>
+</ul>
+
+<h3 id="claim-model" data-text="Claim Model" tabindex="-1">Claim Model</h3>
+
+<p>The <strong>Claim Model</strong> is a key feature that separates the user&#39;s request for an
+environment from the specific implementation details, such as where and how the
+workload is provisioned. Unlike a standard Kubernetes <code translate="no" dir="ltr">StatefulSet</code>, the Claim
+Model lets you request a sandbox without needing to manage the underlying
+Pod or storage configurations directly.</p>
+
+<p>The Claim Model is managed using the
+<a href="/kubernetes-engine/docs/reference/crds/agentsandbox#sandboxclaim"><code translate="no" dir="ltr">SandboxClaim</code></a> and
+<a href="/kubernetes-engine/docs/reference/crds/agentsandbox#sandboxtemplate"><code translate="no" dir="ltr">SandboxTemplate</code></a> CRDs, and works as follows:</p>
+
+<ol>
+<li>Users or applications request a Sandbox by creating a <code translate="no" dir="ltr">SandboxClaim</code> that
+references a <code translate="no" dir="ltr">SandboxTemplate</code>.</li>
+<li>The controller handles the mapping of the claim to an actual Sandbox
+instance, offering flexible backend management. This allows the system to
+reuse existing Sandboxes or allocate from a pool.</li>
+</ol>
+
+<h3 id="warm-pools" data-text="Warm Pools" tabindex="-1">Warm Pools</h3>
+
+<p>The <strong>Warm Pool</strong> feature is designed to minimize startup latency, which is critical for interactive
+AI agent scenarios. This feature allows the Agent Sandbox to provide execution environments in less than one second, significantly faster than typical Pod scheduling. The feature is managed using the
+<a href="/kubernetes-engine/docs/reference/crds/agentsandbox#sandboxwarmpool"><code translate="no" dir="ltr">SandboxWarmPool</code></a>
+CRD and works in the following way:</p>
+
+<ol>
+<li>A <code translate="no" dir="ltr">SandboxWarmPool</code> maintains a set of pre-warmed Pod instances in a ready
+state.</li>
+<li>When a <code translate="no" dir="ltr">SandboxClaim</code> is made, the controller instantly assigns a Pod from
+the pool instead of waiting for a new Pod to pull images and start from
+scratch.</li>
+<li>When combined with Pod snapshots, warm pools provide fast, &quot;instant-on&quot;
+capabilities by restoring Pods from a pre-configured state.</li>
+</ol>
+
+<h3 id="network-isolation" data-text="Network isolation" tabindex="-1">Network isolation</h3>
+
+<p>GKE Agent Sandbox implements a <strong>Default Deny</strong> network security posture for all
+sandboxed environments. This ensures that untrusted code executed inside a
+sandbox cannot access unauthorized internal networks or the GKE
+control plane by default. You can define specific network restrictions and
+allowed egress or ingress rules within your <code translate="no" dir="ltr">SandboxTemplate</code> to provide
+fine-grained security for agentic workloads.</p>
+
+<h3 id="sdk" data-text="Programmatic access with SDKs" tabindex="-1">Programmatic access with SDKs</h3>
+
+<p>AI engineers can consume GKE Agent Sandbox resources
+programmatically using provided client libraries. For example, the <a href="https://github.com/kubernetes-sigs/agent-sandbox/tree/main/clients/python/agentic-sandbox-client">Python
+SDK</a> provides a high-level interface that abstracts the
+underlying <code translate="no" dir="ltr">SandboxClaim</code> and <code translate="no" dir="ltr">SandboxTemplate</code> configurations. This lets you create and interact with isolated environments directly from your Python-based
+agent frameworks like LangChain or the Vertex AI Agentic SDK.</p>
+
+<h2 id="limitations" data-text="Limitations and requirements" tabindex="-1">Limitations and requirements</h2>
+
+<p>GKE Agent Sandbox has the following limitations and requirements:</p>
+
+<ul>
+<li><strong>Cluster version</strong>: Requires GKE version 1.35.2-gke.1269000 or later for full feature support (including snapshots).</li>
+<li><strong>Infrastructure requirements</strong>: Optimized for specific node configurations (such as N2 machine types) and requires the Agent Sandbox controller to be <a href="/kubernetes-engine/docs/how-to/how-install-agent-sandbox">installed and configured</a> on the cluster.</li>
+<li><strong>Isolation runtimes</strong>: While it supports multiple runtimes, it is primarily intended to be used with security-hardened runtimes like gVisor.</li>
+<li><strong>Underlying features availability</strong>: Some underlying features, such as <a href="/kubernetes-engine/docs/concepts/pod-snapshots">GKE Pod snapshots</a>, might be in Preview or have specific regional availability.</li>
+</ul>
+
+<h2 id="whats_next" data-text="What's next" tabindex="-1">What's next</h2>
+
+<ul>
+<li><a href="/kubernetes-engine/docs/how-to/how-install-agent-sandbox">Learn how to enable Agent Sandbox on GKE</a>.</li>
+<li>Learn more about <a href="/kubernetes-engine/docs/how-to/agent-sandbox">isolating AI code execution with Agent Sandbox</a>.</li>
+<li>To learn how to use Pod snapshots with Agent Sandbox, see <a href="/kubernetes-engine/docs/how-to/agent-sandbox-pod-snapshots">Save and restore
+Agent Sandbox environments with Pod snapshots</a>.</li>
+<li>Learn how to use open source
+<a href="https://github.com/kubernetes-sigs/agent-sandbox/tree/main/examples/kata-gke-sandbox">Kata Containers with Agent Sandbox</a>.
+Kata Containers isn&#39;t a Google Cloud product. If you install and use
+this software, then you&#39;re responsible for management and troubleshooting.
+Google&#39;s support and SLAs don&#39;t apply to Kata Containers.</li>
+<li>For the underlying open-source implementation, see the <a href="https://github.com/kubernetes-sigs/agent-sandbox/">Agent Sandbox GitHub
+project</a>.</li>
+<li>For example runtimes and YAML configurations for scenarios such as code
+execution or computer use, see the <a href="https://github.com/kubernetes-sigs/agent-sandbox/tree/main/examples">Agent Sandbox examples</a>.</li>
+<li>To interact with sandboxes programmatically, see the
+<a href="https://github.com/kubernetes-sigs/agent-sandbox/blob/main/clients/python/agentic-sandbox-client/README.md">Agent Sandbox Python SDK README</a>
+on GitHub.</li>
+</ul>
+
+
+  
+  
+
+  
+    <devsite-hats-survey class="nocontent" data-nosnippet
+      hats-id="h58tfPFsD0qCaziWjaf0Ngq5PVwJ"
+      listnr-id="5263128"></devsite-hats-survey>
+  
+
+  
+</div>
+
+  
+    
+    
+      
+    <devsite-thumb-rating position="footer">
+    </devsite-thumb-rating>
+  
+       
+         <devsite-feedback
+  position="footer"
+  project-name="GKE AI/ML"
+  product-id="101662"
+  bucket="documentation"
+  context=""
+  version="t-devsite-webserver-20260714-r01-rc00.478945198367210522"
+  data-label="Send Feedback Button"
+  track-type="feedback"
+  track-name="sendFeedbackLink"
+  track-metadata-position="footer"
+  class="nocontent"
+  data-nosnippet
+  
+  
+    project-feedback-url="https://issuetracker.google.com/issues/new?component=187077"
+  
+  
+    
+      project-icon="https://docs.cloud.google.com/_static/clouddocs/images/icons/products/kubernetes-engine-color.svg"
+    
+  
+  
+  
+  >
+
+  <button>
+  
+    
+    Send feedback
+  
+  </button>
+</devsite-feedback>
+       
+    
+    
+  
+
+  <div class="devsite-floating-action-buttons"></div></article>
+
+
+<devsite-content-footer class="nocontent" data-nosnippet>
+  <p>Except as otherwise noted, the content of this page is licensed under the <a href="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 License</a>, and code samples are licensed under the <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache 2.0 License</a>. For details, see the <a href="https://developers.google.com/site-policies">Google Developers Site Policies</a>. Java is a registered trademark of Oracle and/or its affiliates.</p>
+  <p>Last updated 2026-07-17 UTC.</p>
+</devsite-content-footer>
+
+
+<devsite-notification
+>
+</devsite-notification>
+
+
+  
+<div class="devsite-content-data">
+  
+    
+    
+    <template class="devsite-thumb-rating-feedback">
+      <devsite-feedback
+  position="thumb-rating"
+  project-name="GKE AI/ML"
+  product-id="101662"
+  bucket="documentation"
+  context=""
+  version="t-devsite-webserver-20260714-r01-rc00.478945198367210522"
+  data-label="Send Feedback Button"
+  track-type="feedback"
+  track-name="sendFeedbackLink"
+  track-metadata-position="thumb-rating"
+  class="nocontent"
+  data-nosnippet
+  
+  
+    project-feedback-url="https://issuetracker.google.com/issues/new?component=187077"
+  
+  
+    
+      project-icon="https://docs.cloud.google.com/_static/clouddocs/images/icons/products/kubernetes-engine-color.svg"
+    
+  
+  
+  
+  >
+
+  <button>
+  
+    Need to tell us more?
+  
+  </button>
+</devsite-feedback>
+    </template>
+  
+  
+    <template class="devsite-content-data-template">
+      [[["Easy to understand","easyToUnderstand","thumb-up"],["Solved my problem","solvedMyProblem","thumb-up"],["Other","otherUp","thumb-up"]],[["Hard to understand","hardToUnderstand","thumb-down"],["Incorrect information or sample code","incorrectInformationOrSampleCode","thumb-down"],["Missing the information/samples I need","missingTheInformationSamplesINeed","thumb-down"],["Other","otherDown","thumb-down"]],["Last updated 2026-07-17 UTC."],[],[]]
+    </template>
+  
+</div>
+            
+          </devsite-content>
+        </main>
+        <devsite-footer-promos class="devsite-footer">
+          
+            
+          
+        </devsite-footer-promos>
+        <devsite-footer-linkboxes class="devsite-footer">
+          
+            
+<nav class="devsite-footer-linkboxes nocontent"
+     aria-label="Footer links"
+     data-nosnippet>
+  
+  <ul class="devsite-footer-linkboxes-list">
+    
+    <li class="devsite-footer-linkbox ">
+    <h3 class="devsite-footer-linkbox-heading no-link">Products and pricing</h3>
+      <ul class="devsite-footer-linkbox-list">
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/products/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 1)"
+            track-metadata-eventDetail="cloud.google.com/products/"track-metadata-module="footer"track-metadata-child_headline="products and pricing"track-type="footer link"track-metadata-position="footer"track-name="see all products">
+            
+          
+            See all products
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/pricing/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 2)"
+            track-metadata-position="footer"track-type="footer link"track-name="google cloud pricing"track-metadata-eventDetail="cloud.google.com/pricing/"track-metadata-child_headline="products and pricing"track-metadata-module="footer">
+            
+          
+            Google Cloud pricing
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/marketplace/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 3)"
+            track-metadata-child_headline="resources"track-metadata-module="footer"track-metadata-eventDetail="cloud.google.com/marketplace/"track-name="google cloud marketplace"track-metadata-position="footer"track-type="footer link">
+            
+          
+            Google Cloud Marketplace
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/contact/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 4)"
+            track-metadata-child_headline="engage"track-metadata-module="footer"track-metadata-eventDetail="cloud.google.com/contact/"track-name="contact sales"track-metadata-position="footer"track-type="footer link">
+            
+              
+              
+            
+          
+            Contact sales
+          
+          </a>
+          
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+    <li class="devsite-footer-linkbox ">
+    <h3 class="devsite-footer-linkbox-heading no-link">Support</h3>
+      <ul class="devsite-footer-linkbox-list">
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//discuss.google.dev/c/google-cloud/14/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 1)"
+            target="_blank"track-name="google cloud community"track-metadata-position="footer"track-type="footer link"track-metadata-child_headline="engage"track-metadata-module="footer"rel="noopener"track-metadata-eventDetail="www.googlecloudcommunity.com">
+            
+          
+            Community forums
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/support-hub/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 2)"
+            track-metadata-eventDetail="cloud.google.com/support-hub/"track-metadata-child_headline="resources"track-metadata-module="footer"track-metadata-position="footer"track-type="footer link"track-name="support">
+            
+          
+            Support
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//docs.cloud.google.com/release-notes"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 3)"
+            track-type="footer link"track-metadata-position="footer"track-name="release notes"track-metadata-eventDetail="cloud.google.com/release-notes/"track-metadata-module="footer"track-metadata-child_headline="resources">
+            
+          
+            Release Notes
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//status.cloud.google.com"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 4)"
+            track-name="system status"target="_blank"track-type="footer link"track-metadata-position="footer"track-metadata-module="footer"track-metadata-child_headline="resources"track-metadata-eventDetail="status.cloud.google.com">
+            
+              
+              
+            
+          
+            System status
+          
+          </a>
+          
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+    <li class="devsite-footer-linkbox ">
+    <h3 class="devsite-footer-linkbox-heading no-link">Resources</h3>
+      <ul class="devsite-footer-linkbox-list">
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//github.com/googlecloudPlatform/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 1)"
+            track-metadata-eventDetail="github.com/googlecloudPlatform/"track-metadata-module="footer"track-metadata-child_headline="resources"track-type="footer link"track-metadata-position="footer"track-name="github">
+            
+          
+            GitHub
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="/docs/get-started/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 2)"
+            track-type="footer link"track-metadata-position="footer"track-name="google cloud quickstarts"track-metadata-eventDetail="cloud.google.com/docs/get-started/"track-metadata-module="footer"track-metadata-child_headline="resources">
+            
+          
+            Getting Started with Google Cloud
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="/docs/samples"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 3)"
+            track-metadata-module="footer"track-metadata-child_headline="resources"track-metadata-eventDetail="cloud.google.com/docs/samples"track-name="code samples"track-type="footer link"track-metadata-position="footer">
+            
+          
+            Code samples
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="/architecture/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 4)"
+            track-type="footer link"track-metadata-position="footer"track-name="cloud architecture center"track-metadata-eventDetail="cloud.google.com/architecture/"track-metadata-module="footer"track-metadata-child_headline="resources">
+            
+          
+            Cloud Architecture Center
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/learn/training/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 5)"
+            track-metadata-module="footer"track-metadata-child_headline="resources"track-metadata-eventDetail="cloud.google.com/learn/training/"track-name="training"track-type="footer link"track-metadata-position="footer">
+            
+              
+              
+            
+          
+            Training and Certification
+          
+          </a>
+          
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+    <li class="devsite-footer-linkbox ">
+    <h3 class="devsite-footer-linkbox-heading no-link">Engage</h3>
+      <ul class="devsite-footer-linkbox-list">
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/blog/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 1)"
+            track-name="blog"track-type="footer link"track-metadata-position="footer"track-metadata-module="footer"track-metadata-child_headline="engage"track-metadata-eventDetail="cloud.google.com/blog/">
+            
+          
+            Blog
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//cloud.google.com/events/"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 2)"
+            track-metadata-eventDetail="cloud.google.com/events/"track-metadata-module="footer"track-metadata-child_headline="engage"track-type="footer link"track-metadata-position="footer"track-name="events">
+            
+          
+            Events
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//x.com/googlecloud"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 3)"
+            track-type="footer link"track-metadata-position="footer"track-name="follow on x"target="_blank"rel="noopener"track-metadata-eventDetail="x.com/googlecloud"track-metadata-module="footer"track-metadata-child_headline="engage">
+            
+          
+            X (Twitter)
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//www.youtube.com/googlecloud"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 4)"
+            track-metadata-module="footer"track-metadata-child_headline="engage"track-metadata-eventDetail="www.youtube.com/googlecloud"rel="noopener"track-name="google cloud on youtube"target="_blank"track-type="footer link"track-metadata-position="footer">
+            
+          
+            Google Cloud on YouTube
+          
+          </a>
+          
+          
+        </li>
+        
+        <li class="devsite-footer-linkbox-item">
+          
+          <a href="//www.youtube.com/googlecloudplatform"
+             class="devsite-footer-linkbox-link gc-analytics-event"
+             data-category="Site-Wide Custom Events"
+            
+             data-label="Footer Link (index 5)"
+            track-metadata-eventDetail="www.youtube.com/googlecloudplatform"rel="noopener"track-metadata-child_headline="engage"track-metadata-module="footer"track-metadata-position="footer"track-type="footer link"target="_blank"track-name="google cloud tech on youtube">
+            
+              
+              
+            
+          
+            Google Cloud Tech on YouTube
+          
+          </a>
+          
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+  </ul>
+  
+</nav>
+          
+        </devsite-footer-linkboxes>
+        <devsite-footer-utility class="devsite-footer">
+          
+            
+
+<div class="devsite-footer-utility nocontent" data-nosnippet>
+  
+
+  
+  <nav class="devsite-footer-utility-links" aria-label="Utility links">
+    
+    <ul class="devsite-footer-utility-list">
+      
+      <li class="devsite-footer-utility-item
+                 ">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//about.google/"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer About Google link"
+         
+           target="_blank"
+         
+           track-name="about google"
+         
+           track-metadata-position="footer"
+         
+           track-type="footer link"
+         
+           track-metadata-module="utility footer"
+         
+           track-metadata-eventDetail="//about.google/"
+         >
+          About Google
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 devsite-footer-privacy-link">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//policies.google.com/privacy"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Privacy link"
+         
+           track-type="footer link"
+         
+           track-metadata-position="footer"
+         
+           track-name="privacy"
+         
+           target="_blank"
+         
+           track-metadata-eventDetail="//policies.google.com/privacy"
+         
+           track-metadata-module="utility footer"
+         >
+          Privacy
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 ">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//policies.google.com/terms?hl=en"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Site terms link"
+         
+           track-metadata-position="footer"
+         
+           track-type="footer link"
+         
+           target="_blank"
+         
+           track-name="site terms"
+         
+           track-metadata-eventDetail="//www.google.com/intl/en/policies/terms/regional.html"
+         
+           track-metadata-module="utility footer"
+         >
+          Site terms
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 ">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//cloud.google.com/product-terms"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Google Cloud terms link"
+         
+           track-metadata-module="utility footer"
+         
+           track-metadata-eventDetail="//cloud.google.com/product-terms"
+         
+           track-name="google cloud terms"
+         
+           track-metadata-position="footer"
+         
+           track-type="footer link"
+         >
+          Google Cloud terms
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 glue-cookie-notification-bar-control">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="#"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Manage cookies link"
+         
+           track-metadata-eventDetail="#"
+         
+           aria-hidden="true"
+         
+           track-metadata-module="utility footer"
+         
+           track-metadata-position="footer"
+         
+           track-type="footer link"
+         
+           track-name="Manage cookies"
+         >
+          Manage cookies
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 devsite-footer-carbon-button">
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//cloud.google.com/sustainability"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Our third decade of climate action: join us link"
+         
+           track-name="Our third decade of climate action: join us"
+         
+           track-type="footer link"
+         
+           track-metadata-position="footer"
+         
+           track-metadata-module="utility footer"
+         
+           track-metadata-eventDetail="/sustainability/"
+         >
+          Our third decade of climate action: join us
+        </a>
+        
+      </li>
+      
+      <li class="devsite-footer-utility-item
+                 devsite-footer-utility-button">
+        
+        <span class="devsite-footer-utility-description">Sign up for the Google Cloud newsletter</span>
+        
+        
+        <a class="devsite-footer-utility-link gc-analytics-event"
+           href="//cloud.google.com/newsletter/"
+           data-category="Site-Wide Custom Events"
+           data-label="Footer Subscribe link"
+         
+           track-metadata-module="utility footer"
+         
+           track-metadata-eventDetail="/newsletter/"
+         
+           track-name="subscribe"
+         
+           track-type="footer link"
+         
+           track-metadata-position="footer"
+         >
+          Subscribe
+        </a>
+        
+      </li>
+      
+    </ul>
+    
+    
+<devsite-language-selector>
+  <ul role="presentation">
+    
+    
+    <li role="presentation">
+      <a role="menuitem" lang="en"
+        >English</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="de"
+        >Deutsch</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="es_419"
+        >Español – América Latina</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="fr"
+        >Français</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="id"
+        >Indonesia</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="it"
+        >Italiano</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="pt_br"
+        >Português – Brasil</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="he"
+        >עברית</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="zh_cn"
+        >中文 – 简体</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="zh_tw"
+        >中文 – 繁體</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="ja"
+        >日本語</a>
+    </li>
+    
+    <li role="presentation">
+      <a role="menuitem" lang="ko"
+        >한국어</a>
+    </li>
+    
+  </ul>
+</devsite-language-selector>
+
+  </nav>
+</div>
+          
+        </devsite-footer-utility>
+        <devsite-panel>
+          
+        </devsite-panel>
+        
+      </section>
+      </section>
+    <devsite-sitemask></devsite-sitemask>
+    <devsite-snackbar></devsite-snackbar>
+    <devsite-tooltip ></devsite-tooltip>
+    <devsite-heading-link></devsite-heading-link>
+    <devsite-analytics>
+      
+        <script type="application/json" analytics>[]</script>
+<script type="application/json" tag-management>{&#34;at&#34;: &#34;True&#34;, &#34;ga4&#34;: [], &#34;ga4p&#34;: [], &#34;gtm&#34;: [{&#34;id&#34;: &#34;GTM-5CVQBG&#34;, &#34;purpose&#34;: 1}], &#34;parameters&#34;: {&#34;internalUser&#34;: &#34;False&#34;, &#34;language&#34;: {&#34;machineTranslated&#34;: &#34;False&#34;, &#34;requested&#34;: &#34;en&#34;, &#34;served&#34;: &#34;en&#34;}, &#34;pageType&#34;: &#34;article&#34;, &#34;projectName&#34;: &#34;GKE AI/ML&#34;, &#34;signedIn&#34;: &#34;False&#34;, &#34;tenant&#34;: &#34;clouddocs&#34;, &#34;recommendations&#34;: {&#34;sourcePage&#34;: &#34;&#34;, &#34;sourceType&#34;: 0, &#34;sourceRank&#34;: 0, &#34;sourceIdenticalDescriptions&#34;: 0, &#34;sourceTitleWords&#34;: 0, &#34;sourceDescriptionWords&#34;: 0, &#34;experiment&#34;: &#34;&#34;}, &#34;experiment&#34;: {&#34;ids&#34;: &#34;&#34;}}}</script>
+      
+    </devsite-analytics>
+    
+      <devsite-badger></devsite-badger>
+    
+    
+    <cloudx-user></cloudx-user>
+
+
+
+  <cloudx-free-trial-eligible-store freeTrialEligible="true"></cloudx-free-trial-eligible-store>
+
+    
+<script nonce="8YCqOgN9OQj0Bgb30lumAUf191G71c">
+  
+  (function(d,e,v,s,i,t,E){d['GoogleDevelopersObject']=i;
+    t=e.createElement(v);t.async=1;t.src=s;E=e.getElementsByTagName(v)[0];
+    E.parentNode.insertBefore(t,E);})(window, document, 'script',
+    'https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/js/app_loader.js', '[39,"en",null,"/js/devsite_app_module.js","https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426","https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs","https://clouddocs-dot-devsite-v2-prod.appspot.com",null,null,["/_pwa/clouddocs/manifest.json","https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/images/video-placeholder.svg","https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/images/favicons/onecloud/favicon.ico","https://www.gstatic.com/devrel-devsite/prod/v544324a32f4e1e28baf5bd35dca83b6157fef32c5ffbe146b7ca395602e11426/clouddocs/images/lockup_full_color.svg","https://fonts.googleapis.com/css?family=Google+Sans:400,500|Roboto:400,400italic,500,500italic,700,700italic|Roboto+Mono:400,500,700&display=swap"],1,null,[1,6,8,12,14,17,21,25,50,52,63,70,75,76,80,87,91,92,93,97,98,100,101,102,103,104,105,107,108,109,110,112,113,116,117,118,120,122,124,125,126,127,129,130,131,132,133,134,135,136,138,140,141,147,148,149,151,152,156,157,158,159,161,163,164,168,169,170,179,180,182,183,186,191,193,196],"AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","docs.cloud.google.com","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000",null,null,null,["AIStudioInteractionsToggle__interactions_are_default","MiscFeatureFlags__enable_dark_theme","Profiles__enable_developer_profiles_callout","Analytics__enable_clearcut_logging","Concierge__enable_remove_info_panel_tags","DevPro__enable_devsite_captcha","CloudShell__cloud_code_overflow_menu","MiscFeatureFlags__enable_variable_operator","Profiles__enable_purchase_prompts","MiscFeatureFlags__fix_lower_breadcrumbs","EngEduTelemetry__enable_engedu_telemetry","Cloud__enable_cloud_dlp_service","MiscFeatureFlags__gdp_dashboard_reskin_enabled","TpcFeatures__enable_unmirrored_page_left_nav","BookNav__enable_tenant_cache_key","Profiles__enable_user_type","MiscFeatureFlags__enable_variable_operator_index_yaml","Cloud__enable_cloud_shell","Profiles__enable_developer_profile_benefits_ui_redesign","MiscFeatureFlags__enable_appearance_cookies","MiscFeatureFlags__developers_footer_dark_image","Concierge__enable_concierge_restricted","Profiles__enable_targeted_hero","MiscFeatureFlags__enable_project_variables","SignIn__enable_l1_signup_flow","Profiles__enable_completequiz_endpoint","Profiles__enable_join_program_group_endpoint","DevPro__enable_free_benefits","DevPro__enable_enterprise","Concierge__enable_devsite_llm_tools","DevPro__enable_g1_integration","Analytics__enable_devpro_interaction_logging","Search__enable_page_map","OnSwitch__enable","MiscFeatureFlags__enable_framebox_badge_methods","Concierge__enable_pushui","DevPro__enable_credits_banner","Search__enable_ai_search_summaries_for_all","DevPro__enable_google_one_card","Cloud__enable_free_trial_server_call","CloudShell__cloud_shell_button","Cloud__cache_serialized_dynamic_content","MiscFeatureFlags__enable_view_transitions","Search__enable_ai_eligibility_checks","Search__enable_suggestions_from_borg","Profiles__enable_developer_profile_pages_as_content","Search__enable_dynamic_content_confidential_banner","MiscFeatureFlags__enable_explicit_template_dependencies","Cloud__fast_free_trial","Cloud__enable_cloudx_experiment_ids","DevPro__enable_developer_subscriptions","DevPro__enable_code_assist","Profiles__enable_stripe_subscription_management","DevPro__enable_devpro_offers","Profiles__enable_auto_apply_credits","DevPro__enable_embed_profile_creation","Profiles__enable_callout_notifications","Profiles__enable_playlist_community_acl","MiscFeatureFlags__enable_firebase_utm","DevPro__enable_nvidia_credits_card","DevPro__enable_g1_ineligible_redirect","TpcFeatures__proxy_prod_host","DevPro__enable_vertex_credit_card","MiscFeatureFlags__remove_cross_domain_tracking_params","Profiles__enable_dashboard_curated_recommendations","Cloud__enable_legacy_calculator_redirect","Profiles__require_profile_eligibility_for_signin","Experiments__reqs_query_experiments","DevPro__enable_cloud_innovators_plus","Profiles__enable_awarding_url","DevPro__remove_eu_tax_intake_form","Concierge__enable_actions_menu","Cloud__enable_cloud_shell_fte_user_flow","MiscFeatureFlags__enable_explain_this_code","DevPro__enable_firebase_workspaces_card","MiscFeatureFlags__developers_footer_image","Profiles__enable_profile_collections","DevPro__enable_google_payments_buyflow","Profiles__enable_completecodelab_endpoint","Profiles__enable_recognition_badges","Profiles__enable_complete_playlist_endpoint","Profiles__enable_page_saving","Profiles__enable_public_developer_profiles"],null,null,"AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","https://developerscontentserving-pa.clients6.google.com","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","https://developerscontentsearch-pa.clients6.google.com",1,4,1,"https://developerprofiles-pa.clients6.google.com",[39,"clouddocs","Google Cloud Documentation","docs.cloud.google.com",null,"clouddocs-dot-devsite-v2-prod.appspot.com",null,null,[1,1,null,null,null,null,null,null,null,null,null,[1],null,null,null,null,null,1,[1],[null,null,null,[1,20],"/terms/recommendations"],[1],null,[1],[1,null,1],null,[1]],null,[54,null,null,null,null,null,"/images/lockup_full_color.svg","/images/favicons/onecloud/apple-icon.png",null,null,null,1,1,1,1,null,[],null,null,[[],[],[],[],[],[],[],[]],null,1,null,null,null,"/images/lockup_dark_theme.svg",[]],[],null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,[6,1,14,15,22,23,29,37],null,[[null,null,null,null,null,null,[1,[["docType","Choose a content type",[["ApiReference",null,null,null,null,null,null,null,null,"API reference"],["Sample",null,null,null,null,null,null,null,null,"Code sample"],["ReferenceArchitecture",null,null,null,null,null,null,null,null,"Reference architecture"],["Tutorial",null,null,null,null,null,null,null,null,"Tutorial"]]],["category","Choose a topic",[["AiAndMachineLearning",null,null,null,null,null,null,null,null,"Artificial intelligence and machine learning (AI/ML)"],["ApplicationDevelopment",null,null,null,null,null,null,null,null,"Application development"],["BigDataAndAnalytics",null,null,null,null,null,null,null,null,"Big data and analytics"],["Compute",null,null,null,null,null,null,null,null,"Compute"],["Containers",null,null,null,null,null,null,null,null,"Containers"],["Databases",null,null,null,null,null,null,null,null,"Databases"],["HybridCloud",null,null,null,null,null,null,null,null,"Hybrid and multicloud"],["LoggingAndMonitoring",null,null,null,null,null,null,null,null,"Logging and monitoring"],["Migrations",null,null,null,null,null,null,null,null,"Migrations"],["Networking",null,null,null,null,null,null,null,null,"Networking"],["SecurityAndCompliance",null,null,null,null,null,null,null,null,"Security and compliance"],["Serverless",null,null,null,null,null,null,null,null,"Serverless"],["Storage",null,null,null,null,null,null,null,null,"Storage"]]]]]],[1],null,1],[[null,null,null,null,null,["GTM-5CVQBG"],null,null,null,null,null,[["GTM-5CVQBG",2]],1],null,null,null,null,null,1],"mwETRvWii0eU5NUYprb0Y9z5GVbc",4],null,"pk_live_5170syrHvgGVmSx9sBrnWtA5luvk9BwnVcvIi7HizpwauFG96WedXsuXh790rtij9AmGllqPtMLfhe2RSwD6Pn38V00uBCydV4m",1,null,"https://developerscontentinsights-pa.clients6.google.com","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","AIza_REDACTED_PUBLIC_WEB_KEY_x0000000","https://developers.clients6.google.com",null,null,"AIza_REDACTED_PUBLIC_WEB_KEY_x0000000\n",null,null,"https://developers.googleapis.com"]')
+  
+</script>
+
+    <devsite-a11y-announce></devsite-a11y-announce>
+  </body>
+</html>

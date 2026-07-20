@@ -608,9 +608,9 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
    * crochets (le déficit d'ancrage ne disparaît pas avec la reformulation).
    */
   const LEGACY_CLAIM_IDS = [
-    'RPL-01', 'RPL-02', 'RPL-03', 'RPL-04', 'RPL-05', 'RPL-06', 'RPL-09',
-    'RPL-10', 'RPL-13', 'RPL-14', 'RPL-16', 'GCP-01', 'GCP-02', 'GCP-03',
-    'GCP-04', 'GCP-06', 'GCP-07', 'GCP-08', 'GCP-09', 'GCP-10', 'NIX-01',
+    // VIDE depuis le 20/07 (lot registres) : les 21 claims hérités sont ancrés
+    // URL+snapshot+hash dans PUBLIC_BASELINE (P0-A2-15). Toute nouvelle claim
+    // citée sans ancrage revient ici EN ATTENDANT son ancrage — jamais ignorée.
   ];
   const unanchoredClaims = [...new Set([...citedClaimIds, ...LEGACY_CLAIM_IDS])]
     .filter((id) => !anchoredClaimIds.has(id))
@@ -629,6 +629,38 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
   const presentServiceIds2 = new Set(serviceUniverse.map((s) => s.serviceId));
   const missingServiceUniverseIds = EXPECTED_SERVICE_UNIVERSE_IDS.filter((id) => !presentServiceIds2.has(id));
   const unevaluatedSurfaces = universe.filter((s) => !['SUPPORTED', 'UNSUPPORTED', 'NOT_APPLICABLE'].includes(s.availability));
+
+  /* Univers canonique (passe 1 dédup) : cohérence vérifiée par la machine. */
+  const canon = surfaces.canonicalUniverse ?? {};
+  const canonIssues = [];
+
+  {
+    const declaredIds = new Set((surfaces.surfaces ?? []).map((s) => s.surfaceId));
+    const aliases = canon.aliases ?? [];
+    const additional = canon.additionalCanonical ?? [];
+
+    for (const a of aliases) {
+      if (!declaredIds.has(a.declaredId)) {
+        canonIssues.push(`alias declaredId inconnu: ${a.declaredId}`);
+      }
+
+      if (!presentUniverseIds.has(a.canonicalId)) {
+        canonIssues.push(`alias canonicalId hors univers: ${a.canonicalId}`);
+      }
+    }
+
+    for (const s of additional) {
+      if (!s.candidate && !declaredIds.has(s.surfaceId)) {
+        canonIssues.push(`additionalCanonical non déclarée: ${s.surfaceId}`);
+      }
+    }
+
+    const expectedCount = EXPECTED_SURFACE_UNIVERSE_IDS.length + additional.length;
+
+    if (canon.canonicalSurfaceCount !== expectedCount) {
+      canonIssues.push(`canonicalSurfaceCount ${canon.canonicalSurfaceCount} ≠ ${expectedCount} (159 + ${additional.length} hors-IDE)`);
+    }
+  }
 
   /* Cross-check findings ↔ work items canoniques. */
   const legacy = yaml('LEGACY_FINDING_REGISTRY.yaml');
@@ -711,6 +743,7 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
       missingServiceUniverseIds.length === 0 &&
       missingObsDelta.length === 0 &&
       unclassifiedDeltas.length === 0 &&
+      canonIssues.length === 0 &&
       missingSeparateRegistries.length === 0 &&
       orphanFindings.length === 0 &&
       forbiddenTargetDates.length === 0 &&
@@ -724,6 +757,7 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
       ...missingServiceUniverseIds.map((id) => `expected service universe id missing: ${id}`),
       ...missingObsDelta.map((id) => `expected OBS-DELTA missing: ${id}`),
       ...unclassifiedDeltas,
+      ...canonIssues,
       ...missingSeparateRegistries.map((f) => `separate registry missing: ${f}`),
       ...orphanFindings,
       ...forbiddenTargetDates,
@@ -898,6 +932,9 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
       present: universe.length,
       evaluated: universe.length - unevaluatedSurfaces.length,
       services: serviceUniverse.length,
+      canonicalSurfaceCount: canon.canonicalSurfaceCount ?? null,
+      classificationComplete: canon.classificationComplete ?? false,
+      deduplicationComplete: canon.deduplicationComplete ?? false,
       // Overlay code réel + bolt (exigence Avi B / P0-LS-17) : rien n'est
       // « fait » sans refs code ; composant présent non câblé = PARTIEL.
       // §23 : l'état vit dans IMPLEMENTATION_STATUS.yaml (jamais dans les surfaces).

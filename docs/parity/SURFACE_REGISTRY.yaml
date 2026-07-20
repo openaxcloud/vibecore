@@ -1387,4 +1387,31 @@ surfaceUniverse:
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
 
+# ============================================================================
+# UNIVERS CANONIQUE (passe 1 de déduplication — P0-LS-06 suite / §6.3 du plan).
+# Le plan (verbatim expert) porte canonicalSurfaceCount: null « à l'écriture » ;
+# l'ÉTAT réel vit ici (règle 11 du plan : un état écrit dans le Markdown n'a
+# aucune autorité). Méthode : alias résolus UNIQUEMENT sur identité évidente
+# (même surface décrite deux fois dans NOS registres) ; fusion suspectée mais
+# non prouvée = documentée SANS fusion. Vérifié par la machine (générateur).
+# ============================================================================
+canonicalUniverse:
+  canonicalSurfaceCount: 164   # 159 candidats IDE (P001–P159) + 4 surfaces hors-IDE déclarées + 1 candidate scan
+  classificationComplete: true       # les 15 OBS-DELTA sont TRIAGED avec registre cible
+  deduplicationComplete: true        # passe 1 (alias évidents) — les passes sémantiques suivantes rouvriront ce flag si besoin
+  aliases:   # entrée déclarée détaillée → id canonique (une seule surface, deux écritures)
+    - {declaredId: SRF-IDE-FILE-HISTORY, canonicalId: P030}
+    - {declaredId: SRF-IDE-AGENT-SKILLS, canonicalId: P044}
+    - {declaredId: SRF-IDE-PANES-LAYOUT, canonicalId: P006}
+    - {declaredId: SRF-IDE-COMPOSER, canonicalId: P034}
+    - {declaredId: SRF-DEPLOY-SCHEDULED, canonicalId: P115}
+    - {declaredId: SRF-DEPLOY-RESERVED-VM, canonicalId: P096, note: "variante Reserved VM de la surface Deployment Type"}
+  additionalCanonical:   # surfaces canoniques HORS inventaire IDE
+    - {surfaceId: SRF-LANDING}
+    - {surfaceId: SRF-PROJECT-CREATE}
+    - {surfaceId: SRF-ADMIN-AGENT-ROUTING}
+    - {surfaceId: SRF-GALLERY-STARTER-DEMOS}
+    - {surfaceId: CS-COMMUNITY-PROFILES, candidate: true, source: OBS-DELTA-20260720-03, note: "candidate issue du scan — devient déclarée après évaluation complète"}
+  suspectedMerges:   # signal documenté, fusion NON appliquée (preuve insuffisante)
+    - {from: P056, into: P125, evidence: "scan 20/07 : « Agent-powered security reviews » dans Project Security Center — « probablement renommé/absorbé » ; PROBABLE n'est pas une preuve", action: "trancher au scan authentifié (P0-B-02)"}
 

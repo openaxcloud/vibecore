@@ -517,3 +517,28 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
   SUIVIS PAR GIT (git ls-files, fallback fs sans .DS_Store) — le même commit
   produit désormais la même empreinte sur toute machine. Les 2 logs intrus
   déplacés hors du dépôt (préservés). Vues régénérées.
+
+## 2026-07-20 (lot registres : ancrage des 21 claims + univers canonique)
+
+- (P0-A2-15 PROVEN) Les 21 claims hérités du v5 ENFIN ancrés URL+snapshot+
+  hash, chaque citation RE-VÉRIFIÉE le 20/07 : 9 nouvelles sources assainies
+  (Defense in Depth blog — citation « every single customer gets their own
+  GCP Project, even free-tier users » ; GKE Agent Sandbox gVisor/Kata ; Pod
+  snapshots ; Image streaming ; Cloud Run ingress ; cycle de vie projet GCP
+  30j ; quotas IAM ; limites Resource Manager 300/0,1 ; NixOS 26.05) +
+  réutilisation des corpus déjà hashés (llms-full IDENTIQUE 16/07=20/07 sha
+  a7d6f513 — RPL-01/03/04/05/09/10/16 cités ligne à ligne ; RPL-02→import
+  providers ; RPL-13→Clerk ; RPL-14→llms.txt ; GCP-06→quotas Cloud Run ;
+  GCP-10→AR attachments). LEGACY_CLAIM_IDS vidée ; unanchoredClaims = 0 ;
+  UNK-CLAIMS-ANCHORING résolu et retiré (43 inconnues).
+- (dédup passe 1 — §6.3) canonicalUniverse écrit dans SURFACE_REGISTRY (l'état
+  vit au registre, règle 11 du plan) : canonicalSurfaceCount = 164 = 159
+  candidats IDE + 4 surfaces hors-IDE déclarées + 1 candidate scan
+  (CS-COMMUNITY-PROFILES). 6 alias résolus (SRF-IDE-FILE-HISTORY→P030,
+  SKILLS→P044, PANES→P006, COMPOSER→P034, SCHEDULED→P115, RESERVED-VM→P096) ;
+  1 fusion SUSPECTÉE documentée SANS être appliquée (P056→P125 — « probable »
+  n'est pas une preuve, tranchée au scan authentifié). Cohérence vérifiée par
+  le générateur (preuve négative : compte faussé ⇒ build cassé).
+- (échelle) sourceBaselineReady PASS + registryUniverseReady PASS +
+  contractsPresent PASS → highestPassedLevel = contractsPresent. Prochain
+  verrou : contractsValidated (relecteurs humains — paquet expert envoyé).

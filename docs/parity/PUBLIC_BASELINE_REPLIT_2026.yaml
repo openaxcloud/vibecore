@@ -273,3 +273,235 @@ claims:
     region: UNKNOWN
     client: web
     status: CONFIRMED
+  # --- Les 21 claims hérités du v5 ENFIN ancrés (P0-A2-15) — chaque citation re-vérifiée le 20/07.
+  - claimId: RPL-01
+    statement: "Starter templates par langage/framework retirés : « Language and framework starter templates have been removed » ; /templates et /developer-frameworks redirigent vers la Gallery ; création = Agent / import / Remix (corpus llms-full, identique 16/07 et 20/07 sha a7d6f513…)."
+    sourceId: SRC-LLMS-FULL-TXT
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-02
+    statement: "Hub d import : 12 entrées dont Empty et Previous Agent export (table Supported sources) ; validation préalable ; certaines migrations consomment des crédits Agent. Doc identique 17/07 et 20/07 (sha 56b14555…)."
+    sourceId: SRC-REPLIT-IMPORT-PROVIDERS
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-03
+    statement: "Artifacts : jusqu à 7 par projet, 1 seule app mobile, backend/données partagés, publication groupée (« All artifacts go live together », l.7605/7624) ; publication indépendante non disponible (l.7634)."
+    sourceId: SRC-LLMS-FULL-TXT
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-04
+    statement: "« On March 11, 2026, Replit released Agent 4 » — multi-artifact support introduit à cette date (l.7845) ; projets antérieurs = mise à niveau structurelle unique."
+    sourceId: SRC-LLMS-FULL-TXT
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-03-11"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-05
+    statement: "Rollback de publication : Publishing → History → Republish/redeploy (« Redeploys a project using its existing deployment configuration », l.9622) ; scan sécurité systématique avant publish (l.9933)."
+    sourceId: SRC-LLMS-FULL-TXT
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-06
+    statement: "Defense in Depth (blog officiel, re-vérifié 20/07) : sandboxes durcies seccomp-bpf ; ROLLOUT EN COURS du remplacement des conteneurs par des microVMs ; Determinate Nix ; « every single customer gets their own GCP Project, even free-tier users » ; apps en Cloud Run ; Cloud Armor ; proxy de secrets MCP."
+    sourceId: SRC-REPLIT-DEFENSE-BLOG
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-09
+    statement: "Databases : base de développement et base de production séparées (l.173/5237) ; l Agent ne modifie que DEV ; migrations au publish ; remix isole la DB."
+    sourceId: SRC-LLMS-FULL-TXT
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-10
+    statement: "« App Storage is powered by Google Cloud Storage (GCS) » (l.5516) ; buckets account-level partageables entre apps selon grants."
+    sourceId: SRC-LLMS-FULL-TXT
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-13
+    statement: "Replit Auth et Clerk Auth = deux produits distincts (page Clerk Auth dédiée, comparatif « Clerk Auth vs. Replit Auth ») ; migration documentée = custom→Clerk (RPL-26)."
+    sourceId: SRC-REPLIT-CLERK-AUTH
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-14
+    statement: "Cadence changelog SANS jour garanti : l index llms.txt liste November 16, 2025 (dimanche) et November 26, 2025 (mercredi) — toute automatisation « vendredi » est défectueuse."
+    sourceId: SRC-LLMS-TXT
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2025-11-16"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: RPL-16
+    statement: "Modes Agent : Lite / Economy / Power + Advanced settings (App Testing, High effort, Turbo) — pages agent-modes du corpus courant (ex. l.3352) ; « Max mode is no longer available »."
+    sourceId: SRC-LLMS-FULL-TXT
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-01
+    statement: "GKE Agent Sandbox : construit sur gVisor (primaire), support Kata Containers ; CRD Sandbox (pod stateful, identité stable) ; GKE ≥ 1.35.2-gke.1269000 pour snapshots. Preview/nouveauté — exit strategy requise."
+    sourceId: SRC-GKE-AGENT-SANDBOX
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-02
+    statement: "GKE Pod snapshots : incluent rootfs/EmptyDir/tmpfs ; « persistent volumes are not checkpointed » — un PodSnapshot seul n est jamais un checkpoint projet."
+    sourceId: SRC-GKE-POD-SNAPSHOTS
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-03
+    statement: "GKE Image streaming : optimise le démarrage en streamant les IMAGES CONTENEUR (rootfs) — ne streame pas un volume /nix."
+    sourceId: SRC-GKE-IMAGE-STREAMING
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-04
+    statement: "Cloud Run ingress : réglage internal-and-cloud-load-balancing pour désactiver l accès direct run.app et forcer le passage par le LB."
+    sourceId: SRC-CLOUDRUN-INGRESS
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-06
+    statement: "Cloud Run : limite de révisions par service — au-delà, les plus anciennes non actives sont supprimées (1000, table quotas) ; une policy AR peut supprimer une image → rétention par digest obligatoire."
+    sourceId: SRC-CLOUDRUN-QUOTAS
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-07
+    statement: "Cycle de vie projet GCP : suppression douce puis « fully deleted after 30 days » ; les projets soft-deleted COMPTENT dans le quota pendant la fenêtre ; project IDs non réutilisables."
+    sourceId: SRC-GCP-PROJECT-LIFECYCLE
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-08
+    statement: "IAM : quotas de service accounts par projet — une identité par déploiement/révision épuise le quota sans gain de sécurité."
+    sourceId: SRC-IAM-QUOTAS
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-09
+    statement: "Resource Manager : max 300 folders enfants directs par parent ; profondeur limitée ; création de folders limitée à 0,1 req/s (6/min) — folder-per-tenant cassé par construction."
+    sourceId: SRC-RM-LIMITS
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: GCP-10
+    statement: "Artifact Registry : les métadonnées (signature, SBOM, provenance) sont des ATTACHMENTS séparés liés à l artefact — copier une image par digest ne les copie pas ; supprimer l artefact cible supprime ses attachments (source détaillée : SRC-AR-ATTACHMENTS, GCP-12)."
+    sourceId: SRC-AR-ATTACHMENTS
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED
+  - claimId: NIX-01
+    statement: "NixOS/nixpkgs 26.05 : publiée (annonces officielles) ; fenêtre de support jusqu à fin 2026 — pin E-Code sur révision exacte = décision, pas parité."
+    sourceId: SRC-NIXOS-2605
+    observedAt: "2026-07-20T13:30:00Z"
+    firstSeen: "2026-07-20"
+    lastVerified: "2026-07-20"
+    plan: all
+    rollout: GA
+    region: UNKNOWN
+    client: web
+    status: VERIFIED

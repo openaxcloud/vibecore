@@ -158,3 +158,67 @@ sources:
     accessedAt: "2026-07-20T05:43:00Z"
     contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
     snapshot: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+  # --- Ancrage des 21 claims hérités (lot registres 20/07) — snapshots assainis.
+  - sourceId: SRC-REPLIT-DEFENSE-BLOG
+    url: https://blog.replit.com/defense-in-depth-how-replit-secures-every-layer-of-the-vibe-coding-stack
+    title: "Replit — Defense in Depth (seccomp-bpf, rollout microVM, Determinate Nix, « every single customer gets their own GCP Project, even free-tier users », Cloud Run, Cloud Armor, proxy MCP)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:921df2e3bac0b9d52ade537d10af0c515b6ee6aa93b5637770ceec6ccd7e9b5f"
+    snapshot: docs/parity/baseline/sources/2026-07-20-replit-defense-in-depth.html
+  - sourceId: SRC-GKE-AGENT-SANDBOX
+    url: https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox
+    title: "GKE — About Agent Sandbox (gVisor primaire, Kata supporté, GKE ≥1.35.2 pour snapshots)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:1efb337401726abafc0d9cf30f6e7686686312a856a266085eb3dde2022133b6"
+    snapshot: docs/parity/baseline/sources/2026-07-20-gke-agent-sandbox.html
+  - sourceId: SRC-GKE-POD-SNAPSHOTS
+    url: https://docs.cloud.google.com/kubernetes-engine/docs/concepts/pod-snapshots
+    title: "GKE — About Pod snapshots (« persistent volumes are not checkpointed », rootfs/EmptyDir/tmpfs)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:8c42727c4cf9d0e07a5ec676e4ebcf4e486de99444ea0c34e5a1100825dfb9e8"
+    snapshot: docs/parity/baseline/sources/2026-07-20-gke-pod-snapshots.html
+  - sourceId: SRC-GKE-IMAGE-STREAMING
+    url: https://docs.cloud.google.com/kubernetes-engine/docs/how-to/image-streaming
+    title: "GKE — Image streaming (rootfs des images conteneur)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:4ce0907a29a552d1f77e94abe7624c88f3794daaadd56ea15809c67f94902dbd"
+    snapshot: docs/parity/baseline/sources/2026-07-20-gke-image-streaming.html
+  - sourceId: SRC-CLOUDRUN-INGRESS
+    url: https://docs.cloud.google.com/run/docs/securing/ingress
+    title: "Cloud Run — Restricting ingress (internal-and-cloud-load-balancing)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:68d76e0501b57145e820af050acd647aacd5599a90347dd95a769abe951d21c5"
+    snapshot: docs/parity/baseline/sources/2026-07-20-cloudrun-ingress.html
+  - sourceId: SRC-GCP-PROJECT-LIFECYCLE
+    url: https://docs.cloud.google.com/resource-manager/docs/creating-managing-projects
+    title: "Resource Manager — Creating and managing projects (soft-delete, « fully deleted after 30 days », quota consommé pendant la fenêtre)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:5f3e680bce5d841e53f4744e6413e4e3e8ddb5a32a6164faa4b9824e7b2f8024"
+    snapshot: docs/parity/baseline/sources/2026-07-20-gcp-project-lifecycle.html
+  - sourceId: SRC-IAM-QUOTAS
+    url: https://docs.cloud.google.com/iam/quotas
+    title: "IAM — Quotas and limits (service accounts par projet)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:f75b46131f469a1e896a068cd465630ad2ae86d1c762014494dffefbaeabf7ce"
+    snapshot: docs/parity/baseline/sources/2026-07-20-iam-quotas.html
+  - sourceId: SRC-RM-LIMITS
+    url: https://docs.cloud.google.com/resource-manager/docs/limits
+    title: "Resource Manager — Limits (300 folders enfants directs, profondeur, 0.1 folder/s)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:6423697650c0b49ad98dd38aba1a833d1e1c7bb4c43afb707f768ca3cf08209f"
+    snapshot: docs/parity/baseline/sources/2026-07-20-resource-manager-limits.html
+  - sourceId: SRC-NIXOS-2605
+    url: https://nixos.org/blog/announcements/
+    title: "NixOS — Release announcements (26.05)"
+    publishedAt: UNKNOWN
+    accessedAt: "2026-07-20T13:30:00Z"
+    contentHash: "sha256:8979cb95c252e6d5879700b0a1825cfc7948f103d7c0f2653ee4af95a2d58659"
+    snapshot: docs/parity/baseline/sources/2026-07-20-nixos-2605-release.html
