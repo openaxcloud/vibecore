@@ -851,7 +851,10 @@ function checkHeader(file, doc) {
     } else if (c.hardeningStatus === 'HARDENED_PENDING_REVIEW') {
       const ct = readFileSync(cp, 'utf8');
 
-      if (!ct.includes(`contractId: ${c.contractId}`) || !/contractVersion:\s*2/.test(ct)) {
+      const hasId = ct.includes(`contractId: ${c.contractId}`) || ct.includes(`"x-contractId": "${c.contractId}"`);
+      const hasV2 = /contractVersion:\s*2/.test(ct) || /"x-contractVersion":\s*2/.test(ct);
+
+      if (!hasId || !hasV2) {
         fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: durci déclaré mais le fichier ne porte pas contractId + contractVersion 2`);
       }
     }

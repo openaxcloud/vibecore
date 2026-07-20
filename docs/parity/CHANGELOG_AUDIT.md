@@ -655,3 +655,14 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
 - 7 TO_HARDEN (prochaines vagues, ancrages notés) ; 4 BLOCKED_ON_CHANTIER
   motivés (IDENTITY Group/Guest, PROJECT_FACTORY tenant GCP, CHECKPOINT
   câblage, OPERATIONS_DR exercices réels) — pas gonflés.
+
+## 2026-07-21 (C5 vague 2)
+
+- 7 contrats supplémentaires DURCIS v2 (structure complète + ancrage honnête +
+  dépendances ouvertes déclarées, jamais gonflées) : DEPLOYMENT_TYPES,
+  RELEASE_PUBLISH, PROJECT_MANIFEST_SCHEMA (durcissement RÉEL du schéma :
+  additionalProperties false, allOf exécutable ≤1 MOBILE_APP via maxContains,
+  minLength/minItems, PENDING_COMMIT purgé — x-repoCommit valait littéralement
+  « PENDING_COMMIT »), DOMAIN_MODEL (§2 Import aligné sur LA machine),
+  RUNTIME_NIX, IAM_POLICY_BASELINE, SECURITY_PRIVACY_COMPLIANCE.
+- Total : 10/14 durcis PENDING_REVIEW, 4/14 BLOCKED_ON_CHANTIER motivés.

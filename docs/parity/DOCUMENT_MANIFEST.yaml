@@ -64,7 +64,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CHANGELOG_AUDIT.md
-    sha256: "31f0ffdd02e612cfcae9a9924406b69b9a5539c42762ff739c6b3b508cb1aece"
+    sha256: "f4e0dcaea83e8758e72d8611b36184fedd45b6a7c642ba3c5b55836a3e3938bc"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
@@ -89,12 +89,12 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CONTRACT_REGISTRY.yaml
-    sha256: "7a39b2c357af3c8c263625ad5a6b2495e1e7f6e18f81e2f59d541b3ceb21a431"
+    sha256: "351626a10f0ad5fdcca94f4b42d1c758e34ff593bb595fa009d3f9ef3cea3926"
     schemaVersion: 1
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: COUNTER_RECONCILIATION_20260720.md
-    sha256: "992330f3ae607442150e32ffd77173a14b00c7ab9dff743eff0a3c399bc35e19"
+    sha256: "389b4964a8428317420319f55af9fc7d6578f96038ab03f954f3b786a6e4efc9"
     schemaVersion: 1
     repoCommit: null
     reviewer: UNKNOWN
@@ -119,9 +119,9 @@ documents:
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
   - file: DEPLOYMENT_TYPES_CONTRACT.md
-    sha256: "70b2f8178036fb98e0d2826f642efa56035733d45986608dd835067af55c0b34"
-    schemaVersion: 1
-    repoCommit: d1063912
+    sha256: "22e48b1507657cabe2b81debd7e48c019617d9ea9339f32ded3840ab733735cd"
+    schemaVersion: 2
+    repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: DEPLOYMENT_TYPE_REGISTRY.yaml
     sha256: "71a19a82fd6b81fb75a12a21122197d362ee67a30828129c54924cc514c52745"
@@ -129,9 +129,9 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: DOMAIN_MODEL.md
-    sha256: "021b3bf7042623d8778e53ce1ad6106849b0fe0734aef18e5b77785c1d694ae4"
-    schemaVersion: 1
-    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+    sha256: "3f83a06f85f7080266b98d8fb7e099d303d41995788e27da2206a5d3bb4ee52f"
+    schemaVersion: 2
+    repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: E2E_PROOFS.yaml
     sha256: "7a71b8fcfce5ec283cca257797f957495e27aad6242a978ecb03bf1ec8b6187c"
@@ -164,9 +164,9 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: IAM_POLICY_BASELINE.md
-    sha256: "641f9e970fc17642ae0b16650f8cd54d72be53f5460f7e252703f81321337f74"
-    schemaVersion: 1
-    repoCommit: ca299f87
+    sha256: "21b008bcdaace9a60ac232a2a5a7d8447c52b2a3d7bfd16fcfeef66afded5990"
+    schemaVersion: 2
+    repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: IDENTITY_COLLABORATION_CONTRACT.md
     sha256: "33670343c374f09f6ec0afcbdcf7728cfd8267bd8cbf88b1e2ffef9ebe4649b1"
@@ -264,7 +264,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: PROJECT_MANIFEST_SCHEMA.json
-    sha256: "fba71fb6f6417c85e63b6eb264bf6bf4d567bdf7a53ec9c11bf0ec6c19788704"
+    sha256: "1c09f782cfa4fcef1633b0136a9360953f8fd9266c18571747d1741c901ae885"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -284,9 +284,9 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: RELEASE_PUBLISH_CONTRACT.md
-    sha256: "11799121339ffb26fab9fed29dba0ba908e7cf457765ce41a49597c81e19e951"
-    schemaVersion: 1
-    repoCommit: ca299f87
+    sha256: "2c9f7d0ad330fc0245e6a5a9ee84ef2118320d9d249817ab0cbc4c76b3c7703d"
+    schemaVersion: 2
+    repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: REMEDIATION_VERDICT_20260720.md
     sha256: "da312471f7c619a0bfa2c5e7602ed40cbbf78cbfa10e469db334a52acbb88d09"
@@ -329,14 +329,14 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: RUNTIME_NIX_CONTRACT.md
-    sha256: "73c9c74f8fd13fe5841ac72eb90b6f8d417794f6d3659fbd3cf92feed7894c53"
-    schemaVersion: 1
-    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+    sha256: "8b4556a2bcbb82929a05fc6b4fdf68c078f231ea83def1534f46b450bdefcb76"
+    schemaVersion: 2
+    repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: SECURITY_PRIVACY_COMPLIANCE.md
-    sha256: "213a9299b0f7a74746436c69368648383a7b0b21cd159515ea0a7c8c1b46c18a"
-    schemaVersion: 1
-    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+    sha256: "239b5727aeeeffa2cb7fe0bb9233f1e8a89297e3a207cfeee6b55aab77ea6bf3"
+    schemaVersion: 2
+    repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: SERVICE_CONTRACTS/README.md
     sha256: "89175a30ffd5a719cb30e66b348cb749c93aa7306ce1a5b3ed18c1ce766f2ed4"
