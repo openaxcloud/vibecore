@@ -1,0 +1,15 @@
+# GENERATED_ASSET_KIND_REGISTRY — assets générés par l'Agent, stockés dans la
+# Library (📘 llms-full 20/07 l.7580) — pas des Artifacts publiables en soi.
+schemaVersion: 1
+repoCommit: 42a48091
+kinds:
+  - kind: DOCUMENT
+    note: "Intent DOCUMENT tant que publication autonome non prouvée"
+  - kind: SPREADSHEET
+    note: "Intent SPREADSHEET — idem (OBS-DELTA-20260720-01)"
+  - kind: IMAGE
+    note: "Image generation (P049)"
+  - kind: AUDIO
+    note: "Audio generation (P050)"
+  - kind: VIDEO
+    note: "Video generation (P051)"

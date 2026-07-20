@@ -1,0 +1,27 @@
+# EXTERNAL_ECOSYSTEM_REGISTRY — écosystème opéré autour du produit
+# (≠ surfaces produit). Source : scan 20/07 (sha256 396b07e2520d1171…).
+schemaVersion: 1
+repoCommit: 42a48091
+items:
+  - itemId: ECO-EXPERTS
+    title: "Replit Experts (ex-Bounties : Hire an Expert / Post a job)"
+    replitStatus: LIVE_OBSERVED
+    proof: "bounties.png 6beff99f6657f38a…"
+    ecodeBuiltState: NON_FAIT
+    sourceObs: OBS-DELTA-20260720-04
+  - itemId: ECO-COMMUNITY-OPS
+    title: "Buildathons, Ambassador Program, livestreams, meetups, Discord/Discourse"
+    replitStatus: LIVE_OBSERVED
+    proof: "community.png a2e281d5d30c0193…"
+    ecodeBuiltState: NON_FAIT
+    sourceObs: OBS-DELTA-20260720-12
+  - itemId: ECO-VIBE-CODING-101
+    title: "Vibe Coding 101 / parcours Learn"
+    replitStatus: LIVE_OBSERVED
+    proof: "footer toutes pages rendues"
+    ecodeBuiltState: NON_FAIT
+    sourceObs: OBS-DELTA-20260720-15
+  - itemId: ECO-CHATGPT-CLAUDE-SLACK
+    title: "Entrées ChatGPT / Claude / Slack / Open in Replit"
+    replitStatus: DOC_CURRENT
+    ecodeBuiltState: NON_FAIT

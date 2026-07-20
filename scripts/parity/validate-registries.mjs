@@ -743,7 +743,12 @@ function checkHeader(file, doc) {
 
 /* ---- 13. Nouveaux registres (audit de réanalyse) ----------------------- */
 {
-  for (const f of ['LEGACY_FINDING_REGISTRY.yaml', 'WORK_ITEM_REGISTRY.yaml', 'TRACEABILITY_MATRIX.yaml', 'OWNER_ROLES.yaml']) {
+  for (const f of ['LEGACY_FINDING_REGISTRY.yaml', 'WORK_ITEM_REGISTRY.yaml', 'TRACEABILITY_MATRIX.yaml', 'OWNER_ROLES.yaml',
+    // Registres séparés (P0-LS-01) — présence + schemaVersion, cassants.
+    'ARTIFACT_KIND_REGISTRY.yaml', 'COMPONENT_KIND_REGISTRY.yaml', 'CREATION_INTENT_REGISTRY.yaml',
+    'GENERATED_ASSET_KIND_REGISTRY.yaml', 'CAPABILITY_REGISTRY.yaml', 'DEPLOYMENT_TYPE_REGISTRY.yaml',
+    'IMPORT_PROVIDER_REGISTRY.yaml', 'CONNECTOR_REGISTRY.yaml', 'OFFERING_ENTITLEMENT_REGISTRY.yaml',
+    'EXTERNAL_ECOSYSTEM_REGISTRY.yaml', 'CI_ATTESTATION.yaml']) {
     const p = join(parityRoot, f);
 
     if (!existsSync(p)) {
@@ -767,6 +772,26 @@ function checkHeader(file, doc) {
 
   if ((work.workItems ?? []).length !== work.canonicalWorkItemCount) {
     fail('WORK_ITEM_REGISTRY.yaml', `canonicalWorkItemCount (${work.canonicalWorkItemCount}) ≠ items réels (${(work.workItems ?? []).length})`);
+  }
+
+  {
+    const ak = loadYaml(join(parityRoot, 'ARTIFACT_KIND_REGISTRY.yaml'));
+    const kinds = (ak.kinds ?? []).map((k) => k.kind).sort().join(',');
+    const expected = ['ANIMATION_VIDEO', 'DATA_VISUALIZATION', 'DESIGN', 'EXPERIENCE_3D', 'MOBILE_APP', 'SLIDE_DECK', 'WEB_APP'].join(',');
+
+    if (kinds !== expected) {
+      fail('ARTIFACT_KIND_REGISTRY.yaml', `kinds [${kinds}] ≠ taxonomie exacte P0-LS-02 [${expected}] — SERVICE/JOB/STATIC_SITE/DOCUMENT/SPREADSHEET interdits ici`);
+    }
+
+    const ip = loadYaml(join(parityRoot, 'IMPORT_PROVIDER_REGISTRY.yaml'));
+
+    if ((ip.providers ?? []).length !== 12) {
+      fail('IMPORT_PROVIDER_REGISTRY.yaml', `${(ip.providers ?? []).length} providers ≠ 12 (RPL-24)`);
+    }
+
+    if ((ip.providers ?? []).some((x) => x.provider === 'GITLAB')) {
+      fail('IMPORT_PROVIDER_REGISTRY.yaml', 'GITLAB ne doit pas être une tuile (P0-LS-05) — capacité git plus large = UNK-LS-GITLAB-GIT');
+    }
   }
 
   checked.push(`LEGACY/WORK_ITEM/TRACEABILITY/OWNER_ROLES présents (${(legacy.findings ?? []).length} constats → ${(work.workItems ?? []).length} work items canoniques)`);

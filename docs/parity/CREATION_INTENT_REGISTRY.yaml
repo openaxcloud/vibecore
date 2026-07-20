@@ -1,0 +1,25 @@
+# CREATION_INTENT_REGISTRY — les CHIPS d'intention de création de la landing
+# Replit (scan 20/07, home.png eaff011f…). Une intention n'est PAS un
+# ArtifactKind : DOCUMENT et SPREADSHEET restent intention + asset généré
+# tant que la publication autonome n'est pas prouvée (P0-LS-04).
+schemaVersion: 1
+repoCommit: 42a48091
+intents:
+  - intent: WEBSITE
+    mapsTo: "ArtifactKind WEB_APP"
+  - intent: MOBILE
+    mapsTo: "ArtifactKind MOBILE_APP"
+  - intent: DESIGN
+    mapsTo: "ArtifactKind DESIGN"
+  - intent: SLIDES
+    mapsTo: "ArtifactKind SLIDE_DECK"
+  - intent: ANIMATION
+    mapsTo: "ArtifactKind ANIMATION_VIDEO"
+  - intent: DATA_VISUALIZATION
+    mapsTo: "ArtifactKind DATA_VISUALIZATION"
+  - intent: GAME_3D
+    mapsTo: "ArtifactKind EXPERIENCE_3D"
+  - intent: DOCUMENT
+    mapsTo: "GENERATED_ASSET (publication autonome NON prouvée)"
+  - intent: SPREADSHEET
+    mapsTo: "GENERATED_ASSET (publication autonome NON prouvée) — OBS-DELTA-20260720-01"

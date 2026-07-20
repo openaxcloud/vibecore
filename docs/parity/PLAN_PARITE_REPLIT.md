@@ -12,7 +12,7 @@
 
 ```yaml
 schemaVersion: 1
-version: 2026-07-20.2
+version: 2026-07-20.4
 baseline: périmètre public Replit observé au 16–20/07/2026 (PUBLIC_BASELINE_REPLIT_2026.yaml)
 planCommit: d1063912acf8bbbc2dabf7941490be33e4c87b51                                      # backfillé au commit suivant (même mécanique que P0-V3-15)
 measuredCodeCommit: b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5    # origin/main mesuré (17/07) — le code n'a pas été re-mesuré ce jour
@@ -20,7 +20,7 @@ registryCommit: d1063912acf8bbbc2dabf7941490be33e4c87b51                        
 statusCommit: d1063912acf8bbbc2dabf7941490be33e4c87b51                                    # commit du APPROVAL_STATUS.json regénéré
 statusGeneratorCommit: d1063912acf8bbbc2dabf7941490be33e4c87b51                         # commit du script générateur (aligné à la lettre de l'audit, réconciliation A2)
 mergedToMainAt: null                                            # honnête — PR ouverte, rien n'est mergé
-generatedAt: "2026-07-20T04:20:00Z"                             # horodatage RÉEL de génération (jamais 00:00:00Z décoratif)
+generatedAt: "2026-07-20T12:30:00Z"                             # horodatage RÉEL, POSTÉRIEUR au scan intégré (P0-LS-11)
 auditCouverture: docs/parity/COVERAGE_GAP_AUDIT_2026-07-17.md   # confrontation à TOUS les anciens plans (2026-07-19)
 auditReanalyse: Audit_reanalyse_PLAN_PARITE_REPLIT_LIVRAISON_2_2026.docx  # 16 P0 + 14 P1 appliqués (2026-07-20)
 branche: docs/plan-parite-audit2
@@ -155,6 +155,37 @@ Corrections factuelles portées le 20/07/2026 (audit de réanalyse) :
 - **Cloud Run multi-tenant** : architecture officielle du 17/07 intégrée —
   CONFIRMÉ `[GCP-14]`/`[GCP-15]`. Voir §4.2–4.3.
 
+Faits portés le 20/07/2026 (LIVE SCAN rendu JS anonyme, captures hashées —
+`REPLIT_LIVE_SCAN_2026-07-20.md` sha256 `396b07e2…` — corrigés par l'audit
+expert du même jour, P0-LS-01…18) :
+- **Les deltas du scan sont des OBSERVATIONS, pas des surfaces** : les
+  « 15 nouveautés » (Spreadsheet, Gallery publique, Community Profiles,
+  Experts, Parallel Agents, General Agent, Clerk Auth, warehouse, MCP Server,
+  design system org, custom templates, écosystème, pricing, imports
+  concurrents, Vibe Coding 101) sont `OBS-DELTA-20260720-01…15` **à
+  classifier** vers des **registres séparés** (§6) — surfaces / capacités /
+  intentions / kinds / connecteurs / entitlements / écosystème ne
+  s'additionnent pas (P0-LS-01).
+- **Prix = observations contextualisées, jamais des constantes** — CONFIRMÉ
+  `[RPL-27]` (Starter gratuit · Core $20 observé au scan, **$25 selon la
+  vérification expert — divergence conservée** · Pro $100 · Enterprise sur
+  devis ; **Teams retiré comme offre**, capacités d'équipe conservées).
+  Limites du gratuit — CONFIRMÉ `[RPL-28]` : 1 app publiée expirant à
+  30 jours, Lite build seul. Voir §3.12 et
+  `OFFERING_ENTITLEMENT_REGISTRY.yaml`.
+- **Constats de retrait reformulés** — CONFIRMÉ `[RPL-29]` : Max mode et
+  starter templates RETIRÉS (preuves positives) ; **GitLab = pas une tuile du
+  hub courant, capacité git plus large UNKNOWN — jamais « retiré »**
+  (P0-LS-05) ; **/@user : une seule route testée, inférence limitée**
+  (P0-LS-14) ; Bounties → Experts (pivot).
+- **MCP Server** — CONFIRMÉ `[RPL-30]` : `DOC_CURRENT_BETA` ;
+  `PublicApiStatus: UNKNOWN` — pas de « remplacement » affirmé (P0-LS-13).
+- **24 points sans trace** → `UNK-LS-*` (les 4 faux sans-trace — Preview
+  DevTools, Library, Android Emulator, Grouped Publish — reclassés 📘
+  DOC-JOUR après vérification directe du corpus hashé du jour,
+  P0-LS-06…09) + `UNK-LS-GITLAB-GIT`. Vérification = vrai compte connecté
+  (session dédiée, P0-LS-18).
+
 ---
 
 ## 3. Modèle produit
@@ -173,10 +204,18 @@ Artifact { artifactId, projectId, type, sourceRoot, previewConfig, publishConfig
 Component { componentId, artifactId, kind, sourcePath }
 ProjectRevision { sourceDigest, manifestDigest, environmentLockDigest, artifactRevisionDigests[] }
 ArtifactRevision { artifactId, revisionDigest, buildConfigDigest }
-ArtifactType ∈ { WEB_APP, MOBILE_APP, STATIC_SITE, SERVICE, JOB, … }   # extensible, versionné
+ArtifactKind ∈ { WEB_APP, MOBILE_APP, DATA_VISUALIZATION, SLIDE_DECK,
+                 ANIMATION_VIDEO, DESIGN, EXPERIENCE_3D }   # ARTIFACT_KIND_REGISTRY — rien d'autre
 SharedBackendBinding { projectId, backendRef, dataRefs[], accessPolicy }
 ProjectRelease { projectRevisionDigest, publicationMode: GROUPED, deploymentRevisionIds[] }
 ```
+
+**Corrections de taxonomie (P0-LS-02/03/04)** : `SERVICE`/`JOB`/`STATIC_SITE`
+ne sont PAS des Artifacts — ce sont des **composants** ou des modes de
+**déploiement** (`COMPONENT_KIND_REGISTRY`, `DEPLOYMENT_TYPE_REGISTRY`).
+`DOCUMENT`/`SPREADSHEET` sont des **intentions de création** + **assets
+générés** (`CREATION_INTENT_REGISTRY`, `GENERATED_ASSET_KIND_REGISTRY`) tant
+que leur publication autonome n'est pas prouvée.
 
 DÉCISION E-CODE : les limites **7 artifacts / 1 mobile sont des ENTITLEMENTS
 configurables** (jamais codées en dur) ; la publication est **groupée**
@@ -377,7 +416,21 @@ backlog : contrat produit complet dans `DEPLOYMENT_TYPES_CONTRACT.md`
 sans recréer l'app**, preuve exigée par type — P0-A2-04). État réel mesuré :
 Autoscale et Scheduled prouvés live (pipeline + cron volume réel), Static en
 prod, **Reserved VM NON FAIT** (P1-COV-04). Un type non contractualisé
-n'existe pas.
+n'existe pas. Registre : `DEPLOYMENT_TYPE_REGISTRY.yaml`.
+
+### 3.12 Offres et entitlements mesurés (observations, jamais des constantes)
+
+`OFFERING_ENTITLEMENT_REGISTRY.yaml` — chaque prix est une **observation**
+avec geo/locale/cohorte/date/hash (P0-LS-10). Au 20/07/2026 : **Starter
+gratuit** (CONFIRMÉ `[RPL-28]` : crédits quotidiens, Lite build seul, **1 app
+publiée qui expire à 30 jours**, badge à lien de parrainage, 2 GB) · **Core
+$20/mois observé au scan anonyme — $25 selon la vérification expert du même
+jour, divergence CONSERVÉE** · **Pro $100/mois** (50 viewers, 10 agents
+parallèles) · **Enterprise sur devis** — CONFIRMÉ `[RPL-27]`. **Teams :
+l'offre commerciale est retirée, les capacités d'équipe demeurent**
+(P0-LS-15, `CAP-TEAM-COLLAB`). Nos propres prix vivent dans `RATE_CARD.json`,
+**indépendant** — on ne copie jamais un prix observé dans une constante.
+Reprendre ou non l'expiration à 30 jours du gratuit = décision owner.
 
 ---
 
@@ -667,19 +720,25 @@ SurfaceRegistryEntry { surfaceId, route, clientKind, clientVersion, plan,
   e2eProofIds, observedAt }
 ```
 
-**Univers des surfaces (P0-A2-02)** — le registre porte désormais l'**univers
-EXACT attendu** : **174 surfaces `P001–P174`** (8 familles + les 15
-nouveautés du live scan 20/07, `P160–P174`) + **56 services
-logiques `S01–S56`**, importés de l'inventaire IDE antérieur
+**Univers des surfaces (P0-A2-02, corrigé P0-LS-01)** — le registre porte
+l'**univers EXACT attendu** : **159 surfaces `P001–P159`** (8 familles) +
+**56 services logiques `S01–S56`**, importés de l'inventaire IDE antérieur
 (`Plan_IDE_Complet_Replit_2026_ECode.docx`, sha256 `0b232212…`), verrouillés
 en CI (`EXPECTED_SURFACE_UNIVERSE_IDS` / `EXPECTED_SERVICE_UNIVERSE_IDS` — un
 ID qui disparaît casse le build). Chaque entrée doit être **évaluée**
 SUPPORTED / UNSUPPORTED / NOT_APPLICABLE **avec justification** ;
 `availability: UNKNOWN` = non évaluée, et **`parityBaselineReady` ÉCHOUE tant
-qu'une entrée reste UNKNOWN**. État mesuré : 16/174 évaluées
-(les 15 nouveautés = UNSUPPORTED déclaré ; P141 = NOT_APPLICABLE « Replit ne
-le fait plus » `[RPL-29]`) ; 158 restent NON évaluées, dont 28 « sans trace »
-au scan (`UNK-LS-*`) — un backlog n'est pas une évaluation. La matrice
+qu'une entrée reste UNKNOWN**. Les **deltas du scan ne s'y additionnent pas** : univers différents, registres
+séparés (P0-LS-01) — `ARTIFACT_KIND` · `COMPONENT_KIND` · `CREATION_INTENT` ·
+`GENERATED_ASSET_KIND` · `CAPABILITY` · `DEPLOYMENT_TYPE` · `IMPORT_PROVIDER`
+· `CONNECTOR` · `OFFERING_ENTITLEMENT` · `EXTERNAL_ECOSYSTEM`, chacun présent
+et vérifié en CI. État mesuré : P141 évalué (tuile GitLab absente du hub —
+capacité plus large UNKNOWN) ; 4 surfaces reclassées 📘 DOC-JOUR vérifié
+(P025/P059/P067/P078) ; le reste NON évalué, dont 24 « sans trace »
+(`UNK-LS-*`) — un backlog n'est pas une évaluation. **Exigence Avi (B)** :
+chaque entrée porte de plus un `builtState` (DEJA_CONSTRUIT / PARTIEL /
+NON_FAIT + `codeRefs`) croisé avec le code réel et l'héritage bolt — rien
+n'est « fait » sans preuve code. La matrice
 source→surface→service→contrat→work item→preuve est amorcée dans
 `TRACEABILITY_MATRIX.yaml`.
 
@@ -705,10 +764,10 @@ présents (et hashés, §11).
 ```json
 {
   "overallStatus": "NOT_APPROVED",
-  "highestPassedLevel": "documentCanonicalized",
+  "highestPassedLevel": "documentReconciled",
   "levels": [
     {
-      "name": "documentCanonicalized",
+      "name": "documentReconciled",
       "passed": true,
       "reasons": []
     },
@@ -721,7 +780,6 @@ présents (et hashés, §11).
         "claim GCP-03 cited by the plan but not anchored (UNVERIFIED)",
         "claim GCP-04 cited by the plan but not anchored (UNVERIFIED)",
         "claim GCP-06 cited by the plan but not anchored (UNVERIFIED)",
-        "claim GCP-07 cited by the plan but not anchored (UNVERIFIED)",
         "…"
       ]
     },
@@ -744,7 +802,6 @@ présents (et hashés, §11).
         "GALLERY_COMMUNITY_CONTRACT.md: no real reviewer",
         "RELEASE_PUBLISH_CONTRACT.md: no real reviewer",
         "PROJECT_FACTORY_CONTRACT.md: no real reviewer",
-        "IAM_POLICY_BASELINE.md: no real reviewer",
         "…"
       ]
     },
@@ -757,7 +814,7 @@ présents (et hashés, §11).
         "P0-V3-06 is OPEN",
         "P0-V3-07 is OPEN",
         "P0-A2-12 is OPEN",
-        "P0-A2-15 is OPEN"
+        "…"
       ]
     },
     {
@@ -782,7 +839,7 @@ présents (et hashés, §11).
         "beta gate capability still unknown: UNK-NIX-MULTIZONE-IMPL",
         "beta gate capability still unknown: UNK-AR-LIVE-PROMOTION",
         "beta gate capability still unknown: UNK-CLOUDTENANT-IMPL",
-        "beta gate capability still unknown: UNK-BILLING-MINIMAL-IMPL"
+        "…"
       ]
     },
     {
@@ -794,7 +851,6 @@ présents (et hashés, §11).
         "P0-V4-2 not CLOSED (needs a real reviewer)",
         "P0-V4-3 not CLOSED (needs a real reviewer)",
         "P0-V4-4 not CLOSED (needs a real reviewer)",
-        "P0-V3-01 not CLOSED (needs a real reviewer)",
         "…"
       ]
     },
@@ -807,7 +863,6 @@ présents (et hashés, §11).
         "surface SRF-IDE-PANES-LAYOUT not done",
         "surface SRF-DEPLOY-RESERVED-VM not done",
         "surface SRF-DEPLOY-SCHEDULED not done",
-        "surface SRF-GALLERY-STARTER-DEMOS not done",
         "…"
       ]
     }
@@ -837,28 +892,34 @@ présents (et hashés, §11).
     "RPL-13"
   ],
   "surfaceUniverse": {
-    "expected": 174,
-    "present": 174,
-    "evaluated": 16,
-    "services": 56
+    "expected": 159,
+    "present": 159,
+    "evaluated": 1,
+    "services": 56,
+    "builtStates": {
+      "dejaConstruit": 79,
+      "partiel": 43,
+      "nonFait": 37,
+      "nonCroise": 0
+    }
   },
   "workItems": {
     "sourceFindingCount": 336,
-    "canonicalWorkItemCount": 114
+    "canonicalWorkItemCount": 99
   },
   "counts": {
     "p0": {
-      "total": 35,
+      "total": 53,
       "closed": 0,
-      "proven": 29,
-      "open": 6
+      "proven": 45,
+      "open": 8
     },
     "decisions": {
       "total": 12,
       "open": 3
     },
     "unknowns": {
-      "total": 49,
+      "total": 46,
       "p0Linked": 0
     },
     "claims": {
@@ -893,7 +954,7 @@ présents (et hashés, §11).
       "dejaFait": 1,
       "perime": 3
     },
-    "canonicalWorkItems": 114,
+    "canonicalWorkItems": 99,
     "unanchoredClaims": 18
   }
 }
@@ -976,7 +1037,7 @@ explicite — avec approbateur stocké — n'existe dans `APPROVALS.yaml`) et
 
 | Niveau | Définition calculée |
 |---|---|
-| `documentCanonicalized` | plan unique présent (métadonnées complètes) + registres requis avec `schemaVersion` |
+| `documentReconciled` | plan unique présent, RÉCONCILIÉ avec le dernier audit (métadonnées complètes) + registres requis avec `schemaVersion` |
 | `sourceBaselineReady` | `unanchoredClaims == 0` (toute claim citée est ancrée URL+snapshot+hash) · sources dans le SLA de fraîcheur · aucun triage PENDING hors SLA |
 | `registryUniverseReady` | ensembles EXACTS présents : 35 P0 + 40 P1 + Bolt 29 + readiness 50 + **univers 159 surfaces + 56 services** + 336 constats→work items sans orphelin · aucune targetDate UNKNOWN · aucune référence orpheline |
 | `contractsPresent` | les 20 fichiers de contrat existent |

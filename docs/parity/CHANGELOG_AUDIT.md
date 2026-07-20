@@ -328,3 +328,53 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
   d'import tiennent, aucune correction.
 - (inconnues) 28 points « sans trace » → UNK-LS-P004…P158 (owner, date,
   méthode = vrai compte Replit connecté D5) — ni présents ni absents.
+
+## 2026-07-20 (plan corrigé expert appliqué + overlay code réel — exigences Avi A/B/C)
+
+- (PROVENANCE HONNÊTE) Le fichier « plan corrigé de l'expert » n'a PAS été
+  retrouvé sur la machine : les deux copies PLAN_PARITE_REPLIT_A_JOUR.md
+  (uploads + outputs orchestrateur) sont octet pour octet NOTRE livraison
+  (sha b264f24e…). Les corrections appliquées ici sont la liste A1–A11
+  relayée par l'owner (vérifiée par lui), point par point — pas une copie
+  d'un document introuvable.
+- (CORRECTION DE NOTRE PASSE PRÉCÉDENTE) La passe livescan avait annoncé un
+  §3.12 et un bloc §2.3 qui n'avaient JAMAIS été écrits (script avorté sur
+  une ancre avant écriture — les registres, eux, étaient bien à jour).
+  Réparé et réécrit dans la présente version (2026-07-20.4).
+- (P0-LS-01) Les « 15 nouveautés » ne s'additionnent plus aux surfaces :
+  P160–P174 et WI-LS-01…15 DÉMONTÉS → 15 observations
+  OBS-DELTA-20260720-01…15 (PENDING, classifyInto) + 10 REGISTRES SÉPARÉS
+  créés (ARTIFACT_KIND ×7 exacts, COMPONENT_KIND, CREATION_INTENT ×9,
+  GENERATED_ASSET_KIND, CAPABILITY, DEPLOYMENT_TYPE ×4, IMPORT_PROVIDER ×12,
+  CONNECTOR, OFFERING_ENTITLEMENT, EXTERNAL_ECOSYSTEM) — présence + taxonomie
+  vérifiées par le validateur (SERVICE/JOB/STATIC_SITE interdits comme
+  ArtifactKind ; GITLAB interdit comme tuile).
+- (P0-LS-05) GitLab : « pas une tuile du hub courant » (confirmé — la table
+  du jour est octet pour octet notre snapshot RPL-24) ; capacité d'import
+  Git plus large = UNK-LS-GITLAB-GIT ; l'endpoint /import/gitlab EXISTE dans
+  notre code (non exécuté) → P141 builtState=PARTIEL. JAMAIS « retiré ».
+- (P0-LS-06…09) 4 faux SANS-TRACE reclassés 📘 DOC-JOUR après vérification
+  DIRECTE du corpus hashé du 20/07 : Devtools (l.6116), Library (l.7580),
+  Android Emulator (l.2833), Grouped Publish (l.7605/7634 — publication
+  groupée confirmée, indépendante refusée). UNK-LS correspondants retirés
+  (28→24) ; +UNK-LS-GITLAB-GIT = 25 ouverts pour la session authentifiée.
+- (P0-LS-10) Prix = OBSERVATIONS contextualisées (OFFERING_ENTITLEMENT) :
+  Core $20 (scan anonyme, hash) vs $25 (vérification expert) — divergence
+  CONSERVÉE, jamais une constante ; RATE_CARD.json indépendant.
+- (P0-LS-13/14/15) MCP Server = DOC_CURRENT_BETA, PublicApiStatus=UNKNOWN ;
+  /@user : inférence limitée à la route testée ; Teams : offre retirée,
+  capacités d'équipe conservées (CAP-TEAM-COLLAB). Claims RPL-27/29/30
+  amendés en ce sens.
+- (EXIGENCE AVI B — overlay code) 159/159 surfaces croisées avec le code
+  réel + les 5 inventaires bolt par 6 agents d'exploration :
+  **79 DEJA_CONSTRUIT · 43 PARTIEL · 37 NON_FAIT**, chaque entrée porte
+  builtState + codeRefs + note dans SURFACE_REGISTRY. Règle appliquée :
+  composant bolt présent mais non câblé/factice = PARTIEL (BD-01 sync no-op,
+  BD-03 workflows morts, BD-05 pas de cloche, BD-11 devtools limités, BD-12
+  métriques no-data, BD-20 PITR jamais prouvé… tous respectés). Le plan ne
+  marque plus « à faire » ce qui est déjà construit — ni l'inverse.
+- (EXIGENCE AVI C) Les 24 UNK-LS-P* + UNK-LS-GITLAB-GIT restent UNKNOWN ;
+  verdicts attendus de la session « Scan Replit live » (Chrome connecté).
+- (statut) Niveau 1 renommé documentReconciled ; 18 P0-LS ajoutés (15 PROVEN
+  dont l'overlay, 3 OPEN : classification OBS-DELTA, scan authentifié,
+  + P0-LS-16/17/18 selon état) ; EXPECTED_P0_IDS 35→53.

@@ -229,14 +229,6 @@ unknowns:
     nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
     targetDate: "2026-08-31"
     expiration: "2026-09-30"
-  - unknownId: UNK-LS-P025
-    question: "P025 Preview DevTools : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
-    owner: platform
-    priority: 3
-    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
-    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
-    targetDate: "2026-08-31"
-    expiration: "2026-09-30"
   - unknownId: UNK-LS-P041
     question: "P041 Agent activity : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
     owner: platform
@@ -277,24 +269,8 @@ unknowns:
     nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
     targetDate: "2026-08-31"
     expiration: "2026-09-30"
-  - unknownId: UNK-LS-P059
-    question: "P059 Library : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
-    owner: platform
-    priority: 3
-    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
-    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
-    targetDate: "2026-08-31"
-    expiration: "2026-09-30"
   - unknownId: UNK-LS-P060
     question: "P060 Asset Browser : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
-    owner: platform
-    priority: 3
-    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
-    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
-    targetDate: "2026-08-31"
-    expiration: "2026-09-30"
-  - unknownId: UNK-LS-P067
-    question: "P067 Android Emulator : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
     owner: platform
     priority: 3
     verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
@@ -311,14 +287,6 @@ unknowns:
     expiration: "2026-09-30"
   - unknownId: UNK-LS-P070
     question: "P070 Slides Export : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
-    owner: platform
-    priority: 3
-    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
-    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
-    targetDate: "2026-08-31"
-    expiration: "2026-09-30"
-  - unknownId: UNK-LS-P078
-    question: "P078 Grouped Publish : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
     owner: platform
     priority: 3
     verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
@@ -395,5 +363,13 @@ unknowns:
     priority: 3
     verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
     nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
+    targetDate: "2026-08-31"
+    expiration: "2026-09-30"
+  - unknownId: UNK-LS-GITLAB-GIT
+    question: "GitLab n'est pas une tuile du hub d'import (confirmé) — mais une capacité d'import Git plus large (Source Control, intégrations, URL git générique) permet-elle d'importer un repo GitLab aujourd'hui ?"
+    owner: platform
+    priority: 3
+    verificationMethod: "Compte Replit connecté : tester Source Control / import par URL git (D5)"
+    nextAction: "Vérifier avec le compte E2E ; ne PAS écrire « retiré » sans preuve positive"
     targetDate: "2026-08-31"
     expiration: "2026-09-30"

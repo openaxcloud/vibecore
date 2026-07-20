@@ -74,3 +74,218 @@ observations:
     client: web
     rollout: GA
     triageState: PENDING
+
+  # --- Deltas du live scan 20/07 (feu vert Avi) : des OBSERVATIONS à
+  # CLASSIFIER vers leurs registres cibles — PAS des surfaces (correction
+  # expert P0-LS-01 : surfaces / capacités / intentions / connecteurs /
+  # entitlements / écosystème sont des univers différents).
+  - observationId: OBS-DELTA-20260720-01
+    sourceType: product-route
+    observedAt: "2026-07-20T05:43:00Z"
+    eventDate: UNKNOWN
+    detectionDate: "2026-07-20"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    archiveUri: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+    title: "Artefact/chip « Spreadsheet » sur la landing"
+    classifyInto: "CREATION_INTENT_REGISTRY + GENERATED_ASSET_KIND_REGISTRY"
+  - observationId: OBS-DELTA-20260720-02
+    sourceType: product-route
+    observedAt: "2026-07-20T05:43:00Z"
+    eventDate: UNKNOWN
+    detectionDate: "2026-07-20"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    archiveUri: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+    title: "Gallery publique + Use Template (/gallery = /templates)"
+    classifyInto: "SURFACE_REGISTRY (rapprocher P148/P161-candidat) + EXTERNAL_ECOSYSTEM"
+  - observationId: OBS-DELTA-20260720-03
+    sourceType: product-route
+    observedAt: "2026-07-20T05:43:00Z"
+    eventDate: UNKNOWN
+    detectionDate: "2026-07-20"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    archiveUri: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+    title: "Community Profiles (claim, community-hub.replit.app)"
+    classifyInto: "SURFACE_REGISTRY + EXTERNAL_ECOSYSTEM_REGISTRY"
+  - observationId: OBS-DELTA-20260720-04
+    sourceType: product-route
+    observedAt: "2026-07-20T05:43:00Z"
+    eventDate: UNKNOWN
+    detectionDate: "2026-07-20"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    archiveUri: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+    title: "Replit Experts (ex-Bounties, marketplace embauche)"
+    classifyInto: "EXTERNAL_ECOSYSTEM_REGISTRY"
+  - observationId: OBS-DELTA-20260720-05
+    sourceType: product-route
+    observedAt: "2026-07-20T05:43:00Z"
+    eventDate: UNKNOWN
+    detectionDate: "2026-07-20"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    archiveUri: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+    title: "Agent 4 + Parallel Agents (micro-VMs, file séquencée)"
+    classifyInto: "CAPABILITY_REGISTRY"
+  - observationId: OBS-DELTA-20260720-06
+    sourceType: product-route
+    observedAt: "2026-07-20T05:43:00Z"
+    eventDate: UNKNOWN
+    detectionDate: "2026-07-20"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    archiveUri: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+    title: "General Agent (tout output/framework/services)"
+    classifyInto: "CAPABILITY_REGISTRY"
+  - observationId: OBS-DELTA-20260720-07
+    sourceType: product-route
+    observedAt: "2026-07-20T05:43:00Z"
+    eventDate: UNKNOWN
+    detectionDate: "2026-07-20"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    archiveUri: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+    title: "Clerk Auth pour apps construites"
+    classifyInto: "CAPABILITY_REGISTRY + AUTH_ACCESS_CONTRACT"
+  - observationId: OBS-DELTA-20260720-08
+    sourceType: product-route
+    observedAt: "2026-07-20T05:43:00Z"
+    eventDate: UNKNOWN
+    detectionDate: "2026-07-20"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    archiveUri: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+    title: "Warehouse Connectors (BigQuery/Databricks/Snowflake/Fabric)"
+    classifyInto: "CONNECTOR_REGISTRY"
+  - observationId: OBS-DELTA-20260720-09
+    sourceType: product-route
+    observedAt: "2026-07-20T05:43:00Z"
+    eventDate: UNKNOWN
+    detectionDate: "2026-07-20"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    archiveUri: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+    title: "Replit MCP Server (statut DOC_CURRENT_BETA ; PublicApiStatus=UNKNOWN)"
+    classifyInto: "CAPABILITY_REGISTRY"
+  - observationId: OBS-DELTA-20260720-10
+    sourceType: product-route
+    observedAt: "2026-07-20T05:43:00Z"
+    eventDate: UNKNOWN
+    detectionDate: "2026-07-20"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    archiveUri: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+    title: "Design System d organisation (Enterprise)"
+    classifyInto: "OFFERING_ENTITLEMENT_REGISTRY + CAPABILITY"
+  - observationId: OBS-DELTA-20260720-11
+    sourceType: product-route
+    observedAt: "2026-07-20T05:43:00Z"
+    eventDate: UNKNOWN
+    detectionDate: "2026-07-20"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    archiveUri: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+    title: "Custom Templates d organisation (Enterprise)"
+    classifyInto: "OFFERING_ENTITLEMENT_REGISTRY"
+  - observationId: OBS-DELTA-20260720-12
+    sourceType: product-route
+    observedAt: "2026-07-20T05:43:00Z"
+    eventDate: UNKNOWN
+    detectionDate: "2026-07-20"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    archiveUri: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+    title: "Écosystème communautaire opéré (Buildathons, Ambassadors, meetups)"
+    classifyInto: "EXTERNAL_ECOSYSTEM_REGISTRY"
+  - observationId: OBS-DELTA-20260720-13
+    sourceType: product-route
+    observedAt: "2026-07-20T05:43:00Z"
+    eventDate: UNKNOWN
+    detectionDate: "2026-07-20"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    archiveUri: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+    title: "Effort-Based Pricing + crédits quotidiens + expiration 30j du gratuit"
+    classifyInto: "OFFERING_ENTITLEMENT_REGISTRY"
+  - observationId: OBS-DELTA-20260720-14
+    sourceType: product-route
+    observedAt: "2026-07-20T05:43:00Z"
+    eventDate: UNKNOWN
+    detectionDate: "2026-07-20"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    archiveUri: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+    title: "Imports Vercel/Bolt/Lovable/Base44 ciblant les concurrents"
+    classifyInto: "IMPORT_PROVIDER_REGISTRY"
+  - observationId: OBS-DELTA-20260720-15
+    sourceType: product-route
+    observedAt: "2026-07-20T05:43:00Z"
+    eventDate: UNKNOWN
+    detectionDate: "2026-07-20"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    archiveUri: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md
+    plan: all
+    region: UNKNOWN
+    client: web
+    rollout: GA
+    triageState: PENDING
+    title: "Vibe Coding 101 / Learn (footer)"
+    classifyInto: "EXTERNAL_ECOSYSTEM_REGISTRY"

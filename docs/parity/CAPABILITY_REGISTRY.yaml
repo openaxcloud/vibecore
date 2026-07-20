@@ -1,0 +1,39 @@
+# CAPABILITY_REGISTRY — capacités transverses (pas des surfaces). Source :
+# scan 20/07 (sha256 396b07e2520d1171…) + doc du jour.
+schemaVersion: 1
+repoCommit: 42a48091
+capabilities:
+  - capabilityId: CAP-PARALLEL-AGENTS
+    title: "Parallel Agents (tâches en parallèle, micro-VMs, file séquencée)"
+    replitStatus: LIVE_MARKETING_DOC
+    ecodeBuiltState: PARTIEL
+    note: "E-Code : sub-agents SSE multi-lanes prouvés (ac1c74f7) ; pas d'isolation micro-VM par tâche"
+    sourceObs: OBS-DELTA-20260720-05
+  - capabilityId: CAP-GENERAL-AGENT
+    title: "General Agent (tout output, tout framework, services connectés)"
+    replitStatus: DOC_CURRENT
+    ecodeBuiltState: NON_FAIT
+    sourceObs: OBS-DELTA-20260720-06
+  - capabilityId: CAP-INFINITE-CANVAS
+    title: "Infinite Canvas / Design Canvas"
+    replitStatus: LIVE_MARKETING_DOC
+    ecodeBuiltState: NON_FAIT
+    sourceObs: OBS-DELTA-20260720-05
+  - capabilityId: CAP-CLERK-AUTH-APPS
+    title: "Clerk Auth pour les apps construites (2e système d'auth)"
+    replitStatus: DOC_CURRENT
+    ecodeBuiltState: NON_FAIT
+    note: "RPL-25/26 ; MFA/orgs NON supportés chez Replit non plus"
+    sourceObs: OBS-DELTA-20260720-07
+  - capabilityId: CAP-MCP-SERVER
+    title: "Replit MCP Server (pilotage programmatique)"
+    replitStatus: DOC_CURRENT_BETA
+    publicApiStatus: UNKNOWN
+    ecodeBuiltState: NON_FAIT
+    note: "P0-LS-13 : ne PAS écrire « remplace l'API publique » — PublicApiStatus=UNKNOWN"
+    sourceObs: OBS-DELTA-20260720-09
+  - capabilityId: CAP-TEAM-COLLAB
+    title: "Capacités d'équipe (workspaces, groupes, collaborateurs, viewers)"
+    replitStatus: DOC_CURRENT
+    ecodeBuiltState: PARTIEL
+    note: "P0-LS-15 : le PLAN COMMERCIAL Teams est retiré, PAS ces capacités ; E-Code : orgs/invitations existent, groupes/viewers non"

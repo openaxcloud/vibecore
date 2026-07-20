@@ -1,0 +1,26 @@
+# COMPONENT_KIND_REGISTRY — composants d'un Artifact/Project (correction
+# P0-LS-03 : PAS des Artifacts). Un STATIC_SITE est un mode de déploiement
+# d'un WEB_APP ; SERVICE/JOB sont des composants d'exécution.
+schemaVersion: 1
+repoCommit: 42a48091
+kinds:
+  - kind: SERVICE
+    note: "Processus serveur long-vivant d'un artifact (HTTP…)"
+    ecodeBuiltState: DEJA_CONSTRUIT
+    codeRefs: [services/api/src (server deployments)]
+  - kind: JOB
+    note: "Exécution batch/cron d'un artifact"
+    ecodeBuiltState: DEJA_CONSTRUIT
+    codeRefs: [services/api/src (scheduled/cron, SCHEDULED-01 prouvé)]
+  - kind: STATIC_SITE
+    note: "Sortie statique d'un WEB_APP — un mode de build/déploiement"
+    ecodeBuiltState: DEJA_CONSTRUIT
+    codeRefs: [static-deployments (CSP/CORP fix 45fa55d3)]
+  - kind: DATABASE_BINDING
+    note: "Liaison DB dev/prod partagée du projet"
+    ecodeBuiltState: DEJA_CONSTRUIT
+    codeRefs: [CNPG project-databases (certifié live)]
+  - kind: STORAGE_BINDING
+    note: "Bucket objet par projet"
+    ecodeBuiltState: DEJA_CONSTRUIT
+    codeRefs: [GCS vc-<projid> (certifié live)]

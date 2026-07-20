@@ -61,6 +61,10 @@ export const EXPECTED_P0_IDS = [
   'P0-A2-01', 'P0-A2-02', 'P0-A2-03', 'P0-A2-04', 'P0-A2-05', 'P0-A2-06',
   'P0-A2-07', 'P0-A2-08', 'P0-A2-09', 'P0-A2-10', 'P0-A2-11', 'P0-A2-12',
   'P0-A2-13', 'P0-A2-14', 'P0-A2-15', 'P0-A2-16',
+  // Corrections livescan (expert, relayées owner 20/07) — 18 P0-LS.
+  'P0-LS-01', 'P0-LS-02', 'P0-LS-03', 'P0-LS-04', 'P0-LS-05', 'P0-LS-06',
+  'P0-LS-07', 'P0-LS-08', 'P0-LS-09', 'P0-LS-10', 'P0-LS-11', 'P0-LS-12',
+  'P0-LS-13', 'P0-LS-14', 'P0-LS-15', 'P0-LS-16', 'P0-LS-17', 'P0-LS-18',
 ];
 
 /*
@@ -117,14 +121,24 @@ export const EXPECTED_PROD_READINESS_IDS = [
  * build. parityBaselineReady exige EN PLUS que chaque entrée soit ÉVALUÉE
  * (availability ≠ UNKNOWN, justifiée).
  */
-// 159 (inventaire IDE) + 15 nouveautés du live scan 2026-07-20 (P160–P174, feu vert Avi).
-export const EXPECTED_SURFACE_UNIVERSE_IDS = Array.from({ length: 174 }, (_, i) => `P${String(i + 1).padStart(3, '0')}`);
-export const EXPECTED_LIVESCAN_WI_IDS = Array.from({ length: 15 }, (_, i) => `WI-LS-${String(i + 1).padStart(2, '0')}`);
+// 159 (inventaire IDE). Les deltas du live scan sont des OBSERVATIONS
+// (OBS-DELTA-20260720-*) à classifier vers des registres séparés (P0-LS-01),
+// PAS des surfaces additionnées.
+export const EXPECTED_SURFACE_UNIVERSE_IDS = Array.from({ length: 159 }, (_, i) => `P${String(i + 1).padStart(3, '0')}`);
+export const EXPECTED_OBS_DELTA_IDS = Array.from({ length: 15 }, (_, i) => `OBS-DELTA-20260720-${String(i + 1).padStart(2, '0')}`);
+/** Registres séparés (P0-LS-01) : présence + schemaVersion exigées. */
+export const SEPARATE_REGISTRY_FILES = [
+  'ARTIFACT_KIND_REGISTRY.yaml', 'COMPONENT_KIND_REGISTRY.yaml',
+  'CREATION_INTENT_REGISTRY.yaml', 'GENERATED_ASSET_KIND_REGISTRY.yaml',
+  'CAPABILITY_REGISTRY.yaml', 'DEPLOYMENT_TYPE_REGISTRY.yaml',
+  'IMPORT_PROVIDER_REGISTRY.yaml', 'CONNECTOR_REGISTRY.yaml',
+  'OFFERING_ENTITLEMENT_REGISTRY.yaml', 'EXTERNAL_ECOSYSTEM_REGISTRY.yaml',
+];
 export const EXPECTED_SERVICE_UNIVERSE_IDS = Array.from({ length: 56 }, (_, i) => `S${String(i + 1).padStart(2, '0')}`);
 
 /** Niveaux nommés v2 (audit de réanalyse 2026-07-20) — ordre strict de l'échelle. */
 export const LEVEL_ORDER = [
-  'documentCanonicalized',
+  'documentReconciled',
   'sourceBaselineReady',
   'registryUniverseReady',
   'contractsPresent',
@@ -267,7 +281,7 @@ function yaml(name) {
 /** Freshness SLA for a public source (days since lastVerified). */
 const SOURCE_FRESHNESS_SLA_DAYS = 30;
 
-export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
+export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
   const p0 = yaml('P0_REGISTRY.yaml');
   const decisions = yaml('DECISION_REGISTRY.yaml');
   const unknowns = yaml('UNKNOWN_REGISTRY.yaml');
@@ -571,7 +585,9 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
   /* Cross-check findings ↔ work items canoniques. */
   const legacy = yaml('LEGACY_FINDING_REGISTRY.yaml');
   const workItemIds = new Set((workItems.workItems ?? []).map((w) => w.workItemId));
-  const missingLivescanWi = EXPECTED_LIVESCAN_WI_IDS.filter((id) => !workItemIds.has(id));
+  const obsIds = new Set((observations.observations ?? []).map((o) => o.observationId));
+  const missingObsDelta = EXPECTED_OBS_DELTA_IDS.filter((id) => !obsIds.has(id));
+  const missingSeparateRegistries = SEPARATE_REGISTRY_FILES.filter((f) => !existsSync(join(parityRoot, f)));
   const orphanFindings = (legacy.findings ?? [])
     .filter((f) => !workItemIds.has(f.canonicalWorkItemId))
     .map((f) => `${f.sourceFindingId} → canonicalWorkItemId ${f.canonicalWorkItemId} missing`);
@@ -615,7 +631,7 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
   /* ===== L'échelle à 11 niveaux (audit de réanalyse 2026-07-20) ===== */
 
   const lvlDocumentCanonicalized = {
-    name: 'documentCanonicalized',
+    name: 'documentReconciled',
     passed: cond2.passed && planOk,
     reasons: [
       ...cond2.reasons,
@@ -640,7 +656,8 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
       missingProdReadinessIds.length === 0 &&
       missingUniverseIds.length === 0 &&
       missingServiceUniverseIds.length === 0 &&
-      missingLivescanWi.length === 0 &&
+      missingObsDelta.length === 0 &&
+      missingSeparateRegistries.length === 0 &&
       orphanFindings.length === 0 &&
       forbiddenTargetDates.length === 0 &&
       cond3.passed,
@@ -651,7 +668,8 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
       ...missingProdReadinessIds.map((id) => `expected PROD_READINESS missing: ${id}`),
       ...missingUniverseIds.map((id) => `expected surface universe id missing: ${id}`),
       ...missingServiceUniverseIds.map((id) => `expected service universe id missing: ${id}`),
-      ...missingLivescanWi.map((id) => `expected livescan work item missing: ${id}`),
+      ...missingObsDelta.map((id) => `expected OBS-DELTA missing: ${id}`),
+      ...missingSeparateRegistries.map((f) => `separate registry missing: ${f}`),
       ...orphanFindings,
       ...forbiddenTargetDates,
       ...cond3.reasons,
@@ -825,6 +843,14 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
       present: universe.length,
       evaluated: universe.length - unevaluatedSurfaces.length,
       services: serviceUniverse.length,
+      // Overlay code réel + bolt (exigence Avi B / P0-LS-17) : rien n'est
+      // « fait » sans refs code ; composant présent non câblé = PARTIEL.
+      builtStates: {
+        dejaConstruit: universe.filter((s) => s.builtState === 'DEJA_CONSTRUIT').length,
+        partiel: universe.filter((s) => s.builtState === 'PARTIEL').length,
+        nonFait: universe.filter((s) => s.builtState === 'NON_FAIT').length,
+        nonCroise: universe.filter((s) => !s.builtState).length,
+      },
     },
     workItems: { sourceFindingCount: backlogCounts.total, canonicalWorkItemCount },
     evidence,

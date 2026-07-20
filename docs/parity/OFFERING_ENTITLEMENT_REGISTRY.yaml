@@ -1,0 +1,33 @@
+# OFFERING_ENTITLEMENT_REGISTRY — plans/prix/entitlements Replit comme
+# OBSERVATIONS CONTEXTUALISÉES (P0-LS-10) : un prix n'est JAMAIS une
+# constante — geo/locale/cohorte/date/hash obligatoires, divergences
+# CONSERVÉES. RATE_CARD.json (E-Code) reste totalement indépendant.
+schemaVersion: 1
+repoCommit: 42a48091
+offerings:
+  - offeringId: OFF-STARTER
+    name: Starter
+    priceObservations:
+      - {price: "gratuit", currency: n/a, observedAt: "2026-07-20T05:43:00Z", source: "pricing.png sha256 0dea38e82de4c246…", geo: UNKNOWN, locale: en, cohort: "anonyme"}
+    entitlements: "RPL-28 : crédits quotidiens, Lite build seul, 1 app publiée expirant 30j, badge lien parrainage, 2GB, pas de Plan Mode/connecteurs"
+  - offeringId: OFF-CORE
+    name: Replit Core
+    priceObservations:
+      - {price: "$20/mois ($18 annuel)", currency: USD, observedAt: "2026-07-20T05:43:00Z", source: "pricing.png sha256 0dea38e82de4c246… (scan anonyme)", geo: UNKNOWN, locale: en, cohort: "anonyme"}
+      - {price: "$25/mois", currency: USD, observedAt: "2026-07-20", source: "vérification expert (relayée owner 20/07) — geo/locale/cohorte non précisées", geo: UNKNOWN, locale: UNKNOWN, cohort: UNKNOWN, note: "DIVERGENCE CONSERVÉE avec l'observation scan — prix probablement variable par geo/cohorte, jamais figer"}
+    entitlements: "$20 crédits/mois, 5 collaborateurs, 2 agents parallèles, toutes régions, badge retirable"
+  - offeringId: OFF-PRO
+    name: Replit Pro
+    priceObservations:
+      - {price: "$100/mois ($90 annuel, paliers jusqu à $2000)", currency: USD, observedAt: "2026-07-20T05:43:00Z", source: "pricing.png sha256 0dea38e8…", geo: UNKNOWN, locale: en, cohort: "anonyme"}
+    entitlements: "15 collaborateurs + 50 viewers, 10 agents parallèles, rollback DB 28j"
+  - offeringId: OFF-ENTERPRISE
+    name: Enterprise
+    priceObservations:
+      - {price: "sur devis", currency: n/a, observedAt: "2026-07-20T05:43:00Z", source: "pricing.png", geo: UNKNOWN, locale: en, cohort: "anonyme"}
+    entitlements: "SSO/SAML, groupes, design system, warehouse, single-tenant, IP statiques, VPC"
+  - offeringId: OFF-TEAMS-RETIRED
+    name: Teams (RETIRÉ COMME PLAN COMMERCIAL)
+    priceObservations:
+      - {price: "n/a", currency: n/a, observedAt: "2026-07-20", source: "doc du jour « migration from the former Teams plan » (RPL-29)", geo: n/a, locale: en, cohort: n/a}
+    entitlements: "P0-LS-15 : le PLAN est retiré ; les CAPACITÉS d'équipe (workspaces, groupes, collaborateurs) DEMEURENT (CAP-TEAM-COLLAB)"

@@ -230,7 +230,7 @@ claims:
     client: web
     status: VERIFIED
   - claimId: RPL-27
-    statement: "Pricing affiché le 2026-07-20 (capture pricing.png sha256 0dea38e82de4c246…) : Starter GRATUIT · Replit Core $20/mois ($18 annuel, $20 crédits, 5 collaborateurs, 2 agents parallèles) · Replit Pro $100/mois ($90 annuel, $100 crédits paliers jusqu'à $2000, 15 collaborateurs + 50 viewers, 10 agents parallèles) · Enterprise sur devis (SSO/SAML, groupes, design system, data warehouse, single-tenant, IP statiques, VPC). LE PLAN TEAMS N'EXISTE PLUS À LA VENTE (doc du jour : « migration from the former Teams plan »)."
+    statement: "Pricing affiché le 2026-07-20 (capture pricing.png sha256 0dea38e82de4c246…) : Starter GRATUIT · Replit Core $20/mois ($18 annuel, $20 crédits, 5 collaborateurs, 2 agents parallèles) · Replit Pro $100/mois ($90 annuel, $100 crédits paliers jusqu'à $2000, 15 collaborateurs + 50 viewers, 10 agents parallèles) · Enterprise sur devis (SSO/SAML, groupes, design system, data warehouse, single-tenant, IP statiques, VPC). LE PLAN TEAMS N'EXISTE PLUS À LA VENTE (doc du jour : « migration from the former Teams plan ») — les capacités d'équipe demeurent (P0-LS-15). CES PRIX SONT DES OBSERVATIONS CONTEXTUALISÉES (geo/cohorte inconnues, scan anonyme), JAMAIS des constantes (P0-LS-10) : une vérification expert du même jour rapporte Core à $25 — divergence CONSERVÉE dans OFFERING_ENTITLEMENT_REGISTRY.yaml."
     sourceId: SRC-REPLIT-LIVESCAN-2026-07-20
     observedAt: "2026-07-20T05:43:00Z"
     firstSeen: "2026-07-20"
@@ -252,7 +252,7 @@ claims:
     client: web
     status: VERIFIED
   - claimId: RPL-29
-    statement: "Retraits PROUVÉS au 2026-07-20 (preuves positives, scan hashé) : Max mode (« Max mode is no longer available », doc du jour) · starter templates par langage (« have been removed », /templates sert la Gallery — hash identique à /gallery 5e0cb9bbf4794ce6…) · import GitLab (absent de la table officielle des sources d'import) · plan Teams (« former Teams plan ») · Bounties (la route /bounties sert « Replit Experts », marketplace d'embauche — bounties.png 6beff99f6657f38a…) · profils publics /@user anonymes (redirigent vers Log In, hash pixel-identique 0fa5718b881fb29d…)."
+    statement: "Constats de retrait au 2026-07-20 (scan hashé, formulations CORRIGÉES par l'expert P0-LS-05/14/15) : Max mode RETIRÉ (« Max mode is no longer available », doc du jour) · starter templates par langage RETIRÉS (« have been removed », /templates sert la Gallery — hash identique 5e0cb9bbf4794ce6…) · GitLab : PAS UNE TUILE du hub d'import courant (confirmé) — capacité d'import Git plus large UNKNOWN, ne pas dire « retiré » · plan Teams RETIRÉ COMME OFFRE COMMERCIALE (« former Teams plan ») — les capacités d'équipe demeurent · Bounties : la route sert « Replit Experts » (pivot, bounties.png 6beff99f…) · profils /@user : LA route testée (/@mattpalmer) redirige vers Log In (hash 0fa5718b…) — une seule route testée ne prouve pas la suppression de tous les profils publics."
     sourceId: SRC-REPLIT-LIVESCAN-2026-07-20
     observedAt: "2026-07-20T05:43:00Z"
     firstSeen: "2026-07-20"
@@ -263,7 +263,7 @@ claims:
     client: web
     status: VERIFIED
   - claimId: RPL-30
-    statement: "Replit MCP Server (doc du jour platforms/mcp-server) : pilotage programmatique des apps via client MCP — remplace de fait une API publique (aucune « Public API » sous ce nom dans la doc du jour). Source secondaire (derrière login, non observé à l'écran)."
+    statement: "Replit MCP Server (doc du jour platforms/mcp-server) : pilotage programmatique des apps via client MCP — statut DOC_CURRENT_BETA. CORRECTION P0-LS-13 : ne PAS en déduire qu'il « remplace » une API publique — PublicApiStatus = UNKNOWN (aucune « Public API » sous ce nom dans la doc du jour, ce qui n'est pas une preuve de disparition). Source secondaire (derrière login)."
     sourceId: SRC-REPLIT-LIVESCAN-2026-07-20
     observedAt: "2026-07-20T05:43:00Z"
     firstSeen: "2026-07-20"

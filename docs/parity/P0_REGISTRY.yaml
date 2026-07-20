@@ -539,6 +539,285 @@ p0s:
     nextAction: "Revue humaine"
     targetDate: "2026-07-20"
 
+
+  # ============================================================================
+  # Les 18 P0-LS — corrections du live scan validées par l'expert et relayées
+  # par l'owner (message du 20/07). NOTE DE PROVENANCE HONNÊTE : le fichier
+  # « plan corrigé de l'expert » n'a pas été retrouvé sur la machine (les
+  # copies PLAN_PARITE_REPLIT_A_JOUR.md sont identiques à notre livraison) ;
+  # la source est la liste de corrections relayée, appliquée point par point.
+  # ============================================================================
+  - p0Id: P0-LS-01
+    title: "Registres séparés au lieu de 159+15 additionnés"
+    description: "Registres séparés au lieu de 159+15 additionnés"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 1
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/CAPABILITY_REGISTRY.yaml
+    proof: "Surfaces/capacités/intentions/kinds/assets/composants/déploiement/imports/connecteurs/entitlements/écosystème = 11 univers distincts ; P160–P174 démontés → OBS-DELTA-20260720-01…15 à classifier ; 10 nouveaux registres créés."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-02
+    title: "Taxonomie ArtifactKind corrigée (7 kinds)"
+    description: "Taxonomie ArtifactKind corrigée (7 kinds)"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 2
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/ARTIFACT_KIND_REGISTRY.yaml
+    proof: "ARTIFACT_KIND_REGISTRY : WEB_APP, MOBILE_APP, DATA_VISUALIZATION, SLIDE_DECK, ANIMATION_VIDEO, DESIGN, EXPERIENCE_3D — rien d autre."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-03
+    title: "SERVICE/JOB/STATIC_SITE = composants/déploiement, pas Artifacts"
+    description: "SERVICE/JOB/STATIC_SITE = composants/déploiement, pas Artifacts"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 3
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/COMPONENT_KIND_REGISTRY.yaml
+    proof: "COMPONENT_KIND_REGISTRY + DEPLOYMENT_TYPE_REGISTRY ; §3.0 corrigé."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-04
+    title: "DOCUMENT/SPREADSHEET = intentions + assets générés"
+    description: "DOCUMENT/SPREADSHEET = intentions + assets générés"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 4
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/CREATION_INTENT_REGISTRY.yaml
+    proof: "CREATION_INTENT_REGISTRY (9 chips) + GENERATED_ASSET_KIND_REGISTRY ; kind refusé tant que publication autonome non prouvée."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-05
+    title: "GitLab : « pas une tuile du hub courant », JAMAIS « retiré »"
+    description: "GitLab : « pas une tuile du hub courant », JAMAIS « retiré »"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 5
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/IMPORT_PROVIDER_REGISTRY.yaml
+    proof: "Table Supported sources vérifiée (identique 17/07 et 20/07) : pas de tuile GitLab (confirmé) ; capacité d import Git plus large = UNKNOWN → UNK-LS-GITLAB-GIT ; P141 réécrit ; RPL-29 amendé."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-06
+    title: "Preview DevTools reclassé DOC-JOUR"
+    description: "Preview DevTools reclassé DOC-JOUR"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 6
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/baseline/snapshots/2026-07-20/llms-full.txt
+    proof: "Vérifié llms-full.txt 20/07 l.6116/6132 (« Devtools: Toggle the developer tools pane ») ; UNK-LS-P025 retiré."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-07
+    title: "Library reclassé DOC-JOUR"
+    description: "Library reclassé DOC-JOUR"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 7
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/baseline/snapshots/2026-07-20/llms-full.txt
+    proof: "Vérifié l.7580 (« The Library sidebar… ») ; UNK-LS-P059 retiré."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-08
+    title: "Android Emulator reclassé DOC-JOUR"
+    description: "Android Emulator reclassé DOC-JOUR"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 8
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/baseline/snapshots/2026-07-20/llms-full.txt
+    proof: "Vérifié l.2833/6120 (« iOS Simulator or Android Emulator ») ; UNK-LS-P067 retiré."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-09
+    title: "Grouped Publish reclassé DOC-JOUR"
+    description: "Grouped Publish reclassé DOC-JOUR"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 9
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/baseline/snapshots/2026-07-20/llms-full.txt
+    proof: "Vérifié l.7605/7634 (« All artifacts go live together », pas de publication indépendante) ; UNK-LS-P078 retiré."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-10
+    title: "Prix = observations contextualisées, jamais des constantes"
+    description: "Prix = observations contextualisées, jamais des constantes"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 10
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
+    proof: "OFFERING_ENTITLEMENT_REGISTRY : chaque prix porte geo/locale/cohorte/date/source-hash ; divergence Core $20 (scan) vs $25 (expert) CONSERVÉE ; RATE_CARD.json indépendant."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-11
+    title: "generatedAt cohérent + commit réel dans le manifeste"
+    description: "generatedAt cohérent + commit réel dans le manifeste"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 11
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/DOCUMENT_MANIFEST.yaml
+    proof: "generatedAt regénéré POSTÉRIEUR au scan ; DOCUMENT_MANIFEST porte l attestation CI datée + le commit (backfill)."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-12
+    title: "Compteurs réconciliés (fini 174/159, 114/99)"
+    description: "Compteurs réconciliés (fini 174/159, 114/99)"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 12
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/APPROVAL_STATUS.json
+    proof: "Univers = 159 exact ; work items = 99 ; deltas = observations (19) ; tous depuis le JSON généré."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-13
+    title: "MCP Server ≠ remplacement de l API publique"
+    description: "MCP Server ≠ remplacement de l API publique"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 13
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/CAPABILITY_REGISTRY.yaml
+    proof: "CAP-MCP-SERVER : McpServerStatus=DOC_CURRENT_BETA, PublicApiStatus=UNKNOWN ; RPL-30 amendé."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-14
+    title: "Inférence /@user limitée"
+    description: "Inférence /@user limitée"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 14
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/PUBLIC_BASELINE_REPLIT_2026.yaml
+    proof: "RPL-29 amendé : UNE route testée (/@mattpalmer) derrière login ne prouve pas la suppression de TOUS les profils."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-15
+    title: "Teams : plan commercial retiré ≠ capacités d équipe"
+    description: "Teams : plan commercial retiré ≠ capacités d équipe"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 15
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
+    proof: "OFF-TEAMS-RETIRED + CAP-TEAM-COLLAB : les capacités (workspaces, groupes, collaborateurs) demeurent."
+    dependances: []
+    conditionDeCloture: "Revue humaine"
+    nextAction: "Revue"
+    targetDate: "2026-07-20"
+  - p0Id: P0-LS-16
+    title: "Classifier les 15 OBS-DELTA vers leurs registres cibles"
+    description: "Classifier les 15 OBS-DELTA vers leurs registres cibles"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 16
+    owner: platform
+    status: OPEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/OBSERVATION_REGISTRY.yaml
+    proof: "15 observations PENDING avec classifyInto ; triage SLA en cours."
+    dependances: []
+    conditionDeCloture: "Revue humaine + 15 observations classifiées"
+    nextAction: "Classifier les 15 OBS-DELTA"
+    targetDate: "2026-07-27"
+  - p0Id: P0-LS-17
+    title: "Overlay code réel + bolt sur tout l univers (exigence Avi B)"
+    description: "Overlay code réel + bolt sur tout l univers (exigence Avi B)"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 17
+    owner: platform
+    status: PROVEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/SURFACE_REGISTRY.yaml
+    proof: "FAIT : 159/159 surfaces croisées avec le code réel + inventaires bolt (6 agents, familles A–H) — 79 DEJA_CONSTRUIT / 43 PARTIEL / 37 NON_FAIT, codeRefs par entrée dans SURFACE_REGISTRY ; composant bolt non câblé = PARTIEL (BD-* respectés)."
+    dependances: []
+    conditionDeCloture: "Revue humaine + verdicts des agents intégrés"
+    nextAction: "Revue humaine ; étendre l overlay aux capacités/registres séparés"
+    targetDate: "2026-07-27"
+  - p0Id: P0-LS-18
+    title: "Trancher les UNK-LS par scan authentifié (exigence Avi C)"
+    description: "Trancher les UNK-LS par scan authentifié (exigence Avi C)"
+    source: "Corrections livescan expert relayées par l'owner (2026-07-20) ; scan sha256 396b07e2520d1171…"
+    priority: 18
+    owner: platform
+    status: OPEN
+    commit: PENDING_COMMIT
+    reviewer: UNKNOWN
+    evidenceId: docs/parity/UNKNOWN_REGISTRY.yaml
+    proof: "Session dédiée « Scan Replit live » avec le Chrome connecté d Avi ; 24 UNK-LS-P* + UNK-LS-GITLAB-GIT restent UNKNOWN d ici là."
+    dependances: []
+    conditionDeCloture: "Revue humaine + verdict de la session scan authentifié"
+    nextAction: "Attendre la session scan authentifié"
+    targetDate: "2026-07-27"
+
 p1s:
   - p1Id: P1-COV-01
     title: "File History : historique par fichier indépendant de Git (bouton History, slider, Compare Latest, restore append-only, playback)"

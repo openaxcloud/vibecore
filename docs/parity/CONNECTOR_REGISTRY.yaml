@@ -1,0 +1,27 @@
+# CONNECTOR_REGISTRY — connecteurs/intégrations (≠ import providers,
+# ≠ surfaces). Source : scan 20/07 + doc du jour.
+schemaVersion: 1
+repoCommit: 42a48091
+connectors:
+  - connectorId: CON-WAREHOUSE-BIGQUERY
+    replitStatus: LIVE_OFFER_ENTERPRISE
+    ecodeBuiltState: NON_FAIT
+  - connectorId: CON-WAREHOUSE-DATABRICKS
+    replitStatus: LIVE_OFFER_ENTERPRISE
+    ecodeBuiltState: NON_FAIT
+  - connectorId: CON-WAREHOUSE-SNOWFLAKE
+    replitStatus: LIVE_OFFER_ENTERPRISE
+    ecodeBuiltState: NON_FAIT
+  - connectorId: CON-WAREHOUSE-FABRIC
+    replitStatus: LIVE_OFFER_ENTERPRISE
+    ecodeBuiltState: NON_FAIT
+  - connectorId: CON-CATALOG-100PLUS
+    title: "Catalogue « 100+ integrations » (OAuth via Agent)"
+    replitStatus: LIVE_MARKETING_DOC
+    ecodeBuiltState: PARTIEL
+    note: "BD-01 : bouton sync no-op, catalogue hardcodé"
+  - connectorId: CON-MCP-TOOLS
+    title: "Outils MCP dans l'Agent"
+    replitStatus: DOC_CURRENT
+    ecodeBuiltState: DEJA_CONSTRUIT
+    proof: "MCP porté avec exécution réelle d'outils (matrice bolt a8aa1199)"

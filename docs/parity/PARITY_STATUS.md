@@ -4,24 +4,24 @@ schemaVersion: 2
 repoCommit: fed58e96
 généréPar: scripts/parity/generate-parity-status.mjs (drift-check CI)
 
-**Statut global** : `overallStatus: NOT_APPROVED` · `highestPassedLevel: documentCanonicalized`
+**Statut global** : `overallStatus: NOT_APPROVED` · `highestPassedLevel: documentReconciled`
 **Attestation CI** : run 29718207435 (2026-07-20T05:02:13Z, commit fed58e96) — verte.
 
 | Niveau | État |
 |---|---|
-| documentCanonicalized | ✅ PASS |
+| documentReconciled | ✅ PASS |
 | sourceBaselineReady | ❌ FAIL (claim GCP-01 cited by the plan but not anchored (UNVERIFIED) … +17) |
 | registryUniverseReady | ✅ PASS |
 | contractsPresent | ✅ PASS |
 | contractsValidated | ❌ FAIL (DOMAIN_MODEL.md: no real reviewer … +18) |
-| implementationReady | ❌ FAIL (P0-V3-01 is OPEN … +5) |
+| implementationReady | ❌ FAIL (P0-V3-01 is OPEN … +7) |
 | verticalBackendReady | ✅ PASS |
 | verticalUserJourneyReady | ❌ FAIL (stage "publish" has no UI proof (une preuve API n'est pas une preuve UI) … +1) |
 | betaReady | ❌ FAIL (beta gate capability still unknown: UNK-GIT-RECONCILE-DONE … +5) |
-| publicLaunchReady | ❌ FAIL (betaReady not passed … +42) |
+| publicLaunchReady | ❌ FAIL (betaReady not passed … +60) |
 | parityBaselineReady | ❌ FAIL (surface SRF-IDE-FILE-HISTORY not done … +10) |
 
-**Compteurs (source unique)** : P0 35 (6 OPEN · 29 PROVEN · 0 CLOSED) · P1 40 · surfaces déclarées 10 (univers 174/174 importé, 16 évaluées, 56 services) · e2e 12/12 · constats 336 → 114 work items · claims non ancrées 18 · uiGaps [publish, rollback]
+**Compteurs (source unique)** : P0 53 (8 OPEN · 45 PROVEN · 0 CLOSED) · P1 40 · surfaces déclarées 10 (univers 159/159 importé, 1 évaluées, 56 services) · e2e 12/12 · constats 336 → 99 work items · claims non ancrées 18 · uiGaps [publish, rollback]
 
 ---
 
