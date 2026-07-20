@@ -2,6 +2,9 @@
 
 schemaVersion: 1
 repoCommit: ca299f87
+reviewer: UNKNOWN
+reviewVerdict: REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)
+reviewCloseCriterion: durcir le contenu puis obtenir la signature du relecteur ; raison détaillée du refus à consigner verbatim dès transmission du rapport
 
 Contrat des deux pipelines prouvés : `services/api/src/import-pipeline.ts` et
 `services/api/src/remix-pipeline.ts` (DOMAIN_MODEL §1–2).

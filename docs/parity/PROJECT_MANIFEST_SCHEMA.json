@@ -102,5 +102,7 @@
     {
       "description": "au plus 1 MOBILE_APP par projet (entitlement configurable, jamais codé en dur ailleurs que via entitlementsRef)"
     }
-  ]
+  ],
+  "x-reviewVerdict": "REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)",
+  "x-reviewCloseCriterion": "durcir le contenu puis obtenir la signature du relecteur ; raison détaillée à consigner verbatim dès transmission"
 }

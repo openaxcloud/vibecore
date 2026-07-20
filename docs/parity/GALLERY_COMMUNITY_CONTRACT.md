@@ -2,6 +2,9 @@
 
 schemaVersion: 1
 repoCommit: 57ab0a67d068e5dad0faea5166ac4d18c1713f03
+reviewer: UNKNOWN
+reviewVerdict: REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)
+reviewCloseCriterion: durcir le contenu puis obtenir la signature du relecteur ; raison détaillée du refus à consigner verbatim dès transmission du rapport
 
 Ce contrat sépare STRICTEMENT ce qui est **CONFIRMÉ** (observé+rendu+hashé sur
 replit.com le 2026-07-16) de ce qui est **UNKNOWN** (non observable de
