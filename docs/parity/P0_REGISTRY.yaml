@@ -305,7 +305,7 @@ p0s:
     priority: 1
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/DOCUMENT_MANIFEST.yaml
     proof: "DOCUMENT_MANIFEST.yaml GÉNÉRÉ (hash+schemaVersion+repoCommit+reviewer+validation par fichier, drift-check CI). Reviewer humain encore UNKNOWN."
@@ -320,7 +320,7 @@ p0s:
     priority: 2
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/SURFACE_REGISTRY.yaml
     proof: "Univers importé : 159 surfaces P001–P159 + 56 services S01–S56 (source Plan_IDE docx sha256 0b232212…) en ensemble EXACT verrouillé CI (EXPECTED_SURFACE_UNIVERSE_IDS). Évaluation par surface = PENDING (honnête) : parityBaselineReady ÉCHOUE tant que availability=UNKNOWN."
@@ -335,7 +335,7 @@ p0s:
     priority: 3
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
     proof: "§3.0 normatif ajouté : Project/Artifact/Component/ProjectRevision/ArtifactRevision/ArtifactType/SharedBackendBinding/ProjectRelease, 7 max / 1 mobile = entitlements configurables, backend+data partagés, publication groupée (publicationMode: GROUPED)."
@@ -350,7 +350,7 @@ p0s:
     priority: 4
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/DEPLOYMENT_TYPES_CONTRACT.md
     proof: "DEPLOYMENT_TYPES_CONTRACT.md créé : Autoscale/Static/Reserved VM/Scheduled — lifecycle, config, port, secrets, coûts, observabilité, changement de type sans recréer, preuve exigée par type."
@@ -365,7 +365,7 @@ p0s:
     priority: 5
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/APPROVAL_STATUS.json
     proof: "Niveaux refondus : sourceBaselineReady (claims ancrés, unanchoredClaims=0) et registryUniverseReady (P0+P1+surfaces+claims+décisions+unknowns+work items en ensembles EXACTS) — les deux ÉCHOUENT aujourd'hui, plus aucun vert sur univers incomplet."
@@ -380,7 +380,7 @@ p0s:
     priority: 6
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/APPROVAL_STATUS.json
     proof: "Scindé : verticalBackendReady (7/7 backend) + verticalUserJourneyReady (ÉCHOUE tant que uiGaps non vide — publish, rollback aujourd'hui)."
@@ -395,7 +395,7 @@ p0s:
     priority: 7
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/APPROVAL_STATUS.json
     proof: "Renommé contractsPresent + contractsValidated (P1-A2-12). contractsValidated exige sections requises + reviewer + refs — il ÉCHOUE aujourd'hui (reviewers absents), honnêtement."
@@ -410,7 +410,7 @@ p0s:
     priority: 8
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/baseline/sources/2026-07-20-replit-clerk-auth.md
     proof: "§3.9 REMPLACÉ, ancré RPL-25/RPL-26 (snapshots hashés) : deux produits confirmés ; migration custom-auth→Clerk documentée ; guide Replit Auth→Clerk « coming soon » = INCONNU ; MFA/SMS/orgs « What's not supported » ⇒ extensions E-CODE, PAS parité courante."
@@ -425,7 +425,7 @@ p0s:
     priority: 9
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/baseline/sources/2026-07-20-gke-workload-identity.html
     proof: "§4.4 REMPLACÉ, ancré GCP-13 (citation exacte « In GKE, Google Cloud manages the workload identity pool and provider for you and doesn't require an external identity provider ») : 3 chemins — GKE→WIF for GKE (recommandé, aucun IdP externe) ; hors GCP→IAM WIF externe ; Cloud Run→service identity + impersonation courte. Zéro clé persistante partout."
@@ -440,7 +440,7 @@ p0s:
     priority: 10
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/DECISION_REGISTRY.yaml
     proof: "DEC-OWNER-GALLERY-OPTION-B repassée OPEN + captureState: CAPTURE_INCOMPLETE tant que le contenu exact n'est pas inscrit (UNK-GALLERY-OPTION-B-CONTENT) ; « aucune publication self-service OBSERVÉE » partout."
@@ -455,7 +455,7 @@ p0s:
     priority: 11
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/APPROVAL_STATUS.json
     proof: "Source unique = registres : boltDebt=29 (BOLT_DEBT_REGISTRY), prodReadiness=50 (PRODUCTION_READINESS_REGISTRY), sourceFindingCount=336, canonicalWorkItemCount=99 (calculé). Les « 26 » et « 48 » manuels du §13 sont supprimés du plan — tout compteur affiché vient du JSON généré."
@@ -470,7 +470,7 @@ p0s:
     priority: 12
     owner: platform
     status: OPEN
-    commit: PENDING_COMMIT
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/WORK_ITEM_REGISTRY.yaml
     proof: "FAIT : LEGACY_FINDING_REGISTRY (336, provenance plan@af88c6c6 + originRef) + WORK_ITEM_REGISTRY (99 canoniques : regroupement par suivi + 6 paires de l'audit, duplicateOf posés). RESTE : déduplication SÉMANTIQUE complète au-delà des regroupements mécaniques + provenance fichier/ligne des 29 documents d'ORIGINE (non capturée par l'audit de couverture — limite déclarée)."
@@ -485,7 +485,7 @@ p0s:
     priority: 13
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
     proof: "§0 : planCommit/measuredCodeCommit/registryCommit/statusCommit (backfill au commit suivant, même mécanique que P0-V3-15), generatedAt RÉEL (2026-07-20T04:20:00Z), mergedToMainAt: null (honnête — PR ouverte). Attestation CI = workflow parity-registries sur la branche."
@@ -500,7 +500,7 @@ p0s:
     priority: 14
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/baseline/sources/2026-07-20-cloudrun-multitenant.html
     proof: "Ancré GCP-14 (doc du 17/07, snapshot hashé) + GCP-15 (quotas 1000 services/jobs/pools par projet+région) : §4.2–4.3 ajoutent pool de projets précréés, ReputationTier, BillingAccountBinding (billing account par tier), AbuseEventPolicy, quotas services/jobs/SA et seuils de sharding dans CapacityPolicy, folders first-party vs untrusted, LB global + Service Extensions."
@@ -515,7 +515,7 @@ p0s:
     priority: 15
     owner: platform
     status: OPEN
-    commit: PENDING_COMMIT
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
     proof: "FAIT : compteur unanchoredClaims calculé (étiquettes citées par le plan absentes du baseline) + statut UNVERIFIED documenté §2.3 + sourceBaselineReady ÉCHOUE tant que >0. RESTE : ancrer réellement RPL-01…16 / GCP-01…10 / NIX-01 (URL+snapshot+hash chacun)."
@@ -530,7 +530,7 @@ p0s:
     priority: 16
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT
+    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
     evidenceId: docs/parity/APPROVAL_STATUS.json
     proof: "REMPLACÉ : overallStatus: NOT_APPROVED + highestPassedLevel (échelle contiguë). « approved » réservé à une approbation de périmètre explicite avec approbateur stocké (APPROVALS.yaml, aujourd'hui vide). Interdits par le validateur : approvalReady ET approved.level."

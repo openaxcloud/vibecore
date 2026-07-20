@@ -1,7 +1,7 @@
 # DEPLOYMENT_TYPES_CONTRACT — les 4 types de déploiement (P0-A2-04)
 
 schemaVersion: 1
-repoCommit: 19e48513
+repoCommit: d1063912
 reviewer: UNKNOWN
 
 Exigence de parité centrale (audit de réanalyse 2026-07-20) : Autoscale,

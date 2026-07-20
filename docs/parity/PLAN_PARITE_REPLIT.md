@@ -14,10 +14,10 @@
 schemaVersion: 1
 version: 2026-07-20.1
 baseline: périmètre public Replit observé au 16–20/07/2026 (PUBLIC_BASELINE_REPLIT_2026.yaml)
-planCommit: PENDING_COMMIT                                      # backfillé au commit suivant (même mécanique que P0-V3-15)
+planCommit: d1063912acf8bbbc2dabf7941490be33e4c87b51                                      # backfillé au commit suivant (même mécanique que P0-V3-15)
 measuredCodeCommit: b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5    # origin/main mesuré (17/07) — le code n'a pas été re-mesuré ce jour
-registryCommit: PENDING_COMMIT                                  # commit des registres compagnons (= planCommit, même PR)
-statusCommit: PENDING_COMMIT                                    # commit du APPROVAL_STATUS.json regénéré
+registryCommit: d1063912acf8bbbc2dabf7941490be33e4c87b51                                  # commit des registres compagnons (= planCommit, même PR)
+statusCommit: d1063912acf8bbbc2dabf7941490be33e4c87b51                                    # commit du APPROVAL_STATUS.json regénéré
 mergedToMainAt: null                                            # honnête — PR ouverte, rien n'est mergé
 generatedAt: "2026-07-20T04:20:00Z"                             # horodatage RÉEL de génération (jamais 00:00:00Z décoratif)
 auditCouverture: docs/parity/COVERAGE_GAP_AUDIT_2026-07-17.md   # confrontation à TOUS les anciens plans (2026-07-19)

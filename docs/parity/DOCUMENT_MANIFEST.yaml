@@ -66,9 +66,9 @@ documents:
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
   - file: DEPLOYMENT_TYPES_CONTRACT.md
-    sha256: "41da2a73fdd5690fd07a07e1fb5d1913b4316aebbe903c32152c44c3a4412632"
+    sha256: "d983851ef23e1ac96d34720e30322188e396eacd8659c025d55b5b1309753e87"
     schemaVersion: 1
-    repoCommit: 19e48513
+    repoCommit: d1063912
     reviewer: UNKNOWN
   - file: DOMAIN_MODEL.md
     sha256: "189a97707ed4a67db866aab53e62c3d6ea22365a5bf374705c7251f482d8b40e"
@@ -106,9 +106,9 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: LEGACY_FINDING_REGISTRY.yaml
-    sha256: "602be59b812e55a9de6ba370df52bd3d550967b5897b9caa3addbfaac40a11fa"
+    sha256: "b1c3a22cfd955b27da68c461eca30995776d6f099347e8ea241aba4a81cd8b93"
     schemaVersion: 1
-    repoCommit: 19e48513
+    repoCommit: d1063912
     reviewer: UNKNOWN
   - file: OBSERVATION_REGISTRY.yaml
     sha256: "4734e2831f1bf521442d5a241b624db0b3585ba006f6d56e020bd2be664e124e"
@@ -121,12 +121,12 @@ documents:
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
   - file: OWNER_ROLES.yaml
-    sha256: "359896f7f82e002d72c54f8d60cb41da17bffe67c73e88c01badc327c3012fd1"
+    sha256: "ea3158ab7f5696cebb1ed9fbb5767c67e86a3bc954d76055e6f890a9476b4e81"
     schemaVersion: 1
-    repoCommit: 19e48513
+    repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "8e15a2a09bf110cea28d68f193c508888751a2c12554649ca0d11a59276f93d8"
+    sha256: "80799b1ad1afce3efb0c148e5150bcd04719058ea653c6f26bfdee72b6e5d5f6"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -136,7 +136,7 @@ documents:
     repoCommit: b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5
     reviewer: UNKNOWN
   - file: PLAN_PARITE_REPLIT.md
-    sha256: "bc7a87c80a45bed9bb42a6165af232143fa2f7ee9ae9e1074a9480cc61bc545e"
+    sha256: "ec3d1ddeb722564cf63d1ed895d63c36a00777f5c2e2e8f8c6d349e640e657b8"
     schemaVersion: 1
     repoCommit: null
     reviewer: UNKNOWN
@@ -201,9 +201,9 @@ documents:
     repoCommit: 06fabcf1
     reviewer: UNKNOWN
   - file: TRACEABILITY_MATRIX.yaml
-    sha256: "20964af97f7595f44fbeac517d6a01f0e3a6739e9cc8ed9d5709403911a1ba79"
+    sha256: "a3d951743acb4f898655cd903f040b93a021e5244886d0cecddc3f4646afdf52"
     schemaVersion: 1
-    repoCommit: 19e48513
+    repoCommit: d1063912
     reviewer: UNKNOWN
   - file: UNKNOWN_REGISTRY.yaml
     sha256: "6fe153e15ad842760a113c5a51974bd93f0d07ddf51d1def92fb5bd14eac0f22"
@@ -216,9 +216,9 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: WORK_ITEM_REGISTRY.yaml
-    sha256: "fb86ca5286c61672f18f2885f999bf4c04af19ec9e0d1d4db0c2cfb78708a347"
+    sha256: "71830d84ebccedeaae415a604c34b68931cbca9c36ee894ce4bb047f452c45f7"
     schemaVersion: 1
-    repoCommit: 19e48513
+    repoCommit: d1063912
     reviewer: UNKNOWN
   - file: schemas/approval-status.schema.json
     sha256: "f618f42d944b721f91474be8347ff664c42d7a3e7c7c9b53a6c521a399018352"

@@ -9,7 +9,7 @@
 # provenance enregistrée est la version du plan qui les a matérialisés
 # (sourceFile@sourceHash + sourceLine), plus le pointeur de suivi (originRef).
 schemaVersion: 1
-repoCommit: 19e48513
+repoCommit: d1063912
 sourceFindingCount: 336
 sourceDocument: docs/parity/PLAN_PARITE_REPLIT.md
 sourceDocumentVersion: 2026-07-19.2

@@ -1,7 +1,7 @@
 # OWNER_ROLES — mapping versionné rôle → personne (P1-A2-08).
 # Les registres portent des RÔLES ; les personnes vivent ici, versionnées.
 schemaVersion: 1
-repoCommit: 19e48513
+repoCommit: d1063912
 roles:
   - role: owner
     description: "Propriétaire produit — décisions OWNER_DECISION, arbitrages, validations"

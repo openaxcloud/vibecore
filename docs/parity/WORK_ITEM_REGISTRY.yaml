@@ -7,7 +7,7 @@
 # La déduplication SÉMANTIQUE complète est un travail continu (P0-A2-12) —
 # ce registre en est l'état courant, pas une promesse d'exhaustivité.
 schemaVersion: 1
-repoCommit: 19e48513
+repoCommit: d1063912
 canonicalWorkItemCount: 99
 workItems:
   - workItemId: WI-0001
