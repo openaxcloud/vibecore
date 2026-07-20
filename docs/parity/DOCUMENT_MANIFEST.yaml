@@ -2,15 +2,15 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 152
-generatedAt: "2026-07-20T14:34:22Z"
-generatedFromCommit: f1783993db158c8997c422c45f0b8e4c8d6ad9b8
-mergedCommit: f1783993db158c8997c422c45f0b8e4c8d6ad9b8
+fileCount: 153
+generatedAt: "2026-07-20T15:39:32Z"
+generatedFromCommit: af24d4fe48015e6041c8e11b240b1f2d54f333d1
+mergedCommit: af24d4fe48015e6041c8e11b240b1f2d54f333d1
 validation:
   workflow: Parity registries
-  runId: 29751229955
-  runDate: "2026-07-20T14:34:22Z"
-  runCommit: f1783993db158c8997c422c45f0b8e4c8d6ad9b8
+  runId: 29756163626
+  runDate: "2026-07-20T15:39:32Z"
+  runCommit: af24d4fe48015e6041c8e11b240b1f2d54f333d1
   source: docs/parity/CI_ATTESTATION.yaml
 documents:
   - file: A2_12_DEDUP_SEMANTIQUE_20260720.md
@@ -74,9 +74,9 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: CI_ATTESTATION.yaml
-    sha256: "546a18bda137f99eee44451119114609c20a61a54a3190287f1c0853d5d62a72"
+    sha256: "0a3e731a587db55a91c4b0fbaa38df825207920627669768bc96c05227f2da78"
     schemaVersion: 1
-    repoCommit: f1783993
+    repoCommit: af24d4fe
     reviewer: UNKNOWN
   - file: COMPONENT_KIND_REGISTRY.yaml
     sha256: "8c7c016fb581d5ecfecc6b054f834a3b099c32c361229ffdaf84f86b54dc0891"
@@ -219,9 +219,9 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "75535c42f2f63aaedd8093907bc84f649ae38754e9f2f52006fe071770a8c536"
+    sha256: "93e6275229e4730674e55b7349a5f9a07788e44e7084757e93a24f041698c2dc"
     schemaVersion: 2
-    repoCommit: f1783993
+    repoCommit: af24d4fe
     reviewer: UNKNOWN
   - file: PARITY_STATUS_NOTES.md
     sha256: "a14ce6eade730143bea186e3e22042efd9a2b3300248fe80b0faeb32d75f58cd"
@@ -285,6 +285,11 @@ documents:
     reviewer: UNKNOWN
   - file: REVIEWER_PACKET_EXPERT_20260720.md
     sha256: "55d699db54d8aa70afc97b7b061c61743a0e159aa8261efed56beed96ed9e6f6"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: REVIEWER_PACKET_RESUBMIT_LOTA_20260720.md
+    sha256: "0b8e550993d7e1744c2a266cc661dbdd5adcb938b8a4b100cc47fad25c91e2f3"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
