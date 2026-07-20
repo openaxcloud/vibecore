@@ -426,3 +426,36 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
   sourceBaselineReady ÉCHOUE sur la LISTE EXPLICITE des 21 claims hérités
   non ancrés (le plan adopté ne les cite plus entre crochets — le déficit
   d'ancrage ne disparaît pas avec la reformulation).
+
+## 2026-07-20 (INSTALLATION du plan EXÉCUTABLE v2026-07-20.4 — schemaVersion 3)
+
+- (installation, Phase 0 §20) INCOMING_PLAN_EXECUTABLE_20260720.md (sha256
+  467608f5…, 1436 lignes, 26 sections 0→25 vérifiées par machine) INSTALLÉ
+  au chemin canonique, remplacement atomique sur la branche dédiée. Il
+  SUPERSÈDE la version « corrigée » du même jour (archivée :
+  history/2026-07-20-PLAN_FINAL_LIVRAISON-superseded.md + diff expert
+  history/2026-07-20-INCOMING_DIFF.patch). Écarts vs version précédente
+  (aucun silencieux) : +§0 activation (canonique SEULEMENT après merge+CI),
+  +règles de vérité 10-12, +§20 ordre contraignant en 5 phases, +§23 overlay
+  généré (annexe manuelle SUPPRIMÉE), +§24 DoD, +§25 handoff, +10 P0-EX,
+  +LEGACY_SOURCE_COVERAGE et IMPLEMENTATION_STATUS au §2.2, +IDENTITY/
+  PROJECT_MANIFEST aux contrats §2.3, montants tarifaires RETIRÉS du plan.
+- (copies interdites, Phase 0.2) racine PLAN_PARITE_REPLIT_FINAL_LIVRAISON.md
+  SUPPRIMÉE de la racine (archivée en history/) ; INCOMING_* retirés du tree
+  local après installation ; aucune autre copie _v6/_FINAL à la racine.
+  PLAN_PARITE_REPLIT_LIVRAISON.md (copie de LECTURE gitignorée demandée par
+  l'owner) rafraîchie = miroir exact de la tête, non normative.
+- (P0-EX-02/§23) IMPLEMENTATION_STATUS.yaml GÉNÉRÉ (159 items SURFACE) :
+  11 PROVEN (evidenceIds sur disque) · 68 CODED (code sur origin/main
+  f69a4b31) · 43 PARTIAL · 37 NOT_STARTED · 0 INTEGRATED/BLOCKED. builtState
+  RETIRÉ de SURFACE_REGISTRY (état unique, jamais dupliqué). Validateur :
+  159 exigés, CODED⇒mergedToMain, PROVEN⇒evidence sur disque.
+- (registres §2.2/2.3) créés : PRICE_OBSERVATION_REGISTRY (9 observations,
+  divergences $20/$25 et $90/$95 conservées ; OFFERING nettoyé de tout
+  montant — P0-EX-06) ; LEGACY_SOURCE_COVERAGE (32 sources confrontées,
+  absorbedFindings=UNKNOWN par fichier — limite P0-A2-12 déclarée) ;
+  IDENTITY_COLLABORATION_CONTRACT.md (P0-EX-07) ; PROJECT_MANIFEST_SCHEMA.json
+  (P0-EX-08) ; DEPLOYMENT_TYPES_CONTRACT §4.1-4.4 par type (P0-EX-09).
+- (P0) +10 P0-EX (7 PROVEN par cette installation, 3 OPEN : EX-04 contrat
+  import à aligner, EX-10 activation au merge, + P0-LS-06/18 et P0-B-02
+  toujours OPEN). EXPECTED_P0_IDS 55→65.

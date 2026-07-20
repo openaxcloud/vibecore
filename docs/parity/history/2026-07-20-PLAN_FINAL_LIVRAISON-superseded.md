@@ -1,43 +1,39 @@
-# PLAN DE PARITÉ PRODUIT REPLIT — plan canonique exécutable
+# PLAN DE PARITÉ PRODUIT REPLIT — plan canonique corrigé
 
-> **DESTINATION UNIQUE : `docs/parity/PLAN_PARITE_REPLIT.md`.**
-> Ce fichier devient le plan canonique uniquement après copie atomique vers ce
-> chemin, merge sur la branche principale, génération du manifeste documentaire
-> et succès des contrôles CI. Il ne doit exister aucun plan actif concurrent
-> (`_v6`, `_FINAL`, copie racine ou annexe parallèle). Toute correction se fait
-> **par remplacement dans ce fichier** ; les raisons et supersessions vont dans
-> `CHANGELOG_AUDIT.md`.
+> **CANDIDAT DE REMPLACEMENT de `docs/parity/PLAN_PARITE_REPLIT.md`.**
+> Dans le dépôt, il ne doit rester qu’un seul plan actif sous ce chemin. Les anciennes versions sont historiques et ne constituent jamais une source d’état. Toute correction se fait **par remplacement dans le plan canonique**, tandis que les raisons et supersessions sont consignées dans `CHANGELOG_AUDIT.md`.
 
 ---
 
-## 0. Métadonnées, activation et frontière de certification
+## 0. Métadonnées et statut
 
 ```yaml
-schemaVersion: 3
-planVersion: 2026-07-20.4
-canonicalPath: docs/parity/PLAN_PARITE_REPLIT.md
+schemaVersion: 2
+planVersion: 2026-07-20.3
 baselineObservedThrough: "2026-07-20"
-statusSource: docs/parity/APPROVAL_STATUS.json
-manifestSource: docs/parity/DOCUMENT_MANIFEST.yaml
-implementationStateSource: docs/parity/IMPLEMENTATION_STATUS.yaml
-stateEmbeddedInPlan: false
-repositoryStateEmbeddedInPlan: false
-activationRule: >
-  Le document est canonique seulement après merge sur main, génération du
-  DOCUMENT_MANIFEST au commit mergé, validation des registres et succès CI.
+reviewGeneratedAt: "2026-07-20T07:00:08Z" # la CI écrira ensuite le commit et le blob réels dans DOCUMENT_MANIFEST.yaml
+status: NOT_APPROVED
+highestVerifiedLevelInThisReview: DOCUMENT_RECONCILED
+repositoryStateVerifiedInThisReview: false
+reason: >
+  Les pièces jointes contiennent le scan et le plan, mais pas le dépôt,
+  les registres compagnons, les contrats, la CI ni le paquet complet de
+  captures annoncé. L’architecture et les claims publics ont été revérifiés ;
+  l’état d’implémentation doit être recalculé au commit mergé.
+inputDocuments:
+  - path: REPLIT_LIVE_SCAN_2026-07-20.md
+    sha256: 396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f
+  - path: PLAN_PARITE_REPLIT_A_JOUR.md
+    sha256: b264f24ed169f9077777d531ee0c292817144d0e315dc5a5c968418ea8851796
 certificationBoundary: >
-  Parité produit observable sur une baseline publique datée, plus les décisions
-  E-Code explicitement étiquetées. L'infrastructure privée complète de Replit
-  n'est pas publiquement observable et n'est jamais déclarée copiée.
+  Parité produit observable sur une baseline publique datée, plus les
+  décisions E-Code explicitement étiquetées. L’infrastructure privée complète
+  de Replit n’est pas publiquement observable et n’est jamais déclarée copiée.
 ```
 
-Le plan est **normatif**. Il ne contient ni statut d'implémentation saisi à la
-main, ni compteur de preuves, ni conclusion d'audit temporaire. Les états
-courants sont générés depuis les registres et le commit réellement mergé.
+### Manifeste de document
 
-### 0.1 Manifeste documentaire
-
-`DOCUMENT_MANIFEST.yaml`, généré après merge, contient au minimum :
+Le plan ne stocke pas son propre commit final. `DOCUMENT_MANIFEST.yaml`, généré après merge, porte :
 
 ```yaml
 DocumentManifestEntry:
@@ -47,25 +43,12 @@ DocumentManifestEntry:
   mergedCommit:
   registryCommit:
   generatorCommit:
-  sourceSnapshotHashes: []
   generatedAt:
   reviewer:
   validationRunId:
 ```
 
-Les champs de commit ne sont jamais auto-référentiels dans le Markdown. Un
-fichier non présent au commit indiqué, un hash non reproductible ou une vue
-générée modifiée manuellement fait échouer la validation.
-
-### 0.2 Règle d'exécution
-
-L'agent maître ne doit pas « compléter une annexe » dans ce plan. Il doit :
-
-1. maintenir ce document comme contrat normatif unique ;
-2. écrire l'état réel dans `IMPLEMENTATION_STATUS.yaml` ;
-3. relier chaque état à un commit, un work item et, pour `PROVEN`, une preuve ;
-4. régénérer les vues humaines depuis les registres ;
-5. ne jamais convertir l'existence d'un contrat en capacité implémentée.
+Les champs `planCommit`, `registryCommit`, `statusCommit` et `statusGeneratorCommit` ne doivent pas être auto‑référentiels dans le document qu’ils décrivent.
 
 ---
 
@@ -96,9 +79,6 @@ Règles absolues :
 7. Un registre ne peut pas certifier un univers qu’il n’a pas correctement défini.
 8. Une fonctionnalité publique Replit peut être plan-gated, régionale, expérimentale ou soumise à rollout.
 9. Aucune phrase ne doit employer « exhaustif », « exactement Replit », « instantané » ou « illimité » sans périmètre et preuve calculables.
-10. Une assertion externe non ancrée dans `PUBLIC_BASELINE_REPLIT_2026.yaml` et `SOURCE_REGISTRY.yaml` est `UNKNOWN`, même si son URL apparaît dans une liste de sources.
-11. Un état d'implémentation écrit dans le Markdown n'a aucune autorité ; seul l'état généré au commit mergé fait foi.
-12. Un nombre de surfaces, services, claims ou work items n'est publiable qu'après classification, déduplication et validation de l'ensemble exact des IDs.
 
 ---
 
@@ -136,42 +116,17 @@ Règles absolues :
 - `LEGACY_FINDING_REGISTRY.yaml`
 - `WORK_ITEM_REGISTRY.yaml`
 - `TRACEABILITY_MATRIX.yaml`
-- `LEGACY_SOURCE_COVERAGE.yaml`
-- `IMPLEMENTATION_STATUS.yaml`
 - `DOCUMENT_MANIFEST.yaml`
 
-### 2.3 Contrats structurants obligatoires
+### 2.3 Vues générées
 
-Au minimum :
-
-- `DOMAIN_MODEL.md` et schémas JSON versionnés ;
-- `IDENTITY_COLLABORATION_CONTRACT.md` ;
-- `PROJECT_MANIFEST_SCHEMA.json` ;
-- `DEPLOYMENT_TYPES_CONTRACT.md` ;
-- `RELEASE_PUBLISH_CONTRACT.md` ;
-- `IMPORT_REMIX_CONTRACT.md` ;
-- `GALLERY_COMMUNITY_CONTRACT.md` ;
-- `RUNTIME_NIX_CONTRACT.md` ;
-- `PROJECT_FACTORY_CONTRACT.md` ;
-- `IAM_POLICY_BASELINE.md` ;
-- `CHECKPOINT_CONTRACT.md` ;
-- `BILLING_LEDGER_CONTRACT.md` ;
-- `SECURITY_PRIVACY_COMPLIANCE.md` ;
-- `OPERATIONS_DR.md`.
-
-La présence du fichier ne suffit pas : schéma, sections requises, reviewer,
-références croisées, tests négatifs et compatibilité doivent être validés.
-
-### 2.4 Vues générées
-
-- `APPROVAL_STATUS.json` ;
-- `PARITY_STATUS.md` ;
-- tableaux de compteurs ;
-- résumé de l'overlay E-Code.
+- `APPROVAL_STATUS.json`
+- `PARITY_STATUS.md`
+- tableaux de compteurs du plan
 
 Elles sont produites par la CI et ne sont jamais modifiées manuellement.
 
-### 2.5 Historique
+### 2.4 Historique
 
 - `CHANGELOG_AUDIT.md` — append-only ; raisons, auteurs, dates et supersessions.
 
@@ -252,32 +207,7 @@ PriceObservation:
   textHash:
 ```
 
-Aucun montant n'est conservé dans le plan canonique. Toute valeur observée vit dans `PRICE_OBSERVATION_REGISTRY.yaml` avec contexte complet (date, devise, pays, locale, cadence, cookies, authentification, cohorte et hashes). Une divergence entre deux observations reste ouverte jusqu'à reproduction dans un contexte comparable. `RATE_CARD.json` E‑Code est indépendant de la tarification Replit et versionné.
-
-### 3.5 Gel de baseline par release — anti-boucle d'audit
-
-Chaque release E-Code cible une baseline Replit immuable :
-
-```yaml
-BaselineRelease:
-  baselineId:
-  frozenAt:
-  targetEcodeRelease:
-  sourceSnapshotIds: []
-  claimIds: []
-  surfaceUniverseVersion:
-  criticalDeltaPolicy:
-```
-
-Règles :
-
-- une fois gelée, la baseline d'une release n'est pas réécrite par une nouveauté Replit ordinaire ;
-- les nouveaux deltas vont dans la baseline suivante avec work item et triage ;
-- seuls un retrait cassant, une vulnérabilité critique, une obligation légale ou une erreur factuelle P0 peuvent rouvrir la baseline courante ;
-- le collecteur quotidien continue, mais ne déclenche jamais une réécriture complète du plan ;
-- l'approbation `parityBaselineReady` porte toujours un `baselineId` précis.
-
-Cette règle permet d'avancer : le produit poursuit un objectif versionné au lieu de courir indéfiniment derrière une cible mouvante.
+La page officielle consultée pendant cette révision expose actuellement Core à 25 dollars mensuels / 20 dollars effectifs annuels et Pro à 100 dollars mensuels / 95 dollars effectifs annuels, tandis que le scan joint rapporte d’autres montants. Cette divergence est conservée comme observation, non résolue par supposition. `RATE_CARD.json` E‑Code reste une décision indépendante et versionnée.
 
 ---
 
@@ -317,50 +247,18 @@ Les anciens starter templates par langage/framework sont `RETIRED_CONFIRMED`. `/
 
 ### 5.1 Entités
 
-Le modèle Replit publiquement confirmé porte la relation Project → Artifacts,
-le partage backend/données et la publication groupée. E-Code ajoute dès le
-premier schéma les frontières d'identité et d'organisation nécessaires à la
-collaboration et à l'Enterprise.
-
 ```text
-User
-└── Workspace[*]
-    ├── Membership[*]
-    ├── Group[*]
-    ├── GuestGrant[*]
-    └── Project[*]
-        ├── ProjectAccessGrant[*]
-        ├── ProjectManifest
-        ├── Artifact[*]
-        │   ├── ArtifactRevision[*]
-        │   └── Component[*]
-        ├── GeneratedAsset[*]
-        ├── SharedBackendBinding
-        ├── SharedDataBinding
-        ├── SharedStorageBinding
-        ├── ProjectRevision[*]
-        └── ProjectRelease[*]
+Project
+├── Artifact[*]
+│   ├── ArtifactRevision[*]
+│   └── Component[*]
+├── GeneratedAsset[*]
+├── SharedBackendBinding
+├── SharedDataBinding
+├── SharedStorageBinding
+├── ProjectRevision[*]
+└── ProjectRelease[*]
 ```
-
-`ProjectManifest` est la source versionnée des relations produit ; la position
-accidentelle des fichiers ne fait pas foi.
-
-```yaml
-ProjectManifest:
-  schemaVersion:
-  artifacts: []
-  components: []
-  workflows: []
-  ports: []
-  runtimeModules: []
-  dataBindings: []
-  storageBindings: []
-  deploymentScopes: []
-  migrations: []
-```
-
-Toute migration de manifeste est idempotente, testée en aller/retour lorsque
-possible et conserve la compatibilité avec les projets déjà créés.
 
 ### 5.2 Taxonomie canonique
 
@@ -410,7 +308,7 @@ DeploymentType ∈ {
 }
 ```
 
-`SERVICE`, `JOB` et `STATIC_SITE_COMPONENT` ne sont pas des Artifacts Replit. `DOCUMENT` et `SPREADSHEET` sont d'abord des intentions de création. Leur sortie est classée selon ce qui est réellement produit : `GeneratedAsset` pour un fichier, ou `Artifact` seulement si la publication autonome de ce type est prouvée. La baseline publique actuelle ne suffit pas à les ajouter à `ArtifactKind`.
+`SERVICE`, `JOB` et `STATIC_SITE_COMPONENT` ne sont pas des Artifacts Replit. `DOCUMENT` et `SPREADSHEET` sont des intentions de création et des assets générés tant qu’une publication autonome n’est pas prouvée.
 
 ### 5.3 Règles actuelles de parité
 
@@ -428,11 +326,9 @@ Ces limites sont des `Entitlement` configurables, jamais des contraintes de stoc
 ```yaml
 ProjectRelease:
   projectRevisionDigest:
-  projectManifestDigest:
   artifactRevisionDigests: []
   sharedBackendRevision:
   environmentLockDigest:
-  accessPolicyVersion:
   databaseMigrationSetVersion:
   publicationMode: GROUPED
   deploymentRevisionIds: []
@@ -442,29 +338,21 @@ ProjectRelease:
 
 ## 6. Project Editor et surfaces IDE
 
-### 6.1 Modèle de layout
-
-`DOC_CURRENT` confirme le modèle fonctionnel et ses opérations :
+### 6.1 Modèle de layout confirmé
 
 ```text
 Window → Pane → Tab → ToolInstance
 ```
 
-- ouverture du Project Editor dans une nouvelle fenêtre ;
-- panes ajoutables, déplaçables, maximisables, flottants ou fixes ;
-- tabs ouvrables, déplaçables entre panes et fermables ;
-- un tab contient un outil.
-
-La documentation publique consultée ne précise pas la portée exacte de
-persistance du layout. Ce point reste `UNKNOWN_AUTHENTICATED_LIVE` côté Replit.
-`ECODE_DECISION` : E-Code persiste le layout par utilisateur et par projet,
-avec migration de schéma, restauration et reset explicite.
+- Windows répartissables sur plusieurs écrans ;
+- panes horizontaux/verticaux, redimensionnables, réordonnables et flottants ;
+- un tab contient un outil ;
+- layout persisté par utilisateur et projet.
 
 ### 6.2 Outils actuellement documentés
 
 Au minimum :
 
-- Library sidebar ;
 - File tree ;
 - éditeur de fichier ;
 - Tools dock et All tools ;
@@ -665,25 +553,19 @@ La capture d’écran est une pièce jointe au prompt/Canvas, pas un provider st
 RECEIVED
 → STAGING_ISOLATED
 → SCANNING
-   ├─ clean ───────────────→ READY_TO_COMMIT
-   └─ blocking findings ──→ QUARANTINED
-                              → AWAITING_USER_ACTION
-                              → RESCANNING
-                              → READY_TO_COMMIT
-READY_TO_COMMIT
+→ QUARANTINED
+→ AWAITING_USER_ACTION
 → COMMITTING
 → COMMITTED
 ```
 
-États latéraux : `ROLLING_BACK`, `CLEANUP_PENDING`, `EXPIRED`, `CANCELLED`, `FAILED`.
+États latéraux : `ROLLING_BACK`, `EXPIRED`, `CANCELLED`, `FAILED`.
 
 Invariants :
 
 - staging jetable sans montage du workspace cible ;
 - aucune suppression silencieuse ;
-- un import propre ne passe pas artificiellement par la quarantaine ;
-- le consentement explicite est requis pour toute transformation, exception ou acceptation de finding, pas pour un payload propre ;
-- commit atomique uniquement depuis `READY_TO_COMMIT` ;
+- commit atomique uniquement après consentement ;
 - path traversal, symlinks, hardlinks, archive bomb et MIME réel contrôlés ;
 - LFS, submodules, signatures, OAuth, révocation et rate limits traités ;
 - findings exportables et procédure d’appel ;
@@ -751,7 +633,7 @@ Les labels publics courants sont : Starter, Core, Pro et Enterprise. Le plan Tea
 ### 11.2 Principes
 
 - prix et crédits dans `RATE_CARD.json`, jamais en dur ici ;
-- chaque observation porte geo, cadence, locale et cohorte ;
+- chaque observation porte geo, cadence, locale et cohort ;
 - entitlements dans `OFFERING_ENTITLEMENT_REGISTRY` ;
 - aucune UI ne devient source de vérité de billing ;
 - le backend applique les limites ;
@@ -767,8 +649,7 @@ Actuellement documenté :
 - une app publiée ;
 - expiration du lien après 30 jours ;
 - badge avec lien de parrainage ;
-- apps publiées supplémentaires, Full Build, Plan Mode, connecteurs tiers et AI Integrations conditionnés à Core ;
-- types d'Artifact autres que web et mobile conditionnés à Core selon la documentation actuelle.
+- Plan Mode, connecteurs et Artifacts supplémentaires conditionnés à Core.
 
 La documentation et le marketing ne s’alignent pas parfaitement sur certains détails d’accès privé et de types de création. Ces entitlements sont `AUTHENTICATED_LIVE_REQUIRED` avant reproduction exacte.
 
@@ -808,20 +689,6 @@ L’ancien système de crédits E‑Code et le nouveau ledger doivent faire l’
 - historique et redeploy.
 
 Le backend Google exact de chaque contrat produit Replit n’est pas supposé lorsque non public.
-
-### 12.1.1 Contrat normatif E‑Code des quatre types
-
-| Type | Contrat minimal | Interdictions |
-|---|---|---|
-| `AUTOSCALE` | trafic entrant, min/max instances, scale-to-zero selon policy, health/readiness, cold-start SLO, metering réel | aucun succès tant que la route finale n'est pas saine |
-| `STATIC` | build hermétique vers bundle immuable, headers/rewrites, objet + edge/CDN, invalidation atomique | aucun processus applicatif ni secret runtime |
-| `RESERVED_VM` | ressources fixes toujours allouées, restart policy, health, WebSocket/background selon capability, coût forfaitaire ou réservé | aucun faux « always-on » reposant sur une instance éphémère non surveillée |
-| `SCHEDULED` | cron/timezone, deadline, retry, concurrency policy, idempotence, logs, coût et cleanup | aucune URL entrante implicite ; aucun job orphelin |
-
-`DEPLOYMENT_TYPES_CONTRACT.md` porte pour chacun : lifecycle, configuration,
-ports, secrets, access policy, observabilité, billing, changement de type,
-rollback et preuves négatives. Un type non contractualisé et non prouvé est
-`NOT_IMPLEMENTED`.
 
 ### 12.2 Pipeline E‑Code
 
@@ -948,15 +815,6 @@ REQUESTED
 
 États latéraux : `BILLING_SUSPENDED`, `QUOTA_EXHAUSTED`, `DRIFT_DETECTED`, `DELETE_REQUESTED`, `RECOVERY_WINDOW`, `PURGING`, `PURGED`, `RESTORING`.
 
-Lorsque le SLO de premier publish le justifie, le pool de projets précréés suit sa propre machine à états :
-
-```text
-PROVISIONING → BASELINING → AVAILABLE → RESERVED → ASSIGNED
-                                 ↘ QUARANTINED → REPAIRING | PURGING
-```
-
-Une réservation expire, se compense et ne peut jamais attribuer le même projet à deux CloudTenants. Le pool est une optimisation mesurée, pas une excuse pour contourner les contrôles de Project Factory.
-
 ### 13.4 IAM
 
 - `BuildIdentity` ;
@@ -980,7 +838,7 @@ PROMOTION_PREPARED
 → PROMOTION_COMMITTED
 ```
 
-À la baseline du 20/07/2026, les attachments sont documentés en Preview. Le launch stage est lu depuis `SOURCE_REGISTRY.yaml`, jamais figé comme vérité éternelle. Tant que le mécanisme n'est pas GA et validé en contexte cible, prévoir fallback ORAS/referrers, Container Analysis/Binary Authorization et exit strategy. Supprimer l'image cible peut supprimer ses attachments : rétention couplée obligatoire.
+Les attachments restent Preview ; prévoir fallback ORAS/referrers, Container Analysis/Binary Authorization et exit strategy. Supprimer l’image cible peut supprimer les attachments : rétention couplée obligatoire.
 
 ### 13.6 Edge et multi-région
 
@@ -993,9 +851,7 @@ PROMOTION_PREPARED
 - auth fail-closed ;
 - tests actifs du bypass ;
 - Cloud Run service health GA depuis le 29 juin 2026 pour failover/failback ;
-- readiness probes et au moins une minimum instance par région participante pour calculer la santé ;
-- coût de ce chauffage régional mesuré et intégré au ledger ;
-- stratégie applicative séparée pour données, sessions, idempotence et dépendances régionales.
+- stratégie applicative séparée pour données, sessions, readiness et dépendances régionales.
 
 ### 13.7 Sandboxes 2026
 
@@ -1154,30 +1010,24 @@ Chaque étage exige le vrai client lorsque le contrat est visuel. Une preuve API
 | `verticalUserJourneyReady` | vrai client pour l’intégralité du parcours vertical |
 | `betaReady` | tenancy, IAM, Nix multi-zone, billing minimal, rollback permanent, supply chain, observabilité et restore drills |
 | `publicLaunchReady` | bêta + juridique/ops/billing live + P0 clos |
-| `parityBaselineReady` | univers de la `baselineId` gelée évalué et DONE/NA justifié |
+| `parityBaselineReady` | univers public daté évalué et DONE/NA justifié |
 
-### 17.4 Sortie de statut générée
-
-Le plan ne contient aucune valeur courante de readiness. La CI génère
-`APPROVAL_STATUS.json` au commit mergé avec au minimum :
+### 17.4 Statut à recalculer après ce correctif
 
 ```yaml
-ApprovalStatus:
-  generatedFromCommit:
-  generatedAt:
-  overallStatus:
-  highestPassedLevel:
-  levels: []
-  blockingIds: []
-  uiGaps: []
-  unanchoredClaims: []
-  registryCoverage:
-  evidenceCoverage:
+overallStatus: NOT_APPROVED
+highestPassedLevel: documentReconciled
+sourceBaselineReady: false
+registryUniverseReady: false
+contractsPresent: NOT_VERIFIED_IN_THIS_REVIEW
+contractsValidated: false
+implementationReady: false
+verticalBackendReady: NOT_VERIFIED_IN_THIS_REVIEW
+verticalUserJourneyReady: false
+betaReady: false
+publicLaunchReady: false
+parityBaselineReady: false
 ```
-
-Un niveau n'est vert que si tous les niveaux dont il dépend sont verts. Toute
-valeur inconnue, référence orpheline, claim non ancrée, contrat non validé ou
-preuve absente doit produire un motif bloquant explicite.
 
 ---
 
@@ -1202,7 +1052,7 @@ La décision Gallery Option B doit garder son contenu exact et sa citation propr
 | ID | Correction | Gate |
 |---|---|---|
 | P0-LS-01 | Corriger « nouveau compte » en visiteur anonyme | sourceBaselineReady |
-| P0-LS-02 | Corriger 21 tentatives / 20 routes / 19 HTTP 200 / 16 empreintes distinctes | sourceBaselineReady |
+| P0-LS-02 | Corriger 21 tentatives / 20 routes / 19 HTTP 200 / 16 hashes distincts | sourceBaselineReady |
 | P0-LS-03 | Joindre et valider le paquet complet d’evidence du scan | sourceBaselineReady |
 | P0-LS-04 | Reclasser GitLab comme capacité supportée sans tuile courante | registryUniverseReady |
 | P0-LS-05 | Corriger Artifact/Asset/Component/Deployment taxonomy | documentReconciled |
@@ -1219,67 +1069,24 @@ La décision Gallery Option B doit garder son contenu exact et sa citation propr
 | P0-LS-16 | Corriger generatedAt et recalculer après merge | documentReconciled |
 | P0-LS-17 | Réconcilier 174/159, 16/174/0/159, 114/99, surfaces total 10 | registryUniverseReady |
 | P0-LS-18 | Recalculer APPROVAL_STATUS sur le commit mergé | tous niveaux |
-| P0-EX-01 | Retirer le statut d'audit et l'overlay incomplet du plan normatif | documentReconciled |
-| P0-EX-02 | Générer `IMPLEMENTATION_STATUS.yaml` depuis le code, les registres et les preuves | registryUniverseReady |
-| P0-EX-03 | Reclasser la persistance du layout en UNKNOWN Replit + exigence E-Code | sourceBaselineReady |
-| P0-EX-04 | Corriger le branchement clean/quarantaine de la machine Import | contractsValidated |
-| P0-EX-05 | Corriger les entitlements Starter : apps supplémentaires vs types d'Artifact | sourceBaselineReady |
-| P0-EX-06 | Retirer les montants tarifaires du plan durable | sourceBaselineReady |
-| P0-EX-07 | Ajouter identité, Workspace, Membership, Group, Guest et AccessGrant au domaine | contractsValidated |
-| P0-EX-08 | Ajouter un `ProjectManifest` versionné comme source des composants et scopes | contractsValidated |
-| P0-EX-09 | Contractualiser séparément Autoscale, Static, Reserved et Scheduled | contractsValidated |
-| P0-EX-10 | Rendre l'activation canonique et la génération de statut entièrement CI | documentReconciled |
 
 ---
 
-## 20. Ordre d'exécution contraignant
+## 20. Ordre d’exécution
 
-### Phase 0 — Installer la source de vérité
-
-1. Copier ce fichier vers `docs/parity/PLAN_PARITE_REPLIT.md` sur une branche dédiée.
-2. Supprimer ou archiver toute copie active concurrente ; conserver seulement les historiques non normatifs.
-3. Réconcilier le split-brain Git avant de générer un état produit.
-4. Merger après revue, puis générer `DOCUMENT_MANIFEST.yaml` au commit final.
-5. Faire échouer la CI si le plan, le manifeste ou les vues générées dérivent.
-
-### Phase 1 — Fermer l'univers documentaire
-
-6. Ajouter tous les P0-LS et P0-EX avec owner, date ISO, dépendances et critère de clôture.
-7. Importer le paquet complet du scan ; recalculer tous les hashes, sans accepter un préfixe comme preuve.
-8. Ancrer chaque claim historique dans le baseline et le registre des sources.
-9. Classifier N1–N15 dans les registres spécialisés ; dédupliquer avant tout compteur.
-10. Produire `LEGACY_SOURCE_COVERAGE.yaml` pour chaque ancien plan, tracker, dette Bolt et checklist production.
-
-### Phase 2 — Calculer l'état E-Code réel
-
-11. Générer `IMPLEMENTATION_STATUS.yaml` en croisant code, migrations, routes, services, feature flags, registres et preuves.
-12. Ne jamais attribuer `CODED` à un fichier non mergé sur main.
-13. Ne jamais attribuer `INTEGRATED` sans déploiement de l'adapter réel.
-14. Ne jamais attribuer `PROVEN` sans `evidenceId` et artefacts hashés présents.
-15. Publier un rapport des incohérences code ↔ registre ↔ plan et les convertir en work items.
-
-### Phase 3 — Valider les contrats
-
-16. Faire relire les contrats par des reviewers réels.
-17. Valider schémas, invariants, transitions refusées, compatibilité et migrations.
-18. Contractualiser les quatre types de déploiement, le `ProjectManifest`, l'identité/collaboration et l'overlay d'état.
-
-### Phase 4 — Fermer les gates de bêta
-
-19. Rollback permanent dans Helm, fail-closed.
-20. Nix multi-zone et Python neuf zéro-manuel avec perte d'une zone.
-21. Promotion Artifact Registry réelle, métadonnées et policy vérifiées dans le tenant.
-22. CloudTenant, Project Factory, IAM et edge minimum réellement déployés.
-23. Billing minimal sûr : réservation, idempotence, compensation, hard limits aux frontières cohérentes.
-24. Preuves UI du parcours Create → Edit → Run → Preview → Publish → Observe → Rollback.
-25. Restore drills, observabilité, alertes et absence de secret canari dans toutes les surfaces.
-
-### Phase 5 — Fermer la baseline produit
-
-26. Exécuter des scans authentifiés avec comptes de test légitimes et plans représentatifs.
-27. Recalculer les entitlements, surfaces et clients par cohorte.
-28. Fermer chaque surface par `PROVEN`, `NOT_APPLICABLE` justifié ou `UNSUPPORTED` décidé.
-29. Régénérer les statuts au commit mergé ; ne demander qu'une approbation de niveau nommé.
+1. Remplacer le plan canonique par cette version corrigée.
+2. Ajouter les P0-LS au registre avec owner, date et critère de clôture.
+3. Importer le paquet complet du scan et valider tous les hashes.
+4. Corriger les observations GitLab, Teams, Experts, `/@user`, MCP et prix.
+5. Créer les registres spécialisés manquants.
+6. Classifier/dédupliquer N1–N15 ; calculer seulement ensuite le nombre canonique de surfaces.
+7. Refaire le scan documentaire des faux `SANS_TRACE`.
+8. Exécuter un scan authentifié avec un compte de test légitime sur Starter, Core et Pro au minimum.
+9. Recalculer les entitlements et prix par cohorte.
+10. Ancrer les claims historiques encore non hashés.
+11. Faire relire/valider les contrats par reviewers réels.
+12. Fermer les gates bêta déjà connues : Git, rollback Helm, Nix multi-zone, promotion AR live, CloudTenant/IAM, billing minimal, preuves UI.
+13. Régénérer `APPROVAL_STATUS.json`, `PARITY_STATUS.md` et `DOCUMENT_MANIFEST.yaml` au commit mergé.
 
 ---
 
@@ -1308,8 +1115,6 @@ La décision Gallery Option B doit garder son contenu exact et sa citation propr
 - https://docs.replit.com/billing/teams-billing/overview
 - https://docs.replit.com/features/auth-and-identity/clerk-auth
 - https://docs.replit.com/features/auth-and-identity/clerk-auth-migration
-- https://docs.replit.com/features/data-and-storage/development-and-production
-- https://replit.com/blog/defense-in-depth-how-replit-secures-every-layer-of-the-vibe-coding-stack
 
 ### Google Cloud
 
@@ -1321,116 +1126,17 @@ La décision Gallery Option B doit garder son contenu exact et sa citation propr
 - https://cloud.google.com/kubernetes-engine/docs/concepts/workload-identity
 - https://cloud.google.com/kubernetes-engine/docs/concepts/pod-snapshots
 - https://cloud.google.com/resource-manager/docs/limits
-- https://cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox
-
-### Nix / NixOS
-
-- https://nixos.org/blog/announcements/2026/nixos-2605/
-- https://nix.dev/manual/nix/stable/
-
-### 21.1 Claims minimaux à ancrer avant `sourceBaselineReady`
-
-Le registre doit contenir au minimum des claims séparés et hashés pour :
-
-- retrait des starter frameworks et maintien de Gallery/Remix ;
-- douze entrées du hub Import et capacité GitLab distincte de la tuile ;
-- modèle Project → Artifacts, limites, partage et publication groupée ;
-- layout Window/Pane/Tab et outils documentés, sans supposer la persistance ;
-- Starter/Core/Pro/Enterprise et entitlements, sans montant durable ;
-- dev/prod Database et interdiction d'écriture Agent en prod ;
-- MCP Server bêta et statut séparé de toute API générale ;
-- conteneurs seccomp-bpf, rollout microVM, Determinate Nix ;
-- projet GCP par client publiant, Cloud Run et Cloud Armor ;
-- recommandations Cloud Run multi-tenant ;
-- Workload Identity Federation for GKE ;
-- Artifact Registry attachments et leur launch stage ;
-- Cloud Run service health GA ;
-- limites des Pod snapshots ;
-- NixOS/Nixpkgs 26.05 et sa fenêtre de support.
-
-Les URLs servent à l'amorçage. Les assertions normatives utilisent les
-snapshots et hashes du `SOURCE_REGISTRY.yaml`, pas la disponibilité future
-d'une page distante.
 
 ---
 
 ## 22. Limite de certification
 
-Ce plan constitue le contrat normatif exécutable à installer au chemin canonique. Il ne certifie ni l'implémentation, ni les artefacts de preuve non vérifiés, ni la totalité des rollouts privés Replit. Toute approbation porte sur un niveau calculé précis : document, baseline, registres, contrats, implémentation, parcours utilisateur, bêta, lancement public ou baseline de parité.
+Ce plan constitue la version normative corrigée à transmettre à l’agent maître. Il ne certifie ni l’implémentation, ni les artefacts de preuve non joints, ni la totalité des rollouts privés Replit. La prochaine approbation ne doit pas porter sur « le plan est complet », mais sur un niveau calculé précis : baseline sourcée, registres classifiés, contrats validés, vertical UI, bêta ou lancement public.
 
 ---
 
-## 23. Overlay d'état E-Code — généré, jamais maintenu dans une annexe
+# ANNEXE E-CODE — CE QUI EST DÉJÀ CONSTRUIT DANS NOTRE CODE (overlay en cours)
 
-L'annexe manuelle est supprimée. `IMPLEMENTATION_STATUS.yaml` est l'unique
-source d'état d'implémentation.
+Cette annexe est ajoutée par E-Code par-dessus le plan corrigé de l'expert (sections 0–22 ci-dessus, reprises intégralement). Elle est **en cours de génération par machine** : chaque capacité/surface du plan est croisée avec le code réel (`app/routes/*`, `services/api/src`, `E2E_PROOFS.yaml`, `docs/deploy-evidence/`) et l'inventaire Bolt (`AUDIT_BOLT_HIDDEN_FEATURES.md`, `BOLT_BASELINE_MAP.md`, `BOLT_FEATURE_PLACEMENT_MATRIX.md`), et reçoit un état **DÉJÀ CONSTRUIT (preuve)** / **PARTIEL** / **NON FAIT**. Elle sera renseignée et vérifiée par le contrôle de complétude avant la version fusionnée dans `docs/parity/PLAN_PARITE_REPLIT.md`.
 
-```yaml
-ImplementationStatusEntry:
-  itemId:
-  itemType: SURFACE | CAPABILITY | SERVICE | CONTRACT | INFRA | WORK_ITEM
-  status: NOT_STARTED | PARTIAL | CODED | INTEGRATED | PROVEN | BLOCKED | NOT_APPLICABLE
-  codeCommit: null
-  mergedToMain: false
-  deploymentEnvironment: null
-  contractIds: []
-  surfaceIds: []
-  serviceIds: []
-  workItemIds: []
-  evidenceIds: []
-  blockingIds: []
-  lastMeasuredAt:
-  measuredBy:
-  notes:
-```
-
-Règles :
-
-- `CODED` exige un commit mergé sur main ;
-- `INTEGRATED` exige l'adapter réel déployé dans l'environnement déclaré ;
-- `PROVEN` exige toutes les preuves du contrat, avec artefacts présents et hashés ;
-- `PARTIAL` ne satisfait aucun gate ;
-- `NOT_APPLICABLE` exige une justification produit et une revue ;
-- une preuve périmée ou une régression redescend automatiquement l'état.
-
-Les vues peuvent afficher « déjà construit / partiel / non fait », mais elles
-sont générées à partir de ce registre et jamais ajoutées à la main au plan.
-
----
-
-## 24. Definition of Done commune
-
-Un work item n'est terminé que lorsque :
-
-1. le besoin ou claim est ancré et correctement classé ;
-2. le contrat et le schéma sont versionnés ;
-3. authn/authz serveur, erreurs, idempotence et limites sont définis ;
-4. télémétrie, audit et métriques de coût sont branchés ;
-5. chemins d'échec, cancel, timeout, compensation et cleanup sont testés ;
-6. le code est mergé sur main ;
-7. rollout, kill-switch et rollback existent ;
-8. tests unitaires, intégration et négatifs passent ;
-9. la preuve live requise traverse le vrai client et le vrai backend ;
-10. registres, manifeste et vues générées sont à jour ;
-11. aucune régression du parcours vertical n'est observée ;
-12. owner et reviewer réels signent la clôture lorsque le niveau l'exige.
-
----
-
-## 25. Instructions de handoff à l'agent maître
-
-À la réception de ce fichier, l'agent maître doit produire un seul changement
-cohérent, sans créer un autre plan :
-
-1. installer ce contenu au chemin canonique ;
-2. montrer le diff contre le plan actuel ;
-3. créer ou migrer les schémas et registres manquants ;
-4. générer l'overlay d'état réel ;
-5. exécuter les validateurs ;
-6. fournir les hashes, le commit, les résultats CI et les incohérences restantes ;
-7. commencer ensuite la Phase 0 du §20, dans l'ordre ;
-8. ne demander à Avi que les décisions réellement bloquantes, regroupées en une seule liste.
-
-Il est interdit de répondre seulement « tout est dedans ». La sortie attendue
-est : fichiers modifiés, IDs créés, compteurs recalculés, preuves vérifiées,
-statut de niveau nommé et prochain lot exécutable.
+Statut de cette annexe : **EN COURS** — ne pas lire comme finale.

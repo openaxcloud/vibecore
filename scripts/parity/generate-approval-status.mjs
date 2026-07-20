@@ -67,6 +67,9 @@ export const EXPECTED_P0_IDS = [
   'P0-LS-13', 'P0-LS-14', 'P0-LS-15', 'P0-LS-16', 'P0-LS-17', 'P0-LS-18',
   // Exigences propriétaire hors-scan (overlay code, scan authentifié).
   'P0-B-01', 'P0-B-02',
+  // Plan exécutable v2026-07-20.4 — 10 P0-EX.
+  'P0-EX-01', 'P0-EX-02', 'P0-EX-03', 'P0-EX-04', 'P0-EX-05',
+  'P0-EX-06', 'P0-EX-07', 'P0-EX-08', 'P0-EX-09', 'P0-EX-10',
 ];
 
 /*
@@ -136,6 +139,7 @@ export const SEPARATE_REGISTRY_FILES = [
   'IMPORT_PROVIDER_REGISTRY.yaml', 'CONNECTOR_REGISTRY.yaml',
   'OFFERING_ENTITLEMENT_REGISTRY.yaml', 'EXTERNAL_ECOSYSTEM_REGISTRY.yaml',
   'SERVICE_REGISTRY.yaml', 'P1_REGISTRY.yaml', 'ROUTE_OBSERVATION_REGISTRY.yaml',
+  'LEGACY_SOURCE_COVERAGE.yaml', 'PRICE_OBSERVATION_REGISTRY.yaml', 'IMPLEMENTATION_STATUS.yaml',
 ];
 export const EXPECTED_SERVICE_UNIVERSE_IDS = Array.from({ length: 56 }, (_, i) => `S${String(i + 1).padStart(2, '0')}`);
 
@@ -869,12 +873,21 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
       services: serviceUniverse.length,
       // Overlay code réel + bolt (exigence Avi B / P0-LS-17) : rien n'est
       // « fait » sans refs code ; composant présent non câblé = PARTIEL.
-      builtStates: {
-        dejaConstruit: universe.filter((s) => s.builtState === 'DEJA_CONSTRUIT').length,
-        partiel: universe.filter((s) => s.builtState === 'PARTIEL').length,
-        nonFait: universe.filter((s) => s.builtState === 'NON_FAIT').length,
-        nonCroise: universe.filter((s) => !s.builtState).length,
-      },
+      // §23 : l'état vit dans IMPLEMENTATION_STATUS.yaml (jamais dans les surfaces).
+      implementationStates: (() => {
+        const impl = yaml('IMPLEMENTATION_STATUS.yaml').items ?? [];
+        const by = (st) => impl.filter((i) => i.status === st).length;
+
+        return {
+          items: impl.length,
+          proven: by('PROVEN'),
+          coded: by('CODED'),
+          integrated: by('INTEGRATED'),
+          partial: by('PARTIAL'),
+          notStarted: by('NOT_STARTED'),
+          blocked: by('BLOCKED'),
+        };
+      })(),
     },
     workItems: { sourceFindingCount: backlogCounts.total, canonicalWorkItemCount },
     evidence,

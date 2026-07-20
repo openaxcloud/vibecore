@@ -14,14 +14,14 @@ généréPar: scripts/parity/generate-parity-status.mjs (drift-check CI)
 | registryUniverseReady | ❌ FAIL (OBS-DELTA-20260720-01 not classified (triage PENDING) … +14) |
 | contractsPresent | ✅ PASS |
 | contractsValidated | ❌ FAIL (DOMAIN_MODEL.md: no real reviewer … +18) |
-| implementationReady | ❌ FAIL (P0-V3-01 is OPEN … +8) |
+| implementationReady | ❌ FAIL (P0-V3-01 is OPEN … +10) |
 | verticalBackendReady | ✅ PASS |
 | verticalUserJourneyReady | ❌ FAIL (stage "publish" has no UI proof (une preuve API n'est pas une preuve UI) … +1) |
 | betaReady | ❌ FAIL (registryUniverseReady not passed … +6) |
-| publicLaunchReady | ❌ FAIL (betaReady not passed … +62) |
+| publicLaunchReady | ❌ FAIL (betaReady not passed … +72) |
 | parityBaselineReady | ❌ FAIL (surface SRF-IDE-FILE-HISTORY not done … +10) |
 
-**Compteurs (source unique)** : P0 55 (9 OPEN · 46 PROVEN · 0 CLOSED) · P1 40 · surfaces déclarées 10 (univers 159/159 importé, 1 évaluées, 56 services) · e2e 12/12 · constats 336 → 99 work items · claims non ancrées 21 · uiGaps [publish, rollback]
+**Compteurs (source unique)** : P0 65 (11 OPEN · 54 PROVEN · 0 CLOSED) · P1 40 · surfaces déclarées 10 (univers 159/159 importé, 1 évaluées, 56 services) · e2e 12/12 · constats 336 → 99 work items · claims non ancrées 21 · uiGaps [publish, rollback]
 
 ---
 

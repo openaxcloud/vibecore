@@ -280,9 +280,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects._index.tsx; app/routes/dashboard.tsx"
-    builtNote: "Route liste projets avec loader backend réel"
   - surfaceId: P002
     title: "Sélecteur de workspace"
     family: "A. Accueil, navigation et shell IDE"
@@ -290,9 +287,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/organization-switcher.tsx; app/routes/workspace-settings.tsx"
-    builtNote: "Switcher org branché sur /orgs backend"
   - surfaceId: P003
     title: "Cartes projet multi-artefacts"
     family: "A. Accueil, navigation et shell IDE"
@@ -300,9 +294,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/dashboard/ProjectCardMenu.tsx; app/components/dashboard/ProjectPreviewMedia.spec.tsx"
-    builtNote: "Cartes projet + preview media réels"
   - surfaceId: P004
     title: "Spotlight / couverture"
     family: "A. Accueil, navigation et shell IDE"
@@ -310,9 +301,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/api.projects.$projectId.thumbnail.ts; app/routes/projects._index.tsx"
-    builtNote: "Cover media avec backend thumbnail refresh"
   - surfaceId: P005
     title: "Barre supérieure"
     family: "A. Accueil, navigation et shell IDE"
@@ -320,9 +308,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects.$projectId.ide.tsx; app/components/header/Header.tsx"
-    builtNote: "Barre IDE: breadcrumb, run/stop, share, deploy"
   - surfaceId: P006
     title: "Windows, panes et tabs"
     family: "A. Accueil, navigation et shell IDE"
@@ -330,9 +315,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/chat/BaseChat.tsx; app/components/workbench/terminal/TerminalTabs.tsx"
-    builtNote: "Panes multiples, IdePaneTab, onglets terminal"
   - surfaceId: P007
     title: "Tools Dock / All tools"
     family: "A. Accueil, navigation et shell IDE"
@@ -340,9 +322,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/chat/BaseChat.tsx"
-    builtNote: "ideRailToolItems + IDE_MANAGEMENT_PANELS rendus"
   - surfaceId: P008
     title: "Search / command palette"
     family: "A. Accueil, navigation et shell IDE"
@@ -350,9 +329,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/command-palette.tsx; app/components/dashboard/command-palette-search.ts"
-    builtNote: "Route palette + recherche commandes réelle"
   - surfaceId: P009
     title: "Centre notifications / activité"
     family: "A. Accueil, navigation et shell IDE"
@@ -360,9 +336,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/notifications.tsx; app/routes/api.notifications.ts"
-    builtNote: "Feed réel mais BD-05: pas de cloche/badge shell"
   - surfaceId: P010
     title: "User Settings"
     family: "A. Accueil, navigation et shell IDE"
@@ -370,9 +343,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/account-settings.tsx; app/components/@settings/tabs"
-    builtNote: "Settings compte branchés backend (hors tabs localStorage)"
   - surfaceId: P011
     title: "Resources panel"
     family: "A. Accueil, navigation et shell IDE"
@@ -380,9 +350,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/components/chat/BaseChat.tsx:19861"
-    builtNote: "Widget Resources affiche — : pas de backend compute"
   - surfaceId: P012
     title: "Help / docs / status"
     family: "A. Accueil, navigation et shell IDE"
@@ -390,9 +357,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/docs.tsx; app/routes/status.tsx"
-    builtNote: "Docs/status réels; help orphelin mais construit"
   - surfaceId: P013
     title: "File Tree"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -400,9 +364,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/workbench/FileTree.tsx; app/components/chat/BaseChat.tsx"
-    builtNote: "Arbre fichiers branché sur runtime files"
   - surfaceId: P014
     title: "Code Editor"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -410,9 +371,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/editor/codemirror/CodeMirrorEditor.tsx"
-    builtNote: "Éditeur CodeMirror complet et câblé"
   - surfaceId: P015
     title: "Search & Replace"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -420,9 +378,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/workbench/Search.tsx; app/components/workbench/search-replace.ts"
-    builtNote: "Recherche et remplacement dans fichiers réels"
   - surfaceId: P016
     title: "Symbols / Outline"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -430,9 +385,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "services/api/src/editor"
-    builtNote: "Indexation symboles backend, no-UI-by-design, aucune surface"
   - surfaceId: P017
     title: "Problems / Diagnostics"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -440,9 +392,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/lib/stores/diagnostics.ts; app/components/chat/BaseChat.tsx:8713"
-    builtNote: "Vue Problems branchée sur diagnostics runtime réels"
   - surfaceId: P018
     title: "Formatter"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -450,9 +399,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/lib/stores/workbench.ts:1952; app/components/chat/BaseChat.tsx:6723"
-    builtNote: "formatCurrentDocument câblé sur bouton onFormat"
   - surfaceId: P019
     title: "Console"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -460,9 +406,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects.$projectId.logs.tsx; app/routes/api.projects.$projectId.ide-panel.$panel.ts:1100"
-    builtNote: "Console/logs runtime réels streamés"
   - surfaceId: P020
     title: "Shell"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -470,9 +413,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/workbench/terminal/TerminalManager.tsx; app/components/workbench/terminal/terminal-session.ts"
-    builtNote: "Shell terminal branché sur workspace pod"
   - surfaceId: P021
     title: "SSH"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -480,9 +420,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/api.projects.$projectId.ide-panel.$panel.ts:3688; app/components/chat/BaseChat.tsx:10441"
-    builtNote: "SSH réel: push/pull/keypair exécutés dans le pod"
   - surfaceId: P022
     title: "Workflows"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -490,9 +427,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/api.projects.$projectId.ide-panel.$panel.ts; docs/parity/BOLT_DEBT_REGISTRY.yaml"
-    builtNote: "BD-03: schedule/cron jamais déclenché, feature morte"
   - surfaceId: P023
     title: "Run / Stop"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -500,9 +434,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects.$projectId.ide.helpers.ts; app/routes/projects.$projectId.ide.tsx"
-    builtNote: "Run/Stop via restartWorkspace + statut workspace réel"
   - surfaceId: P024
     title: "Preview Web"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -510,9 +441,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/workbench/Preview.tsx"
-    builtNote: "Preview web branché sur ports runtime, tests e2e"
   - surfaceId: P025
     title: "Preview DevTools"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -520,9 +448,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "📘 DOC-JOUR vérifié : « Devtools: Toggle the developer tools pane » (llms-full.txt 20/07 l.6116/6132) — présent chez Replit ; évaluation E-Code encore à faire"
-    builtState: PARTIEL
-    codeRefs: "app/components/workbench/Inspector.tsx; docs/parity/BOLT_DEBT_REGISTRY.yaml"
-    builtNote: "BD-11: DevTools console/network limités aux erreurs/navigations"
   - surfaceId: P026
     title: "Ports"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -530,9 +455,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/workbench/PortDropdown.tsx; app/routes/api.projects.$projectId.ide-panel.$panel.ts:560"
-    builtNote: "Ports forwarded réels depuis runtime"
   - surfaceId: P027
     title: "Dependencies / Packages"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -540,9 +462,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/api.projects.$projectId.ide-panel.$panel.ts:721; app/components/chat/BaseChat.tsx"
-    builtNote: "Panel Packages branché sur dépendances runtime réelles"
   - surfaceId: P028
     title: "Advanced Project Settings"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -550,9 +469,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/advanced.$section.tsx; app/routes/projects.$projectId.settings.tsx"
-    builtNote: "Réglages projet avancés backend réels"
   - surfaceId: P029
     title: "Git"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -560,9 +476,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/git/GitTab.tsx; app/routes/api.projects.$projectId.ide-panel.$panel.ts:2867"
-    builtNote: "Git commit/push/pull exécutés dans le pod"
   - surfaceId: P030
     title: "File History"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -570,9 +483,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/components/workbench/Workbench.client.tsx:365; app/components/workbench/DiffView.tsx"
-    builtNote: "FileHistory diff de session, pas d'historique persistant par fichier"
   - surfaceId: P031
     title: "Checkpoints"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -580,9 +490,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects.$projectId.snapshots.tsx; app/routes/snapshot-restore-database.ts"
-    builtNote: "Checkpoints/snapshots avec restore backend réel"
   - surfaceId: P032
     title: "Disaster Recovery"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -590,9 +497,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "services/api/src/database-rollback-service.ts; docs/parity/BOLT_DEBT_REGISTRY.yaml"
-    builtNote: "BD-20: PITR WAL replay jamais prouvé, flag OFF prod"
   - surfaceId: P033
     title: "Secrets"
     family: "B. Fichiers, code, exécution et versionnement"
@@ -600,9 +504,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects.$projectId.secrets.tsx; app/routes/api.projects.$projectId.ide-panel.$panel.ts"
-    builtNote: "Panel Secrets add/delete branché backend réel"
   - surfaceId: P034
     title: "Agent Chat"
     family: "C. Agent, tâches et automatisations"
@@ -610,9 +511,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/api.chat.ts; app/components/chat/BaseChat.tsx; app/components/chat/Messages.client.tsx"
-    builtNote: "Agent chat complet, route+stream branchés"
   - surfaceId: P035
     title: "Agent Modes"
     family: "C. Agent, tâches et automatisations"
@@ -620,9 +518,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/chat/ChatBoxModeDropdown.tsx; app/components/chat/AgentPowerControls.tsx; services/api/src/agent-routing-service.ts"
-    builtNote: "Lite/Economy/Power prouvés live (E2E-AGM-A..F)"
   - surfaceId: P036
     title: "Plan Mode"
     family: "C. Agent, tâches et automatisations"
@@ -630,9 +525,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/lib/.server/llm/agent-orchestration.ts; app/components/chat/PlanChecklist.tsx; app/lib/chat/plan-checklist.ts"
-    builtNote: "Toggle Plan (planFirst) + orchestration + checklist rendus"
   - surfaceId: P037
     title: "Task Board"
     family: "C. Agent, tâches et automatisations"
@@ -640,9 +532,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: "app/components/chat/PlanChecklist.tsx"
-    builtNote: "Pas de task board persistant; seule checklist de plan existe"
   - surfaceId: P038
     title: "Task lifecycle"
     family: "C. Agent, tâches et automatisations"
@@ -650,9 +539,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/lib/chat/plan-checklist.ts; app/components/chat/PlanChecklist.tsx"
-    builtNote: "Statuts pending/in_progress/completed/failed dans checklist, pas d'entité tâche"
   - surfaceId: P039
     title: "Follow-up tasks"
     family: "C. Agent, tâches et automatisations"
@@ -660,9 +546,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/components/chat/BaseChat.tsx#buildProjectAgentSuggestions"
-    builtNote: "Chips de suggestions contextuelles, pas de vraies tâches de suivi"
   - surfaceId: P040
     title: "Message queue"
     family: "C. Agent, tâches et automatisations"
@@ -670,9 +553,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucune file de messages pendant le streaming agent"
   - surfaceId: P041
     title: "Agent activity"
     family: "C. Agent, tâches et automatisations"
@@ -680,9 +560,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/chat/AgentRepairHistory.tsx; app/routes/api.projects.$projectId.agent-repair-events.ts"
-    builtNote: "Historique/activité de réparation agent branché à route"
   - surfaceId: P042
     title: "Diff review"
     family: "C. Agent, tâches et automatisations"
@@ -690,9 +567,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/chat/MessagePatchReview.tsx; app/components/chat/DiffActionRow.tsx; app/routes/api.projects.$projectId.agent-patch-proposals.ts"
-    builtNote: "File de propositions patch + revue diff câblée"
   - surfaceId: P043
     title: "App Testing"
     family: "C. Agent, tâches et automatisations"
@@ -700,9 +574,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucun agent App Testing; toggle absent du code"
   - surfaceId: P044
     title: "Skills Directory"
     family: "C. Agent, tâches et automatisations"
@@ -710,9 +581,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "services/api/src/skills-catalog.ts; services/api/src/skills-github-fetch.ts; app/routes/api.projects.$projectId.ide-panel.skills.action.spec.ts"
-    builtNote: "Catalogue skills + install routes + panneau IDE"
   - surfaceId: P045
     title: "replit.md / instructions projet"
     family: "C. Agent, tâches et automatisations"
@@ -720,9 +588,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/lib/.server/llm/project-rules.ts"
-    builtNote: "AGENTS.md/.cursorrules/claude.md injectés dans system prompt"
   - surfaceId: P046
     title: "Workspace Instructions"
     family: "C. Agent, tâches et automatisations"
@@ -730,9 +595,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: "app/components/settings/WorkspaceSettings.tsx"
-    builtNote: "WorkspaceSettings = éditeur/thème, pas d'instructions agent workspace"
   - surfaceId: P047
     title: "Web Search"
     family: "C. Agent, tâches et automatisations"
@@ -740,9 +602,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/api.web-search.ts; app/components/chat/WebSearch.client.tsx; app/lib/web-search-body.ts"
-    builtNote: "Route fetch réelle avec garde SSRF"
   - surfaceId: P048
     title: "Voice Mode"
     family: "C. Agent, tâches et automatisations"
@@ -750,9 +609,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/chat/SpeechRecognition.tsx; app/components/chat/ChatBox.tsx"
-    builtNote: "Dictée SpeechRecognition câblée au composer (isListening)"
   - surfaceId: P049
     title: "Image Generation"
     family: "C. Agent, tâches et automatisations"
@@ -760,9 +616,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucune génération d'images"
   - surfaceId: P050
     title: "Audio Generation"
     family: "C. Agent, tâches et automatisations"
@@ -770,9 +623,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucune génération audio"
   - surfaceId: P051
     title: "Video / 3D Generation"
     family: "C. Agent, tâches et automatisations"
@@ -780,9 +630,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucune génération vidéo/3D"
   - surfaceId: P052
     title: "Connectors in Agent"
     family: "C. Agent, tâches et automatisations"
@@ -790,9 +637,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/chat/connector-cards/ConnectionRequestCard.tsx; app/lib/connectors/connector-token.server.ts; app/routes/api.connector-token.$provider.ts"
-    builtNote: "Cartes connecteurs + token serveur branchés dans le chat"
   - surfaceId: P053
     title: "MCP tools"
     family: "C. Agent, tâches et automatisations"
@@ -800,9 +644,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/chat/MCPTools.tsx; app/lib/services/mcpService.ts; app/routes/api.chat.ts"
-    builtNote: "Exécution réelle d'outils MCP par requête"
   - surfaceId: P054
     title: "Agent Inbox"
     family: "C. Agent, tâches et automatisations"
@@ -810,9 +651,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucun Agent Inbox (inbox = notifications seulement)"
   - surfaceId: P055
     title: "Code Review"
     family: "C. Agent, tâches et automatisations"
@@ -820,9 +658,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "services/api/src/skills-catalog.ts#code-review; app/routes/api.ai.features.ts"
-    builtNote: "Entrée skill Code Review, pas de flux/panneau dédié"
   - surfaceId: P056
     title: "Security Agent"
     family: "C. Agent, tâches et automatisations"
@@ -830,9 +665,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/lib/ide-panel-security.ts; app/routes/api.projects.$projectId.ide-panel.$panel.ts#security"
-    builtNote: "Scanner sécurité (secrets/scans planifiés), pas d'agent autonome"
   - surfaceId: P057
     title: "Automations"
     family: "C. Agent, tâches et automatisations"
@@ -840,9 +672,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "services/api/src/scheduled-tasks.ts; app/routes/api.projects.$projectId.scheduled-tasks.ts"
-    builtNote: "Tâches cron exécuteur réel prouvé; event-driven/connecteurs manquant"
   - surfaceId: P058
     title: "Artifact Switcher"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -850,9 +679,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: "app/lib/stores/workbench.ts:98; app/components/chat/Artifact.tsx"
-    builtNote: "Vue code/diff/preview/git seulement; pas de switch multi-artefacts (1 projet=1 app)"
   - surfaceId: P059
     title: "Library"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -860,9 +686,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "📘 DOC-JOUR vérifié : « The Library sidebar… artifacts, images that Agent generated » (l.7580) — présent chez Replit ; évaluation E-Code encore à faire"
-    builtState: PARTIEL
-    codeRefs: "app/routes/dashboard_.templates.tsx; app/routes/gallery._index.tsx; app/routes/explore.tsx"
-    builtNote: "Dashboard projets + templates/gallery; pas de surface 'Library' d'artefacts unifiée"
   - surfaceId: P060
     title: "Asset Browser"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -870,9 +693,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: "app/components/workbench/FileTree.tsx"
-    builtNote: "FileTree pour fichiers uniquement; aucun asset browser trouvé"
   - surfaceId: P061
     title: "Design Canvas"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -880,9 +700,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucun canvas de design dans le code"
   - surfaceId: P062
     title: "Canvas media tools"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -890,9 +707,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucun outil média canvas"
   - surfaceId: P063
     title: "Visual Editor"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -900,9 +714,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/components/workbench/Inspector.tsx; app/components/workbench/InspectorPanel.tsx; app/components/workbench/Preview.tsx:628"
-    builtNote: "Inspecteur d'élément câblé, localise source JSX; panneau lecture seule"
   - surfaceId: P064
     title: "Web Artifact"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -910,9 +721,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects.new.tsx:88; app/components/workbench/Preview.tsx"
-    builtNote: "Catégorie web + preview prouvée (E2E-VERTICAL-PREVIEW Flask h1)"
   - surfaceId: P065
     title: "Mobile Artifact"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -920,9 +728,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/projects.new.tsx:104; app/components/workbench/ExpoQrModal.tsx"
-    builtNote: "Catégorie Expo/RN PWA + QR preview sur device; pas de natif"
   - surfaceId: P066
     title: "iOS Simulator"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -930,9 +735,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: "app/components/workbench/ExpoQrModal.tsx"
-    builtNote: "Seulement QR Expo Go sur son téléphone; aucun simulateur iOS"
   - surfaceId: P067
     title: "Android Emulator"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -940,9 +742,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "📘 DOC-JOUR vérifié : « choose iOS Simulator or Android Emulator » (l.2833/6120) — présent chez Replit ; évaluation E-Code encore à faire"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucun émulateur Android"
   - surfaceId: P068
     title: "Slides Editor"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -950,9 +749,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/projects.new.tsx:120"
-    builtNote: "Catégorie slides = preset de génération (deck web); pas d'éditeur dédié"
   - surfaceId: P069
     title: "Presenter / Speaker Notes"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -960,9 +756,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: "app/routes/projects.new.tsx:120"
-    builtNote: "Speaker notes seulement évoqué dans generationHint; pas de mode présentateur"
   - surfaceId: P070
     title: "Slides Export"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -970,9 +763,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucun export de slides"
   - surfaceId: P071
     title: "Data Visualization Artifact"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -980,9 +770,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/projects.new.tsx:168; app/components/chat/MermaidBlock.tsx"
-    builtNote: "Catégorie data + diagrammes Mermaid chat; pas de renderer dataviz dédié"
   - surfaceId: P072
     title: "Animation / Video Artifact"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -990,9 +777,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/projects.new.tsx:136"
-    builtNote: "Catégorie animation = preset CSS motion web; pas de vidéo"
   - surfaceId: P073
     title: "3D / Game Artifact"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -1000,9 +784,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/projects.new.tsx:200"
-    builtNote: "Catégorie game = preset génération; pas de moteur 3D dédié"
   - surfaceId: P074
     title: "Design Artifact"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -1010,9 +791,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/projects.new.tsx:152"
-    builtNote: "Catégorie design = preset génération vers app web"
   - surfaceId: P075
     title: "Document Artifact"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -1020,9 +798,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/projects.new.tsx:216; app/components/chat/Markdown.tsx"
-    builtNote: "Catégorie document + rendu Markdown/Mermaid chat; pas d'éditeur doc"
   - surfaceId: P076
     title: "Artifact Management"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -1030,9 +805,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/dashboard_.templates.tsx; app/routes/projects.new.tsx"
-    builtNote: "Gestion niveau projet (dashboard CRUD); pas de gestion par artefact"
   - surfaceId: P077
     title: "Shared backend/data view"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -1040,9 +812,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/database/DatabaseStudio.tsx; app/components/database/DatabasePanel.tsx"
-    builtNote: "Surface 'My Data' câblée aux routes DB réelles (zero mock)"
   - surfaceId: P078
     title: "Grouped Publish"
     family: "D. Artefacts, Library, Canvas et expériences visuelles"
@@ -1050,9 +819,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "📘 DOC-JOUR vérifié : « All artifacts go live together » + pas de publication indépendante (l.7605/7634) — présent chez Replit ; évaluation E-Code encore à faire"
-    builtState: NON_FAIT
-    codeRefs: "app/components/deploy/DeployButton.tsx"
-    builtNote: "Deploy publie une app unique; pas de publication groupée d'artefacts"
   - surfaceId: P079
     title: "Database Landing"
     family: "E. Data, Cloud, auth et intégrations"
@@ -1060,9 +826,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/database/DatabaseWorkbench.tsx; app/routes/api.projects.$projectId.ide-panel.$panel.ts"
-    builtNote: "Vue racine All Databases cartes usage, live API"
   - surfaceId: P080
     title: "Database Overview"
     family: "E. Data, Cloud, auth et intégrations"
@@ -1070,9 +833,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/database/DatabaseWorkbench.tsx"
-    builtNote: "Onglet Overview du workbench, données live"
   - surfaceId: P081
     title: "Database My Data"
     family: "E. Data, Cloud, auth et intégrations"
@@ -1080,9 +840,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/database/DatabaseStudio.tsx"
-    builtNote: "Table browser + schema live"
   - surfaceId: P082
     title: "SQL Editor"
     family: "E. Data, Cloud, auth et intégrations"
@@ -1090,9 +847,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/database/DatabaseStudio.tsx; services/api/src/app.ts"
-    builtNote: "SQL editor R/W transactionnel CNPG réel"
   - surfaceId: P083
     title: "Database Settings"
     family: "E. Data, Cloud, auth et intégrations"
@@ -1100,9 +854,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/database/DatabaseSettings.tsx"
-    builtNote: "Connection string + storage + rollback section, wired"
   - surfaceId: P084
     title: "Data Recovery"
     family: "E. Data, Cloud, auth et intégrations"
@@ -1110,9 +861,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/components/database/DatabaseRollbackPanel.tsx; services/api/src/database-rollback-service.ts"
-    builtNote: "Scaffold Phase-1 dormant DB_ROLLBACK_ENABLED, backend 404, pas d'executor"
   - surfaceId: P085
     title: "Dev/Prod Separation"
     family: "E. Data, Cloud, auth et intégrations"
@@ -1120,9 +868,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "services/api/src/database-provisioner.ts; app/components/database/DatabasePanel.tsx"
-    builtNote: "Provisioner dev/prod codé; split UI seulement si backend l'expose"
   - surfaceId: P086
     title: "Agent Prod Read-only"
     family: "E. Data, Cloud, auth et intégrations"
@@ -1130,9 +875,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "services/api/src/app.ts"
-    builtNote: "assertReadOnlySql existe mais non câblé; SQL pane full R/W"
   - surfaceId: P087
     title: "App Storage"
     family: "E. Data, Cloud, auth et intégrations"
@@ -1140,9 +882,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/chat/BaseChat.tsx; services/api/src/object-storage.ts"
-    builtNote: "ProjectObjectStoragePanel, GCS réel, flag OBJECT_STORAGE_ENABLED"
   - surfaceId: P088
     title: "Object Browser"
     family: "E. Data, Cloud, auth et intégrations"
@@ -1150,9 +889,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/chat/BaseChat.tsx; app/routes/api.projects.$projectId.ide-panel.$panel.ts"
-    builtNote: "Objects list/upload/download/move/delete via signed URLs GCS"
   - surfaceId: P089
     title: "Users & Auth"
     family: "E. Data, Cloud, auth et intégrations"
@@ -1160,9 +896,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "services/api/src/auth-scaffold.ts; app/routes/api.projects.$projectId.auth-scaffold.ts"
-    builtNote: "Scaffold auth réel mais dormant AUTH_SCAFFOLD_ENABLED, pas de gestion users live"
   - surfaceId: P090
     title: "External Access Tokens"
     family: "E. Data, Cloud, auth et intégrations"
@@ -1170,9 +903,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucune surface tokens d'accès externes pour l'app générée"
   - surfaceId: P091
     title: "Integrations Catalog"
     family: "E. Data, Cloud, auth et intégrations"
@@ -1180,9 +910,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/components/chat/BaseChat.tsx; docs/parity/BOLT_DEBT_REGISTRY.yaml"
-    builtNote: "INTEGRATION_CATALOG hardcodé, sync no-op (BD-01)"
   - surfaceId: P092
     title: "OAuth Setup"
     family: "E. Data, Cloud, auth et intégrations"
@@ -1190,9 +917,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/admin.oauth-providers.tsx; app/routes/api.integrations.oauth.$provider.connect.ts"
-    builtNote: "Config OAuth DB-backed + flow connect réel github/gitlab/bitbucket"
   - surfaceId: P093
     title: "Integration Health"
     family: "E. Data, Cloud, auth et intégrations"
@@ -1200,9 +924,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/components/chat/BaseChat.tsx; app/routes/api.projects.$projectId.ide-panel.$panel.ts"
-    builtNote: "status/successRate/lastSync factices posés au connect, pas de vraie santé"
   - surfaceId: P094
     title: "MCP Management"
     family: "E. Data, Cloud, auth et intégrations"
@@ -1210,9 +931,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/components/@settings/tabs/mcp/McpTab.tsx; services/api/src/mcp-marketplace.ts; app/routes/api.mcp.installs.ts"
-    builtNote: "Tab MCP + marketplace DB-backed + installs API + exécution réelle"
   - surfaceId: P095
     title: "Publishing Overview"
     family: "F. Publish, production, domaines et croissance"
@@ -1220,9 +938,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects.$projectId.deployments.tsx; app/components/deploy/DeploymentOverview.tsx"
-    builtNote: "Overview + publish card câblés au pipeline server, preuve READY 200"
   - surfaceId: P096
     title: "Deployment Type"
     family: "F. Publish, production, domaines et croissance"
@@ -1230,9 +945,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects.$projectId.deployments.tsx:571-640; app/components/deploy/deployment-types.ts"
-    builtNote: "Static/server auto-détecté + override; sélecteur 4-tiers orphelin, reserved-vm coming-soon"
   - surfaceId: P097
     title: "Machine Configuration"
     family: "F. Publish, production, domaines et croissance"
@@ -1240,9 +952,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects.$projectId.deployments.tsx:575-598; services/api/src/rate-card-service.spec.ts"
-    builtNote: "Machine size servi par rate card versionné, metering prouvé"
   - surfaceId: P098
     title: "Deployment Secrets"
     family: "F. Publish, production, domaines et croissance"
@@ -1250,9 +959,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects.$projectId.deployments.tsx:224-227,613"
-    builtNote: "Env vars + injectSecrets câblés au publish, secrets injectés prouvés"
   - surfaceId: P099
     title: "Publishing Geography"
     family: "F. Publish, production, domaines et croissance"
@@ -1260,9 +966,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: "services/api/src/object-storage.ts:21; app/components/marketing/EcodeProductMarketingPages.tsx:1390"
-    builtNote: "Région unique europe-west9 hardcodée; aucun sélecteur de région"
   - surfaceId: P100
     title: "Connect Domain"
     family: "F. Publish, production, domaines et croissance"
@@ -1270,9 +973,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects.$projectId.domains.tsx:109-125; app/routes/organization-domains.tsx"
-    builtNote: "Ajout domaine custom + vérif DNS TXT réelle + TLS, wizard fonctionnel"
   - surfaceId: P101
     title: "Buy Domain"
     family: "F. Publish, production, domaines et croissance"
@@ -1280,9 +980,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: "app/components/deploy/DeploymentOverview.tsx:94-99"
-    builtNote: "Bouton Buy a new domain (Beta) redirige vers connect; aucun achat réel"
   - surfaceId: P102
     title: "Access: Public"
     family: "F. Publish, production, domaines et croissance"
@@ -1290,9 +987,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/components/deploy/DeploymentOverview.tsx:80-84"
-    builtNote: "Visibility affiche Public en dur, purement décoratif, sans contrôle"
   - surfaceId: P103
     title: "Access: Private"
     family: "F. Publish, production, domaines et croissance"
@@ -1300,9 +994,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: "app/components/deploy/DeploymentOverview.tsx:80-84"
-    builtNote: "Aucun contrôle de visibilité privée sur les déploiements"
   - surfaceId: P104
     title: "Access: Password"
     family: "F. Publish, production, domaines et croissance"
@@ -1310,9 +1001,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: "app/components/deploy/DeploymentOverview.tsx"
-    builtNote: "Aucune protection par mot de passe des déploiements"
   - surfaceId: P105
     title: "Production Database"
     family: "F. Publish, production, domaines et croissance"
@@ -1320,9 +1008,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects.$projectId.database.tsx; services/api/src/database-provisioner.ts"
-    builtNote: "Page DB + provision/schema/query réels; PITR restore feature-flaggé"
   - surfaceId: P106
     title: "App Monitoring"
     family: "F. Publish, production, domaines et croissance"
@@ -1330,9 +1015,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/api.monitoring.performance.ts; app/routes/admin.$section.tsx:251"
-    builtNote: "Endpoints/admin monitoring existent; 12 métriques Prometheus no-data, rien per-app"
   - surfaceId: P107
     title: "Production Logs"
     family: "F. Publish, production, domaines et croissance"
@@ -1340,9 +1022,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects.$projectId.deployments.tsx:671-728"
-    builtNote: "DeployLogsView stream logs build/deploy réels redigés, prouvé"
   - surfaceId: P108
     title: "Application Analytics"
     family: "F. Publish, production, domaines et croissance"
@@ -1350,9 +1029,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: "app/components/marketing/ecode-exact/pages/PublicDeploymentsSections.tsx"
-    builtNote: "Analytics applicatives seulement en marketing; aucun code produit"
   - surfaceId: P109
     title: "Production Resources"
     family: "F. Publish, production, domaines et croissance"
@@ -1360,9 +1036,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/usage.tsx; app/components/deploy/DeploymentOverview.tsx:103-121"
-    builtNote: "Usage/metering org réel + ligne Type; pas de graphes ressources per-deploy"
   - surfaceId: P110
     title: "Feedback Widget"
     family: "F. Publish, production, domaines et croissance"
@@ -1370,9 +1043,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucun widget de feedback dans le code"
   - surfaceId: P111
     title: "Security Gate"
     family: "F. Publish, production, domaines et croissance"
@@ -1380,9 +1050,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/projects.$projectId.deployments.tsx:428-432; app/components/chat/BaseChat.tsx:18164-18293"
-    builtNote: "Bouton deploy security scan disabled (coming soon); scanner SAST IDE réel mais non-gate"
   - surfaceId: P112
     title: "Deployment History"
     family: "F. Publish, production, domaines et croissance"
@@ -1390,9 +1057,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects.$projectId.deployments.tsx:766-820"
-    builtNote: "DeployHistory rend les déploiements réels avec redeploy/cancel/rollback"
   - surfaceId: P113
     title: "Rollback"
     family: "F. Publish, production, domaines et croissance"
@@ -1400,9 +1064,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects.$projectId.deployments.tsx:287-292,950-983"
-    builtNote: "Rollback par digest live prouvé, audit event, 2 négatifs 409"
   - surfaceId: P114
     title: "Static Advanced"
     family: "F. Publish, production, domaines et croissance"
@@ -1410,9 +1071,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "services/api/src/app.ts:8130-8260; services/api/src/deployments.ts:711-791"
-    builtNote: "Serving static + CSP sandbox/CORP réels; aucune UI config avancée"
   - surfaceId: P115
     title: "Scheduled Deployments"
     family: "F. Publish, production, domaines et croissance"
@@ -1420,9 +1078,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/api.projects.$projectId.scheduled-tasks.ts; services/api/src/scheduled-tasks.ts"
-    builtNote: "Cron exécuteur + runs/logs/billing persistés, prouvé volume réel"
   - surfaceId: P116
     title: "SEO Rating"
     family: "F. Publish, production, domaines et croissance"
@@ -1430,9 +1085,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucune surface SEO rating dans le code"
   - surfaceId: P117
     title: "SEO Agent"
     family: "F. Publish, production, domaines et croissance"
@@ -1440,9 +1092,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucun agent SEO dans le code"
   - surfaceId: P118
     title: "Monetization Hub"
     family: "F. Publish, production, domaines et croissance"
@@ -1450,9 +1099,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucun hub de monétisation dans le code"
   - surfaceId: P119
     title: "Multiplayer Presence"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1460,9 +1106,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "services/api/src/collaboration-presence-cleanup.ts; schema.prisma:527"
-    builtNote: "Modèle presence + endpoints ws + cleanup câblés"
   - surfaceId: P120
     title: "Shared Agent Thread"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1470,9 +1113,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "services/api/src/app.ts (collaboration/ai-conversation); schema.prisma:1006"
-    builtNote: "Thread agent partagé + panel share"
   - surfaceId: P121
     title: "Project Access"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1480,9 +1120,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/projects.$projectId.collaborators.tsx; schema.prisma:496"
-    builtNote: "Collaborateurs branchés"
   - surfaceId: P122
     title: "Workspace Members"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1490,9 +1127,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/organization-members.tsx; schema.prisma:182"
-    builtNote: "Adhésions org câblées"
   - surfaceId: P123
     title: "Groups"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1500,9 +1134,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucun modèle/endpoint Groups"
   - surfaceId: P124
     title: "Guests"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1510,9 +1141,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "schema.prisma:565 ProjectShareLink"
-    builtNote: "Share-links; pas d'entité guest dédiée"
   - surfaceId: P125
     title: "Project Security Center"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1520,9 +1148,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "services/api/src/import-pipeline.ts"
-    builtNote: "Scan secrets import; pas de security center projet"
   - surfaceId: P126
     title: "Workspace Security Center"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1530,9 +1155,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/organization-security.tsx"
-    builtNote: "Centre sécurité workspace + events câblés"
   - surfaceId: P127
     title: "Package Firewall"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1540,9 +1162,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucun package firewall"
   - surfaceId: P128
     title: "Workspace Policies"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1550,9 +1169,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "schema.prisma:1461 McpGlobalPolicy"
-    builtNote: "Enterprise settings + policies câblées"
   - surfaceId: P129
     title: "SSO / SAML"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1560,9 +1176,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/enterprise-sso-settings.tsx; schema.prisma:1271"
-    builtNote: "SAML+OIDC câblés; relecture manquante (bolt gap)"
   - surfaceId: P130
     title: "SCIM Users"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1570,9 +1183,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/scim-token-settings.tsx; schema.prisma:1284"
-    builtNote: "SCIM Users + tokens câblés"
   - surfaceId: P131
     title: "SCIM Groups / Multi-workspaces"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1580,9 +1190,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: "services/api/src/app.ts (/scim/v2/:orgId/Users)"
-    builtNote: "SCIM Groups absent"
   - surfaceId: P132
     title: "Audit Logs"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1590,9 +1197,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/audit-logs.tsx; schema.prisma:793"
-    builtNote: "Audit logs + export câblés"
   - surfaceId: P133
     title: "SIEM"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1600,9 +1204,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/organization-siem.tsx; schema.prisma:1314"
-    builtNote: "Webhooks SIEM + test câblés"
   - surfaceId: P134
     title: "Budgets"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1610,9 +1211,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/billing.tsx"
-    builtNote: "Caps budget UI ; adossés au crédit SHADOW non activé"
   - surfaceId: P135
     title: "Spend Limits"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1620,9 +1218,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/usage-limits.tsx; services/api/src/spend-alerts.ts"
-    builtNote: "Limites + alertes câblées (métrage shadow)"
   - surfaceId: P136
     title: "Plans / Entitlements"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1630,9 +1225,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/plan-comparison.tsx; schema.prisma:873"
-    builtNote: "Plans/entitlements + abonnement Stripe câblés"
   - surfaceId: P137
     title: "Seats"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1640,9 +1232,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: "app/components/marketing/ecode-exact/pages/Pricing.tsx"
-    builtNote: "Sièges en marketing seul"
   - surfaceId: P138
     title: "Invoices / Billing"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1650,9 +1239,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/invoices.tsx"
-    builtNote: "Factures + portail Stripe câblés"
   - surfaceId: P139
     title: "Enterprise Analytics"
     family: "G. Collaboration, sécurité, enterprise et billing"
@@ -1660,9 +1246,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "services/api/src/app.ts (usage/breakdown)"
-    builtNote: "Endpoints usage/coût ; pas de dashboard dédié"
   - surfaceId: P140
     title: "Import GitHub"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1670,9 +1253,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/import-github.tsx; services/api/src/import-pipeline.ts"
-    builtNote: "Import GitHub exécuté + staging sécurisé + preuve e2e"
   - surfaceId: P141
     title: "Import GitLab"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1680,9 +1260,6 @@ surfaceUniverse:
     availability: NOT_APPLICABLE
     evaluation: EVALUATED
     justification: "GitLab n'est PAS une tuile du hub d'import courant (CONFIRMÉ, table Supported sources du jour — RPL-24/RPL-29 corrigé) ; une capacité d'import Git plus large (Source Control / intégrations) reste UNKNOWN → UNK-LS-GITLAB-GIT. PAS « retiré »."
-    builtState: PARTIEL
-    codeRefs: "services/api/src/app.ts:18660 (/import/gitlab)"
-    builtNote: "Endpoint git partagé existe ; pas exécuté, pas de tuile hub"
   - surfaceId: P142
     title: "Import Bitbucket"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1690,9 +1267,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "services/api/src/app.ts:18663; services/api/src/integrations/providers/bitbucket.ts"
-    builtNote: "Bitbucket exécuté + tuile + provider"
   - surfaceId: P143
     title: "Import ZIP / Upload"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1700,9 +1274,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/import-zip.tsx"
-    builtNote: "Import ZIP exécuté + staging sécurisé"
   - surfaceId: P144
     title: "Import Figma"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1710,9 +1281,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "services/api/src/import-pipeline.ts (IMPORT_HUB_PROVIDERS figma)"
-    builtNote: "Tuile Figma modélisée, non exécutée"
   - surfaceId: P145
     title: "Recreate from Screenshot"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1720,9 +1288,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: "app/components/chat/BaseChat.tsx"
-    builtNote: "Screenshot = référence Agent ; pas de recréation dédiée"
   - surfaceId: P146
     title: "Export ZIP"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1730,9 +1295,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/api.projects.$projectId.export.zip.ts"
-    builtNote: "Export ZIP projet câblé"
   - surfaceId: P147
     title: "Download Assets"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1740,9 +1302,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "services/api/src/object-storage.ts; schema.prisma:710"
-    builtNote: "Download-url object storage câblé"
   - surfaceId: P148
     title: "Remix / Fork Project"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1750,9 +1309,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "services/api/src/remix-pipeline.ts; schema.prisma:2302"
-    builtNote: "Remix snapshot-pinné + preuve e2e"
   - surfaceId: P149
     title: "Desktop App"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1760,9 +1316,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/desktop.tsx; electron/"
-    builtNote: "App Electron + workflow release ; produit non certifié"
   - surfaceId: P150
     title: "Mobile App Client"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1770,9 +1323,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/mobile.tsx; app/routes/mobile-workspace.$projectId.tsx"
-    builtNote: "Routes mobile + release workflow ; non certifié"
   - surfaceId: P151
     title: "ChatGPT Entry"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1780,9 +1330,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucune entrée ChatGPT"
   - surfaceId: P152
     title: "Claude Entry"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1790,9 +1337,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucune entrée Claude"
   - surfaceId: P153
     title: "Slack Entry"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1800,9 +1344,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucune entrée Slack"
   - surfaceId: P154
     title: "Open in Replit"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1810,9 +1351,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucun Open in Replit"
   - surfaceId: P155
     title: "Linear Integration"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1820,9 +1358,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "services/api/src/tests/connector-store.spec.ts"
-    builtNote: "Linear via connecteur/MCP ; pas d'intégration dédiée"
   - surfaceId: P156
     title: "CLI / replit ai"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1830,9 +1365,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: NON_FAIT
-    codeRefs: ""
-    builtNote: "Aucun CLI"
   - surfaceId: P157
     title: "Public API"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1840,9 +1372,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "app/routes/api-keys.tsx; schema.prisma:1332"
-    builtNote: "Clés API scopes câblées ; pas d'API REST publique produit"
   - surfaceId: P158
     title: "Webhooks"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1850,9 +1379,6 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: PARTIEL
-    codeRefs: "services/api/src/app.ts (webhooks entrants + SIEM sortants)"
-    builtNote: "Pas de produit webhooks générique"
   - surfaceId: P159
     title: "Status Page"
     family: "H. Imports, plateformes et écosystème externe"
@@ -1860,8 +1386,5 @@ surfaceUniverse:
     availability: UNKNOWN
     evaluation: PENDING
     justification: "Évaluation produit non réalisée (import du 2026-07-20) — à évaluer par plan/client, jamais par déduction"
-    builtState: DEJA_CONSTRUIT
-    codeRefs: "app/routes/status.tsx; app/routes/api.status.incidents.ts"
-    builtNote: "Page statut + endpoints câblés"
 
 

@@ -290,6 +290,7 @@ function checkHeader(file, doc) {
     'EVIDENCE_ARTIFACT_CONTRACT.md',
     'REGRESSION_RUN_CONTRACT.md',
     'DEPLOYMENT_TYPES_CONTRACT.md',
+    'IDENTITY_COLLABORATION_CONTRACT.md',
   ];
 
   for (const relative of mdFiles) {
@@ -752,7 +753,8 @@ function checkHeader(file, doc) {
     'GENERATED_ASSET_KIND_REGISTRY.yaml', 'CAPABILITY_REGISTRY.yaml', 'DEPLOYMENT_TYPE_REGISTRY.yaml',
     'IMPORT_PROVIDER_REGISTRY.yaml', 'CONNECTOR_REGISTRY.yaml', 'OFFERING_ENTITLEMENT_REGISTRY.yaml',
     'EXTERNAL_ECOSYSTEM_REGISTRY.yaml', 'CI_ATTESTATION.yaml',
-    'SERVICE_REGISTRY.yaml', 'P1_REGISTRY.yaml', 'ROUTE_OBSERVATION_REGISTRY.yaml']) {
+    'SERVICE_REGISTRY.yaml', 'P1_REGISTRY.yaml', 'ROUTE_OBSERVATION_REGISTRY.yaml',
+    'LEGACY_SOURCE_COVERAGE.yaml', 'PRICE_OBSERVATION_REGISTRY.yaml', 'IMPLEMENTATION_STATUS.yaml']) {
     const p = join(parityRoot, f);
 
     if (!existsSync(p)) {
@@ -845,6 +847,43 @@ function checkHeader(file, doc) {
 
     checked.push(`CI_ATTESTATION (run ${att.runId} @ ${String(att.runCommit).slice(0, 8)}, ${att.runDate}, ${att.conclusion})`);
   }
+}
+
+/* ---- 15. IMPLEMENTATION_STATUS — règles §23 (CODED=mergé, PROVEN=preuves) ---- */
+{
+  const impl = loadYaml(join(parityRoot, 'IMPLEMENTATION_STATUS.yaml'));
+  const items = impl.items ?? [];
+  const STATUSES = ['NOT_STARTED', 'PARTIAL', 'CODED', 'INTEGRATED', 'PROVEN', 'BLOCKED', 'NOT_APPLICABLE'];
+
+  if (items.length !== 159) {
+    fail('IMPLEMENTATION_STATUS.yaml', `${items.length} items ≠ 159 (univers des candidats surfaces)`);
+  }
+
+  for (const it of items) {
+    if (!STATUSES.includes(it.status)) {
+      fail('IMPLEMENTATION_STATUS.yaml', `${it.itemId}: status "${it.status}" invalide`);
+    }
+
+    if ((it.status === 'CODED' || it.status === 'PROVEN') && it.mergedToMain !== true) {
+      fail('IMPLEMENTATION_STATUS.yaml', `${it.itemId}: ${it.status} exige mergedToMain=true (§23)`);
+    }
+
+    if (it.status === 'PROVEN') {
+      const evs = it.evidenceIds ?? [];
+
+      if (evs.length === 0) {
+        fail('IMPLEMENTATION_STATUS.yaml', `${it.itemId}: PROVEN sans evidenceIds (§23)`);
+      }
+
+      for (const ev of evs) {
+        if (!existsSync(join(repoRoot, ev))) {
+          fail('IMPLEMENTATION_STATUS.yaml', `${it.itemId}: evidence absente du disque (${ev})`);
+        }
+      }
+    }
+  }
+
+  checked.push(`IMPLEMENTATION_STATUS (${items.length} items — règles §23 CODED/PROVEN vérifiées)`);
 }
 
 /* ---- report ------------------------------------------------------------ */

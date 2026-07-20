@@ -42,3 +42,20 @@ capacité » — preuves tracées dans `E2E_PROOFS.yaml`).
    rollback — jamais une recréation qui perd l'historique.
 3. Les 4 modes d'accès (`[RPL-23]`) s'appliquent uniformément aux 4 types.
 4. Un type non listé ici n'existe pas ; en ajouter un = réviser CE contrat.
+
+## 4. Contrats DÉDIÉS par type (P0-EX-09 — chaque type est contractualisé séparément)
+
+### 4.1 AUTOSCALE
+Lifecycle `REQUESTED→BUILDING→READY→SERVING⇄SLEEPING→RETIRED` · config {machineSize (RateCard), minInstances, maxInstances, concurrency} · `$PORT` + healthcheck obligatoires · secrets par refs versionnées · coût à l'usage mesuré (metering PROUVÉ E2E-AUTOSCALE-Z) · observabilité par révision · preuve : publish→READY→200 + scale-to-zero observé (E2E-PHASEB-NODE ✔).
+
+### 4.2 STATIC
+Lifecycle `REQUESTED→BUILDING→PUBLISHED→RETIRED` · config {domaine, cacheHeaders, spaFallback} · secrets INTERDITS dans le bundle (scan bloquant) · coût stockage+egress · preuve : publish→200 + cache verifié (preuve E2E dédiée à référencer — état PARTIAL).
+
+### 4.3 RESERVED_VM
+Lifecycle `REQUESTED→PROVISIONING→RUNNING→(RESIZING)→RETIRED` · config {taille RateCard v1, disque, always-on} · ports additionnels déclarés · coût fixe + engagement · état réel : NOT_STARTED (P1-COV-04/ACT-31) — AUCUNE promesse tant que non prouvé.
+
+### 4.4 SCHEDULED
+Lifecycle `SCHEDULED→TRIGGERED→RUNNING→{COMPLETE|FAILED}→retry policy` · config {cron (jamais « vendredi » implicite), timeout, volume monté} · secrets lease par run · coût par exécution (durée×taille) · preuve : run réel à l'heure + volume + COMPLETE (SCHEDULED-01 ✔) ; contrat UI/coût-par-run INCOMPLET.
+
+Invariant commun : le changement de type re-déploie le même ProjectRevision — l'URL et l'historique de releases survivent ; jamais de recréation destructrice.
+
