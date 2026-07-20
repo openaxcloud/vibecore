@@ -638,3 +638,22 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
 - V3_05_REMIX_AUDIT_20260720.md : audit exigence par exigence — V3-05 PAS clos
   (reste : logs/historique secrets, attribution visible, merge #25, preuve
   live prod, re-signature).
+
+## 2026-07-21 (lot B — remédiation des 6 re-refusés du reçu -02)
+
+- V4-1/V4-2 : README d'évidence collector-gallery corrigé (le hash avait changé
+  PAR L'ASSAINISSEMENT fad9→1f5f ; métriques réelles ; « 82 Results » retiré ;
+  capture footer déclarée supplantée). V4-2 : SRC-GALLERY-DETAIL →
+  SRC-GALLERY-DETAIL-JOURNEY-MAPPER. V3-02 : report requalifié (lien footer
+  générique, report par app non prouvé).
+- LS-14 : RPL-2026-004 réconcilié avec RPL-2026-002 (le sélecteur de MODE
+  Lite/Economy/Power EST documenté — le claim ne porte que sur le sélecteur de
+  modèle brut) ; « nulle part » purgé du scan.
+- LS-13 : taxonomie par observation (COMPLÈTE / nonReplayable justifié /
+  contextIncomplete déclaré) + garde validateur PAR OBSERVATION + preuve
+  géo-IP commitée (geoip-proof-20260721.json).
+- LS-16 : job roll-attestation AUTOMATIQUE post-merge (run id/commit/timestamp
+  réels, régénère tout, commit bot) + garde anti-fictif (commits vérifiés
+  dans l'historique git). Preuves négatives rejouées (2).
+- Les 6 → PROVEN_REVIEW_PENDING ; resoumission B écrite
+  (REVIEWER_RESUBMISSION_B_20260721.md + outputs/).

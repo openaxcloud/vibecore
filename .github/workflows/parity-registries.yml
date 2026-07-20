@@ -52,6 +52,7 @@ jobs:
           PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-approval-status.mjs
           PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-parity-status.mjs
           PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-implementation-status.mjs
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-counter-reconciliation.mjs
           PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-document-manifest.mjs
       - name: Fail on drift (generated ≠ committed)
         run: git diff --exit-code docs/parity
@@ -70,6 +71,62 @@ jobs:
             docs/parity/IMPLEMENTATION_STATUS.yaml
             docs/parity/DOCUMENT_MANIFEST.yaml
             docs/parity/CI_ATTESTATION.yaml
+
+  roll-attestation:
+    # LS-16 : l'attestation est roulée AUTOMATIQUEMENT après chaque merge sur
+    # main — plus un commit manuel. Le job écrit SON PROPRE run id + commit +
+    # timestamp réels, régénère toutes les vues et pousse. Les pushes faits
+    # avec GITHUB_TOKEN ne redéclenchent pas les workflows → pas de boucle.
+    name: Roll CI attestation (post-merge, automatique)
+    if: github.event_name == 'push'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: mkdir -p /tmp/parity-deps && cd /tmp/parity-deps && npm init -y >/dev/null && npm install yaml@2 >/dev/null
+      - name: Roll attestation with THIS run's real identifiers
+        run: |
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          python3 - "$GITHUB_RUN_ID" "$GITHUB_SHA" "$NOW" <<'EOF'
+          import sys, re
+          run_id, sha, now = sys.argv[1], sys.argv[2], sys.argv[3]
+          p = 'docs/parity/CI_ATTESTATION.yaml'
+          t = open(p).read()
+          t = re.sub(r'repoCommit: \w+', f'repoCommit: {sha[:8]}', t, count=1)
+          t = re.sub(r'runId: \d+', f'runId: {run_id}', t)
+          t = re.sub(r'runs/\d+', f'runs/{run_id}', t)
+          t = re.sub(r'runCommit: "[0-9a-f]+"', f'runCommit: "{sha}"', t)
+          t = re.sub(r'mergedCommit: "[0-9a-f]+"', f'mergedCommit: "{sha}"', t)
+          t = re.sub(r'mergedToMainAt: "[^"]+"', f'mergedToMainAt: "{now}"', t)
+          t = re.sub(r'runDate: "[^"]+"', f'runDate: "{now}"', t)
+          open(p, 'w').write(t)
+          EOF
+      - name: Regenerate every computed view
+        run: |
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-approval-status.mjs
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-parity-status.mjs
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-implementation-status.mjs
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-counter-reconciliation.mjs
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-document-manifest.mjs
+      - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/validate-registries.mjs
+      - name: Commit the rolled attestation
+        run: |
+          git config user.name "parity-attestation-bot"
+          git config user.email "noreply@e-code.ai"
+          git add docs/parity
+          if git diff --cached --quiet; then
+            echo "attestation already current"
+          else
+            git commit -m "chore(parity): attestation roulée automatiquement (run ${GITHUB_RUN_ID} @ ${GITHUB_SHA:0:8}) — LS-16"
+            git push origin HEAD:main
+          fi
 
   collect-baseline:
     name: Daily baseline snapshot (schedule only)
