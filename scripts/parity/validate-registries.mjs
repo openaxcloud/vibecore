@@ -857,7 +857,15 @@ function checkHeader(file, doc) {
   const att = loadYaml(join(parityRoot, 'CI_ATTESTATION.yaml'));
   const a = att.attestation ?? {};
 
-  for (const field of ['runCommit', 'mergedCommit']) {
+  let shallow = false;
+
+  try {
+    shallow = execSync('git rev-parse --is-shallow-repository', { cwd: repoRoot }).toString().trim() === 'true';
+  } catch {
+    shallow = true; // pas un repo git utilisable → ne pas prétendre vérifier
+  }
+
+  for (const field of shallow ? [] : ['runCommit', 'mergedCommit']) {
     const sha = a[field];
 
     if (sha && /^[0-9a-f]{7,40}$/.test(String(sha))) {
@@ -869,7 +877,9 @@ function checkHeader(file, doc) {
     }
   }
 
-  checked.push('CI_ATTESTATION commits vérifiés dans l\'historique git (anti-fictif — LS-16)');
+  checked.push(shallow
+    ? 'CI_ATTESTATION anti-fictif SAUTÉ (clone shallow — le job CI validate tourne en fetch-depth 0 où le contrôle est réel)'
+    : 'CI_ATTESTATION commits vérifiés dans l\'historique git (anti-fictif — LS-16)');
 }
 
 /* ---- 12bis. COUNTER_RECONCILIATION est CALCULÉ (directive 20/07) ------- */
