@@ -319,6 +319,7 @@ export class WorkspaceManager {
    */
   async resolveNixStorePlacement(
     requestedPvcName: string | undefined,
+    pinnedZone?: string,
   ): Promise<{ nixStorePvcName?: string; nixStoreZone?: string; nixStoreGenerationHash?: string }> {
     const fallback = requestedPvcName ?? process.env.NIX_STORE_PVC_NAME;
     const generationHash = process.env.NIX_STORE_GENERATION_HASH || undefined;
@@ -339,6 +340,24 @@ export class WorkspaceManager {
     }
 
     /*
+     * A workspace whose RWO data disk already exists is PINNED to that disk's
+     * zone — the pod can only ever schedule there, so the store clone MUST be
+     * that zone's (proven live 2026-07-20: after a zone-a restore, a
+     * capacity-preferred zone-a pin + a zone-b data disk deadlocked the pod:
+     * "didn't match PersistentVolume's node affinity" vs the zone selector).
+     * A pinned zone missing from the map falls through to the capacity path.
+     */
+    const pinned = pinnedZone ? zones.find((z) => z.zone === pinnedZone) : undefined;
+
+    if (pinned) {
+      return {
+        nixStorePvcName: pinned.pvcName,
+        nixStoreZone: pinned.zone,
+        ...(generationHash ? { nixStoreGenerationHash: generationHash } : {}),
+      };
+    }
+
+    /*
      * Nodes are cluster-scoped: kubectl accepts and ignores the namespace flag,
      * so any value satisfies the client signature. RBAC: the manager's SA holds
      * the capacity-reader ClusterRole (get/list nodes). A listing failure falls
@@ -348,6 +367,7 @@ export class WorkspaceManager {
     const nodes = await this.k8s
       .listByLabel('nodes', process.env.WORKSPACE_RUNTIME_NAMESPACE ?? 'workspaces', 'vibecore.ai/node-pool=sandbox')
       .catch(() => [] as Awaited<ReturnType<WorkspaceK8sClient['listByLabel']>>);
+
     const chosen = chooseNixStoreZone(zones, nodes) ?? { zone: undefined, pvcName: fallback };
 
     return {
@@ -355,6 +375,57 @@ export class WorkspaceManager {
       ...(chosen.zone ? { nixStoreZone: chosen.zone } : {}),
       ...(generationHash ? { nixStoreGenerationHash: generationHash } : {}),
     };
+  }
+
+  /*
+   * Zone of an existing workspace data PVC's bound zonal PD, if determinable.
+   * Undefined for a fresh workspace (PVC not yet created/bound) — the nix
+   * placement is then free to follow live capacity, and the data disk will be
+   * provisioned in the pod's zone (WaitForFirstConsumer).
+   */
+  async workspaceDataZone(namespace: string, pvcName: string): Promise<string | undefined> {
+    try {
+      const pvc = await this.k8s.get('pvc', namespace, pvcName);
+      const volumeName = (pvc as { spec?: { volumeName?: string } } | undefined)?.spec?.volumeName;
+
+      if (!volumeName) {
+        return undefined;
+      }
+
+      const pv = await this.k8s.get('pv', namespace, volumeName);
+      const terms =
+        (
+          pv as
+            | {
+                spec?: {
+                  nodeAffinity?: {
+                    required?: {
+                      nodeSelectorTerms?: Array<{
+                        matchExpressions?: Array<{ key?: string; operator?: string; values?: string[] }>;
+                      }>;
+                    };
+                  };
+                };
+              }
+            | undefined
+        )?.spec?.nodeAffinity?.required?.nodeSelectorTerms ?? [];
+
+      for (const term of terms) {
+        for (const expr of term.matchExpressions ?? []) {
+          if (
+            (expr.key === 'topology.kubernetes.io/zone' || expr.key === 'topology.gke.io/zone') &&
+            expr.operator === 'In' &&
+            expr.values?.length
+          ) {
+            return expr.values[0];
+          }
+        }
+      }
+    } catch {
+      // Fall through — an unreadable PVC/PV must not block provisioning.
+    }
+
+    return undefined;
   }
 
   async startWorkspace(input: StartWorkspaceInput) {
@@ -374,7 +445,10 @@ export class WorkspaceManager {
      * D3: the placement resolver substitutes the per-zone clone + zone pin +
      * generation guard when the multi-zone map is configured.
      */
-    const nixPlacement = await this.resolveNixStorePlacement(input.nixStorePvcName);
+    const nixPlacement = await this.resolveNixStorePlacement(
+      input.nixStorePvcName,
+      await this.workspaceDataZone(input.namespace, pvcName),
+    );
 
     const runtimeInput = {
       ...input,
