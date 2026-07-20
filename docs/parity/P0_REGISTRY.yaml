@@ -469,14 +469,14 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-12"
     priority: 12
     owner: platform
-    status: OPEN
+    status: PROVEN
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
     reviewer: UNKNOWN
-    evidenceId: docs/parity/WORK_ITEM_REGISTRY.yaml
-    proof: "FAIT : LEGACY_FINDING_REGISTRY (336, provenance plan@af88c6c6 + originRef) + WORK_ITEM_REGISTRY (99 canoniques : regroupement par suivi + 6 paires de l'audit, duplicateOf posés). RESTE : déduplication SÉMANTIQUE complète au-delà des regroupements mécaniques + provenance fichier/ligne des 29 documents d'ORIGINE (non capturée par l'audit de couverture — limite déclarée)."
+    evidenceId: docs/parity/A2_12_DEDUP_SEMANTIQUE_20260720.md
+    proof: "FAIT : LEGACY_FINDING_REGISTRY (336, provenance plan@af88c6c6 + originRef, duplicateOf posés) + passe SÉMANTIQUE 20/07 (2 proposeurs indépendants, application = intersection au niveau work item) : 3 fusions appliquées (OUT-EF-04→BD-21/WI-0079, RPD-24→CM-34/WI-0055, BD-22→WI-0044) + sur-regroupement WI-0033 corrigé (27 dettes BD agrégées par NOM DE FICHIER → éclatées par livrable, WI-0100..WI-0123) → canonicalWorkItemCount 99→122, mapping bijectif 336↔122 vérifié machine, SHA des 336 IDs inchangé. Provenance origine = ACCEPTED_RISK justifié (UNK-LEGACY-ORIGIN-PROVENANCE). Pièce : A2_12_DEDUP_SEMANTIQUE_20260720.md."
     dependances: []
     conditionDeCloture: "Passe de déduplication sémantique revue + provenance origine complétée ou ACCEPTED_RISK"
-    nextAction: "Passe de déduplication sémantique revue + provenance origine complétée ou ACCEPTED_RISK"
+    nextAction: "Signature reviewer (packet expert) ; candidat non appliqué tracé : BD-20 (WI-0118) ↔ WI-0051"
     targetDate: "2026-08-15"
   - p0Id: P0-A2-13
     title: "Provenance du statut insuffisante"
