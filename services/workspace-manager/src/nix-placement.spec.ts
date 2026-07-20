@@ -73,6 +73,69 @@ function makeManager(k8s: WorkspaceK8sClient) {
   return new WorkspaceManager(store, k8s, events, 'test-secret');
 }
 
+class PvcAwareK8sClient extends NodesOnlyK8sClient {
+  constructor(
+    nodes: K8sObject[],
+    readonly objects: Record<string, K8sObject | undefined> = {},
+  ) {
+    super(nodes);
+  }
+
+  override async get(kind: string, _namespace: string, name: string): Promise<K8sObject | undefined> {
+    return this.objects[`${kind}:${name}`];
+  }
+}
+
+describe('workspaceDataZone', () => {
+  it('reads the zone via the PVC selected-node annotation (no PV RBAC needed)', async () => {
+    const k8s = new PvcAwareK8sClient([], {
+      'pvc:pvc-ws1': {
+        apiVersion: 'v1',
+        kind: 'PersistentVolumeClaim',
+        metadata: { name: 'pvc-ws1', annotations: { 'volume.kubernetes.io/selected-node': 'node-b-1' } },
+      } as unknown as K8sObject,
+      'node:node-b-1': node('europe-west9-b'),
+    });
+
+    expect(await makeManager(k8s).workspaceDataZone('workspaces', 'pvc-ws1')).toBe('europe-west9-b');
+  });
+
+  it('falls back to the bound PV nodeAffinity when the annotation is absent', async () => {
+    const k8s = new PvcAwareK8sClient([], {
+      'pvc:pvc-ws1': {
+        apiVersion: 'v1',
+        kind: 'PersistentVolumeClaim',
+        metadata: { name: 'pvc-ws1' },
+        spec: { volumeName: 'pv-1' },
+      } as unknown as K8sObject,
+      'pv:pv-1': {
+        apiVersion: 'v1',
+        kind: 'PersistentVolume',
+        metadata: { name: 'pv-1' },
+        spec: {
+          nodeAffinity: {
+            required: {
+              nodeSelectorTerms: [
+                {
+                  matchExpressions: [
+                    { key: 'topology.kubernetes.io/zone', operator: 'In', values: ['europe-west9-b'] },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      } as unknown as K8sObject,
+    });
+
+    expect(await makeManager(k8s).workspaceDataZone('workspaces', 'pvc-ws1')).toBe('europe-west9-b');
+  });
+
+  it('returns undefined for a fresh workspace (no PVC yet)', async () => {
+    expect(await makeManager(new PvcAwareK8sClient([])).workspaceDataZone('workspaces', 'pvc-new')).toBeUndefined();
+  });
+});
+
 describe('resolveNixStorePlacement (D3 multi-zone)', () => {
   const saved = {
     zones: process.env.NIX_STORE_PVC_ZONES,

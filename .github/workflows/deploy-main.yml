@@ -378,22 +378,25 @@ jobs:
             echo "::error::SERVER_DEPLOY_ROLLBACK_FROM_DIGEST missing/wrong in the live configmap after upgrade (got '${CM_VALUE}', want '1')" >&2
             exit 1
           fi
-          # Retry the exec: a transient Connect Gateway error must not read as
-          # "flag missing" (first live run false-alarmed exactly this way — the
-          # swallowed exec failure produced '' while the pod actually had '1').
-          POD_VALUE=""
-          for attempt in 1 2 3 4 5; do
-            API_POD="$(kubectl -n "${HELM_NAMESPACE}" get pods -l app.kubernetes.io/name=api \
-              --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' || true)"
-            if [ -n "${API_POD}" ] && POD_VALUE="$(kubectl -n "${HELM_NAMESPACE}" exec "${API_POD}" -- printenv SERVER_DEPLOY_ROLLBACK_FROM_DIGEST 2>/dev/null)"; then
-              break
-            fi
-            echo "exec attempt ${attempt} failed (transient?) — retrying in 10s"
-            sleep 10
-          done
-          echo "api pod ${API_POD} env SERVER_DEPLOY_ROLLBACK_FROM_DIGEST='${POD_VALUE}'"
-          if [ "${POD_VALUE}" != "1" ]; then
-            echo "::error::SERVER_DEPLOY_ROLLBACK_FROM_DIGEST not '1' in the running api pod ${API_POD} (got '${POD_VALUE}')" >&2
+          # `kubectl exec` is NOT available through the Connect Gateway for the
+          # CI's WIF identity (websocket upgrade denied — 5/5 retries failed on
+          # both live runs while the pods actually carried '1'). Verify WITHOUT
+          # exec, via plain GETs that DO work from here: the api Deployment's
+          # pod template must consume the flag — an explicit env entry (must be
+          # '1') or envFrom on the platform-env configmap whose live value was
+          # asserted above. Every pod the Deployment creates then starts with
+          # the flag; there is no per-pod drift channel left to check.
+          TEMPLATE_JSON="$(kubectl -n "${HELM_NAMESPACE}" get deploy "${HELM_RELEASE}-vibecore-platform-api" \
+            -o jsonpath='{.spec.template.spec.containers[0]}')"
+          EXPLICIT="$(printf '%s' "${TEMPLATE_JSON}" | jq -r '[.env // [] | .[] | select(.name=="SERVER_DEPLOY_ROLLBACK_FROM_DIGEST")][0].value // "ABSENT"')"
+          CONSUMES_CM="$(printf '%s' "${TEMPLATE_JSON}" | jq -r --arg cm "${HELM_RELEASE}-vibecore-platform-platform-env" '[.envFrom // [] | .[] | select(.configMapRef.name==$cm)] | length')"
+          echo "api pod template: explicit env='${EXPLICIT}', envFrom platform-env configmap refs=${CONSUMES_CM}"
+          if [ "${EXPLICIT}" != "ABSENT" ] && [ "${EXPLICIT}" != "1" ]; then
+            echo "::error::api pod template pins SERVER_DEPLOY_ROLLBACK_FROM_DIGEST='${EXPLICIT}' (explicit env overrides the configmap)" >&2
+            exit 1
+          fi
+          if [ "${EXPLICIT}" = "ABSENT" ] && [ "${CONSUMES_CM}" = "0" ]; then
+            echo "::error::api pod template neither sets SERVER_DEPLOY_ROLLBACK_FROM_DIGEST nor consumes the platform-env configmap" >&2
             exit 1
           fi
 
