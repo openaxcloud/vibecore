@@ -39,7 +39,10 @@ jobs:
       # same port and hard-fail now that reuseExistingServer=false in CI.
       PLAYWRIGHT_SKIP_WEB_SERVER: '1'
       # Local-stack admin used by gallery-remix-license.spec.ts (curation step).
+      # ADMIN_MFA_REQUIRED=false is the API's own harness escape hatch — the
+      # admin-MFA gate stays ON everywhere else (prod keeps enforcing TOTP).
       PLATFORM_ADMIN_EMAILS: e2e-platform-admin@local.test
+      ADMIN_MFA_REQUIRED: 'false'
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
