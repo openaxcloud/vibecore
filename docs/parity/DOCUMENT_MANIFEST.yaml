@@ -5,9 +5,9 @@ schemaVersion: 1
 fileCount: 150
 validation:
   workflow: Parity registries
-  runId: 29739384301
-  runDate: "2026-07-20T11:40:39Z"
-  runCommit: c4484b483a2b63ca80e3a6c4e86b8c2d4c31dc8f
+  runId: 29749801065
+  runDate: "2026-07-20T14:15:00Z"
+  runCommit: da67e5772ea58685ea9be176d81370834d38bb7d
   source: docs/parity/CI_ATTESTATION.yaml
 documents:
   - file: ACTIONS_AVI.md
@@ -66,9 +66,9 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: CI_ATTESTATION.yaml
-    sha256: "157ce2143008de81024c08f39db500f2c89b03472f040734361a6d4a492ff1b4"
+    sha256: "6d89a1597b1e343eb92e9ad892c3da04ddba053568442c0299ff7dcc35a354fd"
     schemaVersion: 1
-    repoCommit: c4484b48
+    repoCommit: da67e577
     reviewer: UNKNOWN
   - file: COMPONENT_KIND_REGISTRY.yaml
     sha256: "8c7c016fb581d5ecfecc6b054f834a3b099c32c361229ffdaf84f86b54dc0891"
@@ -211,9 +211,9 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "c9d5435f416b2b05e208c8cdbbdd8a6e49df0270731675016e11bf6f9b261ebe"
+    sha256: "69879d54a4a8291e372c43eacb110f0830fb569b2d61562cf3e2bdb42207bd83"
     schemaVersion: 2
-    repoCommit: c4484b48
+    repoCommit: da67e577
     reviewer: UNKNOWN
   - file: PARITY_STATUS_NOTES.md
     sha256: "cc72d2d18e80efb0b398832003c77521ea280286e7e3a4773ae455f2cc377cfd"
