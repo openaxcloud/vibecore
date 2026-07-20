@@ -351,3 +351,13 @@ unknowns:
     targetDate: "2026-09-30"
     expiration: "2026-10-31"
 
+  - unknownId: UNK-LEGACY-ORIGIN-PROVENANCE
+    question: "Le fichier/ligne d'ORIGINE de chaque constat dans les 29 anciens documents (avant matérialisation dans le plan) peut-il être reconstitué ?"
+    owner: platform
+    priority: 3
+    state: ACCEPTED_RISK
+    riskRationale: "Non capturé par l'audit de couverture du 19/07 ; les 336 textes sont préservés verbatim et hashés (sourceFile@sourceHash + sourceLine + originRef) — la traçabilité du CONTENU est complète, seule la coordonnée historique manque, et les 29 documents restent dans l'historique git. Coût de reconstitution disproportionné vs valeur."
+    reviewCondition: "Réexaminer si un litige exige la coordonnée exacte dans un document d'origine, ou si un constat est contesté sur son libellé."
+    nextAction: "Aucune — risque accepté (P0-A2-12, pièce A2_12_DEDUP_SEMANTIQUE_20260720.md)"
+    targetDate: "2026-08-15"
+    expiration: "2027-01-31"
