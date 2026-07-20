@@ -15,10 +15,11 @@ p0s:
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
     reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
+    reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: UNKNOWN
     evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
-    proof: "collecteur retrouve Community Profiles (watchHits.community) ; gallery/community rendus+hashés"
+    proof: "PREUVE PARTIELLE : le HTML Gallery 1f5f27bc… existe et est hashé, mais l'evidenceId canonique reste le paquet README/capture obsolète et incohérent décrit dans refusalReason."
     nextAction: "Régénérer le paquet canonique complet et repointer evidenceId"
     targetDate: "2026-07-16"
   - p0Id: P0-V4-2
@@ -33,10 +34,11 @@ p0s:
     refusalType: DESACCORD
     reviewVerdict: REFUSED
     reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
+    reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: UNKNOWN
     evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
-    proof: "REMÉDIÉ 20/07 après refus : métriques corrigées aux valeurs réelles de l'artefact 1f5f27bc… (20,653 liste / 20,649 détail — pas 20,650) dans RPL-17 + GALLERY_COMMUNITY_CONTRACT. PRÊT À RE-SOUMETTRE. Ancien proof : REMÉDIÉ 20/07 après refus : SRC-GALLERY-RENDERED re-pointé sur l'artefact réel (sha256 1f5f27bc…, 1,5 Mo rendu complet — plus le footer partiel), métriques corrigées aux valeurs RÉ…"
+    proof: "PREUVE PARTIELLE : les HTML reproduisent 20,653/20,649 ; le paquet canonique, le contrat et les IDs de source restent contradictoires comme détaillé dans refusalReason."
     nextAction: "Réconcilier README, capture, contrat et IDs de source"
     targetDate: "2026-07-16"
   - p0Id: P0-V4-3
@@ -106,10 +108,11 @@ p0s:
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
     reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
+    reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: UNKNOWN
     evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
-    proof: "REMÉDIÉ 20/07 après refus : hash et métriques réalignés sur l'artefact réel (sha256 1f5f27bc…, shasum rejoué ; 20,653 liste / 20,649 détail) ; inconnues restantes légitimes tracées ACCEPTED_RISK/UNKNOWN. PRÊT À RE-SOUMETTRE au relecteur."
+    proof: "PREUVE PARTIELLE : métriques et plusieurs fonctions Gallery sont visibles dans les HTML, mais le paquet canonique reste contradictoire et aucun report app-spécifique n'est prouvé."
     dependances: []
     conditionDeCloture: "Réconcilier le paquet Gallery et fournir une preuve de report au niveau de l'app, puis nouvelle revue"
     nextAction: "Régénérer le paquet Gallery et prouver le report app-spécifique"
@@ -550,19 +553,20 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-10"
     priority: 10
     owner: platform
-    status: PROVEN_REVIEW_PENDING
+    status: CLOSED
     reviewReceiptId: RR-20260720-CODEX-02
     remediationTrack: QUICK
     previousRefusalReason: "décision Gallery réellement DECIDED, pas OPEN/CAPTURE_INCOMPLETE"
     reviewVerdict: SIGNED
     reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
-    commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
+    reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
+    commit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/DECISION_REGISTRY.yaml
-    proof: "REMÉDIÉ 20/07 après refus : DEC-GALLERY-NO-SELF-PUBLISH passé DECIDED — l'intake curée (Typeform→humain, pas de self-publish in-product) est le comportement CONSTRUIT et testé (curation admin seule) ; le registre reflète maintenant la réalité. PRÊT À RE-SOUMETTRE. Ancien proof : DEC-OWNER-GALLERY-OPTION-B repassée OPEN + captureState: CAPTURE_INCOMPLETE tant que le contenu exact n'est pas inscrit (UNK-GALLERY-OPTION-…"
+    proof: "DEC-GALLERY-NO-SELF-PUBLISH est DECIDED ; seul POST /admin/gallery-listings crée une publication, sous contrôle platform-admin + réauthentification ; gallery-routes.spec.ts passe 15/15, dont le refus 403 non-admin."
     dependances: []
-    conditionDeCloture: "Sceller le reçu complet RR-20260720-CODEX-02"
-    nextAction: "Sceller le reçu complet de la revue"
+    conditionDeCloture: "Satisfaite par le reçu complet RR-20260720-CODEX-02"
+    nextAction: "Aucun — accepté et signé dans RR-20260720-CODEX-02"
     targetDate: "2026-07-31"
   - p0Id: P0-A2-11
     title: "Compteurs contradictoires"
@@ -737,19 +741,20 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 4
     owner: platform
-    status: PROVEN_REVIEW_PENDING
+    status: CLOSED
     reviewReceiptId: RR-20260720-CODEX-02
     remediationTrack: QUICK
     previousRefusalReason: "simple note d'en-tête, aucune entrée GitLab structurée"
     reviewVerdict: SIGNED
     reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
-    commit: b598e79042dce0af91c376a810c61320fd988013
+    reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
+    commit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
     reviewer: OpenAI-Codex
     evidenceId: docs/parity/IMPORT_PROVIDER_REGISTRY.yaml
-    proof: "REMÉDIÉ 20/07 après refus : entrée GITLAB STRUCTURÉE ajoutée (nonTileCapabilities : kind/hubTileVisible/capabilityStatus/evidence/ecodeBuiltState/unknowns) + garde validateur CASSANTE (preuve négative rejouée : champ manquant → build rouge). PRÊT À RE-SOUMETTRE. Ancien proof : §9.1 verbatim (« capacité Git confirmée par la documentation et le changelog, mais pas une tuile ») ; IMPORT_PROVIDER no…"
+    proof: "IMPORT_PROVIDER_REGISTRY porte GITLAB sous nonTileCapabilities avec kind/hubTileVisible/capabilityStatus/evidence/ecodeBuiltState/unknowns ; retrait de kind rejoué → validateur rouge explicite, restauration → vert ; les 12 tuiles restent intactes."
     dependances: []
-    conditionDeCloture: "Sceller le reçu complet RR-20260720-CODEX-02"
-    nextAction: "Sceller le reçu complet de la revue"
+    conditionDeCloture: "Satisfaite par le reçu complet RR-20260720-CODEX-02"
+    nextAction: "Aucun — accepté et signé dans RR-20260720-CODEX-02"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-05
     title: "Corriger la taxonomie Artifact/Asset/Component/Deployment"
@@ -917,10 +922,11 @@ p0s:
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
     reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
+    reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
-    proof: "REMÉDIÉ 20/07 après refus : 13 observations toutes contextualisées (geo/locale/cohorte/hash/artifactPath) ; la DIVERGENCE $20-vs-$25 est RÉSOLUE par re-observation live 14:45Z geo-IP IL (artefact hashé 9352b15f… sur disque) : la page affichait $20/$18/$90 à 05:43 et $25/$20/$95 à 14:45 le même jour — les deux captures sont réelles. PRÊT À RE-SOUMETTRE. Ancien proof : §3.4 verbatim (Core $25/$20 annuel effectif observé par l expert vs $20/$18 scan — divergence conservée) ; OFFERING avec…"
+    proof: "PREUVE PARTIELLE : les deux artefacts de prix sont hashés, mais trois observations restent sans contexte/hash/artifactPath et la re-observation IL n'a pas de capture/provenance vérifiable."
     dependances: []
     conditionDeCloture: "Contextualiser réellement les 13 observations et joindre une capture vérifiable de la re-observation géolocalisée, puis nouvelle revue"
     nextAction: "Compléter les trois observations expert et fournir la capture/provenance de la re-observation"
@@ -938,10 +944,11 @@ p0s:
     refusalType: DESACCORD
     reviewVerdict: REFUSED
     reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
+    reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/PUBLIC_BASELINE_REPLIT_2026.yaml
-    proof: "REMÉDIÉ 20/07 après refus : claim RPL-2026-004 reformulé en observation BORNÉE (corpus + dates explicites : audit humain 16/07 + scan rendu 20/07), formulation absolue purgée aussi de REPLIT_LIVE_SCAN. PRÊT À RE-SOUMETTRE. Ancien proof : §7.2 verbatim (« pages publiques et docs courantes consultées ; interface authentifiée par plan reste à vérifier ») cohérent avec RPL-2026-004.…"
+    proof: "PREUVE PARTIELLE : RPL-2026-004 est borné au corpus, mais son absence déclarée dans les 83 changelogs est contredite par le snapshot du 17/04 qui nomme Lite/Economy/Power."
     dependances: []
     conditionDeCloture: "Réconcilier le claim avec le changelog du 17/04 et fournir une commande de reproduction exacte, puis nouvelle revue"
     nextAction: "Corriger le claim contradictoire et la commande de reproduction"
@@ -978,10 +985,11 @@ p0s:
     refusalType: DESACCORD
     reviewVerdict: REFUSED
     reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
+    reviewCommit: "cf5c67a513322ba0c248b900ea88c50b5e128ac6"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/DOCUMENT_MANIFEST.yaml
-    proof: "REMÉDIÉ 20/07 après refus : DOCUMENT_MANIFEST porte maintenant generatedAt (mergedToMainAt réel de l'attestation, plus de constante), generatedFromCommit et mergedCommit — dérivés de CI_ATTESTATION roulée à chaque merge (recalcul post-merge garanti, non auto-référentiel). PRÊT À RE-SOUMETTRE. Ancien proof : §0 verbatim (reviewGeneratedAt + manifeste post-merge non auto-référentiel) ; recalcul réel = annexe A.2 + DOC…"
+    proof: "PREUVE PARTIELLE : le manifeste porte les trois champs et un exemple manuel post-merge existe ; le workflow ne roule ni l'attestation ni le manifeste et le validateur ne vérifie pas leur provenance GitHub."
     dependances: []
     conditionDeCloture: "Automatiser le roulage post-merge, valider la provenance contre GitHub et démontrer le flux sur un merge, puis nouvelle revue"
     nextAction: "Ajouter le job post-merge réel et une validation de provenance cassante"
