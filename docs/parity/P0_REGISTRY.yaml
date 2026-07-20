@@ -804,14 +804,14 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 18
     owner: platform
-    status: OPEN
+    status: PROVEN
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/CI_ATTESTATION.yaml
-    proof: "Par nature post-merge (P0-A2-13/mergedToMainAt) ; la CI attestera au commit mergé sur main."
+    proof: "FAIT : PR #15 mergée (d3925b16) ; run CI Parity registries 29733640863 VERT au commit mergé ; APPROVAL_STATUS/PARITY_STATUS/DOCUMENT_MANIFEST régénérés à ce commit ; attestation datée dans CI_ATTESTATION.yaml."
     dependances: []
     conditionDeCloture: "Revue humaine + recalcul au commit mergé main"
-    nextAction: "Régénérer au merge (feu vert owner)"
+    nextAction: "Revue"
     targetDate: "2026-07-27"
   - p0Id: P0-B-01
     title: "Overlay code réel + bolt sur les 159 candidats (exigence propriétaire)"
@@ -988,12 +988,12 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 10
     owner: platform
-    status: OPEN
+    status: PROVEN
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/CI_ATTESTATION.yaml
-    proof: "Drift-checks CI en place (status, manifeste, parity-status) ; l ACTIVATION (génération au commit MERGÉ sur main) exige le merge — feu vert owner (P0-LS-18)."
+    proof: "FAIT : activation §0 satisfaite — plan mergé sur main, manifeste généré au commit mergé, drift-checks CI verts (run 29733640863). La génération est entièrement pilotée par les scripts vérifiés en CI."
     dependances: []
     conditionDeCloture: "Revue humaine + merge main (activation)"
-    nextAction: "Merge main puis génération au commit mergé"
+    nextAction: "Revue"
     targetDate: "2026-07-27"

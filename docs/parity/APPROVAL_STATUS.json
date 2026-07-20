@@ -98,9 +98,7 @@
         "P0-V3-07 is OPEN",
         "P0-A2-12 is OPEN",
         "P0-A2-15 is OPEN",
-        "P0-LS-18 is OPEN",
-        "P0-B-02 is OPEN",
-        "P0-EX-10 is OPEN"
+        "P0-B-02 is OPEN"
       ]
     },
     {
@@ -227,7 +225,7 @@
   "blocking": [
     "level sourceBaselineReady FAILED: claim GCP-01 cited by the plan but not anchored (UNVERIFIED); claim GCP-02 cited by the plan but not anchored (UNVERIFIED); claim GCP-03 cited by the plan but not anchored (UNVERIFIED); claim GCP-04 cited by the plan but not anchored (UNVERIFIED); claim GCP-06 cited by the plan but not anchored (UNVERIFIED); claim GCP-07 cited by the plan but not anchored (UNVERIFIED); claim GCP-08 cited by the plan but not anchored (UNVERIFIED); claim GCP-09 cited by the plan but not anchored (UNVERIFIED); claim GCP-10 cited by the plan but not anchored (UNVERIFIED); claim NIX-01 cited by the plan but not anchored (UNVERIFIED); claim RPL-01 cited by the plan but not anchored (UNVERIFIED); claim RPL-02 cited by the plan but not anchored (UNVERIFIED); claim RPL-03 cited by the plan but not anchored (UNVERIFIED); claim RPL-04 cited by the plan but not anchored (UNVERIFIED); claim RPL-05 cited by the plan but not anchored (UNVERIFIED); claim RPL-06 cited by the plan but not anchored (UNVERIFIED); claim RPL-09 cited by the plan but not anchored (UNVERIFIED); claim RPL-10 cited by the plan but not anchored (UNVERIFIED); claim RPL-13 cited by the plan but not anchored (UNVERIFIED); claim RPL-14 cited by the plan but not anchored (UNVERIFIED); claim RPL-16 cited by the plan but not anchored (UNVERIFIED)",
     "level contractsValidated FAILED: DOMAIN_MODEL.md: no real reviewer; AUTH_ACCESS_CONTRACT.md: no real reviewer; GALLERY_COMMUNITY_CONTRACT.md: no real reviewer; RELEASE_PUBLISH_CONTRACT.md: no real reviewer; PROJECT_FACTORY_CONTRACT.md: no real reviewer; IAM_POLICY_BASELINE.md: no real reviewer; EDGE_CONTRACT.md: no real reviewer; WORKSPACE_STORAGE_CONTRACT.md: no real reviewer; CHECKPOINT_CONTRACT.md: no real reviewer; IMPORT_REMIX_CONTRACT.md: no real reviewer; AGENT_TOOL_BROKER_CONTRACT.md: no real reviewer; DATABASE_CONTRACT.md: no real reviewer; APP_STORAGE_CONTRACT.md: no real reviewer; EVIDENCE_ARTIFACT_CONTRACT.md: no real reviewer; REGRESSION_RUN_CONTRACT.md: no real reviewer; BILLING_LEDGER_CONTRACT.md: no real reviewer; RUNTIME_NIX_CONTRACT.md: no real reviewer; OPERATIONS_DR.md: no real reviewer; SECURITY_PRIVACY_COMPLIANCE.md: no real reviewer",
-    "level implementationReady FAILED: P0-V3-01 is OPEN; P0-V3-05 is OPEN; P0-V3-06 is OPEN; P0-V3-07 is OPEN; P0-A2-12 is OPEN; P0-A2-15 is OPEN; P0-LS-18 is OPEN; P0-B-02 is OPEN; P0-EX-10 is OPEN",
+    "level implementationReady FAILED: P0-V3-01 is OPEN; P0-V3-05 is OPEN; P0-V3-06 is OPEN; P0-V3-07 is OPEN; P0-A2-12 is OPEN; P0-A2-15 is OPEN; P0-B-02 is OPEN",
     "level verticalUserJourneyReady FAILED: stage \"publish\" has no UI proof (une preuve API n'est pas une preuve UI); stage \"rollback\" has no UI proof (une preuve API n'est pas une preuve UI)",
     "level betaReady FAILED: beta gate capability still unknown: UNK-GIT-RECONCILE-DONE; beta gate capability still unknown: UNK-ROLLBACK-FLAG-APPLIED; beta gate capability still unknown: UNK-NIX-MULTIZONE-IMPL; beta gate capability still unknown: UNK-AR-LIVE-PROMOTION; beta gate capability still unknown: UNK-CLOUDTENANT-IMPL; beta gate capability still unknown: UNK-BILLING-MINIMAL-IMPL",
     "level publicLaunchReady FAILED: betaReady not passed; P0-V4-1 not CLOSED (needs a real reviewer); P0-V4-2 not CLOSED (needs a real reviewer); P0-V4-3 not CLOSED (needs a real reviewer); P0-V4-4 not CLOSED (needs a real reviewer); P0-V3-01 not CLOSED (needs a real reviewer); P0-V3-02 not CLOSED (needs a real reviewer); P0-V3-03 not CLOSED (needs a real reviewer); P0-V3-04 not CLOSED (needs a real reviewer); P0-V3-05 not CLOSED (needs a real reviewer); P0-V3-06 not CLOSED (needs a real reviewer); P0-V3-07 not CLOSED (needs a real reviewer); P0-V3-08 not CLOSED (needs a real reviewer); P0-V3-09 not CLOSED (needs a real reviewer); P0-V3-10 not CLOSED (needs a real reviewer); P0-V3-11 not CLOSED (needs a real reviewer); P0-V3-12 not CLOSED (needs a real reviewer); P0-V3-13 not CLOSED (needs a real reviewer); P0-V3-14 not CLOSED (needs a real reviewer); P0-V3-15 not CLOSED (needs a real reviewer); P0-A2-01 not CLOSED (needs a real reviewer); P0-A2-02 not CLOSED (needs a real reviewer); P0-A2-03 not CLOSED (needs a real reviewer); P0-A2-04 not CLOSED (needs a real reviewer); P0-A2-05 not CLOSED (needs a real reviewer); P0-A2-06 not CLOSED (needs a real reviewer); P0-A2-07 not CLOSED (needs a real reviewer); P0-A2-08 not CLOSED (needs a real reviewer); P0-A2-09 not CLOSED (needs a real reviewer); P0-A2-10 not CLOSED (needs a real reviewer); P0-A2-11 not CLOSED (needs a real reviewer); P0-A2-12 not CLOSED (needs a real reviewer); P0-A2-13 not CLOSED (needs a real reviewer); P0-A2-14 not CLOSED (needs a real reviewer); P0-A2-15 not CLOSED (needs a real reviewer); P0-A2-16 not CLOSED (needs a real reviewer); P0-LS-01 not CLOSED (needs a real reviewer); P0-LS-02 not CLOSED (needs a real reviewer); P0-LS-03 not CLOSED (needs a real reviewer); P0-LS-04 not CLOSED (needs a real reviewer); P0-LS-05 not CLOSED (needs a real reviewer); P0-LS-06 not CLOSED (needs a real reviewer); P0-LS-07 not CLOSED (needs a real reviewer); P0-LS-08 not CLOSED (needs a real reviewer); P0-LS-09 not CLOSED (needs a real reviewer); P0-LS-10 not CLOSED (needs a real reviewer); P0-LS-11 not CLOSED (needs a real reviewer); P0-LS-12 not CLOSED (needs a real reviewer); P0-LS-13 not CLOSED (needs a real reviewer); P0-LS-14 not CLOSED (needs a real reviewer); P0-LS-15 not CLOSED (needs a real reviewer); P0-LS-16 not CLOSED (needs a real reviewer); P0-LS-17 not CLOSED (needs a real reviewer); P0-LS-18 not CLOSED (needs a real reviewer); P0-B-01 not CLOSED (needs a real reviewer); P0-B-02 not CLOSED (needs a real reviewer); P0-EX-01 not CLOSED (needs a real reviewer); P0-EX-02 not CLOSED (needs a real reviewer); P0-EX-03 not CLOSED (needs a real reviewer); P0-EX-04 not CLOSED (needs a real reviewer); P0-EX-05 not CLOSED (needs a real reviewer); P0-EX-06 not CLOSED (needs a real reviewer); P0-EX-07 not CLOSED (needs a real reviewer); P0-EX-08 not CLOSED (needs a real reviewer); P0-EX-09 not CLOSED (needs a real reviewer); P0-EX-10 not CLOSED (needs a real reviewer); decision DEC-GALLERY-NO-SELF-PUBLISH still OPEN; decision DEC-BILLING-LEGACY-VS-LEDGER still OPEN; claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING",
@@ -245,9 +243,7 @@
         "P0-V3-07 is OPEN",
         "P0-A2-12 is OPEN",
         "P0-A2-15 is OPEN",
-        "P0-LS-18 is OPEN",
-        "P0-B-02 is OPEN",
-        "P0-EX-10 is OPEN"
+        "P0-B-02 is OPEN"
       ]
     },
     {
@@ -364,8 +360,8 @@
     "p0": {
       "total": 65,
       "closed": 0,
-      "proven": 56,
-      "open": 9
+      "proven": 58,
+      "open": 7
     },
     "decisions": {
       "total": 13,
@@ -853,8 +849,8 @@
     {
       "p0Id": "P0-LS-18",
       "priority": 18,
-      "declared": "OPEN",
-      "derived": "OPEN",
+      "declared": "PROVEN",
+      "derived": "PROVEN",
       "hasProof": true,
       "reviewed": false
     },
@@ -949,8 +945,8 @@
     {
       "p0Id": "P0-EX-10",
       "priority": 10,
-      "declared": "OPEN",
-      "derived": "OPEN",
+      "declared": "PROVEN",
+      "derived": "PROVEN",
       "hasProof": true,
       "reviewed": false
     }

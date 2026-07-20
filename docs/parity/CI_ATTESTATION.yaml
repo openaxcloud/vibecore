@@ -1,17 +1,18 @@
-# CI_ATTESTATION — attestation RÉELLE d'exécution du validateur (P0-A2-13).
-# Un renvoi « voir la CI » n'est pas une attestation : celle-ci enregistre un
-# run PRÉCIS, vert, avec id + date + commit. Mise à jour à chaque re-livraison
-# (le validateur vérifie présence + format ; le manifeste l'embarque).
+# CI_ATTESTATION — attestation RÉELLE d'exécution du validateur (P0-A2-13,
+# P0-LS-18) : run PRÉCIS, vert, id + date + commit. CELLE-CI atteste le
+# COMMIT MERGÉ SUR MAIN (activation du plan, §0 activationRule + P0-EX-10).
 schemaVersion: 1
-repoCommit: fed58e96
+repoCommit: d3925b16
 attestation:
   workflow: "Parity registries"
-  runId: 29718207435
-  runUrl: "https://github.com/openaxcloud/vibecore/actions/runs/29718207435"
+  runId: 29733640863
+  runUrl: "https://github.com/openaxcloud/vibecore/actions/runs/29733640863"
   conclusion: success
-  event: pull_request
-  runCommit: "fed58e96082969728d97087bb63d0696230530dc"
-  runDate: "2026-07-20T05:02:13Z"
+  event: push
+  runCommit: "d3925b164489bc72b0125e780d18d3b08c9545bf"
+  mergedCommit: "d3925b164489bc72b0125e780d18d3b08c9545bf"
+  mergedToMainAt: "2026-07-20T10:02:49Z"
+  runDate: "2026-07-20T10:02:49Z"
   attestedChecks:
     - "Validate registries (fails on schema violation)"
     - "generate-approval-status --check (drift)"

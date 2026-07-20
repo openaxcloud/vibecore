@@ -5,9 +5,9 @@ schemaVersion: 1
 fileCount: 148
 validation:
   workflow: Parity registries
-  runId: 29718207435
-  runDate: "2026-07-20T05:02:13Z"
-  runCommit: fed58e96082969728d97087bb63d0696230530dc
+  runId: 29733640863
+  runDate: "2026-07-20T10:02:49Z"
+  runCommit: d3925b164489bc72b0125e780d18d3b08c9545bf
   source: docs/parity/CI_ATTESTATION.yaml
 documents:
   - file: ACTIONS_AVI.md
@@ -21,7 +21,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "af0050c976aca3d39d40511faffea0a0ed656af8acd4009c54add35c896b9362"
+    sha256: "f9850259b831ca696d157249a8385cee18f96d66b16a79a56a2ef70f9ccd5a62"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -66,9 +66,9 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: CI_ATTESTATION.yaml
-    sha256: "bf719f979b6c1083ef594731a601a2d8d0f719a56c23e889f5e8c32366f877b9"
+    sha256: "6f9d8e6eeee8b8f6daeb205a18bd04beca6c31ab808706651c5e87115fe45a00"
     schemaVersion: 1
-    repoCommit: fed58e96
+    repoCommit: d3925b16
     reviewer: UNKNOWN
   - file: COMPONENT_KIND_REGISTRY.yaml
     sha256: "8c7c016fb581d5ecfecc6b054f834a3b099c32c361229ffdaf84f86b54dc0891"
@@ -201,7 +201,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "092a94bb74d9f2a62cabfbbbab68c78d04402c8c1b248581cad7ee98e803db2a"
+    sha256: "ec81408f93711c1b0c5728d727f10ecf3e77c9f945c68aa6687d94708d1878c7"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -211,9 +211,9 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "f395745266b28335d6247f8711e36073e7fdba82afb97dde4548c8b4380bf099"
+    sha256: "ba2c926ce972d9b54d87b029a397eebe4ca11bd687be3e3db6f8e0b4e1fe6d2f"
     schemaVersion: 2
-    repoCommit: fed58e96
+    repoCommit: d3925b16
     reviewer: UNKNOWN
   - file: PARITY_STATUS_NOTES.md
     sha256: "cc72d2d18e80efb0b398832003c77521ea280286e7e3a4773ae455f2cc377cfd"
