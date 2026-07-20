@@ -18,7 +18,7 @@ decisions:
     priority: 2
     cost: "modération humaine + anti-abus (non chiffré)"
     status: OPEN
-    nextAction: "Rapprocher de DEC-OWNER-GALLERY-OPTION-B (« option B » confirmée par Avi le 17/07) — inscrire le contenu exact via UNK-GALLERY-OPTION-B-CONTENT puis clore"
+    nextAction: "Contenu option B retrouvé et inscrit (20/07) — reste à trancher la question distincte du self-publish (intake curé vs self-service modéré)"
     targetDate: "2026-07-24"
   - decisionId: DEC-IMPORT-CREDIT-RESERVE
     title: "Réservation de crédits Agent idempotente avant import"
@@ -187,23 +187,32 @@ decisions:
     targetDate: "2026-07-20"
   - decisionId: DEC-OWNER-GALLERY-OPTION-B
     decisionType: OWNER_DECISION
-    title: "Gallery — option B confirmée"
+    title: "Gallery option B — garder notre noyau prouvé + greffer la substance de l'autre session"
     rationale: >
-      Avi a laissé trancher et l'option B a été confirmée (17/07/2026). Le
-      CONTENU exact de l'option B vit dans la session Gallery du 17/07 (zone
-      exclusive d'une autre session) — ce registre enregistre la décision, pas
-      son contenu ; le contenu sera inscrit ici via UNK-GALLERY-OPTION-B-CONTENT
-      SANS réinterprétation.
-    consequence: "La session Gallery exécute l'option B ; DEC-GALLERY-NO-SELF-PUBLISH sera rapproché une fois le contenu inscrit."
+      CONTENU EXACT RETROUVÉ (commit local d232a187 du 17/07, entrée
+      DEC-GALLERY-OPTION-B de la session Gallery — cité verbatim) : « Avi
+      laisse trancher ; décision B confirmée sur MESURE, pas sur goût :
+      (1) sa passation annonce "6 cartes converties en apps de démo (Orbit
+      CRM, Northstar, Pulse, Launchline, Kindred, Relay)" mais ses artefacts
+      public/gallery-apps/ s'appellent ai-agent/fastify-api/landing-page/
+      mobile-starter/next-dashboard = les noms framework — LA CONVERSION N'A
+      PAS EU LIEU ; (2) sa vue liste est cassée (chevauchement
+      vignettes/titres, documenté par lui) ; (3) rien de son travail n'est
+      prouvé live, notre noyau l'est (pin immuable + secrets:[] en base).
+      ⇒ noyau prouvé nôtre + greffe de TOUTE sa substance (modération,
+      signalement, provenance, versions, hub 12 sources avec adaptateurs
+      réels, catalogue package, probe SSRF/DNS-rebinding, Empty sans
+      Agent). » Exécution démarrée : c35b686e (greffe TemplateGallery UI
+      sur GalleryListing API, phase 1).
+    consequence: "Ne jette rien ; réconcilie sur la branche d'intégration, pas d'écrasement (GalleryListing vs ProjectTemplateGallery + renum migration)."
     owner: owner
     priority: 2
-    cost: "UNKNOWN jusqu'à inscription du contenu"
-    status: OPEN                     # P0-A2-10 : une décision dont le contenu exact est UNKNOWN ne peut pas rester DECIDED
-    captureState: CAPTURE_INCOMPLETE # confirmation owner enregistrée (17/07) ; contenu exact non capturé
-    ownerConfirmedAt: "2026-07-17"
-    nextAction: "Inscrire le contenu exact (UNK-GALLERY-OPTION-B-CONTENT, 2026-07-24)"
+    cost: "réconciliation des deux modèles DB + renum migration"
+    status: DECIDED
+    decidedAt: "2026-07-17"
+    approvalSource: "message Avi 17/07/2026 (« Gallery option B — il me laisse trancher ») + re-confirmation owner 20/07"
+    nextAction: "Phase 2 de la greffe (détail, modération, probe SSRF) — session Gallery"
     targetDate: "2026-07-24"
-  # --- Audit de couverture 2026-07-19 (famille B) ---------------------------
   - decisionId: DEC-BILLING-LEGACY-VS-LEDGER
     title: "Ancien système de crédits (SHADOW) vs nouveau ledger (plan §3.7) : migration, remplacement ou go-live de l'un des deux"
     rationale: "L'audit de couverture (COVERAGE_GAP_AUDIT_2026-07-17.md famille B) montre que ~35 points « go-live billing legacy » n'apparaissent nulle part dans le plan, et que la relation entre le wallet existant (codé, testé, certifié SHADOW en prod : REPLIT_PARITY_MATRIX §1-19) et le ledger double-entrée du plan §3.7 n'est arbitrée nulle part. Sans décision, les deux chantiers avancent en aveugle l'un de l'autre."
@@ -215,3 +224,23 @@ decisions:
     conditionDeCloture: "Statut DECIDED avec la citation d'Avi + le chemin choisi tracé (UNK-BILLING-LEGACY-GOLIVE et/ou UNK-BILLING-MINIMAL-IMPL mis à jour)"
     targetDate: "2026-08-01"
     expiration: "2026-08-15"
+  - decisionId: DEC-ECODE-FREE-APP-EXPIRY-30D
+    decisionType: ECODE_DECISION
+    title: "App du plan gratuit effacée à 30 jours — ADOPTÉE (comme Replit)"
+    rationale: >
+      Avi dit OUI (20/07/2026) : E-Code adopte la règle mesurée chez Replit
+      (RPL-28 : 1 app publiée sur le plan gratuit, expiration à 30 jours).
+      Mécanique OBLIGATOIRE conforme à l'invariant §16.12 du plan : toute
+      suppression possède tombstone, fenêtre de récupération, purge
+      planifiée et preuve d'effacement — jamais un hard-delete silencieux.
+      Notification avant expiration ; un upgrade pendant la fenêtre
+      restaure sans perte.
+    consequence: "Entitlement starter (OFFERING) + job d'expiration (tombstone→fenêtre→purge→preuve) à implémenter et prouver."
+    owner: owner
+    priority: 2
+    cost: "job d'expiration + notifications + preuve d'effacement"
+    status: DECIDED
+    decidedAt: "2026-07-20"
+    nextAction: "Implémenter (UNK-FREE-EXPIRY-IMPL) — capacité, pas contrat"
+    targetDate: "2026-09-30"
+

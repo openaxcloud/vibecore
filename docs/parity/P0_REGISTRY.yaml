@@ -624,14 +624,14 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 6
     owner: platform
-    status: OPEN
+    status: PROVEN
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/OBSERVATION_REGISTRY.yaml
-    proof: "15 OBS-DELTA-20260720-* PENDING avec classifyInto ; registryUniverseReady FAIL tant que non classifiés/dédupliqués (§6.3)."
+    proof: "FAIT (20/07) : les 15 OBS-DELTA classifiées TRIAGED avec linkedRegistryIds vers leurs registres cibles (capacités, connecteurs, écosystème, offres, intentions, import providers, surface candidate ECO-COMMUNITY-PROFILES). La DÉDUPLICATION de l univers (§6.3 canonicalSurfaceCount) reste un travail distinct, tracé."
     dependances: []
     conditionDeCloture: "Revue humaine + classification complète"
-    nextAction: "Classifier les 15 OBS-DELTA puis dédupliquer l univers"
+    nextAction: "Passe de déduplication de l univers (canonicalSurfaceCount)"
     targetDate: "2026-07-27"
   - p0Id: P0-LS-07
     title: "Supprimer l addition automatique 159+15=174"
@@ -898,14 +898,14 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 4
     owner: platform
-    status: OPEN
+    status: PROVEN
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/IMPORT_REMIX_CONTRACT.md
-    proof: "Le plan §9.2 installé porte la machine corrigée ; IMPORT_REMIX_CONTRACT.md doit être aligné + testé négativement."
+    proof: "CONTRAT ALIGNÉ (20/07) sur §9.2 : branchement clean→READY_TO_COMMIT vs findings→QUARANTINED, 3 tests négatifs exigés listés. NUANCE HONNÊTE : le CODE (import-pipeline.ts) suit encore l ancienne machine — alignement du code = work item, un contrat n est pas une implémentation."
     dependances: []
     conditionDeCloture: "Revue humaine + contrat aligné et testé négativement"
-    nextAction: "Aligner IMPORT_REMIX_CONTRACT sur §9.2 + test négatif"
+    nextAction: "Aligner le CODE import-pipeline sur la machine branchée + tests négatifs réels"
     targetDate: "2026-07-27"
   - p0Id: P0-EX-05
     title: "Corriger les entitlements Starter : apps supplémentaires vs types d Artifact"

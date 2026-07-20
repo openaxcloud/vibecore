@@ -132,13 +132,6 @@ unknowns:
     nextAction: "Prouver une migration au publish live (avec échec simulé → FAILED_SAFE)"
     targetDate: "2026-09-30"
     expiration: "2026-10-31"
-  - unknownId: UNK-GALLERY-OPTION-B-CONTENT
-    question: "Quel est le contenu EXACT de « l'option B » Gallery confirmée par Avi (DEC-OWNER-GALLERY-OPTION-B) ? La définition vit dans la session Gallery du 17/07 ; ce registre n'en a que la confirmation."
-    owner: platform
-    priority: 2
-    nextAction: "Récupérer la définition A/B depuis la session Gallery et l'inscrire dans DECISION_REGISTRY (contenu, coût, conséquences)"
-    targetDate: "2026-07-24"
-    expiration: "2026-07-31"
   - unknownId: UNK-CLAIMS-ANCHORING
     question: "Les étiquettes documentaires héritées du plan v5 (RPL-01…RPL-16, GCP-01…GCP-10, NIX-01) sont-elles toutes ancrées individuellement dans PUBLIC_BASELINE (URL + hash + snapshot), comme le sont RPL-17…24 et GCP-11/12 ?"
     owner: platform
@@ -357,3 +350,11 @@ unknowns:
     nextAction: "Vérifier avec le compte E2E ; ne PAS écrire « retiré » sans preuve positive"
     targetDate: "2026-08-31"
     expiration: "2026-09-30"
+  - unknownId: UNK-FREE-EXPIRY-IMPL
+    question: "L'expiration à 30 jours de l'app du plan gratuit (DEC-ECODE-FREE-APP-EXPIRY-30D) est-elle implémentée avec tombstone + fenêtre de récupération + purge + preuve d'effacement (§16.12) ?"
+    owner: platform
+    priority: 2
+    nextAction: "Job d'expiration + notifications + preuve ; test négatif : purge sans tombstone refusée"
+    targetDate: "2026-09-30"
+    expiration: "2026-10-31"
+

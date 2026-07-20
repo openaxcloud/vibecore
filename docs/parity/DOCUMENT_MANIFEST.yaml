@@ -21,7 +21,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "a61806145202dbb35dc471dfa5114e1d5f391ae15a6c5ee4d9ade3cb5d7d5ea7"
+    sha256: "af0050c976aca3d39d40511faffea0a0ed656af8acd4009c54add35c896b9362"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -56,7 +56,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CHANGELOG_AUDIT.md
-    sha256: "d613ad662f46d855dba1b7683018d82c092a571d9cf74974eb92ff0b6a9b803f"
+    sha256: "fb45131ccfbf72e923a7d0be909550c891f4f1d4c9b0b426d870123fd5dcb838"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
@@ -96,7 +96,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: DECISION_REGISTRY.yaml
-    sha256: "3ab91a48f910df22aad8a161feb0e88833d9ebeb6a531e2d0eed0dca9c40a741"
+    sha256: "1d694189cc4689ba24c24c0f4f2f968092acdd284d9526a02f0ff481768aa9dd"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -131,7 +131,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: EXTERNAL_ECOSYSTEM_REGISTRY.yaml
-    sha256: "464cca1aae8573cf0925c5dad6f4dd3259293b62e97b40b7bdfa5f6212d63d28"
+    sha256: "a3a624d635cf5efb3582997af9d1053d7a7e3f5a5bef51a5d1096e6583009143"
     schemaVersion: 1
     repoCommit: 42a48091
     reviewer: UNKNOWN
@@ -166,7 +166,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: IMPORT_REMIX_CONTRACT.md
-    sha256: "ef5f5d1474860ab665c8b28389a92a19da841477fb4da5eb99791a173d686c2d"
+    sha256: "d0fe030efd4e7bab01dd26bf68a8d4a57af2fa17baa77324757e359cee346ad4"
     schemaVersion: 1
     repoCommit: ca299f87
     reviewer: UNKNOWN
@@ -181,7 +181,7 @@ documents:
     repoCommit: d56931bd
     reviewer: UNKNOWN
   - file: OBSERVATION_REGISTRY.yaml
-    sha256: "92510612d2468d44ab27b0d1ede4412ef76740eabd4e253a9ccb3b7a7099d2d6"
+    sha256: "ad945a0972dc6c630fc5e83bd6776d5819a911fa1eccedc5beb355edf440e3ff"
     schemaVersion: 1
     repoCommit: fbaad79956096db0d66bcb6e894268438dfcb842
     reviewer: UNKNOWN
@@ -201,7 +201,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "2b119280eecd78383a4c50b098cdb626a100e06bf7cdd69c9b663d55a39ec273"
+    sha256: "092a94bb74d9f2a62cabfbbbab68c78d04402c8c1b248581cad7ee98e803db2a"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -211,7 +211,7 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "28e2dc55dc7e11f9f6b3d09c808a9cb117eab3f8c4f6ad5ab494002a8815a144"
+    sha256: "f395745266b28335d6247f8711e36073e7fdba82afb97dde4548c8b4380bf099"
     schemaVersion: 2
     repoCommit: fed58e96
     reviewer: UNKNOWN
@@ -316,7 +316,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: UNKNOWN_REGISTRY.yaml
-    sha256: "9cccf69c0f1fedab760a820f6555c8608bea0de3b7610dd3f1161632a7aa39fa"
+    sha256: "681b90abb4dd743133d53c250c393383c025116dd81e0b9317388b4073ef68f9"
     schemaVersion: 2
     repoCommit: b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5
     reviewer: UNKNOWN

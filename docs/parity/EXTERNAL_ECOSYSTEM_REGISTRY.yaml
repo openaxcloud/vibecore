@@ -30,3 +30,11 @@ items:
     title: "Entrées ChatGPT / Claude / Slack / Open in Replit"
     replitStatus: DOC_CURRENT
     ecodeBuiltState: NON_FAIT
+  - itemId: ECO-COMMUNITY-PROFILES
+    title: "Community Profiles (Claim your profile, community-hub.replit.app)"
+    replitStatus: LIVE_OBSERVED
+    proof: "community.png a2e281d5d30c0193… (OBS-DELTA-20260720-03)"
+    ecodeBuiltState: NON_FAIT
+    note: "Surface candidate — la classification comme surface canonique attend la passe de déduplication de l'univers"
+    sourceObs: OBS-DELTA-20260720-03
+

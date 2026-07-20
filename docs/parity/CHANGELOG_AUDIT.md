@@ -459,3 +459,27 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
 - (P0) +10 P0-EX (7 PROVEN par cette installation, 3 OPEN : EX-04 contrat
   import à aligner, EX-10 activation au merge, + P0-LS-06/18 et P0-B-02
   toujours OPEN). EXPECTED_P0_IDS 55→65.
+
+## 2026-07-20 (feux verts Avi — décisions inscrites + lot sans-Avi)
+
+- (GALLERY OPTION B — TEXTE EXACT RETROUVÉ) La décision complète vivait dans
+  le commit LOCAL d232a187 (17/07, jamais poussé — victime du split-brain
+  D1) : « garder notre noyau prouvé + greffer la substance de l'autre
+  session », avec rationale MESURÉ en 3 points (conversion des 6 démos non
+  faite, vue liste cassée, rien de prouvé live côté passation vs noyau
+  GalleryListing prouvé). Cité verbatim dans DEC-OWNER-GALLERY-OPTION-B →
+  DECIDED ; exécution phase 1 déjà commitée (c35b686e, greffe TemplateGallery
+  UI). UNK-GALLERY-OPTION-B-CONTENT RÉSOLU et retiré (44 inconnues).
+- (RÈGLE 30 JOURS — ADOPTÉE) DEC-ECODE-FREE-APP-EXPIRY-30D (ECODE_DECISION,
+  Avi 20/07) : 1 app gratuite publiée, expirée à 30 jours COMME REPLIT, avec
+  la mécanique §16.12 obligatoire (tombstone → fenêtre de récupération →
+  purge → preuve d'effacement, notification avant expiration, upgrade
+  restaure sans perte). Implémentation tracée UNK-FREE-EXPIRY-IMPL.
+- (P0-LS-06 PROVEN) Les 15 OBS-DELTA classifiées TRIAGED avec
+  linkedRegistryIds (capacités ×4, connecteurs ×4, écosystème ×4 dont
+  nouvelle entrée ECO-COMMUNITY-PROFILES, offres, intentions, imports).
+  La déduplication de l'univers (canonicalSurfaceCount) reste ouverte.
+- (P0-EX-04) IMPORT_REMIX_CONTRACT aligné sur la machine §9.2 (branchement
+  clean→READY_TO_COMMIT, quarantaine réservée aux findings bloquants,
+  3 tests négatifs exigés). NUANCE : le code suit encore l'ancienne machine
+  — un contrat n'est pas une implémentation, work item ouvert.

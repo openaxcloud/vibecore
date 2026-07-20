@@ -41,3 +41,26 @@ RECEIVED → STAGING_ISOLATED → SCANNING → QUARANTINED → AWAITING_USER_ACT
 
 Débit réel des crédits d'import = shadow (marqueur `creditsReserved`), câblage
 réel = follow-up (`DEC-IMPORT-CREDIT-RESERVE`).
+
+## Machine à états Import — ALIGNÉE sur le plan §9.2 (P0-EX-04, 2026-07-20)
+
+```text
+RECEIVED → STAGING_ISOLATED → SCANNING
+   ├─ clean ───────────────→ READY_TO_COMMIT
+   └─ blocking findings ──→ QUARANTINED → AWAITING_USER_ACTION → RESCANNING → READY_TO_COMMIT
+READY_TO_COMMIT → COMMITTING → COMMITTED
+latéraux : ROLLING_BACK · CLEANUP_PENDING · EXPIRED · CANCELLED · FAILED
+```
+
+CORRECTION (branchement clean/quarantaine) : **un import propre ne passe pas
+artificiellement par la quarantaine** — SCANNING branche vers READY_TO_COMMIT
+quand aucun finding bloquant. Le consentement explicite est requis pour toute
+transformation/exception/acceptation de finding, PAS pour un payload propre.
+Le commit atomique ne part QUE de READY_TO_COMMIT.
+
+Tests négatifs exigés : (1) COMMITTING depuis SCANNING refusé ; (2) payload
+propre forcé en QUARANTINED = violation ; (3) findings bloquants → commit
+refusé sans passage AWAITING_USER_ACTION→RESCANNING.
+État réel : l implémentation actuelle (import-pipeline.ts) suit l ancienne
+machine linéaire — l alignement du CODE est un work item (pas coché fait).
+
