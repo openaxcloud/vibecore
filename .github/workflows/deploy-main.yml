@@ -378,9 +378,19 @@ jobs:
             echo "::error::SERVER_DEPLOY_ROLLBACK_FROM_DIGEST missing/wrong in the live configmap after upgrade (got '${CM_VALUE}', want '1')" >&2
             exit 1
           fi
-          API_POD="$(kubectl -n "${HELM_NAMESPACE}" get pods -l app.kubernetes.io/name=api \
-            --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}')"
-          POD_VALUE="$(kubectl -n "${HELM_NAMESPACE}" exec "${API_POD}" -- printenv SERVER_DEPLOY_ROLLBACK_FROM_DIGEST || true)"
+          # Retry the exec: a transient Connect Gateway error must not read as
+          # "flag missing" (first live run false-alarmed exactly this way — the
+          # swallowed exec failure produced '' while the pod actually had '1').
+          POD_VALUE=""
+          for attempt in 1 2 3 4 5; do
+            API_POD="$(kubectl -n "${HELM_NAMESPACE}" get pods -l app.kubernetes.io/name=api \
+              --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' || true)"
+            if [ -n "${API_POD}" ] && POD_VALUE="$(kubectl -n "${HELM_NAMESPACE}" exec "${API_POD}" -- printenv SERVER_DEPLOY_ROLLBACK_FROM_DIGEST 2>/dev/null)"; then
+              break
+            fi
+            echo "exec attempt ${attempt} failed (transient?) — retrying in 10s"
+            sleep 10
+          done
           echo "api pod ${API_POD} env SERVER_DEPLOY_ROLLBACK_FROM_DIGEST='${POD_VALUE}'"
           if [ "${POD_VALUE}" != "1" ]; then
             echo "::error::SERVER_DEPLOY_ROLLBACK_FROM_DIGEST not '1' in the running api pod ${API_POD} (got '${POD_VALUE}')" >&2

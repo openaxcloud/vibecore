@@ -149,6 +149,34 @@ describe('resolveNixStorePlacement (D3 multi-zone)', () => {
     ).toEqual({ nixStorePvcName: 'nix-store-spike-pvc' });
   });
 
+  it('PINS to the existing data-disk zone even when capacity prefers another zone (post-restore deadlock fix)', async () => {
+    process.env.NIX_STORE_PVC_ZONES = ZONE_MAP;
+    process.env.NIX_STORE_GENERATION_HASH = HASH;
+
+    /*
+     * Both zones have capacity — zone-a would win the tie — but the workspace's
+     * RWO data disk lives in zone-b, so the placement MUST follow the disk.
+     */
+    const placement = await makeManager(
+      new NodesOnlyK8sClient([node('europe-west9-a'), node('europe-west9-b')]),
+    ).resolveNixStorePlacement('nix-store-v2-pvc', 'europe-west9-b');
+
+    expect(placement).toEqual({
+      nixStorePvcName: 'nix-store-v2-b-pvc',
+      nixStoreZone: 'europe-west9-b',
+      nixStoreGenerationHash: HASH,
+    });
+
+    // A pinned zone with no declared clone falls through to the capacity path.
+    const noClone = await makeManager(new NodesOnlyK8sClient([node('europe-west9-a')])).resolveNixStorePlacement(
+      'nix-store-v2-pvc',
+      'europe-west9-c',
+    );
+    expect(noClone.nixStoreZone).toBe('europe-west9-a');
+
+    delete process.env.NIX_STORE_GENERATION_HASH;
+  });
+
   it('falls back to the first configured zone when node listing fails (no refusal)', async () => {
     process.env.NIX_STORE_PVC_ZONES = ZONE_MAP;
     delete process.env.NIX_STORE_GENERATION_HASH;
