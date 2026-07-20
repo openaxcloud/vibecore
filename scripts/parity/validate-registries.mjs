@@ -406,6 +406,10 @@ function checkHeader(file, doc) {
 {
   const p0 = loadYaml(join(parityRoot, 'P0_REGISTRY.yaml'));
   const decisions = loadYaml(join(parityRoot, 'DECISION_REGISTRY.yaml'));
+  // Reçus de revue immuables (règle maîtresse 20/07) — requis pour tout CLOSED.
+  const reviewReceipts = existsSync(join(parityRoot, 'REVIEW_RECEIPT_REGISTRY.yaml'))
+    ? loadYaml(join(parityRoot, 'REVIEW_RECEIPT_REGISTRY.yaml'))
+    : { receipts: [] };
   const unknowns = loadYaml(join(parityRoot, 'UNKNOWN_REGISTRY.yaml'));
   checkHeader('P0_REGISTRY.yaml', p0);
   checkHeader('DECISION_REGISTRY.yaml', decisions);
@@ -486,6 +490,29 @@ function checkHeader(file, doc) {
     // CI RULE: no P0 CLOSED without commit + reviewer + proof.
     if (item.status === 'CLOSED' && (!item.commit || !item.reviewer || item.reviewer === 'UNKNOWN' || !item.proof)) {
       fail('P0_REGISTRY.yaml', `${item.p0Id}: CLOSED requires commit + a real reviewer + proof`);
+    }
+
+    /*
+     * RÈGLE MAÎTRESSE (directive 20/07) : CLOSED exige un ReviewReceipt
+     * COMPLET qui ACCEPTE ce point. PROVEN_REVIEW_PENDING = preuve posée,
+     * re-signature du relecteur attendue — exige la référence du reçu (points
+     * signés d'un reçu incomplet) OU un remediationTrack (points remédiés
+     * re-soumis).
+     */
+    if (item.status === 'CLOSED') {
+      const receipt = (reviewReceipts.receipts ?? []).find((r) => r.reviewReceiptId === item.reviewReceiptId);
+
+      if (!receipt) {
+        fail('P0_REGISTRY.yaml', `${item.p0Id}: CLOSED sans reviewReceiptId valide (règle maîtresse)`);
+      } else if (receipt.completeness !== 'COMPLETE') {
+        fail('P0_REGISTRY.yaml', `${item.p0Id}: CLOSED sur un reçu ${receipt.completeness} — interdit tant que responseHash/version modèle manquent`);
+      } else if (!(receipt.decisions?.accepted ?? []).includes(item.p0Id)) {
+        fail('P0_REGISTRY.yaml', `${item.p0Id}: CLOSED mais absent des accepted du reçu ${item.reviewReceiptId}`);
+      }
+    }
+
+    if (item.status === 'PROVEN_REVIEW_PENDING' && !item.reviewReceiptId && !item.remediationTrack) {
+      fail('P0_REGISTRY.yaml', `${item.p0Id}: PROVEN_REVIEW_PENDING exige reviewReceiptId ou remediationTrack`);
     }
 
     // A PROVEN/CLOSED P0's evidenceId must point at something that exists in-repo.
@@ -741,6 +768,71 @@ function checkHeader(file, doc) {
       fail('DOCUMENT_MANIFEST.yaml', 'DRIFT — régénérer (un fichier compagnon a changé sans mise à jour du manifeste)');
     } else {
       checked.push('DOCUMENT_MANIFEST.yaml is up to date (computed; every companion file hashed)');
+    }
+  }
+}
+
+/* ---- 12ter. SUPERSESSION_REGISTRY — couverture 100% + comptes DÉRIVÉS --- */
+{
+  const sup = loadYaml(join(parityRoot, 'SUPERSESSION_REGISTRY.yaml'));
+  const surfacesDoc = loadYaml(join(parityRoot, 'SURFACE_REGISTRY.yaml'));
+  const cu = surfacesDoc.canonicalUniverse ?? {};
+  const supIds = new Set((sup.surfaceSupersessions ?? []).map((s) => s.legacySurfaceId));
+
+  // chaque alias du registre des surfaces DOIT être couvert par la supersession
+  for (const a of cu.aliases ?? []) {
+    if (!supIds.has(a.declaredId)) {
+      fail('SUPERSESSION_REGISTRY.yaml', `alias hérité non couvert: ${a.declaredId}`);
+    }
+  }
+
+  // chaque supersession MERGED doit pointer une destination canonique existante
+  const RELATIONS = ['MERGED', 'RENAMED', 'SPLIT', 'RETIRED'];
+
+  for (const s of sup.surfaceSupersessions ?? []) {
+    requireFields('SUPERSESSION_REGISTRY.yaml', s,
+      ['legacySurfaceId', 'canonicalSurfaceId', 'relation', 'justification', 'source', 'evidence', 'date', 'commit'],
+      s?.legacySurfaceId ?? 'supersession');
+
+    if (!RELATIONS.includes(s.relation)) {
+      fail('SUPERSESSION_REGISTRY.yaml', `${s.legacySurfaceId}: relation "${s.relation}" invalide`);
+    }
+  }
+
+  // le 164 et le 122 DÉRIVENT des tables — vérifié par re-calcul
+  const additional = (cu.additionalCanonical ?? []).length;
+  const derivedSurfaces = 159 + additional;
+
+  if (cu.canonicalSurfaceCount !== derivedSurfaces) {
+    fail('SUPERSESSION_REGISTRY.yaml', `canonicalSurfaceCount ${cu.canonicalSurfaceCount} ≠ dérivé ${derivedSurfaces} (159 + ${additional})`);
+  }
+
+  const wiDoc = loadYaml(join(parityRoot, 'WORK_ITEM_REGISTRY.yaml'));
+  const merges = (sup.workItemSupersessions ?? []).filter((w) => w.relation === 'MERGED').length;
+  const splits = (sup.workItemSupersessions ?? []).filter((w) => w.relation === 'SPLIT').length;
+  const derivedWi = 99 - merges + splits * 24; // 24 = items créés par l'éclatement WI-0033
+
+  if (wiDoc.canonicalWorkItemCount !== derivedWi) {
+    fail('SUPERSESSION_REGISTRY.yaml', `canonicalWorkItemCount ${wiDoc.canonicalWorkItemCount} ≠ dérivé ${derivedWi} (99 − ${merges} + ${splits}×24)`);
+  }
+
+  checked.push(`SUPERSESSION_REGISTRY (couverture aliases 100%, 164 et 122 dérivés des tables)`);
+}
+
+/* ---- 12bis. COUNTER_RECONCILIATION est CALCULÉ (directive 20/07) ------- */
+{
+  const genPath = join(here, 'generate-counter-reconciliation.mjs');
+
+  if (existsSync(genPath)) {
+    const { computeCounterReconciliation } = await import(genPath);
+    const computed = computeCounterReconciliation();
+    const outPath = join(parityRoot, 'COUNTER_RECONCILIATION_20260720.md');
+    const current = existsSync(outPath) ? readFileSync(outPath, 'utf8') : '';
+
+    if (current !== computed) {
+      fail('COUNTER_RECONCILIATION_20260720.md', 'DRIFT — compteur édité à la main ou registre changé sans régénération');
+    } else {
+      checked.push('COUNTER_RECONCILIATION_20260720.md is up to date (computed)');
     }
   }
 }

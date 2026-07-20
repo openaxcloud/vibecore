@@ -1,0 +1,104 @@
+# SUPERSESSION_REGISTRY — traçabilité des IDs hérités → canoniques (directive
+# Avi 20/07, point 5). Chaque ID hérité a EXACTEMENT une destination ou une
+# justification de retrait ; les anciens IDs restent des ALIASES valides.
+# La CI vérifie : couverture 100% des IDs hérités + les comptes canoniques
+# (164 surfaces, 122 work items) DÉRIVENT des tables ci-dessous.
+schemaVersion: 1
+repoCommit: a4a9f71c
+
+# ---- Surfaces : 164 canoniques = 159 (univers P001–P159) + 5 additionalCanonical.
+# Les 6 SRF-* déclarés qui doublonnaient une surface P0xx sont des ALIASES
+# (relation MERGED) — ils ne comptent PAS dans le 164.
+surfaceSupersessions:
+  - legacySurfaceId: SRF-IDE-FILE-HISTORY
+    canonicalSurfaceId: P030
+    relation: MERGED
+    justification: "même surface (historique fichier IDE) déclarée deux fois — dédup canonique 20/07"
+    source: "SURFACE_REGISTRY.canonicalUniverse.aliases"
+    workItems: []
+    evidence: "docs/parity/SURFACE_REGISTRY.yaml#canonicalUniverse"
+    date: "2026-07-20"
+    commit: c4484b48
+  - legacySurfaceId: SRF-IDE-AGENT-SKILLS
+    canonicalSurfaceId: P044
+    relation: MERGED
+    justification: "surface skills agent = P044"
+    source: "SURFACE_REGISTRY.canonicalUniverse.aliases"
+    workItems: []
+    evidence: "docs/parity/SURFACE_REGISTRY.yaml#canonicalUniverse"
+    date: "2026-07-20"
+    commit: c4484b48
+  - legacySurfaceId: SRF-IDE-PANES-LAYOUT
+    canonicalSurfaceId: P006
+    relation: MERGED
+    justification: "layout des panes IDE = P006"
+    source: "SURFACE_REGISTRY.canonicalUniverse.aliases"
+    workItems: []
+    evidence: "docs/parity/SURFACE_REGISTRY.yaml#canonicalUniverse"
+    date: "2026-07-20"
+    commit: c4484b48
+  - legacySurfaceId: SRF-IDE-COMPOSER
+    canonicalSurfaceId: P034
+    relation: MERGED
+    justification: "composer IDE = P034"
+    source: "SURFACE_REGISTRY.canonicalUniverse.aliases"
+    workItems: []
+    evidence: "docs/parity/SURFACE_REGISTRY.yaml#canonicalUniverse"
+    date: "2026-07-20"
+    commit: c4484b48
+  - legacySurfaceId: SRF-DEPLOY-SCHEDULED
+    canonicalSurfaceId: P115
+    relation: MERGED
+    justification: "surface Scheduled deployments = P115"
+    source: "SURFACE_REGISTRY.canonicalUniverse.aliases"
+    workItems: []
+    evidence: "docs/parity/SURFACE_REGISTRY.yaml#canonicalUniverse"
+    date: "2026-07-20"
+    commit: c4484b48
+  - legacySurfaceId: SRF-DEPLOY-RESERVED-VM
+    canonicalSurfaceId: P096
+    relation: MERGED
+    justification: "variante Reserved VM de la surface Deployment Type = P096"
+    source: "SURFACE_REGISTRY.canonicalUniverse.aliases"
+    workItems: []
+    evidence: "docs/parity/SURFACE_REGISTRY.yaml#canonicalUniverse"
+    date: "2026-07-20"
+    commit: c4484b48
+  # Les IDs P160–P174 attribués un temps aux « 15 nouveautés » du scan live ont
+  # été DÉMONTÉS (règle expert A1) : les deltas sont des OBSERVATIONS, pas des
+  # surfaces additionnées à l'univers.
+  - legacySurfaceId: "P160–P174 (bloc)"
+    canonicalSurfaceId: "OBS-DELTA-20260720-01…15"
+    relation: RETIRED
+    justification: "les 15 nouveautés du scan live sont des observations classifiées (OBSERVATION_REGISTRY), jamais additionnées aux 159 — correction expert A1"
+    source: "OBSERVATION_REGISTRY.yaml (triage) + plan §6.3"
+    workItems: []
+    evidence: "docs/parity/OBSERVATION_REGISTRY.yaml"
+    date: "2026-07-20"
+    commit: 646e75ca
+
+# ---- Work items : 122 canoniques DÉRIVÉS = 99 (dédup mécanique) − 1 (fusion)
+# + 24 (éclatement) — la passe sémantique A2-12.
+workItemSupersessions:
+  - legacyWorkItemId: WI-0096
+    canonicalWorkItemId: WI-0055
+    relation: MERGED
+    justification: "RPD-24 (relecture juriste pages légales) = même livrable que CM-34 — fusion confirmée par les 2 proposeurs indépendants (A2-12)"
+    source: "docs/parity/A2_12_DEDUP_SEMANTIQUE_20260720.md"
+    workItems: [WI-0055]
+    evidence: "docs/parity/WORK_ITEM_REGISTRY.yaml"
+    date: "2026-07-20"
+    commit: f1783993
+  - legacyWorkItemId: WI-0033
+    canonicalWorkItemId: "WI-0033 (BD-01 seul) + WI-0100…WI-0123 (24 items)"
+    relation: SPLIT
+    justification: "sur-regroupement : 27 dettes BD distinctes agrégées par NOM DE FICHIER — éclatées par livrable (BD-21→WI-0079, BD-22→WI-0044)"
+    source: "docs/parity/A2_12_DEDUP_SEMANTIQUE_20260720.md"
+    workItems: [WI-0033, WI-0079, WI-0044]
+    evidence: "docs/parity/WORK_ITEM_REGISTRY.yaml"
+    date: "2026-07-20"
+    commit: f1783993
+
+derivation:
+  canonicalSurfaceCount: "159 (P001–P159) + 5 additionalCanonical (SRF-LANDING, SRF-PROJECT-CREATE, SRF-ADMIN-AGENT-ROUTING, SRF-GALLERY-STARTER-DEMOS, CS-COMMUNITY-PROFILES candidate) = 164 ; les 6 aliases MERGED ne comptent pas"
+  canonicalWorkItemCount: "99 (dédup mécanique) − 1 (WI-0096 MERGED) + 24 (WI-0033 SPLIT) = 122"
