@@ -58,28 +58,37 @@ export function computeDocumentManifest() {
     return { file: rel, sha256: sha, schemaVersion, repoCommit, reviewer };
   });
 
+  /*
+   * P0-LS-16 : generatedAt / generatedFromCommit / mergedCommit sont DÉRIVÉS
+   * de CI_ATTESTATION.yaml (roulée à chaque merge) — pas d'horloge locale, le
+   * manifeste reste déterministe ET recalculé après chaque merge, sans être
+   * auto-référentiel (il ne se hashe pas lui-même).
+   */
+  const att = readFileSync(join(parityRoot, 'CI_ATTESTATION.yaml'), 'utf8');
+  const runId = att.match(/runId:\s*(\d+)/)?.[1] ?? 'UNKNOWN';
+  const runDate = att.match(/runDate:\s*"([^"]+)"/)?.[1] ?? 'UNKNOWN';
+  const runCommit = att.match(/runCommit:\s*"?([0-9a-f]+)"?/)?.[1] ?? 'UNKNOWN';
+  const mergedCommit = att.match(/mergedCommit:\s*"?([0-9a-f]+)"?/)?.[1] ?? 'UNKNOWN';
+  const mergedToMainAt = att.match(/mergedToMainAt:\s*"([^"]+)"/)?.[1] ?? 'UNKNOWN';
+
   const lines = [
     '# DOCUMENT_MANIFEST — GÉNÉRÉ par scripts/parity/generate-document-manifest.mjs',
-    "# (P0-A2-01). Ne jamais éditer à la main — drift-check en CI. Le champ",
-    "# validation reflète le dernier run du validateur sur l'arbre.",
+    "# (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le",
+    "# champ validation reflète le dernier run du validateur sur l'arbre.",
     'schemaVersion: 1',
     `fileCount: ${entries.length}`,
+    // P0-LS-16 : provenance de génération — timestamp RÉEL du dernier merge
+    // attesté (pas une constante), commit source explicite.
+    `generatedAt: "${mergedToMainAt}"`,
+    `generatedFromCommit: ${mergedCommit}`,
+    `mergedCommit: ${mergedCommit}`,
     // P0-A2-13 : attestation RÉELLE (run id + date + commit), pas un renvoi.
-    ...(() => {
-      const att = readFileSync(join(parityRoot, 'CI_ATTESTATION.yaml'), 'utf8');
-      const runId = att.match(/runId:\s*(\d+)/)?.[1] ?? 'UNKNOWN';
-      const runDate = att.match(/runDate:\s*"([^"]+)"/)?.[1] ?? 'UNKNOWN';
-      const runCommit = att.match(/runCommit:\s*"?([0-9a-f]+)"?/)?.[1] ?? 'UNKNOWN';
-
-      return [
-        'validation:',
-        `  workflow: Parity registries`,
-        `  runId: ${runId}`,
-        `  runDate: "${runDate}"`,
-        `  runCommit: ${runCommit}`,
-        `  source: docs/parity/CI_ATTESTATION.yaml`,
-      ];
-    })(),
+    'validation:',
+    `  workflow: Parity registries`,
+    `  runId: ${runId}`,
+    `  runDate: "${runDate}"`,
+    `  runCommit: ${runCommit}`,
+    `  source: docs/parity/CI_ATTESTATION.yaml`,
     'documents:',
   ];
 

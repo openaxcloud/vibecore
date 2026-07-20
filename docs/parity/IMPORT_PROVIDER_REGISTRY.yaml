@@ -1,10 +1,7 @@
 # IMPORT_PROVIDER_REGISTRY — les entrées du hub d'import (RPL-24 : 12 entrées,
 # snapshot doc identique au 17/07 ET au scan du 20/07 — 56b14555…).
-# GitLab (P0-LS-04, §9.1 verbatim expert) : « capacité Git confirmée par la
-# documentation et le changelog, mais n'est pas une tuile de cette table
-# courante ». hubTileVisible=false, capabilityStatus=DOC_CURRENT. L'entrée
-# authentifiée exacte du flux reste à vérifier (UNK-LS-GITLAB-GIT).
-# JAMAIS « retiré ».
+# GitLab : voir l'entrée STRUCTURÉE nonTileCapabilities ci-dessous (P0-LS-04 —
+# le relecteur a refusé la simple note d'en-tête). JAMAIS « retiré ».
 schemaVersion: 1
 repoCommit: 42a48091
 providers:
@@ -43,3 +40,17 @@ providers:
   - provider: EMPTY
     ecodeBuiltState: DEJA_CONSTRUIT
     proof: "Création projet vide (voie power-user) — à re-prouver UI (ACT-03)"
+
+# Capacités d'import CONFIRMÉES par la doc mais SANS tuile dans le hub courant
+# (P0-LS-04). Une entrée ici n'est ni une tuile (interdit par le validateur)
+# ni un retrait — c'est un état documenté, cassant en CI.
+nonTileCapabilities:
+  - capability: GITLAB
+    kind: GIT_URL_IMPORT
+    hubTileVisible: false
+    capabilityStatus: DOC_CURRENT
+    evidence: "§9.1 verbatim expert : « capacité Git confirmée par la documentation et le changelog, mais pas une tuile » ; doc/changelog Replit scannés (RPL-24, snapshot 56b14555…)"
+    ecodeBuiltState: PARTIEL
+    ecodeProof: "endpoint /import/gitlab existe (P141 builtState=PARTIEL)"
+    unknowns: [UNK-LS-GITLAB-GIT]
+    verdict: "JAMAIS écrire « retiré » sans preuve positive ; flux authentifié exact à vérifier (compte E2E)"

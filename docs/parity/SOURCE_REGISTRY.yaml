@@ -57,8 +57,8 @@ sources:
     url: https://replit.com/gallery
     title: "Replit Gallery (rendu JS)"
     publishedAt: UNKNOWN
-    accessedAt: "2026-07-16T16:45:51Z"
-    contentHash: "sha256:fad9ec75ed95273ba3632391edf5025af5c95eb78258790f3931260f65b09b20"
+    accessedAt: "2026-07-16T16:58:20Z"
+    contentHash: "sha256:1f5f27bcf87743017d2e1aee8768f941041a2ebe17b21127b76db83c241bd4c7"  # re-vérifié 20/07 (refus V4-1 : hash déclaré ≠ fichier) — shasum rejoué
     snapshot: docs/parity/baseline/snapshots/2026-07-16/gallery.rendered.html
   - sourceId: SRC-GALLERY-DETAIL-JOURNEY-MAPPER
     url: https://replit.com/gallery/work/product-and-design/journey-mapper

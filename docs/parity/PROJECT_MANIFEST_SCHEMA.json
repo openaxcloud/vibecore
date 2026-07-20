@@ -104,5 +104,6 @@
     }
   ],
   "x-reviewVerdict": "REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)",
-  "x-reviewCloseCriterion": "durcir le contenu puis obtenir la signature du relecteur ; raison détaillée à consigner verbatim dès transmission"
+  "x-reviewCloseCriterion": "corriger — le schéma accepte des contre-exemples et l'état PENDING_COMMIT — puis re-soumettre à signature",
+  "x-refusalReason": "accepte contre-exemples + PENDING_COMMIT (verbatim relecteur, transmis 20/07)"
 }

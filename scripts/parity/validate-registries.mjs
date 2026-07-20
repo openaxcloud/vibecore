@@ -798,6 +798,19 @@ function checkHeader(file, doc) {
     if ((ip.providers ?? []).some((x) => x.provider === 'GITLAB')) {
       fail('IMPORT_PROVIDER_REGISTRY.yaml', 'GITLAB ne doit pas être une tuile (P0-LS-05) — capacité git plus large = UNK-LS-GITLAB-GIT');
     }
+
+    // P0-LS-04 : GitLab exige une entrée STRUCTURÉE hors tuiles (pas une note d'en-tête).
+    const gitlabCap = (ip.nonTileCapabilities ?? []).find((x) => x.capability === 'GITLAB');
+
+    if (!gitlabCap) {
+      fail('IMPORT_PROVIDER_REGISTRY.yaml', 'entrée structurée GITLAB manquante dans nonTileCapabilities (P0-LS-04)');
+    } else {
+      for (const k of ['kind', 'hubTileVisible', 'capabilityStatus', 'evidence', 'unknowns']) {
+        if (gitlabCap[k] === undefined) {
+          fail('IMPORT_PROVIDER_REGISTRY.yaml', `nonTileCapabilities GITLAB: champ ${k} manquant (P0-LS-04)`);
+        }
+      }
+    }
   }
 
   checked.push(`LEGACY/WORK_ITEM/TRACEABILITY/OWNER_ROLES présents (${(legacy.findings ?? []).length} constats → ${(work.workItems ?? []).length} work items canoniques)`);

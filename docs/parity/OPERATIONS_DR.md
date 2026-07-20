@@ -4,7 +4,8 @@ schemaVersion: 1
 repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
 reviewer: UNKNOWN
 reviewVerdict: REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)
-reviewCloseCriterion: durcir le contenu puis obtenir la signature du relecteur ; raison détaillée du refus à consigner verbatim dès transmission du rapport
+refusalReason: SLO/astreinte/chaos/RTO-RPO non prouvés (verbatim relecteur, transmis 20/07)
+reviewCloseCriterion: corriger — SLO/astreinte/chaos/RTO-RPO non prouvés — puis re-soumettre à signature
 Règle d'or: ce qui n'a jamais été TESTÉ en réel est marqué UNTESTED — un plan
 de DR non testé n'est pas un plan.
 

@@ -4,7 +4,8 @@ schemaVersion: 1
 repoCommit: d1063912
 reviewer: UNKNOWN
 reviewVerdict: REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)
-reviewCloseCriterion: durcir le contenu puis obtenir la signature du relecteur ; raison détaillée du refus à consigner verbatim dès transmission du rapport
+refusalReason: preuve Static absente / Reserved non commencé / Scheduled hors E2E (verbatim relecteur, transmis 20/07)
+reviewCloseCriterion: corriger — preuve Static absente / Reserved non commencé / Scheduled hors E2E — puis re-soumettre à signature
 
 Exigence de parité centrale (audit de réanalyse 2026-07-20) : Autoscale,
 Static, Reserved VM et Scheduled sont des **produits contractualisés**, pas des

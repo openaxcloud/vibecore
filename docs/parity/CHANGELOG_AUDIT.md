@@ -584,3 +584,23 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
   reviewVerdict REFUSED + critère de clôture. Les 4 PROVEN hors lot
   (A2-15, A2-16, V3-15, V4-4) inchangés. Compte : 22 CLOSED / 39 OPEN /
   4 PROVEN.
+
+## 2026-07-20 (suite — verbatims relecteur + lot A de remédiation)
+
+- (verbatims) les 33 refus portent maintenant la raison EXACTE du relecteur
+  (transmise par Avi) — plus aucun A_PRECISER ; les 14 contrats portent leur
+  raison spécifique (DOMAIN_MODEL : Import ancien + CloudTenant incomplet ;
+  BILLING_LEDGER : shadow wallet ; OPERATIONS_DR : SLO/chaos non prouvés ; …).
+- (lot A — 8 points REMÉDIÉS, prêts à re-soumettre) :
+  V4-1/V4-2/V3-02 : SRC-GALLERY-RENDERED réaligné sur l'artefact réel
+  (sha256 1f5f27bc…, shasum rejoué), métriques corrigées aux valeurs réelles
+  (20,653 liste / 20,649 + Used 79 times détail), « 82 Results » retiré ;
+  LS-14 : claim « no model selector » borné au corpus observé (2 fichiers) ;
+  A2-10 : DEC-GALLERY-NO-SELF-PUBLISH → DECIDED (comportement construit) ;
+  LS-04 : entrée GITLAB STRUCTURÉE (nonTileCapabilities) + garde validateur
+  cassante (preuve négative rejouée) ;
+  LS-13 : 13 observations de prix contextualisées + divergence $20/$25
+  RÉSOLUE par re-observation live 14:45Z geo-IP IL (artefact hashé
+  9352b15f…) — la page a changé entre 05:43 et 14:45 le même jour ;
+  LS-16 : DOCUMENT_MANIFEST porte generatedAt/generatedFromCommit/
+  mergedCommit dérivés de l'attestation (plus de timestamp constant).

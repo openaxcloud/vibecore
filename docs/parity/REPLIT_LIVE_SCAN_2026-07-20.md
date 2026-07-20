@@ -93,8 +93,8 @@ Docs de référence téléchargées le même jour (source secondaire 📘, hashe
 - Le discours produit est **« Agent 4 »** : Parallel Agents (tâches en parallèle,
   micro-VMs), Multiple Artifacts (plusieurs artefacts par projet, design partagé),
   **Infinite Canvas** (exploration visuelle de designs), collaboration d'équipe.
-- **Aucun sélecteur de modèle nulle part** sur les pages publiques (cohérent avec
-  RPL-2026-004 de notre baseline).
+- **Aucun sélecteur de modèle observé** sur les pages publiques DU CORPUS SCANNÉ
+  ce jour (19 rendus hashés — observation bornée, cohérente avec RPL-2026-004).
 - **Log In** : Email/username + mot de passe, « Use SSO login », et 5 fournisseurs :
   Google, GitHub, X, Apple, Facebook.
 - Footer public : About us, **Vibe Coding 101**, Help, How to guides, Import from GitHub,

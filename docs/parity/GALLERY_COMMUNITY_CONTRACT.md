@@ -4,12 +4,13 @@ schemaVersion: 1
 repoCommit: 57ab0a67d068e5dad0faea5166ac4d18c1713f03
 reviewer: UNKNOWN
 reviewVerdict: REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)
-reviewCloseCriterion: durcir le contenu puis obtenir la signature du relecteur ; raison détaillée du refus à consigner verbatim dès transmission du rapport
+refusalReason: hash obsolète + décision ouverte (verbatim relecteur, transmis 20/07)
+reviewCloseCriterion: corriger — hash obsolète + décision ouverte — puis re-soumettre à signature
 
 Ce contrat sépare STRICTEMENT ce qui est **CONFIRMÉ** (observé+rendu+hashé sur
 replit.com le 2026-07-16) de ce qui est **UNKNOWN** (non observable de
 l'extérieur). On ne suppose JAMAIS un comportement interne depuis la surface
-publique. Sources : `SRC-GALLERY-RENDERED` (sha256 fad9ec75…),
+publique. Sources : `SRC-GALLERY-RENDERED` (sha256 1f5f27bc…, re-vérifié 20/07),
 `SRC-GALLERY-DETAIL`, `SRC-COMMUNITY-RENDERED` (sha256 e9b562a2…) — voir
 `SOURCE_REGISTRY.yaml`. Décision produit associée : `DEC-GALLERY-NO-SELF-PUBLISH`
 (`DECISION_REGISTRY.yaml`).
@@ -24,7 +25,7 @@ Chaque ligne est adossée à un fait rendu/hashé, pas à une déduction.
 | Recherche | champ + « 82 Results » | RPL-17 |
 | Catégories (~22) | liste de catégories rendue | RPL-17 |
 | Page détail d'une app | `/gallery/work/…` rendu | RPL-17 |
-| Stats publiques par app | « Views 20,650 », « Used 79 times » | RPL-17 |
+| Stats publiques par app | « 20,653 » vues (liste) / « 20,649 » vues + « Used 79 times » (détail) — compteurs vivants | RPL-17 |
 | Ouvrir l'app (View App) | lien sortant vers l'app déployée | RPL-17 |
 | Utiliser comme template / Remix | CTA « Use Template » / Remix | RPL-17 |
 | Auteurs / Community Profiles | profils publics liés, page community rendue | RPL-19 |

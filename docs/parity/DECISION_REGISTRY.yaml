@@ -17,8 +17,8 @@ decisions:
     owner: owner
     priority: 2
     cost: "modération humaine + anti-abus (non chiffré)"
-    status: OPEN
-    nextAction: "Contenu option B retrouvé et inscrit (20/07) — reste à trancher la question distincte du self-publish (intake curé vs self-service modéré)"
+    status: DECIDED
+    nextAction: "DÉCIDÉ (constat relecteur 20/07, P0-A2-10) : intake curée à la Replit (Typeform → humain), PAS de self-publish in-product — c'est le comportement CONSTRUIT et prouvé (curation admin seule, tests « non self-service »). Toute évolution vers un self-service modéré = NOUVELLE décision."
     targetDate: "2026-07-24"
   - decisionId: DEC-IMPORT-CREDIT-RESERVE
     title: "Réservation de crédits Agent idempotente avant import"
