@@ -247,7 +247,7 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
       method: 'POST',
       url: '/gallery/paid-app/remix',
       headers: auth('remixer-token'),
-      payload: { organizationId: remixerOrg.id },
+      payload: { organizationId: remixerOrg.id, acceptLicense: true },
     });
     expect(res.statusCode).toBe(201);
     const body = res.json();
@@ -305,6 +305,205 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
       payload: { organizationId: remixerOrg.id },
     });
     expect(res.statusCode).toBe(404);
+  });
+});
+
+describe('Gallery remix — versioned license + consent + PII masking (P0-V3-05 / I-RMX-3)', () => {
+  const LICENSE_TEXT = 'MIT License\n\nPermission is hereby granted, free of charge…';
+  const PII_EMAIL = 'jane.doe@realmail.example-corp.fr';
+  const PII_PHONE = '+33 6 12 34 56 78';
+  const PII_CARD = '4242 4242 4242 4242'; // Luhn-valid test number
+
+  async function setupLicensed(listingOverrides: Record<string, unknown> = {}) {
+    const ctx = await seedGallery();
+    const { store, projectStorage } = ctx;
+
+    const source = await store.createProject({ organizationId: ctx.org.id, name: 'CRM App', slug: 'crm-app' });
+    const snapshotFiles: ProjectFile[] = [
+      {
+        path: 'seed/customers.csv',
+        content: `name,email,phone,card\nJane Doe,${PII_EMAIL},${PII_PHONE},${PII_CARD}\n`,
+        updatedAt: '',
+      },
+      { path: 'src/app.ts', content: 'export const CONTACT = "support@example.com";\n', updatedAt: '' },
+    ];
+    await projectStorage.writeFiles(source.id, snapshotFiles);
+    const archive = await projectStorage.createSnapshot({ projectId: source.id, files: snapshotFiles });
+    const snapshot = await store.createSnapshot({
+      projectId: source.id,
+      kind: 'manual',
+      manifest: { files: snapshotFiles.map((f) => f.path) },
+      storageKey: archive.storageKey,
+    });
+    const { createHash } = await import('node:crypto');
+    const listing = await store.createGalleryListing({
+      slug: 'crm-app',
+      title: 'CRM App',
+      description: 'A CRM sample with seeded customer data',
+      category: 'web',
+      sourceProjectId: source.id,
+      sourceSnapshotId: snapshot.id,
+      authorName: 'Ada Lovelace',
+      authorUserId: ctx.author.id,
+      licenseId: 'MIT',
+      licenseText: LICENSE_TEXT,
+      licenseTextSha256: createHash('sha256').update(LICENSE_TEXT, 'utf8').digest('hex'),
+      ...listingOverrides,
+    });
+
+    const remixer = await store.createUser({
+      email: 'remixer2@example.com',
+      name: 'Remixer Two',
+      passwordHash: hashPassword('password123'),
+    });
+    const remixerOrg = await store.createOrganization({
+      name: 'Remixer Two Org',
+      slug: 'remixer-two-org',
+      ownerUserId: remixer.id,
+    });
+    await store.createSession({
+      userId: remixer.id,
+      token: 'remixer2-token',
+      expiresAt: new Date(Date.now() + 3600_000),
+    });
+
+    return { ...ctx, source, snapshot, listing, remixerOrg };
+  }
+
+  it('REFUSES the remix without explicit license acceptance (400 REMIX_CONSENT_REQUIRED)', async () => {
+    const { app, store, remixerOrg } = await setupLicensed();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/gallery/crm-app/remix',
+      headers: auth('remixer2-token'),
+      payload: { organizationId: remixerOrg.id }, // no acceptLicense
+    });
+
+    expect(res.statusCode).toBe(400);
+    const body = res.json();
+    expect(body.code).toBe('REMIX_CONSENT_REQUIRED');
+    // The refusal carries what there IS to accept (so a client can render it).
+    expect(body.license.id).toBe('MIT');
+    expect(body.remixConsentVersion).toMatch(/^\d{4}-\d{2}-\d{2}\./);
+    // Negative proof: nothing was cloned.
+    expect([...store.remixJobs.values()]).toHaveLength(0);
+  });
+
+  it('REFUSES the remix when the author disallowed forking (403 REMIX_NOT_ALLOWED)', async () => {
+    const { app, store, remixerOrg } = await setupLicensed({ remixAllowed: false });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/gallery/crm-app/remix',
+      headers: auth('remixer2-token'),
+      payload: { organizationId: remixerOrg.id, acceptLicense: true },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.json().code).toBe('REMIX_NOT_ALLOWED');
+    expect([...store.remixJobs.values()]).toHaveLength(0);
+  });
+
+  it('records the VERSIONED license + consent on the job, immune to later listing edits', async () => {
+    const { app, store, listing, remixerOrg } = await setupLicensed();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/gallery/crm-app/remix',
+      headers: auth('remixer2-token'),
+      payload: { organizationId: remixerOrg.id, acceptLicense: true },
+    });
+    expect(res.statusCode).toBe(201);
+    const body = res.json();
+
+    const job = await store.getRemixJob(body.remix.remixJobId);
+    const snapshotOnJob = job?.licenseSnapshot as {
+      licenseId: string;
+      licenseTextSha256: string;
+      sourceListingId: string;
+    };
+    expect(snapshotOnJob.licenseId).toBe('MIT');
+    expect(snapshotOnJob.licenseTextSha256).toBe(listing.licenseTextSha256);
+    expect(snapshotOnJob.sourceListingId).toBe(listing.id);
+    expect(job?.consentVersion).toMatch(/^\d{4}-\d{2}-\d{2}\./);
+
+    // IMMUTABILITY: rewriting the listing's license later must not touch the job.
+    listing.licenseId = 'Apache-2.0';
+    listing.licenseTextSha256 = 'rewritten';
+    const jobAfter = await store.getRemixJob(body.remix.remixJobId);
+    expect((jobAfter?.licenseSnapshot as { licenseId: string }).licenseId).toBe('MIT');
+  });
+
+  it('MASKS PII in the clone (no author consent): email, phone, card gone; fixtures kept', async () => {
+    const { app, store, projectStorage, remixerOrg } = await setupLicensed();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/gallery/crm-app/remix',
+      headers: auth('remixer2-token'),
+      payload: { organizationId: remixerOrg.id, acceptLicense: true },
+    });
+    expect(res.statusCode).toBe(201);
+    const body = res.json();
+
+    const cloneFiles = await projectStorage.listFiles(body.project.id);
+    const allText = cloneFiles.map((f) => f.content).join('\n');
+
+    // THE PROOF: the person's data is nowhere in the clone.
+    expect(allText).not.toContain(PII_EMAIL);
+    expect(allText).not.toContain(PII_PHONE);
+    expect(allText).not.toContain(PII_CARD);
+    expect(allText).toContain('[PII:email masked on remix]');
+    expect(allText).toContain('[PII:phone masked on remix]');
+    expect(allText).toContain('[PII:card masked on remix]');
+
+    // RFC 2606 fixture addresses are NOT someone's data — kept.
+    expect(allText).toContain('support@example.com');
+
+    // The job records WHAT was masked (kind + location), never the value.
+    expect(body.remix.piiMaskedCount).toBeGreaterThanOrEqual(3);
+    const job = await store.getRemixJob(body.remix.remixJobId);
+    expect(job?.piiMaskedCount).toBe(body.remix.piiMaskedCount);
+    expect(JSON.stringify(job)).not.toContain(PII_EMAIL);
+    expect(JSON.stringify(job)).not.toContain('4242');
+  });
+
+  it('SKIPS masking when the author gave explicit versioned consent — recorded, not silent', async () => {
+    const { app, store, projectStorage, remixerOrg } = await setupLicensed({ piiConsentVersion: '2026-07-20.1' });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/gallery/crm-app/remix',
+      headers: auth('remixer2-token'),
+      payload: { organizationId: remixerOrg.id, acceptLicense: true },
+    });
+    expect(res.statusCode).toBe(201);
+    const body = res.json();
+
+    const cloneFiles = await projectStorage.listFiles(body.project.id);
+    const allText = cloneFiles.map((f) => f.content).join('\n');
+    expect(allText).toContain(PII_EMAIL); // shipped as-is — author consented
+    expect(body.remix.piiMaskedCount).toBe(0);
+
+    const job = await store.getRemixJob(body.remix.remixJobId);
+    expect(job?.piiMaskedCount).toBe(0);
+    expect(job?.state).toBe('COMPLETED');
+  });
+
+  it('exposes license + remixAllowed + PII handling on the public listing and detail', async () => {
+    const { app } = await setupLicensed();
+
+    const list = await app.inject({ method: 'GET', url: '/gallery' });
+    const row = list.json().results.find((r: { slug: string }) => r.slug === 'crm-app');
+    expect(row.license.id).toBe('MIT');
+    expect(row.remixAllowed).toBe(true);
+    expect(row.piiHandling.mode).toBe('MASKED');
+
+    const detail = await app.inject({ method: 'GET', url: '/gallery/crm-app' });
+    const shown = detail.json().listing;
+    expect(shown.licenseText).toBe(LICENSE_TEXT);
+    expect(shown.remixConsentVersion).toMatch(/^\d{4}-\d{2}-\d{2}\./);
   });
 });
 

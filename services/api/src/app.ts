@@ -161,11 +161,15 @@ import {
   type ImportState,
 } from './import-pipeline.js';
 import {
+  REMIX_CONSENT_VERSION,
   RemixInvariantError,
   assertRemixTransition,
   detachCredentials,
+  maskPiiInFiles,
   scanClonedFilesForSecrets,
+  scanFilesForPii,
   scrubSecretsFromFiles,
+  type RemixLicenseSnapshot,
   type RemixState,
   type RemixStoragePolicy,
 } from './remix-pipeline.js';
@@ -21375,6 +21379,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     sourceFiles: ProjectFile[];
     sourceSnapshotId?: string;
     sourceListingId?: string;
+    /*
+     * License + consent (I-RMX-3, P0-V3-05). A gallery remix passes the
+     * VERSIONED license captured from the listing plus the consent version the
+     * remixer accepted; a same-org self-remix passes neither (owner forking
+     * their own data is not a cross-user license/PII flow).
+     */
+    licenseSnapshot?: RemixLicenseSnapshot;
+    consentVersion?: string;
+    /** Mask PII in the source files before cloning (cross-user remix only). */
+    sanitizePii?: boolean;
+    /** Author's explicit versioned PII consent — skips masking, recorded. */
+    piiConsentVersion?: string;
   }): Promise<
     | {
         ok: true;
@@ -21383,6 +21399,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         state: RemixState;
         detached: ReturnType<typeof detachCredentials>;
         scrubbedValueLines: number;
+        piiMaskedCount: number;
       }
     | { ok: false; findings: ReturnType<typeof scanClonedFilesForSecrets>; remixJobId: string }
   > => {
@@ -21395,6 +21412,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       storagePolicy,
       sourceSnapshotId: params.sourceSnapshotId,
       sourceListingId: params.sourceListingId,
+      licenseSnapshot: params.licenseSnapshot,
+      consentVersion: params.consentVersion,
     });
 
     let state: RemixState = 'SNAPSHOT_PINNED';
@@ -21436,7 +21455,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
       }
 
-      // (3) CLONING — new project (metadata only) in the TARGET org + files scrubbed.
+      /*
+       * (3) SOURCE_SANITIZED (I-RMX-3) — PII masked before anything is cloned,
+       * UNLESS the source author gave an explicit versioned consent (recorded,
+       * never silent). The masked output is re-scanned: a survivor is a defect
+       * and fails the remix rather than shipping someone's data.
+       */
+      let sanitizedFiles = params.sourceFiles;
+      let piiMaskedCount = 0;
+
+      if (params.sanitizePii && !params.piiConsentVersion) {
+        const remixFiles = sanitizedFiles.map((file) => ({
+          path: file.path,
+          content: file.content,
+          encoding: file.encoding,
+        }));
+        const { files: maskedFiles, masked } = maskPiiInFiles(remixFiles);
+
+        const residual = scanFilesForPii(maskedFiles);
+        if (residual.length > 0) {
+          throw new RemixInvariantError(
+            `SOURCE_SANITIZED left ${residual.length} PII span(s) unmasked`,
+            'REMIX_PII_RESIDUAL',
+          );
+        }
+
+        sanitizedFiles = sanitizedFiles.map((file, index) => ({ ...file, content: maskedFiles[index].content }));
+        piiMaskedCount = masked.length;
+        await advance('SOURCE_SANITIZED', { piiFindings: masked, piiMaskedCount });
+      } else {
+        // Owner self-remix, or author consent on file — nothing masked, and the
+        // job says WHY (consent version or absence of a cross-user flow).
+        await advance('SOURCE_SANITIZED', { piiFindings: [], piiMaskedCount: 0 });
+      }
+
+      // (4) CLONING — new project (metadata only) in the TARGET org + files scrubbed.
       const duplicate = await store.withSerializedMutation(`projects:${targetOrganizationId}`, async () => {
         await ensureQuota(request, targetOrganizationId, 'projects.count');
         return store.duplicateProject({
@@ -21448,23 +21501,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
 
       const { files: scrubbedFiles, removed } = scrubSecretsFromFiles(
-        sourceFiles.map((file) => ({ path: file.path, content: file.content, encoding: file.encoding })),
+        sanitizedFiles.map((file) => ({ path: file.path, content: file.content, encoding: file.encoding })),
         materializedValues,
       );
       const writtenFiles = await projectStorage.writeFiles(
         duplicate.id,
-        scrubbedFiles.map((file, index) => ({ ...sourceFiles[index], content: file.content })),
+        scrubbedFiles.map((file, index) => ({ ...sanitizedFiles[index], content: file.content })),
       );
       await persistProjectFileManifest(store, duplicate.id, writtenFiles, request.currentUser!.id);
       await advance('CLONING', { targetProjectId: duplicate.id, scrubbedCount: removed.length });
 
-      // (4) DB_FORKING — isolation, not copy (honest marker; no source DATABASE_URL carried).
+      // (5) DB_FORKING — isolation, not copy (honest marker; no source DATABASE_URL carried).
       await advance('DB_FORKING', { dbForked: false });
 
-      // (5) STORAGE_POLICY_APPLIED — clone gets its own bucket ref; CLONE/SHARE deferred.
+      // (6) STORAGE_POLICY_APPLIED — clone gets its own bucket ref; CLONE/SHARE deferred.
       await advance('STORAGE_POLICY_APPLIED');
 
-      // (6) SCANNING — re-verify NO materialized secret value survived into the clone.
+      // (7) SCANNING — re-verify NO materialized secret value survived into the clone.
       const findings = scanClonedFilesForSecrets(
         scrubbedFiles.map((file) => ({ path: file.path, content: file.content, encoding: file.encoding })),
         materializedValues,
@@ -21480,7 +21533,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
       await advance('SCANNING', { scanFindings: [] });
 
-      // (7) INDEXING — honest completion marker (project code index does not exist yet).
+      // (8) INDEXING — honest completion marker (project code index does not exist yet).
       await advance('INDEXING');
       await advance('COMPLETED');
 
@@ -21498,10 +21551,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           detachedEnvVarKeys: detached.envVarKeys.length,
           scrubbedValueLines: removed.length,
           storagePolicy,
+          piiMaskedCount,
+          piiConsentVersion: params.piiConsentVersion ?? null,
+          consentVersion: params.consentVersion ?? null,
+          licenseId: params.licenseSnapshot?.licenseId ?? null,
+          licenseTextSha256: params.licenseSnapshot?.licenseTextSha256 ?? null,
         },
       });
 
-      return { ok: true, duplicate, jobId: job.id, state, detached, scrubbedValueLines: removed.length };
+      return { ok: true, duplicate, jobId: job.id, state, detached, scrubbedValueLines: removed.length, piiMaskedCount };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await store.updateRemixJob(job.id, { state: 'FAILED', error: message }).catch(() => undefined);
@@ -21544,6 +21602,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         name: body.name,
         slug: body.slug,
         sourceFiles,
+        // Same-org self-remix: the org already owns this data — no cross-user
+        // license/PII flow, so nothing to mask and no consent to capture.
+        sanitizePii: false,
       });
 
       if (!result.ok) {
@@ -21610,6 +21671,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     featured: boolean;
     authorName: string;
     appUrl?: string;
+    remixAllowed: boolean;
+    licenseId?: string;
+    licenseTextSha256?: string;
+    piiConsentVersion?: string;
     viewCount: number;
     useCount: number;
     publishedAt?: string;
@@ -21623,6 +21688,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     featured: row.featured,
     author: row.authorName,
     appUrl: row.appUrl ?? null,
+    // License + fork rights are PUBLIC listing facts (P0-V3-05): a remixer
+    // must see what they'd accept before clicking Remix. Never the text sha
+    // alone — the detail route carries the full text.
+    remixAllowed: row.remixAllowed,
+    license: row.licenseId ? { id: row.licenseId, textSha256: row.licenseTextSha256 ?? null } : null,
+    piiHandling: row.piiConsentVersion
+      ? { mode: 'AUTHOR_CONSENT' as const, consentVersion: row.piiConsentVersion }
+      : { mode: 'MASKED' as const },
     views: row.viewCount,
     uses: row.useCount,
     publishedAt: row.publishedAt ?? null,
@@ -21684,6 +21757,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         ...toPublicListing(listing),
         // detail-only: the immutable release the Remix reproduces (provenance, no secret)
         sourceSnapshotId: listing.sourceSnapshotId,
+        // detail-only: the FULL versioned license text a remixer accepts, and
+        // the consent-text version their acceptance is recorded under.
+        licenseText: listing.licenseText ?? null,
+        remixConsentVersion: REMIX_CONSENT_VERSION,
         views,
       },
     };
@@ -21693,6 +21770,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     organizationId: z.string().min(1),
     name: z.string().min(1).optional(),
     slug: z.string().min(2).optional(),
+    /*
+     * Explicit, versioned acceptance (I-RMX-3). The UI sends acceptLicense
+     * after showing the license block; the server refuses a remix without it —
+     * consent is an input, never an assumption.
+     */
+    acceptLicense: z.boolean().optional(),
   });
 
   /*
@@ -21713,6 +21796,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.status(404).send({ error: 'Listing not found', code: 'GALLERY_LISTING_NOT_FOUND' });
     }
 
+    // Curation gate (P0-V3-05): a published listing may be view-only.
+    if (!listing.remixAllowed) {
+      return reply.status(403).send({
+        error: 'The author has not allowed this app to be remixed.',
+        code: 'REMIX_NOT_ALLOWED',
+      });
+    }
+
+    /*
+     * Explicit versioned acceptance (I-RMX-3): no consent, no clone. The reply
+     * carries what there IS to accept (license id + text sha + consent-text
+     * version) so a client can render the consent step from this response.
+     */
+    if (body.acceptLicense !== true) {
+      return reply.status(400).send({
+        error: 'Remixing requires accepting the license terms first.',
+        code: 'REMIX_CONSENT_REQUIRED',
+        license: listing.licenseId ? { id: listing.licenseId, textSha256: listing.licenseTextSha256 ?? null } : null,
+        remixConsentVersion: REMIX_CONSENT_VERSION,
+      });
+    }
+
     const sourceProject = await store.getProject(listing.sourceProjectId);
     if (!sourceProject) {
       return reply.status(409).send({ error: 'Source project unavailable', code: 'GALLERY_SOURCE_MISSING' });
@@ -21726,6 +21831,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
     const sourceFiles = await getSnapshotFiles(snapshot);
 
+    /*
+     * VERSIONED license capture (I-RMX-3): what the remixer accepted is pinned
+     * onto the job by content hash NOW — later curation edits to the listing
+     * never rewrite what this remix ran under.
+     */
+    const licenseSnapshot: RemixLicenseSnapshot = {
+      licenseId: listing.licenseId ?? null,
+      licenseTextSha256: listing.licenseTextSha256 ?? null,
+      sourceListingId: listing.id,
+      capturedAt: new Date().toISOString(),
+    };
+
     try {
       const result = await runSecureRemixClone({
         request,
@@ -21737,6 +21854,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         sourceFiles,
         sourceSnapshotId: listing.sourceSnapshotId,
         sourceListingId: listing.id,
+        licenseSnapshot,
+        consentVersion: REMIX_CONSENT_VERSION,
+        // Cross-user flow: mask PII unless the AUTHOR consented (versioned).
+        sanitizePii: true,
+        piiConsentVersion: listing.piiConsentVersion,
       });
 
       if (!result.ok) {
@@ -21759,6 +21881,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           sourceSnapshotId: listing.sourceSnapshotId,
           sourceListingId: listing.id,
           scrubbedValueLines: result.scrubbedValueLines,
+          piiMaskedCount: result.piiMaskedCount,
+          licenseSnapshot,
+          consentVersion: REMIX_CONSENT_VERSION,
         },
       });
     } catch (error) {
@@ -21786,6 +21911,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     appUrl: z.string().url().optional(),
     featured: z.boolean().optional(),
     status: z.enum(['PUBLISHED', 'PENDING_REVIEW', 'UNPUBLISHED']).optional(),
+    /*
+     * License + PII declarations captured at CURATION (P0-V3-05). licenseText
+     * is hashed server-side — the sha256 pin is computed, never client-supplied.
+     * piiConsentVersion records the author's explicit consent to ship their
+     * data unmasked; absent = every remix masks PII.
+     */
+    remixAllowed: z.boolean().optional(),
+    licenseId: z.string().min(1).max(64).optional(),
+    licenseText: z.string().min(1).max(100_000).optional(),
+    piiConsentVersion: z.string().min(1).max(64).optional(),
   });
 
   /*
@@ -21814,7 +21949,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     try {
-      const listing = await store.createGalleryListing(body);
+      const listing = await store.createGalleryListing({
+        ...body,
+        // Version pin computed HERE: the accepted license text is identified by
+        // content hash, not by whatever a client claims (P0-V3-05).
+        licenseTextSha256: body.licenseText
+          ? createHash('sha256').update(body.licenseText, 'utf8').digest('hex')
+          : undefined,
+      });
 
       await audit(request, store, {
         action: 'admin.gallery_listing.create',
@@ -21825,6 +21967,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           sourceProjectId: listing.sourceProjectId,
           sourceSnapshotId: listing.sourceSnapshotId,
           status: listing.status,
+          remixAllowed: listing.remixAllowed,
+          licenseId: listing.licenseId ?? null,
+          piiConsentVersion: listing.piiConsentVersion ?? null,
         },
       });
 

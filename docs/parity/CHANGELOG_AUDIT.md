@@ -542,3 +542,18 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
 - (échelle) sourceBaselineReady PASS + registryUniverseReady PASS +
   contractsPresent PASS → highestPassedLevel = contractsPresent. Prochain
   verrou : contractsValidated (relecteurs humains — paquet expert envoyé).
+
+## 2026-07-20 (suite — V3-05 RMX-3)
+
+- (chantier V3-05, CODÉ non mergé) licence + consentement VERSIONNÉS au remix
+  et masquage PII : migration 0076 (GalleryListing.remixAllowed/licenseId/
+  licenseText/licenseTextSha256/piiConsentVersion ; RemixJob.licenseSnapshot/
+  consentVersion/piiFindings/piiMaskedCount) ; état SOURCE_SANITIZED inséré
+  entre CREDENTIALS_DETACHED et CLONING (masquage email/téléphone international/
+  IBAN/carte Luhn-valide, findings sans valeur, re-scan résiduel bloquant) ;
+  refus 400 REMIX_CONSENT_REQUIRED / 403 REMIX_NOT_ALLOWED ; UI checkbox de
+  consentement (bouton gaté) + bloc licence + divulgation PII ; immutabilité du
+  licenseSnapshot prouvée par test. 35 tests remix+gallery verts, typecheck +
+  build stricts verts. DOMAIN_MODEL §1 mis à jour (I-RMX-3 licence/PII,
+  I-RMX-PROV). Décision remontée à Avi : DEC-OWNER-REMIX-DEFAULT-LICENSE.
+  Preuve LIVE à l'écran = après merge + deploy (P0-V3-05 reste OPEN/PARTIEL).

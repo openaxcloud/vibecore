@@ -137053,10 +137053,12 @@ export namespace Prisma {
 
   export type RemixJobAvgAggregateOutputType = {
     scrubbedCount: number | null
+    piiMaskedCount: number | null
   }
 
   export type RemixJobSumAggregateOutputType = {
     scrubbedCount: number | null
+    piiMaskedCount: number | null
   }
 
   export type RemixJobMinAggregateOutputType = {
@@ -137070,6 +137072,8 @@ export namespace Prisma {
     sourceListingId: string | null
     storagePolicy: string | null
     scrubbedCount: number | null
+    consentVersion: string | null
+    piiMaskedCount: number | null
     dbForked: boolean | null
     error: string | null
     createdAt: Date | null
@@ -137087,6 +137091,8 @@ export namespace Prisma {
     sourceListingId: string | null
     storagePolicy: string | null
     scrubbedCount: number | null
+    consentVersion: string | null
+    piiMaskedCount: number | null
     dbForked: boolean | null
     error: string | null
     createdAt: Date | null
@@ -137106,6 +137112,10 @@ export namespace Prisma {
     storagePolicy: number
     scanFindings: number
     scrubbedCount: number
+    licenseSnapshot: number
+    consentVersion: number
+    piiFindings: number
+    piiMaskedCount: number
     dbForked: number
     error: number
     createdAt: number
@@ -137116,10 +137126,12 @@ export namespace Prisma {
 
   export type RemixJobAvgAggregateInputType = {
     scrubbedCount?: true
+    piiMaskedCount?: true
   }
 
   export type RemixJobSumAggregateInputType = {
     scrubbedCount?: true
+    piiMaskedCount?: true
   }
 
   export type RemixJobMinAggregateInputType = {
@@ -137133,6 +137145,8 @@ export namespace Prisma {
     sourceListingId?: true
     storagePolicy?: true
     scrubbedCount?: true
+    consentVersion?: true
+    piiMaskedCount?: true
     dbForked?: true
     error?: true
     createdAt?: true
@@ -137150,6 +137164,8 @@ export namespace Prisma {
     sourceListingId?: true
     storagePolicy?: true
     scrubbedCount?: true
+    consentVersion?: true
+    piiMaskedCount?: true
     dbForked?: true
     error?: true
     createdAt?: true
@@ -137169,6 +137185,10 @@ export namespace Prisma {
     storagePolicy?: true
     scanFindings?: true
     scrubbedCount?: true
+    licenseSnapshot?: true
+    consentVersion?: true
+    piiFindings?: true
+    piiMaskedCount?: true
     dbForked?: true
     error?: true
     createdAt?: true
@@ -137275,6 +137295,10 @@ export namespace Prisma {
     storagePolicy: string
     scanFindings: JsonValue | null
     scrubbedCount: number
+    licenseSnapshot: JsonValue | null
+    consentVersion: string | null
+    piiFindings: JsonValue | null
+    piiMaskedCount: number
     dbForked: boolean
     error: string | null
     createdAt: Date
@@ -137313,6 +137337,10 @@ export namespace Prisma {
     storagePolicy?: boolean
     scanFindings?: boolean
     scrubbedCount?: boolean
+    licenseSnapshot?: boolean
+    consentVersion?: boolean
+    piiFindings?: boolean
+    piiMaskedCount?: boolean
     dbForked?: boolean
     error?: boolean
     createdAt?: boolean
@@ -137332,6 +137360,10 @@ export namespace Prisma {
     storagePolicy?: boolean
     scanFindings?: boolean
     scrubbedCount?: boolean
+    licenseSnapshot?: boolean
+    consentVersion?: boolean
+    piiFindings?: boolean
+    piiMaskedCount?: boolean
     dbForked?: boolean
     error?: boolean
     createdAt?: boolean
@@ -137351,6 +137383,10 @@ export namespace Prisma {
     storagePolicy?: boolean
     scanFindings?: boolean
     scrubbedCount?: boolean
+    licenseSnapshot?: boolean
+    consentVersion?: boolean
+    piiFindings?: boolean
+    piiMaskedCount?: boolean
     dbForked?: boolean
     error?: boolean
     createdAt?: boolean
@@ -137370,13 +137406,17 @@ export namespace Prisma {
     storagePolicy?: boolean
     scanFindings?: boolean
     scrubbedCount?: boolean
+    licenseSnapshot?: boolean
+    consentVersion?: boolean
+    piiFindings?: boolean
+    piiMaskedCount?: boolean
     dbForked?: boolean
     error?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type RemixJobOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "sourceProjectId" | "targetProjectId" | "organizationId" | "actorUserId" | "state" | "sourceSnapshotId" | "sourceListingId" | "detachedKeys" | "storagePolicy" | "scanFindings" | "scrubbedCount" | "dbForked" | "error" | "createdAt" | "updatedAt", ExtArgs["result"]["remixJob"]>
+  export type RemixJobOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "sourceProjectId" | "targetProjectId" | "organizationId" | "actorUserId" | "state" | "sourceSnapshotId" | "sourceListingId" | "detachedKeys" | "storagePolicy" | "scanFindings" | "scrubbedCount" | "licenseSnapshot" | "consentVersion" | "piiFindings" | "piiMaskedCount" | "dbForked" | "error" | "createdAt" | "updatedAt", ExtArgs["result"]["remixJob"]>
 
   export type $RemixJobPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "RemixJob"
@@ -137415,6 +137455,27 @@ export namespace Prisma {
        * Count of value-lines scrubbed out of the clone during CLONING.
        */
       scrubbedCount: number
+      /**
+       * VERSIONED license captured at remix time from the source listing —
+       * { licenseId, licenseTextSha256, sourceListingId, capturedAt }. Immutable on
+       * the job: later edits to the listing's license never rewrite what THIS remix
+       * was accepted under (I-RMX-3, P0-V3-05). Null for a same-org self-remix.
+       */
+      licenseSnapshot: Prisma.JsonValue | null
+      /**
+       * Version of the remix consent text the REMIXER explicitly accepted before
+       * the clone ran (REMIX_CONSENT_VERSION at accept time). Null = no consent
+       * captured (same-org self-remix only — a gallery remix REQUIRES it).
+       */
+      consentVersion: string | null
+      /**
+       * PiiFinding[] { path, kind, line } — kind of PII masked, never the value.
+       */
+      piiFindings: Prisma.JsonValue | null
+      /**
+       * Count of PII spans masked out of the clone during SOURCE_SANITIZED.
+       */
+      piiMaskedCount: number
       /**
        * Honest marker: was a physical isolated DB provisioned, or deferred?
        */
@@ -137857,6 +137918,10 @@ export namespace Prisma {
     readonly storagePolicy: FieldRef<"RemixJob", 'String'>
     readonly scanFindings: FieldRef<"RemixJob", 'Json'>
     readonly scrubbedCount: FieldRef<"RemixJob", 'Int'>
+    readonly licenseSnapshot: FieldRef<"RemixJob", 'Json'>
+    readonly consentVersion: FieldRef<"RemixJob", 'String'>
+    readonly piiFindings: FieldRef<"RemixJob", 'Json'>
+    readonly piiMaskedCount: FieldRef<"RemixJob", 'Int'>
     readonly dbForked: FieldRef<"RemixJob", 'Boolean'>
     readonly error: FieldRef<"RemixJob", 'String'>
     readonly createdAt: FieldRef<"RemixJob", 'DateTime'>
@@ -139455,6 +139520,11 @@ export namespace Prisma {
     authorName: string | null
     authorUserId: string | null
     appUrl: string | null
+    remixAllowed: boolean | null
+    licenseId: string | null
+    licenseText: string | null
+    licenseTextSha256: string | null
+    piiConsentVersion: string | null
     viewCount: number | null
     useCount: number | null
     createdAt: Date | null
@@ -139474,6 +139544,11 @@ export namespace Prisma {
     authorName: string | null
     authorUserId: string | null
     appUrl: string | null
+    remixAllowed: boolean | null
+    licenseId: string | null
+    licenseText: string | null
+    licenseTextSha256: string | null
+    piiConsentVersion: string | null
     viewCount: number | null
     useCount: number | null
     createdAt: Date | null
@@ -139494,6 +139569,11 @@ export namespace Prisma {
     authorName: number
     authorUserId: number
     appUrl: number
+    remixAllowed: number
+    licenseId: number
+    licenseText: number
+    licenseTextSha256: number
+    piiConsentVersion: number
     viewCount: number
     useCount: number
     createdAt: number
@@ -139525,6 +139605,11 @@ export namespace Prisma {
     authorName?: true
     authorUserId?: true
     appUrl?: true
+    remixAllowed?: true
+    licenseId?: true
+    licenseText?: true
+    licenseTextSha256?: true
+    piiConsentVersion?: true
     viewCount?: true
     useCount?: true
     createdAt?: true
@@ -139544,6 +139629,11 @@ export namespace Prisma {
     authorName?: true
     authorUserId?: true
     appUrl?: true
+    remixAllowed?: true
+    licenseId?: true
+    licenseText?: true
+    licenseTextSha256?: true
+    piiConsentVersion?: true
     viewCount?: true
     useCount?: true
     createdAt?: true
@@ -139564,6 +139654,11 @@ export namespace Prisma {
     authorName?: true
     authorUserId?: true
     appUrl?: true
+    remixAllowed?: true
+    licenseId?: true
+    licenseText?: true
+    licenseTextSha256?: true
+    piiConsentVersion?: true
     viewCount?: true
     useCount?: true
     createdAt?: true
@@ -139671,6 +139766,11 @@ export namespace Prisma {
     authorName: string
     authorUserId: string | null
     appUrl: string | null
+    remixAllowed: boolean
+    licenseId: string | null
+    licenseText: string | null
+    licenseTextSha256: string | null
+    piiConsentVersion: string | null
     viewCount: number
     useCount: number
     createdAt: Date
@@ -139710,6 +139810,11 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    remixAllowed?: boolean
+    licenseId?: boolean
+    licenseText?: boolean
+    licenseTextSha256?: boolean
+    piiConsentVersion?: boolean
     viewCount?: boolean
     useCount?: boolean
     createdAt?: boolean
@@ -139732,6 +139837,11 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    remixAllowed?: boolean
+    licenseId?: boolean
+    licenseText?: boolean
+    licenseTextSha256?: boolean
+    piiConsentVersion?: boolean
     viewCount?: boolean
     useCount?: boolean
     createdAt?: boolean
@@ -139754,6 +139864,11 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    remixAllowed?: boolean
+    licenseId?: boolean
+    licenseText?: boolean
+    licenseTextSha256?: boolean
+    piiConsentVersion?: boolean
     viewCount?: boolean
     useCount?: boolean
     createdAt?: boolean
@@ -139776,13 +139891,18 @@ export namespace Prisma {
     authorName?: boolean
     authorUserId?: boolean
     appUrl?: boolean
+    remixAllowed?: boolean
+    licenseId?: boolean
+    licenseText?: boolean
+    licenseTextSha256?: boolean
+    piiConsentVersion?: boolean
     viewCount?: boolean
     useCount?: boolean
     createdAt?: boolean
     publishedAt?: boolean
   }
 
-  export type GalleryListingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "title" | "description" | "category" | "tags" | "status" | "featured" | "sourceProjectId" | "sourceSnapshotId" | "authorName" | "authorUserId" | "appUrl" | "viewCount" | "useCount" | "createdAt" | "publishedAt", ExtArgs["result"]["galleryListing"]>
+  export type GalleryListingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "title" | "description" | "category" | "tags" | "status" | "featured" | "sourceProjectId" | "sourceSnapshotId" | "authorName" | "authorUserId" | "appUrl" | "remixAllowed" | "licenseId" | "licenseText" | "licenseTextSha256" | "piiConsentVersion" | "viewCount" | "useCount" | "createdAt" | "publishedAt", ExtArgs["result"]["galleryListing"]>
   export type GalleryListingInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sourceProject?: boolean | ProjectDefaultArgs<ExtArgs>
     author?: boolean | GalleryListing$authorArgs<ExtArgs>
@@ -139831,6 +139951,30 @@ export namespace Prisma {
        * Outbound "View App" link to the deployed app (may be null pre-deploy).
        */
       appUrl: string | null
+      /**
+       * Curation gate: can this listing be remixed at all? A published listing may
+       * be view-only when the author/curator did not grant fork rights (P0-V3-05).
+       */
+      remixAllowed: boolean
+      /**
+       * License identifier declared at curation (e.g. an SPDX id like "MIT").
+       * Null = the author declared no license (surfaced as such — never invented).
+       */
+      licenseId: string | null
+      /**
+       * VERSIONED license text snapshot captured at curation. What a remixer
+       * accepts is THIS text, pinned by its sha256 onto the RemixJob.
+       */
+      licenseText: string | null
+      /**
+       * sha256 of licenseText — the version pin recorded on every remix.
+       */
+      licenseTextSha256: string | null
+      /**
+       * Version of the PII-sharing consent the AUTHOR explicitly gave at curation
+       * (data ships unmasked). Null = no consent → PII is masked on every remix.
+       */
+      piiConsentVersion: string | null
       viewCount: number
       useCount: number
       createdAt: Date
@@ -140273,6 +140417,11 @@ export namespace Prisma {
     readonly authorName: FieldRef<"GalleryListing", 'String'>
     readonly authorUserId: FieldRef<"GalleryListing", 'String'>
     readonly appUrl: FieldRef<"GalleryListing", 'String'>
+    readonly remixAllowed: FieldRef<"GalleryListing", 'Boolean'>
+    readonly licenseId: FieldRef<"GalleryListing", 'String'>
+    readonly licenseText: FieldRef<"GalleryListing", 'String'>
+    readonly licenseTextSha256: FieldRef<"GalleryListing", 'String'>
+    readonly piiConsentVersion: FieldRef<"GalleryListing", 'String'>
     readonly viewCount: FieldRef<"GalleryListing", 'Int'>
     readonly useCount: FieldRef<"GalleryListing", 'Int'>
     readonly createdAt: FieldRef<"GalleryListing", 'DateTime'>
@@ -142372,6 +142521,10 @@ export namespace Prisma {
     storagePolicy: 'storagePolicy',
     scanFindings: 'scanFindings',
     scrubbedCount: 'scrubbedCount',
+    licenseSnapshot: 'licenseSnapshot',
+    consentVersion: 'consentVersion',
+    piiFindings: 'piiFindings',
+    piiMaskedCount: 'piiMaskedCount',
     dbForked: 'dbForked',
     error: 'error',
     createdAt: 'createdAt',
@@ -142417,6 +142570,11 @@ export namespace Prisma {
     authorName: 'authorName',
     authorUserId: 'authorUserId',
     appUrl: 'appUrl',
+    remixAllowed: 'remixAllowed',
+    licenseId: 'licenseId',
+    licenseText: 'licenseText',
+    licenseTextSha256: 'licenseTextSha256',
+    piiConsentVersion: 'piiConsentVersion',
     viewCount: 'viewCount',
     useCount: 'useCount',
     createdAt: 'createdAt',
@@ -151454,6 +151612,10 @@ export namespace Prisma {
     storagePolicy?: StringFilter<"RemixJob"> | string
     scanFindings?: JsonNullableFilter<"RemixJob">
     scrubbedCount?: IntFilter<"RemixJob"> | number
+    licenseSnapshot?: JsonNullableFilter<"RemixJob">
+    consentVersion?: StringNullableFilter<"RemixJob"> | string | null
+    piiFindings?: JsonNullableFilter<"RemixJob">
+    piiMaskedCount?: IntFilter<"RemixJob"> | number
     dbForked?: BoolFilter<"RemixJob"> | boolean
     error?: StringNullableFilter<"RemixJob"> | string | null
     createdAt?: DateTimeFilter<"RemixJob"> | Date | string
@@ -151473,6 +151635,10 @@ export namespace Prisma {
     storagePolicy?: SortOrder
     scanFindings?: SortOrderInput | SortOrder
     scrubbedCount?: SortOrder
+    licenseSnapshot?: SortOrderInput | SortOrder
+    consentVersion?: SortOrderInput | SortOrder
+    piiFindings?: SortOrderInput | SortOrder
+    piiMaskedCount?: SortOrder
     dbForked?: SortOrder
     error?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -151495,6 +151661,10 @@ export namespace Prisma {
     storagePolicy?: StringFilter<"RemixJob"> | string
     scanFindings?: JsonNullableFilter<"RemixJob">
     scrubbedCount?: IntFilter<"RemixJob"> | number
+    licenseSnapshot?: JsonNullableFilter<"RemixJob">
+    consentVersion?: StringNullableFilter<"RemixJob"> | string | null
+    piiFindings?: JsonNullableFilter<"RemixJob">
+    piiMaskedCount?: IntFilter<"RemixJob"> | number
     dbForked?: BoolFilter<"RemixJob"> | boolean
     error?: StringNullableFilter<"RemixJob"> | string | null
     createdAt?: DateTimeFilter<"RemixJob"> | Date | string
@@ -151514,6 +151684,10 @@ export namespace Prisma {
     storagePolicy?: SortOrder
     scanFindings?: SortOrderInput | SortOrder
     scrubbedCount?: SortOrder
+    licenseSnapshot?: SortOrderInput | SortOrder
+    consentVersion?: SortOrderInput | SortOrder
+    piiFindings?: SortOrderInput | SortOrder
+    piiMaskedCount?: SortOrder
     dbForked?: SortOrder
     error?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -151541,6 +151715,10 @@ export namespace Prisma {
     storagePolicy?: StringWithAggregatesFilter<"RemixJob"> | string
     scanFindings?: JsonNullableWithAggregatesFilter<"RemixJob">
     scrubbedCount?: IntWithAggregatesFilter<"RemixJob"> | number
+    licenseSnapshot?: JsonNullableWithAggregatesFilter<"RemixJob">
+    consentVersion?: StringNullableWithAggregatesFilter<"RemixJob"> | string | null
+    piiFindings?: JsonNullableWithAggregatesFilter<"RemixJob">
+    piiMaskedCount?: IntWithAggregatesFilter<"RemixJob"> | number
     dbForked?: BoolWithAggregatesFilter<"RemixJob"> | boolean
     error?: StringNullableWithAggregatesFilter<"RemixJob"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"RemixJob"> | Date | string
@@ -151673,6 +151851,11 @@ export namespace Prisma {
     authorName?: StringFilter<"GalleryListing"> | string
     authorUserId?: StringNullableFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableFilter<"GalleryListing"> | string | null
+    remixAllowed?: BoolFilter<"GalleryListing"> | boolean
+    licenseId?: StringNullableFilter<"GalleryListing"> | string | null
+    licenseText?: StringNullableFilter<"GalleryListing"> | string | null
+    licenseTextSha256?: StringNullableFilter<"GalleryListing"> | string | null
+    piiConsentVersion?: StringNullableFilter<"GalleryListing"> | string | null
     viewCount?: IntFilter<"GalleryListing"> | number
     useCount?: IntFilter<"GalleryListing"> | number
     createdAt?: DateTimeFilter<"GalleryListing"> | Date | string
@@ -151695,6 +151878,11 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrderInput | SortOrder
     appUrl?: SortOrderInput | SortOrder
+    remixAllowed?: SortOrder
+    licenseId?: SortOrderInput | SortOrder
+    licenseText?: SortOrderInput | SortOrder
+    licenseTextSha256?: SortOrderInput | SortOrder
+    piiConsentVersion?: SortOrderInput | SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -151720,6 +151908,11 @@ export namespace Prisma {
     authorName?: StringFilter<"GalleryListing"> | string
     authorUserId?: StringNullableFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableFilter<"GalleryListing"> | string | null
+    remixAllowed?: BoolFilter<"GalleryListing"> | boolean
+    licenseId?: StringNullableFilter<"GalleryListing"> | string | null
+    licenseText?: StringNullableFilter<"GalleryListing"> | string | null
+    licenseTextSha256?: StringNullableFilter<"GalleryListing"> | string | null
+    piiConsentVersion?: StringNullableFilter<"GalleryListing"> | string | null
     viewCount?: IntFilter<"GalleryListing"> | number
     useCount?: IntFilter<"GalleryListing"> | number
     createdAt?: DateTimeFilter<"GalleryListing"> | Date | string
@@ -151742,6 +151935,11 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrderInput | SortOrder
     appUrl?: SortOrderInput | SortOrder
+    remixAllowed?: SortOrder
+    licenseId?: SortOrderInput | SortOrder
+    licenseText?: SortOrderInput | SortOrder
+    licenseTextSha256?: SortOrderInput | SortOrder
+    piiConsentVersion?: SortOrderInput | SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -151770,6 +151968,11 @@ export namespace Prisma {
     authorName?: StringWithAggregatesFilter<"GalleryListing"> | string
     authorUserId?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
+    remixAllowed?: BoolWithAggregatesFilter<"GalleryListing"> | boolean
+    licenseId?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
+    licenseText?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
+    licenseTextSha256?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
+    piiConsentVersion?: StringNullableWithAggregatesFilter<"GalleryListing"> | string | null
     viewCount?: IntWithAggregatesFilter<"GalleryListing"> | number
     useCount?: IntWithAggregatesFilter<"GalleryListing"> | number
     createdAt?: DateTimeWithAggregatesFilter<"GalleryListing"> | Date | string
@@ -161210,6 +161413,10 @@ export namespace Prisma {
     storagePolicy?: string
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
     scrubbedCount?: number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: number
     dbForked?: boolean
     error?: string | null
     createdAt?: Date | string
@@ -161229,6 +161436,10 @@ export namespace Prisma {
     storagePolicy?: string
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
     scrubbedCount?: number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: number
     dbForked?: boolean
     error?: string | null
     createdAt?: Date | string
@@ -161248,6 +161459,10 @@ export namespace Prisma {
     storagePolicy?: StringFieldUpdateOperationsInput | string
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
     scrubbedCount?: IntFieldUpdateOperationsInput | number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: IntFieldUpdateOperationsInput | number
     dbForked?: BoolFieldUpdateOperationsInput | boolean
     error?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161267,6 +161482,10 @@ export namespace Prisma {
     storagePolicy?: StringFieldUpdateOperationsInput | string
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
     scrubbedCount?: IntFieldUpdateOperationsInput | number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: IntFieldUpdateOperationsInput | number
     dbForked?: BoolFieldUpdateOperationsInput | boolean
     error?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161286,6 +161505,10 @@ export namespace Prisma {
     storagePolicy?: string
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
     scrubbedCount?: number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: number
     dbForked?: boolean
     error?: string | null
     createdAt?: Date | string
@@ -161305,6 +161528,10 @@ export namespace Prisma {
     storagePolicy?: StringFieldUpdateOperationsInput | string
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
     scrubbedCount?: IntFieldUpdateOperationsInput | number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: IntFieldUpdateOperationsInput | number
     dbForked?: BoolFieldUpdateOperationsInput | boolean
     error?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161324,6 +161551,10 @@ export namespace Prisma {
     storagePolicy?: StringFieldUpdateOperationsInput | string
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
     scrubbedCount?: IntFieldUpdateOperationsInput | number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: IntFieldUpdateOperationsInput | number
     dbForked?: BoolFieldUpdateOperationsInput | boolean
     error?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161475,6 +161706,11 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    remixAllowed?: boolean
+    licenseId?: string | null
+    licenseText?: string | null
+    licenseTextSha256?: string | null
+    piiConsentVersion?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -161497,6 +161733,11 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    remixAllowed?: boolean
+    licenseId?: string | null
+    licenseText?: string | null
+    licenseTextSha256?: string | null
+    piiConsentVersion?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -161515,6 +161756,11 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    remixAllowed?: BoolFieldUpdateOperationsInput | boolean
+    licenseId?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseText?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161537,6 +161783,11 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    remixAllowed?: BoolFieldUpdateOperationsInput | boolean
+    licenseId?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseText?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161557,6 +161808,11 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    remixAllowed?: boolean
+    licenseId?: string | null
+    licenseText?: string | null
+    licenseTextSha256?: string | null
+    piiConsentVersion?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -161575,6 +161831,11 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    remixAllowed?: BoolFieldUpdateOperationsInput | boolean
+    licenseId?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseText?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -161595,6 +161856,11 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    remixAllowed?: BoolFieldUpdateOperationsInput | boolean
+    licenseId?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseText?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -167522,6 +167788,10 @@ export namespace Prisma {
     storagePolicy?: SortOrder
     scanFindings?: SortOrder
     scrubbedCount?: SortOrder
+    licenseSnapshot?: SortOrder
+    consentVersion?: SortOrder
+    piiFindings?: SortOrder
+    piiMaskedCount?: SortOrder
     dbForked?: SortOrder
     error?: SortOrder
     createdAt?: SortOrder
@@ -167530,6 +167800,7 @@ export namespace Prisma {
 
   export type RemixJobAvgOrderByAggregateInput = {
     scrubbedCount?: SortOrder
+    piiMaskedCount?: SortOrder
   }
 
   export type RemixJobMaxOrderByAggregateInput = {
@@ -167543,6 +167814,8 @@ export namespace Prisma {
     sourceListingId?: SortOrder
     storagePolicy?: SortOrder
     scrubbedCount?: SortOrder
+    consentVersion?: SortOrder
+    piiMaskedCount?: SortOrder
     dbForked?: SortOrder
     error?: SortOrder
     createdAt?: SortOrder
@@ -167560,6 +167833,8 @@ export namespace Prisma {
     sourceListingId?: SortOrder
     storagePolicy?: SortOrder
     scrubbedCount?: SortOrder
+    consentVersion?: SortOrder
+    piiMaskedCount?: SortOrder
     dbForked?: SortOrder
     error?: SortOrder
     createdAt?: SortOrder
@@ -167568,6 +167843,7 @@ export namespace Prisma {
 
   export type RemixJobSumOrderByAggregateInput = {
     scrubbedCount?: SortOrder
+    piiMaskedCount?: SortOrder
   }
 
   export type ImportJobCountOrderByAggregateInput = {
@@ -167647,6 +167923,11 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrder
     appUrl?: SortOrder
+    remixAllowed?: SortOrder
+    licenseId?: SortOrder
+    licenseText?: SortOrder
+    licenseTextSha256?: SortOrder
+    piiConsentVersion?: SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -167671,6 +167952,11 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrder
     appUrl?: SortOrder
+    remixAllowed?: SortOrder
+    licenseId?: SortOrder
+    licenseText?: SortOrder
+    licenseTextSha256?: SortOrder
+    piiConsentVersion?: SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -167690,6 +167976,11 @@ export namespace Prisma {
     authorName?: SortOrder
     authorUserId?: SortOrder
     appUrl?: SortOrder
+    remixAllowed?: SortOrder
+    licenseId?: SortOrder
+    licenseText?: SortOrder
+    licenseTextSha256?: SortOrder
+    piiConsentVersion?: SortOrder
     viewCount?: SortOrder
     useCount?: SortOrder
     createdAt?: SortOrder
@@ -175454,6 +175745,11 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    remixAllowed?: boolean
+    licenseId?: string | null
+    licenseText?: string | null
+    licenseTextSha256?: string | null
+    piiConsentVersion?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -175474,6 +175770,11 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    remixAllowed?: boolean
+    licenseId?: string | null
+    licenseText?: string | null
+    licenseTextSha256?: string | null
+    piiConsentVersion?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -176480,6 +176781,11 @@ export namespace Prisma {
     authorName?: StringFilter<"GalleryListing"> | string
     authorUserId?: StringNullableFilter<"GalleryListing"> | string | null
     appUrl?: StringNullableFilter<"GalleryListing"> | string | null
+    remixAllowed?: BoolFilter<"GalleryListing"> | boolean
+    licenseId?: StringNullableFilter<"GalleryListing"> | string | null
+    licenseText?: StringNullableFilter<"GalleryListing"> | string | null
+    licenseTextSha256?: StringNullableFilter<"GalleryListing"> | string | null
+    piiConsentVersion?: StringNullableFilter<"GalleryListing"> | string | null
     viewCount?: IntFilter<"GalleryListing"> | number
     useCount?: IntFilter<"GalleryListing"> | number
     createdAt?: DateTimeFilter<"GalleryListing"> | Date | string
@@ -180604,6 +180910,11 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    remixAllowed?: boolean
+    licenseId?: string | null
+    licenseText?: string | null
+    licenseTextSha256?: string | null
+    piiConsentVersion?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -180624,6 +180935,11 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    remixAllowed?: boolean
+    licenseId?: string | null
+    licenseText?: string | null
+    licenseTextSha256?: string | null
+    piiConsentVersion?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -201611,6 +201927,11 @@ export namespace Prisma {
     sourceSnapshotId: string
     authorName: string
     appUrl?: string | null
+    remixAllowed?: boolean
+    licenseId?: string | null
+    licenseText?: string | null
+    licenseTextSha256?: string | null
+    piiConsentVersion?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -202216,6 +202537,11 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    remixAllowed?: BoolFieldUpdateOperationsInput | boolean
+    licenseId?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseText?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -202236,6 +202562,11 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    remixAllowed?: BoolFieldUpdateOperationsInput | boolean
+    licenseId?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseText?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -202255,6 +202586,11 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    remixAllowed?: BoolFieldUpdateOperationsInput | boolean
+    licenseId?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseText?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -204429,6 +204765,11 @@ export namespace Prisma {
     authorName: string
     authorUserId?: string | null
     appUrl?: string | null
+    remixAllowed?: boolean
+    licenseId?: string | null
+    licenseText?: string | null
+    licenseTextSha256?: string | null
+    piiConsentVersion?: string | null
     viewCount?: number
     useCount?: number
     createdAt?: Date | string
@@ -204782,6 +205123,11 @@ export namespace Prisma {
     sourceSnapshotId?: StringFieldUpdateOperationsInput | string
     authorName?: StringFieldUpdateOperationsInput | string
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    remixAllowed?: BoolFieldUpdateOperationsInput | boolean
+    licenseId?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseText?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -204802,6 +205148,11 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    remixAllowed?: BoolFieldUpdateOperationsInput | boolean
+    licenseId?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseText?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -204821,6 +205172,11 @@ export namespace Prisma {
     authorName?: StringFieldUpdateOperationsInput | string
     authorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     appUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    remixAllowed?: BoolFieldUpdateOperationsInput | boolean
+    licenseId?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseText?: NullableStringFieldUpdateOperationsInput | string | null
+    licenseTextSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    piiConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string

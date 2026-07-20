@@ -20,7 +20,7 @@ repoCommit: fed58e96
 | Agent modes + routage (AGM) | ✅ | ✅ `dc2d6c9d`→`2b421a45` | 🟡 partiel | voir sous-table AGM ci-dessous — 7/11 points prouvés live, 4 codés-mais-non-prouvés |
 | P0-02 registres parité (12 fichiers) | ✅ | ✅ `97759a77`+`afd741d5` | ✅ 16/07 | validateur exit 0 sur HEAD `2b421a45` + CI parity-registries **verte sur `2b421a45`** (push→success). Le validateur prouve structure/hash/snapshots-sur-disque, PAS la complétude fonctionnelle des domaines. |
 | P0-04 collecteur baseline quotidien | ✅ | ✅ `97759a77` | ✅ 16/07 | run réel 6/6 sources, `docs/parity/baseline/snapshots/2026-07-16/manifest.json` (llms.txt sha256 03cbdb07…) ; CI cron 05:17 UTC armé |
-| Remix (impl.) | ✅ | ✅ `bd4c334e` | 🟡 partiel | pipeline sécurisé + preuve secret-introuvable (14 tests) ; RMX-1,2,6,7 ✅ ; RMX-3,4,5 partiels (fork DB physique + copie objets = follow-up). `docs/deploy-evidence/2026-07-16-remix/` |
+| Remix (impl.) | ✅ | ✅ `bd4c334e` | 🟡 partiel | pipeline sécurisé + preuve secret-introuvable ; RMX-1,2,6,7 ✅ ; RMX-3 CODÉ non mergé (licence+consentement versionnés, SOURCE_SANITIZED masque PII, 35 tests, branche feat/remix-license-pii) — preuve live après merge ; RMX-4,5 follow-up (fork DB physique + copie objets). `docs/deploy-evidence/2026-07-16-remix/` |
 | Import (impl.) | ✅ | ✅ `7d45c2cb` | 🟡 partiel | pipeline sécurisé : aucune suppression silencieuse + staging jetable (22 tests) ; IMP-1,2,3,5 ✅ ; IMP-4 (timeout sweeper), IMP-6 (providers non exécutés), IMP-7 (débit crédits) partiels. `docs/deploy-evidence/2026-07-16-import/` |
 | CloudTenant / IAM / ReleaseCatalog / Checkpoint (impl.) | ✅ (spec) | ⬜ | ⬜ | `DOMAIN_MODEL.md §3-6` — implémentation NON commencée (prochains chantiers) |
 
