@@ -148,10 +148,10 @@ unknowns:
     expiration: "2026-07-31"
   # --- Audit de couverture 2026-07-19 (famille B — billing legacy) ----------
   - unknownId: UNK-BILLING-LEGACY-GOLIVE
-    question: "Le système de crédits EXISTANT (CreditWallet/checkpoints/packs/PAYG, certifié SHADOW en prod) est-il mis en route : produits+clé Stripe (Avi), flip BILLING_CREDITS_ENABLED, backfill migrateLegacyPlanKey (pro→core, team→pro, free→starter), toggle annuel UI, sortie du DRY-RUN d'INACTIVITY_GC_ENABLED — OU remplacé selon DEC-BILLING-LEGACY-VS-LEDGER ?"
-    owner: owner
-    priority: 1
-    nextAction: "D'abord trancher DEC-BILLING-LEGACY-VS-LEDGER ; si go-live : actions Stripe (ACTIONS_AVI #1) puis flip + backfill prouvés"
+    question: "QUESTION D'ORIGINE TRANCHÉE (DEC-BILLING-LEGACY-VS-LEDGER : ledger adopté, wallet abandonné). Reste : la purge propre des données fictives du wallet (tombstone + preuve d'effacement §16.12) est-elle exécutée ?"
+    owner: platform
+    priority: 2
+    nextAction: "Purger les soldes/crédits fictifs proprement + preuve ; ID conservé pour l'intégrité des références du backlog (RPD-*)"
     targetDate: "2026-08-15"
     expiration: "2026-08-31"
   - unknownId: UNK-DB-COMPUTE-METERING

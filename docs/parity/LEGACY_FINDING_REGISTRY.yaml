@@ -486,8 +486,8 @@ findings:
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
     canonicalWorkItemId: WI-0032
   - sourceFindingId: RPD-01
-    text: "Le système de crédits existant tourne « à blanc » : bascule réelle jamais faite (BILLING_CREDITS_ENABLED)"
-    status: NON_FAIT
+    text: "Le système de crédits existant tourne « à blanc » : bascule réelle jamais faite (BILLING_CREDITS_ENABLED) (preuve : DEC-BILLING-LEGACY-VS-LEDGER 20/07 — wallet ABANDONNÉ au profit du ledger, la bascule n'aura jamais lieu)"
+    status: PERIME
     owner: owner
     targetDate: "2026-08-15"
     originRef: "UNK-BILLING-LEGACY-GOLIVE"

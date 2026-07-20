@@ -2,7 +2,7 @@
 # (P0-A2-01). Ne jamais éditer à la main — drift-check en CI. Le champ
 # validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 148
+fileCount: 149
 validation:
   workflow: Parity registries
   runId: 29733640863
@@ -56,7 +56,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CHANGELOG_AUDIT.md
-    sha256: "fb45131ccfbf72e923a7d0be909550c891f4f1d4c9b0b426d870123fd5dcb838"
+    sha256: "364de42fe99e7944e372074b717631b4ccece11e8e9524dccb83824e7dc4c70c"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
@@ -96,7 +96,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: DECISION_REGISTRY.yaml
-    sha256: "1d694189cc4689ba24c24c0f4f2f968092acdd284d9526a02f0ff481768aa9dd"
+    sha256: "0b96c30144a6352fdf794409f25e901aa2affc403e53530aea03f60b5761a535"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -171,7 +171,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: LEGACY_FINDING_REGISTRY.yaml
-    sha256: "b1c3a22cfd955b27da68c461eca30995776d6f099347e8ea241aba4a81cd8b93"
+    sha256: "df7a5bb227188b0c17ce15603ab56731ff7a9799ae3806e6d9bc83b6b525e56f"
     schemaVersion: 1
     repoCommit: d1063912
     reviewer: UNKNOWN
@@ -270,6 +270,11 @@ documents:
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
+  - file: REVIEWER_PACKET_EXPERT_20260720.md
+    sha256: "55d699db54d8aa70afc97b7b061c61743a0e159aa8261efed56beed96ed9e6f6"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
   - file: ROUTE_OBSERVATION_REGISTRY.yaml
     sha256: "10ec45974830841dc2bf1734358c04a312f8aed6ac02672456e9f8540c38c4bb"
     schemaVersion: 1
@@ -316,7 +321,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: UNKNOWN_REGISTRY.yaml
-    sha256: "681b90abb4dd743133d53c250c393383c025116dd81e0b9317388b4073ef68f9"
+    sha256: "447527416bbdb0562c04be998927ef150fe6fcecaaac539103dbf14d38f6e0bc"
     schemaVersion: 2
     repoCommit: b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5
     reviewer: UNKNOWN

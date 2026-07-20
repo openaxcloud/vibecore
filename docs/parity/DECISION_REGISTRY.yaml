@@ -214,16 +214,25 @@ decisions:
     nextAction: "Phase 2 de la greffe (détail, modération, probe SSRF) — session Gallery"
     targetDate: "2026-07-24"
   - decisionId: DEC-BILLING-LEGACY-VS-LEDGER
-    title: "Ancien système de crédits (SHADOW) vs nouveau ledger (plan §3.7) : migration, remplacement ou go-live de l'un des deux"
-    rationale: "L'audit de couverture (COVERAGE_GAP_AUDIT_2026-07-17.md famille B) montre que ~35 points « go-live billing legacy » n'apparaissent nulle part dans le plan, et que la relation entre le wallet existant (codé, testé, certifié SHADOW en prod : REPLIT_PARITY_MATRIX §1-19) et le ledger double-entrée du plan §3.7 n'est arbitrée nulle part. Sans décision, les deux chantiers avancent en aveugle l'un de l'autre."
+    decisionType: ECODE_DECISION
+    title: "Facturation : NOUVEAU LEDGER (double entrée) adopté — ancien système de crédits ABANDONNÉ"
+    rationale: >
+      TRANCHÉ par Avi (20/07/2026) : la facturation E-Code = le nouveau grand
+      livre en double entrée (BILLING_LEDGER_CONTRACT, UsageReservation,
+      UsageEvent immuable, compensation). L'ancien système de crédits
+      (CreditWallet/checkpoints/packs/PAYG, certifié SHADOW) est ABANDONNÉ.
+      AUCUNE migration de soldes : Avi confirme qu'il n'y a AUCUN utilisateur
+      réel — toutes les données actuelles sont fictives ; les soldes/crédits
+      existants sont remis à zéro / purgés proprement (tombstone + preuve
+      d'effacement, §16.12), pas de conversion.
+    consequence: "Implémenter le ledger minimal (UNK-BILLING-MINIMAL-IMPL) ; purge propre des données fictives du wallet ; le SEUL reste côté owner = les 2 actions Stripe (produits/prix des plans + remplacement de la clé)."
     owner: owner
     priority: 1
-    status: OPEN
-    options: "A) go-live du wallet existant maintenant, ledger ensuite en dessous ; B) attendre le ledger minimal (UNK-BILLING-MINIMAL-IMPL) et brancher le wallet dessus ; C) remplacer le wallet par le ledger avant tout go-live"
-    nextAction: "Présenter les 3 options à Avi avec coûts/risques ; consigner la réponse exacte ici"
-    conditionDeCloture: "Statut DECIDED avec la citation d'Avi + le chemin choisi tracé (UNK-BILLING-LEGACY-GOLIVE et/ou UNK-BILLING-MINIMAL-IMPL mis à jour)"
-    targetDate: "2026-08-01"
-    expiration: "2026-08-15"
+    cost: "purge wallet + implémentation ledger (déjà tracée)"
+    status: DECIDED
+    decidedAt: "2026-07-20"
+    nextAction: "Ledger minimal (UNK-BILLING-MINIMAL-IMPL) + purge wallet ; Stripe = actions Avi"
+    targetDate: "2026-08-15"
   - decisionId: DEC-ECODE-FREE-APP-EXPIRY-30D
     decisionType: ECODE_DECISION
     title: "App du plan gratuit effacée à 30 jours — ADOPTÉE (comme Replit)"

@@ -483,3 +483,25 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
   clean→READY_TO_COMMIT, quarantaine réservée aux findings bloquants,
   3 tests négatifs exigés). NUANCE : le code suit encore l'ancienne machine
   — un contrat n'est pas une implémentation, work item ouvert.
+
+## 2026-07-20 (décision facturation tranchée par Avi)
+
+- (ECODE_DECISION) DEC-BILLING-LEGACY-VS-LEDGER → DECIDED : le NOUVEAU
+  ledger double entrée est LA facturation E-Code ; l'ancien système de
+  crédits (CreditWallet/checkpoints/packs/PAYG SHADOW) est ABANDONNÉ.
+  AUCUNE migration de soldes — Avi confirme zéro utilisateur réel, données
+  fictives → purge propre (tombstone + preuve d'effacement §16.12).
+  RPD-01 (bascule wallet) → PÉRIMÉ avec preuve. UNK-BILLING-LEGACY-GOLIVE
+  réécrit en suivi de purge (ID conservé pour les références du backlog).
+  Reste côté owner : les 2 actions Stripe (produits/prix + clé).
+
+## 2026-07-20 (paquet relecteur pour l'expert — décision n°6)
+
+- REVIEWER_PACKET_EXPERT_20260720.md généré depuis les registres RÉELS :
+  prompt de relecture prêt à envoyer, les 55 P0 PROVEN (ID + titre +
+  evidenceId, chemins tous vérifiés présents sur disque au moment de la
+  génération — aucun « preuve à fournir »), chaîne de reproduction complète
+  (drift-checks + validateur + preuve négative) et les 12 preuves E2E avec
+  leurs étapes réelles. Copie de partage : outputs/. La signature de
+  l'expert (champ reviewer) fera passer les points en CLOSED et débloquera
+  contractsValidated.
