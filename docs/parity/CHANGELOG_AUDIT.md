@@ -269,3 +269,37 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
   `UNK-NIX-MULTIZONE-IMPL`) restent OUVERTS ici : leur clôture exige la
   vérification des preuves live par leurs sessions — un merge n'est pas une
   preuve.
+
+## 2026-07-20 (réconciliation A2 — les 2 manquants réglés + arbitrage des 5 nuances)
+
+- (manquant #1 — option a) `PARITY_STATUS.md` est désormais RÉELLEMENT
+  générée : `scripts/parity/generate-parity-status.mjs` la produit depuis
+  `APPROVAL_STATUS.json` + `CI_ATTESTATION.yaml`, la partie chantiers venant
+  de `PARITY_STATUS_NOTES.md` (maintenue à la main, DÉCLARÉE comme telle,
+  embarquée verbatim). Drift-check par le validateur : éditer la vue à la
+  main casse le build. §1 du plan mis à jour en conséquence.
+- (manquant #2) Attestation CI RÉELLE enregistrée (`CI_ATTESTATION.yaml`,
+  embarquée dans `DOCUMENT_MANIFEST.yaml` à la place du renvoi) : workflow
+  « Parity registries », run 29718207435, VERT, event pull_request, commit
+  fed58e96, 2026-07-20T05:02:13Z. Le validateur exige présence + format +
+  conclusion=success — les 2 points sont câblés dans le contrôle de
+  complétude.
+- (nuances assumées — arbitrage demandé par l'owner) :
+  1. `statusGeneratorCommit` : ALIGNÉ à la lettre — champ ajouté au §0 (en
+     plus de `statusCommit`, conservé).
+  2. Univers des surfaces dans SURFACE_REGISTRY plutôt que PUBLIC_BASELINE :
+     VARIANTE MAINTENUE — le baseline est le registre des CLAIMS Replit
+     ancrées (URL+hash chacune) ; y verser 159 entrées internes non ancrées
+     briserait la sémantique d'ancrage et gonflerait unanchoredClaims à tort.
+     L'exigence de fond (ensemble exact, égalité vérifiée CI) est satisfaite.
+  3. FAIL au lieu de UNVERIFIED sur les niveaux : VARIANTE MAINTENUE — plus
+     STRICTE que la lettre : un booléen passed=false avec raisons nommées ne
+     laisse aucun état intermédiaire réclamable ; l'échelle contiguë reste
+     binaire et fail-closed.
+  4. TRACEABILITY_MATRIX « amorcée » : VARIANTE MAINTENUE — une matrice
+     complète affirmée d'un coup serait une fausse complétude ; l'état seed
+     est déclaré, la complétion est tracée (P0-A2-02).
+  5. Provenance = plan matérialisant (pas les 29 documents d'origine) :
+     VARIANTE MAINTENUE — la donnée fichier/ligne d'origine n'a jamais été
+     capturée ; l'inventer serait une falsification. Limite déclarée,
+     P0-A2-12 OPEN, échéance 2026-08-15 (complétion ou ACCEPTED_RISK).

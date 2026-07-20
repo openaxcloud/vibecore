@@ -64,7 +64,22 @@ export function computeDocumentManifest() {
     "# validation reflète le dernier run du validateur sur l'arbre.",
     'schemaVersion: 1',
     `fileCount: ${entries.length}`,
-    'validation: see-ci-parity-registries   # le workflow CI est l\'attestation d\'exécution',
+    // P0-A2-13 : attestation RÉELLE (run id + date + commit), pas un renvoi.
+    ...(() => {
+      const att = readFileSync(join(parityRoot, 'CI_ATTESTATION.yaml'), 'utf8');
+      const runId = att.match(/runId:\s*(\d+)/)?.[1] ?? 'UNKNOWN';
+      const runDate = att.match(/runDate:\s*"([^"]+)"/)?.[1] ?? 'UNKNOWN';
+      const runCommit = att.match(/runCommit:\s*"?([0-9a-f]+)"?/)?.[1] ?? 'UNKNOWN';
+
+      return [
+        'validation:',
+        `  workflow: Parity registries`,
+        `  runId: ${runId}`,
+        `  runDate: "${runDate}"`,
+        `  runCommit: ${runCommit}`,
+        `  source: docs/parity/CI_ATTESTATION.yaml`,
+      ];
+    })(),
     'documents:',
   ];
 

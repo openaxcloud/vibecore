@@ -772,6 +772,52 @@ function checkHeader(file, doc) {
   checked.push(`LEGACY/WORK_ITEM/TRACEABILITY/OWNER_ROLES présents (${(legacy.findings ?? []).length} constats → ${(work.workItems ?? []).length} work items canoniques)`);
 }
 
+/* ---- 14. PARITY_STATUS est GÉNÉRÉE + attestation CI réelle (réconciliation A2) ---- */
+{
+  const genPath = join(here, 'generate-parity-status.mjs');
+
+  if (!existsSync(genPath)) {
+    fail('PARITY_STATUS', 'generator script missing — la vue ne peut pas être « générée » sans générateur');
+  } else {
+    const { computeParityStatus } = await import(genPath);
+    const computed = computeParityStatus();
+    const outPath = join(parityRoot, 'PARITY_STATUS.md');
+    const current = existsSync(outPath) ? readFileSync(outPath, 'utf8') : '';
+
+    if (current !== computed) {
+      fail('PARITY_STATUS.md', 'DRIFT — vue éditée à la main ou non régénérée (éditer PARITY_STATUS_NOTES.md puis régénérer)');
+    } else {
+      checked.push('PARITY_STATUS.md is up to date (computed from registries + NOTES)');
+    }
+  }
+
+  const attPath = join(parityRoot, 'CI_ATTESTATION.yaml');
+
+  if (!existsSync(attPath)) {
+    fail('CI_ATTESTATION.yaml', 'missing — une attestation CI réelle (runId + date + commit) est requise (P0-A2-13)');
+  } else {
+    const att = loadYaml(attPath)?.attestation ?? {};
+
+    if (!/^\d{8,}$/.test(String(att.runId ?? ''))) {
+      fail('CI_ATTESTATION.yaml', 'runId manquant/invalide');
+    }
+
+    if (!/^[0-9a-f]{7,40}$/.test(String(att.runCommit ?? ''))) {
+      fail('CI_ATTESTATION.yaml', 'runCommit manquant/invalide');
+    }
+
+    if (Number.isNaN(Date.parse(att.runDate ?? ''))) {
+      fail('CI_ATTESTATION.yaml', 'runDate manquante/invalide');
+    }
+
+    if (att.conclusion !== 'success') {
+      fail('CI_ATTESTATION.yaml', `attestation non verte (conclusion=${att.conclusion})`);
+    }
+
+    checked.push(`CI_ATTESTATION (run ${att.runId} @ ${String(att.runCommit).slice(0, 8)}, ${att.runDate}, ${att.conclusion})`);
+  }
+}
+
 /* ---- report ------------------------------------------------------------ */
 for (const line of checked) {
   console.log(`[validate-registries] OK ${line}`);

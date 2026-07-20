@@ -2,8 +2,13 @@
 # (P0-A2-01). Ne jamais éditer à la main — drift-check en CI. Le champ
 # validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 56
-validation: see-ci-parity-registries   # le workflow CI est l'attestation d'exécution
+fileCount: 58
+validation:
+  workflow: Parity registries
+  runId: 29718207435
+  runDate: "2026-07-20T05:02:13Z"
+  runCommit: fed58e96082969728d97087bb63d0696230530dc
+  source: docs/parity/CI_ATTESTATION.yaml
 documents:
   - file: ACTIONS_AVI.md
     sha256: "948107b6cb35aadd6df88e88ad4d539c493a69fa8d4e33997699ea48f62a4c28"
@@ -41,7 +46,7 @@ documents:
     repoCommit: 9eab2990
     reviewer: UNKNOWN
   - file: CHANGELOG_AUDIT.md
-    sha256: "89e8a2cb7d0342a8e00276bee3a3b7137dd310d7e3ef4029404eaafd68483505"
+    sha256: "7ff76ec4cfa23e5de37b580650d9885240752e92e73af759b31b6ca2133cbdf3"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
@@ -49,6 +54,11 @@ documents:
     sha256: "6eff417273e45996c7733d8b66639951feadb8fdc9891c7370dc2f5c4e4aa724"
     schemaVersion: 1
     repoCommit: ca299f87
+    reviewer: UNKNOWN
+  - file: CI_ATTESTATION.yaml
+    sha256: "bf719f979b6c1083ef594731a601a2d8d0f719a56c23e889f5e8c32366f877b9"
+    schemaVersion: 1
+    repoCommit: fed58e96
     reviewer: UNKNOWN
   - file: COVERAGE_GAP_AUDIT_2026-07-17.md
     sha256: "3db24e4e12264e27e6e5a0d043cd99a1399a8bf5c16bc84f9da146f6ab24b81e"
@@ -131,12 +141,17 @@ documents:
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "57f5ca39384521ed9ba84116de1b0134c5920636ce844ed2a8bdb65ad16da9e4"
+    sha256: "cb33e537ec768f8b991b7063466e8c7c78a270fc23766a9a71b8ab772f0dd5e6"
+    schemaVersion: 2
+    repoCommit: fed58e96
+    reviewer: UNKNOWN
+  - file: PARITY_STATUS_NOTES.md
+    sha256: "cc72d2d18e80efb0b398832003c77521ea280286e7e3a4773ae455f2cc377cfd"
     schemaVersion: 1
-    repoCommit: b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5
+    repoCommit: fed58e96
     reviewer: UNKNOWN
   - file: PLAN_PARITE_REPLIT.md
-    sha256: "ec3d1ddeb722564cf63d1ed895d63c36a00777f5c2e2e8f8c6d349e640e657b8"
+    sha256: "ab79d8718a7a98dda558bf8c66941955258ec0fb59f9281e74a4e2ffb64a6ae8"
     schemaVersion: 1
     repoCommit: null
     reviewer: UNKNOWN
