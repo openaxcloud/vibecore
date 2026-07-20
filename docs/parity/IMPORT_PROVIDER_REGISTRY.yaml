@@ -1,7 +1,10 @@
 # IMPORT_PROVIDER_REGISTRY — les entrées du hub d'import (RPL-24 : 12 entrées,
 # snapshot doc identique au 17/07 ET au scan du 20/07 — 56b14555…).
-# GitLab : PAS une tuile du hub courant (confirmé) ; capacité git plus large
-# = UNKNOWN (UNK-LS-GITLAB-GIT). JAMAIS « retiré » sans preuve positive.
+# GitLab (P0-LS-04, §9.1 verbatim expert) : « capacité Git confirmée par la
+# documentation et le changelog, mais n'est pas une tuile de cette table
+# courante ». hubTileVisible=false, capabilityStatus=DOC_CURRENT. L'entrée
+# authentifiée exacte du flux reste à vérifier (UNK-LS-GITLAB-GIT).
+# JAMAIS « retiré ».
 schemaVersion: 1
 repoCommit: 42a48091
 providers:

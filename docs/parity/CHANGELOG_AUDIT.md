@@ -378,3 +378,51 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
 - (statut) Niveau 1 renommé documentReconciled ; 18 P0-LS ajoutés (15 PROVEN
   dont l'overlay, 3 OPEN : classification OBS-DELTA, scan authentifié,
   + P0-LS-16/17/18 selon état) ; EXPECTED_P0_IDS 35→53.
+
+## 2026-07-20 (ADOPTION VERBATIM du plan corrigé de l'expert — 22 sections)
+
+- (adoption) `PLAN_PARITE_REPLIT_FINAL_LIVRAISON.md` (sha256 8ab9a3ef…,
+  1142 lignes) adopté comme plan canonique : les 22 sections reprises
+  VERBATIM — aucun mot modifié à l'intérieur des sections 0–22.
+- (écarts assumés, AUCUN silencieux) :
+  1. Bandeau de tête : « CANDIDAT DE REMPLACEMENT » → bandeau canonique
+     (le candidat EST adopté ; garder « candidat » aurait été faux).
+  2. ANNEXE E-CODE : l'expert la laissait « EN COURS » — complétée (A.1
+     overlay 79/43/37 ; A.2 recalcul réel du §17.4 ; A.3 registres). Rien
+     inséré dans les sections 0–22 : tout le contenu E-Code vit en annexe.
+  3. §17.4 (statut attendu, yaml statique) : conservé verbatim ; le recalcul
+     RÉEL vit dans APPROVAL_STATUS.json (annexe A.2) — en cas d'écart, le
+     JSON généré fait foi. Vérifié identique ce jour : NOT_APPROVED /
+     documentReconciled / sourceBaseline & registryUniverse & contracts &
+     implementation & userJourney & beta & public & parity = FAIL ;
+     contractsPresent & verticalBackend = PASS chez nous (l'expert les
+     marquait NOT_VERIFIED faute du dépôt — nous l'avons).
+  4. Contenus E-Code préexistants conservés hors plan (claims RPL-17…30,
+     GCP-11…15, décisions, registres) — l'expert ne les contredit pas.
+- (P0-LS RENUMÉROTÉS selon l'expert §19 — ancienne numérotation E-Code du
+  matin SUPERSÉDÉE, mapping sans perte) : ex-01→06/07 · ex-02/03/04→05 ·
+  ex-05→04 · ex-06..09→08 · ex-10→13 · ex-11→16 · ex-12→17 · ex-13→09 ·
+  ex-14→10 · ex-15→12 · ex-16→06 · ex-17→P0-B-01 · ex-18→P0-B-02.
+  NOUVEAUX de l'expert appliqués : LS-01 visiteur anonyme (vs « nouveau
+  compte ») ; LS-02 chiffres scan (21/20/19/16) ; LS-03 paquet d'evidence
+  VALIDÉ PRÉSENT (69 fichiers + manifest 21 entrées) ; LS-08 étendu à
+  Spotlight (l.5911) et Resources (l.5959), vérifiés corpus → UNK-LS-P004/
+  P011 retirés (44 inconnues) ; LS-11 /bounties = EXTERNAL_REDIRECT vers
+  Contra ; LS-14 no-model-selector borné au corpus ; LS-15 lien Parallel
+  Agents=microVM RETIRÉ (isolationRuntimePerTask: UNKNOWN) ; LS-18 recalcul
+  au commit mergé (OPEN par nature). GitLab (LS-04) : « capacité Git
+  confirmée par la doc et le changelog, pas une tuile » (plus fort que notre
+  « UNKNOWN » d'hier) — registre corrigé. Prix (LS-13) : observations expert
+  Core $25/$20-annuel et Pro $100/$95-annuel AJOUTÉES à côté du scan
+  ($20/$18, $100/$90) — divergences conservées.
+- (structure) 3 registres exigés §2.2 créés par MIGRATION sans modification
+  d'entrées : P1_REGISTRY (40 P1, ex-p1s), SERVICE_REGISTRY (56 services,
+  ex-serviceUniverse), ROUTE_OBSERVATION_REGISTRY (20 routes du scan,
+  hashes, authenticated:false). GENERATED_ASSET ×8 et COMPONENT ×7 alignés
+  sur §5.2. EXPECTED_P0_IDS 53→55 (P0-B-01 overlay PROVEN, P0-B-02 scan
+  authentifié OPEN).
+- (gates durcis conformes §6.3) registryUniverseReady ÉCHOUE désormais tant
+  que les OBS-DELTA ne sont pas CLASSIFIÉS (pas seulement présents) ;
+  sourceBaselineReady ÉCHOUE sur la LISTE EXPLICITE des 21 claims hérités
+  non ancrés (le plan adopté ne les cite plus entre crochets — le déficit
+  d'ancrage ne disparaît pas avec la reformulation).

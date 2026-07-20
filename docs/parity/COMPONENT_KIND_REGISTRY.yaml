@@ -4,23 +4,24 @@
 schemaVersion: 1
 repoCommit: 42a48091
 kinds:
-  - kind: SERVICE
-    note: "Processus serveur long-vivant d'un artifact (HTTP…)"
+  - kind: WEB_FRONTEND
+    ecodeBuiltState: DEJA_CONSTRUIT
+    codeRefs: [app web (workbench/preview prouvés)]
+  - kind: API
     ecodeBuiltState: DEJA_CONSTRUIT
     codeRefs: [services/api/src (server deployments)]
+  - kind: SERVICE
+    ecodeBuiltState: DEJA_CONSTRUIT
+    codeRefs: [services/api/src (server deployments)]
+  - kind: WORKER
+    ecodeBuiltState: DEJA_CONSTRUIT
+    codeRefs: [BullMQ workers (reaper, imports)]
   - kind: JOB
-    note: "Exécution batch/cron d'un artifact"
     ecodeBuiltState: DEJA_CONSTRUIT
-    codeRefs: [services/api/src (scheduled/cron, SCHEDULED-01 prouvé)]
-  - kind: STATIC_SITE
-    note: "Sortie statique d'un WEB_APP — un mode de build/déploiement"
+    codeRefs: [scheduled-tasks (SCHEDULED-01 prouvé)]
+  - kind: SHARED_PACKAGE
+    ecodeBuiltState: PARTIEL
+    codeRefs: [packages/ (monorepo) — pas de partage par projet utilisateur]
+  - kind: STATIC_SITE_COMPONENT
     ecodeBuiltState: DEJA_CONSTRUIT
-    codeRefs: [static-deployments (CSP/CORP fix 45fa55d3)]
-  - kind: DATABASE_BINDING
-    note: "Liaison DB dev/prod partagée du projet"
-    ecodeBuiltState: DEJA_CONSTRUIT
-    codeRefs: [CNPG project-databases (certifié live)]
-  - kind: STORAGE_BINDING
-    note: "Bucket objet par projet"
-    ecodeBuiltState: DEJA_CONSTRUIT
-    codeRefs: [GCS vc-<projid> (certifié live)]
+    codeRefs: [static-deployments (CSP/CORP 45fa55d3)]

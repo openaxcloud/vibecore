@@ -4,12 +4,18 @@ schemaVersion: 1
 repoCommit: 42a48091
 kinds:
   - kind: DOCUMENT
-    note: "Intent DOCUMENT tant que publication autonome non prouvée"
+    note: "Intention DOCUMENT tant que publication autonome non prouvée"
   - kind: SPREADSHEET
-    note: "Intent SPREADSHEET — idem (OBS-DELTA-20260720-01)"
+    note: "Intention SPREADSHEET — idem (OBS-DELTA-20260720-01)"
+  - kind: CSV
+    note: "Export/donnée tabulaire générée"
+  - kind: PDF
+    note: "Rendu figé généré"
+  - kind: MARKDOWN
+    note: "Texte structuré généré"
   - kind: IMAGE
     note: "Image generation (P049)"
-  - kind: AUDIO
-    note: "Audio generation (P050)"
-  - kind: VIDEO
-    note: "Video generation (P051)"
+  - kind: PRESENTATION_FILE
+    note: "Fichier de présentation généré (≠ SLIDE_DECK artifact)"
+  - kind: OTHER_FILE
+    note: "Tout autre asset généré par l'Agent (Library)"

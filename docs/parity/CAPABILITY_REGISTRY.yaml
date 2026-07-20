@@ -4,10 +4,11 @@ schemaVersion: 1
 repoCommit: 42a48091
 capabilities:
   - capabilityId: CAP-PARALLEL-AGENTS
-    title: "Parallel Agents (tâches en parallèle, micro-VMs, file séquencée)"
+    title: "Parallel Agents (tâches en parallèle, file séquencée)"
     replitStatus: LIVE_MARKETING_DOC
+    isolationRuntimePerTask: UNKNOWN   # P0-LS-15 : ne PAS écrire « chaque tâche = microVM » sans source dédiée
     ecodeBuiltState: PARTIEL
-    note: "E-Code : sub-agents SSE multi-lanes prouvés (ac1c74f7) ; pas d'isolation micro-VM par tâche"
+    note: "E-Code : sub-agents SSE multi-lanes prouvés (ac1c74f7)"
     sourceObs: OBS-DELTA-20260720-05
   - capabilityId: CAP-GENERAL-AGENT
     title: "General Agent (tout output, tout framework, services connectés)"

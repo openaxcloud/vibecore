@@ -452,15 +452,18 @@ function checkHeader(file, doc) {
    * P1 de l'audit de couverture (2026-07-19) : même règle de complétude que
    * les P0 — l'ensemble EXACT des IDs attendus doit être présent.
    */
-  const presentP1Ids = new Set((p0.p1s ?? []).map((i) => i.p1Id));
+  const p1docForSet = loadYaml(join(parityRoot, 'P1_REGISTRY.yaml'));
+  const presentP1Ids = new Set((p1docForSet.p1s ?? []).map((i) => i.p1Id));
 
   for (const id of EXPECTED_P1_IDS) {
     if (!presentP1Ids.has(id)) {
-      fail('P0_REGISTRY.yaml', `expected P1 "${id}" is MISSING from p1s — the registry cannot silently shrink`);
+      fail('P0_REGISTRY.yaml', `expected P1 "${id}" is MISSING from P1_REGISTRY — the registry cannot silently shrink`);
     }
   }
 
-  for (const item of p0.p1s ?? []) {
+  const p1doc = loadYaml(join(parityRoot, 'P1_REGISTRY.yaml'));
+
+  for (const item of p1doc.p1s ?? []) {
     requireFields(
       'P0_REGISTRY.yaml',
       item,
@@ -513,7 +516,7 @@ function checkHeader(file, doc) {
   }
 
   checked.push(
-    `P0/DECISION/UNKNOWN registries (${(p0.p0s ?? []).length}/${(decisions.decisions ?? []).length}/${(unknowns.unknowns ?? []).length}, p1s: ${(p0.p1s ?? []).length})`,
+    `P0/DECISION/UNKNOWN registries (${(p0.p0s ?? []).length}/${(decisions.decisions ?? []).length}/${(unknowns.unknowns ?? []).length}, P1: ${(p1docForSet.p1s ?? []).length})`,
   );
 
   /*
@@ -748,7 +751,8 @@ function checkHeader(file, doc) {
     'ARTIFACT_KIND_REGISTRY.yaml', 'COMPONENT_KIND_REGISTRY.yaml', 'CREATION_INTENT_REGISTRY.yaml',
     'GENERATED_ASSET_KIND_REGISTRY.yaml', 'CAPABILITY_REGISTRY.yaml', 'DEPLOYMENT_TYPE_REGISTRY.yaml',
     'IMPORT_PROVIDER_REGISTRY.yaml', 'CONNECTOR_REGISTRY.yaml', 'OFFERING_ENTITLEMENT_REGISTRY.yaml',
-    'EXTERNAL_ECOSYSTEM_REGISTRY.yaml', 'CI_ATTESTATION.yaml']) {
+    'EXTERNAL_ECOSYSTEM_REGISTRY.yaml', 'CI_ATTESTATION.yaml',
+    'SERVICE_REGISTRY.yaml', 'P1_REGISTRY.yaml', 'ROUTE_OBSERVATION_REGISTRY.yaml']) {
     const p = join(parityRoot, f);
 
     if (!existsSync(p)) {

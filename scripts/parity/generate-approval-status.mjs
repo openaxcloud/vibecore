@@ -65,6 +65,8 @@ export const EXPECTED_P0_IDS = [
   'P0-LS-01', 'P0-LS-02', 'P0-LS-03', 'P0-LS-04', 'P0-LS-05', 'P0-LS-06',
   'P0-LS-07', 'P0-LS-08', 'P0-LS-09', 'P0-LS-10', 'P0-LS-11', 'P0-LS-12',
   'P0-LS-13', 'P0-LS-14', 'P0-LS-15', 'P0-LS-16', 'P0-LS-17', 'P0-LS-18',
+  // Exigences propriétaire hors-scan (overlay code, scan authentifié).
+  'P0-B-01', 'P0-B-02',
 ];
 
 /*
@@ -133,6 +135,7 @@ export const SEPARATE_REGISTRY_FILES = [
   'CAPABILITY_REGISTRY.yaml', 'DEPLOYMENT_TYPE_REGISTRY.yaml',
   'IMPORT_PROVIDER_REGISTRY.yaml', 'CONNECTOR_REGISTRY.yaml',
   'OFFERING_ENTITLEMENT_REGISTRY.yaml', 'EXTERNAL_ECOSYSTEM_REGISTRY.yaml',
+  'SERVICE_REGISTRY.yaml', 'P1_REGISTRY.yaml', 'ROUTE_OBSERVATION_REGISTRY.yaml',
 ];
 export const EXPECTED_SERVICE_UNIVERSE_IDS = Array.from({ length: 56 }, (_, i) => `S${String(i + 1).padStart(2, '0')}`);
 
@@ -512,7 +515,8 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
    * build). Les statuts, eux, restent honnêtes : NON_FAIT tant qu'aucune
    * preuve n'existe.
    */
-  const presentP1Ids = new Set((p0.p1s ?? []).map((i) => i.p1Id));
+  const p1reg = yaml('P1_REGISTRY.yaml');
+  const presentP1Ids = new Set((p1reg.p1s ?? []).map((i) => i.p1Id));
   const missingP1Ids = EXPECTED_P1_IDS.filter((id) => !presentP1Ids.has(id));
   const presentBoltDebtIds = new Set((boltDebt.items ?? []).map((i) => i.id));
   const missingBoltDebtIds = EXPECTED_BOLT_DEBT_IDS.filter((id) => !presentBoltDebtIds.has(id));
@@ -555,7 +559,7 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
 
   const planPath = join(parityRoot, 'PLAN_PARITE_REPLIT.md');
   const planText = existsSync(planPath) ? readFileSync(planPath, 'utf8') : '';
-  const planOk = /schemaVersion:\s*\d+/.test(planText) && /measuredCodeCommit:\s*[0-9a-f]{7,40}/.test(planText);
+  const planOk = /schemaVersion:\s*\d+/.test(planText) && /planVersion:\s*[0-9.\-]+/.test(planText);
 
   /*
    * unanchoredClaims (P0-A2-15 / P1-A2-06) : toute étiquette de claim citée
@@ -566,7 +570,20 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
   const anchoredClaimIds = new Set((baseline.claims ?? []).map((c) => c.claimId));
   const citedClaimIds = [...new Set([...planText.matchAll(/\[((?:RPL|GCP|NIX)-[0-9A-Za-z…\-]+)\]/g)].map((m) => m[1]))]
     .filter((id) => !id.includes('…'));
-  const unanchoredClaims = citedClaimIds.filter((id) => !anchoredClaimIds.has(id)).sort();
+  /*
+   * Claims hérités utilisés par les contrats/registres (UNK-CLAIMS-ANCHORING):
+   * tant qu'ils ne sont pas ancrés URL+snapshot+hash dans le baseline, ils
+   * comptent comme UNVERIFIED — même si le plan adopté ne les cite plus entre
+   * crochets (le déficit d'ancrage ne disparaît pas avec la reformulation).
+   */
+  const LEGACY_CLAIM_IDS = [
+    'RPL-01', 'RPL-02', 'RPL-03', 'RPL-04', 'RPL-05', 'RPL-06', 'RPL-09',
+    'RPL-10', 'RPL-13', 'RPL-14', 'RPL-16', 'GCP-01', 'GCP-02', 'GCP-03',
+    'GCP-04', 'GCP-06', 'GCP-07', 'GCP-08', 'GCP-09', 'GCP-10', 'NIX-01',
+  ];
+  const unanchoredClaims = [...new Set([...citedClaimIds, ...LEGACY_CLAIM_IDS])]
+    .filter((id) => !anchoredClaimIds.has(id))
+    .sort();
 
   /* Backlog : source unique = LEGACY_FINDING_REGISTRY (le plan n'affiche qu'un résumé). */
   const backlogCounts = checkPlanCompleteness().counts;
@@ -577,7 +594,7 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
   const universe = surfaces.surfaceUniverse ?? [];
   const presentUniverseIds = new Set(universe.map((s) => s.surfaceId));
   const missingUniverseIds = EXPECTED_SURFACE_UNIVERSE_IDS.filter((id) => !presentUniverseIds.has(id));
-  const serviceUniverse = surfaces.serviceUniverse ?? [];
+  const serviceUniverse = yaml('SERVICE_REGISTRY.yaml').serviceUniverse ?? [];
   const presentServiceIds2 = new Set(serviceUniverse.map((s) => s.serviceId));
   const missingServiceUniverseIds = EXPECTED_SERVICE_UNIVERSE_IDS.filter((id) => !presentServiceIds2.has(id));
   const unevaluatedSurfaces = universe.filter((s) => !['SUPPORTED', 'UNSUPPORTED', 'NOT_APPLICABLE'].includes(s.availability));
@@ -587,6 +604,11 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
   const workItemIds = new Set((workItems.workItems ?? []).map((w) => w.workItemId));
   const obsIds = new Set((observations.observations ?? []).map((o) => o.observationId));
   const missingObsDelta = EXPECTED_OBS_DELTA_IDS.filter((id) => !obsIds.has(id));
+  // §6.3 (expert) : registryUniverseReady reste ROUGE tant que les deltas ne
+  // sont pas CLASSIFIÉS et l'univers dédupliqué — pas seulement présents.
+  const unclassifiedDeltas = (observations.observations ?? [])
+    .filter((o) => String(o.observationId).startsWith('OBS-DELTA-') && o.triageState === 'PENDING')
+    .map((o) => `${o.observationId} not classified (triage PENDING)`);
   const missingSeparateRegistries = SEPARATE_REGISTRY_FILES.filter((f) => !existsSync(join(parityRoot, f)));
   const orphanFindings = (legacy.findings ?? [])
     .filter((f) => !workItemIds.has(f.canonicalWorkItemId))
@@ -635,7 +657,7 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
     passed: cond2.passed && planOk,
     reasons: [
       ...cond2.reasons,
-      ...(planOk ? [] : ['PLAN_PARITE_REPLIT.md missing or lacks schemaVersion/measuredCodeCommit']),
+      ...(planOk ? [] : ['PLAN_PARITE_REPLIT.md missing or lacks schemaVersion/planVersion']),
     ],
   };
   const lvlSourceBaseline = {
@@ -657,6 +679,7 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
       missingUniverseIds.length === 0 &&
       missingServiceUniverseIds.length === 0 &&
       missingObsDelta.length === 0 &&
+      unclassifiedDeltas.length === 0 &&
       missingSeparateRegistries.length === 0 &&
       orphanFindings.length === 0 &&
       forbiddenTargetDates.length === 0 &&
@@ -669,6 +692,7 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
       ...missingUniverseIds.map((id) => `expected surface universe id missing: ${id}`),
       ...missingServiceUniverseIds.map((id) => `expected service universe id missing: ${id}`),
       ...missingObsDelta.map((id) => `expected OBS-DELTA missing: ${id}`),
+      ...unclassifiedDeltas,
       ...missingSeparateRegistries.map((f) => `separate registry missing: ${f}`),
       ...orphanFindings,
       ...forbiddenTargetDates,
@@ -804,8 +828,8 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
     e2e: { total: (e2e.proofs ?? []).length, proven: (e2e.proofs ?? []).filter((p) => p.status === 'PROVEN').length },
     // Audit de couverture 2026-07-19 — comptes honnêtes : NON_FAIT domine.
     p1: {
-      total: (p0.p1s ?? []).length,
-      open: (p0.p1s ?? []).filter((i) => i.status === 'OPEN').length,
+      total: (p1reg.p1s ?? []).length,
+      open: (p1reg.p1s ?? []).filter((i) => i.status === 'OPEN').length,
     },
     boltDebt: {
       total: (boltDebt.items ?? []).length,

@@ -14,12 +14,13 @@ offerings:
     name: Replit Core
     priceObservations:
       - {price: "$20/mois ($18 annuel)", currency: USD, observedAt: "2026-07-20T05:43:00Z", source: "pricing.png sha256 0dea38e82de4c246… (scan anonyme)", geo: UNKNOWN, locale: en, cohort: "anonyme"}
-      - {price: "$25/mois", currency: USD, observedAt: "2026-07-20", source: "vérification expert (relayée owner 20/07) — geo/locale/cohorte non précisées", geo: UNKNOWN, locale: UNKNOWN, cohort: UNKNOWN, note: "DIVERGENCE CONSERVÉE avec l'observation scan — prix probablement variable par geo/cohorte, jamais figer"}
+      - {price: "$25/mois ($20 annuel effectif)", currency: USD, observedAt: "2026-07-20", source: "révision expert §3.4 (page officielle consultée pendant la révision) — geo/locale/cohorte non précisées", geo: UNKNOWN, locale: UNKNOWN, cohort: UNKNOWN, note: "DIVERGENCE CONSERVÉE avec le scan ($20/$18) — jamais figer (P0-LS-13)"}
     entitlements: "$20 crédits/mois, 5 collaborateurs, 2 agents parallèles, toutes régions, badge retirable"
   - offeringId: OFF-PRO
     name: Replit Pro
     priceObservations:
-      - {price: "$100/mois ($90 annuel, paliers jusqu à $2000)", currency: USD, observedAt: "2026-07-20T05:43:00Z", source: "pricing.png sha256 0dea38e8…", geo: UNKNOWN, locale: en, cohort: "anonyme"}
+      - {price: "$100/mois ($90 annuel, paliers jusqu à $2000)", currency: USD, observedAt: "2026-07-20T05:43:00Z", source: "pricing.png sha256 0dea38e8… (scan anonyme)", geo: UNKNOWN, locale: en, cohort: "anonyme"}
+      - {price: "$100/mois ($95 annuel effectif)", currency: USD, observedAt: "2026-07-20", source: "révision expert §3.4", geo: UNKNOWN, locale: UNKNOWN, cohort: UNKNOWN, note: "divergence annuel $90 vs $95 conservée"}
     entitlements: "15 collaborateurs + 50 viewers, 10 agents parallèles, rollback DB 28j"
   - offeringId: OFF-ENTERPRISE
     name: Enterprise

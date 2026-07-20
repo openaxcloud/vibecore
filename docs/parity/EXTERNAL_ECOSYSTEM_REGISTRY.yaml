@@ -4,9 +4,14 @@ schemaVersion: 1
 repoCommit: 42a48091
 items:
   - itemId: ECO-EXPERTS
-    title: "Replit Experts (ex-Bounties : Hire an Expert / Post a job)"
+    title: "Expert Network (ex-route /bounties)"
     replitStatus: LIVE_OBSERVED
-    proof: "bounties.png 6beff99f6657f38a…"
+    legacyRoute: /bounties
+    currentLabel: "Expert Network"
+    provider: Contra
+    behavior: EXTERNAL_REDIRECT
+    legacyDataOrBackendState: UNKNOWN
+    proof: "bounties.png 6beff99f6657f38a… (P0-LS-11, §8.4 verbatim)"
     ecodeBuiltState: NON_FAIT
     sourceObs: OBS-DELTA-20260720-04
   - itemId: ECO-COMMUNITY-OPS

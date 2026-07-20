@@ -173,24 +173,8 @@ unknowns:
   # une absence de doc n'est PAS une preuve de retrait). Méthode de
   # vérification commune : nécessite un VRAI compte Replit connecté
   # (compte E2E légitime, DEC-OWNER-D5). Source : scan sha256 396b07e2520d1171… §6.
-  - unknownId: UNK-LS-P004
-    question: "P004 Spotlight / couverture projet : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
-    owner: platform
-    priority: 3
-    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
-    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
-    targetDate: "2026-08-31"
-    expiration: "2026-09-30"
   - unknownId: UNK-LS-P009
     question: "P009 Centre de notifications : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
-    owner: platform
-    priority: 3
-    verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"
-    nextAction: "Observer avec le compte E2E ; si retrait constaté → NOT_APPLICABLE sourcé, si présent → réévaluer la surface"
-    targetDate: "2026-08-31"
-    expiration: "2026-09-30"
-  - unknownId: UNK-LS-P011
-    question: "P011 Resources panel : existe-t-il encore chez Replit aujourd'hui (aucune trace pages rendues ni doc du jour au 20/07) ?"
     owner: platform
     priority: 3
     verificationMethod: "Observation UI authentifiée avec un vrai compte Replit connecté (D5 compte E2E) — jamais trancher sur l'absence de doc"

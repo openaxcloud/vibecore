@@ -10,18 +10,18 @@ généréPar: scripts/parity/generate-parity-status.mjs (drift-check CI)
 | Niveau | État |
 |---|---|
 | documentReconciled | ✅ PASS |
-| sourceBaselineReady | ❌ FAIL (claim GCP-01 cited by the plan but not anchored (UNVERIFIED) … +17) |
-| registryUniverseReady | ✅ PASS |
+| sourceBaselineReady | ❌ FAIL (claim GCP-01 cited by the plan but not anchored (UNVERIFIED) … +20) |
+| registryUniverseReady | ❌ FAIL (OBS-DELTA-20260720-01 not classified (triage PENDING) … +14) |
 | contractsPresent | ✅ PASS |
 | contractsValidated | ❌ FAIL (DOMAIN_MODEL.md: no real reviewer … +18) |
-| implementationReady | ❌ FAIL (P0-V3-01 is OPEN … +7) |
+| implementationReady | ❌ FAIL (P0-V3-01 is OPEN … +8) |
 | verticalBackendReady | ✅ PASS |
 | verticalUserJourneyReady | ❌ FAIL (stage "publish" has no UI proof (une preuve API n'est pas une preuve UI) … +1) |
-| betaReady | ❌ FAIL (beta gate capability still unknown: UNK-GIT-RECONCILE-DONE … +5) |
-| publicLaunchReady | ❌ FAIL (betaReady not passed … +60) |
+| betaReady | ❌ FAIL (registryUniverseReady not passed … +6) |
+| publicLaunchReady | ❌ FAIL (betaReady not passed … +62) |
 | parityBaselineReady | ❌ FAIL (surface SRF-IDE-FILE-HISTORY not done … +10) |
 
-**Compteurs (source unique)** : P0 53 (8 OPEN · 45 PROVEN · 0 CLOSED) · P1 40 · surfaces déclarées 10 (univers 159/159 importé, 1 évaluées, 56 services) · e2e 12/12 · constats 336 → 99 work items · claims non ancrées 18 · uiGaps [publish, rollback]
+**Compteurs (source unique)** : P0 55 (9 OPEN · 46 PROVEN · 0 CLOSED) · P1 40 · surfaces déclarées 10 (univers 159/159 importé, 1 évaluées, 56 services) · e2e 12/12 · constats 336 → 99 work items · claims non ancrées 21 · uiGaps [publish, rollback]
 
 ---
 
