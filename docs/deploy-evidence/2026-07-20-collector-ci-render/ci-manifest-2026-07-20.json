@@ -1,0 +1,479 @@
+{
+  "schemaVersion": 3,
+  "collectedAt": "2026-07-20T04:16:27.098Z",
+  "cadence": "daily",
+  "cadenceNote": "Replit changelog publishes on ARBITRARY weekdays (llms.txt index includes Sunday 2025-11-16 and Wednesday 2025-11-26). Friday-keyed automation is forbidden. Event-driven runs (workflow_dispatch / repository_dispatch) supplement — never replace — the daily schedule.",
+  "collector": {
+    "script": "scripts/parity/collect-baseline.mjs",
+    "scriptSha256": "cfcb48bb1fbfd9af909111c3b3f472cf6cec1d8d57d44382f0600b96acabb5fa",
+    "nodeVersion": "v22.23.1",
+    "rawUserAgent": "ecode-parity-baseline-collector/2 (+https://github.com/openaxcloud/vibecore/tree/main/docs/parity)",
+    "renderUserAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+  },
+  "families": [
+    "documentation",
+    "product-route",
+    "legal-status",
+    "launch-channel",
+    "authenticated-ui"
+  ],
+  "authenticatedUiCoverage": "NONE AUTOMATED — per-plan/per-region/per-client UI observation requires accounts; manual intake only (docs/parity/baseline/observations/manual/). Coverage beyond public surfaces: UNKNOWN.",
+  "robotsPolicies": {
+    "https://docs.replit.com": "parsed",
+    "https://blog.replit.com": "no-robots-txt-http-404",
+    "https://replit.com": "parsed",
+    "https://community-hub.replit.app": "no-robots-txt-html-shell",
+    "https://status.replit.com": "no-robots-txt-http-403",
+    "https://apps.apple.com": "parsed",
+    "https://play.google.com": "parsed"
+  },
+  "watchTerms": [
+    "Community Profiles",
+    "Claim your profile",
+    "Power Ranking",
+    "Ramp for Agents",
+    "Excalidraw",
+    "Buy a domain",
+    "Buildathons",
+    "Submit your App",
+    "streak"
+  ],
+  "watchHits": {
+    "Excalidraw": [
+      "llms-full-txt",
+      "changelog-index"
+    ],
+    "Buy a domain": [
+      "llms-full-txt",
+      "changelog-index",
+      "appstore-ios"
+    ],
+    "Submit your App": [
+      "llms-full-txt",
+      "gallery"
+    ],
+    "streak": [
+      "llms-full-txt",
+      "community-hub"
+    ],
+    "Community Profiles": [
+      "community",
+      "community-hub"
+    ],
+    "Claim your profile": [
+      "community",
+      "community-hub"
+    ],
+    "Buildathons": [
+      "community",
+      "community-hub"
+    ],
+    "Power Ranking": [
+      "community-hub"
+    ]
+  },
+  "sources": {
+    "llms-txt": {
+      "url": "https://docs.replit.com/llms.txt",
+      "family": "documentation",
+      "sourceType": "documentation",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "llms.txt",
+      "sha256": "03cbdb0706d90455550d13a63b48dedd9f0ced46532408ec1a3c9e2b4bf8a601",
+      "bytes": 51169,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-07-20T04:16:27.098Z",
+      "linkCount": 299,
+      "watchTerms": []
+    },
+    "llms-full-txt": {
+      "url": "https://docs.replit.com/llms-full.txt",
+      "family": "documentation",
+      "sourceType": "documentation",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "llms-full.txt",
+      "sha256": "a7d6f513fbe6e53916c9214f6beb508be3e7c0ed838bcc1570c39d2db7981314",
+      "bytes": 1529562,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-07-20T04:16:27.098Z",
+      "linkCount": 6,
+      "watchTerms": [
+        "Excalidraw",
+        "Buy a domain",
+        "Submit your App",
+        "streak"
+      ]
+    },
+    "sitemap-xml": {
+      "url": "https://docs.replit.com/sitemap.xml",
+      "family": "documentation",
+      "sourceType": "documentation",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "sitemap.xml",
+      "sha256": "5fd7b34100c8f3a10200d55e80568448cdc80106b0981fa00b9074c3f38f4f7e",
+      "bytes": 254372,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-07-20T04:16:27.098Z",
+      "linkCount": 1804,
+      "watchTerms": []
+    },
+    "changelog-index": {
+      "url": "https://docs.replit.com/updates",
+      "family": "launch-channel",
+      "sourceType": "launch-channel",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "changelog-index.html",
+      "sha256": "a04392bbf0a9f9dd519d2d52d052b2afaa362069c3bcf112673db702b57ad90f",
+      "bytes": 738105,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-07-20T04:16:27.098Z",
+      "linkCount": 118,
+      "watchTerms": [
+        "Excalidraw",
+        "Buy a domain"
+      ]
+    },
+    "product-blog": {
+      "url": "https://blog.replit.com/",
+      "family": "launch-channel",
+      "sourceType": "launch-channel",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "product-blog.html",
+      "sha256": "362386025e45eef51dd47642a9ec4c8219bbd825c2c0e37f9ae7bc6212a1bd21",
+      "bytes": 275472,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-07-20T04:16:27.098Z",
+      "linkCount": 87,
+      "watchTerms": []
+    },
+    "trust-safety": {
+      "url": "https://docs.replit.com/legal-and-security-info/trust-and-safety.md",
+      "family": "legal-status",
+      "sourceType": "legal-status",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "trust-safety.md",
+      "sha256": "465342d3cb64dee97d9868f26e5fc6b6108f41381030a758062e0f07ca295f22",
+      "bytes": 4852,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-07-20T04:16:27.098Z",
+      "linkCount": 0,
+      "watchTerms": []
+    },
+    "security": {
+      "url": "https://docs.replit.com/legal-and-security-info/security",
+      "family": "legal-status",
+      "sourceType": "legal-status",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "security.html",
+      "sha256": "120c0809db83f79c53eb84e90fd320853f70c29df33ae05280ac0669eda70387",
+      "bytes": 678223,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-07-20T04:16:27.098Z",
+      "linkCount": 55,
+      "watchTerms": []
+    },
+    "legal-terms": {
+      "url": "https://replit.com/site/terms",
+      "family": "legal-status",
+      "sourceType": "legal-status",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "legal-terms.html",
+      "sha256": "a259152271f0630cfc75883fdee567e2db409a034a3ab1f8511cffe197e3b9ba",
+      "bytes": 125467,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-07-20T04:16:27.098Z",
+      "linkCount": 68,
+      "watchTerms": []
+    },
+    "appstore-ios": {
+      "url": "https://apps.apple.com/us/app/replit-vibe-code-with-ai-fast/id1614022293",
+      "family": "launch-channel",
+      "sourceType": "launch-channel",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "appstore-ios.html",
+      "sha256": "df2d4a8815088ff815d1b8d56568fd2c7166cdb2ce54df361fcf163344509d28",
+      "bytes": 608224,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-07-20T04:16:27.098Z",
+      "linkCount": 237,
+      "watchTerms": [
+        "Buy a domain"
+      ]
+    },
+    "playstore-android": {
+      "url": "https://play.google.com/store/apps/details?id=com.replit.app",
+      "family": "launch-channel",
+      "sourceType": "launch-channel",
+      "status": "OK",
+      "rendered": false,
+      "httpStatus": 200,
+      "file": "playstore-android.html",
+      "sha256": "10b5fa0a00f715945bb9a88c03f1125ecaa4cdcafb27d51049547cc9447c12a4",
+      "bytes": 1286013,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-07-20T04:16:27.098Z",
+      "linkCount": 163,
+      "watchTerms": []
+    },
+    "pricing": {
+      "url": "https://replit.com/pricing",
+      "family": "product-route",
+      "sourceType": "product-route",
+      "status": "OK",
+      "rendered": true,
+      "httpStatus": 200,
+      "file": "pricing.rendered.html",
+      "sha256": "8e5e3fa9d99c4003b6f8548a8322ef9c5169fa9709be7e53e559b5bdb4f06ee6",
+      "bytes": 285512,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-07-20T04:16:27.098Z",
+      "linkCount": 82,
+      "watchTerms": [],
+      "renderedTitle": "Pricing - Replit",
+      "renderedTextChars": 2725,
+      "renderedTextFile": "pricing.rendered.txt",
+      "renderedTextSha256": "aa54b308798bfcdab5894818fb32ba695187b712532a65426c7f6d5f29f5f8d8",
+      "screenshotFile": "pricing.rendered.jpg",
+      "screenshotSha256": "903e74c9d10bc5494b98ab4173b064b3a949ff178da9aaabad815fa23772258d",
+      "expectations": {
+        "checked": 2,
+        "failed": []
+      }
+    },
+    "gallery": {
+      "url": "https://replit.com/gallery",
+      "family": "product-route",
+      "sourceType": "product-route",
+      "status": "OK",
+      "rendered": true,
+      "httpStatus": 200,
+      "file": "gallery.rendered.html",
+      "sha256": "84b317c3a3cab9f1fb506a70ad9dd550c812c466302d24c2504ae0726ff5a2ef",
+      "bytes": 1499557,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-07-20T04:16:27.098Z",
+      "linkCount": 102,
+      "watchTerms": [
+        "Submit your App"
+      ],
+      "renderedTitle": "Replit Gallery",
+      "renderedTextChars": 4169,
+      "renderedTextFile": "gallery.rendered.txt",
+      "renderedTextSha256": "b0eef37315821e2e2123b38c17b59c4dd004d3fe2d8f6d728311035697301c24",
+      "screenshotFile": "gallery.rendered.jpg",
+      "screenshotSha256": "da00cfe6a7c5bf00fc3808a996bda33bc672af87ac3641eff5c5bf38b1bb1ca1",
+      "expectations": {
+        "checked": 6,
+        "failed": []
+      },
+      "metrics": {
+        "resultsCount": 82,
+        "categoryPageLinks": 21,
+        "appDetailPageLinks": 20
+      }
+    },
+    "community": {
+      "url": "https://replit.com/community",
+      "family": "product-route",
+      "sourceType": "product-route",
+      "status": "OK",
+      "rendered": true,
+      "httpStatus": 200,
+      "file": "community.rendered.html",
+      "sha256": "f4abcbccf8fd96e3bce5677b1fa01e06b6177c2d5c577303009b878db379c5e2",
+      "bytes": 66777,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-07-20T04:16:27.098Z",
+      "linkCount": 34,
+      "watchTerms": [
+        "Community Profiles",
+        "Claim your profile",
+        "Buildathons"
+      ],
+      "renderedTitle": "Replit Community | Connect. Build. Ship.",
+      "renderedTextChars": 3808,
+      "renderedTextFile": "community.rendered.txt",
+      "renderedTextSha256": "9fff41c5ed5d1a91199e18578d80928f5fcbb98ec0e031ac14c6ba23f0a5b29c",
+      "screenshotFile": "community.rendered.jpg",
+      "screenshotSha256": "2362db0732081577647c7bd6ddced304f6a2744633e440717ea012426ca8f0b8",
+      "expectations": {
+        "checked": 2,
+        "failed": []
+      }
+    },
+    "community-hub": {
+      "url": "https://community-hub.replit.app/",
+      "family": "product-route",
+      "sourceType": "product-route",
+      "status": "OK",
+      "rendered": true,
+      "httpStatus": 200,
+      "file": "community-hub.rendered.html",
+      "sha256": "2da79fbd13d75ea4867b98b62069deb32757739bab07ac3e776718fcf3e69475",
+      "bytes": 164284,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-07-20T04:16:27.098Z",
+      "linkCount": 34,
+      "watchTerms": [
+        "Community Profiles",
+        "Claim your profile",
+        "Power Ranking",
+        "Buildathons",
+        "streak"
+      ],
+      "renderedTitle": "Replit Community | Connect. Build. Ship.",
+      "renderedTextChars": 4269,
+      "renderedTextFile": "community-hub.rendered.txt",
+      "renderedTextSha256": "eacb030d026656df89a199913e964c7d4a076595963364e150a7ee9b7fb01918",
+      "screenshotFile": "community-hub.rendered.jpg",
+      "screenshotSha256": "b45ccdc2acedf4cd0d0c80b63dc032fabd7be6f69672009b359560df2ff3c9fd",
+      "expectations": {
+        "checked": 2,
+        "failed": []
+      }
+    },
+    "home": {
+      "url": "https://replit.com/",
+      "family": "product-route",
+      "sourceType": "product-route",
+      "status": "OK",
+      "rendered": true,
+      "httpStatus": 200,
+      "file": "home.rendered.html",
+      "sha256": "f202755baafaa2853d231ab81bb3a7575080672b54af3ab04715e5bffeda7b6d",
+      "bytes": 710895,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-07-20T04:16:27.098Z",
+      "linkCount": 82,
+      "watchTerms": [],
+      "renderedTitle": "Replit – Build apps and sites with AI - Replit",
+      "renderedTextChars": 6122,
+      "renderedTextFile": "home.rendered.txt",
+      "renderedTextSha256": "133a7d493e508a478bfb9499969842c19e1b5bba1a9ff3cc01efe593b5e62614",
+      "screenshotFile": "home.rendered.jpg",
+      "screenshotSha256": "b6d0306390d612e1066bc248b2e15b31536a4c3dfd752415e7e9ef6e84163839",
+      "expectations": {
+        "checked": 1,
+        "failed": []
+      }
+    },
+    "status": {
+      "url": "https://status.replit.com/",
+      "family": "legal-status",
+      "status": "BLOCKED",
+      "httpStatus": 403,
+      "error": "http 403"
+    },
+    "blog-rendered": {
+      "url": "https://blog.replit.com/",
+      "family": "launch-channel",
+      "sourceType": "launch-channel",
+      "status": "OK",
+      "rendered": true,
+      "httpStatus": 200,
+      "file": "blog-rendered.html",
+      "sha256": "2933ce96b75e328ce972fa7d3ff1ac291cb096028e916410a93a218e42e3754a",
+      "bytes": 248350,
+      "eventDate": "UNKNOWN",
+      "detectionDate": "2026-07-20T04:16:27.098Z",
+      "linkCount": 97,
+      "watchTerms": [],
+      "renderedTitle": "Replit — Replit Blog – Product updates from the team",
+      "renderedTextChars": 15600,
+      "renderedTextFile": "blog-rendered.rendered.txt",
+      "renderedTextSha256": "79f0cad26a3d70b15e1100374e1cc28c6e5516a95da7b330a155a6c609f5004c",
+      "screenshotFile": "blog-rendered.rendered.jpg",
+      "screenshotSha256": "b5818e4256bb41484578130f8abba284a8884879e49fc04dea6273abccf8a302",
+      "expectations": {
+        "checked": 1,
+        "failed": []
+      }
+    }
+  },
+  "expectationFailures": [],
+  "warc": {
+    "file": "archive/capture.warc.gz",
+    "records": 26,
+    "bytes": 3423232,
+    "sha256": "f953e1fa08d1da14109270d94bcea03cde3c41ad90d748278f9de502e3e81851"
+  },
+  "watchTermLedger": {
+    "Community Profiles": {
+      "firstDetection": "2026-07-16",
+      "firstEvidence": "docs/parity/baseline/snapshots/2026-07-16/community.rendered.html",
+      "daysSeen": 2
+    },
+    "Claim your profile": {
+      "firstDetection": "2026-07-16",
+      "firstEvidence": "docs/parity/baseline/snapshots/2026-07-16/community.rendered.html",
+      "daysSeen": 2
+    },
+    "Power Ranking": {
+      "firstDetection": "2026-07-20",
+      "firstEvidence": "docs/parity/baseline/snapshots/2026-07-20/community-hub.rendered.html",
+      "daysSeen": 1
+    },
+    "Ramp for Agents": {
+      "firstDetection": null,
+      "note": "NEVER SEEN in any captured source — a measured coverage gap, not silence"
+    },
+    "Excalidraw": {
+      "firstDetection": "2026-07-16",
+      "firstEvidence": "docs/parity/baseline/snapshots/2026-07-16/changelog-index.html",
+      "daysSeen": 5
+    },
+    "Buy a domain": {
+      "firstDetection": "2026-07-16",
+      "firstEvidence": "docs/parity/baseline/snapshots/2026-07-16/changelog-index.html",
+      "daysSeen": 5
+    },
+    "Buildathons": {
+      "firstDetection": "2026-07-16",
+      "firstEvidence": "docs/parity/baseline/snapshots/2026-07-16/community.links.txt",
+      "daysSeen": 2
+    },
+    "Submit your App": {
+      "firstDetection": "2026-07-16",
+      "firstEvidence": "docs/parity/baseline/snapshots/2026-07-16/gallery.rendered.html",
+      "daysSeen": 5
+    },
+    "streak": {
+      "firstDetection": "2026-07-16",
+      "firstEvidence": "docs/parity/baseline/snapshots/2026-07-16/llms-full.txt",
+      "daysSeen": 5
+    }
+  },
+  "watchTermsNeverSeen": [
+    "Ramp for Agents"
+  ],
+  "observations": {
+    "ledger": "docs/parity/baseline/observations/ledger.jsonl",
+    "total": 109,
+    "newThisRun": 109,
+    "pendingTriage": 29,
+    "overdueTriage": 0,
+    "slaHoursByCriticality": {
+      "P0": 24,
+      "P1": 72,
+      "P2": 168
+    }
+  }
+}

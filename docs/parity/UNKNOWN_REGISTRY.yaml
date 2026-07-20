@@ -27,7 +27,18 @@ unknowns:
     question: "Le rendu JS (playwright) tourne-t-il en CI GitHub sans blocage bot ?"
     owner: platform
     priority: 1
-    nextAction: "Installer chromium en CI + run réel ; sinon renderer via service dédié"
+    state: RESOLVED
+    resolvedAt: "2026-07-20"
+    resolution: >-
+      OUI, mesuré : chromium rend les routes produit JS depuis un runner
+      GitHub-hosted — PR #14, run 29716446034 (job 88270561124, vert avec gate
+      pipefail réel + preuve négative exit 2), 6/6 sources rendues gated OK,
+      hashes vérifiés artefact↔manifest (community-hub 2da79fbd… porte Power
+      Ranking + streak). Exception mesurée : status.replit.com (Statuspage)
+      403 les runners GitHub même rendu (local OK) → renderGateExempt,
+      BLOCKED + observation SOURCE_BLOCKED à chaque run. Preuve durable :
+      docs/deploy-evidence/2026-07-20-collector-ci-render/.
+    nextAction: "Reste : couvrir status.replit.com depuis la CI (egress non-datacenter — runner self-hosted ou API browser-rendering, décision owner)"
     targetDate: "2026-08-01"
     expiration: "2026-08-15"
   - unknownId: UNK-CAPACITY-RATE-MEASURED
