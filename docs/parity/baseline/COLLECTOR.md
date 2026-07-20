@@ -108,11 +108,17 @@ Per-source statuses: `OK`, `FAILED` (network/HTTP error),
   `repository_dispatch` type `parity-collect`
   (`gh api repos/openaxcloud/vibecore/dispatches -f event_type=parity-collect`).
 - **PR smoke** (`render-smoke` job): runs the collector with
-  `--require-render` — exits 2 unless EVERY rendered source is OK. This is the
-  standing proof that chromium rendering works from GitHub-hosted runners
-  without a bot wall (UNK-COLLECTOR-CI-RENDER). If a wall ever appears, the
-  job goes red and the fallback is a dedicated renderer service (self-hosted
-  runner or browser-rendering API) — not silence.
+  `--require-render` — exits 2 unless every GATED rendered source is OK
+  (`set -o pipefail` in the step: without it the `| tee` swallowed the exit
+  code, measured on the first PR #14 run). This is the standing proof that
+  chromium rendering works from GitHub-hosted runners without a bot wall
+  (UNK-COLLECTOR-CI-RENDER) — proven green 2026-07-19 (6/7 rendered sources
+  OK from a GitHub runner, incl. gallery/community/community-hub).
+  Exception measured 2026-07-19: `status.replit.com` (Statuspage) 403s
+  GitHub-hosted runners even rendered while a local render passes —
+  `renderGateExempt: true`, every blocked run still recorded (BLOCKED +
+  SOURCE_BLOCKED observation). Coverage fix = dedicated renderer egress
+  (self-hosted runner or browser-rendering API) — not silence.
 
 ## Manual intake (authenticated-ui)
 

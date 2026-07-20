@@ -158,8 +158,12 @@ jobs:
           npm init -y >/dev/null
           npm install yaml@2 playwright@1.59.1 >/dev/null
           npx playwright install --with-deps chromium
-      - name: Collect with --require-render (exit 2 = a rendered source was blocked/failed — reported, never papered over)
+      - name: Collect with --require-render (exit 2 = a gated rendered source was blocked/failed — reported, never papered over)
+        # pipefail is NOT set by default in GitHub run steps — without it the
+        # `| tee` swallowed the collector's exit code (measured on the first
+        # PR #14 run: exit 2 on status=BLOCKED, job still green).
         run: |
+          set -o pipefail
           PARITY_DEPS=/tmp/parity-deps node scripts/parity/collect-baseline.mjs --require-render 2>&1 | tee /tmp/collect-smoke.log
       - name: Upload snapshot + log as proof artifact
         if: always()
@@ -192,7 +196,9 @@ jobs:
           npm init -y >/dev/null
           npm install yaml@2 playwright@1.59.1 >/dev/null
           npx playwright install --with-deps chromium
-      - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/collect-baseline.mjs | tee /tmp/collect.log
+      - run: |
+          set -o pipefail
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/collect-baseline.mjs | tee /tmp/collect.log
       - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/validate-registries.mjs
       - name: Commit the day's snapshot + observation ledger
         run: |
