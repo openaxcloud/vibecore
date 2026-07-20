@@ -34,6 +34,10 @@ jobs:
       API_BASE_URL: http://127.0.0.1:3001
       SAAS_API_URL: http://127.0.0.1:3001
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
+      # The WORKFLOW owns the servers (prod web below + admin below); without
+      # this flag Playwright's webServer would try to boot a dev server on the
+      # same port and hard-fail now that reuseExistingServer=false in CI.
+      PLAYWRIGHT_SKIP_WEB_SERVER: '1'
       # Local-stack admin used by gallery-remix-license.spec.ts (curation step).
       PLATFORM_ADMIN_EMAILS: e2e-platform-admin@local.test
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -92,6 +96,14 @@ jobs:
           HOST=127.0.0.1 PORT=5173 NODE_ENV=production pnpm run start:node > /tmp/vibecore-web.log 2>&1 &
           echo $! > /tmp/vibecore-web.pid
           npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:5173
+
+      # PLAYWRIGHT_SKIP_WEB_SERVER means Playwright no longer boots the admin
+      # dev server (5174) either — the workflow provides it, like the web app.
+      - name: Start admin app
+        run: |
+          pnpm --filter @vibecore/admin dev > /tmp/vibecore-admin.log 2>&1 &
+          echo $! > /tmp/vibecore-admin.pid
+          npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:5174
 
       - name: Playwright auth, project, IDE, terminal, preview, billing mock flows
         run: pnpm exec playwright test tests/e2e --project=chromium
