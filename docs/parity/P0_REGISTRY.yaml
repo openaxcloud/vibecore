@@ -7,39 +7,37 @@ p0s:
     title: "Collecteur aveugle : ajouter routes produit (rendu JS) + canal de lancement"
     priority: 1
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    expectedReviewer: OpenAI-Codex
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: OPEN
+    reviewReceiptId: RR-20260720-CODEX-02
     remediationTrack: QUICK
-    conditionDeCloture: "Fournir artefacts rejouables : hash Gallery obsolète (fad9… vs 1f5f…), capture limitée au footer, artefact incohérent ; puis re-soumission au relecteur"
-    refusalReason: "hash Gallery obsolète (fad9… vs 1f5f…), capture limitée au footer, artefact incohérent"
-    refusalType: NON_REPRODUCTIBLE
+    conditionDeCloture: "Repointage effectif de l'evidenceId vers un artefact cohérent, avec README/capture/métriques régénérés, puis nouvelle revue"
+    refusalReason: "Le chemin canonique evidenceId reste docs/deploy-evidence/2026-07-16-collector-gallery/ : son README annonce encore fad9ec75…, Views 20,650 et 82 Results, et sa seule capture gallery-rendered.png ne montre que le footer. Le HTML 1f5f27bc… existe, mais l'evidenceId du registre n'a pas été repointé."
+    refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: UNKNOWN
     evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
     proof: "collecteur retrouve Community Profiles (watchHits.community) ; gallery/community rendus+hashés"
-    nextAction: "Aucun — closable après revue"
+    nextAction: "Régénérer le paquet canonique complet et repointer evidenceId"
     targetDate: "2026-07-16"
   - p0Id: P0-V4-2
     title: "Gallery : requalifier la table (mesures réelles, archive rendue)"
     priority: 2
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    expectedReviewer: OpenAI-Codex
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: OPEN
+    reviewReceiptId: RR-20260720-CODEX-02
     remediationTrack: QUICK
-    conditionDeCloture: "Fournir artefacts rejouables : même hash obsolète, métriques réelles 20 653/20 649 pas 20 650 ; puis re-soumission au relecteur"
-    refusalReason: "même hash obsolète, métriques réelles 20 653/20 649 pas 20 650"
-    refusalType: NON_REPRODUCTIBLE
+    conditionDeCloture: "Réconcilier l'artefact canonique, le contrat et les IDs de source avec 20,653/20,649, puis nouvelle revue"
+    refusalReason: "Les HTML reproduisent bien 20,653/20,649, mais le README de l'artefact canonique annonce encore 20,650 et 82 Results ; GALLERY_COMMUNITY_CONTRACT conserve aussi « 82 Results » et cite SRC-GALLERY-DETAIL, ID absent du registre (SRC-GALLERY-DETAIL-JOURNEY-MAPPER existe). La requalification reste contradictoire."
+    refusalType: DESACCORD
     reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: UNKNOWN
     evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
     proof: "REMÉDIÉ 20/07 après refus : métriques corrigées aux valeurs réelles de l'artefact 1f5f27bc… (20,653 liste / 20,649 détail — pas 20,650) dans RPL-17 + GALLERY_COMMUNITY_CONTRACT. PRÊT À RE-SOUMETTRE. Ancien proof : REMÉDIÉ 20/07 après refus : SRC-GALLERY-RENDERED re-pointé sur l'artefact réel (sha256 1f5f27bc…, 1,5 Mo rendu complet — plus le footer partiel), métriques corrigées aux valeurs RÉ…"
-    nextAction: "Décision produit DEC-GALLERY-NO-SELF-PUBLISH à trancher"
+    nextAction: "Réconcilier README, capture, contrat et IDs de source"
     targetDate: "2026-07-16"
   - p0Id: P0-V4-3
     title: "Hiérarchie GCP : folder-per-tenant mort (300 cap + 0,1 req/s)"
@@ -101,21 +99,20 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-02"
     priority: 2
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    expectedReviewer: OpenAI-Codex
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: OPEN
+    reviewReceiptId: RR-20260720-CODEX-02
     remediationTrack: QUICK
-    refusalReason: "hash et métriques Gallery ≠ valeurs annoncées"
-    refusalType: NON_REPRODUCTIBLE
+    refusalReason: "La table reste assise sur le paquet canonique incohérent (README 20,650/82 Results et capture footer-only) ; le contrat conserve 82 Results et un ID de source inexistant. En outre, le report propre à une app n'est pas prouvé : l'artefact ne montre que le lien générique de footer « Report abuse »."
+    refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
     commit: "07ced1c56bdbcb3ce77e883704342b71a2ad0961"
     reviewer: UNKNOWN
     evidenceId: docs/deploy-evidence/2026-07-16-collector-gallery/
     proof: "REMÉDIÉ 20/07 après refus : hash et métriques réalignés sur l'artefact réel (sha256 1f5f27bc…, shasum rejoué ; 20,653 liste / 20,649 détail) ; inconnues restantes légitimes tracées ACCEPTED_RISK/UNKNOWN. PRÊT À RE-SOUMETTRE au relecteur."
     dependances: []
-    conditionDeCloture: "Fournir artefacts rejouables : hash et métriques Gallery ≠ valeurs annoncées ; puis re-soumission au relecteur"
-    nextAction: "Revue"
+    conditionDeCloture: "Réconcilier le paquet Gallery et fournir une preuve de report au niveau de l'app, puis nouvelle revue"
+    nextAction: "Régénérer le paquet Gallery et prouver le report app-spécifique"
     targetDate: "2026-07-16"
   - p0Id: P0-V3-03
     title: "Hiérarchie folder-per-tenant non scalable (300 enfants max, 0,1 folder/s)"
@@ -554,20 +551,18 @@ p0s:
     priority: 10
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    expectedReviewer: OpenAI-Codex
-    reviewReceiptId: RR-20260720-CODEX-01
+    reviewReceiptId: RR-20260720-CODEX-02
     remediationTrack: QUICK
-    refusalReason: "décision Gallery réellement DECIDED, pas OPEN/CAPTURE_INCOMPLETE"
-    refusalType: DESACCORD
-    reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    previousRefusalReason: "décision Gallery réellement DECIDED, pas OPEN/CAPTURE_INCOMPLETE"
+    reviewVerdict: SIGNED
+    reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
-    reviewer: UNKNOWN
+    reviewer: OpenAI-Codex
     evidenceId: docs/parity/DECISION_REGISTRY.yaml
     proof: "REMÉDIÉ 20/07 après refus : DEC-GALLERY-NO-SELF-PUBLISH passé DECIDED — l'intake curée (Typeform→humain, pas de self-publish in-product) est le comportement CONSTRUIT et testé (curation admin seule) ; le registre reflète maintenant la réalité. PRÊT À RE-SOUMETTRE. Ancien proof : DEC-OWNER-GALLERY-OPTION-B repassée OPEN + captureState: CAPTURE_INCOMPLETE tant que le contenu exact n'est pas inscrit (UNK-GALLERY-OPTION-…"
     dependances: []
-    conditionDeCloture: "Corriger le claim/la preuve : décision Gallery réellement DECIDED, pas OPEN/CAPTURE_INCOMPLETE ; puis re-soumission au relecteur"
-    nextAction: "Contenu exact inscrit puis décision refermée"
+    conditionDeCloture: "Sceller le reçu complet RR-20260720-CODEX-02"
+    nextAction: "Sceller le reçu complet de la revue"
     targetDate: "2026-07-31"
   - p0Id: P0-A2-11
     title: "Compteurs contradictoires"
@@ -743,20 +738,18 @@ p0s:
     priority: 4
     owner: platform
     status: PROVEN_REVIEW_PENDING
-    expectedReviewer: OpenAI-Codex
-    reviewReceiptId: RR-20260720-CODEX-01
+    reviewReceiptId: RR-20260720-CODEX-02
     remediationTrack: QUICK
-    refusalReason: "simple note d'en-tête, aucune entrée GitLab structurée"
-    refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    previousRefusalReason: "simple note d'en-tête, aucune entrée GitLab structurée"
+    reviewVerdict: SIGNED
+    reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
     commit: b598e79042dce0af91c376a810c61320fd988013
-    reviewer: UNKNOWN
+    reviewer: OpenAI-Codex
     evidenceId: docs/parity/IMPORT_PROVIDER_REGISTRY.yaml
     proof: "REMÉDIÉ 20/07 après refus : entrée GITLAB STRUCTURÉE ajoutée (nonTileCapabilities : kind/hubTileVisible/capabilityStatus/evidence/ecodeBuiltState/unknowns) + garde validateur CASSANTE (preuve négative rejouée : champ manquant → build rouge). PRÊT À RE-SOUMETTRE. Ancien proof : §9.1 verbatim (« capacité Git confirmée par la documentation et le changelog, mais pas une tuile ») ; IMPORT_PROVIDER no…"
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : simple note d'en-tête, aucune entrée GitLab structurée ; puis re-soumission au relecteur"
-    nextAction: "Revue"
+    conditionDeCloture: "Sceller le reçu complet RR-20260720-CODEX-02"
+    nextAction: "Sceller le reçu complet de la revue"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-05
     title: "Corriger la taxonomie Artifact/Asset/Component/Deployment"
@@ -917,21 +910,20 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 13
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    expectedReviewer: OpenAI-Codex
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: OPEN
+    reviewReceiptId: RR-20260720-CODEX-02
     remediationTrack: QUICK
-    refusalReason: "prix $25/$20 et $95 sans geo/locale/cohorte ni hash"
+    refusalReason: "Le claim « 13 observations toutes contextualisées » est faux : 3 observations expert gardent locale/countryOrGeo/cookieState UNKNOWN, sans hash ni artifactPath ; seules 4/13 ont une géographie connue. pricing-recheck-1445utc.txt est une transcription manuelle horodatée approximativement, sans capture ni preuve de géo-IP IL. Le test négatif ne contrôle que présence/schemaVersion du registre."
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
     proof: "REMÉDIÉ 20/07 après refus : 13 observations toutes contextualisées (geo/locale/cohorte/hash/artifactPath) ; la DIVERGENCE $20-vs-$25 est RÉSOLUE par re-observation live 14:45Z geo-IP IL (artefact hashé 9352b15f… sur disque) : la page affichait $20/$18/$90 à 05:43 et $25/$20/$95 à 14:45 le même jour — les deux captures sont réelles. PRÊT À RE-SOUMETTRE. Ancien proof : §3.4 verbatim (Core $25/$20 annuel effectif observé par l expert vs $20/$18 scan — divergence conservée) ; OFFERING avec…"
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : prix $25/$20 et $95 sans geo/locale/cohorte ni hash ; puis re-soumission au relecteur"
-    nextAction: "Revue"
+    conditionDeCloture: "Contextualiser réellement les 13 observations et joindre une capture vérifiable de la re-observation géolocalisée, puis nouvelle revue"
+    nextAction: "Compléter les trois observations expert et fournir la capture/provenance de la re-observation"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-14
     title: "Limiter « no model selector » au corpus observé"
@@ -939,21 +931,20 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 14
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    expectedReviewer: OpenAI-Codex
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: OPEN
+    reviewReceiptId: RR-20260720-CODEX-02
     remediationTrack: QUICK
-    refusalReason: "claim absolu « no model selector anywhere » subsiste"
+    refusalReason: "La formulation est bornée, mais le claim affirme encore que Lite/Economy ne sont jamais nommés dans 83 changelogs ; c'est contredit par RPL-2026-002 et le snapshot 2026-04-17-changelog.md, qui nomment explicitement le sélecteur Lite/Economy/Power. La commande annoncée n'est pas reproductible à l'identique : elle retourne aussi REPLIT_LIVE_SCAN_2026-07-20.md:325."
     refusalType: DESACCORD
     reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/PUBLIC_BASELINE_REPLIT_2026.yaml
     proof: "REMÉDIÉ 20/07 après refus : claim RPL-2026-004 reformulé en observation BORNÉE (corpus + dates explicites : audit humain 16/07 + scan rendu 20/07), formulation absolue purgée aussi de REPLIT_LIVE_SCAN. PRÊT À RE-SOUMETTRE. Ancien proof : §7.2 verbatim (« pages publiques et docs courantes consultées ; interface authentifiée par plan reste à vérifier ») cohérent avec RPL-2026-004.…"
     dependances: []
-    conditionDeCloture: "Corriger le claim/la preuve : claim absolu « no model selector anywhere » subsiste ; puis re-soumission au relecteur"
-    nextAction: "Revue"
+    conditionDeCloture: "Réconcilier le claim avec le changelog du 17/04 et fournir une commande de reproduction exacte, puis nouvelle revue"
+    nextAction: "Corriger le claim contradictoire et la commande de reproduction"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-15
     title: "Retirer le lien non prouvé Parallel Agents = microVM par tâche"
@@ -980,21 +971,20 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 16
     owner: platform
-    status: PROVEN_REVIEW_PENDING
-    expectedReviewer: OpenAI-Codex
-    reviewReceiptId: RR-20260720-CODEX-01
+    status: OPEN
+    reviewReceiptId: RR-20260720-CODEX-02
     remediationTrack: QUICK
-    refusalReason: "manifeste sans generatedAt/generatedFromCommit/mergedCommit, annexe absente, timestamp constant"
-    refusalType: PREUVE_INSUFFISANTE
+    refusalReason: "Les trois champs existent et le run 29756163626 est vert, mais .github/workflows/parity-registries.yml ne roule pas CI_ATTESTATION et ne génère/publie pas DOCUMENT_MANIFEST après chaque merge ; a4a9f71c est un commit manuel postérieur. Le validateur accepte en outre un runId, commit et timestamp fictifs après régénération. L'exemple manuel est prouvé, pas l'automatisation ni la garantie de provenance annoncées."
+    refusalType: DESACCORD
     reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    reviewedRemediationCommit: "af24d4fe48015e6041c8e11b240b1f2d54f333d1"
     commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/DOCUMENT_MANIFEST.yaml
     proof: "REMÉDIÉ 20/07 après refus : DOCUMENT_MANIFEST porte maintenant generatedAt (mergedToMainAt réel de l'attestation, plus de constante), generatedFromCommit et mergedCommit — dérivés de CI_ATTESTATION roulée à chaque merge (recalcul post-merge garanti, non auto-référentiel). PRÊT À RE-SOUMETTRE. Ancien proof : §0 verbatim (reviewGeneratedAt + manifeste post-merge non auto-référentiel) ; recalcul réel = annexe A.2 + DOC…"
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : manifeste sans generatedAt/generatedFromCommit/mergedCommit, annexe absente, timestamp constant ; puis re-soumission au relecteur"
-    nextAction: "Revue"
+    conditionDeCloture: "Automatiser le roulage post-merge, valider la provenance contre GitHub et démontrer le flux sur un merge, puis nouvelle revue"
+    nextAction: "Ajouter le job post-merge réel et une validation de provenance cassante"
     targetDate: "2026-07-20"
   - p0Id: P0-LS-17
     title: "Réconcilier les compteurs (174/159, 114/99, surfaces 10)"

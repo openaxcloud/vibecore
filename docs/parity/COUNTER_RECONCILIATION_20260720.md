@@ -8,10 +8,10 @@ Chaque ligne : valeur DÉRIVÉE du registre indiqué, avec la formule et les IDs
 | metric | valeur | formule | IDs inclus | source |
 |---|---|---|---|---|
 | P0 total | **65** | len(p0s) | — | P0_REGISTRY.yaml |
-| P0 refusés (lot 57febeab) | **33** | count(reviewVerdict=REFUSED) | P0-V4-1, P0-V4-2, P0-V4-3, P0-V3-02, P0-V3-03, P0-V3-04, P0-V3-08, P0-V3-09, P0-V3-10, P0-V3-11, P0-V3-12, P0-V3-13, P0-A2-01, P0-A2-03, P0-A2-05, P0-A2-07, P0-A2-09, P0-A2-10, P0-A2-13, P0-A2-14, P0-LS-03, P0-LS-04, P0-LS-06, P0-LS-13, P0-LS-14, P0-LS-16, P0-B-01, P0-EX-02, P0-EX-04, P0-EX-05, P0-EX-07, P0-EX-08, P0-EX-10 | P0_REGISTRY.yaml |
-| P0 signés (lot 57febeab) | **22** | count(reviewVerdict=SIGNED) | P0-V3-14, P0-A2-02, P0-A2-04, P0-A2-06, P0-A2-08, P0-A2-11, P0-LS-01, P0-LS-02, P0-LS-05, P0-LS-07, P0-LS-08, P0-LS-09, P0-LS-10, P0-LS-11, P0-LS-12, P0-LS-15, P0-LS-17, P0-LS-18, P0-EX-01, P0-EX-03, P0-EX-06, P0-EX-09 | P0_REGISTRY.yaml |
-| P0 OPEN | **30** | count(status=OPEN) | P0-V4-3, P0-V3-01, P0-V3-03, P0-V3-04, P0-V3-05, P0-V3-06, P0-V3-07, P0-V3-08, P0-V3-09, P0-V3-10, P0-V3-11, P0-V3-12, P0-V3-13, P0-A2-01, P0-A2-03, P0-A2-05, P0-A2-07, P0-A2-09, P0-A2-13, P0-A2-14, P0-LS-03, P0-LS-06, P0-B-01, P0-B-02, P0-EX-02, P0-EX-04, P0-EX-05, P0-EX-07, P0-EX-08, P0-EX-10 | P0_REGISTRY.yaml |
-| P0 PROVEN_REVIEW_PENDING | **30** | count(status=PROVEN_REVIEW_PENDING) = 22 signés (reçu incomplet) + 8 remédiés (re-signature attendue) | P0-V4-1, P0-V4-2, P0-V3-02, P0-V3-14, P0-A2-02, P0-A2-04, P0-A2-06, P0-A2-08, P0-A2-10, P0-A2-11, P0-LS-01, P0-LS-02, P0-LS-04, P0-LS-05, P0-LS-07, P0-LS-08, P0-LS-09, P0-LS-10, P0-LS-11, P0-LS-12, P0-LS-13, P0-LS-14, P0-LS-15, P0-LS-16, P0-LS-17, P0-LS-18, P0-EX-01, P0-EX-03, P0-EX-06, P0-EX-09 | P0_REGISTRY.yaml |
+| P0 refusés (état courant) | **31** | count(reviewVerdict=REFUSED) | P0-V4-1, P0-V4-2, P0-V4-3, P0-V3-02, P0-V3-03, P0-V3-04, P0-V3-08, P0-V3-09, P0-V3-10, P0-V3-11, P0-V3-12, P0-V3-13, P0-A2-01, P0-A2-03, P0-A2-05, P0-A2-07, P0-A2-09, P0-A2-13, P0-A2-14, P0-LS-03, P0-LS-06, P0-LS-13, P0-LS-14, P0-LS-16, P0-B-01, P0-EX-02, P0-EX-04, P0-EX-05, P0-EX-07, P0-EX-08, P0-EX-10 | P0_REGISTRY.yaml |
+| P0 signés (tous reçus) | **24** | count(reviewVerdict=SIGNED) | P0-V3-14, P0-A2-02, P0-A2-04, P0-A2-06, P0-A2-08, P0-A2-10, P0-A2-11, P0-LS-01, P0-LS-02, P0-LS-04, P0-LS-05, P0-LS-07, P0-LS-08, P0-LS-09, P0-LS-10, P0-LS-11, P0-LS-12, P0-LS-15, P0-LS-17, P0-LS-18, P0-EX-01, P0-EX-03, P0-EX-06, P0-EX-09 | P0_REGISTRY.yaml |
+| P0 OPEN | **36** | count(status=OPEN) | P0-V4-1, P0-V4-2, P0-V4-3, P0-V3-01, P0-V3-02, P0-V3-03, P0-V3-04, P0-V3-05, P0-V3-06, P0-V3-07, P0-V3-08, P0-V3-09, P0-V3-10, P0-V3-11, P0-V3-12, P0-V3-13, P0-A2-01, P0-A2-03, P0-A2-05, P0-A2-07, P0-A2-09, P0-A2-13, P0-A2-14, P0-LS-03, P0-LS-06, P0-LS-13, P0-LS-14, P0-LS-16, P0-B-01, P0-B-02, P0-EX-02, P0-EX-04, P0-EX-05, P0-EX-07, P0-EX-08, P0-EX-10 | P0_REGISTRY.yaml |
+| P0 PROVEN_REVIEW_PENDING | **24** | count(status=PROVEN_REVIEW_PENDING) | P0-V3-14, P0-A2-02, P0-A2-04, P0-A2-06, P0-A2-08, P0-A2-10, P0-A2-11, P0-LS-01, P0-LS-02, P0-LS-04, P0-LS-05, P0-LS-07, P0-LS-08, P0-LS-09, P0-LS-10, P0-LS-11, P0-LS-12, P0-LS-15, P0-LS-17, P0-LS-18, P0-EX-01, P0-EX-03, P0-EX-06, P0-EX-09 | P0_REGISTRY.yaml |
 | P0 PROVEN (hors lot) | **5** | count(status=PROVEN) | P0-V4-4, P0-V3-15, P0-A2-12, P0-A2-15, P0-A2-16 | P0_REGISTRY.yaml |
 | P0 CLOSED | **0** | count(status=CLOSED) — exige un ReviewReceipt COMPLET | — | P0_REGISTRY + REVIEW_RECEIPT_REGISTRY |
 | Lot A (corrections rapides) | **8** | count(remediationTrack=QUICK) | P0-V4-1, P0-V4-2, P0-V3-02, P0-A2-10, P0-LS-04, P0-LS-13, P0-LS-14, P0-LS-16 | P0_REGISTRY.yaml |
@@ -24,11 +24,9 @@ Chaque ligne : valeur DÉRIVÉE du registre indiqué, avec la formule et les IDs
 
 ## Réponses aux 4 questions (dérivées ci-dessus)
 
-1. **33 refus → combien d'ouverts ?** Au moment du verdict : 33 refusés + 6 jamais soumis
-   (P0-A2-12, P0-B-02, P0-V3-01, P0-V3-05, P0-V3-06, P0-V3-07) = **39 OPEN**.
-   Depuis : P0-A2-12 est passé PROVEN (dédup #19) et les 8 QUICK remédiés sont passés
-   PROVEN_REVIEW_PENDING → OPEN aujourd'hui = 33 − 8 (QUICK re-soumis) + 5 jamais soumis
-   encore ouverts (P0-V3-01, P0-V3-05, P0-V3-06, P0-V3-07, P0-B-02) = **30**.
+1. **Refus → ouverts** : **31** P0 portent actuellement `reviewVerdict: REFUSED`.
+   **36** P0 sont déclarés OPEN, dont **31** refusés
+   et **5** ouverts sans refus (P0-V3-01, P0-V3-05, P0-V3-06, P0-V3-07, P0-B-02).
 
 2. **Le 8e point rapide** : le tableau transmis à Avi n'en montrait que 7 et INCLUAIT
    À TORT P0-EX-10 (qui est un chantier B). Le lot A machine-tracé = les 8 IDs
