@@ -854,7 +854,7 @@ p0s:
     priority: 1
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT3
+    commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
     proof: "Plan v2026-07-20.4 installé : stateEmbeddedInPlan=false, annexe manuelle SUPPRIMÉE — l état vit dans IMPLEMENTATION_STATUS.yaml."
@@ -869,7 +869,7 @@ p0s:
     priority: 2
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT3
+    commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/IMPLEMENTATION_STATUS.yaml
     proof: "Généré : 159 items SURFACE (68 CODED mergés main + 11 PROVEN avec evidenceIds hashés + 43 PARTIAL + 37 NOT_STARTED), codeCommit=origin/main mesuré, règles §23 appliquées (PARTIAL ne satisfait aucun gate)."
@@ -884,7 +884,7 @@ p0s:
     priority: 3
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT3
+    commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/PLAN_PARITE_REPLIT.md
     proof: "Adopté via le plan §6.1 (verbatim installé) ; aucune assertion de persistance non sourcée."
@@ -899,7 +899,7 @@ p0s:
     priority: 4
     owner: platform
     status: OPEN
-    commit: PENDING_COMMIT3
+    commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/IMPORT_REMIX_CONTRACT.md
     proof: "Le plan §9.2 installé porte la machine corrigée ; IMPORT_REMIX_CONTRACT.md doit être aligné + testé négativement."
@@ -914,7 +914,7 @@ p0s:
     priority: 5
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT3
+    commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
     proof: "Adopté via plan §11.3 (verbatim) ; OFFERING sans montants, entitlements AUTHENTICATED_LIVE_REQUIRED avant reproduction exacte."
@@ -929,7 +929,7 @@ p0s:
     priority: 6
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT3
+    commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/PRICE_OBSERVATION_REGISTRY.yaml
     proof: "Plan sans montants ; PRICE_OBSERVATION_REGISTRY.yaml créé (9 observations contextualisées, divergences $20/$25 et $90/$95 conservées) ; OFFERING nettoyé."
@@ -944,7 +944,7 @@ p0s:
     priority: 7
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT3
+    commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/IDENTITY_COLLABORATION_CONTRACT.md
     proof: "IDENTITY_COLLABORATION_CONTRACT.md créé (entités + invariants + état mesuré + tests négatifs exigés). Reviewer UNKNOWN — contractsValidated reste FAIL, honnête."
@@ -959,7 +959,7 @@ p0s:
     priority: 8
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT3
+    commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/PROJECT_MANIFEST_SCHEMA.json
     proof: "PROJECT_MANIFEST_SCHEMA.json créé (artifacts≤7, kinds verrouillés, components, bindings, scopes, entitlementsRef)."
@@ -974,7 +974,7 @@ p0s:
     priority: 9
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT3
+    commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/DEPLOYMENT_TYPES_CONTRACT.md
     proof: "DEPLOYMENT_TYPES_CONTRACT §4.1–4.4 : contrat dédié par type avec lifecycle/config/coûts/preuve ; Reserved = NOT_STARTED déclaré."
@@ -989,7 +989,7 @@ p0s:
     priority: 10
     owner: platform
     status: OPEN
-    commit: PENDING_COMMIT3
+    commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/CI_ATTESTATION.yaml
     proof: "Drift-checks CI en place (status, manifeste, parity-status) ; l ACTIVATION (génération au commit MERGÉ sur main) exige le merge — feu vert owner (P0-LS-18)."
