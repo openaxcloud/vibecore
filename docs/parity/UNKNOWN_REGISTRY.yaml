@@ -132,13 +132,6 @@ unknowns:
     nextAction: "Prouver une migration au publish live (avec échec simulé → FAILED_SAFE)"
     targetDate: "2026-09-30"
     expiration: "2026-10-31"
-  - unknownId: UNK-CLAIMS-ANCHORING
-    question: "Les étiquettes documentaires héritées du plan v5 (RPL-01…RPL-16, GCP-01…GCP-10, NIX-01) sont-elles toutes ancrées individuellement dans PUBLIC_BASELINE (URL + hash + snapshot), comme le sont RPL-17…24 et GCP-11/12 ?"
-    owner: platform
-    priority: 2
-    nextAction: "Ancrer chaque étiquette citée par le plan canonique dans PUBLIC_BASELINE + SOURCE_REGISTRY (snapshot hashé), ou requalifier l'assertion"
-    targetDate: "2026-08-15"
-    expiration: "2026-08-31"
   - unknownId: UNK-GIT-RECONCILE-DONE
     question: "La réconciliation D1 du split-brain Git (local 3e2d7013 divergent d'origin/main) est-elle terminée selon la procédure D1 (branche d'intégration, backups des deux pointes, inventaire, CI, PR, main protégée) ?"
     owner: platform
