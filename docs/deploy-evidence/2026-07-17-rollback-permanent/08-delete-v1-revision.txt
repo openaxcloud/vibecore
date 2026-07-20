@@ -1,0 +1,2 @@
+deployment.apps "app-cmrsrp6d0000k0neivkj1evkj" deleted
+Error from server (NotFound): deployments.apps "app-cmrsrp6d0000k0neivkj1evkj" not found
