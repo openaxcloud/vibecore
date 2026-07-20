@@ -50,8 +50,15 @@ try {
       WHERE provider = 'server' AND status = 'READY'
       ORDER BY "createdAt" DESC
     `);
+
     const candidates = rows.filter((r) => r.uri && (!r.digest || !SHA256.test(r.digest)));
-    console.log(JSON.stringify(candidates.map((r) => ({ id: r.id, uri: r.uri })), null, 2));
+    console.log(
+      JSON.stringify(
+        candidates.map((r) => ({ id: r.id, uri: r.uri })),
+        null,
+        2,
+      ),
+    );
   } else if (mode === 'apply') {
     const entries = JSON.parse(payload ?? '[]');
 

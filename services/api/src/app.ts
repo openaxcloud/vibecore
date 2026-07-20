@@ -28260,7 +28260,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * rollback target — the digest-only path would refuse it with
    * ROLLBACK_NO_RETAINED_DIGEST.
    */
-  const annotateRollbackAvailability = <T extends { provider: string; status: string; metadata: unknown }>(
+  const annotateRollbackAvailability = <T extends { provider?: string | null; status?: string | null; metadata?: unknown }>(
     deployment: T,
   ): T & { rollbackUnavailableReason?: 'NO_RETAINED_DIGEST' } => {
     if (deployment.provider !== 'server' || deployment.status !== 'READY') {

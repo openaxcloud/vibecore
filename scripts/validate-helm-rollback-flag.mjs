@@ -52,9 +52,11 @@ check(
   renderedFlag(helmTemplate(['--values', `${CHART}/values-prod.yaml`])) === '1',
 );
 
-// 3. --reuse-values simulation: a release whose stored values PRE-DATE the key
-//    (runtime block present, key absent) must still render "1" via the
-//    template's `default "1"` + chart-default coalescing.
+/*
+ * 3. --reuse-values simulation: a release whose stored values PRE-DATE the key
+ *    (runtime block present, key absent) must still render "1" via the
+ *    template's `default "1"` + chart-default coalescing.
+ */
 const dir = mkdtempSync(join(tmpdir(), 'helm-rollback-flag-'));
 
 try {

@@ -1,6 +1,8 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import {
+  chooseNixStoreZone,
+  parseNixStorePvcZones,
   serverDeploymentName,
   workspaceAgentSecret,
   workspacePod,
@@ -302,6 +304,59 @@ export class WorkspaceManager {
     readonly runtime: SandboxRuntime = resolveSandboxRuntime(k8s),
   ) {}
 
+  /*
+   * D3 multi-zone shared Nix store (approved 2026-07-17): the store is an
+   * IDENTICAL zonal clone per active zone (same generation snapshot), declared
+   * in NIX_STORE_PVC_ZONES (`zone=pvc,zone=pvc`, order = preference). When a
+   * pod wants the store and the requested PVC is one of the declared clones
+   * (or unset), the zone with live schedulable sandbox capacity is picked and
+   * THAT zone's PVC + a zone pin are used — so a zone stockout (the measured
+   * zone-a incident) routes new pods to the surviving zone instead of wedging
+   * them behind a zonal PV they can never attach. NIX_STORE_GENERATION_HASH
+   * (sha256 of /nix/ecode/catalog.json) arms the drift guard: a clone carrying
+   * a different generation BLOCKS the pod. With NIX_STORE_PVC_ZONES unset this
+   * resolves to exactly the legacy single-PVC behaviour.
+   */
+  async resolveNixStorePlacement(
+    requestedPvcName: string | undefined,
+  ): Promise<{ nixStorePvcName?: string; nixStoreZone?: string; nixStoreGenerationHash?: string }> {
+    const fallback = requestedPvcName ?? process.env.NIX_STORE_PVC_NAME;
+    const generationHash = process.env.NIX_STORE_GENERATION_HASH || undefined;
+
+    if (!fallback) {
+      return {};
+    }
+
+    const zones = parseNixStorePvcZones(process.env.NIX_STORE_PVC_ZONES);
+
+    /*
+     * Only substitute when the requested PVC is one of the declared zonal
+     * clones — an explicit one-off PVC (spike disk, an operator experiment)
+     * must never be silently rewritten to a different disk.
+     */
+    if (zones.length === 0 || !zones.some((z) => z.pvcName === fallback)) {
+      return { nixStorePvcName: fallback, ...(generationHash ? { nixStoreGenerationHash: generationHash } : {}) };
+    }
+
+    /*
+     * Nodes are cluster-scoped: kubectl accepts and ignores the namespace flag,
+     * so any value satisfies the client signature. RBAC: the manager's SA holds
+     * the capacity-reader ClusterRole (get/list nodes). A listing failure falls
+     * back to an empty list ⇒ chooseNixStoreZone picks the first configured
+     * zone — the legacy behaviour, never a refusal.
+     */
+    const nodes = await this.k8s
+      .listByLabel('nodes', process.env.WORKSPACE_RUNTIME_NAMESPACE ?? 'workspaces', 'vibecore.ai/node-pool=sandbox')
+      .catch(() => [] as Awaited<ReturnType<WorkspaceK8sClient['listByLabel']>>);
+    const chosen = chooseNixStoreZone(zones, nodes) ?? { zone: undefined, pvcName: fallback };
+
+    return {
+      nixStorePvcName: chosen.pvcName,
+      ...(chosen.zone ? { nixStoreZone: chosen.zone } : {}),
+      ...(generationHash ? { nixStoreGenerationHash: generationHash } : {}),
+    };
+  }
+
   async startWorkspace(input: StartWorkspaceInput) {
     const pvcName = `pvc-${input.workspaceId}`;
     const agentTokenSecretName = `agent-token-${input.workspaceId}`;
@@ -310,6 +365,17 @@ export class WorkspaceManager {
     const secretEnv = Object.fromEntries(
       [...new Set([...input.allowedSecretKeys, ...Object.keys(allowedSecrets)])].map((key) => [key, key]),
     );
+
+    /*
+     * Shared Nix store (candidate E) — OFF by default. Enabled per-request or
+     * cluster-wide via NIX_STORE_PVC_NAME (a Helm value pinned to the current
+     * store generation). Undefined ⇒ workspacePod emits the pre-Nix spec
+     * verbatim, so live Node workspaces never change until an operator opts in.
+     * D3: the placement resolver substitutes the per-zone clone + zone pin +
+     * generation guard when the multi-zone map is configured.
+     */
+    const nixPlacement = await this.resolveNixStorePlacement(input.nixStorePvcName);
+
     const runtimeInput = {
       ...input,
       pvcName,
@@ -318,14 +384,7 @@ export class WorkspaceManager {
       tokenSecret: this.tokenSecret,
       secretEnv,
       env: { ...input.env, WORKSPACE_ID: input.workspaceId },
-
-      /*
-       * Shared Nix store (candidate E) — OFF by default. Enabled per-request or
-       * cluster-wide via NIX_STORE_PVC_NAME (a Helm value pinned to the current
-       * store generation). Undefined ⇒ workspacePod emits the pre-Nix spec
-       * verbatim, so live Node workspaces never change until an operator opts in.
-       */
-      nixStorePvcName: input.nixStorePvcName ?? process.env.NIX_STORE_PVC_NAME,
+      ...nixPlacement,
     };
     const baseRecord = {
       id: input.workspaceId,
@@ -616,8 +675,10 @@ export class WorkspaceManager {
       readyTimeoutMs: input.readyTimeoutMs,
       createIngress: input.createIngress,
 
-      // Per-request opt-in wins; cluster-wide kill switch as fallback (mirrors startWorkspace).
-      nixStorePvcName: input.nixStorePvcName ?? process.env.NIX_STORE_PVC_NAME,
+      // Per-request opt-in wins; cluster-wide kill switch as fallback (mirrors
+      // startWorkspace). D3: the placement resolver substitutes the per-zone
+      // clone + zone pin + generation guard when the multi-zone map is set.
+      ...(await this.resolveNixStorePlacement(input.nixStorePvcName)),
       cpuRequest: input.cpuRequest,
       cpuLimit: input.cpuLimit,
       memoryRequest: input.memoryRequest,
