@@ -230,6 +230,28 @@ function businessDaysBetween(fromMs, toMs) {
  * file's relative path + content, sorted. "Preuves avec artefacts présents ET
  * hashes" — a proof whose evidence changes silently changes the status file.
  */
+let trackedEvidenceFiles = null;
+
+/**
+ * Fichiers SUIVIS PAR GIT uniquement : un artefact local non commité
+ * (log gitignoré, .DS_Store) ne doit JAMAIS entrer dans le hash — sinon le
+ * même commit produit deux empreintes selon la machine (dérive CI vue le
+ * 20/07). Fallback fs si git indisponible.
+ */
+function listTrackedEvidence(repoRoot) {
+  if (trackedEvidenceFiles === null) {
+    try {
+      const { execSync } = require('node:child_process');
+      const out = execSync('git ls-files -z docs/deploy-evidence docs/parity', { cwd: repoRoot, maxBuffer: 64 * 1024 * 1024 });
+      trackedEvidenceFiles = new Set(out.toString('utf8').split('\0').filter(Boolean));
+    } catch {
+      trackedEvidenceFiles = false; // git absent → fallback fs
+    }
+  }
+
+  return trackedEvidenceFiles;
+}
+
 function hashEvidencePath(repoRoot, relPath) {
   const abs = join(repoRoot, relPath);
 
@@ -237,6 +259,7 @@ function hashEvidencePath(repoRoot, relPath) {
     return { fileCount: 0, sha256: null };
   }
 
+  const tracked = listTrackedEvidence(repoRoot);
   const files = [];
 
   (function walk(p) {
@@ -247,7 +270,11 @@ function hashEvidencePath(repoRoot, relPath) {
         walk(join(p, name));
       }
     } else if (st.isFile()) {
-      files.push(p);
+      const rel = relative(repoRoot, p);
+
+      if (tracked === false ? !rel.endsWith('.DS_Store') : tracked.has(rel)) {
+        files.push(p);
+      }
     }
   })(abs);
 

@@ -505,3 +505,15 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
   leurs étapes réelles. Copie de partage : outputs/. La signature de
   l'expert (champ reviewer) fera passer les points en CLOSED et débloquera
   contractsValidated.
+
+## 2026-07-20 (incident CI post-merge : dérive d'empreinte machine-dépendante — corrigé)
+
+- (incident, 2 runs rouges sur main : 4c74d551 puis 852e4dfc) Le hasher de
+  preuves incluait TOUT fichier présent sur disque : deux logs GITIGNORÉS
+  traînant localement dans deploy-evidence/2026-07-15-phase-b/ sont entrés
+  dans l'empreinte calculée localement mais absents du checkout CI → STALE.
+  (Le commit d'activation 646e75ca passait : généré depuis un worktree
+  propre.) CORRECTIF DE CLASSE : le hasher ne hashe plus que les fichiers
+  SUIVIS PAR GIT (git ls-files, fallback fs sans .DS_Store) — le même commit
+  produit désormais la même empreinte sur toute machine. Les 2 logs intrus
+  déplacés hors du dépôt (préservés). Vues régénérées.

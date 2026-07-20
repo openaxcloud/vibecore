@@ -1035,8 +1035,8 @@
     {
       "proofId": "E2E-PHASEB-NODE",
       "evidenceId": "docs/deploy-evidence/2026-07-15-phase-b/",
-      "fileCount": 10,
-      "evidenceSha256": "6051f27e7ff56623a99441867cce535e77c8f4a04ffc224d2fa725549d5d0c5e"
+      "fileCount": 8,
+      "evidenceSha256": "bdc9e89824cb10582d9f7b8a904e125caa4f00b22834bc4fc63c3c44e071b657"
     },
     {
       "proofId": "E2E-AUTOSCALE-Z",

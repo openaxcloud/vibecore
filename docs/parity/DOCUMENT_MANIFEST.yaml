@@ -21,7 +21,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "6e3b457d6038920d718012bb6410968402df87e63174adf971743744bffa53e3"
+    sha256: "f2c974bcd92c5c5ed0432d2da6d78f4c41827c26ba88e2ba102ab620465cc4bb"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -56,7 +56,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CHANGELOG_AUDIT.md
-    sha256: "364de42fe99e7944e372074b717631b4ccece11e8e9524dccb83824e7dc4c70c"
+    sha256: "1eb965922202d4c2be20b566f320d65d59de9c03cc80cc329c1582a9a131236a"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
