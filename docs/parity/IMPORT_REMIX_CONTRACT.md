@@ -27,8 +27,11 @@ SNAPSHOT_PINNED → CREDENTIALS_DETACHED → CLONING → SCANNING → …
 ## Import (staging jetable)
 
 ```
-RECEIVED → STAGING_ISOLATED → SCANNING → QUARANTINED → AWAITING_USER_ACTION
-        → COMMITTING → COMMITTED   |   ROLLING_BACK/EXPIRED/CANCELLED
+RECEIVED → STAGING_ISOLATED → SCANNING
+   ├─ clean ─────────────────→ READY_TO_COMMIT
+   └─ blocking findings ────→ QUARANTINED → AWAITING_USER_ACTION → RESCANNING → READY_TO_COMMIT
+READY_TO_COMMIT → COMMITTING → COMMITTED
+latéraux : ROLLING_BACK · CLEANUP_PENDING · EXPIRED · CANCELLED · FAILED
 ```
 
 - **I-IMP-1 (pas de suppression silencieuse)** : les findings sont présentés et
@@ -39,12 +42,19 @@ RECEIVED → STAGING_ISOLATED → SCANNING → QUARANTINED → AWAITING_USER_ACT
   private-key, provider-token, high-entropy) lit sans muter ; logs redigés.
 - 12 tuiles hub (`IMPORT_HUB_PROVIDERS`), 4 exécutées (github/bitbucket/zip/empty).
 - Décision E-CODE : réservation de crédits idempotente (`DEC-IMPORT-CREDIT-RESERVE`).
-- 22 tests.
+- **Billing minimal de sûreté** (`import-billing.ts`) : réservation idempotente AVANT
+  tout travail payant (clé d'idempotence obligatoire) ; `settle` = seul débit et
+  uniquement si COMMITTED (`BILLING_SETTLE_WITHOUT_COMMIT` sinon) ; compensation
+  (débit zéro) sur cancel/timeout/rollback/failure ; invariant
+  `assertNoDebitWithoutCommit`. Ledger in-process (persistance durable = follow-up
+  `UsageReservation`).
+- Tests : machine 20 + billing 21 + E2E 7 + routes 9 (+ non-régression api 121).
 
 ## 🟡
 
-Débit réel des crédits d'import = shadow (marqueur `creditsReserved`), câblage
-réel = follow-up (`DEC-IMPORT-CREDIT-RESERVE`).
+Persistance DURABLE de la réservation (survie au redémarrage process) = follow-up
+`UsageReservation` ; le débit réel des crédits reste porté par ce follow-up. Les
+invariants de sûreté (pas de débit sans commit) sont, eux, câblés et prouvés.
 
 ## Machine à états Import — ALIGNÉE sur le plan §9.2 (P0-EX-04, 2026-07-20)
 
@@ -62,9 +72,15 @@ quand aucun finding bloquant. Le consentement explicite est requis pour toute
 transformation/exception/acceptation de finding, PAS pour un payload propre.
 Le commit atomique ne part QUE de READY_TO_COMMIT.
 
-Tests négatifs exigés : (1) COMMITTING depuis SCANNING refusé ; (2) payload
-propre forcé en QUARANTINED = violation ; (3) findings bloquants → commit
-refusé sans passage AWAITING_USER_ACTION→RESCANNING.
-État réel : l implémentation actuelle (import-pipeline.ts) suit l ancienne
-machine linéaire — l alignement du CODE est un work item (pas coché fait).
+Tests négatifs exigés (TOUS câblés + prouvés) : (1) COMMITTING depuis SCANNING
+refusé (`IMPORT_COMMIT_NOT_READY`) ; (2) payload propre forcé en QUARANTINED =
+violation (`IMPORT_CLEAN_FORCED_QUARANTINE`) ; (3) findings bloquants → READY
+sauté = violation (`IMPORT_FINDINGS_SKIP_QUARANTINE`), commit refusé sans passage
+AWAITING_USER_ACTION→RESCANNING.
+État réel : **CODE ALIGNÉ (2026-07-20, P0-EX-04)**. `import-pipeline.ts` implémente
+la machine branchée (READY_TO_COMMIT/RESCANNING/CLEANUP_PENDING/FAILED) ; l'endpoint
+`/orgs/:orgId/imports` la pilote (clean→READY_TO_COMMIT, findings→QUARANTINED→
+AWAITING_USER_ACTION→RESCANNING→READY_TO_COMMIT→COMMITTING→COMMITTED) ; commit
+atomique depuis READY_TO_COMMIT seul. Preuve :
+`docs/deploy-evidence/2026-07-20-import-state-machine/`.
 

@@ -1,0 +1,18 @@
+ ✓ src/tests/import-routes.spec.ts > POST /orgs/:orgId/imports — secure import, no silent deletion, disposable staging > QUARANTINES a repo containing a secret; finding PRESENTED; source content UNCHANGED (hash identical) 186ms
+ ✓ src/tests/import-routes.spec.ts > POST /orgs/:orgId/imports — secure import, no silent deletion, disposable staging > consent REFUSED (cancel) → ROLLING_BACK/CANCELLED → target workspace NEVER created 75ms
+ ✓ src/tests/import-state-machine-e2e.spec.ts > Import state machine + safety billing — E2E > (1) CLEAN import: SCANNING → READY_TO_COMMIT (no shortcut) → COMMITTED; reservation SETTLED with a debit 194ms
+ ✓ src/tests/import-state-machine-e2e.spec.ts > Import state machine + safety billing — E2E > (2) FINDING: SCANNING → QUARANTINED → AWAITING_USER_ACTION; reservation RESERVED, no debit, no target 73ms
+ ✓ src/tests/import-routes.spec.ts > POST /orgs/:orgId/imports — secure import, no silent deletion, disposable staging > TIMEOUT: an abandoned import past its expiry is swept to EXPIRED → target NEVER touched 56ms
+ ✓ src/tests/import-routes.spec.ts > POST /orgs/:orgId/imports — secure import, no silent deletion, disposable staging > TIMEOUT sweeper leaves terminal + not-yet-expired jobs alone 60ms
+ ✓ src/tests/import-state-machine-e2e.spec.ts > Import state machine + safety billing — E2E > (2b) QUARANTINE → consent → the commit goes through RESCANNING → READY_TO_COMMIT → COMMITTED 58ms
+ ✓ src/tests/import-state-machine-e2e.spec.ts > Import state machine + safety billing — E2E > (3a) CANCEL leaves the target INTACT and COMPENSATES the reservation (zero debit) 62ms
+ ✓ src/tests/import-routes.spec.ts > POST /orgs/:orgId/imports — secure import, no silent deletion, disposable staging > commit WITHOUT resolving findings is BLOCKED (409, no silent write) 46ms
+ ✓ src/tests/import-routes.spec.ts > POST /orgs/:orgId/imports — secure import, no silent deletion, disposable staging > consent GIVEN (redact) → COMMITTING → COMMITTED atomic; secret NOT in the target, key kept 54ms
+ ✓ src/tests/import-state-machine-e2e.spec.ts > Import state machine + safety billing — E2E > (3b) TIMEOUT sweeps to EXPIRED, target INTACT, reservation COMPENSATED (zero debit) 43ms
+ ✓ src/tests/import-state-machine-e2e.spec.ts > Import state machine + safety billing — E2E > (4) FAILURE after reservation: target-write error → ROLLING_BACK, NO debit (reservation COMPENSATED) 58ms
+ ✓ src/tests/import-state-machine-e2e.spec.ts > Import state machine + safety billing — E2E > (5) IDEMPOTENT create: replaying the same key returns the SAME import, no second reservation 45ms
+ ✓ src/tests/import-routes.spec.ts > POST /orgs/:orgId/imports — secure import, no silent deletion, disposable staging > consent GIVEN (keep) commits the value the user explicitly chose to keep 47ms
+ ✓ src/tests/import-routes.spec.ts > POST /orgs/:orgId/imports — secure import, no silent deletion, disposable staging > CLEANUP on FAILURE: a target-write error rolls back with NO partial target 61ms
+ ✓ src/tests/import-routes.spec.ts > POST /orgs/:orgId/imports — secure import, no silent deletion, disposable staging > redacted LOGS: the raw secret value never appears in the import logs 44ms
+ Test Files  2 passed (2)
+      Tests  16 passed (16)

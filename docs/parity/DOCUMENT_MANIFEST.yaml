@@ -169,12 +169,12 @@ documents:
     repoCommit: d56931bd
     reviewer: UNKNOWN
   - file: IMPLEMENTATION_FACTS.yaml
-    sha256: "04e391e5c09958e1d98db478c070a303a79aaf87d48be3889b8cf76f9293db5e"
+    sha256: "a4edef33507941bcd14b884315a389a1bd29f9be4f8543f32991df67f399614f"
     schemaVersion: 1
     repoCommit: af24d4fe
     reviewer: UNKNOWN
   - file: IMPLEMENTATION_STATUS.yaml
-    sha256: "c718f2fa53b51b276a2391ab9aac5c3e7820d64da2264e49c533c73a4eb4e222"
+    sha256: "63ad333356b264478d7924aac600490d6560ec172bc77ab9d10757f355daca0f"
     schemaVersion: 2
     repoCommit: null
     reviewer: UNKNOWN
@@ -184,7 +184,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: IMPORT_REMIX_CONTRACT.md
-    sha256: "f3e48dd85a1727fbdb538aa26a2961e7b145fc71337a049aae3a8270f86bbc81"
+    sha256: "887cade512de22d9a5a2aa474aca66826fc1b556e86b25d80148512ec55cc514"
     schemaVersion: 1
     repoCommit: ca299f87
     reviewer: UNKNOWN
@@ -219,7 +219,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "e211e46efb43d367cdae57366fea106d8b3018ad8240e7139108db96f99e413b"
+    sha256: "b28190d67fdfc54cc4398276dedc4bbeb6f4b503bca9d1806733a2ec18e3dd49"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
