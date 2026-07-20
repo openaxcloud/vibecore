@@ -21,7 +21,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "f9850259b831ca696d157249a8385cee18f96d66b16a79a56a2ef70f9ccd5a62"
+    sha256: "6e3b457d6038920d718012bb6410968402df87e63174adf971743744bffa53e3"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -211,7 +211,7 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "ba2c926ce972d9b54d87b029a397eebe4ca11bd687be3e3db6f8e0b4e1fe6d2f"
+    sha256: "1ddc10d26f8b0239577466d32cd5879bf657257bbdf54ece9a6b561ceb9263cc"
     schemaVersion: 2
     repoCommit: d3925b16
     reviewer: UNKNOWN
