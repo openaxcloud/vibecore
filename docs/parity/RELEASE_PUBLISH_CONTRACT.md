@@ -2,6 +2,9 @@
 
 schemaVersion: 1
 repoCommit: ca299f87
+reviewer: UNKNOWN
+reviewVerdict: REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)
+reviewCloseCriterion: durcir le contenu puis obtenir la signature du relecteur ; raison détaillée du refus à consigner verbatim dès transmission du rapport
 
 Contrat de la publication d'un projet. Complète DOMAIN_MODEL §5 (ReleaseCatalog,
 Promotion→Release) et la machine à états `PROMOTION_PREPARED→…→PROMOTION_COMMITTED`

@@ -542,3 +542,19 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
 - (échelle) sourceBaselineReady PASS + registryUniverseReady PASS +
   contractsPresent PASS → highestPassedLevel = contractsPresent. Prochain
   verrou : contractsValidated (relecteurs humains — paquet expert envoyé).
+
+## 2026-07-20 (suite — verdict du relecteur, lot 57febeab)
+
+- (verdict OpenAI-Codex) 22 P0 SIGNÉS → CLOSED (reviewer + reviewCommit
+  57febeab) ; 33 P0 REFUSÉS → rouverts OPEN avec reviewVerdict: REFUSED,
+  refusalType (DESACCORD / PREUVE_INSUFFISANTE / NON_REPRODUCTIBLE /
+  A_PRECISER) et la raison du refus comme critère de clôture. 11 raisons
+  verbatim transmises (WIF 3 chemins, générateur IMPLEMENTATION_STATUS
+  absent, code Import ≠ contrat, CI --check sans génération, ledger
+  double-entrée manquant, prix sans contexte, claim « no model selector »
+  trop fort, Gallery DECIDED, hashes Gallery obsolètes ×3) ; 22 refus SANS
+  raison détaillée transmise → refusalType A_PRECISER, à compléter verbatim
+  dès réception du rapport. 0/14 contrats signés → chacun annoté
+  reviewVerdict REFUSED + critère de clôture. Les 4 PROVEN hors lot
+  (A2-15, A2-16, V3-15, V4-4) inchangés. Compte : 22 CLOSED / 39 OPEN /
+  4 PROVEN.
