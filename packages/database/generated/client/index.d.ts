@@ -139952,8 +139952,9 @@ export namespace Prisma {
        */
       appUrl: string | null
       /**
-       * Curation gate: can this listing be remixed at all? A published listing may
-       * be view-only when the author/curator did not grant fork rights (P0-V3-05).
+       * FAIL-CLOSED (directive 20/07) : un projet publié ordinaire est
+       * ALL_RIGHTS_RESERVED, non-remixable. remixAllowed ne passe true qu'avec
+       * une licence EXPLICITE + confirmation des droits + politique PII acceptée.
        */
       remixAllowed: boolean
       /**

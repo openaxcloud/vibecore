@@ -1334,7 +1334,7 @@ export class PrismaApiStore implements ApiStore {
         authorName: input.authorName,
         authorUserId: input.authorUserId ?? null,
         appUrl: input.appUrl ?? null,
-        remixAllowed: input.remixAllowed ?? true,
+        remixAllowed: input.remixAllowed ?? false, // FAIL-CLOSED : jamais remixable sans choix explicite
         licenseId: input.licenseId ?? null,
         licenseText: input.licenseText ?? null,
         licenseTextSha256: input.licenseTextSha256 ?? null,

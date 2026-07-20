@@ -2411,9 +2411,10 @@ model GalleryListing {
   authorUserId      String?
   /// Outbound "View App" link to the deployed app (may be null pre-deploy).
   appUrl            String?
-  /// Curation gate: can this listing be remixed at all? A published listing may
-  /// be view-only when the author/curator did not grant fork rights (P0-V3-05).
-  remixAllowed      Boolean   @default(true)
+  /// FAIL-CLOSED (directive 20/07) : un projet publié ordinaire est
+  /// ALL_RIGHTS_RESERVED, non-remixable. remixAllowed ne passe true qu'avec
+  /// une licence EXPLICITE + confirmation des droits + politique PII acceptée.
+  remixAllowed      Boolean   @default(false)
   /// License identifier declared at curation (e.g. an SPDX id like "MIT").
   /// Null = the author declared no license (surfaced as such — never invented).
   licenseId         String?

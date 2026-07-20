@@ -128,6 +128,10 @@ test('gallery remix shows the versioned license, requires explicit consent, and 
       authorName: 'Ada Lovelace',
       licenseId: 'MIT',
       licenseText: LICENSE_TEXT,
+      // FAIL-CLOSED : rendre le listing remixable exige les confirmations explicites.
+      remixAllowed: true,
+      rightsConfirmed: true,
+      piiPolicyAccepted: true,
     },
   });
   expect(createListing.ok(), await createListing.text()).toBeTruthy();
