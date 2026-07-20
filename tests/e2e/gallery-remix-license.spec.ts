@@ -183,13 +183,24 @@ test('gallery remix shows the versioned license, requires explicit consent, and 
   expect(projects).toHaveLength(1);
 
   const cloneId = projects[0].id;
-  const cloneFilesRes = await api.get(`${API_BASE_URL}/projects/${cloneId}/files`, {
+
+  // The files LIST strips content (path + size only) — read the actual bytes
+  // through the zip export, which archives the clone's real storage.
+  const exportRes = await api.get(`${API_BASE_URL}/projects/${cloneId}/export/zip`, {
     headers: remixerHeaders,
   });
-  expect(cloneFilesRes.ok(), await cloneFilesRes.text()).toBeTruthy();
+  expect(exportRes.ok(), await exportRes.text()).toBeTruthy();
 
-  const cloneFiles = ((await cloneFilesRes.json()) as { files: Array<{ path: string; content: string }> }).files;
-  const allText = cloneFiles.map((f) => f.content).join('\n');
+  const archive = ((await exportRes.json()) as { archive: { base64: string } }).archive;
+  const cloneZip = await JSZip.loadAsync(archive.base64, { base64: true });
+  const contents: string[] = [];
+  for (const entry of Object.values(cloneZip.files)) {
+    if (!entry.dir) {
+      contents.push(await entry.async('string'));
+    }
+  }
+  const allText = contents.join('\n');
+  expect(allText.length).toBeGreaterThan(0);
   expect(allText).not.toContain(PII_EMAIL);
   expect(allText).not.toContain(PII_PHONE);
   expect(allText).toContain('[PII:email masked on remix]');
