@@ -385,13 +385,42 @@ export class WorkspaceManager {
    */
   async workspaceDataZone(namespace: string, pvcName: string): Promise<string | undefined> {
     try {
-      const pvc = await this.k8s.get('pvc', namespace, pvcName);
-      const volumeName = (pvc as { spec?: { volumeName?: string } } | undefined)?.spec?.volumeName;
+      const pvc = (await this.k8s.get('pvc', namespace, pvcName)) as
+        | {
+            metadata?: { annotations?: Record<string, string> };
+            spec?: { volumeName?: string };
+          }
+        | undefined;
+
+      /*
+       * Preferred path — no extra RBAC: WaitForFirstConsumer stamps the chosen
+       * node on the PVC (`volume.kubernetes.io/selected-node`), and the manager
+       * may read nodes (capacity-reader). Proven necessary live 2026-07-20: the
+       * manager SA could NOT `get persistentvolumes` (cluster-scoped), so the
+       * PV-affinity path below silently returned undefined and the deadlock fix
+       * never engaged.
+       */
+      const selectedNode = pvc?.metadata?.annotations?.['volume.kubernetes.io/selected-node'];
+
+      if (selectedNode) {
+        const node = (await this.k8s.get('node', namespace, selectedNode).catch(() => undefined)) as
+          | { metadata?: { labels?: Record<string, string> } }
+          | undefined;
+        const zone = node?.metadata?.labels?.['topology.kubernetes.io/zone'];
+
+        if (zone) {
+          return zone;
+        }
+      }
+
+      const volumeName = pvc?.spec?.volumeName;
 
       if (!volumeName) {
         return undefined;
       }
 
+      // Fallback: the bound PV's nodeAffinity (needs `get persistentvolumes`,
+      // granted to the capacity-reader ClusterRole alongside this fix).
       const pv = await this.k8s.get('pv', namespace, volumeName);
       const terms =
         (
