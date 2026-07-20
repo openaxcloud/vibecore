@@ -43,9 +43,9 @@ p0s:
     status: PROVEN
     commit: "07ced1c5"
     reviewer: UNKNOWN
-    evidenceId: services/api/src/artifact-promotion.spec.ts
-    proof: "promoteArtifact découvre+relie+vérifie+BinAuthz ; 4 tests négatifs (SBOM manquant, relink échoué, BinAuthz refusé, source absente) prouvent le blocage. Adapter AR live = follow-up (🟡)"
-    nextAction: "Implémenter l'adapter Artifact Registry live + promotion réelle"
+    evidenceId: docs/deploy-evidence/2026-07-20-artifact-promotion/
+    proof: "promoteArtifact découvre+relie+vérifie+BinAuthz ; 4 tests négatifs unitaires. ADAPTER AR LIVE désormais IMPLÉMENTÉ + PROUVÉ contre un vrai registre OCI-1.1 (zot, API referrers = protocole AR) : promotion réelle par digest (image + signature + SBOM + provenance re-liés/vérifiés dans la cible), fallback tag-schema prouvé, 2 négatifs live (signature invalide, signataire hors policy → refus + rollback couplé). Preuve hashée EV-AR-LIVE-PROMOTION-2026-07-20. Reste (🟡) : run contre GCP AR réel = BLOCKED creds."
+    nextAction: "BLOCKED (Avi) : rejouer l'adapter contre le GCP AR réel (staticBearerAuth gcloud + PromotionIdentity + dépôt tenant) et câbler dans server-deploy-revision."
     targetDate: "2026-08-15"
 
   # ============================================================================
@@ -157,11 +157,11 @@ p0s:
     status: OPEN
     commit: "07ced1c5"
     reviewer: UNKNOWN
-    evidenceId: services/api/src/artifact-promotion.spec.ts
-    proof: "PARTIEL : machine à états PROMOTION_PREPARED→…→PROMOTION_COMMITTED + 4 tests négatifs bloquants (SBOM manquant, relink échoué, BinAuthz refusé, source absente). RESTE : adapter AR LIVE (OCI referrers) + promotion réelle vérifiée dans le repo tenant. CONTRAINTE (GCP-12) : attachments = PREVIEW ⇒ fallback BinAuthz/Container Analysis + ORAS + exit strategy OBLIGATOIRES."
+    evidenceId: docs/deploy-evidence/2026-07-20-artifact-promotion/
+    proof: "AVANCE MAJEURE : adapter AR live implémenté (artifact-registry-live-adapter.ts) + promotion réelle PROUVÉE contre un vrai registre OCI-1.1 (zot, API referrers = protocole AR) — copie image par digest + referrers re-liés + vérif signature/policy DANS LE CONTEXTE CIBLE + fallback tag-schema + rétention couplée, 2 négatifs live. EV-AR-LIVE-PROMOTION-2026-07-20 (hashé). RESTE OUVERT car la clôture exige le run + déploiement contre le GCP AR RÉEL — BLOCKED : nécessite d'Avi un dépôt tenant AR + PromotionIdentity, et confirmation du launch stage attachments AR (Preview/GA)."
     dependances: [UNK-AR-LIVE-PROMOTION]
     conditionDeCloture: "Promotion réelle : copie image + referrers + vérif signatures + policy tenant + déploiement, avec fallback prouvé"
-    nextAction: "Adapter AR live + preuve dans le contexte cible"
+    nextAction: "BLOCKED (Avi) : mêmes assertions rejouées contre le GCP AR réel + câblage server-deploy-revision"
     targetDate: "2026-08-15"
   - p0Id: P0-V3-08
     title: "Rollback non reproductible avec de simples refs secrets"

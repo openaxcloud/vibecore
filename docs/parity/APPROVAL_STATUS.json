@@ -286,10 +286,12 @@
           "stage": "publish",
           "green": true,
           "proofIds": [
-            "E2E-PHASEB-NODE"
+            "E2E-PHASEB-NODE",
+            "E2E-AR-LIVE-PROMOTION"
           ],
           "clients": [
-            "api"
+            "api",
+            "tsx+docker+zot"
           ],
           "uiProven": false
         },
@@ -354,8 +356,8 @@
       "done": 4
     },
     "e2e": {
-      "total": 12,
-      "proven": 12
+      "total": 13,
+      "proven": 13
     },
     "p1": {
       "total": 40,
@@ -993,6 +995,12 @@
       "evidenceId": "docs/deploy-evidence/2026-07-15-phase-b/",
       "fileCount": 8,
       "evidenceSha256": "bdc9e89824cb10582d9f7b8a904e125caa4f00b22834bc4fc63c3c44e071b657"
+    },
+    {
+      "proofId": "E2E-AR-LIVE-PROMOTION",
+      "evidenceId": "docs/deploy-evidence/2026-07-20-artifact-promotion/",
+      "fileCount": 4,
+      "evidenceSha256": "c89151289ac0b71bfc538c7a410f74c4fa67b4e53446f09e477e1211c0385e0a"
     },
     {
       "proofId": "E2E-AUTOSCALE-Z",

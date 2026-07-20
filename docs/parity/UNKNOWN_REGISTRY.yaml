@@ -10,7 +10,15 @@ unknowns:
     question: "La promotion réelle contre un Artifact Registry live copie-t-elle bien signature+SBOM+provenance (avec fallback ORAS/BinAuthz vu GCP-12 Preview) ?"
     owner: platform
     priority: 4
-    nextAction: "Implémenter l'adapter AR live (API OCI referrers) + une promotion réelle + test négatif attachment manquant + fallback prouvé"
+    partialResolution: >
+      RÉPONDU pour un vrai registre OCI-1.1 (protocole OCI Distribution + API
+      referrers, identique à AR sauf l'auth) : adapter live implémenté
+      (services/api/src/artifact-registry-live-adapter.ts) + promotion réelle par
+      digest prouvée (image + signature + SBOM + provenance re-liés et vérifiés
+      dans la cible), fallback tag-schema prouvé, 2 négatifs (signature invalide,
+      signataire hors policy) → refus + rollback. Preuve hashée :
+      docs/deploy-evidence/2026-07-20-artifact-promotion/ (EV-AR-LIVE-PROMOTION-2026-07-20).
+    nextAction: "BLOCKED (accès GCP requis d'Avi) : rejouer le MÊME adapter contre le Google Artifact Registry réel via staticBearerAuth(gcloud) + PromotionIdentity + dépôt tenant, et confirmer le launch stage des attachments AR (Preview vs GA)."
     targetDate: "2026-08-15"
     expiration: "2026-08-31"
   - unknownId: UNK-GALLERY-REPORT-FLOW

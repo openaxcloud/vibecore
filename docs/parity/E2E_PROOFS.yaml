@@ -16,6 +16,18 @@ proofs:
     status: PROVEN
     provenAt: "2026-07-15"
     vertical: publish        # audit v4 H — approval vertical stage
+  - proofId: E2E-AR-LIVE-PROMOTION
+    title: "Promotion Artifact Registry par digest + referrers (adapter live) contre un vrai registre OCI-1.1"
+    fixtures: { account: n/a-infra, plan: n/a, region: local-docker, client: tsx+docker+zot }
+    steps: ["seed image+3 attestations (sig cosign/SBOM/provenance) dans source/app", "promoteArtifact via OciDistributionAdapter → tenant-abc/app", "re-découverte referrers dans la cible (API + brute)", "fallback tag-schema source+tenant", "NÉG signature invalide → refus+rollback", "NÉG signataire hors policy → refus+rollback"]
+    expected: "PROMOTION_COMMITTED : image + sig+SBOM+prov re-liés/vérifiés dans la cible ; 2 négatifs → PROMOTION_BINAUTHZ_DENIED + image cible 404 (rétention couplée)"
+    evidenceId: docs/deploy-evidence/2026-07-20-artifact-promotion/
+    screenshots: n/a
+    logs: yes
+    traceIds: "zot-access.log 274 lignes (GET referrers 200, copies cross-repo, DELETE) ; EV-AR-LIVE-PROMOTION-2026-07-20"
+    status: PROVEN
+    provenAt: "2026-07-20"
+    vertical: publish
   - proofId: E2E-AUTOSCALE-Z
     title: "Machine sizes + metering runtime + cron (zone autoscale Z2–Z5)"
     fixtures: { account: qa, plan: pro-override, region: europe-west9, client: api+kubectl }

@@ -1,0 +1,200 @@
+{
+  "evidenceId": "EV-AR-LIVE-PROMOTION-2026-07-20",
+  "plan": "PLAN_PARITE_REPLIT §13.5",
+  "unknownId": "UNK-AR-LIVE-PROMOTION",
+  "registry": "zot (OCI-1.1, Referrers API) via Docker — throwaway local registry, NOT prod",
+  "durationMs": 10765,
+  "stateMachine": [
+    "PROMOTION_PREPARED",
+    "IMAGE_COPIED_BY_DIGEST",
+    "REFERRERS_DISCOVERED",
+    "METADATA_COPIED",
+    "TARGET_SIGNATURE_VERIFIED",
+    "TARGET_POLICY_VERIFIED",
+    "PROMOTION_COMMITTED"
+  ],
+  "results": {
+    "positive": {
+      "imageDigest": "sha256:fe6c60c12f926ab4e1ef60556b41c8f7525212f53ed025abd6a4ca77e052d095",
+      "promoted": [
+        "signature",
+        "sbom",
+        "provenance"
+      ]
+    },
+    "fallback": "tag-schema discovery OK",
+    "neg1_invalid_signature": "PROMOTION_BINAUTHZ_DENIED",
+    "neg2_untrusted_signer": "PROMOTION_BINAUTHZ_DENIED"
+  },
+  "steps": [
+    {
+      "step": "registry.image",
+      "detail": "ghcr.io/project-zot/zot-linux-amd64@sha256:34f18f783037f967dba10df02f9d4086c4d626f5643ef9f5e51e4a4547280a0b"
+    },
+    {
+      "step": "registry.ready",
+      "detail": {
+        "host": "localhost:5057"
+      }
+    },
+    {
+      "step": "positive.seeded",
+      "detail": {
+        "source": "localhost:5057/source/app",
+        "imageDigest": "sha256:fe6c60c12f926ab4e1ef60556b41c8f7525212f53ed025abd6a4ca77e052d095"
+      }
+    },
+    {
+      "step": "positive.source.referrers",
+      "detail": [
+        "application/vnd.dev.cosign.simplesigning.v1+json",
+        "application/vnd.cyclonedx+json",
+        "application/vnd.in-toto+json"
+      ]
+    },
+    {
+      "step": "assert.ok",
+      "detail": "source has 3 attestations (Referrers API)"
+    },
+    {
+      "step": "positive.promoted",
+      "detail": {
+        "ok": true,
+        "promoted": [
+          "signature",
+          "sbom",
+          "provenance"
+        ],
+        "gate": [
+          "signature verified AND signer policy satisfied in target"
+        ]
+      }
+    },
+    {
+      "step": "assert.ok",
+      "detail": "promotion committed"
+    },
+    {
+      "step": "assert.ok",
+      "detail": "tenant image present after promotion"
+    },
+    {
+      "step": "positive.tenant.referrers",
+      "detail": [
+        "application/vnd.cyclonedx+json",
+        "application/vnd.dev.cosign.simplesigning.v1+json",
+        "application/vnd.in-toto+json"
+      ]
+    },
+    {
+      "step": "assert.ok",
+      "detail": "tenant has all 3 attestations re-linked (Referrers API in TARGET)"
+    },
+    {
+      "step": "assert.ok",
+      "detail": "every tenant attestation subject === target image digest"
+    },
+    {
+      "step": "assert.ok",
+      "detail": "registry Referrers API confirms 3 attestations in tenant"
+    },
+    {
+      "step": "fallback.source.referrers",
+      "detail": [
+        "application/vnd.cyclonedx+json",
+        "application/vnd.dev.cosign.simplesigning.v1+json",
+        "application/vnd.in-toto+json"
+      ]
+    },
+    {
+      "step": "assert.ok",
+      "detail": "tag-schema FALLBACK discovers all 3 attestations at SOURCE (ORAS/referrers fallback read)"
+    },
+    {
+      "step": "fallback.tenant.referrers",
+      "detail": [
+        "application/vnd.cyclonedx+json",
+        "application/vnd.dev.cosign.simplesigning.v1+json",
+        "application/vnd.in-toto+json"
+      ]
+    },
+    {
+      "step": "assert.ok",
+      "detail": "tag-schema FALLBACK discovers all 3 attestations at TENANT (adapter-maintained fallback index)"
+    },
+    {
+      "step": "neg1.invalid_signature",
+      "detail": {
+        "code": "PROMOTION_BINAUTHZ_DENIED",
+        "reasons": [
+          "TARGET_SIGNATURE_VERIFIED failed: signature does not verify for target image digest"
+        ]
+      }
+    },
+    {
+      "step": "assert.ok",
+      "detail": "NEG-1 invalid signature ⇒ PROMOTION_BINAUTHZ_DENIED"
+    },
+    {
+      "step": "assert.ok",
+      "detail": "NEG-1 refused specifically on signature verification"
+    },
+    {
+      "step": "NEG-1.rollback",
+      "detail": {
+        "imageStatus": 404,
+        "fallbackTagStatus": 404,
+        "residualOrphanAttestations": 3
+      }
+    },
+    {
+      "step": "assert.ok",
+      "detail": "NEG-1 tenant image ROLLED BACK — no pullable image (404)"
+    },
+    {
+      "step": "assert.ok",
+      "detail": "NEG-1 tag-schema discovery pointer removed (404)"
+    },
+    {
+      "step": "assert.ok",
+      "detail": "NEG-1 residual attestations (if any) orphaned to a deleted subject — nothing verifiable remains (coupled retention)"
+    },
+    {
+      "step": "neg2.untrusted_signer",
+      "detail": {
+        "code": "PROMOTION_BINAUTHZ_DENIED",
+        "reasons": [
+          "TARGET_POLICY_VERIFIED failed: signer not in allowed-signers policy"
+        ]
+      }
+    },
+    {
+      "step": "assert.ok",
+      "detail": "NEG-2 policy not satisfied ⇒ PROMOTION_BINAUTHZ_DENIED"
+    },
+    {
+      "step": "assert.ok",
+      "detail": "NEG-2 refused specifically on signer policy"
+    },
+    {
+      "step": "NEG-2.rollback",
+      "detail": {
+        "imageStatus": 404,
+        "fallbackTagStatus": 404,
+        "residualOrphanAttestations": 3
+      }
+    },
+    {
+      "step": "assert.ok",
+      "detail": "NEG-2 tenant image ROLLED BACK — no pullable image (404)"
+    },
+    {
+      "step": "assert.ok",
+      "detail": "NEG-2 tag-schema discovery pointer removed (404)"
+    },
+    {
+      "step": "assert.ok",
+      "detail": "NEG-2 residual attestations (if any) orphaned to a deleted subject — nothing verifiable remains (coupled retention)"
+    }
+  ]
+}
