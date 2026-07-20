@@ -334,6 +334,10 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
    * un PLANCHER: un P0 déclaré OPEN reste OPEN même s'il porte des preuves
    * partielles — la preuve d'une partie n'est pas la preuve du tout.
    */
+  // Reçus de revue (règle maîtresse 20/07) — chargés AVANT le rollup.
+  const reviewReceiptsDoc = existsSync(join(parityRoot, 'REVIEW_RECEIPT_REGISTRY.yaml')) ? yaml('REVIEW_RECEIPT_REGISTRY.yaml') : { receipts: [] };
+  const reviewReceiptById = new Map((reviewReceiptsDoc.receipts ?? []).map((r) => [r.reviewReceiptId, r]));
+
   const p0Rollup = (p0.p0s ?? []).map((item) => {
     const hasProof = Boolean(item.commit && item.proof && item.evidenceId);
     const reviewed = Boolean(item.reviewer && item.reviewer !== 'UNKNOWN');
@@ -341,8 +345,20 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
     let derived = 'OPEN';
 
     if (item.status !== 'OPEN' && item.status !== 'BLOCKED') {
-      if (hasProof && reviewed) {
+      /*
+       * RÈGLE MAÎTRESSE (20/07) : CLOSED seulement si le reçu de revue qui
+       * accepte ce point est COMPLET (responseHash réel). Un point signé sur
+       * un reçu incomplet, ou remédié en attente de re-signature, dérive
+       * PROVEN_REVIEW_PENDING — jamais CLOSED.
+       */
+      const receipt = reviewReceiptById.get(item.reviewReceiptId);
+      const receiptClosesIt =
+        receipt?.completeness === 'COMPLETE' && (receipt?.decisions?.accepted ?? []).includes(item.p0Id);
+
+      if (hasProof && reviewed && receiptClosesIt) {
         derived = 'CLOSED';
+      } else if (hasProof && (reviewed || item.status === 'PROVEN_REVIEW_PENDING')) {
+        derived = 'PROVEN_REVIEW_PENDING';
       } else if (hasProof) {
         derived = 'PROVEN';
       }
@@ -880,6 +896,7 @@ export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
     p0: {
       total: p0Rollup.length,
       closed: p0Rollup.filter((p) => p.derived === 'CLOSED').length,
+      provenReviewPending: p0Rollup.filter((p) => p.derived === 'PROVEN_REVIEW_PENDING').length,
       proven: p0Rollup.filter((p) => p.derived === 'PROVEN').length,
       open: p0Rollup.filter((p) => p.derived === 'OPEN').length,
     },

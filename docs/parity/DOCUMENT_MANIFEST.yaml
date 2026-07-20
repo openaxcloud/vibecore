@@ -2,7 +2,7 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 153
+fileCount: 158
 generatedAt: "2026-07-20T15:39:32Z"
 generatedFromCommit: af24d4fe48015e6041c8e11b240b1f2d54f333d1
 mergedCommit: af24d4fe48015e6041c8e11b240b1f2d54f333d1
@@ -29,7 +29,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "fad62b44b47c86a41f1986d4f72235c105a05af19b26c53e38bd049c668c6561"
+    sha256: "c94cb05dbd8e9114ca240c13f7be7d4643a38b56ad9a98dea7a84d7651f371d7"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -64,7 +64,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CHANGELOG_AUDIT.md
-    sha256: "6605eb692c12fb824fe39ee9cad888b02d97dc8ca48f27096f9aa860455e7988"
+    sha256: "04b977c66308262fb2f0b953a3978c6d9e7ed05441015b4e134dcf86aae21da5"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
@@ -88,6 +88,11 @@ documents:
     schemaVersion: 1
     repoCommit: 42a48091
     reviewer: UNKNOWN
+  - file: COUNTER_RECONCILIATION_20260720.md
+    sha256: "b409d5aff395211942fb484a825ac9c9d904341d98b1a2d1ffbe7f95db2330b6"
+    schemaVersion: 1
+    repoCommit: null
+    reviewer: UNKNOWN
   - file: COVERAGE_GAP_AUDIT_2026-07-17.md
     sha256: "3db24e4e12264e27e6e5a0d043cd99a1399a8bf5c16bc84f9da146f6ab24b81e"
     schemaVersion: null
@@ -104,7 +109,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: DECISION_REGISTRY.yaml
-    sha256: "edae9e6d9b3f78017960f0442895800d564223fcaee3971062be329e0d81bdaa"
+    sha256: "ca8c4d083a35ace55a16cf6dd2480c304d88328a4b3d64af7a942975aa5f7b70"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -209,7 +214,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "18fe924427e7ec0d35af5dfc156e919248cbc4d2d7828d02d2b243c473b470bb"
+    sha256: "262787b845f2825f9cd024c06e96e7e11f3ded5f68677fcd5925acbe826300a9"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -219,7 +224,7 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "93e6275229e4730674e55b7349a5f9a07788e44e7084757e93a24f041698c2dc"
+    sha256: "bcd202266ddd12d01dc1eca20ff7639b1f110a370e0a609a5ece6f713d994e91"
     schemaVersion: 2
     repoCommit: af24d4fe
     reviewer: UNKNOWN
@@ -293,6 +298,16 @@ documents:
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
+  - file: REVIEWER_RESUBMISSION_A_20260720.md
+    sha256: "98700dfc5ffd7e8249bc3dfa84561b7a140ee91711f43b90bd2971de97787cf4"
+    schemaVersion: null
+    repoCommit: null
+    reviewer: UNKNOWN
+  - file: REVIEW_RECEIPT_REGISTRY.yaml
+    sha256: "4df3e538171ed1c95952bb5e15df7a65a54a829db1996933c1dc2f84e96ce986"
+    schemaVersion: 1
+    repoCommit: a4a9f71c
+    reviewer: UNKNOWN
   - file: ROUTE_OBSERVATION_REGISTRY.yaml
     sha256: "10ec45974830841dc2bf1734358c04a312f8aed6ac02672456e9f8540c38c4bb"
     schemaVersion: 1
@@ -328,6 +343,11 @@ documents:
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
+  - file: SUPERSESSION_REGISTRY.yaml
+    sha256: "094801832495e8e1385a9584603ba8037f49662d050300aab624a58779b82643"
+    schemaVersion: 1
+    repoCommit: a4a9f71c
+    reviewer: UNKNOWN
   - file: SURFACE_REGISTRY.yaml
     sha256: "b0af412c1fd3a11ff86de86f3c88dabd9a5b4155f0bbbc14ead6fa9b31a39f3e"
     schemaVersion: 3
@@ -342,6 +362,11 @@ documents:
     sha256: "a650fa35cd707cb218c5a223ca7ac36512d5ed2457e3fe5aada7ca41b6b1260e"
     schemaVersion: 2
     repoCommit: b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5
+    reviewer: UNKNOWN
+  - file: V3_05_REMIX_AUDIT_20260720.md
+    sha256: "992325c856380f5244d82f84d9fda167f991f9932b1e68c19dfecc31511afb34"
+    schemaVersion: 1
+    repoCommit: a4a9f71c
     reviewer: UNKNOWN
   - file: WORKSPACE_STORAGE_CONTRACT.md
     sha256: "8d2a3a5fe20ecfa399fafa37bd990991ab35455e9a562e97b68cd85d07a70c9e"
@@ -764,7 +789,7 @@ documents:
     repoCommit: null
     reviewer: UNKNOWN
   - file: schemas/p0-registry.schema.json
-    sha256: "9ac22c744146fc6f578a1e163912d33d483e5cfb39c580ff1d3422e7fdc8da25"
+    sha256: "eb82f47801610d9246d238ef4f822f34533c4954bac747d4126ef0ee66683a60"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN

@@ -1,0 +1,36 @@
+# REVIEW_RECEIPT_REGISTRY — reçus de revue IMMUABLES (directive Avi 20/07).
+# Règle maîtresse : un P0 ne passe CLOSED que s'il est accepté dans un reçu
+# COMPLET (responseHash réel). reviewer: UNKNOWN + « signé » = interdit.
+# Un reçu ne se modifie JAMAIS après coup — une nouvelle revue = nouveau reçu.
+schemaVersion: 1
+repoCommit: a4a9f71c
+receipts:
+  - reviewReceiptId: RR-20260720-CODEX-01
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewerModelVersion: "UNKNOWN — version exacte du modèle non transmise avec le verdict ; à consigner si Avi la fournit"
+    reviewedAt: "2026-07-20T15:20:41+03:00"   # date de publication des signatures (commit 57febeab)
+    auditedCommit: "646e75ca"                  # commit de référence du paquet soumis
+    signaturesPublishedInCommit: "57febeab"
+    inputDocuments:
+      - path: docs/parity/REVIEWER_PACKET_EXPERT_20260720.md
+        sha256: "55d699db54d8aa70afc97b7b061c61743a0e159aa8261efed56beed96ed9e6f6"  # état au commit 57febeab^
+      - path: docs/parity/P0_REGISTRY.yaml
+        sha256Prefix: "30dcc5aabb8b8fa8"       # état au commit 57febeab^
+    responseHash: "UNKNOWN — la réponse brute du relecteur n'a pas été fournie comme fichier ; le verdict a été transmis par Avi (canal de pilotage) et ses raisons verbatim sont consignées point par point dans P0_REGISTRY (refusalReason). TANT QUE ce hash est UNKNOWN, AUCUN point de ce reçu ne peut être CLOSED (règle maîtresse) — fournir le texte brut de la réponse pour compléter le reçu."
+    ciAttestationRunId: 29739384301           # run vert du commit sur lequel les preuves étaient assises
+    summary: "22 acceptés / 33 refusés / 0 des 14 contrats signés"
+    decisions:
+      accepted: [P0-V3-14, P0-A2-02, P0-A2-04, P0-A2-06, P0-A2-08, P0-A2-11,
+                 P0-LS-01, P0-LS-02, P0-LS-05, P0-LS-07, P0-LS-08, P0-LS-09,
+                 P0-LS-10, P0-LS-11, P0-LS-12, P0-LS-15, P0-LS-17, P0-LS-18,
+                 P0-EX-01, P0-EX-03, P0-EX-06, P0-EX-09]
+      refused: [P0-A2-01, P0-A2-03, P0-A2-05, P0-A2-07, P0-A2-09, P0-A2-10,
+                P0-A2-13, P0-A2-14, P0-B-01, P0-EX-02, P0-EX-04, P0-EX-05,
+                P0-EX-07, P0-EX-08, P0-EX-10, P0-LS-03, P0-LS-04, P0-LS-06,
+                P0-LS-13, P0-LS-14, P0-LS-16, P0-V3-02, P0-V3-03, P0-V3-04,
+                P0-V3-08, P0-V3-09, P0-V3-10, P0-V3-11, P0-V3-12, P0-V3-13,
+                P0-V4-1, P0-V4-2, P0-V4-3]
+      contractsRefused: 14   # 0/14 signés — raisons par fichier (reviewVerdict/refusalReason dans chaque contrat)
+    refusalReasonsLocation: "P0_REGISTRY.yaml (champ refusalReason, verbatim) + annotations des 14 fichiers de contrat"
+    completeness: INCOMPLETE   # responseHash + version modèle manquants → CLOSED interdit sur ce reçu
