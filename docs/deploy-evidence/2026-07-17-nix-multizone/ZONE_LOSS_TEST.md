@@ -34,10 +34,25 @@ le clone du store sur cette zone ; un workspace neuf (PVC pas encore lié)
 garde le choix par capacité. Spec 7/7 (dont le cas deadlock et le
 fallthrough zone-épinglée-sans-clone).
 
-La re-preuve de la jambe « restauration » (workspace data-b re-schedule en
-zone-b post-restauration + workspace NEUF post-restauration → zone-a, même
-génération vérifiée par le guard) suit le déploiement du fix — voir la
-section suivante quand elle est remplie.
+## Jambe « restauration » — RE-PROUVÉE (2026-07-20, manager `390e55ff1c`, release rev 878)
+
+Deux couches du fix se sont révélées nécessaires, chacune découverte par le
+test live (les tests unitaires passaient) :
+- v1 (lecture nodeAffinity du PV) était INERTE : le SA du manager n'a pas
+  `get persistentvolumes` — Forbidden avalé par le catch. v2 lit l'annotation
+  `volume.kubernetes.io/selected-node` du PVC (autorisé) → zone du node ; PV
+  en repli, grant posé hors chart (`infra/k8s-manual/nix-pv-reader-rbac.yaml`
+  — un ClusterRole géré par le chart fait échouer le CD : le SA CI n'a pas
+  `container.clusterRoles.update`, prouvé rev 874 failed + rollback atomique).
+
+| Preuve | Résultat |
+|---|---|
+| 1. Workspace au disque data né en zone-b (pendant la panne), re-provisionné post-restauration | pod **zone-b** (pin annotation), monte `nix-store-v2-b-pvc`, guard exit 0 : `nix store generation verified (sha256:3029b581…)` — le deadlock d'affinités est mort |
+| 2. Workspace FRAIS post-restauration (data PVC supprimé, projet jetable) | pod **zone-a** (zone préférée à capacité égale), monte le disque ORIGINAL `nix-store-v2-pvc`, guard : **même hash** `3029b581…` |
+
+**Sans split-brain de génération : PROUVÉ** — chaque montage, dans chaque
+zone, avant/pendant/après la panne, a été validé par le guard contre le même
+contentHash.
 
 ## Split-brain de génération
 
@@ -48,9 +63,10 @@ test, aucune divergence : le guard a validé la même génération en zone-b
 (phase panne) — la validation zone-a post-restauration est incluse dans la
 re-preuve ci-dessus.
 
-## Verdict provisoire
+## Verdict FINAL — D3.3 VERT ✅ (2026-07-20)
 
-Perte de zone : **prouvée de bout en bout** (provision → uv/python → Preview
-→ Publish, tout en zone-b, génération vérifiée). Restauration : fix déployé,
-re-preuve en cours. **Python-par-défaut / allowlist `'*'` : toujours
-INTERDIT** tant que la jambe restauration n'est pas re-prouvée verte.
+Perte de zone : prouvée bout en bout (provision → uv/python → Preview →
+Publish, tout en zone-b, génération vérifiée). Restauration : re-prouvée dans
+les deux sens, sans split-brain. Le prérequis technique de Python-par-défaut
+est rempli ; **l'activation de l'allowlist `'*'` reste une décision à
+prendre explicitement (GO d'Avi), pas un automatisme.**

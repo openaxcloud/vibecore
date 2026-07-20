@@ -20,12 +20,6 @@ rules:
   - apiGroups: [""]
     resources: ["nodes", "pods"]
     verbs: ["get", "list"]
-  # D3 multi-zone (2026-07-20): the manager reads a bound PV's nodeAffinity to
-  # pin a workspace's store clone to its data disk's zone (fallback path — the
-  # primary path reads the PVC's selected-node annotation). Read-only.
-  - apiGroups: [""]
-    resources: ["persistentvolumes"]
-    verbs: ["get"]
   - apiGroups: ["metrics.k8s.io"]
     resources: ["nodes", "pods"]
     verbs: ["get", "list"]
