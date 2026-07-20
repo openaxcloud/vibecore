@@ -2,7 +2,7 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 160
+fileCount: 161
 generatedAt: "2026-07-20T17:23:45Z"
 generatedFromCommit: 9cdee15266482971723efbece1865d9007f36ac3
 mergedCommit: 9cdee15266482971723efbece1865d9007f36ac3
@@ -49,9 +49,9 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: BILLING_LEDGER_CONTRACT.md
-    sha256: "217ee373f6bf22cefef25408a8ec443be878544fc99d5cd590d3e8d9fcc91611"
-    schemaVersion: 1
-    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+    sha256: "f1e877ab264ad8a3c967b2fb3f95f6ec1efe3ba8918580ce885e72b092331755"
+    schemaVersion: 2
+    repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: BOLT_DEBT_REGISTRY.yaml
     sha256: "fb5d2476f0a48c4021a864a4c2b83e09dc855429b7c985d035ccf819ebbbef27"
@@ -64,7 +64,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CHANGELOG_AUDIT.md
-    sha256: "1f89b4140e9596c4130f71763d25beb6fdfb20a4653303f17d3ce7424ab475ff"
+    sha256: "31f0ffdd02e612cfcae9a9924406b69b9a5539c42762ff739c6b3b508cb1aece"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
@@ -88,8 +88,13 @@ documents:
     schemaVersion: 1
     repoCommit: 42a48091
     reviewer: UNKNOWN
+  - file: CONTRACT_REGISTRY.yaml
+    sha256: "7a39b2c357af3c8c263625ad5a6b2495e1e7f6e18f81e2f59d541b3ceb21a431"
+    schemaVersion: 1
+    repoCommit: 1692f981
+    reviewer: UNKNOWN
   - file: COUNTER_RECONCILIATION_20260720.md
-    sha256: "e5768ad72b26830b71571e6f0ccb0dbd0e1b265f9c80678544f46ed719e1d177"
+    sha256: "992330f3ae607442150e32ffd77173a14b00c7ab9dff743eff0a3c399bc35e19"
     schemaVersion: 1
     repoCommit: null
     reviewer: UNKNOWN
@@ -149,9 +154,9 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: GALLERY_COMMUNITY_CONTRACT.md
-    sha256: "5081297a3b8bcac16c8a74fd8674de41238b2eab6f4d71987303ed1cf1f7f72b"
-    schemaVersion: 1
-    repoCommit: 57ab0a67d068e5dad0faea5166ac4d18c1713f03
+    sha256: "d63fbd4340b31889fcb8b40a698f637784cdb609ee59f8bdb84df9b2af2cfa11"
+    schemaVersion: 2
+    repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: GENERATED_ASSET_KIND_REGISTRY.yaml
     sha256: "53cc7554ea6ebda0c913d35abd098ff2e4ff4285e76af3475f25b9748486e6d2"
@@ -184,9 +189,9 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: IMPORT_REMIX_CONTRACT.md
-    sha256: "f3e48dd85a1727fbdb538aa26a2961e7b145fc71337a049aae3a8270f86bbc81"
-    schemaVersion: 1
-    repoCommit: ca299f87
+    sha256: "763de490e003df7ee03b2528d4508ecb5fff7577d13413dc0b7e14cd6f7713e6"
+    schemaVersion: 2
+    repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: LEGACY_FINDING_REGISTRY.yaml
     sha256: "07da31df62de1b18faf0bd77d1eec9dd7b564a3660af346b7aac1b0fd2ac7071"

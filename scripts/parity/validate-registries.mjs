@@ -819,6 +819,56 @@ function checkHeader(file, doc) {
   checked.push(`SUPERSESSION_REGISTRY (couverture aliases 100%, 164 et 122 dérivés des tables)`);
 }
 
+/* ---- 12quater. CONTRACT_REGISTRY — 14 contrats UN PAR UN (C5) ----------- */
+{
+  const cr = loadYaml(join(parityRoot, 'CONTRACT_REGISTRY.yaml'));
+  const reviewReceiptsForContracts = existsSync(join(parityRoot, 'REVIEW_RECEIPT_REGISTRY.yaml')) ? loadYaml(join(parityRoot, 'REVIEW_RECEIPT_REGISTRY.yaml')) : { receipts: [] };
+  const entries = cr.contracts ?? [];
+
+  if (entries.length !== 14) {
+    fail('CONTRACT_REGISTRY.yaml', `${entries.length} contrats ≠ 14 (§2.3)`);
+  }
+
+  const HSTATES = ['HARDENED_PENDING_REVIEW', 'TO_HARDEN', 'BLOCKED_ON_CHANTIER'];
+
+  for (const c of entries) {
+    requireFields('CONTRACT_REGISTRY.yaml', c,
+      ['contractId', 'file', 'contractVersion', 'refusalReasonV1', 'hardeningStatus', 'expectedReviewer', 'signatureResult'],
+      c?.contractId ?? 'contract');
+
+    if (!HSTATES.includes(c.hardeningStatus)) {
+      fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: hardeningStatus "${c.hardeningStatus}" invalide`);
+    }
+
+    if (c.hardeningStatus === 'BLOCKED_ON_CHANTIER' && !c.blockedBy) {
+      fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: BLOCKED_ON_CHANTIER sans blockedBy — un blocage sans cause n'est pas honnête`);
+    }
+
+    const cp = join(parityRoot, c.file);
+
+    if (!existsSync(cp)) {
+      fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: fichier absent (${c.file})`);
+    } else if (c.hardeningStatus === 'HARDENED_PENDING_REVIEW') {
+      const ct = readFileSync(cp, 'utf8');
+
+      if (!ct.includes(`contractId: ${c.contractId}`) || !/contractVersion:\s*2/.test(ct)) {
+        fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: durci déclaré mais le fichier ne porte pas contractId + contractVersion 2`);
+      }
+    }
+
+    // RÈGLE MAÎTRESSE : SIGNED exige un reçu de revue COMPLET.
+    if (c.signatureResult === 'SIGNED') {
+      const receipt = (reviewReceiptsForContracts.receipts ?? []).find((r) => r.reviewReceiptId === c.reviewReceiptId);
+
+      if (!receipt || receipt.completeness !== 'COMPLETE') {
+        fail('CONTRACT_REGISTRY.yaml', `${c.contractId}: SIGNED sans reçu COMPLET`);
+      }
+    }
+  }
+
+  checked.push(`CONTRACT_REGISTRY (14 contrats individuels, ${entries.filter((c) => c.hardeningStatus === 'HARDENED_PENDING_REVIEW').length} durcis, ${entries.filter((c) => c.hardeningStatus === 'BLOCKED_ON_CHANTIER').length} bloqués motivés)`);
+}
+
 /* ---- 12bis. COUNTER_RECONCILIATION est CALCULÉ (directive 20/07) ------- */
 {
   const genPath = join(here, 'generate-counter-reconciliation.mjs');

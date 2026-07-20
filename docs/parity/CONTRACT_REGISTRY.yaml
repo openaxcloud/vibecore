@@ -1,0 +1,119 @@
+# CONTRACT_REGISTRY — les 14 contrats §2.3, UN PAR UN (chantier C5, directive
+# Avi : « jamais un point opaque unique »). Chaque entrée : ID, version,
+# reviewer attendu, refus verbatim v1, état de durcissement, résultat de
+# signature. Un contrat ne passe SIGNED que via un ReviewReceipt COMPLET.
+schemaVersion: 1
+repoCommit: 1692f981
+contracts:
+  - contractId: CTR-BILLING-LEDGER
+    file: BILLING_LEDGER_CONTRACT.md
+    contractVersion: 2
+    refusalReasonV1: "shadow wallet pas ledger double-entrée"
+    hardeningStatus: HARDENED_PENDING_REVIEW
+    anchor: "PR #28 NON MERGÉE (mig 0078, triggers immutabilité, 39 tests dont 7 Postgres réels, I-LED-1..5)"
+    expectedReviewer: OpenAI-Codex
+    signatureResult: PENDING_REVIEW
+  - contractId: CTR-IMPORT-REMIX
+    file: IMPORT_REMIX_CONTRACT.md
+    contractVersion: 2
+    refusalReasonV1: "2 machines contradictoires ; le code + 15 tests prouvent encore l'ancienne"
+    hardeningStatus: HARDENED_PENDING_REVIEW
+    anchor: "PR #27 NON MERGÉE (UNE machine 14 états, e2e machine dédié, billing de sûreté idempotent) ; remix mergé prod"
+    expectedReviewer: OpenAI-Codex
+    signatureResult: PENDING_REVIEW
+  - contractId: CTR-GALLERY-COMMUNITY
+    file: GALLERY_COMMUNITY_CONTRACT.md
+    contractVersion: 2
+    refusalReasonV1: "hash obsolète + décision ouverte"
+    hardeningStatus: HARDENED_PENDING_REVIEW
+    anchor: "les 2 motifs levés ET signés (P0-LS-04/P0-A2-10 CLOSED, reçu RR-20260720-CODEX-02) ; fail-closed en prod (7e001f3d)"
+    expectedReviewer: OpenAI-Codex
+    signatureResult: PENDING_REVIEW
+  - contractId: CTR-DEPLOYMENT-TYPES
+    file: DEPLOYMENT_TYPES_CONTRACT.md
+    contractVersion: 1
+    refusalReasonV1: "preuve Static absente / Reserved non commencé / Scheduled hors E2E"
+    hardeningStatus: TO_HARDEN
+    anchor: "Autoscale + Scheduled prouvés live ; Static = preuve E2E dédiée à produire ; Reserved = chantier ACT-31"
+    expectedReviewer: OpenAI-Codex
+    signatureResult: REFUSED_V1
+  - contractId: CTR-RELEASE-PUBLISH
+    file: RELEASE_PUBLISH_CONTRACT.md
+    contractVersion: 1
+    refusalReasonV1: "pas de ReleaseCatalog/Manifest persistant ni UI live"
+    hardeningStatus: TO_HARDEN
+    anchor: "pipeline publish/rollback digest prouvés live ; ReleaseCatalog persistant = chantier"
+    expectedReviewer: OpenAI-Codex
+    signatureResult: REFUSED_V1
+  - contractId: CTR-PROJECT-MANIFEST-SCHEMA
+    file: PROJECT_MANIFEST_SCHEMA.json
+    contractVersion: 1
+    refusalReasonV1: "accepte contre-exemples + PENDING_COMMIT"
+    hardeningStatus: TO_HARDEN
+    anchor: "durcir le schéma (allOf réels, refus des contre-exemples) — travail de schéma pur, ancrable maintenant"
+    expectedReviewer: OpenAI-Codex
+    signatureResult: REFUSED_V1
+  - contractId: CTR-DOMAIN-MODEL
+    file: DOMAIN_MODEL.md
+    contractVersion: 1
+    refusalReasonV1: "modèle Import ancien + CloudTenant incomplet + Checkpoint/Release faibles"
+    hardeningStatus: TO_HARDEN
+    anchor: "§Import à aligner sur la machine PR #27 (ancrable) ; CloudTenant/Checkpoint dépendent de chantiers ouverts"
+    expectedReviewer: OpenAI-Codex
+    signatureResult: REFUSED_V1
+  - contractId: CTR-IDENTITY-COLLABORATION
+    file: IDENTITY_COLLABORATION_CONTRACT.md
+    contractVersion: 1
+    refusalReasonV1: "Group/Guest/AccessGrant non implémentés"
+    hardeningStatus: BLOCKED_ON_CHANTIER
+    blockedBy: "implémentation Group/Guest/AccessGrant (P0-EX-07 : P124 réel = PARTIAL, sans entité Guest)"
+    expectedReviewer: OpenAI-Codex
+    signatureResult: REFUSED_V1
+  - contractId: CTR-RUNTIME-NIX
+    file: RUNTIME_NIX_CONTRACT.md
+    contractVersion: 1
+    refusalReasonV1: "format lock incompatible + rotation inconnue"
+    hardeningStatus: TO_HARDEN
+    anchor: "store Nix v2 prouvé live (Phase B) ; format ecode.lock + politique rotation à contractualiser"
+    expectedReviewer: OpenAI-Codex
+    signatureResult: REFUSED_V1
+  - contractId: CTR-PROJECT-FACTORY
+    file: PROJECT_FACTORY_CONTRACT.md
+    contractVersion: 1
+    refusalReasonV1: "couvre pod/PVC pas la factory tenant GCP"
+    hardeningStatus: BLOCKED_ON_CHANTIER
+    blockedBy: "chantier CloudTenant/Factory GCP (CT-10/CT-11 restants ; preuves LIVE partielles zone/cloud-tenant-factory-iam)"
+    expectedReviewer: OpenAI-Codex
+    signatureResult: REFUSED_V1
+  - contractId: CTR-IAM-POLICY-BASELINE
+    file: IAM_POLICY_BASELINE.md
+    contractVersion: 1
+    refusalReasonV1: "inventaire non exhaustif sans tests négatifs"
+    hardeningStatus: TO_HARDEN
+    anchor: "inventaire à exhaustiver + tests négatifs (revoke→deny déjà prouvé 215s) ; lié WIF 3 chemins (A2-09, chantier D)"
+    expectedReviewer: OpenAI-Codex
+    signatureResult: REFUSED_V1
+  - contractId: CTR-CHECKPOINT
+    file: CHECKPOINT_CONTRACT.md
+    contractVersion: 1
+    refusalReasonV1: "tests unitaires mais aucun câblage réel"
+    hardeningStatus: BLOCKED_ON_CHANTIER
+    blockedBy: "câblage réel des checkpoints (machine testée unitairement, pas branchée bout en bout)"
+    expectedReviewer: OpenAI-Codex
+    signatureResult: REFUSED_V1
+  - contractId: CTR-SECURITY-PRIVACY
+    file: SECURITY_PRIVACY_COMPLIANCE.md
+    contractVersion: 1
+    refusalReasonV1: "threat model/rétention incomplets"
+    hardeningStatus: TO_HARDEN
+    anchor: "acquis réels à ancrer (masking PII prod, fail-closed licence, secret-scan pipeline) ; threat model + rétention à écrire"
+    expectedReviewer: OpenAI-Codex
+    signatureResult: REFUSED_V1
+  - contractId: CTR-OPERATIONS-DR
+    file: OPERATIONS_DR.md
+    contractVersion: 1
+    refusalReasonV1: "SLO/astreinte/chaos/RTO-RPO non prouvés"
+    hardeningStatus: BLOCKED_ON_CHANTIER
+    blockedBy: "exercices réels DR/restauration (PR-DR-01/02/03, WI-0051) — un plan non testé n'est pas un plan"
+    expectedReviewer: OpenAI-Codex
+    signatureResult: REFUSED_V1

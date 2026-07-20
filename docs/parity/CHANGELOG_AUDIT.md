@@ -638,3 +638,20 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
 - V3_05_REMIX_AUDIT_20260720.md : audit exigence par exigence — V3-05 PAS clos
   (reste : logs/historique secrets, attribution visible, merge #25, preuve
   live prod, re-signature).
+
+## 2026-07-20 (nuit — chantier C5, vague 1)
+
+- CONTRACT_REGISTRY.yaml : les 14 contrats §2.3 deviennent 14 ENTRÉES
+  INDIVIDUELLES (ID, version, refus verbatim v1, état de durcissement,
+  reviewer attendu, résultat de signature) + garde CI (14 exact, blocage
+  motivé obligatoire, durci ⇒ fichier v2, SIGNED ⇒ reçu COMPLET ; preuve
+  négative rejouée).
+- 3 contrats DURCIS v2 (structure Avi : préconditions/invariants/tests
+  négatifs/compatibilité/version/signature) :
+  CTR-BILLING-LEDGER (ancré PR #28 NON MERGÉE : I-LED-1..5, triggers
+  Postgres, 39 tests dont 7 DB réelle) ; CTR-IMPORT-REMIX (UNE machine à
+  14 états ancrée PR #27 NON MERGÉE + remix mergé prod) ;
+  CTR-GALLERY-COMMUNITY (2 motifs de refus levés ET signés — reçu -02).
+- 7 TO_HARDEN (prochaines vagues, ancrages notés) ; 4 BLOCKED_ON_CHANTIER
+  motivés (IDENTITY Group/Guest, PROJECT_FACTORY tenant GCP, CHECKPOINT
+  câblage, OPERATIONS_DR exercices réels) — pas gonflés.
