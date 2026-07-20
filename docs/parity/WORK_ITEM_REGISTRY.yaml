@@ -4,11 +4,18 @@
 # regroupement par pointeur de suivi normalisé + les 6 paires identifiées par
 # l'audit de réanalyse du 20/07 (GLC-L165/RB-L104, GLC-L169/RB-L106,
 # GLC-L164/RB-L099, GLC-L122/RB-L052, GLC-L053/CM-26, CM-7/OUT-EF-06).
-# La déduplication SÉMANTIQUE complète est un travail continu (P0-A2-12) —
-# ce registre en est l'état courant, pas une promesse d'exhaustivité.
+# Passe SÉMANTIQUE A2-12 (2026-07-20) : 2 proposeurs indépendants, seules les
+# fusions confirmées par les DEUX (intersection au niveau work item) sont
+# appliquées — OUT-EF-04→BD-21 (WI-0079), RPD-24→CM-34 (WI-0055, WI-0096
+# supprimé), BD-22 rattaché à WI-0044 (trackedBy=BD-22). Sur-regroupement
+# corrigé : WI-0033 agrégeait les 27 dettes BD par NOM DE FICHIER — éclaté en
+# items par livrable (WI-0100..WI-0123). Candidat NON appliqué (un seul
+# proposeur) : BD-20 (WI-0118) ↔ WI-0051 (exercice de restauration).
+# Détail : A2_12_DEDUP_SEMANTIQUE_20260720.md. Ce registre est l'état courant,
+# pas une promesse d'exhaustivité.
 schemaVersion: 1
 repoCommit: d1063912
-canonicalWorkItemCount: 99
+canonicalWorkItemCount: 122
 workItems:
   - workItemId: WI-0001
     title: "Remix : le clic « Remix » connecté jusqu'à l'IDE dans le navigateur reste à prouver à l'écran"
@@ -240,7 +247,7 @@ workItems:
     owner: platform
     targetDate: "2026-09-30"
     trackedBy: "BOLT_DEBT_REGISTRY"
-    sourceFindingIds: [BD-01, BD-02, BD-03, BD-04, BD-05, BD-06, BD-07, BD-08, BD-09, BD-10, BD-11, BD-12, BD-13, BD-14, BD-15, BD-16, BD-17, BD-18, BD-19, BD-20, BD-21, BD-22, BD-23, BD-24, BD-25, BD-26, BD-27]
+    sourceFindingIds: [BD-01]
   - workItemId: WI-0034
     title: "Terminal : WebSocket à travers le vrai ingress non prouvé"
     status: NON_FAIT
@@ -317,7 +324,7 @@ workItems:
     owner: owner
     targetDate: "2026-10-31"
     trackedBy: "BD-22"
-    sourceFindingIds: [CM-22, GLC-L094, GLC-L095, RB-L072]
+    sourceFindingIds: [BD-22, CM-22, GLC-L094, GLC-L095, RB-L072]
   - workItemId: WI-0045
     title: "Sécurité : durcissement CSP styles, pentest externe et canari live manquants"
     status: NON_FAIT
@@ -394,7 +401,7 @@ workItems:
     owner: owner
     targetDate: "2026-10-31"
     trackedBy: "PR-LEGAL-01"
-    sourceFindingIds: [CM-34, GLC-L173, GLC-L174, GLC-L175, GLC-L176, GLC-L177, RB-L073]
+    sourceFindingIds: [CM-34, GLC-L173, GLC-L174, GLC-L175, GLC-L176, GLC-L177, RB-L073, RPD-24]
   - workItemId: WI-0056
     title: "Authentification : preuve avec fournisseurs d'identité et email réels manquante"
     status: NON_FAIT
@@ -562,7 +569,7 @@ workItems:
     owner: owner
     targetDate: "2026-09-30"
     trackedBy: "BD-21"
-    sourceFindingIds: [OUT-EF-04]
+    sourceFindingIds: [BD-21, OUT-EF-04]
   - workItemId: WI-0080
     title: "Fournir les vraies clés des fournisseurs d'IA pour prouver le cache et la latence"
     status: NON_FAIT
@@ -675,13 +682,6 @@ workItems:
     targetDate: "2026-09-30"
     trackedBy: "ACTIONS_AVI #8"
     sourceFindingIds: [RPD-23]
-  - workItemId: WI-0096
-    title: "Contenu juridique définitif des 5 pages légales relu par un juriste"
-    status: NON_FAIT
-    owner: owner
-    targetDate: "2026-10-31"
-    trackedBy: "PR-LEGAL-01 + ACTIONS_AVI #4"
-    sourceFindingIds: [RPD-24]
   - workItemId: WI-0097
     title: "Confirmer les vraies boîtes mail appeals@ et le canal DMCA"
     status: NON_FAIT
@@ -703,4 +703,171 @@ workItems:
     targetDate: "2026-12-31"
     trackedBy: "PR-MISC-02"
     sourceFindingIds: [RPD-27]
-
+  - workItemId: WI-0100
+    title: "Le débogueur affiche des points d'arrêt décoratifs : rien ne s'arrête vraiment"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-02]
+  - workItemId: WI-0101
+    title: "Les tâches planifiées par l'utilisateur (panneau Workflows) ne se déclenchent jamais — feature morte"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-03]
+  - workItemId: WI-0102
+    title: "La page facturation n'affiche pas les factures, pourtant disponibles côté serveur"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-04]
+  - workItemId: WI-0103
+    title: "Aucune cloche/badge de notifications dans l'interface"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-05]
+  - workItemId: WI-0104
+    title: "L'onglet Profil des réglages IDE stocke en local en se faisant passer pour le compte"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-15"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-06]
+  - workItemId: WI-0105
+    title: "Deux réglages contradictoires pour les clés IA personnelles (local vs admin) — sort du panneau à trancher"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-07]
+  - workItemId: WI-0106
+    title: "Cinq formulaires de jetons d'accès stockent en clair côté navigateur au lieu du coffre chiffré"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-08]
+  - workItemId: WI-0107
+    title: "L'onglet Notifications des réglages montre des logs techniques, pas les préférences"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-09]
+  - workItemId: WI-0108
+    title: "Les verrous de fichiers ne sont pas appliqués côté serveur (contournables, pas partagés entre appareils)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-10]
+  - workItemId: WI-0109
+    title: "Les outils de dev (console/réseau) ne capturent que les erreurs, pas tout le trafic"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-11]
+  - workItemId: WI-0110
+    title: "Douze compteurs de supervision définis mais jamais alimentés (« no data »)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-12]
+  - workItemId: WI-0111
+    title: "Des mesures collectées (Stripe, emails, restaurations) ne sont affichées nulle part"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-13]
+  - workItemId: WI-0112
+    title: "Trois fonctions admin existent côté serveur sans écran pour s'en servir"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-14]
+  - workItemId: WI-0113
+    title: "Le flux de logs des pods n'a pas d'écran admin"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-15]
+  - workItemId: WI-0114
+    title: "Des pages orphelines (/search, /help, /marketplace/templates…) ne mènent nulle part"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-16]
+  - workItemId: WI-0115
+    title: "Des pages marketing figées ignorent les données réelles disponibles côté serveur"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-17]
+  - workItemId: WI-0116
+    title: "Un menu marketing existe dans le code mais n'est jamais affiché (code mort)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-18]
+  - workItemId: WI-0117
+    title: "Parcours admin entreprise incomplet : rôles non modifiables, SSO sans relecture, ajout de membre par identifiant technique"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-19]
+  - workItemId: WI-0118
+    title: "La restauration de base « point dans le temps » n'a jamais été prouvée ; l'interrupteur est éteint en prod"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-10-31"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-20]
+  - workItemId: WI-0119
+    title: "Les serveurs MCP « stdio » sont coupés en prod ; construire le mode sécurisé ou acter l'abandon"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-23]
+  - workItemId: WI-0120
+    title: "Des erreurs de qualité de code anciennes bloquent des commits légitimes (à purger)"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-09-30"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-24]
+  - workItemId: WI-0121
+    title: "Le nettoyage final de la migration depuis bolt n'a jamais été fait ni déclaré caduc"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-12-31"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-25]
+  - workItemId: WI-0122
+    title: "Acter par écrit que la facturation a été placée dans l'espace utilisateur, pas dans l'IDE"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-08-31"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-26]
+  - workItemId: WI-0123
+    title: "Tableaux de bord de supervision avancés dans l'app : option jamais décidée"
+    status: NON_FAIT
+    owner: platform
+    targetDate: "2026-11-30"
+    trackedBy: "BOLT_DEBT_REGISTRY"
+    sourceFindingIds: [BD-27]

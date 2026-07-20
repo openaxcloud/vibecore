@@ -557,6 +557,18 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
   build stricts verts. DOMAIN_MODEL §1 mis à jour (I-RMX-3 licence/PII,
   I-RMX-PROV). Décision remontée à Avi : DEC-OWNER-REMIX-DEFAULT-LICENSE.
   Preuve LIVE à l'écran = après merge + deploy (P0-V3-05 reste OPEN/PARTIEL).
+## 2026-07-20 (suite — A2-12)
+
+- (P0-A2-12 PROVEN) passe de déduplication sémantique des 336 constats :
+  2 proposeurs indépendants, application restreinte à l'INTERSECTION au niveau
+  work item — 3 fusions (OUT-EF-04→BD-21/WI-0079, RPD-24→CM-34/WI-0055 avec
+  suppression de WI-0096, BD-22→WI-0044) ; sur-regroupement WI-0033 corrigé
+  (27 dettes BD agrégées par nom de fichier → 24 items par livrable
+  WI-0100..WI-0123) ; canonicalWorkItemCount 99→122 ; mapping bijectif
+  336↔122 vérifié machine ; SHA certifié des 336 IDs INCHANGÉ. Candidat non
+  appliqué tracé : BD-20 (WI-0118) ↔ WI-0051. Provenance origine =
+  ACCEPTED_RISK (UNK-LEGACY-ORIGIN-PROVENANCE). Pièce :
+  A2_12_DEDUP_SEMANTIQUE_20260720.md.
 ## 2026-07-20 (suite — verdict du relecteur, lot 57febeab)
 
 - (verdict OpenAI-Codex) 22 P0 SIGNÉS → CLOSED (reviewer + reviewCommit

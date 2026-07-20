@@ -724,7 +724,8 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 971
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0096
+    canonicalWorkItemId: WI-0055
+    duplicateOf: CM-34
   - sourceFindingId: RPD-25
     text: "Confirmer les vraies boîtes mail appeals@ et le canal DMCA"
     status: NON_FAIT
@@ -774,7 +775,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 981
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0100
   - sourceFindingId: BD-03
     text: "Les tâches planifiées par l'utilisateur (panneau Workflows) ne se déclenchent jamais — feature morte"
     status: NON_FAIT
@@ -784,7 +785,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 982
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0101
   - sourceFindingId: BD-04
     text: "La page facturation n'affiche pas les factures, pourtant disponibles côté serveur"
     status: NON_FAIT
@@ -794,7 +795,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 983
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0102
   - sourceFindingId: BD-05
     text: "Aucune cloche/badge de notifications dans l'interface"
     status: NON_FAIT
@@ -804,7 +805,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 984
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0103
   - sourceFindingId: BD-06
     text: "L'onglet Profil des réglages IDE stocke en local en se faisant passer pour le compte"
     status: NON_FAIT
@@ -814,7 +815,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 985
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0104
   - sourceFindingId: BD-07
     text: "Deux réglages contradictoires pour les clés IA personnelles (local vs admin) — sort du panneau à trancher"
     status: NON_FAIT
@@ -824,7 +825,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 986
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0105
   - sourceFindingId: BD-08
     text: "Cinq formulaires de jetons d'accès stockent en clair côté navigateur au lieu du coffre chiffré"
     status: NON_FAIT
@@ -834,7 +835,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 987
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0106
   - sourceFindingId: BD-09
     text: "L'onglet Notifications des réglages montre des logs techniques, pas les préférences"
     status: NON_FAIT
@@ -844,7 +845,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 988
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0107
   - sourceFindingId: BD-10
     text: "Les verrous de fichiers ne sont pas appliqués côté serveur (contournables, pas partagés entre appareils)"
     status: NON_FAIT
@@ -854,7 +855,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 989
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0108
   - sourceFindingId: BD-11
     text: "Les outils de dev (console/réseau) ne capturent que les erreurs, pas tout le trafic"
     status: NON_FAIT
@@ -864,7 +865,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 990
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0109
   - sourceFindingId: BD-12
     text: "Douze compteurs de supervision définis mais jamais alimentés (« no data »)"
     status: NON_FAIT
@@ -874,7 +875,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 991
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0110
   - sourceFindingId: BD-13
     text: "Des mesures collectées (Stripe, emails, restaurations) ne sont affichées nulle part"
     status: NON_FAIT
@@ -884,7 +885,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 992
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0111
   - sourceFindingId: BD-14
     text: "Trois fonctions admin existent côté serveur sans écran pour s'en servir"
     status: NON_FAIT
@@ -894,7 +895,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 993
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0112
   - sourceFindingId: BD-15
     text: "Le flux de logs des pods n'a pas d'écran admin"
     status: NON_FAIT
@@ -904,7 +905,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 994
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0113
   - sourceFindingId: BD-16
     text: "Des pages orphelines (/search, /help, /marketplace/templates…) ne mènent nulle part"
     status: NON_FAIT
@@ -914,7 +915,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 995
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0114
   - sourceFindingId: BD-17
     text: "Des pages marketing figées ignorent les données réelles disponibles côté serveur"
     status: NON_FAIT
@@ -924,7 +925,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 996
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0115
   - sourceFindingId: BD-18
     text: "Un menu marketing existe dans le code mais n'est jamais affiché (code mort)"
     status: NON_FAIT
@@ -934,7 +935,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 997
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0116
   - sourceFindingId: BD-19
     text: "Parcours admin entreprise incomplet : rôles non modifiables, SSO sans relecture, ajout de membre par identifiant technique"
     status: NON_FAIT
@@ -944,7 +945,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 998
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0117
   - sourceFindingId: BD-20
     text: "La restauration de base « point dans le temps » n'a jamais été prouvée ; l'interrupteur est éteint en prod"
     status: NON_FAIT
@@ -954,7 +955,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 999
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0118
   - sourceFindingId: BD-21
     text: "Les connexions externes (GitHub, GitLab, Netlify, Vercel, Supabase) attendent les accès réels d'Avi"
     status: NON_FAIT
@@ -964,7 +965,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 1000
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0079
   - sourceFindingId: BD-22
     text: "Publier chez un hébergeur externe (Netlify/Vercel) n'a jamais été prouvé, ni son retour arrière"
     status: NON_FAIT
@@ -974,7 +975,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 1001
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0044
   - sourceFindingId: BD-23
     text: "Les serveurs MCP « stdio » sont coupés en prod ; construire le mode sécurisé ou acter l'abandon"
     status: NON_FAIT
@@ -984,7 +985,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 1002
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0119
   - sourceFindingId: BD-24
     text: "Des erreurs de qualité de code anciennes bloquent des commits légitimes (à purger)"
     status: NON_FAIT
@@ -994,7 +995,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 1003
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0120
   - sourceFindingId: BD-25
     text: "Le nettoyage final de la migration depuis bolt n'a jamais été fait ni déclaré caduc"
     status: NON_FAIT
@@ -1004,7 +1005,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 1004
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0121
   - sourceFindingId: BD-26
     text: "Acter par écrit que la facturation a été placée dans l'espace utilisateur, pas dans l'IDE"
     status: NON_FAIT
@@ -1014,7 +1015,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 1005
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0122
   - sourceFindingId: BD-27
     text: "Tableaux de bord de supervision avancés dans l'app : option jamais décidée"
     status: NON_FAIT
@@ -1024,7 +1025,7 @@ findings:
     sourceFile: docs/parity/PLAN_PARITE_REPLIT.md
     sourceLine: 1006
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
-    canonicalWorkItemId: WI-0033
+    canonicalWorkItemId: WI-0123
   - sourceFindingId: GLC-L030
     text: "La validation de configuration production passe avec les vrais secrets (SSO, SIEM, Stripe, monitoring)"
     status: NON_FAIT
@@ -2763,6 +2764,7 @@ findings:
     sourceLine: 1189
     sourceHash: "sha256:af88c6c6ad9b0dfb765e0581ae4d338828fb93a54202a98e6670591b459a35d9"
     canonicalWorkItemId: WI-0079
+    duplicateOf: BD-21
   - sourceFindingId: OUT-EF-05
     text: "Fournir les vraies clés des fournisseurs d'IA pour prouver le cache et la latence"
     status: NON_FAIT
