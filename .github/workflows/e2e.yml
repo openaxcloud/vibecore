@@ -34,6 +34,8 @@ jobs:
       API_BASE_URL: http://127.0.0.1:3001
       SAAS_API_URL: http://127.0.0.1:3001
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
+      # Local-stack admin used by gallery-remix-license.spec.ts (curation step).
+      PLATFORM_ADMIN_EMAILS: e2e-platform-admin@local.test
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
