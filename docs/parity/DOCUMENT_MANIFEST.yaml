@@ -21,7 +21,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "0e268e24385468a366ede91d89cbe4d3a637d0e1f8703c280c3710567e51ce58"
+    sha256: "209bb63c85d4489be9ff19d01c8b3086aab0cceb3eb2f4602ab3120cbf0079aa"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -201,7 +201,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "94c7cf69033d7aa7d9796c9996d765131dbe273c344caf4cf81fffb411e5887b"
+    sha256: "b8d4349655a185617bb642d136c32da92489680e3e46be6aa35928124df27aaf"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
@@ -211,7 +211,7 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "ab8d72b3ebd295eff949e0dd692ad107a54b7e149b1cf7a7161aeb8b93fbc03f"
+    sha256: "a0cfa8bca1b8b9447077323de6935089d7076127e94ab16adb0a55212d1a6273"
     schemaVersion: 2
     repoCommit: c4484b48
     reviewer: UNKNOWN

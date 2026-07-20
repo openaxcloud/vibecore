@@ -18,10 +18,10 @@ généréPar: scripts/parity/generate-parity-status.mjs (drift-check CI)
 | verticalBackendReady | ✅ PASS |
 | verticalUserJourneyReady | ❌ FAIL (stage "publish" has no UI proof (une preuve API n'est pas une preuve UI) … +1) |
 | betaReady | ❌ FAIL (beta gate capability still unknown: UNK-GIT-RECONCILE-DONE … +5) |
-| publicLaunchReady | ❌ FAIL (betaReady not passed … +71) |
+| publicLaunchReady | ❌ FAIL (betaReady not passed … +49) |
 | parityBaselineReady | ❌ FAIL (surface SRF-IDE-FILE-HISTORY not done … +10) |
 
-**Compteurs (source unique)** : P0 65 (6 OPEN · 59 PROVEN · 0 CLOSED) · P1 40 · surfaces déclarées 10 (univers 159/159 importé, 1 évaluées, 56 services) · e2e 12/12 · constats 336 → 99 work items · claims non ancrées 0 · uiGaps [publish, rollback]
+**Compteurs (source unique)** : P0 65 (6 OPEN · 37 PROVEN · 22 CLOSED) · P1 40 · surfaces déclarées 10 (univers 159/159 importé, 1 évaluées, 56 services) · e2e 12/12 · constats 336 → 99 work items · claims non ancrées 0 · uiGaps [publish, rollback]
 
 ---
 

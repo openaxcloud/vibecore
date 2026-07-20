@@ -125,53 +125,31 @@
         "P0-V3-11 not CLOSED (needs a real reviewer)",
         "P0-V3-12 not CLOSED (needs a real reviewer)",
         "P0-V3-13 not CLOSED (needs a real reviewer)",
-        "P0-V3-14 not CLOSED (needs a real reviewer)",
         "P0-V3-15 not CLOSED (needs a real reviewer)",
         "P0-A2-01 not CLOSED (needs a real reviewer)",
-        "P0-A2-02 not CLOSED (needs a real reviewer)",
         "P0-A2-03 not CLOSED (needs a real reviewer)",
-        "P0-A2-04 not CLOSED (needs a real reviewer)",
         "P0-A2-05 not CLOSED (needs a real reviewer)",
-        "P0-A2-06 not CLOSED (needs a real reviewer)",
         "P0-A2-07 not CLOSED (needs a real reviewer)",
-        "P0-A2-08 not CLOSED (needs a real reviewer)",
         "P0-A2-09 not CLOSED (needs a real reviewer)",
         "P0-A2-10 not CLOSED (needs a real reviewer)",
-        "P0-A2-11 not CLOSED (needs a real reviewer)",
         "P0-A2-12 not CLOSED (needs a real reviewer)",
         "P0-A2-13 not CLOSED (needs a real reviewer)",
         "P0-A2-14 not CLOSED (needs a real reviewer)",
         "P0-A2-15 not CLOSED (needs a real reviewer)",
         "P0-A2-16 not CLOSED (needs a real reviewer)",
-        "P0-LS-01 not CLOSED (needs a real reviewer)",
-        "P0-LS-02 not CLOSED (needs a real reviewer)",
         "P0-LS-03 not CLOSED (needs a real reviewer)",
         "P0-LS-04 not CLOSED (needs a real reviewer)",
-        "P0-LS-05 not CLOSED (needs a real reviewer)",
         "P0-LS-06 not CLOSED (needs a real reviewer)",
-        "P0-LS-07 not CLOSED (needs a real reviewer)",
-        "P0-LS-08 not CLOSED (needs a real reviewer)",
-        "P0-LS-09 not CLOSED (needs a real reviewer)",
-        "P0-LS-10 not CLOSED (needs a real reviewer)",
-        "P0-LS-11 not CLOSED (needs a real reviewer)",
-        "P0-LS-12 not CLOSED (needs a real reviewer)",
         "P0-LS-13 not CLOSED (needs a real reviewer)",
         "P0-LS-14 not CLOSED (needs a real reviewer)",
-        "P0-LS-15 not CLOSED (needs a real reviewer)",
         "P0-LS-16 not CLOSED (needs a real reviewer)",
-        "P0-LS-17 not CLOSED (needs a real reviewer)",
-        "P0-LS-18 not CLOSED (needs a real reviewer)",
         "P0-B-01 not CLOSED (needs a real reviewer)",
         "P0-B-02 not CLOSED (needs a real reviewer)",
-        "P0-EX-01 not CLOSED (needs a real reviewer)",
         "P0-EX-02 not CLOSED (needs a real reviewer)",
-        "P0-EX-03 not CLOSED (needs a real reviewer)",
         "P0-EX-04 not CLOSED (needs a real reviewer)",
         "P0-EX-05 not CLOSED (needs a real reviewer)",
-        "P0-EX-06 not CLOSED (needs a real reviewer)",
         "P0-EX-07 not CLOSED (needs a real reviewer)",
         "P0-EX-08 not CLOSED (needs a real reviewer)",
-        "P0-EX-09 not CLOSED (needs a real reviewer)",
         "P0-EX-10 not CLOSED (needs a real reviewer)",
         "decision DEC-GALLERY-NO-SELF-PUBLISH still OPEN",
         "decision DEC-OWNER-REMIX-DEFAULT-LICENSE still OPEN",
@@ -204,7 +182,7 @@
     "level implementationReady FAILED: P0-V3-01 is OPEN; P0-V3-05 is OPEN; P0-V3-06 is OPEN; P0-V3-07 is OPEN; P0-A2-12 is OPEN; P0-B-02 is OPEN",
     "level verticalUserJourneyReady FAILED: stage \"publish\" has no UI proof (une preuve API n'est pas une preuve UI); stage \"rollback\" has no UI proof (une preuve API n'est pas une preuve UI)",
     "level betaReady FAILED: beta gate capability still unknown: UNK-GIT-RECONCILE-DONE; beta gate capability still unknown: UNK-ROLLBACK-FLAG-APPLIED; beta gate capability still unknown: UNK-NIX-MULTIZONE-IMPL; beta gate capability still unknown: UNK-AR-LIVE-PROMOTION; beta gate capability still unknown: UNK-CLOUDTENANT-IMPL; beta gate capability still unknown: UNK-BILLING-MINIMAL-IMPL",
-    "level publicLaunchReady FAILED: betaReady not passed; P0-V4-1 not CLOSED (needs a real reviewer); P0-V4-2 not CLOSED (needs a real reviewer); P0-V4-3 not CLOSED (needs a real reviewer); P0-V4-4 not CLOSED (needs a real reviewer); P0-V3-01 not CLOSED (needs a real reviewer); P0-V3-02 not CLOSED (needs a real reviewer); P0-V3-03 not CLOSED (needs a real reviewer); P0-V3-04 not CLOSED (needs a real reviewer); P0-V3-05 not CLOSED (needs a real reviewer); P0-V3-06 not CLOSED (needs a real reviewer); P0-V3-07 not CLOSED (needs a real reviewer); P0-V3-08 not CLOSED (needs a real reviewer); P0-V3-09 not CLOSED (needs a real reviewer); P0-V3-10 not CLOSED (needs a real reviewer); P0-V3-11 not CLOSED (needs a real reviewer); P0-V3-12 not CLOSED (needs a real reviewer); P0-V3-13 not CLOSED (needs a real reviewer); P0-V3-14 not CLOSED (needs a real reviewer); P0-V3-15 not CLOSED (needs a real reviewer); P0-A2-01 not CLOSED (needs a real reviewer); P0-A2-02 not CLOSED (needs a real reviewer); P0-A2-03 not CLOSED (needs a real reviewer); P0-A2-04 not CLOSED (needs a real reviewer); P0-A2-05 not CLOSED (needs a real reviewer); P0-A2-06 not CLOSED (needs a real reviewer); P0-A2-07 not CLOSED (needs a real reviewer); P0-A2-08 not CLOSED (needs a real reviewer); P0-A2-09 not CLOSED (needs a real reviewer); P0-A2-10 not CLOSED (needs a real reviewer); P0-A2-11 not CLOSED (needs a real reviewer); P0-A2-12 not CLOSED (needs a real reviewer); P0-A2-13 not CLOSED (needs a real reviewer); P0-A2-14 not CLOSED (needs a real reviewer); P0-A2-15 not CLOSED (needs a real reviewer); P0-A2-16 not CLOSED (needs a real reviewer); P0-LS-01 not CLOSED (needs a real reviewer); P0-LS-02 not CLOSED (needs a real reviewer); P0-LS-03 not CLOSED (needs a real reviewer); P0-LS-04 not CLOSED (needs a real reviewer); P0-LS-05 not CLOSED (needs a real reviewer); P0-LS-06 not CLOSED (needs a real reviewer); P0-LS-07 not CLOSED (needs a real reviewer); P0-LS-08 not CLOSED (needs a real reviewer); P0-LS-09 not CLOSED (needs a real reviewer); P0-LS-10 not CLOSED (needs a real reviewer); P0-LS-11 not CLOSED (needs a real reviewer); P0-LS-12 not CLOSED (needs a real reviewer); P0-LS-13 not CLOSED (needs a real reviewer); P0-LS-14 not CLOSED (needs a real reviewer); P0-LS-15 not CLOSED (needs a real reviewer); P0-LS-16 not CLOSED (needs a real reviewer); P0-LS-17 not CLOSED (needs a real reviewer); P0-LS-18 not CLOSED (needs a real reviewer); P0-B-01 not CLOSED (needs a real reviewer); P0-B-02 not CLOSED (needs a real reviewer); P0-EX-01 not CLOSED (needs a real reviewer); P0-EX-02 not CLOSED (needs a real reviewer); P0-EX-03 not CLOSED (needs a real reviewer); P0-EX-04 not CLOSED (needs a real reviewer); P0-EX-05 not CLOSED (needs a real reviewer); P0-EX-06 not CLOSED (needs a real reviewer); P0-EX-07 not CLOSED (needs a real reviewer); P0-EX-08 not CLOSED (needs a real reviewer); P0-EX-09 not CLOSED (needs a real reviewer); P0-EX-10 not CLOSED (needs a real reviewer); decision DEC-GALLERY-NO-SELF-PUBLISH still OPEN; decision DEC-OWNER-REMIX-DEFAULT-LICENSE still OPEN; claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING",
+    "level publicLaunchReady FAILED: betaReady not passed; P0-V4-1 not CLOSED (needs a real reviewer); P0-V4-2 not CLOSED (needs a real reviewer); P0-V4-3 not CLOSED (needs a real reviewer); P0-V4-4 not CLOSED (needs a real reviewer); P0-V3-01 not CLOSED (needs a real reviewer); P0-V3-02 not CLOSED (needs a real reviewer); P0-V3-03 not CLOSED (needs a real reviewer); P0-V3-04 not CLOSED (needs a real reviewer); P0-V3-05 not CLOSED (needs a real reviewer); P0-V3-06 not CLOSED (needs a real reviewer); P0-V3-07 not CLOSED (needs a real reviewer); P0-V3-08 not CLOSED (needs a real reviewer); P0-V3-09 not CLOSED (needs a real reviewer); P0-V3-10 not CLOSED (needs a real reviewer); P0-V3-11 not CLOSED (needs a real reviewer); P0-V3-12 not CLOSED (needs a real reviewer); P0-V3-13 not CLOSED (needs a real reviewer); P0-V3-15 not CLOSED (needs a real reviewer); P0-A2-01 not CLOSED (needs a real reviewer); P0-A2-03 not CLOSED (needs a real reviewer); P0-A2-05 not CLOSED (needs a real reviewer); P0-A2-07 not CLOSED (needs a real reviewer); P0-A2-09 not CLOSED (needs a real reviewer); P0-A2-10 not CLOSED (needs a real reviewer); P0-A2-12 not CLOSED (needs a real reviewer); P0-A2-13 not CLOSED (needs a real reviewer); P0-A2-14 not CLOSED (needs a real reviewer); P0-A2-15 not CLOSED (needs a real reviewer); P0-A2-16 not CLOSED (needs a real reviewer); P0-LS-03 not CLOSED (needs a real reviewer); P0-LS-04 not CLOSED (needs a real reviewer); P0-LS-06 not CLOSED (needs a real reviewer); P0-LS-13 not CLOSED (needs a real reviewer); P0-LS-14 not CLOSED (needs a real reviewer); P0-LS-16 not CLOSED (needs a real reviewer); P0-B-01 not CLOSED (needs a real reviewer); P0-B-02 not CLOSED (needs a real reviewer); P0-EX-02 not CLOSED (needs a real reviewer); P0-EX-04 not CLOSED (needs a real reviewer); P0-EX-05 not CLOSED (needs a real reviewer); P0-EX-07 not CLOSED (needs a real reviewer); P0-EX-08 not CLOSED (needs a real reviewer); P0-EX-10 not CLOSED (needs a real reviewer); decision DEC-GALLERY-NO-SELF-PUBLISH still OPEN; decision DEC-OWNER-REMIX-DEFAULT-LICENSE still OPEN; claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING",
     "level parityBaselineReady FAILED: surface SRF-IDE-FILE-HISTORY not done; surface SRF-IDE-AGENT-SKILLS not done; surface SRF-IDE-PANES-LAYOUT not done; surface SRF-DEPLOY-RESERVED-VM not done; surface SRF-DEPLOY-SCHEDULED not done; surface SRF-GALLERY-STARTER-DEMOS not done; 158 surface universe entries not evaluated (availability UNKNOWN); claim RPL-20 triage PENDING; claim RPL-21 triage PENDING; claim RPL-22 triage PENDING; claim RPL-23 triage PENDING"
   ],
   "conditions": [
@@ -334,8 +312,8 @@
   "counts": {
     "p0": {
       "total": 65,
-      "closed": 0,
-      "proven": 59,
+      "closed": 22,
+      "proven": 37,
       "open": 6
     },
     "decisions": {
@@ -523,9 +501,9 @@
       "p0Id": "P0-V3-14",
       "priority": 14,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-V3-15",
@@ -547,9 +525,9 @@
       "p0Id": "P0-A2-02",
       "priority": 2,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-A2-03",
@@ -563,9 +541,9 @@
       "p0Id": "P0-A2-04",
       "priority": 4,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-A2-05",
@@ -579,9 +557,9 @@
       "p0Id": "P0-A2-06",
       "priority": 6,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-A2-07",
@@ -595,9 +573,9 @@
       "p0Id": "P0-A2-08",
       "priority": 8,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-A2-09",
@@ -619,9 +597,9 @@
       "p0Id": "P0-A2-11",
       "priority": 11,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-A2-12",
@@ -667,17 +645,17 @@
       "p0Id": "P0-LS-01",
       "priority": 1,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-LS-02",
       "priority": 2,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-LS-03",
@@ -699,9 +677,9 @@
       "p0Id": "P0-LS-05",
       "priority": 5,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-LS-06",
@@ -715,49 +693,49 @@
       "p0Id": "P0-LS-07",
       "priority": 7,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-LS-08",
       "priority": 8,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-LS-09",
       "priority": 9,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-LS-10",
       "priority": 10,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-LS-11",
       "priority": 11,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-LS-12",
       "priority": 12,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-LS-13",
@@ -779,9 +757,9 @@
       "p0Id": "P0-LS-15",
       "priority": 15,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-LS-16",
@@ -795,17 +773,17 @@
       "p0Id": "P0-LS-17",
       "priority": 17,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-LS-18",
       "priority": 18,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-B-01",
@@ -827,9 +805,9 @@
       "p0Id": "P0-EX-01",
       "priority": 1,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-EX-02",
@@ -843,9 +821,9 @@
       "p0Id": "P0-EX-03",
       "priority": 3,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-EX-04",
@@ -867,9 +845,9 @@
       "p0Id": "P0-EX-06",
       "priority": 6,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-EX-07",
@@ -891,9 +869,9 @@
       "p0Id": "P0-EX-09",
       "priority": 9,
       "declared": "PROVEN",
-      "derived": "PROVEN",
+      "derived": "CLOSED",
       "hasProof": true,
-      "reviewed": false
+      "reviewed": true
     },
     {
       "p0Id": "P0-EX-10",
