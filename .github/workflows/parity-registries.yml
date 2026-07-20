@@ -44,11 +44,32 @@ jobs:
       # repo root fails on pnpm `workspace:` protocols, so it goes into an
       # isolated dir handed to the script via PARITY_DEPS.
       - run: mkdir -p /tmp/parity-deps && cd /tmp/parity-deps && npm init -y >/dev/null && npm install yaml@2 >/dev/null
-      # APPROVAL_STATUS.json must be COMPUTED — fail if it was hand-edited / is stale.
-      - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-approval-status.mjs --check
+      # P0-EX-10: the CI GENERATES every computed view for real (not just
+      # --check), then fails on ANY drift vs the committed tree — a hand-edited
+      # or stale view cannot survive this step.
+      - name: Generate all computed views
+        run: |
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-approval-status.mjs
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-parity-status.mjs
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-implementation-status.mjs
+          PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-document-manifest.mjs
+      - name: Fail on drift (generated ≠ committed)
+        run: git diff --exit-code docs/parity
       # Full registry validation (cross-refs, freshness SLA, no CLOSED-without-review,
-      # no surface DONE without evidence, APPROVAL_STATUS drift).
+      # no surface DONE without evidence, computed-view drift).
       - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/validate-registries.mjs
+      # P0-EX-10: PUBLISH the generated status set as a build artifact.
+      - name: Publish generated status views
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parity-status-generated
+          path: |
+            docs/parity/APPROVAL_STATUS.json
+            docs/parity/PARITY_STATUS.md
+            docs/parity/IMPLEMENTATION_STATUS.yaml
+            docs/parity/DOCUMENT_MANIFEST.yaml
+            docs/parity/CI_ATTESTATION.yaml
 
   collect-baseline:
     name: Daily baseline snapshot (schedule only)

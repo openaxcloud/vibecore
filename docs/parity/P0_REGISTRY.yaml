@@ -1025,7 +1025,7 @@ p0s:
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/IMPLEMENTATION_STATUS.yaml
-    proof: "Généré : 159 items SURFACE (68 CODED mergés main + 11 PROVEN avec evidenceIds hashés + 43 PARTIAL + 37 NOT_STARTED), codeCommit=origin/main mesuré, règles §23 appliquées (PARTIAL ne satisfait aucun gate)."
+    proof: "REMÉDIÉ 20/07 après refus (branche docs/ex02-ex10-status-generator, PR ouverte) : générateur RÉEL scripts/parity/generate-implementation-status.mjs — statuts DÉRIVÉS de IMPLEMENTATION_FACTS.yaml par règles §23 (PROVEN=evidence sur disque sinon erreur fatale ; CODED=mergedToMain+codeRefs ; PARTIAL exige partialReason sinon erreur ; adjacentOnly→NOT_STARTED) ; fidélité 159/159 prouvée à la migration (11/68/43/37 identiques) ; 65 codeRefs disparus désormais VISIBLES (missingCodeRefs par item) ; drift-check câblé dans validate-registries + 2 preuves négatives rejouées (statut édité à la main → DRIFT ; PARTIAL sans raison → génération refusée). PRÊT À RE-SOUMETTRE après merge."
     dependances: []
     conditionDeCloture: "Corriger le claim/la preuve : aucun générateur d'IMPLEMENTATION_STATUS dans scripts/CI ; puis re-soumission au relecteur"
     nextAction: "Revue"
@@ -1171,7 +1171,7 @@ p0s:
     commit: 46da267bcaf21335635935aed385ae414daade9b
     reviewer: UNKNOWN
     evidenceId: docs/parity/CI_ATTESTATION.yaml
-    proof: "FAIT : activation §0 satisfaite — plan mergé sur main, manifeste généré au commit mergé, drift-checks CI verts (run 29733640863). La génération est entièrement pilotée par les scripts vérifiés en CI."
+    proof: "REMÉDIÉ 20/07 après refus (même branche) : le job CI « Parity registries » GÉNÈRE réellement les 4 vues (approval/parity-status/implementation-status/manifest), échoue sur toute dérive (git diff --exit-code docs/parity) puis PUBLIE l'artefact parity-status-generated (upload-artifact, if: always). Plus un simple --check. PRÊT À RE-SOUMETTRE après merge + premier run vert."
     dependances: []
     conditionDeCloture: "Corriger le claim/la preuve : la CI vérifie --check seulement, ne génère/écrit pas le statut ; puis re-soumission au relecteur"
     nextAction: "Revue"

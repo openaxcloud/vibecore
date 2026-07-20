@@ -2,7 +2,7 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 153
+fileCount: 154
 generatedAt: "2026-07-20T15:39:32Z"
 generatedFromCommit: af24d4fe48015e6041c8e11b240b1f2d54f333d1
 mergedCommit: af24d4fe48015e6041c8e11b240b1f2d54f333d1
@@ -64,7 +64,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CHANGELOG_AUDIT.md
-    sha256: "6605eb692c12fb824fe39ee9cad888b02d97dc8ca48f27096f9aa860455e7988"
+    sha256: "f9ff36fd2185ae85067095226af953d4be504e1d6e1f6a92f807880b8948b9b2"
     schemaVersion: 1
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
@@ -163,10 +163,15 @@ documents:
     schemaVersion: 1
     repoCommit: d56931bd
     reviewer: UNKNOWN
-  - file: IMPLEMENTATION_STATUS.yaml
-    sha256: "0130bd4b9c9bad4acdec2737bff03a40e8d37cca9115f0a018be5e3b506207b5"
+  - file: IMPLEMENTATION_FACTS.yaml
+    sha256: "04e391e5c09958e1d98db478c070a303a79aaf87d48be3889b8cf76f9293db5e"
     schemaVersion: 1
-    repoCommit: d56931bd
+    repoCommit: af24d4fe
+    reviewer: UNKNOWN
+  - file: IMPLEMENTATION_STATUS.yaml
+    sha256: "a35e35cc8ca60abbbd006bdc7d58f7dca55ee1b49eda8d7d7f811de7a34088cf"
+    schemaVersion: 2
+    repoCommit: null
     reviewer: UNKNOWN
   - file: IMPORT_PROVIDER_REGISTRY.yaml
     sha256: "6b427bb8687565c7b8e39b9864171f5761a501726baacfa6527e73abad334e14"
@@ -209,7 +214,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "18fe924427e7ec0d35af5dfc156e919248cbc4d2d7828d02d2b243c473b470bb"
+    sha256: "2977821450ab13418d1fa6b00a5867c912c1631d4d45cf04ff7f070bd8b66ad1"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN
