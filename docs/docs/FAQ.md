@@ -123,7 +123,7 @@ Follow these proven strategies for optimal results:
 
     **Project Setup:**
     - **Be specific about your stack**: Mention frameworks/libraries (Astro, Tailwind, ShadCN, Next.js) in your initial prompt
-    - **Choose appropriate templates**: Use our 15+ project templates for quick starts
+    - **Remix a working app when useful**: Inspect a published application in the Community Gallery before creating an isolated copy
     - **Configure providers properly**: Set up your preferred LLM providers before starting
 
     **Development Workflow:**
@@ -207,7 +207,7 @@ Recent major additions to E-Code include:
     **Development Tools:**
     - **WebContainer**: Secure sandboxed development environment
     - **Live Preview**: Real-time application previews without leaving the editor
-    - **Project Templates**: 15+ starter templates for popular frameworks
+    - **Community Gallery**: published applications with live previews that can be remixed into isolated projects
 
     **Version Control & Collaboration:**
     - **Git Integration**: Import/export projects with GitHub
@@ -223,23 +223,18 @@ Recent major additions to E-Code include:
     - **Environment Management**: Production-ready configuration
     - **Build Optimization**: Automatic configuration for popular frameworks
 
-??? question "How do I use the new project templates?"
-E-Code offers templates for popular frameworks and technologies:
+??? question "How do I use the Community Gallery?"
+E-Code offers complete published applications, not framework or language starter templates:
 
     **Getting Started:**
-    1. Start a new project in E-Code
-    2. Browse available templates in the starter selection
-    3. Choose your preferred technology stack
-    4. The AI will scaffold your project with best practices
+    1. Open the Community Gallery
+    2. Search or filter by application category, artifact type, or technology
+    3. Open the functional Preview and inspect the publication metadata
+    4. Select Remix to create an isolated project, repository, workspace, locks, and data resources
 
-    **Available Templates:**
-    - **Frontend**: React, Vue, Angular, Svelte, SolidJS
-    - **Full-Stack**: Next.js, Astro, Qwik, Remix, Nuxt
-    - **Mobile**: Expo, React Native
-    - **Content**: Slidev presentations, Astro blogs
-    - **Vanilla**: Vite with TypeScript/JavaScript
+    Remix never copies the creator's secret values or database data. The new project keeps a provenance link to the source app, and the Agent analyzes the isolated copy before suggesting next steps.
 
-    Templates include pre-configured tooling, linting, and build processes.
+    To bring existing work, use the Import Hub. To start without the Agent or any scaffolding, choose Empty project.
 
 ??? question "How does WebContainer work?"
 WebContainer provides a secure development environment:

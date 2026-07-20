@@ -17,6 +17,15 @@ import {
 } from '~/lib/marketing/ecode-template-catalog.server';
 import { toResponse } from '~/lib/test/rr7-data';
 
+const PUBLISHED_DEMO_APP_IDS = [
+  'react-saas',
+  'next-dashboard',
+  'fastify-api',
+  'ai-agent',
+  'landing-page',
+  'mobile-starter',
+] as const;
+
 function loaderArgs(url: string, init?: RequestInit): Parameters<typeof templatesLoader>[0] {
   return {
     context: {},
@@ -33,52 +42,73 @@ function actionArgs(url: string, init: RequestInit): Parameters<typeof performan
   };
 }
 
-describe('E-Code public template catalog adapter', () => {
-  it('maps E-Code starter templates into E-Code template cards', () => {
+describe('E-Code public Gallery catalog adapter', () => {
+  it('projects exactly the six working published demo applications', () => {
     const templates = listEcodeTemplates();
 
-    expect(templates.length).toBeGreaterThan(10);
-    expect(templates.some((template) => template.name.includes('React'))).toBe(true);
-    expect(templates.every((template) => template.author.name === 'E-Code')).toBe(true);
+    expect(templates).toHaveLength(PUBLISHED_DEMO_APP_IDS.length);
+    expect(new Set(templates.map((template) => template.id))).toEqual(new Set(PUBLISHED_DEMO_APP_IDS));
+    expect(templates.every((template) => template.slug !== template.id)).toBe(true);
+    expect(templates.every((template) => template.author.name === 'E-Code Studio')).toBe(true);
+    expect(templates.every((template) => template.author.verified)).toBe(true);
+    expect(templates.every((template) => template.isOfficial)).toBe(true);
     expect(templates.every((template) => Array.isArray(template.technologies))).toBe(true);
-    expect(templates.every((template) => template.stats && typeof template.stats.downloads === 'number')).toBe(true);
+    expect(templates.every((template) => template.stats.forks === template.remixCount)).toBe(true);
+    expect(templates.every((template) => template.remixAllowed)).toBe(true);
+    expect(templates.every((template) => template.thumbnailUrl.endsWith('/thumbnail.png'))).toBe(true);
+    expect(templates.every((template) => template.previewUrl.endsWith('/preview/'))).toBe(true);
+    expect(templates.every((template) => ['javascript', 'typescript'].includes(template.language))).toBe(true);
+
+    const serializedCatalog = JSON.stringify(templates).toLowerCase();
+    expect(serializedCatalog).not.toMatch(/python|golang|\brust\b/u);
+    expect(serializedCatalog).not.toContain('framework');
   });
 
-  it('filters templates by E-Code simple category aliases and query text', () => {
-    const mobileTemplates = listEcodeTemplates({ category: 'mobile' });
-    const webAppTemplates = listEcodeTemplates({ category: 'webapp', query: 'vite' });
+  it('filters published applications by business category and use case', () => {
+    const salesApps = listEcodeTemplates({ category: 'sales', query: 'crm' });
+    const obsoleteFrameworkCategory = listEcodeTemplates({ category: 'frontend' });
 
-    expect(mobileTemplates.some((template) => template.tags.includes('expo'))).toBe(true);
-    expect(webAppTemplates.length).toBeGreaterThan(0);
-    expect(webAppTemplates.every((template) => template.category === 'web')).toBe(true);
+    expect(salesApps.map((template) => template.id)).toEqual(['react-saas']);
+    expect(salesApps.every((template) => template.category === 'sales')).toBe(true);
+    expect(obsoleteFrameworkCategory).toEqual([]);
   });
 
   it('returns marketplace pagination metadata when requested', () => {
-    const templates = listEcodeTemplates({ sortBy: 'popularity' });
-    const page = paginateTemplates(templates, 1, 6);
+    const templates = listEcodeTemplates({ sortBy: 'remixes' });
+    const page = paginateTemplates(templates, 1, 3);
 
-    expect(page.templates).toHaveLength(6);
+    expect(page.templates).toHaveLength(3);
     expect(page.total).toBe(templates.length);
     expect(page.hasMore).toBe(true);
+    expect(page.templates[0].remixCount).toBeGreaterThanOrEqual(page.templates[1].remixCount);
   });
 
   it('derives categories, tags and suggestions from the same source catalog', () => {
-    expect(getEcodeTemplateCategories().map((category) => category.slug)).toContain('web');
-    expect(getEcodeTemplateTags()).toContain('typescript');
+    expect(getEcodeTemplateCategories().map((category) => category.slug)).toEqual([
+      'booking',
+      'developer-tools',
+      'field-service',
+      'operations',
+      'productivity',
+      'sales',
+    ]);
+    expect(getEcodeTemplateTags()).toContain('business-app');
     expect(getEcodeTemplateSuggestions('react')).toEqual(expect.arrayContaining([expect.stringMatching(/react/i)]));
   });
 });
 
-describe('E-Code public template API routes', () => {
-  it('serves an array for the simple /templates page', async () => {
+describe('E-Code public Gallery compatibility API routes', () => {
+  it('serves published applications with search metadata', async () => {
     const response = toResponse(
-      await templatesLoader(loaderArgs('http://app.e-code.ai/api/marketplace/templates?q=react')),
+      await templatesLoader(loaderArgs('http://app.e-code.ai/api/marketplace/templates?q=booking')),
     );
 
-    const payload = (await response.json()) as unknown[];
+    const payload = (await response.json()) as Array<{ artifactType: string; previewUrl: string }>;
 
     expect(Array.isArray(payload)).toBe(true);
     expect(payload.length).toBeGreaterThan(0);
+    expect(payload[0].artifactType).toBe('customer-app');
+    expect(payload[0].previewUrl).toContain('/gallery-apps/');
   });
 
   it('serves paginated marketplace data for the marketplace page', async () => {

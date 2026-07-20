@@ -308,12 +308,12 @@ export function ecodePolyglotHealthLoader() {
     {
       status: 'healthy',
       services: [
-        { service: 'typescript', status: 'healthy', lastCheck: new Date().toISOString(), responseTime: 30 },
-        { service: 'python-ml', status: 'healthy', lastCheck: new Date().toISOString(), responseTime: 45 },
+        { service: 'javascript-runtime', status: 'healthy', lastCheck: new Date().toISOString(), responseTime: 30 },
+        { service: 'typescript-tooling', status: 'healthy', lastCheck: new Date().toISOString(), responseTime: 34 },
       ],
       timestamp: new Date().toISOString(),
-      architecture: 'polyglot',
-      languages: ['TypeScript', 'Python'],
+      architecture: 'web-runtime',
+      languages: ['JavaScript', 'TypeScript'],
     },
     { headers: noStoreHeaders },
   );
@@ -334,24 +334,11 @@ export function ecodePolyglotCapabilitiesLoader() {
           ],
           endpoints: ['/api/projects', '/api/auth', '/api/files', '/api/workspaces'],
         },
-        'python-ml': {
-          port: 8081,
-          capabilities: [
-            'AI-powered code analysis',
-            'Retrieval and ranking workflows',
-            'Data processing jobs',
-            'Model-assisted suggestions',
-          ],
-          endpoints: ['/api/code/analyze', '/api/text/analyze', '/api/data/process'],
-        },
       },
       routing: {
         'file-operations': 'typescript',
         'project-management': 'typescript',
         realtime: 'typescript',
-        'ai-ml': 'python-ml',
-        'code-analysis': 'python-ml',
-        'data-analysis': 'python-ml',
       },
     },
     { headers: noStoreHeaders },
@@ -362,10 +349,7 @@ export function ecodePolyglotBenchmarkLoader() {
   return json(
     {
       fastest: { service: 'typescript', responseTime: 30, status: 'healthy' },
-      results: [
-        { service: 'typescript', responseTime: 30, status: 'healthy' },
-        { service: 'python-ml', responseTime: 45, status: 'healthy' },
-      ],
+      results: [{ service: 'typescript', responseTime: 30, status: 'healthy' }],
       timestamp: new Date().toISOString(),
     },
     { headers: noStoreHeaders },

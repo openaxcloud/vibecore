@@ -64,7 +64,10 @@ import type {
   ProjectShareLinkRecord,
   ChatShareRecord,
   ProjectStorageObjectRecord,
-  ProjectTemplateRecord,
+  CreateProjectImportJobInput,
+  ProjectImportJobRecord,
+  ProjectImportSource,
+  UpdateProjectImportJobInput,
   DatabaseInstanceRecord,
   DatabaseSnapshotRecord,
   DatabaseRestoreRecord,
@@ -92,6 +95,25 @@ import type {
   InstalledSkillScope,
   InstallSkillInput,
 } from './store.js';
+import {
+  galleryFacetsFromApps,
+  type GalleryFacets,
+  type GalleryAppPage,
+  type GalleryAppRecord,
+  type GalleryAppVersionRecord,
+  type GalleryAuditContext,
+  type GalleryReportPage,
+  type GalleryReportRecord,
+  type GalleryRemixRecord,
+  type ProjectGalleryStore,
+} from './project-gallery.js';
+import {
+  galleryDataRequirementSchema,
+  galleryRuntimeConfigurationSchema,
+  type GalleryDataRequirement,
+  type GalleryRuntimeConfiguration,
+  type GallerySnapshotFile,
+} from './project-gallery-validation.js';
 
 function now() {
   return new Date().toISOString();
@@ -111,6 +133,372 @@ type PrismaKnownRequestError = Error & { readonly code: string };
  */
 function isPrismaKnownRequestError(error: unknown): error is PrismaKnownRequestError {
   return error instanceof Prisma.PrismaClientKnownRequestError;
+}
+
+function galleryStoreError(message: string, statusCode: number, code: string) {
+  return Object.assign(new Error(message), { statusCode, code });
+}
+
+function galleryCorruption(message: string): never {
+  throw galleryStoreError(message, 500, 'GALLERY_PERSISTENCE_CORRUPT');
+}
+
+function mapGallerySnapshotFiles(value: unknown): GallerySnapshotFile[] {
+  if (!Array.isArray(value)) {
+    return galleryCorruption('Stored Gallery files are invalid');
+  }
+
+  return value.map((candidate) => {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+      return galleryCorruption('Stored Gallery file is invalid');
+    }
+
+    const record = candidate as Record<string, unknown>;
+    if (
+      Object.keys(record).some((key) => key !== 'path' && key !== 'content') ||
+      typeof record.path !== 'string' ||
+      typeof record.content !== 'string'
+    ) {
+      return galleryCorruption('Stored Gallery file is invalid');
+    }
+
+    return { path: record.path, content: record.content };
+  });
+}
+
+function mapGalleryRuntime(value: unknown): GalleryRuntimeConfiguration {
+  const parsed = galleryRuntimeConfigurationSchema.safeParse(value);
+  if (!parsed.success) {
+    return galleryCorruption('Stored Gallery runtime configuration is invalid');
+  }
+
+  return parsed.data;
+}
+
+function mapGalleryDataRequirements(value: unknown): GalleryDataRequirement[] {
+  if (!Array.isArray(value)) {
+    return galleryCorruption('Stored Gallery data requirements are invalid');
+  }
+
+  return value.map((candidate) => {
+    const parsed = galleryDataRequirementSchema.safeParse(candidate);
+    if (!parsed.success) {
+      return galleryCorruption('Stored Gallery data requirement is invalid');
+    }
+    return parsed.data;
+  });
+}
+
+type GalleryAppRow = {
+  id: string;
+  slug: string;
+  sourceProjectId: string | null;
+  organizationId: string;
+  authorUserId: string;
+  authorHandle: string;
+  authorDisplayName: string;
+  authorAvatarUrl: string | null;
+  name: string;
+  description: string;
+  artifactType: GalleryAppRecord['artifactType'];
+  category: string;
+  technologies: string[];
+  tags: string[];
+  thumbnailUrl: string;
+  visibility: GalleryAppRecord['visibility'];
+  status: GalleryAppRecord['status'];
+  moderationStatus: GalleryAppRecord['moderationStatus'];
+  moderationReason: string | null;
+  remixAllowed: boolean;
+  featured: boolean;
+  remixCount: number;
+  reportCount: number;
+  previewStatus: GalleryAppRecord['previewStatus'];
+  previewUrl: string | null;
+  latestVersionId: string | null;
+  sourceGalleryAppId: string | null;
+  sourceGalleryAppSlug: string | null;
+  submittedAt: Date | null;
+  publishedAt: Date | null;
+  archivedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+function mapGalleryApp(row: GalleryAppRow): GalleryAppRecord {
+  if (!row.latestVersionId) {
+    return galleryCorruption('Stored Gallery app has no current version');
+  }
+  if (Boolean(row.sourceGalleryAppId) !== Boolean(row.sourceGalleryAppSlug)) {
+    return galleryCorruption('Stored Gallery provenance is incomplete');
+  }
+
+  return {
+    id: row.id,
+    slug: row.slug,
+    sourceProjectId: row.sourceProjectId ?? undefined,
+    organizationId: row.organizationId,
+    authorUserId: row.authorUserId,
+    author: {
+      handle: row.authorHandle,
+      displayName: row.authorDisplayName,
+      ...(row.authorAvatarUrl ? { avatarUrl: row.authorAvatarUrl } : {}),
+    },
+    name: row.name,
+    description: row.description,
+    artifactType: row.artifactType,
+    category: row.category,
+    technologies: [...row.technologies],
+    tags: [...row.tags],
+    thumbnailUrl: row.thumbnailUrl,
+    visibility: row.visibility,
+    status: row.status,
+    moderationStatus: row.moderationStatus,
+    moderationReason: row.moderationReason ?? undefined,
+    allowRemix: row.remixAllowed,
+    featured: row.featured,
+    remixCount: row.remixCount,
+    reportCount: row.reportCount,
+    previewStatus: row.previewStatus,
+    previewUrl: row.previewUrl ?? undefined,
+    latestVersionId: row.latestVersionId,
+    ...(row.sourceGalleryAppId && row.sourceGalleryAppSlug
+      ? { provenance: { sourceGalleryAppId: row.sourceGalleryAppId, sourceGalleryAppSlug: row.sourceGalleryAppSlug } }
+      : {}),
+    submittedAt: toIso(row.submittedAt),
+    publishedAt: toIso(row.publishedAt),
+    archivedAt: toIso(row.archivedAt),
+    createdAt: toIso(row.createdAt)!,
+    updatedAt: toIso(row.updatedAt)!,
+  };
+}
+
+function mapGalleryAppVersion(row: {
+  id: string;
+  galleryAppId: string;
+  version: number;
+  files: unknown;
+  runtime: unknown;
+  dataRequirements: unknown;
+  contentHash: string;
+  byteLength: bigint;
+  removedPaths: string[];
+  redactedValueCount: number;
+  validationChecks: string[];
+  createdByUserId: string;
+  createdAt: Date;
+}): GalleryAppVersionRecord {
+  const byteLength = Number(row.byteLength);
+  if (!Number.isSafeInteger(byteLength) || byteLength < 0) {
+    return galleryCorruption('Stored Gallery snapshot size is invalid');
+  }
+
+  return {
+    id: row.id,
+    galleryAppId: row.galleryAppId,
+    version: row.version,
+    files: mapGallerySnapshotFiles(row.files),
+    runtime: mapGalleryRuntime(row.runtime),
+    dataRequirements: mapGalleryDataRequirements(row.dataRequirements),
+    contentHash: row.contentHash,
+    byteLength,
+    removedPaths: [...row.removedPaths],
+    redactedValueCount: row.redactedValueCount,
+    validationChecks: [...row.validationChecks],
+    createdByUserId: row.createdByUserId,
+    createdAt: toIso(row.createdAt)!,
+  };
+}
+
+function mapGalleryReport(row: {
+  id: string;
+  galleryAppId: string;
+  reporterUserId: string;
+  reason: GalleryReportRecord['reason'];
+  details: string | null;
+  status: GalleryReportRecord['status'];
+  resolutionNote: string | null;
+  reviewedByUserId: string | null;
+  reviewedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}): GalleryReportRecord {
+  return {
+    id: row.id,
+    galleryAppId: row.galleryAppId,
+    reporterUserId: row.reporterUserId,
+    reason: row.reason,
+    details: row.details ?? undefined,
+    status: row.status,
+    resolutionNote: row.resolutionNote ?? undefined,
+    reviewedByUserId: row.reviewedByUserId ?? undefined,
+    reviewedAt: toIso(row.reviewedAt),
+    createdAt: toIso(row.createdAt)!,
+    updatedAt: toIso(row.updatedAt)!,
+  };
+}
+
+function mapGalleryRemix(row: {
+  id: string;
+  galleryAppId: string;
+  galleryAppVersionId: string;
+  sourceProjectId: string | null;
+  destinationOrganizationId: string;
+  destinationOwnerUserId: string;
+  destinationProjectId: string | null;
+  destinationRepositoryId: string | null;
+  destinationWorkspaceId: string | null;
+  agentAnalysisId: string | null;
+  idempotencyKey: string;
+  requestHash: string;
+  status: GalleryRemixRecord['status'];
+  errorCode: string | null;
+  completedAt: Date | null;
+  failedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}): GalleryRemixRecord {
+  return {
+    id: row.id,
+    galleryAppId: row.galleryAppId,
+    galleryAppVersionId: row.galleryAppVersionId,
+    sourceProjectId: row.sourceProjectId ?? undefined,
+    destinationOrganizationId: row.destinationOrganizationId,
+    destinationOwnerUserId: row.destinationOwnerUserId,
+    destinationProjectId: row.destinationProjectId ?? undefined,
+    destinationRepositoryId: row.destinationRepositoryId ?? undefined,
+    destinationWorkspaceId: row.destinationWorkspaceId ?? undefined,
+    agentAnalysisId: row.agentAnalysisId ?? undefined,
+    idempotencyKey: row.idempotencyKey,
+    requestHash: row.requestHash,
+    status: row.status,
+    errorCode: row.errorCode ?? undefined,
+    completedAt: toIso(row.completedAt),
+    failedAt: toIso(row.failedAt),
+    createdAt: toIso(row.createdAt)!,
+    updatedAt: toIso(row.updatedAt)!,
+  };
+}
+
+function galleryAuditData(input: {
+  audit: GalleryAuditContext;
+  organizationId?: string;
+  action: string;
+  resourceType: 'gallery_app' | 'gallery_report' | 'project_remix';
+  resourceId: string;
+  metadata?: Record<string, unknown>;
+}) {
+  return {
+    organizationId: input.organizationId,
+    actorUserId: input.audit.actorUserId,
+    action: input.action,
+    resourceType: input.resourceType,
+    resourceId: input.resourceId,
+    metadata: redactAuditMetadata({
+      requestId: input.audit.requestId,
+      ...(input.audit.userAgent ? { userAgent: input.audit.userAgent } : {}),
+      ...(input.metadata ?? {}),
+    }) as Prisma.InputJsonValue,
+    ipAddress: input.audit.ip,
+  };
+}
+
+function galleryAuthorHandle(input: { id: string }) {
+  // Never derive a public identity from the private email address.
+  return `builder-${input.id.slice(-12).toLowerCase()}`;
+}
+
+type DatabaseProjectImportSource =
+  | 'GITHUB'
+  | 'BITBUCKET'
+  | 'VERCEL'
+  | 'FIGMA'
+  | 'CLAUDE'
+  | 'BOLT'
+  | 'LOVABLE'
+  | 'BASE44'
+  | 'ZIP'
+  | 'SPREADSHEET'
+  | 'PREVIOUS_AGENT'
+  | 'EMPTY';
+
+const projectImportSourceFromDatabase: Record<DatabaseProjectImportSource, ProjectImportSource> = {
+  GITHUB: 'github',
+  BITBUCKET: 'bitbucket',
+  VERCEL: 'vercel',
+  FIGMA: 'figma',
+  CLAUDE: 'claude',
+  BOLT: 'bolt',
+  LOVABLE: 'lovable',
+  BASE44: 'base44',
+  ZIP: 'zip',
+  SPREADSHEET: 'spreadsheet',
+  PREVIOUS_AGENT: 'previous-agent',
+  EMPTY: 'empty',
+};
+
+const projectImportSourceToDatabase = Object.fromEntries(
+  Object.entries(projectImportSourceFromDatabase).map(([databaseValue, apiValue]) => [apiValue, databaseValue]),
+) as Record<ProjectImportSource, DatabaseProjectImportSource>;
+
+function mapProjectImportJob(row: {
+  id: string;
+  organizationId: string;
+  userId: string;
+  source: string;
+  status: 'VALIDATING' | 'READY' | 'CREATING' | 'COMPLETE' | 'FAILED' | 'CANCELED';
+  idempotencyKey: string;
+  requestHash: string;
+  sourceReference: string | null;
+  sourceLabel: string | null;
+  stage: string;
+  progress: number;
+  validation: unknown;
+  runtimeDetection: unknown;
+  missingSecretNames: string[];
+  generatedConfig: unknown;
+  preview: unknown;
+  usesAgent: boolean;
+  creditsDisclosure: string | null;
+  destinationProjectId: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  recoverable: boolean;
+  completedAt: Date | null;
+  failedAt: Date | null;
+  canceledAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}): ProjectImportJobRecord {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    userId: row.userId,
+    source: projectImportSourceFromDatabase[row.source as DatabaseProjectImportSource],
+    status: row.status,
+    idempotencyKey: row.idempotencyKey,
+    requestHash: row.requestHash,
+    sourceReference: row.sourceReference ?? undefined,
+    sourceLabel: row.sourceLabel ?? undefined,
+    stage: row.stage,
+    progress: row.progress,
+    validation: row.validation as Record<string, unknown>,
+    runtimeDetection: row.runtimeDetection as Record<string, unknown>,
+    missingSecretNames: row.missingSecretNames,
+    generatedConfig: row.generatedConfig as Array<{ path: string; content: string }>,
+    preview: row.preview as Record<string, unknown>,
+    usesAgent: row.usesAgent,
+    creditsDisclosure: row.creditsDisclosure ?? undefined,
+    destinationProjectId: row.destinationProjectId ?? undefined,
+    errorCode: row.errorCode ?? undefined,
+    errorMessage: row.errorMessage ?? undefined,
+    recoverable: row.recoverable,
+    completedAt: toIso(row.completedAt),
+    failedAt: toIso(row.failedAt),
+    canceledAt: toIso(row.canceledAt),
+    createdAt: toIso(row.createdAt)!,
+    updatedAt: toIso(row.updatedAt)!,
+  };
 }
 
 // Database point-in-time rollback (Phase-1 scaffold) row → record mappers.
@@ -1076,24 +1464,1033 @@ export class PrismaApiStore implements ApiStore {
     });
   }
 
-  async createProjectTemplate(input: {
-    sourceProjectId: string;
-    organizationId: string;
-    name: string;
-    description?: string;
-  }) {
-    const template = await this.prisma.projectTemplate.create({ data: input });
-    return { ...template, description: template.description ?? undefined, createdAt: toIso(template.createdAt)! };
+  async getGalleryApp(appId: string) {
+    const app = await this.prisma.galleryApp.findUnique({ where: { id: appId } });
+    return app ? mapGalleryApp(app) : undefined;
   }
 
-  async listProjectTemplates(organizationId: string) {
-    return (await this.prisma.projectTemplate.findMany({ where: { organizationId } })).map(
-      (template): ProjectTemplateRecord => ({
-        ...template,
-        description: template.description ?? undefined,
-        createdAt: toIso(template.createdAt)!,
+  async getGalleryAppBySlug(slug: string) {
+    const app = await this.prisma.galleryApp.findUnique({ where: { slug } });
+    return app ? mapGalleryApp(app) : undefined;
+  }
+
+  async getGalleryAppVersion(versionId: string) {
+    const version = await this.prisma.galleryAppVersion.findUnique({ where: { id: versionId } });
+    return version ? mapGalleryAppVersion(version) : undefined;
+  }
+
+  async getGalleryProjectProvenance(projectId: string) {
+    const readyRemixes = await this.prisma.projectRemix.findMany({
+      where: { destinationProjectId: projectId, status: 'READY' },
+      orderBy: [{ completedAt: 'desc' }, { id: 'asc' }],
+      take: 2,
+      select: { galleryAppId: true, galleryAppVersionId: true },
+    });
+    if (readyRemixes.length === 0) return undefined;
+    if (readyRemixes.length > 1) {
+      throw galleryStoreError(
+        'Destination project has ambiguous Gallery provenance',
+        409,
+        'GALLERY_REMIX_PROVENANCE_CONFLICT',
+      );
+    }
+
+    const remix = readyRemixes[0]!;
+    const persistedSource = await this.prisma.galleryApp.findUnique({
+      where: { id: remix.galleryAppId },
+      select: { slug: true },
+    });
+    if (persistedSource) {
+      return { sourceGalleryAppId: remix.galleryAppId, sourceGalleryAppSlug: persistedSource.slug };
+    }
+
+    const activities = await this.prisma.projectActivity.findMany({
+      where: { projectId, action: 'project.remix.create' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      take: 10,
+      select: { metadata: true },
+    });
+    for (const activity of activities) {
+      const metadata = activity.metadata;
+      if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) continue;
+      const sourceGalleryAppId = metadata.sourceGalleryAppId;
+      const sourceGalleryAppVersionId = metadata.sourceGalleryAppVersionId;
+      const sourceGalleryAppSlug = metadata.sourceGalleryAppSlug;
+      if (
+        sourceGalleryAppId === remix.galleryAppId &&
+        sourceGalleryAppVersionId === remix.galleryAppVersionId &&
+        typeof sourceGalleryAppSlug === 'string' &&
+        /^[a-z0-9][a-z0-9-]{0,99}$/.test(sourceGalleryAppSlug)
+      ) {
+        return { sourceGalleryAppId, sourceGalleryAppSlug };
+      }
+    }
+
+    throw galleryStoreError(
+      'READY remix is missing its Gallery source metadata',
+      409,
+      'GALLERY_REMIX_PROVENANCE_MISSING',
+    );
+  }
+
+  async listPublishedGalleryApps(input: Parameters<ProjectGalleryStore['listPublishedGalleryApps']>[0]) {
+    const query = input.query?.trim();
+    const where: Prisma.GalleryAppWhereInput = {
+      status: 'PUBLISHED',
+      moderationStatus: 'APPROVED',
+      previewStatus: 'VERIFIED',
+      previewUrl: { not: null },
+      visibility: 'PUBLIC',
+      ...(input.category ? { category: input.category } : {}),
+      ...(input.artifactType ? { artifactType: input.artifactType } : {}),
+      ...(input.technology ? { technologies: { has: input.technology } } : {}),
+      ...(input.featured === undefined ? {} : { featured: input.featured }),
+      ...(query
+        ? {
+            OR: [
+              { name: { contains: query, mode: 'insensitive' } },
+              { description: { contains: query, mode: 'insensitive' } },
+              { slug: { contains: query, mode: 'insensitive' } },
+              { category: { contains: query, mode: 'insensitive' } },
+              { authorDisplayName: { contains: query, mode: 'insensitive' } },
+              { authorHandle: { contains: query, mode: 'insensitive' } },
+              { technologies: { has: query.toLowerCase() } },
+              { tags: { has: query.toLowerCase() } },
+            ],
+          }
+        : {}),
+    };
+    const orderBy: Prisma.GalleryAppOrderByWithRelationInput[] =
+      input.sort === 'NAME'
+        ? [{ name: 'asc' }, { id: 'asc' }]
+        : input.sort === 'MOST_REMIXED'
+          ? [{ remixCount: 'desc' }, { publishedAt: 'desc' }, { id: 'desc' }]
+          : input.sort === 'RECENT'
+            ? [{ publishedAt: 'desc' }, { id: 'desc' }]
+            : [{ featured: 'desc' }, { remixCount: 'desc' }, { publishedAt: 'desc' }, { id: 'desc' }];
+    const rows = await this.prisma.galleryApp.findMany({
+      where,
+      orderBy,
+      ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
+      take: input.limit + 1,
+    });
+    const pageRows = rows.slice(0, input.limit);
+    return {
+      apps: pageRows.map(mapGalleryApp),
+      itemCursors: pageRows.map((row) => row.id),
+      ...(rows.length > input.limit ? { nextCursor: pageRows.at(-1)?.id } : {}),
+    } satisfies GalleryAppPage;
+  }
+
+  async listPublishedGalleryFacets(): Promise<GalleryFacets> {
+    const apps = await this.prisma.galleryApp.findMany({
+      where: {
+        status: 'PUBLISHED',
+        moderationStatus: 'APPROVED',
+        previewStatus: 'VERIFIED',
+        previewUrl: { not: null },
+        visibility: 'PUBLIC',
+      },
+      select: { artifactType: true, category: true, technologies: true },
+    });
+
+    return galleryFacetsFromApps(apps);
+  }
+
+  async getGalleryEngagementCounts(appIds: string[]) {
+    if (appIds.length === 0) return [];
+    const [remixes, reports] = await Promise.all([
+      this.prisma.projectRemix.groupBy({
+        by: ['galleryAppId'],
+        where: { galleryAppId: { in: appIds }, status: 'READY' },
+        _count: { _all: true },
+      }),
+      this.prisma.galleryReport.groupBy({
+        by: ['galleryAppId'],
+        where: { galleryAppId: { in: appIds } },
+        _count: { _all: true },
+      }),
+    ]);
+    const remixCounts = new Map(remixes.map((entry) => [entry.galleryAppId, entry._count._all]));
+    const reportCounts = new Map(reports.map((entry) => [entry.galleryAppId, entry._count._all]));
+
+    return appIds.map((galleryAppId) => ({
+      galleryAppId,
+      completedRemixCount: remixCounts.get(galleryAppId) ?? 0,
+      reportCount: reportCounts.get(galleryAppId) ?? 0,
+    }));
+  }
+
+  async listOrganizationGalleryApps(input: Parameters<ProjectGalleryStore['listOrganizationGalleryApps']>[0]) {
+    const rows = await this.prisma.galleryApp.findMany({
+      where: { organizationId: input.organizationId, ...(input.status ? { status: input.status } : {}) },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+      ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
+      take: input.limit + 1,
+    });
+    const pageRows = rows.slice(0, input.limit);
+    return {
+      apps: pageRows.map(mapGalleryApp),
+      ...(rows.length > input.limit ? { nextCursor: pageRows.at(-1)?.id } : {}),
+    } satisfies GalleryAppPage;
+  }
+
+  async createGalleryApp(input: Parameters<ProjectGalleryStore['createGalleryApp']>[0]) {
+    const [sourceProject, membership, author] = await Promise.all([
+      this.prisma.project.findFirst({
+        where: { id: input.sourceProjectId, organizationId: input.organizationId, deletedAt: null },
+        select: { id: true },
+      }),
+      this.prisma.organizationMember.findUnique({
+        where: {
+          organizationId_userId: {
+            organizationId: input.organizationId,
+            userId: input.authorUserId,
+          },
+        },
+        select: { id: true },
+      }),
+      this.prisma.user.findUnique({ where: { id: input.authorUserId }, select: { id: true, name: true } }),
+    ]);
+    if (!sourceProject) {
+      throw galleryStoreError('Source project not found', 404, 'PROJECT_NOT_FOUND');
+    }
+    if (!membership || !author) {
+      throw galleryStoreError('Organization not found', 404, 'ORGANIZATION_NOT_FOUND');
+    }
+
+    const baseSlug = slugify(input.slug ?? input.name) || 'app';
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const slug = input.slug || attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`;
+      try {
+        return await this.prisma.$transaction(async (tx) => {
+          const app = await tx.galleryApp.create({
+            data: {
+              slug,
+              sourceProjectId: sourceProject.id,
+              organizationId: input.organizationId,
+              authorUserId: input.authorUserId,
+              authorHandle: galleryAuthorHandle(author),
+              authorDisplayName: author.name?.trim() || galleryAuthorHandle(author),
+              name: input.name,
+              description: input.description,
+              artifactType: input.artifactType,
+              category: input.category,
+              technologies: [...input.technologies],
+              tags: [...input.tags],
+              thumbnailUrl: input.thumbnailUrl,
+              visibility: input.visibility,
+              remixAllowed: input.allowRemix,
+              sourceGalleryAppId: input.provenance?.sourceGalleryAppId,
+              sourceGalleryAppSlug: input.provenance?.sourceGalleryAppSlug,
+            },
+          });
+          const version = await tx.galleryAppVersion.create({
+            data: {
+              galleryAppId: app.id,
+              version: 1,
+              files: input.initialVersion.files as unknown as Prisma.InputJsonValue,
+              runtime: input.initialVersion.runtime as Prisma.InputJsonValue,
+              dataRequirements: input.initialVersion.dataRequirements as unknown as Prisma.InputJsonValue,
+              contentHash: input.initialVersion.contentHash,
+              byteLength: BigInt(input.initialVersion.byteLength),
+              removedPaths: [...input.initialVersion.removedPaths],
+              redactedValueCount: input.initialVersion.redactedValueCount,
+              validationChecks: [...input.initialVersion.validationChecks],
+              createdByUserId: input.authorUserId,
+            },
+          });
+          const current = await tx.galleryApp.update({ where: { id: app.id }, data: { latestVersionId: version.id } });
+          await tx.auditLog.create({
+            data: galleryAuditData({
+              audit: input.audit,
+              organizationId: input.organizationId,
+              action: 'gallery.app.create',
+              resourceType: 'gallery_app',
+              resourceId: app.id,
+              metadata: { sourceProjectId: input.sourceProjectId, versionId: version.id },
+            }),
+          });
+          return { app: mapGalleryApp(current), version: mapGalleryAppVersion(version) };
+        });
+      } catch (error) {
+        if (isPrismaKnownRequestError(error) && error.code === 'P2002') {
+          if (!input.slug && attempt < 5) continue;
+          throw galleryStoreError('Gallery app slug is already in use', 409, 'GALLERY_SLUG_TAKEN');
+        }
+        throw error;
+      }
+    }
+    throw galleryStoreError('Unable to allocate a Gallery app slug', 409, 'GALLERY_SLUG_TAKEN');
+  }
+
+  async createGalleryAppVersion(input: Parameters<ProjectGalleryStore['createGalleryAppVersion']>[0]) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const current = await tx.galleryApp.findFirst({
+          where: { id: input.appId, organizationId: input.organizationId },
+        });
+        if (!current) throw galleryStoreError('Gallery app not found', 404, 'GALLERY_APP_NOT_FOUND');
+        if (!['DRAFT', 'REJECTED'].includes(current.status)) {
+          throw galleryStoreError(
+            'Gallery app cannot be resnapshotted in its current state',
+            409,
+            'GALLERY_STATE_CONFLICT',
+          );
+        }
+        if (!current.latestVersionId) {
+          throw galleryStoreError('Gallery app has no current version', 409, 'GALLERY_VERSION_NOT_FOUND');
+        }
+
+        const latest = await tx.galleryAppVersion.findFirst({
+          where: { id: current.latestVersionId, galleryAppId: current.id },
+        });
+        if (!latest) {
+          throw galleryStoreError('Gallery app version not found', 409, 'GALLERY_VERSION_NOT_FOUND');
+        }
+        const existingHash = await tx.galleryAppVersion.findFirst({
+          where: { galleryAppId: current.id, contentHash: input.snapshot.contentHash },
+          select: { id: true },
+        });
+        if (existingHash) {
+          throw galleryStoreError('The sanitized Gallery snapshot has not changed', 409, 'GALLERY_SNAPSHOT_UNCHANGED');
+        }
+
+        const version = await tx.galleryAppVersion.create({
+          data: {
+            galleryAppId: current.id,
+            version: latest.version + 1,
+            files: input.snapshot.files as unknown as Prisma.InputJsonValue,
+            runtime: input.snapshot.runtime as Prisma.InputJsonValue,
+            dataRequirements: input.snapshot.dataRequirements as unknown as Prisma.InputJsonValue,
+            contentHash: input.snapshot.contentHash,
+            byteLength: BigInt(input.snapshot.byteLength),
+            removedPaths: [...input.snapshot.removedPaths],
+            redactedValueCount: input.snapshot.redactedValueCount,
+            validationChecks: [...input.snapshot.validationChecks],
+            createdByUserId: input.createdByUserId,
+          },
+        });
+        const advanced = await tx.galleryApp.updateMany({
+          where: {
+            id: current.id,
+            organizationId: input.organizationId,
+            latestVersionId: current.latestVersionId,
+            status: { in: ['DRAFT', 'REJECTED'] },
+          },
+          data: {
+            latestVersionId: version.id,
+            status: 'DRAFT',
+            moderationStatus: 'NOT_SUBMITTED',
+            moderationReason: null,
+            previewStatus: 'PENDING',
+            previewUrl: null,
+            previewEvidence: Prisma.JsonNull,
+            submittedAt: null,
+            publishedAt: null,
+            archivedAt: null,
+            featured: false,
+          },
+        });
+        if (advanced.count === 0) {
+          throw galleryStoreError(
+            'Gallery app state changed before the new version was saved',
+            409,
+            'GALLERY_STATE_CONFLICT',
+          );
+        }
+        const app = await tx.galleryApp.findUniqueOrThrow({ where: { id: current.id } });
+        await tx.auditLog.create({
+          data: galleryAuditData({
+            audit: input.audit,
+            organizationId: input.organizationId,
+            action: 'gallery.app.version.create',
+            resourceType: 'gallery_app',
+            resourceId: current.id,
+            metadata: {
+              galleryAppId: current.id,
+              previousVersionId: latest.id,
+              version: version.version,
+              contentHash: version.contentHash,
+            },
+          }),
+        });
+        return { app: mapGalleryApp(app), version: mapGalleryAppVersion(version) };
+      });
+    } catch (error) {
+      if (isPrismaKnownRequestError(error) && error.code === 'P2002') {
+        throw galleryStoreError(
+          'Gallery app was resnapshotted concurrently; reload and retry',
+          409,
+          'GALLERY_VERSION_CONFLICT',
+        );
+      }
+      throw error;
+    }
+  }
+
+  async updateGalleryApp(input: Parameters<ProjectGalleryStore['updateGalleryApp']>[0]) {
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.galleryApp.updateMany({
+        where: {
+          id: input.appId,
+          organizationId: input.organizationId,
+          status: { in: ['DRAFT', 'REJECTED'] },
+        },
+        data: {
+          name: input.patch.name,
+          description: input.patch.description,
+          artifactType: input.patch.artifactType,
+          category: input.patch.category,
+          technologies: input.patch.technologies,
+          tags: input.patch.tags,
+          thumbnailUrl: input.patch.thumbnailUrl,
+          visibility: input.patch.visibility,
+          remixAllowed: input.patch.allowRemix,
+        },
+      });
+      if (updated.count === 0) {
+        const existing = await tx.galleryApp.findFirst({
+          where: { id: input.appId, organizationId: input.organizationId },
+          select: { id: true },
+        });
+        if (!existing) throw galleryStoreError('Gallery app not found', 404, 'GALLERY_APP_NOT_FOUND');
+        throw galleryStoreError('Only draft or rejected Gallery apps can be edited', 409, 'GALLERY_STATE_CONFLICT');
+      }
+      const app = await tx.galleryApp.findFirstOrThrow({
+        where: { id: input.appId, organizationId: input.organizationId },
+      });
+      await tx.auditLog.create({
+        data: galleryAuditData({
+          audit: input.audit,
+          organizationId: input.organizationId,
+          action: 'gallery.app.update',
+          resourceType: 'gallery_app',
+          resourceId: input.appId,
+          metadata: { fields: Object.keys(input.patch).sort() },
+        }),
+      });
+      return mapGalleryApp(app);
+    });
+  }
+
+  async submitGalleryApp(input: Parameters<ProjectGalleryStore['submitGalleryApp']>[0]) {
+    return this.prisma.$transaction(async (tx) => {
+      const submittedAt = new Date();
+      const updated = await tx.galleryApp.updateMany({
+        where: {
+          id: input.appId,
+          organizationId: input.organizationId,
+          latestVersionId: input.versionId,
+          status: { in: ['DRAFT', 'REJECTED'] },
+          versions: { some: { id: input.versionId } },
+        },
+        data: {
+          status: 'PENDING_REVIEW',
+          moderationStatus: 'PENDING',
+          moderationReason: null,
+          previewStatus: 'VERIFIED',
+          previewUrl: input.preview.previewUrl,
+          previewEvidence: input.preview as unknown as Prisma.InputJsonValue,
+          submittedAt,
+          publishedAt: null,
+          archivedAt: null,
+          featured: false,
+        },
+      });
+      if (updated.count === 0) {
+        const existing = await tx.galleryApp.findFirst({
+          where: { id: input.appId, organizationId: input.organizationId },
+        });
+        if (!existing) throw galleryStoreError('Gallery app not found', 404, 'GALLERY_APP_NOT_FOUND');
+        throw galleryStoreError('Gallery app state changed before submission', 409, 'GALLERY_STATE_CONFLICT');
+      }
+      const app = await tx.galleryApp.findFirstOrThrow({
+        where: { id: input.appId, organizationId: input.organizationId },
+      });
+      await tx.auditLog.create({
+        data: galleryAuditData({
+          audit: input.audit,
+          organizationId: input.organizationId,
+          action: 'gallery.app.submit',
+          resourceType: 'gallery_app',
+          resourceId: input.appId,
+          metadata: { versionId: input.versionId, previewCheckedAt: input.preview.checkedAt },
+        }),
+      });
+      return mapGalleryApp(app);
+    });
+  }
+
+  async listGalleryModerationQueue(input: Parameters<ProjectGalleryStore['listGalleryModerationQueue']>[0]) {
+    const rows = await this.prisma.galleryApp.findMany({
+      where: { status: 'PENDING_REVIEW', moderationStatus: 'PENDING' },
+      orderBy: [{ submittedAt: 'asc' }, { id: 'asc' }],
+      ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
+      take: input.limit + 1,
+    });
+    const pageRows = rows.slice(0, input.limit);
+    return {
+      apps: pageRows.map(mapGalleryApp),
+      ...(rows.length > input.limit ? { nextCursor: pageRows.at(-1)?.id } : {}),
+    } satisfies GalleryAppPage;
+  }
+
+  async moderateGalleryApp(input: Parameters<ProjectGalleryStore['moderateGalleryApp']>[0]) {
+    if (input.action === 'APPROVE' && input.functionalPreviewConfirmed !== true) {
+      throw galleryStoreError(
+        'Confirm the functional browser Preview and thumbnail review before approving this app',
+        400,
+        'GALLERY_FUNCTIONAL_PREVIEW_CONFIRMATION_REQUIRED',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.galleryApp.findUnique({ where: { id: input.appId } });
+      if (!existing) throw galleryStoreError('Gallery app not found', 404, 'GALLERY_APP_NOT_FOUND');
+
+      const commonWhere = { id: input.appId };
+      let updatedCount = 0;
+      const timestamp = new Date();
+      if (input.action === 'APPROVE') {
+        updatedCount = (
+          await tx.galleryApp.updateMany({
+            where: {
+              ...commonWhere,
+              status: 'PENDING_REVIEW',
+              moderationStatus: 'PENDING',
+              previewStatus: 'VERIFIED',
+              previewUrl: { not: null },
+            },
+            data: {
+              status: 'PUBLISHED',
+              moderationStatus: 'APPROVED',
+              moderationReason: null,
+              publishedAt: timestamp,
+              archivedAt: null,
+            },
+          })
+        ).count;
+      } else if (input.action === 'REJECT') {
+        updatedCount = (
+          await tx.galleryApp.updateMany({
+            where: { ...commonWhere, status: 'PENDING_REVIEW', moderationStatus: 'PENDING' },
+            data: {
+              status: 'REJECTED',
+              moderationStatus: 'REJECTED',
+              moderationReason: input.reason,
+              publishedAt: null,
+              featured: false,
+            },
+          })
+        ).count;
+      } else if (input.action === 'ARCHIVE') {
+        updatedCount = (
+          await tx.galleryApp.updateMany({
+            where: { ...commonWhere, status: { not: 'ARCHIVED' } },
+            data: {
+              status: 'ARCHIVED',
+              moderationReason: input.reason,
+              archivedAt: timestamp,
+              featured: false,
+            },
+          })
+        ).count;
+      } else if (input.action === 'FEATURE') {
+        updatedCount = (
+          await tx.galleryApp.updateMany({
+            where: {
+              ...commonWhere,
+              status: 'PUBLISHED',
+              moderationStatus: 'APPROVED',
+              previewStatus: 'VERIFIED',
+            },
+            data: { featured: true },
+          })
+        ).count;
+      } else {
+        updatedCount = (await tx.galleryApp.updateMany({ where: commonWhere, data: { featured: false } })).count;
+      }
+      if (updatedCount === 0) {
+        throw galleryStoreError('Gallery app cannot be moderated in its current state', 409, 'GALLERY_STATE_CONFLICT');
+      }
+      const app = await tx.galleryApp.findUniqueOrThrow({ where: { id: input.appId } });
+      await tx.auditLog.create({
+        data: galleryAuditData({
+          audit: input.audit,
+          organizationId: app.organizationId,
+          action: `gallery.moderation.${input.action.toLowerCase()}`,
+          resourceType: 'gallery_app',
+          resourceId: input.appId,
+          metadata:
+            input.action === 'APPROVE'
+              ? { functionalPreviewConfirmed: true }
+              : input.reason
+                ? { reason: input.reason }
+                : undefined,
+        }),
+      });
+      return mapGalleryApp(app);
+    });
+  }
+
+  async createGalleryReport(input: Parameters<ProjectGalleryStore['createGalleryReport']>[0]) {
+    return this.withSerializedMutation(`gallery-report:${input.galleryAppId}:${input.reporterUserId}`, async () =>
+      this.prisma.$transaction(async (tx) => {
+        const open = await tx.galleryReport.findFirst({
+          where: { galleryAppId: input.galleryAppId, reporterUserId: input.reporterUserId, status: 'OPEN' },
+          orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        });
+        if (open) return { report: mapGalleryReport(open), created: false };
+
+        const reusable = await tx.galleryReport.findUnique({
+          where: {
+            galleryAppId_reporterUserId_reason: {
+              galleryAppId: input.galleryAppId,
+              reporterUserId: input.reporterUserId,
+              reason: input.reason,
+            },
+          },
+        });
+        const report = reusable
+          ? await tx.galleryReport.update({
+              where: { id: reusable.id },
+              data: {
+                details: input.details,
+                status: 'OPEN',
+                resolutionNote: null,
+                reviewedByUserId: null,
+                reviewedAt: null,
+              },
+            })
+          : await tx.galleryReport.create({
+              data: {
+                galleryAppId: input.galleryAppId,
+                reporterUserId: input.reporterUserId,
+                reason: input.reason,
+                details: input.details,
+              },
+            });
+        const persistedApp = await tx.galleryApp.findUnique({
+          where: { id: input.galleryAppId },
+          select: { organizationId: true },
+        });
+        if (persistedApp) {
+          await tx.galleryApp.update({ where: { id: input.galleryAppId }, data: { reportCount: { increment: 1 } } });
+        }
+        await tx.auditLog.create({
+          data: galleryAuditData({
+            audit: input.audit,
+            organizationId: persistedApp?.organizationId,
+            action: 'gallery.report.create',
+            resourceType: 'gallery_report',
+            resourceId: report.id,
+            metadata: { galleryAppId: input.galleryAppId, reason: input.reason },
+          }),
+        });
+        return { report: mapGalleryReport(report), created: true };
       }),
     );
+  }
+
+  async listGalleryReports(input: Parameters<ProjectGalleryStore['listGalleryReports']>[0]) {
+    const rows = await this.prisma.galleryReport.findMany({
+      where: { status: input.status },
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
+      take: input.limit + 1,
+    });
+    const pageRows = rows.slice(0, input.limit);
+    return {
+      reports: pageRows.map(mapGalleryReport),
+      ...(rows.length > input.limit ? { nextCursor: pageRows.at(-1)?.id } : {}),
+    } satisfies GalleryReportPage;
+  }
+
+  async getGalleryReport(reportId: string) {
+    const report = await this.prisma.galleryReport.findUnique({ where: { id: reportId } });
+    return report ? mapGalleryReport(report) : undefined;
+  }
+
+  async resolveGalleryReport(input: Parameters<ProjectGalleryStore['resolveGalleryReport']>[0]) {
+    return this.prisma.$transaction(async (tx) => {
+      const reviewedAt = new Date();
+      const resolved = await tx.galleryReport.updateMany({
+        where: { id: input.reportId, status: 'OPEN' },
+        data: {
+          status: input.resolution,
+          resolutionNote: input.note,
+          reviewedByUserId: input.audit.actorUserId,
+          reviewedAt,
+        },
+      });
+      if (resolved.count === 0) {
+        const existing = await tx.galleryReport.findUnique({ where: { id: input.reportId } });
+        if (!existing) throw galleryStoreError('Gallery report not found', 404, 'GALLERY_REPORT_NOT_FOUND');
+        if (
+          existing.status === input.resolution &&
+          existing.resolutionNote === input.note &&
+          existing.reviewedByUserId === input.audit.actorUserId
+        ) {
+          return mapGalleryReport(existing);
+        }
+        throw galleryStoreError('Gallery report is already resolved', 409, 'GALLERY_REPORT_STATE_CONFLICT');
+      }
+      const report = await tx.galleryReport.findUniqueOrThrow({ where: { id: input.reportId } });
+      const app = await tx.galleryApp.findUnique({
+        where: { id: report.galleryAppId },
+        select: { organizationId: true },
+      });
+      await tx.auditLog.create({
+        data: galleryAuditData({
+          audit: input.audit,
+          organizationId: app?.organizationId,
+          action: `gallery.report.${input.resolution.toLowerCase()}`,
+          resourceType: 'gallery_report',
+          resourceId: report.id,
+          metadata: { galleryAppId: report.galleryAppId },
+        }),
+      });
+      return mapGalleryReport(report);
+    });
+  }
+
+  async claimGalleryRemix(input: Parameters<ProjectGalleryStore['claimGalleryRemix']>[0]) {
+    const membership = await this.prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: input.destinationOrganizationId,
+          userId: input.destinationOwnerUserId,
+        },
+      },
+      select: { id: true },
+    });
+    if (!membership) throw galleryStoreError('Organization not found', 404, 'ORGANIZATION_NOT_FOUND');
+
+    try {
+      const remix = await this.prisma.projectRemix.create({ data: input });
+      return { remix: mapGalleryRemix(remix), claimed: true };
+    } catch (error) {
+      if (!isPrismaKnownRequestError(error) || error.code !== 'P2002') throw error;
+    }
+
+    const existing = assertFound(
+      await this.prisma.projectRemix.findUnique({
+        where: {
+          destinationOrganizationId_idempotencyKey: {
+            destinationOrganizationId: input.destinationOrganizationId,
+            idempotencyKey: input.idempotencyKey,
+          },
+        },
+      }),
+      'Gallery remix not found',
+      'GALLERY_REMIX_NOT_FOUND',
+    );
+    const payloadMatches =
+      existing.requestHash === input.requestHash &&
+      existing.galleryAppId === input.galleryAppId &&
+      existing.galleryAppVersionId === input.galleryAppVersionId &&
+      existing.sourceProjectId === (input.sourceProjectId ?? null) &&
+      existing.destinationOwnerUserId === input.destinationOwnerUserId;
+    if (!payloadMatches) {
+      throw galleryStoreError(
+        'Idempotency key was already used for a different request',
+        409,
+        'IDEMPOTENCY_KEY_REUSED',
+      );
+    }
+    if (existing.status !== 'FAILED') return { remix: mapGalleryRemix(existing), claimed: false };
+
+    const reclaimed = await this.prisma.projectRemix.updateMany({
+      where: { id: existing.id, destinationOrganizationId: input.destinationOrganizationId, status: 'FAILED' },
+      data: {
+        status: 'CREATING',
+        destinationProjectId: null,
+        destinationRepositoryId: null,
+        destinationWorkspaceId: null,
+        agentAnalysisId: null,
+        errorCode: null,
+        completedAt: null,
+        failedAt: null,
+      },
+    });
+    const remix = assertFound(
+      await this.prisma.projectRemix.findFirst({
+        where: { id: existing.id, destinationOrganizationId: input.destinationOrganizationId },
+      }),
+      'Gallery remix not found',
+      'GALLERY_REMIX_NOT_FOUND',
+    );
+    return { remix: mapGalleryRemix(remix), claimed: reclaimed.count > 0 };
+  }
+
+  async getGalleryRemixByIdempotency(input: Parameters<ProjectGalleryStore['getGalleryRemixByIdempotency']>[0]) {
+    const remix = await this.prisma.projectRemix.findUnique({
+      where: {
+        destinationOrganizationId_idempotencyKey: {
+          destinationOrganizationId: input.destinationOrganizationId,
+          idempotencyKey: input.idempotencyKey,
+        },
+      },
+    });
+    return remix ? mapGalleryRemix(remix) : undefined;
+  }
+
+  async completeGalleryRemix(input: Parameters<ProjectGalleryStore['completeGalleryRemix']>[0]) {
+    return this.prisma.$transaction(async (tx) => {
+      const destination = await tx.project.findFirst({
+        where: {
+          id: input.destinationProjectId,
+          organizationId: input.destinationOrganizationId,
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+      if (!destination) throw galleryStoreError('Destination project not found', 404, 'PROJECT_NOT_FOUND');
+
+      const completedAt = new Date();
+      const completed = await tx.projectRemix.updateMany({
+        where: {
+          id: input.remixId,
+          destinationOrganizationId: input.destinationOrganizationId,
+          status: 'CREATING',
+        },
+        data: {
+          status: 'READY',
+          destinationProjectId: destination.id,
+          destinationRepositoryId: input.destinationRepositoryId,
+          destinationWorkspaceId: input.destinationWorkspaceId,
+          agentAnalysisId: input.agentAnalysisId,
+          errorCode: null,
+          completedAt,
+          failedAt: null,
+        },
+      });
+      const remix = await tx.projectRemix.findFirst({
+        where: { id: input.remixId, destinationOrganizationId: input.destinationOrganizationId },
+      });
+      if (!remix) throw galleryStoreError('Gallery remix not found', 404, 'GALLERY_REMIX_NOT_FOUND');
+      if (completed.count === 0) {
+        const sameCompletion =
+          remix.status === 'READY' &&
+          remix.destinationProjectId === input.destinationProjectId &&
+          remix.destinationRepositoryId === input.destinationRepositoryId &&
+          remix.destinationWorkspaceId === input.destinationWorkspaceId &&
+          remix.agentAnalysisId === input.agentAnalysisId;
+        if (sameCompletion) return mapGalleryRemix(remix);
+        throw galleryStoreError('Gallery remix is no longer being created', 409, 'GALLERY_REMIX_STATE_CONFLICT');
+      }
+
+      /*
+       * The IDE reads project activity through /projects/:id/dashboard. Keep
+       * the source slug and display name on that durable activity so a remixed
+       * project can link back to the exact Gallery app without a lossy lookup
+       * or an ID-as-slug compatibility route.
+       */
+      const provenanceActivity = await tx.projectActivity.updateMany({
+        where: { projectId: destination.id, action: 'project.remix.create' },
+        data: {
+          metadata: {
+            provisioningKey: remix.id,
+            sourceGalleryAppId: remix.galleryAppId,
+            sourceGalleryAppVersionId: remix.galleryAppVersionId,
+            sourceGalleryAppSlug: input.sourceGalleryAppSlug,
+            sourceGalleryAppName: input.sourceGalleryAppName,
+            ...(remix.sourceProjectId ? { sourceProjectId: remix.sourceProjectId } : {}),
+          },
+        },
+      });
+      if (provenanceActivity.count !== 1) {
+        throw galleryStoreError(
+          'Destination project provenance activity is missing or ambiguous',
+          409,
+          'GALLERY_REMIX_PROVENANCE_CONFLICT',
+        );
+      }
+
+      // Code-owned `demo:*` apps intentionally have no GalleryApp FK row.
+      await tx.galleryApp.updateMany({ where: { id: remix.galleryAppId }, data: { remixCount: { increment: 1 } } });
+      await tx.auditLog.create({
+        data: galleryAuditData({
+          audit: input.audit,
+          organizationId: input.destinationOrganizationId,
+          action: 'gallery.remix.complete',
+          resourceType: 'project_remix',
+          resourceId: remix.id,
+          metadata: {
+            galleryAppId: remix.galleryAppId,
+            galleryAppSlug: input.sourceGalleryAppSlug,
+            galleryAppName: input.sourceGalleryAppName,
+            destinationProjectId: input.destinationProjectId,
+          },
+        }),
+      });
+      return mapGalleryRemix(remix);
+    });
+  }
+
+  async failGalleryRemix(input: Parameters<ProjectGalleryStore['failGalleryRemix']>[0]) {
+    return this.prisma.$transaction(async (tx) => {
+      const failed = await tx.projectRemix.updateMany({
+        where: {
+          id: input.remixId,
+          destinationOrganizationId: input.destinationOrganizationId,
+          status: 'CREATING',
+        },
+        data: {
+          status: 'FAILED',
+          destinationProjectId: null,
+          destinationRepositoryId: null,
+          destinationWorkspaceId: null,
+          agentAnalysisId: null,
+          errorCode: input.errorCode,
+          completedAt: null,
+          failedAt: new Date(),
+        },
+      });
+      const remix = await tx.projectRemix.findFirst({
+        where: { id: input.remixId, destinationOrganizationId: input.destinationOrganizationId },
+      });
+      if (!remix) throw galleryStoreError('Gallery remix not found', 404, 'GALLERY_REMIX_NOT_FOUND');
+
+      // A late callback never reverses READY. Replaying the same failure is idempotent.
+      if (failed.count === 0) {
+        if (remix.status === 'READY') return mapGalleryRemix(remix);
+        if (remix.status === 'FAILED' && remix.errorCode === input.errorCode) return mapGalleryRemix(remix);
+        throw galleryStoreError('Gallery remix already failed differently', 409, 'GALLERY_REMIX_STATE_CONFLICT');
+      }
+      await tx.auditLog.create({
+        data: galleryAuditData({
+          audit: input.audit,
+          organizationId: input.destinationOrganizationId,
+          action: 'gallery.remix.fail',
+          resourceType: 'project_remix',
+          resourceId: remix.id,
+          metadata: { errorCode: input.errorCode },
+        }),
+      });
+      return mapGalleryRemix(remix);
+    });
+  }
+
+  async createProjectImportJob(input: CreateProjectImportJobInput) {
+    try {
+      const created = await this.prisma.projectImportJob.create({
+        data: {
+          organizationId: input.organizationId,
+          userId: input.userId,
+          source: projectImportSourceToDatabase[input.source],
+          status: 'VALIDATING',
+          idempotencyKey: input.idempotencyKey,
+          requestHash: input.requestHash,
+          sourceReference: input.sourceReference,
+          sourceLabel: input.sourceLabel,
+          stage: input.stage,
+          progress: input.progress ?? 0,
+          validation: (input.validation ?? {}) as Prisma.InputJsonValue,
+          runtimeDetection: (input.runtimeDetection ?? {}) as Prisma.InputJsonValue,
+          missingSecretNames: input.missingSecretNames ?? [],
+          generatedConfig: (input.generatedConfig ?? []) as Prisma.InputJsonValue,
+          preview: (input.preview ?? {}) as Prisma.InputJsonValue,
+          usesAgent: input.usesAgent ?? false,
+          creditsDisclosure: input.creditsDisclosure,
+        },
+      });
+      return mapProjectImportJob(created);
+    } catch (error) {
+      if (!isPrismaKnownRequestError(error) || error.code !== 'P2002') {
+        throw error;
+      }
+    }
+
+    const existing = await this.getProjectImportJobByIdempotency({
+      organizationId: input.organizationId,
+      idempotencyKey: input.idempotencyKey,
+    });
+
+    if (
+      !existing ||
+      existing.userId !== input.userId ||
+      existing.source !== input.source ||
+      existing.requestHash !== input.requestHash
+    ) {
+      throw Object.assign(new Error('Idempotency key was already used for a different import'), {
+        statusCode: 409,
+        code: 'IDEMPOTENCY_KEY_REUSED',
+      });
+    }
+
+    return existing;
+  }
+
+  async getProjectImportJob(input: { importJobId: string; organizationId: string }) {
+    const job = await this.prisma.projectImportJob.findFirst({
+      where: { id: input.importJobId, organizationId: input.organizationId },
+    });
+    return job ? mapProjectImportJob(job) : undefined;
+  }
+
+  async getProjectImportJobByIdempotency(input: { organizationId: string; idempotencyKey: string }) {
+    const job = await this.prisma.projectImportJob.findUnique({
+      where: {
+        organizationId_idempotencyKey: {
+          organizationId: input.organizationId,
+          idempotencyKey: input.idempotencyKey,
+        },
+      },
+    });
+    return job ? mapProjectImportJob(job) : undefined;
+  }
+
+  async updateProjectImportJob(input: UpdateProjectImportJobInput) {
+    const completedAt =
+      input.completedAt === undefined ? undefined : input.completedAt ? new Date(input.completedAt) : null;
+    const failedAt = input.failedAt === undefined ? undefined : input.failedAt ? new Date(input.failedAt) : null;
+    const canceledAt =
+      input.canceledAt === undefined ? undefined : input.canceledAt ? new Date(input.canceledAt) : null;
+
+    const updated = await this.prisma.projectImportJob.updateMany({
+      where: { id: input.importJobId, organizationId: input.organizationId },
+      data: {
+        status: input.status,
+        stage: input.stage,
+        progress: input.progress === undefined ? undefined : Math.max(0, Math.min(100, input.progress)),
+        validation: input.validation as Prisma.InputJsonValue | undefined,
+        runtimeDetection: input.runtimeDetection as Prisma.InputJsonValue | undefined,
+        missingSecretNames: input.missingSecretNames,
+        generatedConfig: input.generatedConfig as Prisma.InputJsonValue | undefined,
+        preview: input.preview as Prisma.InputJsonValue | undefined,
+        destinationProjectId: input.destinationProjectId,
+        errorCode: input.errorCode,
+        errorMessage: input.errorMessage,
+        recoverable: input.recoverable,
+        completedAt,
+        failedAt,
+        canceledAt,
+      },
+    });
+
+    if (updated.count === 0) {
+      throw Object.assign(new Error('Import job not found'), {
+        statusCode: 404,
+        code: 'PROJECT_IMPORT_NOT_FOUND',
+      });
+    }
+
+    return mapProjectImportJob(
+      await this.prisma.projectImportJob.findFirstOrThrow({
+        where: { id: input.importJobId, organizationId: input.organizationId },
+      }),
+    );
+  }
+
+  async listProjectImportJobs(organizationId: string, limit = 25) {
+    const jobs = await this.prisma.projectImportJob.findMany({
+      where: { organizationId },
+      orderBy: { createdAt: 'desc' },
+      take: Math.max(1, Math.min(100, limit)),
+    });
+    return jobs.map(mapProjectImportJob);
   }
 
   async upsertProjectEnvVar(input: { projectId: string; key: string; value: string; scope?: EnvVarScope }) {
@@ -2231,6 +3628,7 @@ export class PrismaApiStore implements ApiStore {
     metadata?: Record<string, unknown>;
     rolledBackFromId?: string;
     parentDeploymentId?: string;
+    machineSize?: string;
     startedAt?: string;
     finishedAt?: string;
     canceledAt?: string;
@@ -2256,6 +3654,7 @@ export class PrismaApiStore implements ApiStore {
           metadata: (input.metadata ?? {}) as any,
           rolledBackFromId: input.rolledBackFromId,
           parentDeploymentId: input.parentDeploymentId,
+          ...(input.machineSize ? { machineSize: input.machineSize } : {}),
           startedAt: input.startedAt ? new Date(input.startedAt) : undefined,
           finishedAt: input.finishedAt ? new Date(input.finishedAt) : undefined,
           canceledAt: input.canceledAt ? new Date(input.canceledAt) : undefined,
@@ -2344,6 +3743,28 @@ export class PrismaApiStore implements ApiStore {
         take: options.take ?? 100,
       })
     ).map(mapDeployment);
+  }
+
+  async listActiveServerDeployments() {
+    return (
+      await this.prisma.deployment.findMany({
+        where: { provider: 'server', status: 'READY' as any },
+        orderBy: { createdAt: 'asc' },
+        // Bound one metering sweep; an unswept tail is billed on the next tick
+        // (the watermark is per-row, so nothing is lost — only deferred).
+        take: 500,
+      })
+    ).map(mapDeployment);
+  }
+
+  async getActiveRateCard() {
+    const card = await this.prisma.rateCard.findFirst({
+      where: { active: true },
+      orderBy: { version: 'desc' },
+      select: { version: true, data: true },
+    });
+
+    return card ? { version: card.version, data: card.data as unknown } : undefined;
   }
 
   async listStaleDeployments(cutoffIso: string) {
@@ -5476,6 +6897,7 @@ function mapDeployment(deployment: any): DeploymentRecord {
     metadata: deployment.metadata ?? undefined,
     rolledBackFromId: deployment.rolledBackFromId ?? undefined,
     parentDeploymentId: deployment.parentDeploymentId ?? undefined,
+    machineSize: deployment.machineSize ?? undefined,
     lastMeteredAt: toIso(deployment.lastMeteredAt),
     startedAt: toIso(deployment.startedAt),
     finishedAt: toIso(deployment.finishedAt),

@@ -40,12 +40,12 @@ export const APP_PAGE_INDEX: AppPageIndexEntry[] = [
   {
     title: 'New project',
     path: '/projects/new',
-    description: 'Start a new project from a prompt, a template or an import.',
+    description: 'Start from a prompt, Remix a published app, import a source or create an Empty project.',
   },
   {
-    title: 'Templates',
+    title: 'Community Gallery',
     path: '/templates',
-    description: 'Starter template gallery for web apps, APIs, mobile and AI agents.',
+    description: 'Discover working community applications with live Previews and isolated Remix creation.',
   },
   {
     title: 'Deployments',
@@ -115,7 +115,7 @@ export const APP_PAGE_INDEX: AppPageIndexEntry[] = [
   {
     title: 'Marketplace',
     path: '/marketplace',
-    description: 'Marketplace templates and community starters.',
+    description: 'Browse integrations, extensions and community resources.',
   },
 ];
 
@@ -265,7 +265,7 @@ export default function SearchRoute() {
               </span>
               <h1 className="mkt-h1 mt-8 text-[var(--ecode-text)]">Search E-Code</h1>
               <p className="mkt-lead mt-6 text-[var(--ecode-text-secondary)]">
-                Search app pages, Help Center topics and starter templates from one place.
+                Search app pages, Help Center topics and published Gallery apps from one place.
               </p>
 
               <form
@@ -277,7 +277,7 @@ export default function SearchRoute() {
                 <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--ecode-text-secondary)]" />
                 <input
                   type="search"
-                  placeholder="Search pages, help topics and templates..."
+                  placeholder="Search pages, help topics and Gallery apps..."
                   aria-label="Search E-Code"
                   className="w-full min-h-[48px] rounded-md border border-[var(--ecode-border)] bg-[var(--ecode-surface)] pl-12 pr-4 text-[15px] text-[var(--ecode-text)] focus:outline-none focus:ring-2 focus:ring-offset-2"
                   style={{ ['--tw-ring-color' as string]: 'var(--ecode-accent)' }}
@@ -296,7 +296,7 @@ export default function SearchRoute() {
               <EmptyState
                 icon={SearchIcon}
                 title="Search E-Code"
-                description="Type above to search app pages, Help Center topics and starter templates."
+                description="Type above to search app pages, Help Center topics and published Gallery apps."
               />
             )}
 
@@ -304,8 +304,8 @@ export default function SearchRoute() {
               <EmptyState
                 icon={SearchIcon}
                 title={`No results for “${results.query}”`}
-                description="Try a different search term, or browse the template gallery and Help Center directly."
-                actionLabel="Browse templates"
+                description="Try a different search term, or browse the Community Gallery and Help Center directly."
+                actionLabel="Browse Gallery"
                 to="/templates"
                 secondaryActionLabel="Open Help Center"
                 secondaryTo="/help-center"
@@ -354,7 +354,7 @@ export default function SearchRoute() {
                 )}
 
                 {results.templates.length > 0 && (
-                  <SearchResultGroup title="Templates" count={results.templates.length}>
+                  <SearchResultGroup title="Published Gallery apps" count={results.templates.length}>
                     {results.templates.map((template) => (
                       <SearchResultRow
                         key={template.slug}

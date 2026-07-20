@@ -269,7 +269,7 @@ export default function AiAgent() {
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    <span>100+ languages supported</span>
+                    <span>Validated JavaScript and TypeScript runtime</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
@@ -604,17 +604,19 @@ export default function AiAgent() {
                   <Card>
                     <CardHeader>
                       <Code className="h-8 w-8 text-primary mb-2" />
-                      <CardTitle>Multi-Language Support</CardTitle>
+                      <CardTitle>Web Runtime Support</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="mkt-body text-muted-foreground mb-4">Builds apps in any language or framework</p>
+                      <p className="mkt-body text-muted-foreground mb-4">
+                        Builds previewable JavaScript and TypeScript applications
+                      </p>
                       <div className="flex flex-wrap gap-2">
                         <Badge variant="secondary">JavaScript</Badge>
-                        <Badge variant="secondary">Python</Badge>
+                        <Badge variant="secondary">TypeScript</Badge>
                         <Badge variant="secondary">HTML/CSS</Badge>
                         <Badge variant="secondary">React</Badge>
                         <Badge variant="secondary">Node.js</Badge>
-                        <Badge variant="secondary">More...</Badge>
+                        <Badge variant="secondary">Vite</Badge>
                       </div>
                     </CardContent>
                   </Card>

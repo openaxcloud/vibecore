@@ -66,6 +66,22 @@ describe('E-Code marketing page registry', () => {
     expect(marketingPages.customers.description).toContain('Cloud Run deployment');
   });
 
+  it('requalifies retired language starters as working Gallery applications', () => {
+    expect(marketingPages.languages.title).toBe('Community App Gallery');
+    expect(marketingPages.languages.primaryAction).toEqual(['Open Community Gallery', '/templates']);
+    expect(marketingPages.languages.description).not.toMatch(/\b(?:Python|Go|Rust)\b/);
+
+    const runtimeCopy = [
+      marketingPages.polyglot.title,
+      marketingPages.polyglot.description,
+      ...marketingPages.polyglot.highlights,
+    ].join(' ');
+
+    expect(runtimeCopy).toContain('JavaScript');
+    expect(runtimeCopy).toContain('TypeScript');
+    expect(runtimeCopy).not.toMatch(/\b(?:Python|Go|Rust)\b/);
+  });
+
   it('covers E-Code solutions, comparison pages, campaigns and newsletter routes', () => {
     expect(Object.keys(solutionPages)).toEqual(
       expect.arrayContaining([

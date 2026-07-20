@@ -5,5 +5,5 @@ import { redirect } from 'react-router';
  * feature so the URL keeps working and search engines follow the canonical page.
  */
 export function loader() {
-  return redirect('/import-github', 301);
+  return redirect('/dashboard/templates?section=import&source=github', 301);
 }

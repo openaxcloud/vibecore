@@ -1,59 +1,29 @@
 import type { Message } from 'ai';
 import type { IChatMetadata } from './db';
+import type { ProjectEditorLayoutState, ProjectEditorTab, ProjectEditorTool } from '~/lib/project-editor-layout';
 
 export type ProjectIdePanel = 'webview' | 'console' | 'network' | 'files';
-export type ProjectIdeWorkspacePanel =
-  | 'editor'
-  | 'preview'
-  | 'files'
-  | 'search'
-  | 'locks'
-  | 'overview'
-  | 'database'
-  | 'object-storage'
-  | 'packages'
-  | 'monitoring'
-  | 'extensions'
-  | 'integrations'
-  | 'workflows'
-  | 'debugger'
-  | 'deployments'
-  | 'security'
-  | 'env'
-  | 'secrets'
-  | 'git'
-  | 'activity'
-  | 'terminal'
-  | 'logs'
-  | 'collaborators'
-  | 'domains'
-  | 'snapshots'
-  | 'settings';
+export type ProjectIdeWorkspacePanel = ProjectEditorTool;
 export type ProjectMobilePanel = 'chat' | 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy';
 
-export interface ProjectIdePaneTab {
-  id: string;
-  panel: ProjectIdeWorkspacePanel;
-  pinned?: boolean;
-  filePath?: string;
-  preview?: boolean;
-}
-
+/** Backwards-compatible names while BaseChat migrates to the Project Editor model. */
+export type ProjectIdePaneTab = ProjectEditorTab;
 export type ProjectIdePaneLeaf = {
   type: 'leaf';
   id: string;
   tabs: ProjectIdePaneTab[];
   activeTabId?: string;
 };
-
 export type ProjectIdePaneSplit = {
   type: 'split';
   id: string;
-  direction: 'horizontal';
+  direction: 'horizontal' | 'vertical';
+
+  /** Absent in legacy states; the strict normalizer supplies 0.5. */
+  ratio?: number;
   first: ProjectIdePaneNode;
   second: ProjectIdePaneNode;
 };
-
 export type ProjectIdePaneNode = ProjectIdePaneLeaf | ProjectIdePaneSplit;
 
 export interface ProjectIdeMemory {
@@ -101,6 +71,9 @@ export interface ProjectIdeMemory {
     rightPanelWidth?: number;
     workspaceTabs?: ProjectIdeWorkspacePanel[];
     activeWorkspacePanel?: ProjectIdeWorkspacePanel;
+
+    /** Canonical Window → Pane → Tab state. `paneTree` remains readable for legacy migration. */
+    projectEditorLayout?: ProjectEditorLayoutState;
     paneTree?: ProjectIdePaneNode;
     activePaneId?: string;
     agentWidth?: number;

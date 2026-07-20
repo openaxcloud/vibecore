@@ -12,6 +12,12 @@ const EXACT_SURFACES: Record<string, UserAreaSurface> = {
     backTo: '/projects',
     backLabel: 'View projects',
   },
+  '/dashboard/templates': {
+    title: 'Community Gallery',
+    description: 'Published applications are temporarily unavailable.',
+    backTo: '/dashboard',
+    backLabel: 'Back to dashboard',
+  },
   '/projects': {
     title: 'Projects',
     description: 'Your project library is temporarily unavailable.',

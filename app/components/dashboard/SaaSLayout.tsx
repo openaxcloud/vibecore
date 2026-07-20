@@ -51,24 +51,6 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type React from 'react';
-import type { IconType } from 'react-icons';
-import {
-  SiAnthropic,
-  SiExpo,
-  SiFastify,
-  SiFramer,
-  SiGithub,
-  SiNextdotjs,
-  SiNodedotjs,
-  SiOpenai,
-  SiPostgresql,
-  SiPrisma,
-  SiReact,
-  SiRemix,
-  SiTailwindcss,
-  SiTypescript,
-  SiVite,
-} from 'react-icons/si';
 import { Form, Link, NavLink, useFetcher, useLocation, useNavigate, useNavigation } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from './AsyncPanelState';
 import { ProductTour } from './ProductTour';
@@ -105,19 +87,9 @@ import { resolveUserAreaSurface } from '~/lib/user-area-surface';
 import { statusDisplayLabel } from '~/lib/user-facing-labels';
 import { classNames } from '~/utils/classNames';
 
+export { TemplateGallery } from './TemplateGallery';
+
 type Icon = LucideIcon;
-type TemplateProvider = {
-  name: string;
-  Logo: IconType;
-  color: string;
-};
-type TemplateCard = {
-  id: string;
-  name: string;
-  stack: string;
-  tag: string;
-  providers: TemplateProvider[];
-};
 
 type MarketingMenuItem = readonly [title: string, to: string, description: string];
 type FooterLink = readonly [label: string, to: string];
@@ -186,7 +158,7 @@ export const publicMarketingMenus = {
     ['Blog', '/blog', 'Stories on shipping software at global scale.'],
     ['Changelog', '/changelog', 'Latest features and product updates.'],
     ['Community', '/community', 'Connect with builders and share best practices.'],
-    ['Templates', '/templates', 'Launch with curated, industry-specific templates.'],
+    ['Community Gallery', '/templates', 'Preview published applications and remix an isolated copy.'],
     ['Case Studies', '/case-studies', 'Real-world success stories from our customers.'],
     ['Help Center', '/help-center', 'FAQs, troubleshooting, and support.'],
     ['Status', '/status', 'Transparency around platform availability.'],
@@ -222,8 +194,7 @@ export const publicFooterColumns: readonly FooterColumn[] = [
       ['Docs', '/docs'],
       ['Blog', '/blog'],
       ['Community', '/community'],
-      ['Templates', '/templates'],
-      ['Languages', '/templates/languages'],
+      ['Community Gallery', '/templates'],
       ['Status', '/status'],
       ['Forum', '/forum'],
     ],
@@ -279,7 +250,7 @@ export const workspaceNav: NavItem[] = [
   { label: 'Search', to: '/command-palette', icon: Search, shortcut: '⌘K' },
   { label: 'Dashboard', to: '/dashboard', icon: Gauge },
   { label: 'Projects', to: '/projects', icon: Boxes },
-  { label: 'Templates', to: '/dashboard/templates', icon: Layers },
+  { label: 'Community Gallery', to: '/dashboard/templates', icon: Layers },
 ];
 
 export const orgNav = [
@@ -366,75 +337,6 @@ export const projectNav = [
   { label: 'Logs', suffix: '/logs', icon: Terminal },
   { label: 'Activity', suffix: '/activity', icon: Activity },
   { label: 'Git', suffix: '/git', icon: GitBranch },
-];
-
-export const templates: TemplateCard[] = [
-  {
-    id: 'react-saas',
-    name: 'React SaaS',
-    stack: 'React, Vite, TypeScript',
-    tag: 'Web app',
-    providers: [
-      { name: 'React', Logo: SiReact, color: '#61DAFB' },
-      { name: 'Vite', Logo: SiVite, color: '#41D1FF' },
-      { name: 'TypeScript', Logo: SiTypescript, color: '#3178C6' },
-    ],
-  },
-  {
-    id: 'next-dashboard',
-    name: 'Next dashboard',
-    stack: 'Next.js, Prisma, Tailwind',
-    tag: 'Full stack',
-    providers: [
-      { name: 'Next.js', Logo: SiNextdotjs, color: 'var(--vc-ide-text-primary)' },
-      { name: 'Prisma', Logo: SiPrisma, color: '#B8C4D9' },
-      { name: 'Tailwind CSS', Logo: SiTailwindcss, color: '#06B6D4' },
-    ],
-  },
-  {
-    id: 'fastify-api',
-    name: 'Fastify API',
-    stack: 'Node.js, Fastify, PostgreSQL',
-    tag: 'Backend',
-    providers: [
-      { name: 'Node.js', Logo: SiNodedotjs, color: '#5FA04E' },
-      { name: 'Fastify', Logo: SiFastify, color: 'var(--vc-ide-text-primary)' },
-      { name: 'PostgreSQL', Logo: SiPostgresql, color: '#4169E1' },
-    ],
-  },
-  {
-    id: 'ai-agent',
-    name: 'AI agent',
-    stack: 'RuntimeAdapter, tools, streaming',
-    tag: 'AI',
-    providers: [
-      { name: 'OpenAI', Logo: SiOpenai, color: 'var(--vc-ide-text-primary)' },
-      { name: 'Anthropic', Logo: SiAnthropic, color: '#D97757' },
-      { name: 'GitHub', Logo: SiGithub, color: 'var(--vc-ide-text-primary)' },
-    ],
-  },
-  {
-    id: 'landing-page',
-    name: 'Landing page',
-    stack: 'Remix, responsive content',
-    tag: 'Marketing',
-    providers: [
-      { name: 'Remix', Logo: SiRemix, color: 'var(--vc-ide-text-primary)' },
-      { name: 'Tailwind CSS', Logo: SiTailwindcss, color: '#06B6D4' },
-      { name: 'Framer', Logo: SiFramer, color: '#0055FF' },
-    ],
-  },
-  {
-    id: 'mobile-starter',
-    name: 'Mobile starter',
-    stack: 'Expo, shared packages',
-    tag: 'Mobile',
-    providers: [
-      { name: 'Expo', Logo: SiExpo, color: 'var(--vc-ide-text-primary)' },
-      { name: 'React', Logo: SiReact, color: '#61DAFB' },
-      { name: 'TypeScript', Logo: SiTypescript, color: '#3178C6' },
-    ],
-  },
 ];
 
 export interface ProjectCard {
@@ -1323,7 +1225,11 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
   }
 
   return (
-    <div className="grid min-w-0 grid-cols-1 gap-4 overflow-x-hidden md:grid-cols-2 2xl:grid-cols-3">
+    <div
+      data-testid="project-grid"
+      className="grid min-w-0 justify-start gap-4 overflow-x-hidden"
+      style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 19rem), 1fr))' }}
+    >
       {projects.map((project) => (
         <ProjectGridCard key={project.id} project={project} />
       ))}
@@ -1338,18 +1244,42 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
   const statusLabel = projectStatusLabel(project);
 
   return (
-    <Card className="group min-w-0 w-full max-w-full overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3">
-      <CardHeader>
+    <Card className="group flex h-full min-w-0 w-full max-w-[26rem] flex-col overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:border-bolt-elements-borderColorActive">
+      <div className="vc-project-preview relative aspect-[16/10] w-full overflow-hidden border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
+        <ProjectPreviewMedia
+          project={project}
+          className="relative z-[1] h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.015] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+        />
+        <span
+          className="absolute right-3 top-3 z-[2] inline-flex min-h-7 items-center gap-1.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm"
+          aria-label={`Project status: ${statusLabel}`}
+        >
+          <span
+            className={classNames(
+              'h-1.5 w-1.5 rounded-full',
+              lifecycle === 'deployed'
+                ? 'bg-[var(--status-success-text)]'
+                : lifecycle === 'draft'
+                  ? 'bg-[var(--status-info-text)]'
+                  : 'bg-bolt-elements-textTertiary',
+            )}
+            aria-hidden
+          />
+          {statusLabel}
+        </span>
+      </div>
+
+      <CardHeader className="p-4 pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             {renaming ? (
               <ProjectRenameForm project={project} onDone={() => setRenaming(false)} />
             ) : (
-              <CardTitle className="line-clamp-2 min-h-[56px] text-lg" title={project.name}>
+              <CardTitle className="line-clamp-2 min-h-12 text-base leading-6" title={project.name}>
                 {project.name}
               </CardTitle>
             )}
-            <CardDescription className="truncate">
+            <CardDescription className="mt-1 truncate text-xs">
               {project.stack ?? project.sourceType ?? 'Persistent project'}
             </CardDescription>
           </div>
@@ -1358,53 +1288,37 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Cap the thumbnail height while cards are wide enough to scan; the
-            aspect ratio governs again in the large multi-column layout. */}
-        <div className="vc-project-preview relative aspect-[16/10] max-h-44 w-full overflow-hidden rounded-md sm:max-h-52 lg:aspect-[16/9] lg:max-h-none">
-          <ProjectPreviewMedia
-            project={project}
-            className="relative z-[1] h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.015]"
-          />
-          {/* Replit parity: status as a translucent overlay chip in the thumbnail
-              corner (readable over any preview image), not a header pill. */}
-          <span
-            className="absolute right-2 top-2 z-[2] inline-flex items-center gap-1.5 rounded-full bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm"
-            aria-label={`Project status: ${statusLabel}`}
-          >
-            <span
-              className={classNames(
-                'h-1.5 w-1.5 rounded-full',
-                lifecycle === 'deployed'
-                  ? 'bg-[var(--status-success-text)]'
-                  : lifecycle === 'draft'
-                    ? 'bg-[var(--status-info-text)]'
-                    : 'bg-bolt-elements-textTertiary',
-              )}
-              aria-hidden
-            />
-            {statusLabel}
-          </span>
-        </div>
-        <div className="flex min-w-0 items-center justify-between gap-3 text-xs text-bolt-elements-textSecondary">
-          <div className="min-w-0 space-y-1">
-            {project.updatedAtIso ? (
-              <RelativeTime value={project.updatedAtIso} prefix="Last activity" className="block truncate" />
-            ) : (
-              <span className="block truncate">Last activity {project.updated ?? 'recently'}</span>
-            )}
-            <span className="flex items-center gap-1.5 text-bolt-elements-textTertiary">
-              <Rocket className="h-3.5 w-3.5" aria-hidden />
-              {projectDeploymentSummary(project.deploymentCount)}
-            </span>
+      <CardContent className="mt-auto space-y-3 p-4 pt-0">
+        <div className="grid min-w-0 grid-cols-2 gap-3 border-y border-bolt-elements-borderColor py-3 text-xs">
+          <div className="flex min-w-0 items-start gap-2">
+            <Activity className="mt-0.5 h-3.5 w-3.5 shrink-0 text-bolt-elements-textTertiary" aria-hidden />
+            <div className="min-w-0">
+              <span className="block text-[11px] text-bolt-elements-textTertiary">Activity</span>
+              <span className="mt-0.5 block truncate font-medium text-bolt-elements-textSecondary">
+                {project.updatedAtIso ? <RelativeTime value={project.updatedAtIso} /> : (project.updated ?? 'recently')}
+              </span>
+            </div>
           </div>
-          <Link
-            to={project.ideUrl ?? `/projects/${project.id}/ide`}
-            className="inline-flex min-h-[44px] shrink-0 items-center rounded-md px-2 py-1 font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
-          >
-            Open IDE
-          </Link>
+          <div className="flex min-w-0 items-start gap-2">
+            <Rocket className="mt-0.5 h-3.5 w-3.5 shrink-0 text-bolt-elements-textTertiary" aria-hidden />
+            <div className="min-w-0">
+              <span className="block text-[11px] text-bolt-elements-textTertiary">Deployments</span>
+              <span className="mt-0.5 block truncate font-medium text-bolt-elements-textSecondary">
+                {projectDeploymentSummary(project.deploymentCount)}
+              </span>
+            </div>
+          </div>
         </div>
+        <Link
+          to={project.ideUrl ?? `/projects/${project.id}/ide`}
+          className="inline-flex min-h-[44px] w-full items-center justify-between gap-3 rounded-md bg-bolt-elements-button-primary-background px-3.5 text-sm font-medium text-bolt-elements-button-primary-text transition-colors hover:bg-bolt-elements-button-primary-backgroundHover focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)]"
+        >
+          <span className="inline-flex min-w-0 items-center gap-2">
+            <MonitorPlay className="h-4 w-4 shrink-0" aria-hidden />
+            <span>Open IDE</span>
+          </span>
+          <ArrowUpRight className="h-4 w-4 shrink-0" aria-hidden />
+        </Link>
       </CardContent>
     </Card>
   );
@@ -1418,9 +1332,12 @@ function ProjectGridCard({ project }: { project: ProjectCard }) {
  */
 function ProjectPreviewFallback({ project }: { project: ProjectCard }) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-bolt-elements-background-depth-3 text-bolt-elements-textTertiary">
-      <span className="i-ph:image-square text-2xl" aria-hidden />
-      <span className="text-[11px]">No preview yet</span>
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-bolt-elements-background-depth-3 px-5 text-center text-bolt-elements-textTertiary">
+      <span className="flex h-10 w-10 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
+        <MonitorPlay className="h-5 w-5" aria-hidden />
+      </span>
+      <span className="text-xs font-medium text-bolt-elements-textSecondary">No preview yet</span>
+      <span className="max-w-48 text-[11px] leading-4">A captured app preview will appear here.</span>
       <span className="sr-only">No preview captured yet for {project.name}</span>
     </div>
   );
@@ -1458,89 +1375,6 @@ export function ProjectStatusPill({ project }: { project: ProjectCard }) {
       label={projectStatusLabel(project)}
       tone={lifecycle === 'deployed' ? 'success' : lifecycle === 'draft' ? 'info' : 'neutral'}
     />
-  );
-}
-
-export function TemplateGallery({
-  compact = false,
-  mode = 'public',
-}: {
-  compact?: boolean;
-  mode?: 'public' | 'authenticated';
-}) {
-  return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {templates.map((template) => (
-        <Card
-          key={template.name}
-          className="group overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3"
-        >
-          <div className="vc-template-preview relative m-3 mb-0 overflow-hidden p-3">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,color-mix(in_srgb,var(--vc-ide-accent-action)_18%,transparent),transparent_34%),radial-gradient(circle_at_85%_10%,color-mix(in_srgb,var(--vc-ide-accent-success)_16%,transparent),transparent_32%)]" />
-            <div className="relative flex h-20 items-center justify-center gap-3">
-              {template.providers.map((provider, index) => {
-                const Logo = provider.Logo;
-
-                return (
-                  <div
-                    key={provider.name}
-                    className="vc-template-provider-logo flex h-12 w-12 items-center justify-center rounded-lg shadow-[var(--vc-ui-shadow-md)] transition-transform duration-150 group-hover:-translate-y-0.5"
-                    style={{ transitionDelay: `${index * 35}ms` }}
-                    title={provider.name}
-                    aria-label={`${provider.name} logo`}
-                  >
-                    <Logo className="h-6 w-6" style={{ color: provider.color }} aria-hidden />
-                  </div>
-                );
-              })}
-            </div>
-            <div className="relative mt-2 flex items-center justify-center gap-1.5">
-              {template.providers.map((provider) => (
-                <span
-                  key={provider.name}
-                  className="vc-template-provider-pill rounded-full px-2 py-0.5 text-[10px] font-medium"
-                >
-                  {provider.name}
-                </span>
-              ))}
-            </div>
-          </div>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-lg">{template.name}</CardTitle>
-              <StatusPill label={template.tag} />
-            </div>
-            <CardDescription>{template.stack}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between">
-            <span className="text-sm text-bolt-elements-textSecondary">Production starter</span>
-            {/*
-              Authenticated "Use template" creates the project from this template and goes
-              straight to the IDE from wherever the card renders (Dashboard included): POST to
-              the /dashboard/templates action, which creates via /projects/from-template and
-              redirects to the project IDE — no /templates detour.
-            */}
-            {mode === 'authenticated' ? (
-              <Form method="post" action="/dashboard/templates">
-                <input type="hidden" name="templateName" value={template.id} />
-                <input type="hidden" name="name" value={template.name} />
-                <Button type="submit" variant="outline" className="min-h-[44px]">
-                  Use template
-                </Button>
-              </Form>
-            ) : compact ? (
-              <LinkButton to="/templates" variant="outline">
-                Use template
-              </LinkButton>
-            ) : (
-              <LinkButton to="/login" variant="outline">
-                Sign in to use
-              </LinkButton>
-            )}
-          </CardContent>
-        </Card>
-      ))}
-    </div>
   );
 }
 
@@ -1723,7 +1557,11 @@ export function ActivityList({ items }: { items: Array<{ title: string; detail: 
 const COMMAND_PALETTE_ACTIONS: CommandPaletteItem[] = [
   { label: 'Create project', to: '/projects/new', hint: 'Action' },
   { label: 'Open recent projects', to: '/recent-projects', hint: 'Action' },
-  { label: 'Import GitHub repository', to: '/import-github', hint: 'Action' },
+  {
+    label: 'Open Import Hub',
+    to: '/dashboard/templates?section=import&source=github',
+    hint: '12 sources',
+  },
   { label: 'View usage', to: '/usage', hint: 'Action' },
   { label: 'Invite teammate', to: '/invitations', hint: 'Action' },
   { label: 'Rotate API key', to: '/api-keys', hint: 'Action' },
@@ -2461,14 +2299,14 @@ export const projectActivity = [
 export const importOptions = [
   {
     title: 'Import GitHub',
-    description: 'Connect a repository, choose a branch and create a persistent project.',
-    to: '/import-github',
+    description: 'Validate a repository, inspect its runtime and create an isolated project.',
+    to: '/dashboard/templates?section=import&source=github',
     icon: Github,
   },
   {
     title: 'Import zip',
-    description: 'Upload an archive and extract it into a managed workspace volume.',
-    to: '/import-zip',
+    description: 'Validate a source archive before creating its managed workspace.',
+    to: '/dashboard/templates?section=import&source=zip',
     icon: FileArchive,
   },
   {
@@ -2478,8 +2316,8 @@ export const importOptions = [
     icon: Sparkles,
   },
   {
-    title: 'Use template',
-    description: 'Pick a curated starter with runtime and deployment defaults.',
+    title: 'Remix a published app',
+    description: 'Preview a working community application, then create an isolated copy.',
     to: '/dashboard/templates',
     icon: Upload,
   },

@@ -263,7 +263,6 @@ export const isDebugMode = atom(false);
 // Define keys for localStorage
 const SETTINGS_KEYS = {
   LATEST_BRANCH: 'isLatestBranch',
-  AUTO_SELECT_TEMPLATE: 'autoSelectTemplate',
   CONTEXT_OPTIMIZATION: 'contextOptimizationEnabled',
   EVENT_LOGS: 'isEventLogsEnabled',
   PROMPT_ID: 'promptId',
@@ -293,7 +292,6 @@ const getInitialSettings = () => {
 
   return {
     latestBranch: getStoredBoolean(SETTINGS_KEYS.LATEST_BRANCH, false),
-    autoSelectTemplate: getStoredBoolean(SETTINGS_KEYS.AUTO_SELECT_TEMPLATE, true),
     contextOptimization: getStoredBoolean(SETTINGS_KEYS.CONTEXT_OPTIMIZATION, true),
     eventLogs: getStoredBoolean(SETTINGS_KEYS.EVENT_LOGS, true),
     promptId: isBrowser ? localStorage.getItem(SETTINGS_KEYS.PROMPT_ID) || 'default' : 'default',
@@ -305,7 +303,6 @@ const getInitialSettings = () => {
 const initialSettings = getInitialSettings();
 
 export const latestBranchStore = atom<boolean>(initialSettings.latestBranch);
-export const autoSelectStarterTemplate = atom<boolean>(initialSettings.autoSelectTemplate);
 export const enableContextOptimizationStore = atom<boolean>(initialSettings.contextOptimization);
 export const isEventLogsEnabled = atom<boolean>(initialSettings.eventLogs);
 export const promptStore = atom<string>(initialSettings.promptId);
@@ -314,11 +311,6 @@ export const promptStore = atom<string>(initialSettings.promptId);
 export const updateLatestBranch = (enabled: boolean) => {
   latestBranchStore.set(enabled);
   localStorage.setItem(SETTINGS_KEYS.LATEST_BRANCH, JSON.stringify(enabled));
-};
-
-export const updateAutoSelectTemplate = (enabled: boolean) => {
-  autoSelectStarterTemplate.set(enabled);
-  localStorage.setItem(SETTINGS_KEYS.AUTO_SELECT_TEMPLATE, JSON.stringify(enabled));
 };
 
 export const updateContextOptimization = (enabled: boolean) => {

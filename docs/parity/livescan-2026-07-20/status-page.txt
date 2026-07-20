@@ -1,0 +1,44 @@
+Replit Status
+Subscribe to updates
+We are investigating an issue.
+Incident History
+System status
+May 2026 - Jul 2026
+Operational
+Affected
+Maintenance
+Services
+Integrations
+Operational
+Published App Databases
+Operational
+Mobile App
+Operational
+Development Sandboxes
+Operational
+Replit Agent
+Operational
+Publishing
+Operational
+replit.com
+Operational
+Published Apps
+Operational
+Replit Auth
+Operational
+Development Databases
+Operational
+Incidents
+App publishing delays
+July 16, 2026 at 11:34 AM PDT
+Monitoring
+
+We're seeing elevated delays when publishing apps. Some apps are getting stuck in the 'Security Scanner' stage. We're investigating.
+
+Agent Search functionality is not functional
+July 14, 2026 at 09:29 AM PDT
+Monitoring
+
+Agent was unable to search the Web from 3:43am PDT to 8:50am PDT July 14
+
+Powered by

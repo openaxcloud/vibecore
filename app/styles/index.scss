@@ -4428,6 +4428,51 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--ecode-accent) !important;
 }
 
+.bolt-mobile-ecode-header [data-testid='mobile-project-spotlight-trigger'] {
+  width: min(116px, 28vw);
+  height: 18px;
+  min-width: 0;
+  justify-content: flex-start;
+  margin: 0;
+  border-radius: 4px;
+  color: var(--vc-ide-text-muted);
+  padding: 0 3px;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.bolt-mobile-ecode-header [data-testid='mobile-project-spotlight-trigger'] > span:first-child {
+  display: none;
+}
+
+.bolt-mobile-ecode-header [data-testid='mobile-project-spotlight-trigger'] > span:last-child {
+  display: block;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-mobile-ecode-header [data-testid='mobile-project-resources-trigger'] {
+  width: 34px;
+  height: 34px;
+  margin-left: 0;
+  padding: 0;
+}
+
+.bolt-mobile-ecode-header [data-testid='mobile-project-resources-trigger'] > span {
+  display: none;
+}
+
+.bolt-mobile-ecode-header [data-testid='mobile-project-resources-trigger'] > svg {
+  width: 18px;
+  height: 18px;
+}
+
 .bolt-mobile-replit-nav {
   position: fixed;
   right: 0;
@@ -8379,10 +8424,22 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-ide-rail-tools {
+  min-height: 0;
+  flex: 1;
   overflow-x: hidden;
   overflow-y: auto;
   padding-bottom: 8px;
   overscroll-behavior: contain;
+}
+
+.bolt-project-ide-rail-footer {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  padding-top: 6px;
+}
+
+.bolt-project-ide-all-tools {
+  background: color-mix(in srgb, var(--vc-ide-bg-card), transparent 18%);
 }
 
 .bolt-project-ide-rail-more {
@@ -14552,27 +14609,93 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-main-panes {
+  position: relative;
   display: flex;
   min-width: 0;
   min-height: 0;
   height: calc(100% - var(--project-terminal-bottom-height, 0px));
+  overflow: hidden;
+  isolation: isolate;
   transition: height var(--vc-animation-split-panel);
 }
 
+.bolt-project-floating-canvas {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+        circle at 1px 1px,
+        color-mix(in srgb, var(--vc-ide-border-subtle) 72%, transparent) 1px,
+        transparent 0
+      )
+      0 0 / 18px 18px,
+    var(--vc-ide-bg-app);
+}
+
 .bolt-project-pane-split {
-  display: grid;
+  position: relative;
+  display: flex;
+  width: 100%;
   min-width: 0;
   min-height: 0;
   flex: 1;
   height: 100%;
+  overflow: hidden;
 }
 
-.bolt-project-pane-split[data-direction='horizontal'] {
-  grid-template-columns: minmax(260px, 1fr) 1px minmax(260px, 1fr);
+.bolt-project-pane-split > [data-panel] {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .bolt-project-pane-split-divider {
+  position: relative;
+  z-index: 7;
+  flex: 0 0 7px;
+  background: transparent;
+  outline: none;
+  touch-action: none;
+}
+
+.bolt-project-pane-split[data-direction='horizontal'] > .bolt-project-pane-split-divider {
+  width: 7px;
+  cursor: col-resize;
+}
+
+.bolt-project-pane-split[data-direction='vertical'] > .bolt-project-pane-split-divider {
+  height: 7px;
+  cursor: row-resize;
+}
+
+.bolt-project-pane-split-divider::after {
+  position: absolute;
+  content: '';
   background: var(--vc-ide-border-subtle);
+  transition:
+    background 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.bolt-project-pane-split[data-direction='horizontal'] > .bolt-project-pane-split-divider::after {
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 1px;
+}
+
+.bolt-project-pane-split[data-direction='vertical'] > .bolt-project-pane-split-divider::after {
+  right: 0;
+  bottom: 3px;
+  left: 0;
+  height: 1px;
+}
+
+.bolt-project-pane-split-divider:hover::after,
+.bolt-project-pane-split-divider:focus-visible::after,
+.bolt-project-pane-split-divider[data-resize-handle-active]::after {
+  background: var(--vc-ide-accent-action);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vc-ide-accent-action), transparent 62%);
 }
 
 .bolt-project-bottom-terminal-shell {
@@ -14643,10 +14766,15 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-tab-actions-menu {
-  position: fixed;
+  /* Radix Popper owns viewport positioning and collision avoidance. Keeping
+   * this content in its wrapper's flow is required for correct measurement. */
+  position: relative;
   z-index: 80;
   display: grid;
-  min-width: 180px;
+  width: min(260px, calc(100vw - 24px));
+  max-height: min(480px, calc(var(--radix-popover-content-available-height, 100dvh) - 16px), calc(100dvh - 32px));
+  overflow-x: hidden;
+  overflow-y: auto;
   gap: 2px;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: var(--vc-ui-radius-popover);
@@ -14654,12 +14782,6 @@ body :where(.lucide, svg[data-lucide]) {
   box-shadow: var(--vc-ui-shadow-xl);
   backdrop-filter: var(--vc-ui-overlay-blur);
   padding: 6px;
-}
-
-.bolt-project-tab-actions-menu {
-  position: absolute;
-  right: 0;
-  top: 32px;
 }
 
 .bolt-project-tab-actions-menu button {
@@ -14683,6 +14805,41 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-tab-actions-menu button:hover {
   background: var(--vc-ide-bg-hover);
   color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-tab-actions-menu button:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+  outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 28%);
+  outline-offset: -2px;
+}
+
+.bolt-project-tab-actions-menu button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.bolt-project-tab-actions-section {
+  margin-top: 4px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  padding: 7px 8px 3px;
+  color: var(--vc-ide-text-muted);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bolt-project-tab-actions-section:first-child {
+  margin-top: 0;
+  border-top: 0;
+  padding-top: 3px;
+}
+
+@media (pointer: coarse) {
+  .bolt-project-tab-actions-menu button {
+    min-height: 44px;
+  }
 }
 
 .bolt-project-bottom-terminal {
@@ -18953,6 +19110,75 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 @media (max-width: 1199px), (max-width: 1366px) and (any-pointer: coarse) {
   .bolt-project-topbar {
     display: none !important;
+  }
+
+  .bolt-project-responsive-pane-projection {
+    position: fixed;
+    top: calc(48px + env(safe-area-inset-top, 0px));
+    right: 0;
+    bottom: calc(var(--mobile-nav-height) + 16px + env(safe-area-inset-bottom, 0px));
+    left: 0;
+    z-index: 35;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    border-top: 1px solid var(--vc-ide-border-subtle);
+    background: var(--vc-ide-bg-app);
+  }
+
+  .bolt-project-responsive-pane-projection[data-floating='true'] {
+    top: calc(56px + env(safe-area-inset-top, 0px));
+    right: 8px;
+    bottom: calc(var(--mobile-nav-height) + 24px + env(safe-area-inset-bottom, 0px));
+    left: 8px;
+    border: 1px solid var(--vc-ide-border-visible);
+    border-radius: 10px;
+    box-shadow: var(--vc-ui-shadow-xl);
+  }
+
+  .bolt-project-responsive-floating-bar {
+    display: flex;
+    min-height: 40px;
+    flex: 0 0 40px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid var(--vc-ide-border-subtle);
+    background: color-mix(in srgb, var(--vc-ide-bg-panel), white 3%);
+    color: var(--vc-ide-text-secondary);
+    padding: 0 10px 0 12px;
+    font-size: 12px;
+    font-weight: 650;
+  }
+
+  .bolt-project-responsive-floating-bar > span,
+  .bolt-project-responsive-floating-bar button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .bolt-project-responsive-floating-bar button {
+    min-height: 32px;
+    border: 1px solid var(--vc-ide-border-visible);
+    border-radius: 7px;
+    background: var(--vc-ide-bg-card);
+    color: var(--vc-ide-text-primary);
+    padding: 0 10px;
+  }
+
+  .bolt-project-responsive-floating-bar button:focus-visible {
+    outline: 2px solid var(--vc-ide-accent-action);
+    outline-offset: 2px;
+  }
+
+  .bolt-project-responsive-pane-projection > .bolt-project-pane-leaf {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    height: auto;
   }
 
   .bolt-mobile-ecode-header {

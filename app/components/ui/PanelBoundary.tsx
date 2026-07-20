@@ -96,7 +96,7 @@ export class PanelBoundary extends Component<PanelBoundaryProps, PanelBoundarySt
               The {this.props.title} {noun} crashed
             </h2>
             <p className="mt-1 text-xs leading-5 text-bolt-elements-textSecondary">
-              {this.state.error.message || 'The error was isolated so the rest of the workspace can keep running.'}
+              {this.state.error.message || 'The error was isolated so the rest of the Project Editor can keep running.'}
             </p>
           </div>
           {this.state.retryCount === 0 && this.props.autoRetry !== false ? (
@@ -221,7 +221,7 @@ export function PanelLoading({ title }: { title: string }) {
         <div>
           <p className="text-sm font-medium text-bolt-elements-textPrimary">{title}</p>
           <p className="mt-1 text-xs leading-5 text-bolt-elements-textSecondary">
-            Preparing panels, runtime signals and workspace data.
+            Preparing panels, runtime signals and project data.
           </p>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-bolt-elements-background-depth-3">

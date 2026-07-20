@@ -202,6 +202,7 @@ export interface StartWorkspaceInput {
   orgId: string;
   projectId: string;
   workspaceId: string;
+
   /** The user the workspace runs as (audit; threaded into the object-storage token). */
   userId?: string;
   image: string;
@@ -209,6 +210,7 @@ export interface StartWorkspaceInput {
   env: Record<string, string>;
   allowedSecretKeys: string[];
   allowedSecrets?: Record<string, string>;
+
   /** App-facing object storage: in-cluster API URL + the project-scoped access token. */
   objectStorage?: { apiUrl: string; accessToken: string };
   resourceLimits?: {
@@ -537,11 +539,13 @@ export class WorkspaceManager {
     host: string;
     tlsSecretName: string;
     env?: Record<string, string>;
+
     // Secret-backed env (name -> value); stored in an app-secrets-<id> Secret.
     secrets?: Record<string, string>;
     replicas?: number;
     healthPath?: string;
     readyTimeoutMs?: number;
+
     /*
      * Create an exact-host Ingress in the runtime namespace. OFF by default: the
      * default deploy routing is the preview-proxy host-routing `d-<id>.<domain>`
@@ -560,6 +564,12 @@ export class WorkspaceManager {
      * pod spec unchanged.
      */
     nixStorePvcName?: string;
+
+    // Machine-size resources (k8s quantities), applied verbatim on the container.
+    cpuRequest?: string;
+    cpuLimit?: string;
+    memoryRequest?: string;
+    memoryLimit?: string;
   }): Promise<{ ready: boolean; url: string; name: string; readyReplicas: number }> {
     const hasSecrets = Boolean(input.secrets && Object.keys(input.secrets).length > 0);
     const secretName = `app-secrets-${input.deploymentId}`;
@@ -607,14 +617,47 @@ export class WorkspaceManager {
       createIngress: input.createIngress,
       // Per-request opt-in wins; cluster-wide kill switch as fallback (mirrors startWorkspace).
       nixStorePvcName: input.nixStorePvcName ?? process.env.NIX_STORE_PVC_NAME,
+      cpuRequest: input.cpuRequest,
+      cpuLimit: input.cpuLimit,
+      memoryRequest: input.memoryRequest,
+      memoryLimit: input.memoryLimit,
     });
   }
 
   async getServerDeploymentStatus(
     namespace: string,
     deploymentId: string,
-  ): Promise<{ exists: boolean; readyReplicas: number; replicas: number }> {
-    return this.runtime.serverAppStatus(namespace, deploymentId);
+  ): Promise<{
+    exists: boolean;
+    readyReplicas: number;
+    replicas: number;
+    requestCount?: number;
+    lastRequestAt?: number;
+  }> {
+    const status = await this.runtime.serverAppStatus(namespace, deploymentId);
+
+    if (!status.exists) {
+      return status;
+    }
+
+    /*
+     * Enrich with the traffic annotations (request counter + last-request stamp)
+     * so the api's metering sweep can bill requests without a second control
+     * plane. Best-effort: a read failure degrades to the bare runtime status.
+     */
+    const dep = (await this.k8s
+      .get('Deployment', namespace, serverDeploymentName(deploymentId))
+      .catch(() => undefined)) as { metadata?: { annotations?: Record<string, string> } } | undefined;
+
+    const annotations = dep?.metadata?.annotations ?? {};
+    const requestCount = Number(annotations[WorkspaceManager.REQUEST_COUNT_ANNOTATION]);
+    const lastRequestAt = Number(annotations[WorkspaceManager.LAST_REQUEST_ANNOTATION]);
+
+    return {
+      ...status,
+      ...(Number.isFinite(requestCount) ? { requestCount } : {}),
+      ...(Number.isFinite(lastRequestAt) ? { lastRequestAt } : {}),
+    };
   }
 
   async stopServerDeployment(namespace: string, deploymentId: string): Promise<{ stopped: true }> {
@@ -636,6 +679,16 @@ export class WorkspaceManager {
    */
   static readonly LAST_REQUEST_ANNOTATION = 'vibecore.ai/last-request-at';
 
+  /*
+   * Cumulative proxied-request counter (billing: $1.20/M requests). The proxy
+   * ships a DELTA with its throttled touch; the manager read-modify-writes the
+   * running total here. Two manager replicas incrementing the same deployment
+   * in the same instant can lose one delta (last-write-wins annotate) — with
+   * 30s-throttled touches from 2 proxy pods the window is negligible, and the
+   * failure mode is UNDER-counting, never over-billing.
+   */
+  static readonly REQUEST_COUNT_ANNOTATION = 'vibecore.ai/request-count';
+
   private readonly lastServerTouchAt = new Map<string, number>();
 
   /**
@@ -650,6 +703,7 @@ export class WorkspaceManager {
     readyTimeoutMs = 60_000,
   ): Promise<{ ready: boolean; readyReplicas: number; wokeUp: boolean }> {
     const name = serverDeploymentName(deploymentId);
+
     const dep = (await this.k8s.get('Deployment', namespace, name).catch(() => undefined)) as
       | { spec?: { replicas?: number }; status?: { readyReplicas?: number } }
       | undefined;
@@ -710,9 +764,37 @@ export class WorkspaceManager {
    * controller can measure inactivity. Cheap: an in-memory throttle gates the
    * annotation write to once per interval per deployment.
    */
-  async touchServerDeployment(namespace: string, deploymentId: string): Promise<void> {
+  async touchServerDeployment(namespace: string, deploymentId: string, requests = 0): Promise<void> {
     const now = Date.now();
     const last = this.lastServerTouchAt.get(deploymentId) ?? 0;
+    const name = serverDeploymentName(deploymentId);
+
+    /*
+     * A request-count delta must NEVER be dropped by the activity throttle —
+     * the proxy already throttles its touches and each one carries the traffic
+     * accumulated since the previous flush, so skipping the increment here
+     * would silently lose billable requests.
+     */
+    if (Number.isFinite(requests) && requests > 0) {
+      try {
+        const dep = (await this.k8s.get('Deployment', namespace, name)) as
+          | { metadata?: { annotations?: Record<string, string> } }
+          | undefined;
+
+        const current = Number(dep?.metadata?.annotations?.[WorkspaceManager.REQUEST_COUNT_ANNOTATION]);
+        const total = (Number.isFinite(current) ? current : 0) + Math.floor(requests);
+
+        await this.k8s.annotate(
+          'Deployment',
+          namespace,
+          name,
+          WorkspaceManager.REQUEST_COUNT_ANNOTATION,
+          String(total),
+        );
+      } catch {
+        // Deployment may be gone mid-teardown; the delta is lost (undercount).
+      }
+    }
 
     if (now - last < WORKSPACE_ACTIVITY_TOUCH_INTERVAL_MS) {
       return;
@@ -721,13 +803,7 @@ export class WorkspaceManager {
     this.lastServerTouchAt.set(deploymentId, now);
 
     await this.k8s
-      .annotate(
-        'Deployment',
-        namespace,
-        serverDeploymentName(deploymentId),
-        WorkspaceManager.LAST_REQUEST_ANNOTATION,
-        String(now),
-      )
+      .annotate('Deployment', namespace, name, WorkspaceManager.LAST_REQUEST_ANNOTATION, String(now))
       .catch(() => {
         // Row/Deployment may be gone; drop the throttle marker so a later touch retries.
         this.lastServerTouchAt.delete(deploymentId);
@@ -743,6 +819,7 @@ export class WorkspaceManager {
    */
   async reapIdleServerDeployments(namespace: string, idleMs: number): Promise<string[]> {
     const now = Date.now();
+
     const deployments = await this.k8s
       .listByLabel('Deployment', namespace, 'vibecore.ai/server-deploy')
       .catch(() => [] as Awaited<ReturnType<typeof this.k8s.listByLabel>>);
@@ -761,6 +838,7 @@ export class WorkspaceManager {
             };
           }
         ).metadata;
+
         const spec = (dep as { spec?: { replicas?: number } }).spec;
         const deploymentId = meta?.labels?.['vibecore.ai/server-deploy'];
 
@@ -774,6 +852,7 @@ export class WorkspaceManager {
         }
 
         const lastRequestRaw = meta.annotations?.[WorkspaceManager.LAST_REQUEST_ANNOTATION];
+
         const lastRequestMs = lastRequestRaw
           ? Number(lastRequestRaw)
           : new Date(meta.creationTimestamp ?? now).getTime();
@@ -1545,6 +1624,7 @@ export function isImmutablePodUpdateError(error: unknown): boolean {
     (error as { stderr?: unknown } | undefined)?.stderr,
     (error as { message?: unknown } | undefined)?.message,
   ];
+
   const text = parts.map((part) => (typeof part === 'string' ? part : '')).join('\n');
 
   return /pod updates may not change fields other than|field is immutable|spec:\s*Forbidden/i.test(text);

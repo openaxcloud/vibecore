@@ -1,0 +1,170 @@
+{
+  "generatedAt": "2026-07-16T07:41:07.969Z",
+  "nodeVersion": "v24.10.0",
+  "packageManager": "pnpm@9.14.4",
+  "browser": {
+    "engine": "chromium",
+    "version": "147.0.7727.15",
+    "launchMode": "isolated single-process browser per published demo app"
+  },
+  "results": [
+    {
+      "id": "react-saas",
+      "contentHash": "5f03435ab75e8d36bc249989a67cd9c6d40544dda6e8a133316b8ff94784dbb7",
+      "fileCount": 7,
+      "dependencies": {
+        "react": "19.2.7",
+        "react-dom": "19.2.7"
+      },
+      "devDependencies": {
+        "@types/react": "19.2.17",
+        "@types/react-dom": "19.2.3",
+        "@vitejs/plugin-react": "6.0.3",
+        "typescript": "7.0.2",
+        "vite": "8.1.4"
+      },
+      "install": "passed",
+      "typecheck": "passed",
+      "build": "passed",
+      "previewCommand": "pnpm run dev",
+      "previewUrl": "http://127.0.0.1:43100/",
+      "httpStatus": 200,
+      "domMarker": "[data-gallery-app-id=\"react-saas\"]",
+      "pageErrors": [],
+      "browserVersion": "147.0.7727.15",
+      "thumbnailPath": "public/gallery-apps/react-saas/thumbnail.png",
+      "textLength": 547,
+      "visualElements": 0
+    },
+    {
+      "id": "next-dashboard",
+      "contentHash": "3a7ceed9619d798ccafe616250eec9522ef6a7aef2e129626a472c08ec14dd08",
+      "fileCount": 8,
+      "dependencies": {
+        "next": "16.2.10",
+        "react": "19.2.7",
+        "react-dom": "19.2.7"
+      },
+      "devDependencies": {
+        "@types/node": "24.13.3",
+        "@types/react": "19.2.17",
+        "@types/react-dom": "19.2.3",
+        "typescript": "6.0.3"
+      },
+      "install": "passed",
+      "typecheck": "passed",
+      "build": "passed",
+      "previewCommand": "pnpm run start",
+      "previewUrl": "http://127.0.0.1:43101/gallery-apps/next-dashboard/preview/",
+      "httpStatus": 200,
+      "domMarker": "[data-gallery-app-id=\"next-dashboard\"]",
+      "pageErrors": [],
+      "browserVersion": "147.0.7727.15",
+      "thumbnailPath": "public/gallery-apps/next-dashboard/thumbnail.png",
+      "textLength": 5531,
+      "visualElements": 0
+    },
+    {
+      "id": "fastify-api",
+      "contentHash": "6789e576a6205ef095a4ec1b96771251d87b6241d3a3ac99d9a5ed8587e2ab89",
+      "fileCount": 7,
+      "dependencies": {
+        "fastify": "5.10.0"
+      },
+      "devDependencies": {
+        "@types/node": "24.13.3",
+        "tsx": "4.23.1",
+        "typescript": "7.0.2"
+      },
+      "install": "passed",
+      "typecheck": "passed",
+      "build": "not-defined",
+      "previewCommand": "pnpm run dev",
+      "previewUrl": "http://127.0.0.1:43102/",
+      "httpStatus": 200,
+      "domMarker": "[data-gallery-app-id=\"fastify-api\"]",
+      "pageErrors": [],
+      "browserVersion": "147.0.7727.15",
+      "thumbnailPath": "public/gallery-apps/fastify-api/thumbnail.png",
+      "textLength": 2447,
+      "visualElements": 0
+    },
+    {
+      "id": "ai-agent",
+      "contentHash": "ade6e6a2c561263364bfc4f14b9c73b5b7f12b19cb0e70edc2b3ab68c2a94682",
+      "fileCount": 7,
+      "dependencies": {
+        "react": "19.2.7",
+        "react-dom": "19.2.7"
+      },
+      "devDependencies": {
+        "@types/react": "19.2.17",
+        "@types/react-dom": "19.2.3",
+        "@vitejs/plugin-react": "6.0.3",
+        "typescript": "7.0.2",
+        "vite": "8.1.4"
+      },
+      "install": "passed",
+      "typecheck": "passed",
+      "build": "passed",
+      "previewCommand": "pnpm run dev",
+      "previewUrl": "http://127.0.0.1:43103/",
+      "httpStatus": 200,
+      "domMarker": "[data-gallery-app-id=\"ai-agent\"]",
+      "pageErrors": [],
+      "browserVersion": "147.0.7727.15",
+      "thumbnailPath": "public/gallery-apps/ai-agent/thumbnail.png",
+      "textLength": 525,
+      "visualElements": 0
+    },
+    {
+      "id": "landing-page",
+      "contentHash": "ac89602bf2925fc6aa24a797ab1f661d214d5fb6090b5421785f8d9cd6e777ec",
+      "fileCount": 5,
+      "dependencies": {},
+      "devDependencies": {
+        "vite": "8.1.4"
+      },
+      "install": "passed",
+      "typecheck": "not-defined",
+      "build": "passed",
+      "previewCommand": "pnpm run dev",
+      "previewUrl": "http://127.0.0.1:43104/",
+      "httpStatus": 200,
+      "domMarker": "[data-gallery-app-id=\"landing-page\"]",
+      "pageErrors": [],
+      "browserVersion": "147.0.7727.15",
+      "thumbnailPath": "public/gallery-apps/landing-page/thumbnail.png",
+      "textLength": 533,
+      "visualElements": 0
+    },
+    {
+      "id": "mobile-starter",
+      "contentHash": "f70041fbaf6288024740c9aed17bca34cb7106a8d7738bbb1f01bf6985c1acd8",
+      "fileCount": 10,
+      "dependencies": {
+        "react": "19.2.7",
+        "react-dom": "19.2.7"
+      },
+      "devDependencies": {
+        "@types/react": "19.2.17",
+        "@types/react-dom": "19.2.3",
+        "@vitejs/plugin-react": "6.0.3",
+        "typescript": "7.0.2",
+        "vite": "8.1.4"
+      },
+      "install": "passed",
+      "typecheck": "passed",
+      "build": "passed",
+      "previewCommand": "pnpm run dev",
+      "previewUrl": "http://127.0.0.1:43105/",
+      "httpStatus": 200,
+      "domMarker": "[data-gallery-app-id=\"mobile-starter\"]",
+      "pageErrors": [],
+      "browserVersion": "147.0.7727.15",
+      "thumbnailPath": "public/gallery-apps/mobile-starter/thumbnail.png",
+      "textLength": 423,
+      "visualElements": 0
+    }
+  ]
+}

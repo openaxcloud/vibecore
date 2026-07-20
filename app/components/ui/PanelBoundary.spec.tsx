@@ -5,7 +5,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { PanelErrorBoundary } from './PanelBoundary';
+import { PanelErrorBoundary, PanelLoading } from './PanelBoundary';
 
 const { logError } = vi.hoisted(() => ({
   logError: vi.fn(),
@@ -95,5 +95,12 @@ describe('<PanelErrorBoundary />', () => {
 
     expect(screen.getByRole('button', { name: 'Bug report logged' })).toBeTruthy();
     expect(logError).toHaveBeenCalledTimes(2);
+  });
+
+  it('describes Project Editor loading without legacy workspace terminology', () => {
+    render(<PanelLoading title="Loading overview…" />);
+
+    expect(screen.getByText('Preparing panels, runtime signals and project data.')).toBeTruthy();
+    expect(screen.queryByText(/workspace data/i)).toBeNull();
   });
 });

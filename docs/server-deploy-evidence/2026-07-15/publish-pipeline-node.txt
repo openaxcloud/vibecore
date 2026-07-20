@@ -1,0 +1,22 @@
+[publish] POST -> 202, deployment cmrm4dm4n00040n7qjxz8n4zw, status QUEUED
+    [info] Server deploy: starting runtime for d-cmrm4dm4n00040n7qjxz8n4zw.preview.e-code.ai
+    [info] Server deploy: detected express — build "(none)", start "node server.js"
+    [info] [snapshot] image context: 703608 bytes (deps included)
+    [info] [snapshot] uploaded 703608 bytes to object storage
+    [info] [image] build 2679595d-7583-4e64-8658-c199cdd897f5 queued (context gs://vc-cmrlqwq1100070nbix9cgjzfc/tmp/server-deploy/cmrm4dm4n00040n7qjxz8n4zw-context.tgz)
+    [info] [image] build 2679595d-7583-4e64-8658-c199cdd897f5: WORKING
+    [info] [image] build 2679595d-7583-4e64-8658-c199cdd897f5: SUCCESS
+    [info] Server deploy: image ready europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmrlqwq1100070nbix9cgjzfc:cmrm4dm4n00040n7qjxz8n4zw (163 MB) in 29s
+    [info] Server deploy: routed the public host through the preview wildcard
+    [info] Deployment ready: https://d-cmrm4dm4n00040n7qjxz8n4zw.preview.e-code.ai
+    [info] Server deploy: starting runtime for d-cmrm4dm4n00040n7qjxz8n4zw.preview.e-code.ai
+    [info] Server deploy: detected express — build "(none)", start "node server.js"
+    [info] [snapshot] image context: 703608 bytes (deps included)
+    [info] [snapshot] uploaded 703608 bytes to object storage
+    [info] [image] build 2679595d-7583-4e64-8658-c199cdd897f5 queued (context gs://vc-cmrlqwq1100070nbix9cgjzfc/tmp/server-deploy/cmrm4dm4n00040n7qjxz8n4zw-context.tgz)
+    [info] [image] build 2679595d-7583-4e64-8658-c199cdd897f5: WORKING
+    [info] [image] build 2679595d-7583-4e64-8658-c199cdd897f5: SUCCESS
+    [info] Server deploy: image ready europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmrlqwq1100070nbix9cgjzfc:cmrm4dm4n00040n7qjxz8n4zw (163 MB) in 29s
+    [info] Server deploy: ready with 1 replica(s) at https://d-cmrm4dm4n00040n7qjxz8n4zw.preview.e-code.ai
+[publish] terminal READY after 45s
+[publish] url=https://d-cmrm4dm4n00040n7qjxz8n4zw.preview.e-code.ai serverDeploy={"host": "d-cmrm4dm4n00040n7qjxz8n4zw.preview.e-code.ai", "image": {"buildId": "2679595d-7583-4e64-8658-c199cdd897f5", "buildMs": 28725, "imageUri": "europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps/p-cmrlqwq1100070nbix9cgjzfc:cmrm4dm4n00040n7qjxz8n4zw", "imageSizeBytes": 163104190}, "ready": true, "applied": true, "readyReplicas": 1}

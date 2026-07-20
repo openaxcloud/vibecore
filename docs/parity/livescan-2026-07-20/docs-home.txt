@@ -1,0 +1,129 @@
+Documentation Index
+
+Fetch the complete documentation index at: /llms.txt
+
+Use this file to discover all available pages before exploring further.
+
+Skip to main content
+Replit home page
+English
+Search...
+⌘K
+Ask Assistant
+Start Building
+Build
+Learn
+Features
+Trust & Billing
+Enterprise
+Changelog
+Help
+Quickstarts
+Welcome to Replit
+Your first app
+Design with Canvas
+Publish your app
+Remix an app
+How to use these docs
+Build paths
+Prototype an idea
+Launch a landing page
+Build a Shopify storefront
+Figma to app
+Create a dashboard
+Build a mobile app
+Build an Agent
+Grow your app
+Add login
+Add a database
+Add payments
+Add integrations
+Add a custom domain
+Publish and operate
+Purchase a domain
+Enable Feedback Widget
+Improve SEO
+Troubleshoot publishing
+Connect & integrate
+Use Agent Skills
+Connect via MCP
+Collaborate
+Invite teammates
+Create a team workspace
+Import
+Import from a provider
+Claude to app
+On this page
+See what you can build
+Getting started
+Import an existing project
+Your next step
+Quickstarts
+Welcome to Replit
+Copy page
+
+Replit is the fastest way to go from idea to app, website, dashboard, mobile experience, slide deck, video, or prototype.
+
+If you have an idea you want to build, you are in the right place.
+Replit is the fastest way to go from idea to app, right from your browser. You can also use Replit to create websites, dashboards, mobile experiences, slide decks, animated videos, prototypes, and more.
+Your journey with Replit starts with a prompt. Describe your idea, and Replit will help you shape it, build a first version, publish it, and share it with the world.
+This way of building is often called vibe coding: you bring the idea, taste, and judgment; Agent helps turn it into software you can test and improve.
+​
+See what you can build
+Replit can help you create apps that work and look polished enough to share.
+Copy the prompt
+Build on Replit ↗
+Premium booking app → Browse cars, search availability, and reserve a high-end rental experience.
+Copy the prompt
+Build on Replit ↗
+Running tracker → Track runs, progress, recovery, and training insights in a polished product dashboard.
+Copy the prompt
+Build on Replit ↗
+Coaching landing page → Launch a beautiful page for a service business with testimonials, offers, and a consultation call to action.
+Start building — it's free
+Create your Replit account and ship your first app from a single prompt.
+​
+Getting started
+Pick the project closest to what you want to make and open the guide. Each one walks you from a single prompt to a published URL you can share — no setup, no decisions to agonize over.
+Build and publish your first app
+A guided first project from prompt to a live URL.
+Launch a landing page
+Publish an offer or waitlist page people can respond to today.
+Prototype a product idea
+Turn a concept into a working flow you can test this week.
+Turn a Figma design into an app
+Import a frame, see it as a working app, refine from there.
+Turn a spreadsheet, database, or API into useful insight.
+Build a mobile app
+Make something designed for phones — no Xcode, no Android Studio.
+​
+Import an existing project
+Already have code, a design, or a project on another platform? Import it into Replit and continue with Agent.
+Import from GitHub
+Bring a public or private repository into Replit and get it running.
+Import from Figma
+Convert a Figma frame into an interactive React app.
+Import from Vercel
+Pull in the GitHub repository behind a Vercel project.
+Import from Bolt
+Export from Bolt to GitHub, then import in Replit.
+Import from Lovable
+Export from Lovable to GitHub, then import in Replit.
+Import from ZIP
+Upload a .zip archive and continue building with Agent.
+​
+Your next step
+If you want a guided first project, start with Build and publish your first app.
+If you came with a specific goal, choose the card that best matches what you want to make.
+To understand how the documentation is organized, see Guide to Replit Docs.
+
+Was this page helpful?
+
+Yes
+No
+Build and publish your first app
+Next
+⌘I
+x
+linkedin
+youtube

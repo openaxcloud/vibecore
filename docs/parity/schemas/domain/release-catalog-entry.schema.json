@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecode/parity/domain/release-catalog-entry",
+  "x-schemaVersion": 1,
+  "x-repoCommit": "fee92bd0b09159247383814023ae63db8875dd7d",
+  "title": "ReleaseCatalogEntry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "releaseId",
+    "imageDigest",
+    "bundleRef",
+    "sbomRef",
+    "provenanceRef",
+    "configRef"
+  ],
+  "properties": {
+    "releaseId": {
+      "type": "string"
+    },
+    "imageDigest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "bundleRef": {
+      "type": "string"
+    },
+    "sbomRef": {
+      "type": "string"
+    },
+    "provenanceRef": {
+      "type": "string"
+    },
+    "configRef": {
+      "type": "string"
+    },
+    "gcEligible": {
+      "type": "boolean",
+      "description": "true UNIQUEMENT apr\u00e8s z\u00e9ro r\u00e9f\u00e9rence ET expiration"
+    }
+  }
+}

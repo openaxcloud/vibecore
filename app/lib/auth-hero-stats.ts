@@ -6,7 +6,7 @@
  */
 export const AUTH_HERO_STATS = [
   { value: '21', label: 'AI providers' },
-  { value: '29+', label: 'Languages' },
+  { value: '12', label: 'Import sources' },
   { value: '99.9%', label: 'Uptime path' },
   { value: 'SOC2', label: 'Ready controls' },
 ] as const;

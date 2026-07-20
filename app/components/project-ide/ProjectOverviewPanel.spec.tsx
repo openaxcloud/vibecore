@@ -69,4 +69,32 @@ describe('<ProjectOverviewPanel />', () => {
     expect(screen.getByText('user_1')).toBeTruthy();
     expect(screen.getByText('Project Files Import Zip')).toBeTruthy();
   });
+
+  it('uses Project Runtime terminology for legacy runtime status payloads', () => {
+    render(
+      <ProjectOverviewPanel
+        project={{ id: 'project_1', name: 'Analytics App' }}
+        data={{
+          overview: {
+            summary: {
+              workspaceStatus: 'No Workspace',
+              runtimeMode: 'unavailable',
+              branch: 'main',
+              fileCount: 0,
+              activeMemberCount: 0,
+              scriptCount: 0,
+            },
+            stack: [],
+            scripts: [],
+            commits: [],
+            members: [],
+            activity: [],
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText('No Project Runtime')).toBeTruthy();
+    expect(screen.queryByText('No Workspace')).toBeNull();
+  });
 });

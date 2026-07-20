@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { loader } from './projects.$projectId.import.$source';
+import { IMPORT_HUB_SOURCE_IDS } from '~/components/dashboard/ImportHub';
 
 function runLoader(projectId: string | undefined, source: string | undefined) {
   return loader({
@@ -11,29 +12,26 @@ function runLoader(projectId: string | undefined, source: string | undefined) {
 }
 
 describe('projects.$projectId.import.$source loader', () => {
-  it('returns validated params for a supported source', () => {
-    const result = runLoader('abc', 'figma');
+  it('redirects every supported source to the canonical Import Hub selection', () => {
+    expect(IMPORT_HUB_SOURCE_IDS).toHaveLength(12);
 
-    expect(result).toEqual({ projectId: 'abc', source: 'figma' });
-  });
+    for (const source of IMPORT_HUB_SOURCE_IDS) {
+      const response = runLoader('abc', source);
 
-  it('accepts every supported import source without throwing', () => {
-    for (const source of ['figma', 'bolt', 'lovable']) {
-      expect(() => runLoader('abc', source)).not.toThrow();
+      expect(response).toBeInstanceOf(Response);
+      expect(response.status).toBe(302);
+      expect(response.headers.get('location')).toBe(`/dashboard/templates?section=import&source=${source}`);
     }
   });
 
-  it('throws a 404 Response for an unsupported source (e.g. guessed/typo)', () => {
-    let thrown: unknown;
+  it.each(['gitlab', 'screenshot', 'python', 'github-typo'])('404s unsupported source %s', (source) => {
+    expect(() => runLoader('abc', source)).toThrowError(Response);
 
     try {
-      runLoader('abc', 'github');
+      runLoader('abc', source);
     } catch (error) {
-      thrown = error;
+      expect((error as Response).status).toBe(404);
     }
-
-    expect(thrown).toBeInstanceOf(Response);
-    expect((thrown as Response).status).toBe(404);
   });
 
   it('throws a 404 Response for a missing source', () => {
@@ -49,9 +47,10 @@ describe('projects.$projectId.import.$source loader', () => {
     expect((thrown as Response).status).toBe(404);
   });
 
-  it('falls back to "unknown" projectId when absent but source is valid', () => {
-    const result = runLoader(undefined, 'lovable');
+  it('does not retain a legacy project id in the new-project import URL', () => {
+    const response = runLoader(undefined, 'lovable');
 
-    expect(result).toEqual({ projectId: 'unknown', source: 'lovable' });
+    expect(response.headers.get('location')).toBe('/dashboard/templates?section=import&source=lovable');
+    expect(response.headers.get('location')).not.toContain('unknown');
   });
 });

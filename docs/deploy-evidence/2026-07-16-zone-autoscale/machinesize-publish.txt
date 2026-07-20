@@ -1,0 +1,3 @@
+=== POST publish machineSize=dedicated-1 (2026-07-16T06:11:54Z) ===
+{"deployment":{"id":"cmrn431c600050nesgjx71qgq","projectId":"cmrn21vdl00040nal6xus1ehj","provider":"server","environment":"preview","status":"QUEUED","framework":"vite","buildCommand":"npm run build","outputDirectory":"dist","logs":[],"metadata":{"envVars":{},"timeoutSeconds":600,"injectedSecrets":[],"previewDeployment":true,"artifactSizeLimitMb":250},"machineSize":"dedicated-1","startedAt":"2026-07-16T06:11:55.393Z","createdAt":"2026-07-16T06:11:55.399Z","updatedAt":"2026-07-16T06:11:55.399Z"}}
+HTTP 202

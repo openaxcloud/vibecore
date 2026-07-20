@@ -84,17 +84,15 @@ Cette checklist doit etre utilisee avant et apres toute modification touchant ru
 - Les erreurs preview remontent dans `actionAlert`.
 - Les previews se ferment quand le port est ferme.
 
-## Templates projets
+## Gallery, Remix et Import Hub
 
-- `StarterTemplates` affiche les templates.
-- `autoSelectTemplate` peut etre active/desactive.
-- `selectStarterTemplate` peut appeler `/api/llmcall`.
-- `getTemplates` peut appeler `/api/github-template`.
-- Les fichiers du template sont transformes en `boltAction type="file"`.
-- Les fichiers `.bolt/ignore` restent respectes.
-- Les instructions `.bolt/prompt` restent ajoutees au message utilisateur.
-- L'import Git URL fonctionne.
-- L'import dossier local fonctionne.
+- La Gallery affiche uniquement des applications publiees, moderees, previewables et remixables.
+- Recherche, categories, type d'artefact, technologies, tri et grille/liste fonctionnent via l'API paginee.
+- Remix cree un projet, repo interne, workspace, locks et ressources de donnees isoles, sans secret ni donnees du createur.
+- La provenance du remix reste visible dans l'IDE et renvoie vers l'application source.
+- Les 12 sources de l'Import Hub passent par preflight, progression, apercu et creation en deux phases.
+- Une capture d'ecran reste une piece jointe au prompt/Canvas, jamais un provider d'import.
+- Empty cree un projet sans Agent, framework, fichier ou scaffolding.
 
 ## Providers IA
 
@@ -151,11 +149,11 @@ Pour toute future introduction de `RuntimeAdapter` :
 Ne pas supprimer :
 
 - Workbench, editor, file explorer, terminal, preview, diff, search, locks, inspector.
-- Chat, messages, artifacts, model selector, API key manager, starter templates.
+- Chat, messages, artifacts, model selector, API key manager et acces a la Community Gallery.
 - Stores workbench/files/editor/terminal/previews/chat/settings.
 - Parser Bolt, enhanced parser et action runner.
 - Providers IA existants.
-- Templates existants.
+- Applications Gallery publiees et fixtures de non-regression.
 - Scripts Electron et configs Vite/Wrangler/Docker.
 
 ## Critere de sortie

@@ -231,6 +231,8 @@ export interface ProjectStorage {
   createSnapshot(input: { projectId: string; label?: string; files: ProjectFile[] }): Promise<StoredArchive>;
   getSnapshotFiles(storageKey: string): Promise<ProjectFile[]>;
   restoreSnapshot(input: { projectId: string; workspaceId?: string; files: ProjectFile[] }): Promise<ProjectFile[]>;
+  /** Removes the complete project tree, including Git/workspace metadata, during failed provisioning rollback. */
+  deleteProject?(projectId: string): Promise<void>;
 }
 
 export const SECONDARY_WORKSPACES_DIR = '.vibecore-workspaces';
@@ -580,6 +582,10 @@ export async function filesFromZip(
 }
 
 export class LocalProjectStorage implements ProjectStorage {
+  async deleteProject(projectId: string) {
+    await withProjectLock(projectId, async () => resilientRm(safeProjectPath(projectId)));
+  }
+
   async writeFiles(
     projectId: string,
     files: Array<{ path: string; content: string; encoding?: FileEncoding }>,

@@ -1,0 +1,51 @@
+# SURFACE_REGISTRY — surfaces produit E-Code (routes réelles du repo).
+# NON EXHAUSTIF: seed avec les surfaces vérifiées; toute surface ajoutée doit
+# porter des ids réels (routes/testids du code), jamais des inventions.
+schemaVersion: 1
+repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
+surfaces:
+  - surfaceId: SRF-LANDING
+    route: /
+    client: web
+    plan: public
+    featureFlag: null
+    permissions: anonymous
+    states: [default]
+    serviceIds: [web]
+    events: [build-now-click]
+    responsive: { web: true, tablet: true, mobile: true }
+    e2eProofIds: [E2E-AGM-A]        # DOM sans nom de modèle — PENDING (déploiement fee92bd0)
+  - surfaceId: SRF-PROJECT-CREATE
+    route: /projects/new
+    client: web
+    plan: authenticated
+    featureFlag: null
+    permissions: session
+    states: [default, submitting, error]
+    serviceIds: [web, api]
+    events: [project-create-submit]
+    responsive: { web: true, tablet: true, mobile: true }
+    e2eProofIds: [E2E-AGM-A]
+  - surfaceId: SRF-IDE-COMPOSER
+    route: /:accountSlug/:projectSlug/ide
+    client: web
+    plan: authenticated
+    featureFlag: null
+    permissions: workspaces:read
+    states: [default, streaming, mode-locked-by-plan]
+    serviceIds: [web, api]
+    events: [agent-mode-change, agent-send, agent-mode-nudge]
+    responsive: { web: true, tablet: true, mobile: true }
+    e2eProofIds: [E2E-AGM-B, E2E-AGM-C]
+    notes: "Segmented Lite/Economy/Power (data-testid agent-mode-segmented), Advanced: High effort + Turbo. Aucun nom de modèle."
+  - surfaceId: SRF-ADMIN-AGENT-ROUTING
+    route: "admin SPA > section agent-routing (ClusterIP, non exposée publiquement)"
+    client: admin-spa
+    plan: platform-admin
+    featureFlag: null
+    permissions: platformAdmin + reauth récent pour mutations
+    states: [table, negative-margin-alert, simulation, history]
+    serviceIds: [api]
+    events: [agent-routing-publish, agent-routing-simulate]
+    responsive: { web: true, tablet: UNKNOWN, mobile: UNKNOWN }
+    e2eProofIds: [E2E-AGM-F]

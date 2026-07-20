@@ -2,8 +2,8 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { getClusterCapacity } from '@vibecore/k8s-client';
 import Fastify from 'fastify';
 import { z } from 'zod';
-import { WorkspaceManager } from './manager.js';
 import { runAppBuild } from './app-builds.js';
+import { WorkspaceManager } from './manager.js';
 import { runScheduledJob } from './scheduled-jobs.js';
 
 /*
@@ -92,8 +92,18 @@ const serverStartSchema = z.object({
   healthPath: z.string().optional(),
   readyTimeoutMs: z.number().int().positive().optional(),
   createIngress: z.boolean().optional(),
+
   // Same /nix RO mount as the workspace the app was snapshotted from (see startSchema).
   nixStorePvcName: z.string().min(1).optional(),
+
+  /*
+   * Machine size resources (rate-card catalogue, resolved by the api):
+   * k8s quantity strings, applied verbatim as the container requests/limits.
+   */
+  cpuRequest: z.string().min(1).optional(),
+  cpuLimit: z.string().min(1).optional(),
+  memoryRequest: z.string().min(1).optional(),
+  memoryLimit: z.string().min(1).optional(),
 });
 
 function runtimeNamespace() {
@@ -302,9 +312,15 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     }
   });
 
-  /* Record live traffic (throttled) so the idle controller can measure inactivity. */
+  /*
+   * Record live traffic (throttled) so the idle controller can measure
+   * inactivity. The optional `requests` delta (accumulated by the proxy since
+   * its last flush) feeds the cumulative request counter used for billing.
+   */
   app.post('/server-deployments/:deploymentId/touch', async (request) => {
-    await manager.touchServerDeployment(runtimeNamespace(), (request.params as any).deploymentId);
+    const requests = Number((request.body as { requests?: number } | undefined)?.requests) || 0;
+    await manager.touchServerDeployment(runtimeNamespace(), (request.params as any).deploymentId, requests);
+
     return { ok: true };
   });
 
@@ -316,6 +332,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   app.post('/server-deployments/reap-idle', async (request) => {
     const idleMs = Number((request.body as { idleMs?: number } | undefined)?.idleMs) || SERVER_DEPLOY_IDLE_MS;
     const slept = await manager.reapIdleServerDeployments(runtimeNamespace(), idleMs);
+
     return { slept };
   });
 

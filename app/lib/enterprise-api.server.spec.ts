@@ -174,6 +174,43 @@ describe('apiRequest', () => {
     });
   });
 
+  it('forwards only the explicitly requested public Import Hub recovery envelope', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            error: 'Inspection timed out',
+            code: 'PROJECT_IMPORT_INSPECTION_FAILED',
+            recoverable: true,
+            job: { id: 'job-1', status: 'FAILED' },
+            secretInternalDetail: 'must-not-cross-the-web-route',
+          }),
+          { status: 502, headers: { 'content-type': 'application/json' } },
+        ),
+      ),
+    );
+
+    let thrown: unknown;
+    try {
+      await apiRequest(new Request('https://app.example.com/dashboard/templates'), '/project-imports/preflight', {
+        method: 'POST',
+        includeProjectImportFailure: true,
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(Response);
+    await expect((thrown as Response).json()).resolves.toEqual({
+      ok: false,
+      error: 'Inspection timed out',
+      code: 'PROJECT_IMPORT_INSPECTION_FAILED',
+      recoverable: true,
+      job: { id: 'job-1', status: 'FAILED' },
+    });
+  });
+
   it('redirects page loaders to /login when the upstream API answers 401', async () => {
     vi.stubGlobal(
       'fetch',

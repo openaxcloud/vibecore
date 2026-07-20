@@ -1,0 +1,15 @@
+# (e) Mode/interrupteur non autorisé par le plan → REFUS explicite (jamais de downgrade silencieux)
+# compte qa-agm-free1 (plan free), projet cmrnhp99b00070ndn39c0i2h1, api.e-code.ai (afd741d5)
+
+GET /agent/routing  → {"defaultMode":"economy","plan":"free","routingVersion":1,
+  "modes":[lite(available),economy(available),power(available)],
+  "highEffort":{"available":false},"turbo":{"available":false,"planAllowed":false,"orgEnabled":false}}
+
+GET /agent/routing/resolve?mode=economy&highEffort=true
+  → HTTP 403 {"error":"High effort is not available on the free plan.","code":"AGENT_HIGH_EFFORT_NOT_ALLOWED","plan":"free"}
+
+GET /agent/routing/resolve?mode=power&turbo=true
+  → HTTP 403 {"error":"Turbo is not enabled for this organization.","code":"AGENT_TURBO_NOT_ALLOWED","plan":"free"}
+
+GET /agent/routing/resolve?mode=economy → base claude-opus-4-8 ×1
+GET /agent/routing/resolve?mode=lite    → base claude-haiku-4-5 ×0.5

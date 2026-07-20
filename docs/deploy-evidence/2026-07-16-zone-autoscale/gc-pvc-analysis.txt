@@ -1,0 +1,21 @@
+=== PVC workspaces — état 2026-07-16T06:31:38Z ===
+NAME                      SIZE    CLASS                    CREATED
+pvc-ws-1b5e49b09e9a3988   100Gi   workspace-standard-rwo   2026-07-10T00:52:51Z
+pvc-ws-0459c3734ff0a45a   100Gi   workspace-standard-rwo   2026-07-12T22:09:53Z
+pvc-ws-51f2a2529c4dedab   100Gi   workspace-standard-rwo   2026-07-13T14:26:50Z
+pvc-ws-4bc80470351db9df   100Gi   workspace-standard-rwo   2026-07-14T13:34:46Z
+nix-store-spike-pvc       80Gi                             2026-07-15T06:54:10Z
+pvc-ws-ba925d2d5c17c13f   10Gi    workspace-standard-rwo   2026-07-15T07:17:37Z
+pvc-ws-435c8dfc76fd0970   10Gi    workspace-standard-rwo   2026-07-15T07:30:55Z
+pvc-ws-e1d2be63aca9ba26   10Gi    workspace-standard-rwo   2026-07-15T12:53:50Z
+nix-store-v2-pvc          80Gi                             2026-07-15T15:44:57Z
+pvc-ws-30c5d8102adf8d98   1Gi     workspace-standard-rwo   2026-07-15T16:07:08Z
+pvc-ws-c3f7072d3946e66a   1Gi     workspace-standard-rwo   2026-07-15T16:43:32Z
+pvc-ws-0345c6b4c4652674   1Gi     workspace-standard-rwo   2026-07-15T17:10:19Z
+pvc-ws-8894ba16e5402a72   1Gi     workspace-standard-rwo   2026-07-15T17:28:43Z
+pvc-ws-19adde438e49a373   1Gi     workspace-standard-rwo   2026-07-16T05:15:27Z
+
+total PVC:
+      14
+par âge (créés avant le 10/07 vs après):
+avant 10/07:  PVC ~  Gi ; depuis: 14 PVC ~ 595 Gi

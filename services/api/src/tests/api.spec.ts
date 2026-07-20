@@ -31,6 +31,7 @@ class TestEmailProvider implements EmailProvider {
 class TestGitProvider implements GitProvider {
   readonly branches = new Map<string, string[]>();
   readonly commits = new Map<string, Array<{ sha: string; message: string }>>();
+  readonly initializedProjects = new Set<string>();
 
   async importRepository(input: { repositoryUrl: string; branch?: string }) {
     const branch = input.branch ?? 'main';
@@ -50,6 +51,7 @@ class TestGitProvider implements GitProvider {
   }
 
   async status(projectId: string) {
+    this.initializedProjects.add(projectId);
     return { branch: this.branches.get(projectId)?.[0] ?? 'main', changedFiles: [], ahead: 0, behind: 0 };
   }
 
@@ -1965,7 +1967,10 @@ describe('SaaS API', () => {
     const admin = await register(app, { email: 'redact-admin@example.com', organizationName: 'Redact Admin Org' });
     await verifyEmail(app, admin.verificationToken);
 
-    const customer = await register(app, { email: 'redact-customer@example.com', organizationName: 'Redact Customer Org' });
+    const customer = await register(app, {
+      email: 'redact-customer@example.com',
+      organizationName: 'Redact Customer Org',
+    });
 
     // Seed two audit rows carrying PII (ipAddress) for the customer org.
     await store.recordAudit({
@@ -2184,9 +2189,12 @@ describe('SaaS API', () => {
 
     const projectResponse = await app.inject({
       method: 'POST',
-      url: `/orgs/${auth.organization.id}/projects`,
+      url: `/orgs/${auth.organization.id}/projects/from-ai`,
       headers: { authorization: `Bearer ${auth.token}` },
-      payload: { name: 'Workspace Files Project' },
+      payload: {
+        name: 'Workspace Files Project',
+        prompt: 'Create a project used to verify workspace file metadata.',
+      },
     });
 
     const project = projectResponse.json().project;
@@ -2214,9 +2222,9 @@ describe('SaaS API', () => {
     expect(metadata.statusCode).toBe(200);
     expect(metadata.json().projectId).toBe(project.id);
     expect(metadata.json().files.length).toBeGreaterThan(0);
-    expect(metadata.json().files.some((file: { path: string }) => file.path === 'package.json')).toBe(true);
+    expect(metadata.json().files.some((file: { path: string }) => file.path === 'README.md')).toBe(true);
     expect(legacyMetadata.statusCode).toBe(200);
-    expect(legacyMetadata.json().files.map((file: { path: string }) => file.path)).toContain('package.json');
+    expect(legacyMetadata.json().files.map((file: { path: string }) => file.path)).toContain('README.md');
 
     await app.close();
   });
@@ -3287,6 +3295,521 @@ describe('SaaS API', () => {
     }
   });
 
+  it('lists published Gallery apps and creates an isolated, idempotent remix with provenance', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const gitProvider = new TestGitProvider();
+    const app = await buildTestApiApp({ store, projectStorage, gitProvider });
+    const owner = await register(app, {
+      email: 'gallery-owner@example.com',
+      organizationName: 'Gallery Owner Org',
+    });
+    const outsider = await register(app, {
+      email: 'gallery-outsider@example.com',
+      organizationName: 'Gallery Outsider Org',
+    });
+
+    try {
+      const gallery = await app.inject({ method: 'GET', url: '/gallery/apps?limit=20&sort=FEATURED' });
+      expect(gallery.statusCode).toBe(200);
+      expect(gallery.json().apps).toHaveLength(6);
+      expect(gallery.json().apps).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: 'demo:react-saas',
+            slug: 'orbit-crm',
+            name: 'Orbit CRM',
+            moderationStatus: 'APPROVED',
+            allowRemix: true,
+            previewUrl: '/gallery-apps/react-saas/preview/',
+          }),
+        ]),
+      );
+
+      const filtered = await app.inject({
+        method: 'GET',
+        url: '/gallery/apps?query=Orbit&category=sales&artifactType=BUSINESS_APP&technology=React&limit=10',
+      });
+      expect(filtered.statusCode).toBe(200);
+      expect(filtered.json().apps.map((item: { id: string }) => item.id)).toEqual(['demo:react-saas']);
+
+      const detail = await app.inject({ method: 'GET', url: '/gallery/apps/orbit-crm' });
+      expect(detail.statusCode).toBe(200);
+      expect(detail.json().app).toEqual(
+        expect.objectContaining({
+          id: 'demo:react-saas',
+          thumbnailUrl: '/gallery-apps/react-saas/thumbnail.png',
+          previewUrl: '/gallery-apps/react-saas/preview/',
+        }),
+      );
+
+      const url = `/organizations/${owner.organization.id}/gallery/apps/demo:react-saas/remix`;
+      const unauthenticated = await app.inject({
+        method: 'POST',
+        url,
+        headers: { 'idempotency-key': 'gallery-unauthenticated-001' },
+        payload: { name: 'No Session' },
+      });
+      expect(unauthenticated.statusCode).toBe(401);
+
+      const crossTenant = await app.inject({
+        method: 'POST',
+        url,
+        headers: { authorization: `Bearer ${outsider.token}`, 'idempotency-key': 'gallery-cross-tenant-001' },
+        payload: { name: 'Cross-tenant remix' },
+      });
+      expect(crossTenant.statusCode).toBe(404);
+      expect(await store.countProjects(owner.organization.id)).toBe(0);
+
+      const created = await app.inject({
+        method: 'POST',
+        url,
+        headers: { authorization: `Bearer ${owner.token}`, 'idempotency-key': 'gallery-remix-orbit-001' },
+        payload: { name: 'Orbit CRM — My Remix', slug: 'orbit-my-remix' },
+      });
+      expect(created.statusCode).toBe(201);
+      expect(created.json()).toEqual(
+        expect.objectContaining({
+          source: { appId: 'demo:react-saas', slug: 'orbit-crm', url: '/gallery/apps/orbit-crm' },
+          missingSecretNames: [],
+        }),
+      );
+
+      const projectId = created.json().projectId as string;
+      const workspaceId = created.json().workspaceId as string;
+      expect(projectId).toBeTruthy();
+      expect(workspaceId).toBe(deterministicRuntimeWorkspaceId(projectId, owner.user.id));
+      expect(created.json().remix).toEqual(
+        expect.objectContaining({
+          galleryAppId: 'demo:react-saas',
+          galleryAppVersionId: 'demo:react-saas:v1',
+          destinationOrganizationId: owner.organization.id,
+          destinationOwnerUserId: owner.user.id,
+          destinationProjectId: projectId,
+          destinationRepositoryId: `internal:${projectId}`,
+          destinationWorkspaceId: workspaceId,
+          status: 'READY',
+        }),
+      );
+
+      expect(await store.getProject(projectId)).toEqual(
+        expect.objectContaining({
+          id: projectId,
+          organizationId: owner.organization.id,
+          sourceType: 'gallery-remix',
+        }),
+      );
+      expect(await store.getWorkspace(workspaceId)).toEqual(
+        expect.objectContaining({ id: workspaceId, projectId, name: 'Remix workspace' }),
+      );
+      expect(gitProvider.initializedProjects.has(projectId)).toBe(true);
+
+      const files = projectStorage.files.get(projectId);
+      expect(files?.get('package.json')).toContain('"name"');
+      expect(files?.size).toBeGreaterThan(3);
+      expect([...files!.keys()]).not.toEqual(
+        expect.arrayContaining(['.env', 'secrets.json', 'database.sqlite', 'data/database.sqlite']),
+      );
+      expect([...files!.values()].join('\n')).not.toMatch(/sk-[A-Za-z0-9_-]{20,}|postgres(?:ql)?:\/\//i);
+      expect(await store.listProjectSecrets(projectId)).toEqual([]);
+
+      expect([...store.projectRemixes.values()]).toEqual([
+        expect.objectContaining({
+          galleryAppId: 'demo:react-saas',
+          galleryAppVersionId: 'demo:react-saas:v1',
+          destinationOwnerUserId: owner.user.id,
+          destinationProjectId: projectId,
+          destinationRepositoryId: `internal:${projectId}`,
+          destinationWorkspaceId: workspaceId,
+          status: 'READY',
+        }),
+      ]);
+      expect(
+        [...store.projectActivity.values()].find(
+          (event) => event.projectId === projectId && event.action === 'project.remix.create',
+        )?.metadata,
+      ).toEqual(
+        expect.objectContaining({
+          sourceGalleryAppId: 'demo:react-saas',
+          sourceGalleryAppVersionId: 'demo:react-saas:v1',
+          sourceGalleryAppSlug: 'orbit-crm',
+          sourceGalleryAppName: 'Orbit CRM',
+        }),
+      );
+      expect(
+        store.auditLogs.find(
+          (event) => event.action === 'gallery.remix.complete' && event.resourceId === created.json().remix.id,
+        )?.metadata,
+      ).toEqual(
+        expect.objectContaining({
+          galleryAppId: 'demo:react-saas',
+          galleryAppSlug: 'orbit-crm',
+          galleryAppName: 'Orbit CRM',
+          destinationProjectId: projectId,
+        }),
+      );
+      expect(JSON.stringify((await store.getProjectIdeState(projectId))?.state)).toContain(
+        'Analyze this remixed application copy',
+      );
+
+      const replayed = await app.inject({
+        method: 'POST',
+        url,
+        headers: { authorization: `Bearer ${owner.token}`, 'idempotency-key': 'gallery-remix-orbit-001' },
+        payload: { name: 'Orbit CRM — My Remix', slug: 'orbit-my-remix' },
+      });
+      expect(replayed.statusCode).toBe(200);
+      expect(replayed.headers['idempotency-replayed']).toBe('true');
+      expect(replayed.json().projectId).toBe(projectId);
+
+      const conflictingReplay = await app.inject({
+        method: 'POST',
+        url,
+        headers: { authorization: `Bearer ${owner.token}`, 'idempotency-key': 'gallery-remix-orbit-001' },
+        payload: { name: 'Different Remix', slug: 'different-remix' },
+      });
+      expect(conflictingReplay.statusCode).toBe(409);
+      expect(conflictingReplay.json().code).toBe('IDEMPOTENCY_KEY_REUSED');
+      expect(await store.countProjects(owner.organization.id)).toBe(1);
+      expect(
+        (await store.listUsageEvents(owner.organization.id)).filter((event) => event.type === 'projects.count'),
+      ).toHaveLength(1);
+      expect(
+        (await store.listUsageEvents(owner.organization.id)).filter((event) => event.type === 'workspaces.active'),
+      ).toHaveLength(1);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rolls back Gallery remix metadata and partial files when materialization fails', async () => {
+    class FailingProjectStorage extends MemoryProjectStorage {
+      private failNextWrite = true;
+
+      override async writeFiles(projectId: string, files: Array<{ path: string; content: string }>) {
+        if (this.failNextWrite) {
+          this.failNextWrite = false;
+          await super.writeFiles(projectId, files.slice(0, 1));
+          throw new Error('simulated scaffold write failure');
+        }
+        return super.writeFiles(projectId, files);
+      }
+    }
+
+    const store = new TestApiStore();
+    const projectStorage = new FailingProjectStorage();
+    const app = await buildTestApiApp({ store, projectStorage });
+    const auth = await register(app, {
+      email: 'gallery-rollback@example.com',
+      organizationName: 'Gallery Rollback Org',
+    });
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/organizations/${auth.organization.id}/gallery/apps/demo:react-saas/remix`,
+        headers: { authorization: `Bearer ${auth.token}`, 'idempotency-key': 'gallery-rollback-001' },
+        payload: { name: 'Rollback Remix' },
+      });
+      expect(response.statusCode).toBe(502);
+      expect(response.json().code).toBe('GALLERY_REMIX_PROVISIONING_FAILED');
+      expect(await store.countProjects(auth.organization.id)).toBe(0);
+      expect([...projectStorage.files.values()].every((files) => files.size === 0)).toBe(true);
+      expect([...store.projectRemixes.values()]).toEqual([
+        expect.objectContaining({
+          galleryAppId: 'demo:react-saas',
+          destinationOrganizationId: auth.organization.id,
+          status: 'FAILED',
+          errorCode: 'GALLERY_REMIX_PROVISIONING_FAILED',
+        }),
+      ]);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('preflights and creates a truly empty project without Agent, scaffold, secrets or database data', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const gitProvider = new TestGitProvider();
+    const app = await buildTestApiApp({ store, projectStorage, gitProvider });
+    const owner = await register(app, {
+      email: 'empty-import-owner@example.com',
+      organizationName: 'Empty Import Owner Org',
+    });
+    const outsider = await register(app, {
+      email: 'empty-import-outsider@example.com',
+      organizationName: 'Empty Import Outsider Org',
+    });
+    const input = { name: 'Blank Power Workspace', slug: 'blank-power-workspace' };
+    const preflightUrl = `/organizations/${owner.organization.id}/project-imports/preflight`;
+
+    try {
+      const unauthenticated = await app.inject({
+        method: 'POST',
+        url: preflightUrl,
+        headers: { 'idempotency-key': 'empty-import-unauthenticated-001' },
+        payload: { source: 'empty', input },
+      });
+      expect(unauthenticated.statusCode).toBe(401);
+
+      const crossTenant = await app.inject({
+        method: 'POST',
+        url: preflightUrl,
+        headers: { authorization: `Bearer ${outsider.token}`, 'idempotency-key': 'empty-import-cross-tenant-001' },
+        payload: { source: 'empty', input },
+      });
+      expect(crossTenant.statusCode).toBe(404);
+
+      const preflight = await app.inject({
+        method: 'POST',
+        url: preflightUrl,
+        headers: { authorization: `Bearer ${owner.token}`, 'idempotency-key': 'empty-import-001' },
+        payload: { source: 'empty', input },
+      });
+      expect(preflight.statusCode).toBe(201);
+      expect(preflight.json().job).toEqual(
+        expect.objectContaining({
+          source: 'empty',
+          status: 'READY',
+          progress: 45,
+          usesAgent: false,
+          generatedConfig: [],
+          missingSecretNames: [],
+          preview: expect.objectContaining({
+            kind: 'empty-project',
+            fileCount: 0,
+            message: 'No framework or scaffold will be created.',
+          }),
+        }),
+      );
+
+      const importJobId = preflight.json().job.id as string;
+      const replayedPreflight = await app.inject({
+        method: 'POST',
+        url: preflightUrl,
+        headers: { authorization: `Bearer ${owner.token}`, 'idempotency-key': 'empty-import-001' },
+        payload: { source: 'empty', input },
+      });
+      expect(replayedPreflight.statusCode).toBe(200);
+      expect(replayedPreflight.headers['idempotency-replayed']).toBe('true');
+      expect(replayedPreflight.json().job.id).toBe(importJobId);
+
+      const conflictingPreflight = await app.inject({
+        method: 'POST',
+        url: preflightUrl,
+        headers: { authorization: `Bearer ${owner.token}`, 'idempotency-key': 'empty-import-001' },
+        payload: { source: 'empty', input: { name: 'Different Empty Project' } },
+      });
+      expect(conflictingPreflight.statusCode).toBe(409);
+      expect(conflictingPreflight.json().code).toBe('IDEMPOTENCY_KEY_REUSED');
+
+      const createUrl = `/organizations/${owner.organization.id}/project-imports/${importJobId}/create`;
+      const created = await app.inject({
+        method: 'POST',
+        url: createUrl,
+        headers: { authorization: `Bearer ${owner.token}` },
+        payload: { input },
+      });
+      expect(created.statusCode).toBe(201);
+      expect(created.json().job).toEqual(
+        expect.objectContaining({ status: 'COMPLETE', progress: 100, projectId: created.json().projectId }),
+      );
+      expect(created.json().metadata).toEqual(
+        expect.objectContaining({
+          source: 'empty',
+          repositoryId: `internal:${created.json().projectId}`,
+          fileCount: 0,
+          agentQueued: false,
+          databaseDataCopied: false,
+        }),
+      );
+
+      const projectId = created.json().projectId as string;
+      const workspaceId = deterministicRuntimeWorkspaceId(projectId, owner.user.id);
+      expect(await store.getProject(projectId)).toEqual(
+        expect.objectContaining({
+          id: projectId,
+          organizationId: owner.organization.id,
+          name: input.name,
+          sourceType: 'blank',
+        }),
+      );
+      expect(projectStorage.files.get(projectId)?.size ?? 0).toBe(0);
+      expect(await store.getWorkspace(workspaceId)).toEqual(
+        expect.objectContaining({ id: workspaceId, projectId, name: 'Empty workspace' }),
+      );
+      expect(gitProvider.initializedProjects.has(projectId)).toBe(true);
+      expect(await store.listProjectSecrets(projectId)).toEqual([]);
+      expect(JSON.stringify((await store.getProjectIdeState(projectId))?.state ?? {})).not.toContain('pendingPrompt');
+      expect(JSON.stringify(store.projectImportJobs.get(importJobId))).not.toContain('contentBase64');
+
+      const replayedCreate = await app.inject({
+        method: 'POST',
+        url: createUrl,
+        headers: { authorization: `Bearer ${owner.token}` },
+        payload: { input },
+      });
+      expect(replayedCreate.statusCode).toBe(200);
+      expect(replayedCreate.headers['idempotency-replayed']).toBe('true');
+      expect(replayedCreate.json().projectId).toBe(projectId);
+      expect(await store.countProjects(owner.organization.id)).toBe(1);
+      expect(
+        (await store.listUsageEvents(owner.organization.id)).filter((event) => event.type === 'projects.count'),
+      ).toHaveLength(1);
+      expect(
+        (await store.listUsageEvents(owner.organization.id)).filter((event) => event.type === 'workspaces.active'),
+      ).toHaveLength(1);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('preflights and imports a ZIP while excluding source secrets and database rows', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const gitProvider = new TestGitProvider();
+    const app = await buildTestApiApp({ store, projectStorage, gitProvider });
+    const auth = await register(app, {
+      email: 'zip-import@example.com',
+      organizationName: 'ZIP Import Org',
+    });
+    const archive = new JSZip();
+    const sourceSecret = 'sk-abcdefghijklmnopqrstuvwxyz0123456789';
+    const sourceDatabaseUrl = 'postgresql://source-user:source-password@source-db.example/app';
+    archive.file(
+      'package.json',
+      JSON.stringify({
+        name: 'safe-zip-app',
+        scripts: { dev: 'vite --host 0.0.0.0' },
+        devDependencies: { vite: '^7.0.0', typescript: '^5.8.0' },
+      }),
+    );
+    archive.file('index.html', '<main id="app">Safe ZIP app</main><script type="module" src="/src/main.ts"></script>');
+    archive.file('src/main.ts', 'document.querySelector("#app")!.setAttribute("data-ready", "true");');
+    archive.file('.env', `API_TOKEN=${sourceSecret}\nDATABASE_URL=${sourceDatabaseUrl}\n`);
+    archive.file('.env.example', `API_TOKEN=${sourceSecret}\nDATABASE_URL=${sourceDatabaseUrl}\n`);
+    archive.file(
+      'src/config.ts',
+      `export const API_TOKEN = "${sourceSecret}";\nexport const DATABASE_URL = "${sourceDatabaseUrl}";\n`,
+    );
+    archive.file('data.sqlite', Buffer.from('source database rows must never be copied'));
+    archive.file('dump.sql', "INSERT INTO customers VALUES (1, 'Private Customer');");
+    archive.file('migrations/001-create.sql', 'CREATE TABLE customers (id integer primary key);');
+    const bytes = await archive.generateAsync({ type: 'nodebuffer' });
+    const input = {
+      name: 'Imported Safe ZIP',
+      slug: 'imported-safe-zip',
+      file: {
+        fileName: 'safe-zip-app.zip',
+        contentBase64: bytes.toString('base64'),
+        sizeBytes: bytes.byteLength,
+        sha256: createHash('sha256').update(bytes).digest('hex'),
+        mediaType: 'application/zip',
+      },
+    };
+    const preflightUrl = `/organizations/${auth.organization.id}/project-imports/preflight`;
+
+    try {
+      const preflight = await app.inject({
+        method: 'POST',
+        url: preflightUrl,
+        headers: { authorization: `Bearer ${auth.token}`, 'idempotency-key': 'zip-import-safe-001' },
+        payload: { source: 'zip', input },
+      });
+      expect(preflight.statusCode).toBe(201);
+      expect(preflight.json().job).toEqual(
+        expect.objectContaining({
+          source: 'zip',
+          status: 'READY',
+          usesAgent: false,
+          runtimeDetection: expect.objectContaining({ runtime: 'static', framework: 'vite', status: 'ready' }),
+          missingSecretNames: expect.arrayContaining(['API_TOKEN', 'DATABASE_URL']),
+          validation: expect.objectContaining({
+            status: 'valid',
+            provider: expect.objectContaining({
+              removedPaths: expect.arrayContaining(['.env', 'data.sqlite', 'dump.sql']),
+              redactedValueCount: 5,
+            }),
+          }),
+          preview: expect.objectContaining({ kind: 'source-manifest', source: 'zip' }),
+        }),
+      );
+
+      const importJobId = preflight.json().job.id as string;
+      const storedPreflight = JSON.stringify(store.projectImportJobs.get(importJobId));
+      expect(storedPreflight).not.toContain(input.file.contentBase64);
+      expect(storedPreflight).not.toContain(sourceSecret);
+      expect(storedPreflight).not.toContain(sourceDatabaseUrl);
+
+      const created = await app.inject({
+        method: 'POST',
+        url: `/organizations/${auth.organization.id}/project-imports/${importJobId}/create`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { input },
+      });
+      expect(created.statusCode).toBe(201);
+      expect(created.json().metadata).toEqual(
+        expect.objectContaining({
+          source: 'zip',
+          repositoryId: `internal:${created.json().projectId}`,
+          agentQueued: false,
+          databaseDataCopied: false,
+        }),
+      );
+
+      const projectId = created.json().projectId as string;
+      const workspaceId = deterministicRuntimeWorkspaceId(projectId, auth.user.id);
+      expect(await store.getProject(projectId)).toEqual(
+        expect.objectContaining({
+          id: projectId,
+          organizationId: auth.organization.id,
+          sourceType: 'zip',
+        }),
+      );
+      expect(await store.getWorkspace(workspaceId)).toEqual(expect.objectContaining({ id: workspaceId, projectId }));
+      expect(gitProvider.initializedProjects.has(projectId)).toBe(true);
+
+      const files = projectStorage.files.get(projectId)!;
+      expect([...files.keys()]).toEqual(
+        expect.arrayContaining([
+          'package.json',
+          'index.html',
+          'src/main.ts',
+          'src/config.ts',
+          'migrations/001-create.sql',
+          '.vibecore/import.json',
+          '.vibecore/runtime.json',
+        ]),
+      );
+      expect([...files.keys()]).not.toEqual(expect.arrayContaining(['.env', 'data.sqlite', 'dump.sql']));
+      expect(files.get('.env.example')).toContain('API_TOKEN=${API_TOKEN}');
+      expect(files.get('src/config.ts')).toContain('<redacted-api-key>');
+      expect(files.get('src/config.ts')).toContain('<redacted-database-url>');
+      const materializedContent = [...files.values()].join('\n');
+      expect(materializedContent).not.toContain(sourceSecret);
+      expect(materializedContent).not.toContain(sourceDatabaseUrl);
+      expect(materializedContent).not.toContain('Private Customer');
+      expect(await store.listProjectSecrets(projectId)).toEqual([]);
+      expect(
+        [...store.projectActivity.values()].find(
+          (event) => event.projectId === projectId && event.action === 'project.import_hub.complete',
+        )?.metadata,
+      ).toEqual(
+        expect.objectContaining({
+          source: 'zip',
+          importJobId,
+          workspaceId,
+          secretValuesCopied: false,
+          databaseDataCopied: false,
+          agentQueued: false,
+        }),
+      );
+    } finally {
+      await app.close();
+    }
+  });
+
   it('supports persistent project CRUD, settings, collaborators and soft delete restore', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
@@ -3294,9 +3817,9 @@ describe('SaaS API', () => {
 
     const create = await app.inject({
       method: 'POST',
-      url: `/orgs/${auth.organization.id}/projects/from-template`,
+      url: `/orgs/${auth.organization.id}/projects/from-ai`,
       headers: { authorization: `Bearer ${auth.token}` },
-      payload: { name: 'Template App', templateName: 'react-basic-starter' },
+      payload: { name: 'Template App', prompt: 'Create a project used to exercise persistent project operations.' },
     });
     expect(create.statusCode).toBe(201);
 
@@ -3465,9 +3988,9 @@ describe('SaaS API', () => {
 
     const create = await app.inject({
       method: 'POST',
-      url: `/orgs/${auth.organization.id}/projects/from-template`,
+      url: `/orgs/${auth.organization.id}/projects/from-ai`,
       headers: { authorization: `Bearer ${auth.token}` },
-      payload: { name: 'Etag Concurrency App', templateName: 'react-basic-starter' },
+      payload: { name: 'Etag Concurrency App', prompt: 'Create a project used to verify concurrent IDE state writes.' },
     });
     expect(create.statusCode).toBe(201);
 
@@ -3563,9 +4086,9 @@ describe('SaaS API', () => {
 
     const create = await app.inject({
       method: 'POST',
-      url: `/orgs/${owner.organization.id}/projects/from-template`,
+      url: `/orgs/${owner.organization.id}/projects/from-ai`,
       headers: { authorization: `Bearer ${owner.token}` },
-      payload: { name: 'Realtime App', templateName: 'react-basic-starter' },
+      payload: { name: 'Realtime App', prompt: 'Create a collaborative realtime application.' },
     });
     expect(create.statusCode).toBe(201);
 
@@ -3853,7 +4376,7 @@ describe('SaaS API', () => {
     }
   });
 
-  it('imports and exports project zip archives', async () => {
+  it('requires Import Hub for ZIP project creation and still imports/exports files inside an existing project', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'zip@example.com', organizationName: 'Zip Org' });
     const zip = new JSZip();
@@ -3862,18 +4385,39 @@ describe('SaaS API', () => {
 
     const zipBase64 = (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64');
 
-    const imported = await app.inject({
+    const directImport = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects/import/zip`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Zip Project', zipBase64 },
     });
-    expect(imported.statusCode).toBe(201);
-    expect(imported.json().files.map((file: { path: string }) => file.path)).toContain('src/index.ts');
+    expect(directImport.statusCode).toBe(410);
+    expect(directImport.json()).toMatchObject({
+      code: 'PROJECT_IMPORT_HUB_REQUIRED',
+      importHubPath: '/dashboard/templates?section=import&source=zip',
+    });
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'ZIP File Operations' },
+    });
+    expect(created.statusCode).toBe(201);
+    const projectId = created.json().project.id as string;
+
+    const importedFiles = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/files/import/zip`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { zipBase64, replaceExisting: true },
+    });
+    expect(importedFiles.statusCode).toBe(200);
+    expect(importedFiles.json().files.map((file: { path: string }) => file.path)).toContain('src/index.ts');
 
     const exported = await app.inject({
       method: 'GET',
-      url: `/projects/${imported.json().project.id}/export/zip`,
+      url: `/projects/${projectId}/export/zip`,
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(exported.statusCode).toBe(200);
@@ -3886,7 +4430,7 @@ describe('SaaS API', () => {
 
     const replaced = await app.inject({
       method: 'POST',
-      url: `/projects/${imported.json().project.id}/files/import/zip`,
+      url: `/projects/${projectId}/files/import/zip`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { zipBase64: replacementZipBase64, replaceExisting: true },
     });
@@ -3971,7 +4515,7 @@ export function App() { return 'Old app'; }
     await app.close();
   });
 
-  it('recovers new project scaffold files from persisted storage state when pod-local storage is empty', async () => {
+  it('recovers prompt-created project seed files from persisted state when pod-local storage is empty', async () => {
     const store = new TestApiStore();
     const projectStorage = new MemoryProjectStorage();
     const app = await buildTestApiApp({ store, projectStorage });
@@ -3983,9 +4527,12 @@ export function App() { return 'Old app'; }
 
     const project = await app.inject({
       method: 'POST',
-      url: `/orgs/${auth.organization.id}/projects`,
+      url: `/orgs/${auth.organization.id}/projects/from-ai`,
       headers: { authorization: `Bearer ${auth.token}` },
-      payload: { name: 'Scaffold Recovery Project' },
+      payload: {
+        name: 'Scaffold Recovery Project',
+        prompt: 'Create a project used to verify durable generated-file recovery.',
+      },
     });
     expect(project.statusCode).toBe(201);
 
@@ -3998,9 +4545,7 @@ export function App() { return 'Old app'; }
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(listed.statusCode).toBe(200);
-    expect(listed.json().files.map((file: { path: string }) => file.path)).toEqual(
-      expect.arrayContaining(['package.json', 'src/App.tsx', 'README.md']),
-    );
+    expect(listed.json().files.map((file: { path: string }) => file.path)).toEqual(['README.md']);
 
     const exported = await app.inject({
       method: 'GET',
@@ -4010,7 +4555,7 @@ export function App() { return 'Old app'; }
     expect(exported.statusCode).toBe(200);
 
     const archive = await JSZip.loadAsync(Buffer.from(exported.json().archive.base64, 'base64'));
-    expect(Object.keys(archive.files)).toEqual(expect.arrayContaining(['package.json', 'src/App.tsx', 'README.md']));
+    expect(Object.keys(archive.files)).toEqual(['README.md']);
 
     await app.close();
   });
@@ -4251,9 +4796,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
     const project = await app.inject({
       method: 'POST',
-      url: `/orgs/${auth.organization.id}/projects`,
+      url: `/orgs/${auth.organization.id}/projects/from-ai`,
       headers: { authorization: `Bearer ${auth.token}` },
-      payload: { name: 'Package Index App' },
+      payload: { name: 'Package Index App', prompt: 'Create a project used to verify package indexing.' },
     });
 
     const projectId = project.json().project.id;
@@ -4345,9 +4890,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
     const project = await app.inject({
       method: 'POST',
-      url: `/orgs/${auth.organization.id}/projects/from-template`,
+      url: `/orgs/${auth.organization.id}/projects/from-ai`,
       headers: { authorization: `Bearer ${auth.token}` },
-      payload: { name: 'Deployable App', templateName: 'react-basic-starter' },
+      payload: { name: 'Deployable App', prompt: 'Create an application used to verify deployments.' },
     });
 
     const projectId = project.json().project.id as string;
@@ -4563,9 +5108,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
     const project = await app.inject({
       method: 'POST',
-      url: `/orgs/${auth.organization.id}/projects/from-template`,
+      url: `/orgs/${auth.organization.id}/projects/from-ai`,
       headers: { authorization: `Bearer ${auth.token}` },
-      payload: { name: 'Broken App', templateName: 'react-basic-starter' },
+      payload: { name: 'Broken App', prompt: 'Create an application used to verify failed deployment handling.' },
     });
 
     const projectId = project.json().project.id as string;
@@ -4689,9 +5234,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
     const project = await app.inject({
       method: 'POST',
-      url: `/orgs/${auth.organization.id}/projects/from-template`,
+      url: `/orgs/${auth.organization.id}/projects/from-ai`,
       headers: { authorization: `Bearer ${auth.token}` },
-      payload: { name: 'Deploy Ops App', templateName: 'react-basic-starter' },
+      payload: { name: 'Deploy Ops App', prompt: 'Create an application used to verify deployment operations.' },
     });
 
     const projectId = project.json().project.id as string;
@@ -4742,19 +5287,50 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     await app.close();
   });
 
-  it('tests GitHub import and git operations', async () => {
+  it('requires Import Hub for repository project creation and keeps Git operations available', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'git@example.com', organizationName: 'Git Org' });
 
-    const imported = await app.inject({
+    const directGithub = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects/import/github`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { repositoryUrl: 'https://github.com/acme/app', branch: 'main' },
     });
-    expect(imported.statusCode).toBe(201);
+    expect(directGithub.statusCode).toBe(410);
+    expect(directGithub.json()).toMatchObject({
+      code: 'PROJECT_IMPORT_HUB_REQUIRED',
+      importHubPath: '/dashboard/templates?section=import&source=github',
+    });
 
-    const projectId = imported.json().project.id as string;
+    const directBitbucket = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects/import/bitbucket`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { repositoryUrl: 'https://bitbucket.org/acme/app', branch: 'main' },
+    });
+    expect(directBitbucket.statusCode).toBe(410);
+    expect(directBitbucket.json().importHubPath).toBe('/dashboard/templates?section=import&source=bitbucket');
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Git Operations' },
+    });
+    expect(created.statusCode).toBe(201);
+
+    const projectId = created.json().project.id as string;
+    const zip = new JSZip();
+    zip.file('README.md', '# Git operations\n');
+    const zipBase64 = (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64');
+    const importedFiles = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/files/import/zip`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { zipBase64 },
+    });
+    expect(importedFiles.statusCode).toBe(200);
 
     const status = await app.inject({
       method: 'GET',
@@ -5009,7 +5585,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const runtime = await startRuntimeServices();
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
-    const auth = await register(app, { email: 'ai-tool-transcript@example.com', organizationName: 'AI Tool Transcript Org' });
+    const auth = await register(app, {
+      email: 'ai-tool-transcript@example.com',
+      organizationName: 'AI Tool Transcript Org',
+    });
 
     const project = await app.inject({
       method: 'POST',
@@ -5834,10 +6413,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const previousManager = process.env.WORKSPACE_MANAGER_URL;
     const previousFallback = process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK;
     const previousFallbackRoot = process.env.WORKSPACE_LOCAL_RUNTIME_ROOT;
+    const previousHostSecret = process.env.VIBECORE_LOCAL_RUNTIME_SECRET;
     const localRuntimeRoot = await mkdtemp(join(tmpdir(), 'vibecore-local-runtime-'));
     process.env.WORKSPACE_MANAGER_URL = 'http://127.0.0.1:9';
     process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK = 'true';
     process.env.WORKSPACE_LOCAL_RUNTIME_ROOT = localRuntimeRoot;
+    process.env.VIBECORE_LOCAL_RUNTIME_SECRET = 'must-not-reach-project-code';
 
     const projectStorage = new MemoryProjectStorage();
     const app = await buildTestApiApp({ store: new TestApiStore(), projectStorage });
@@ -5859,6 +6440,18 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     ]);
 
     try {
+      const boot = await app.inject({
+        method: 'POST',
+        url: '/api/runtime/workspaces',
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { workspaceId: projectId, metadata: { projectId } },
+      });
+      expect(boot.statusCode).toBe(200);
+      expect(boot.json()).toMatchObject({
+        status: 'running',
+        metadata: { managerWorkspace: { status: 'RUNNING', runtimeMode: 'local-dev', localRuntime: true } },
+      });
+
       const response = await app.inject({
         method: 'POST',
         url: `/api/runtime/workspaces/${projectId}/commands`,
@@ -5869,6 +6462,20 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       expect(response.statusCode).toBe(200);
       expect(response.json()).toMatchObject({ exitCode: 0, localRuntime: true });
       expect(response.json().output).toContain('{');
+
+      const secretProbe = await app.inject({
+        method: 'POST',
+        url: `/api/runtime/workspaces/${projectId}/commands`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: {
+          command: 'sh',
+          args: ['-lc', 'printf "%s" "${VIBECORE_LOCAL_RUNTIME_SECRET-unset}"'],
+          timeoutMs: 5000,
+        },
+      });
+      expect(secretProbe.statusCode).toBe(200);
+      expect(secretProbe.json().output).toBe('unset');
+      expect(secretProbe.json().output).not.toContain('must-not-reach-project-code');
 
       const status = await app.inject({
         method: 'GET',
@@ -5899,6 +6506,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
         delete process.env.WORKSPACE_LOCAL_RUNTIME_ROOT;
       } else {
         process.env.WORKSPACE_LOCAL_RUNTIME_ROOT = previousFallbackRoot;
+      }
+
+      if (previousHostSecret === undefined) {
+        delete process.env.VIBECORE_LOCAL_RUNTIME_SECRET;
+      } else {
+        process.env.VIBECORE_LOCAL_RUNTIME_SECRET = previousHostSecret;
       }
 
       await app.close();
@@ -5956,14 +6569,66 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       });
 
       expect(ports.statusCode).toBe(200);
-      expect(ports.json()).toEqual([
+      expect(ports.json()).toEqual([]);
+
+      const reservation = createServer();
+      await new Promise<void>((resolvePromise) => reservation.listen(0, '127.0.0.1', resolvePromise));
+      const previewPort = (reservation.address() as { port: number }).port;
+      await new Promise<void>((resolvePromise, rejectPromise) =>
+        reservation.close((error) => (error ? rejectPromise(error) : resolvePromise())),
+      );
+      const serverScript = [
+        "const { createServer } = require('node:http')",
+        'const port = Number(process.argv.at(-1))',
+        "createServer((_request, response) => { response.setHeader('content-type', 'text/html'); response.end('<main data-local-preview=\"true\">Local Preview</main>') }).listen(port, '127.0.0.1')",
+      ].join(';');
+      const detached = await app.inject({
+        method: 'POST',
+        url: `/api/runtime/workspaces/${projectId}/commands`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: {
+          command: process.execPath,
+          args: ['-e', serverScript, '--', '--port', String(previewPort)],
+          detached: true,
+          readyPort: previewPort,
+          timeoutMs: 10_000,
+        },
+      });
+      expect(detached.statusCode).toBe(200);
+      expect(detached.json()).toMatchObject({ exitCode: 0, localRuntime: true, running: true });
+
+      const verifiedPorts = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${projectId}/ports`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+      expect(verifiedPorts.statusCode).toBe(200);
+      expect(verifiedPorts.json()).toEqual([
         expect.objectContaining({
-          port: 5173,
+          port: previewPort,
           type: 'open',
           ready: true,
-          url: `/api/runtime/workspaces/${deterministicRuntimeWorkspaceId(projectId, auth.user.id)}/preview/5173/proxy/`,
+          url: `/api/runtime/workspaces/${deterministicRuntimeWorkspaceId(projectId, auth.user.id)}/preview/${previewPort}/proxy/`,
         }),
       ]);
+
+      let preview: { statusCode: number; body: string } | undefined;
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        preview = await app.inject({
+          method: 'GET',
+          url: `/api/runtime/workspaces/${projectId}/preview/${previewPort}/proxy/`,
+          headers: { authorization: `Bearer ${auth.token}` },
+        });
+        if (preview.statusCode === 200) break;
+        await new Promise((resolvePromise) => setTimeout(resolvePromise, 25));
+      }
+      const processes = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${projectId}/processes`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+      expect(preview?.statusCode, `${preview?.body}\n${processes.body}`).toBe(200);
+      expect(preview?.body).toContain('data-local-preview="true"');
     } finally {
       if (previousFallback === undefined) {
         delete process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK;

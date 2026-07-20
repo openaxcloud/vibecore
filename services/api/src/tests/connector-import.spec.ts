@@ -8,11 +8,9 @@ class QuietEmailProvider implements EmailProvider {
   async send() {}
 }
 
-/*
- * GitLab / Bitbucket repo import (parity with GitHub): the connector token drives
- * a real, persistent project — not deploy-only. Uses a fake git provider so the
- * route's org-scoping + createProject + sourceType are exercised without cloning.
- */
+/* Direct one-phase imports are intentionally retired. Bitbucket is available
+ * through the two-phase Import Hub; GitLab is not one of the twelve supported
+ * sources and therefore has no route. */
 const fakeGitProvider = {
   importRepository: async (input: { repositoryUrl: string; branch?: string }) => ({
     defaultBranch: input.branch ?? 'main',
@@ -32,32 +30,30 @@ async function register(app: any, email: string) {
   return res.json() as { token: string; organization: { id: string } };
 }
 
-describe('GitLab / Bitbucket repo import', () => {
-  it.each([
-    ['gitlab', 'https://gitlab.com/acme/app'],
-    ['bitbucket', 'https://bitbucket.org/acme/app'],
-  ])('imports a %s repository into a persistent org-scoped project', async (provider, repoUrl) => {
+describe('retired direct repository imports', () => {
+  it('requires Bitbucket imports to use the two-phase Import Hub', async () => {
     const store = new TestApiStore();
     const app = await buildApiApp({ store, emailProvider: new QuietEmailProvider(), gitProvider: fakeGitProvider });
-    const t = await register(app, `${provider}@example.com`);
+    const t = await register(app, 'bitbucket@example.com');
 
     const res = await app.inject({
       method: 'POST',
-      url: `/orgs/${t.organization.id}/projects/import/${provider}`,
+      url: `/orgs/${t.organization.id}/projects/import/bitbucket`,
       headers: { authorization: `Bearer ${t.token}` },
-      payload: { repositoryUrl: repoUrl },
+      payload: { repositoryUrl: 'https://bitbucket.org/acme/app' },
     });
 
-    expect(res.statusCode).toBe(201);
-    const project = res.json().project as { id: string; sourceType: string; organizationId: string; name: string };
-    expect(project.sourceType).toBe(provider);
-    expect(project.organizationId).toBe(t.organization.id);
-    expect(project.name).toBe('app');
+    expect(res.statusCode).toBe(410);
+    expect(res.json()).toMatchObject({
+      code: 'PROJECT_IMPORT_HUB_REQUIRED',
+      recoverable: true,
+      importHubPath: '/dashboard/templates?section=import&source=bitbucket',
+    });
 
     await app.close();
   });
 
-  it('rejects an unsafe (file://) repository URL', async () => {
+  it('does not expose the removed GitLab connector route', async () => {
     const store = new TestApiStore();
     const app = await buildApiApp({ store, emailProvider: new QuietEmailProvider(), gitProvider: fakeGitProvider });
     const t = await register(app, 'unsafe@example.com');
@@ -68,12 +64,12 @@ describe('GitLab / Bitbucket repo import', () => {
       headers: { authorization: `Bearer ${t.token}` },
       payload: { repositoryUrl: 'file:///etc/passwd' },
     });
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(404);
 
     await app.close();
   });
 
-  it("does not let a non-member import into another org (org-scoped)", async () => {
+  it("does not let a non-member invoke another organization's retired Bitbucket route", async () => {
     const store = new TestApiStore();
     const app = await buildApiApp({ store, emailProvider: new QuietEmailProvider(), gitProvider: fakeGitProvider });
     const owner = await register(app, 'owner@example.com');
@@ -81,9 +77,9 @@ describe('GitLab / Bitbucket repo import', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: `/orgs/${owner.organization.id}/projects/import/gitlab`,
+      url: `/orgs/${owner.organization.id}/projects/import/bitbucket`,
       headers: { authorization: `Bearer ${intruder.token}` },
-      payload: { repositoryUrl: 'https://gitlab.com/acme/app' },
+      payload: { repositoryUrl: 'https://bitbucket.org/acme/app' },
     });
     expect(res.statusCode).toBeGreaterThanOrEqual(403);
 

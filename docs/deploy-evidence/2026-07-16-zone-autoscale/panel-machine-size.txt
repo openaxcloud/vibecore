@@ -1,0 +1,15 @@
+=== Panneau Deploy (app.e-code.ai, web image 894c5f6f35 + web tier forcé) — 2026-07-16 ~06:45 UTC ===
+Arbre a11y de la page /projects/cmrn21vdl00040nal6xus1ehj/deployments (session QA réelle) :
+
+label "Machine size"
+ combobox "0.5 vCPU · 2 GiB — $0.150/h active" (name="machineSize")
+  option "0.25 vCPU · 1 GiB — $0.075/h active" value="shared-0.25"
+  option "0.5 vCPU · 2 GiB — $0.150/h active" (selected) value="shared-0.5"
+  option "1 vCPU · 4 GiB — $0.300/h active" value="dedicated-1"
+  option "2 vCPU · 8 GiB — $0.599/h active" value="dedicated-2"
+  option "4 vCPU · 16 GiB — $1.20/h active (unavailable)" value="dedicated-4"   <- plafond capacité (disabled)
+  option "8 vCPU · 32 GiB — $2.40/h active (upgrade plan)" value="dedicated-8"  <- garde plan free (disabled)
+generic "Billed only while your app is running — it sleeps automatically after 15 min without traffic and wakes on the next request. Rate card v1."
+
+Les prix viennent de GET /projects/:id/deployments/rate-card (rate card v1 en DB) — zéro chaîne en dur.
+La carte du déploiement affiche READY + https://d-cmrn4qhjy00090nesh8nxs756.preview.e-code.ai (Type: Autoscale).

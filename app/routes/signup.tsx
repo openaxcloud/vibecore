@@ -215,8 +215,8 @@ export default function SignupPage() {
               <div className="mt-1 text-[12px] text-white/72">AI providers</div>
             </div>
             <div>
-              <div className="text-3xl font-bold">29+</div>
-              <div className="mt-1 text-[12px] text-white/72">Languages</div>
+              <div className="text-3xl font-bold">12</div>
+              <div className="mt-1 text-[12px] text-white/72">Import sources</div>
             </div>
           </div>
         </>

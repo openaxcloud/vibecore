@@ -1,0 +1,168 @@
+.frame {
+  position: absolute;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--bolt-elements-borderColorActive) 72%, transparent);
+  border-radius: 12px;
+  background: var(--bolt-elements-background-depth-2);
+  box-shadow:
+    0 24px 64px rgb(0 0 0 / 34%),
+    0 4px 16px rgb(0 0 0 / 24%);
+  isolation: isolate;
+
+  &[data-active='true'] {
+    border-color: var(--bolt-elements-borderColorActive);
+    box-shadow:
+      0 28px 72px rgb(0 0 0 / 40%),
+      0 0 0 1px color-mix(in srgb, var(--bolt-elements-borderColorActive) 28%, transparent);
+  }
+}
+
+.header {
+  display: grid;
+  min-height: 34px;
+  grid-template-columns: minmax(96px, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 5px;
+  border-bottom: 1px solid var(--bolt-elements-borderColor);
+  background: color-mix(in srgb, var(--bolt-elements-background-depth-3) 92%, transparent);
+  user-select: none;
+
+  strong {
+    overflow: hidden;
+    color: var(--bolt-elements-textSecondary);
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.dragHandle,
+.dockButton {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 7px;
+  color: var(--bolt-elements-textSecondary);
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  touch-action: none;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover,
+  &:focus-visible {
+    color: var(--bolt-elements-textPrimary);
+    background: var(--bolt-elements-item-backgroundActive);
+    outline: none;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--bolt-elements-focus) 56%, transparent);
+  }
+}
+
+.dragHandle {
+  padding: 0 7px 0 5px;
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.dockButton {
+  padding: 0 8px;
+}
+
+.content {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+
+  > * {
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
+  }
+}
+
+.resizeHandle {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px 0 10px;
+  background: linear-gradient(
+    135deg,
+    transparent 0 48%,
+    color-mix(in srgb, var(--bolt-elements-textTertiary) 68%, transparent) 49% 54%,
+    transparent 55% 65%,
+    color-mix(in srgb, var(--bolt-elements-textTertiary) 68%, transparent) 66% 71%,
+    transparent 72%
+  );
+  cursor: nwse-resize;
+  touch-action: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--bolt-elements-focus);
+    outline-offset: -3px;
+  }
+}
+
+@media (pointer: coarse) {
+  .header {
+    min-height: 44px;
+  }
+
+  .dragHandle,
+  .dockButton {
+    min-height: 38px;
+  }
+
+  .resizeHandle {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 767px) {
+  .frame {
+    inset: 8px !important;
+    width: auto !important;
+    height: auto !important;
+    border-radius: 10px;
+  }
+
+  .header {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .dragHandle span,
+  .dockButton span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

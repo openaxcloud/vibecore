@@ -607,6 +607,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
             accept: 'application/json',
             ...(serverDeployManagerSecret ? { authorization: `Bearer ${serverDeployManagerSecret}` } : {}),
           },
+
           // Wake = scale + pull + install + boot; allow well beyond a normal request.
           signal: AbortSignal.timeout(90_000),
         },
@@ -621,6 +622,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       }
 
       const body = (await response.json().catch(() => ({}))) as { ready?: boolean };
+
       return body.ready ? 'ready' : 'starting';
     } catch {
       return 'starting';
@@ -633,10 +635,21 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    * in-memory (once per interval per deployment) and fire-and-forget — it must
    * never add latency to or fail the proxied request.
    */
+  /*
+   * Per-deployment request counter (billing: $1.20/M requests). Every proxied
+   * request increments in memory; the throttled touch below flushes the DELTA
+   * to the manager, which accumulates it on the Deployment annotation. A proxy
+   * restart loses at most one unflushed window — the failure mode is UNDER-
+   * counting, never over-billing.
+   */
+  const pendingServerRequests = new Map<string, number>();
+
   const touchServerDeploy = (deploymentId: string) => {
     if (!serverDeployManagerUrl) {
       return;
     }
+
+    pendingServerRequests.set(deploymentId, (pendingServerRequests.get(deploymentId) ?? 0) + 1);
 
     const now = Date.now();
 
@@ -646,12 +659,23 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
     lastServerTouchAt.set(deploymentId, now);
 
+    const requests = pendingServerRequests.get(deploymentId) ?? 0;
+    pendingServerRequests.set(deploymentId, 0);
+
     void fetchImpl(`${serverDeployManagerUrl}/server-deployments/${encodeURIComponent(deploymentId)}/touch`, {
       method: 'POST',
-      headers: serverDeployManagerSecret ? { authorization: `Bearer ${serverDeployManagerSecret}` } : {},
+      headers: {
+        'content-type': 'application/json',
+        ...(serverDeployManagerSecret ? { authorization: `Bearer ${serverDeployManagerSecret}` } : {}),
+      },
+      body: JSON.stringify({ requests }),
       signal: AbortSignal.timeout(5_000),
     }).catch(() => {
-      // Drop the throttle marker so the next request retries the stamp.
+      /*
+       * Restore the unflushed delta + drop the throttle marker so the next
+       * request retries the stamp with nothing lost.
+       */
+      pendingServerRequests.set(deploymentId, (pendingServerRequests.get(deploymentId) ?? 0) + requests);
       lastServerTouchAt.delete(deploymentId);
     });
   };
@@ -807,8 +831,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         }
 
         if (woke === 'gone') {
-          // Terminal: nothing is behind this host and nothing will come up
-          // (failed build torn down, or deployment deleted) — BUG-DEPLOY-002.
+          /*
+           * Terminal: nothing is behind this host and nothing will come up
+           * (failed build torn down, or deployment deleted) — BUG-DEPLOY-002.
+           */
           if (wantsHtmlDocument(request)) {
             return reply.code(410).type('text/html').header('cache-control', 'no-store').send(DEPLOY_NOT_LIVE_HTML);
           }
@@ -818,8 +844,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
             .send({ error: 'Deployment is not live (failed or deleted)', code: 'SERVER_DEPLOY_NOT_LIVE' });
         }
 
-        // Couldn't wake it in time — fall through to the starting page below so a
-        // document navigation auto-refreshes while it finishes booting.
+        /*
+         * Couldn't wake it in time — fall through to the starting page below so a
+         * document navigation auto-refreshes while it finishes booting.
+         */
       }
 
       /*

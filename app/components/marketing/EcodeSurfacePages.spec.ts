@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  createProjectImportSurfacePage,
   ecodeAdvancedSurfacePages,
   ecodeCompatibilityRoutePatterns,
   ecodeStandaloneSurfacePages,
@@ -16,9 +15,6 @@ describe('E-Code product surface registry', () => {
     expect(ecodeCompatibilityRoutePatterns).toEqual(
       expect.arrayContaining([
         '/ai-agent/studio',
-        '/projects/:id/import/figma',
-        '/projects/:id/import/bolt',
-        '/projects/:id/import/lovable',
         '/new',
         '/editor/new',
         '/agent-activity',
@@ -110,20 +106,6 @@ describe('E-Code product surface registry', () => {
       expect(page.primaryAction[1]).toMatch(/^\//);
       expect(page.secondaryAction[1]).toMatch(/^\//);
     }
-  });
-
-  it('keeps the legacy import surface on its route without leaking the upstream codename', () => {
-    const page = createProjectImportSurfacePage('proj-123', 'bolt');
-
-    // Internal route key is preserved for backwards compatibility.
-    expect(page.route).toBe('/projects/proj-123/import/bolt');
-
-    // No upstream codename in any user-facing copy.
-    const userFacing = [page.title, page.description, ...page.highlights].join(' ');
-    expect(userFacing).not.toMatch(/bolt/i);
-
-    expect(page.title).toBe('Legacy export Project Import');
-    expect(page.description).toContain('Legacy export');
   });
 
   it('looks up root, advanced and standalone route entries safely', () => {

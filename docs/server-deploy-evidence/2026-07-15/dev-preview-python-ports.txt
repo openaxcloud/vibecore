@@ -1,0 +1,8 @@
+[ws] flask launching
+[flask] {"type":"stdout","data":" * Serving Flask app 'app'  * Debug mode: off ","timestamp":"2026-07-15T13:31:56.972Z"}
+[flask] {"type":"stderr","data":"\u001b[31m\u001b[1mWARNING: This is a development server. Do not use it in a production deploym
+[/ports] [{"port":5000,"processId":"e94698215c64","type":"open","ready":true,"url":"https://ws-e1d2be63aca9ba26-5000.preview.e-code.ai/"}]
+[PREVIEW] https://ws-e1d2be63aca9ba26-5000.preview.e-code.ai/
+[PREVIEW HTTP] 200
+[PREVIEW BODY] Phase A Python DEV PREVIEW — flask in workspace. ECODE_DEPLOYMENT=unset
+

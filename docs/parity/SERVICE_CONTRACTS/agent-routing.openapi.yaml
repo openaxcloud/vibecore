@@ -1,0 +1,53 @@
+openapi: 3.0.3
+info:
+  title: E-Code API — Agent mode routing (AGM)
+  version: "1.0.0"
+  description: >
+    Control-plane du routage mode→modèle. schemaVersion: 1.
+    repoCommit: fee92bd0b09159247383814023ae63db8875dd7d.
+    Authn: session Bearer/cookie vc_session. Authz: membre du projet
+    (workspaces:read) pour /projects/*, platformAdmin (+ reauth <5 min pour
+    mutations) pour /admin/*. Erreurs: JSON {error, code}. Rate limit:
+    mutations admin 30/min. SLO: UNKNOWN (aucun SLO formalisé). Ownership:
+    services/api (owner nominal: UNKNOWN). Events: AuditLog
+    'admin.agent-routing.publish' (marge avant/après en metadata).
+paths:
+  /projects/{projectId}/agent/routing:
+    get:
+      summary: Disponibilité client-safe des modes (AUCUN nom de modèle)
+      responses:
+        "200":
+          description: modes par plan + High effort/Turbo (plan ET flag org agent_turbo)
+  /projects/{projectId}/agent/routing/resolve:
+    get:
+      summary: Résolution serveur (mode,highEffort,turbo)→provider/modèle concrets
+      parameters:
+        - { name: mode, in: query, schema: { enum: [lite, economy, power] } }
+        - { name: highEffort, in: query, schema: { type: boolean } }
+        - { name: turbo, in: query, schema: { type: boolean } }
+      responses:
+        "200": { description: "base(+escalation,classifier) depuis la carte ACTIVE" }
+        "403": { description: "AGENT_MODE_NOT_ALLOWED | AGENT_HIGH_EFFORT_LITE | AGENT_HIGH_EFFORT_NOT_ALLOWED | AGENT_TURBO_POWER_ONLY | AGENT_TURBO_NOT_ALLOWED — jamais de downgrade silencieux" }
+  /projects/{projectId}/ai/record-usage:
+    post:
+      summary: Usage par appel; bloc agentRouting → AgentCallLog (crédits/marge recalculés serveur)
+      responses:
+        "200": { description: recorded }
+  /admin/agent-routing:
+    get:
+      summary: Table admin (revient, multiplicateur, prix, marges live, volume 30j, historique)
+      responses: { "200": { description: ok }, "403": { description: PLATFORM_ADMIN_REQUIRED } }
+    post:
+      summary: Publication d'une NOUVELLE version de carte (transactionnelle, effectiveFrom/To)
+      responses:
+        "200": { description: publiée + cache invalidé }
+        "400": { description: AGENT_ROUTING_INVALID (validation structurelle) }
+        "409": { description: AGENT_ROUTING_NEGATIVE_MARGIN sans confirmNegativeMargin=true }
+  /admin/agent-routing/simulate:
+    post:
+      summary: Rejoue le volume réel 30j sur une carte brouillon
+      responses: { "200": { description: totaux + par ligne } }
+  /admin/agent-routing/calls:
+    get:
+      summary: Log par appel (admin only, modèle réel, coût millicents, crédits, marge)
+      responses: { "200": { description: ok } }

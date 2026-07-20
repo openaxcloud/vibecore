@@ -3,7 +3,6 @@ import {
   Activity,
   AlertTriangle,
   CheckCircle2,
-  ChevronDown,
   CircleHelp,
   Clock3,
   Copy,
@@ -40,12 +39,17 @@ import { Link } from 'react-router';
 import { ClientOnly } from 'remix-utils/client-only';
 import { buildIdeNotifications, restartWorkspace, type IdeNotificationKind } from './projects.$projectId.ide.helpers';
 import { BaseChat } from '~/components/chat/BaseChat';
+import { ProjectActionsMenu } from '~/components/project-ide/ProjectActionsMenu';
 import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';
+import { ProjectGalleryOriginLink } from '~/components/project-ide/ProjectGalleryOriginLink';
+import { ProjectResourcesPopover } from '~/components/project-ide/ProjectResourcesPopover';
+import { ProjectSpotlightButton } from '~/components/project-ide/ProjectSpotlightButton';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { InputDialog } from '~/components/ui/InputDialog';
 import { ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { configuredToast } from '~/components/ui/use-toast';
 import { friendlyLabel, pickFriendlyLabel } from '~/lib/labels/friendly-id';
+import { projectGalleryProvenance } from '~/lib/project-gallery-provenance';
 import { loadProjectIdeData, type ProjectLoaderData } from '~/lib/project-ide-loader.server';
 import { CurrentWorkspaceProvider } from '~/lib/runtime/CurrentWorkspaceContext';
 import { ProjectWorkspaceProvider } from '~/lib/runtime/ProjectWorkspaceProvider';
@@ -60,12 +64,12 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
   const projectName = data?.project?.name?.trim() || data?.projectId;
 
   return [
-    { title: projectName ? `${projectName} — E-Code IDE` : 'E-Code IDE' },
-    { name: 'description', content: 'E-Code IDE connected to a persistent project workspace.' },
+    { title: projectName ? `${projectName} — Project Editor` : 'Project Editor' },
+    { name: 'description', content: 'E-Code Project Editor for a persistent project environment.' },
   ];
 };
 
-const IDE_CLIENT_SEARCH_PARAMS = new Set(['panel', 'commit']);
+const IDE_CLIENT_SEARCH_PARAMS = new Set(['panel', 'commit', 'window']);
 
 function routeKeyWithoutClientIdeParams(url: URL) {
   const searchParams = new URLSearchParams(url.search);
@@ -125,12 +129,14 @@ export default function ProjectIdeRoute() {
   } = useLoaderData<typeof loader>();
 
   const projectUrl = projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization?.slug });
+  const projectName = project.name?.trim() || project.slug?.trim() || 'Untitled project';
 
   const optimisticShell = (
     <BaseChat
       chatStarted
       projectIdeMode
       projectId={projectId}
+      projectName={projectName}
       projectUrl={projectUrl}
       initialIdePanels={initialIdePanels}
     />
@@ -154,16 +160,18 @@ export default function ProjectIdeRoute() {
             notifications={notifications}
             projectApiError={projectApiError}
             projectUrl={projectUrl}
+            selectedWorkspaceId={currentWorkspaceId}
           />
           <main className="h-dvh pt-9">
             <ClientOnly fallback={optimisticShell}>
               {() => (
-                <ZoneErrorBoundary zone="editor" title="E-Code IDE" boundaryId={`project:${projectId}:ide`}>
+                <ZoneErrorBoundary zone="editor" title="Project Editor" boundaryId={`project:${projectId}:ide`}>
                   <Suspense fallback={optimisticShell}>
                     <ProjectIdeChat
                       forceWorkbench
                       projectIdeMode
                       projectId={projectId}
+                      projectName={projectName}
                       projectUrl={projectUrl}
                       initialIdePanels={initialIdePanels}
                     />
@@ -188,6 +196,7 @@ function IdeProjectTopBar({
   notifications,
   projectApiError,
   projectUrl,
+  selectedWorkspaceId,
 }: {
   projectId: string;
   project: ProjectLoaderData['project'];
@@ -198,6 +207,7 @@ function IdeProjectTopBar({
   notifications: ProjectLoaderData['notifications'];
   projectApiError?: string;
   projectUrl: string;
+  selectedWorkspaceId?: string;
 }) {
   const loading = useStore(workbenchStore.workspaceLoading);
   const error = useStore(workbenchStore.workspaceError);
@@ -212,7 +222,6 @@ function IdeProjectTopBar({
   const [renameSaving, setRenameSaving] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
-  const filesPanelOpen = useStore(workbenchStore.projectFilesPanelOpen);
   const effectiveWorkspace = runtimeWorkspaceStatus ?? workspace;
   const isReallyRunning = isWorkspaceReallyRunning(effectiveWorkspace, previews);
   const previewRunning = isReallyRunning;
@@ -266,6 +275,7 @@ function IdeProjectTopBar({
       : projectLabel.display;
 
   const branchLabel = pickFriendlyLabel([git.branch, project.gitDefaultBranch], 'main');
+  const galleryProvenance = projectGalleryProvenance(project, notifications);
 
   useEffect(() => {
     setDisplayProjectName(project.name);
@@ -372,15 +382,9 @@ function IdeProjectTopBar({
     }
   };
 
-  const toggleFilesPanel = (open: boolean) => {
-    const detail = { open };
-
-    workbenchStore.projectFilesPanelOpen.set(open);
-    workbenchStore.requestProjectFilesPanel(open);
-    window.dispatchEvent(new CustomEvent('vibecore:toggle-project-files-panel', { detail }));
+  const openFilesTab = () => {
+    window.dispatchEvent(new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'files' } }));
   };
-
-  const filesPanelToggleLabel = filesPanelOpen ? 'Close files panel' : 'Open files panel';
 
   return (
     <header className="bolt-project-topbar fixed left-0 top-0 z-50 flex w-screen items-center justify-between border-b text-[12px]">
@@ -408,112 +412,104 @@ function IdeProjectTopBar({
           </Link>
           <ProjectBreadcrumbSeparator />
           {renamingProject ? (
-            <form className="bolt-project-rename-form" onSubmit={submitInlineRename}>
-              <input
-                ref={renameInputRef}
-                value={renameValue}
-                onChange={(event) => setRenameValue(event.target.value)}
-                onKeyDown={handleRenameKeyDown}
-                className="bolt-project-rename-input"
-                aria-label="Project name"
-                aria-invalid={renameError ? true : undefined}
-                aria-describedby={renameError ? 'project-rename-error' : undefined}
-                title={renameError || 'Edit project name. Press Enter to save or Escape to cancel.'}
-                disabled={renameSaving}
+            <>
+              <form className="bolt-project-rename-form" onSubmit={submitInlineRename}>
+                <input
+                  ref={renameInputRef}
+                  value={renameValue}
+                  onChange={(event) => setRenameValue(event.target.value)}
+                  onKeyDown={handleRenameKeyDown}
+                  className="bolt-project-rename-input"
+                  aria-label="Project name"
+                  aria-invalid={renameError ? true : undefined}
+                  aria-describedby={renameError ? 'project-rename-error' : undefined}
+                  title={renameError || 'Edit project name. Press Enter to save or Escape to cancel.'}
+                  disabled={renameSaving}
+                />
+                <button
+                  type="submit"
+                  className="bolt-project-rename-save"
+                  disabled={renameSaving || !renameValue.trim()}
+                >
+                  {renameSaving ? 'Saving' : 'Save'}
+                </button>
+                {renameError ? (
+                  <p id="project-rename-error" role="alert" className="bolt-project-rename-error">
+                    {renameError}
+                  </p>
+                ) : null}
+              </form>
+              <ProjectResourcesPopover
+                projectId={projectId}
+                projectName={projectLabel.display}
+                workspaceId={selectedWorkspaceId}
               />
-              <button type="submit" className="bolt-project-rename-save" disabled={renameSaving || !renameValue.trim()}>
-                {renameSaving ? 'Saving' : 'Save'}
-              </button>
-              {renameError ? (
-                <p id="project-rename-error" role="alert" className="bolt-project-rename-error">
-                  {renameError}
-                </p>
-              ) : null}
-            </form>
+            </>
           ) : (
             <div className="bolt-project-name-shell">
-              <details
-                className="relative min-w-0"
+              <ProjectSpotlightButton projectName={projectLabel.display} tooltip={projectTooltip} />
+              <ProjectActionsMenu
+                projectName={projectLabel.display}
                 open={projectMenuOpen}
-                onToggle={(event) => setProjectMenuOpen(event.currentTarget.open)}
+                onOpenChange={setProjectMenuOpen}
               >
-                <summary
-                  className="bolt-project-name-trigger"
-                  title={projectTooltip}
-                  data-vc-tooltip={projectTooltip}
-                  data-vc-tooltip-locked="true"
-                  aria-label={`Project menu for ${projectLabel.display}${
-                    projectLabel.isFallback && projectLabel.full !== projectLabel.display
-                      ? ` (id ${projectLabel.full})`
-                      : ''
-                  }`}
-                  onDoubleClick={(event) => {
-                    event.preventDefault();
-                    startInlineRename();
+                <ProjectMenuItem
+                  to={withProjectSearch(projectUrl, { panel: 'settings' })}
+                  icon={<Settings className="h-3.5 w-3.5" />}
+                  onClick={() => {
+                    setProjectMenuOpen(false);
+                    window.dispatchEvent(
+                      new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'settings' } }),
+                    );
                   }}
                 >
-                  <span className="bolt-project-breadcrumb-kicker">Project</span>
-                  <span className="bolt-project-breadcrumb-value truncate" title={projectTooltip}>
-                    {projectLabel.display}
-                  </span>
-                  <ChevronDown className="h-3.5 w-3.5" aria-hidden />
-                </summary>
-                {projectMenuOpen && (
-                  <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-[var(--vc-ide-border-visible)] bg-[var(--vc-ide-bg-card)] p-1.5 shadow-[var(--vc-ui-shadow-xl)]">
-                    <ProjectMenuItem
-                      to={withProjectSearch(projectUrl, { panel: 'settings' })}
-                      icon={<Settings className="h-3.5 w-3.5" />}
-                      onClick={() => {
-                        setProjectMenuOpen(false);
-                        window.dispatchEvent(
-                          new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'settings' } }),
-                        );
-                      }}
-                    >
-                      Settings
-                    </ProjectMenuItem>
-                    <ProjectMenuAction
-                      action={`/api/projects/${projectId}/project-action`}
-                      intent="fork"
-                      projectName={displayProjectName}
-                      icon={<Copy className="h-3.5 w-3.5" />}
-                    >
-                      Fork
-                    </ProjectMenuAction>
-                    <ProjectMenuAction
-                      action={`/api/projects/${projectId}/project-action`}
-                      intent="rename"
-                      projectName={displayProjectName}
-                      icon={<PenLine className="h-3.5 w-3.5" />}
-                    >
-                      Rename
-                    </ProjectMenuAction>
-                    <ProjectMenuAction
-                      action={`/api/projects/${projectId}/project-action`}
-                      intent="delete"
-                      projectName={displayProjectName}
-                      icon={<Trash2 className="h-3.5 w-3.5 text-[#F85149]" />}
-                    >
-                      Delete
-                    </ProjectMenuAction>
-                    <ProjectMenuAction
-                      action={`/api/projects/${projectId}/project-action`}
-                      intent="duplicate"
-                      projectName={displayProjectName}
-                      icon={<Copy className="h-3.5 w-3.5" />}
-                    >
-                      Duplicate
-                    </ProjectMenuAction>
-                    <ProjectMenuItem
-                      to={`/api/projects/${projectId}/project-action?intent=export`}
-                      icon={<Download className="h-3.5 w-3.5" />}
-                      download
-                    >
-                      Export
-                    </ProjectMenuItem>
-                  </div>
-                )}
-              </details>
+                  Settings
+                </ProjectMenuItem>
+                <ProjectMenuAction
+                  action={`/api/projects/${projectId}/project-action`}
+                  intent="fork"
+                  projectName={displayProjectName}
+                  icon={<Copy className="h-3.5 w-3.5" />}
+                >
+                  Fork
+                </ProjectMenuAction>
+                <ProjectMenuAction
+                  action={`/api/projects/${projectId}/project-action`}
+                  intent="rename"
+                  projectName={displayProjectName}
+                  icon={<PenLine className="h-3.5 w-3.5" />}
+                >
+                  Rename
+                </ProjectMenuAction>
+                <ProjectMenuAction
+                  action={`/api/projects/${projectId}/project-action`}
+                  intent="delete"
+                  projectName={displayProjectName}
+                  icon={<Trash2 className="h-3.5 w-3.5 text-[#F85149]" />}
+                >
+                  Delete
+                </ProjectMenuAction>
+                <ProjectMenuAction
+                  action={`/api/projects/${projectId}/project-action`}
+                  intent="duplicate"
+                  projectName={displayProjectName}
+                  icon={<Copy className="h-3.5 w-3.5" />}
+                >
+                  Duplicate
+                </ProjectMenuAction>
+                <ProjectMenuItem
+                  to={`/api/projects/${projectId}/project-action?intent=export`}
+                  icon={<Download className="h-3.5 w-3.5" />}
+                  download
+                >
+                  Export
+                </ProjectMenuItem>
+              </ProjectActionsMenu>
+              <ProjectResourcesPopover
+                projectId={projectId}
+                projectName={projectLabel.display}
+                workspaceId={selectedWorkspaceId}
+              />
               <button
                 type="button"
                 className="bolt-project-inline-rename-button"
@@ -525,6 +521,7 @@ function IdeProjectTopBar({
               </button>
             </div>
           )}
+          {galleryProvenance ? <ProjectGalleryOriginLink provenance={galleryProvenance} /> : null}
           <ProjectBreadcrumbSeparator />
           <Link
             to={withProjectSearch(projectUrl, { panel: 'git' })}
@@ -551,12 +548,11 @@ function IdeProjectTopBar({
           <button
             type="button"
             data-testid="ide-files-panel-toggle"
-            className={filesPanelOpen ? 'bolt-project-topbar-icon-button is-active' : 'bolt-project-topbar-icon-button'}
-            aria-label={filesPanelToggleLabel}
-            aria-pressed={filesPanelOpen}
-            title={filesPanelToggleLabel}
-            data-vc-tooltip={filesPanelToggleLabel}
-            onClick={() => toggleFilesPanel(!filesPanelOpen)}
+            className="bolt-project-topbar-icon-button"
+            aria-label="Open Files tab"
+            title="Open Files tab"
+            data-vc-tooltip="Open Files tab"
+            onClick={openFilesTab}
           >
             <Files className="h-3.5 w-3.5" aria-hidden />
           </button>
@@ -588,7 +584,7 @@ function IdeProjectTopBar({
                 <div className="bolt-project-notification-header">
                   <div>
                     <strong>IDE notifications</strong>
-                    <span>Project activity and workspace signals</span>
+                    <span>Project activity and runtime signals</span>
                   </div>
                   <span className="bolt-project-notification-count">
                     {notificationItems.length} {notificationItems.length === 1 ? 'event' : 'events'}
@@ -703,12 +699,12 @@ function IdeProjectTopBar({
               type="button"
               data-testid="button-restart-workspace"
               className="bolt-project-run-button is-crashed"
-              title="Restart workspace: re-provision the crashed runtime"
-              data-vc-tooltip="Restart workspace"
+              title="Restart project runtime: re-provision the crashed environment"
+              data-vc-tooltip="Restart project runtime"
               onClick={() => restartWorkspace()}
             >
               <Play className="h-3 w-3 fill-current" aria-hidden />
-              <span>Restart workspace</span>
+              <span>Restart runtime</span>
             </button>
           ) : (
             <button
@@ -909,7 +905,7 @@ function ProjectMenuAction({
             void runAction();
           }}
           title={`Delete ${projectName}?`}
-          description="The project and its workspace data are deleted. This cannot be undone."
+          description="The project and its runtime data are deleted. This cannot be undone."
           confirmLabel="Delete project"
           variant="destructive"
         />

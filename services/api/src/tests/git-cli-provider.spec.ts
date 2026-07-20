@@ -181,17 +181,14 @@ describe('GitCliProvider workspace isolation', () => {
     });
 
     expect(graph.statusCode).toBe(200);
-    expect(graph.json().commits).toHaveLength(1);
-    expect(graph.json().commits[0].message).toBe('chore: initial scaffold');
+    expect(graph.json().commits).toEqual([]);
     expect(JSON.stringify(graph.json())).not.toContain('Agent panel polish');
     expect(JSON.stringify(graph.json())).not.toContain('openaxcloud');
     expect(status.statusCode).toBe(200);
     expect(status.json().status.changedFiles).toEqual([]);
     expect(status.json().status.changedFiles).not.toContain('app/components/chat/BaseChat.tsx');
     expect(files.statusCode).toBe(200);
-    expect(files.json().files.map((file: { path: string }) => file.path)).toEqual(
-      expect.arrayContaining(['README.md', 'index.html', 'package.json', 'src/main.tsx']),
-    );
+    expect(files.json().files).toEqual([]);
     expect(files.json().files.some((file: { path: string }) => file.path.startsWith('.git/'))).toBe(false);
 
     await app.close();

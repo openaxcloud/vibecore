@@ -53,9 +53,11 @@ function parseArgs(argv: string[]): Parsed {
   if (!queue) {
     throw new Error('--queue is required');
   }
+
   if (!job) {
     throw new Error('--job is required');
   }
+
   if (!KNOWN_QUEUES.has(queue)) {
     throw new Error(`Unknown queue '${queue}'. Known queues: ${[...KNOWN_QUEUES].join(', ')}`);
   }
@@ -65,9 +67,11 @@ function parseArgs(argv: string[]): Parsed {
 
 export async function enqueue(parsed: Parsed): Promise<string> {
   const url = process.env.REDIS_URL;
+
   if (!url) {
     throw new Error('REDIS_URL is required to enqueue');
   }
+
   const connection = new Redis(url, { maxRetriesPerRequest: null, lazyConnect: true });
 
   /*
@@ -78,6 +82,7 @@ export async function enqueue(parsed: Parsed): Promise<string> {
   connection.on('error', () => {});
 
   const queue = new Queue(parsed.queue, { connection });
+
   try {
     /*
      * Real idempotency across CronJob retries. The K8s CronJob runs with
@@ -89,15 +94,23 @@ export async function enqueue(parsed: Parsed): Promise<string> {
      * identical across retries of the SAME scheduled run and distinct per
      * schedule, so BullMQ dedupes retries while still enqueuing each new tick.
      * When unset (manual CLI use) we keep the auto-id behaviour.
+     *
+     * The composed id must not contain ':' — BullMQ ≥5.76 rejects custom ids
+     * with a colon ("Custom Id cannot contain :", it is the Redis key
+     * separator). The previous `${job}:${dedupKey}` form made EVERY CronJob
+     * enqueue fail from the 2026-07-09 bullmq bump until this fix; use '--'
+     * and sanitize the key so a future label change can't re-break it.
      */
-    const dedupKey = process.env.ENQUEUE_DEDUP_KEY?.trim();
+    const dedupKey = process.env.ENQUEUE_DEDUP_KEY?.trim().replaceAll(':', '-');
+
     const added = await queue.add(parsed.job, parsed.data, {
-      ...(dedupKey ? { jobId: `${parsed.job}:${dedupKey}` } : {}),
+      ...(dedupKey ? { jobId: `${parsed.job.replaceAll(':', '-')}--${dedupKey}` } : {}),
       removeOnComplete: { age: 3600, count: 1000 },
       removeOnFail: { age: 24 * 3600 },
       attempts: 3,
       backoff: { type: 'exponential', delay: 30_000 },
     });
+
     return added.id ?? '';
   } finally {
     await queue.close();

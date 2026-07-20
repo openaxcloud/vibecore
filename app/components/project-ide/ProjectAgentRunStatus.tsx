@@ -19,7 +19,7 @@ export function ProjectAgentRunStatus({ stopLabel, disabled = false, onStop }: P
         </span>
         <span>
           <strong>Agent running</strong>
-          <small>Streaming response and workspace actions.</small>
+          <small>Streaming response and project runtime actions.</small>
         </span>
       </div>
       <button

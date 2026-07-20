@@ -139,8 +139,8 @@ function loginReturnTo(returnTo: string) {
   return `/login?returnTo=${encodeURIComponent(returnTo)}`;
 }
 
-function templateProjectReturnTo(templateSlug: string) {
-  return loginReturnTo(`/projects/new?template=${templateSlug}`);
+function galleryAppReturnTo(appSlug: string) {
+  return loginReturnTo(`/dashboard/templates?q=${encodeURIComponent(appSlug)}`);
 }
 
 /** How many tag filter chips to derive from the catalog (most frequent tags first). */
@@ -877,19 +877,19 @@ function TemplateMarketingCard({ template, featured = false }: { template: Publi
         <div className="mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]">
           <span className="inline-flex items-center gap-1">
             <Sparkles className="h-4 w-4" aria-hidden />
-            Official
+            Verified creator
           </span>
           <span className="inline-flex items-center gap-1">
             <Rocket className="h-4 w-4" aria-hidden />
-            Free
+            Remixable
           </span>
           <span className="inline-flex items-center gap-1">
             <Code2 className="h-4 w-4" aria-hidden />
-            IDE-ready
+            Preview ready
           </span>
         </div>
-        <MarketingLinkButton to={templateProjectReturnTo(template.slug)} fullWidth>
-          Use template
+        <MarketingLinkButton to={galleryAppReturnTo(template.slug)} fullWidth>
+          Open in Gallery
         </MarketingLinkButton>
       </div>
     </article>

@@ -24,7 +24,7 @@ E-Code originated from the open-source [bolt.diy](https://github.com/stackblitz-
 - [Deployment Options](#deployment-options)
 - [Supabase Integration](#supabase-integration)
 - [WebContainer and Live Preview](#webcontainer-and-live-preview)
-- [Project Templates](#project-templates)
+- [Community Gallery, Remix, and Import Hub](#community-gallery-remix-and-import-hub)
 - [Available Scripts](#available-scripts)
 - [Development](#development)
 - [Tips and Tricks](#tips-and-tricks)
@@ -49,7 +49,7 @@ E-Code originated from the open-source [bolt.diy](https://github.com/stackblitz-
 - **MCP (Model Context Protocol)** integration for enhanced AI capabilities and tool calling
 - **Database integration** with Supabase for backend development
 - **One-click deployments** to Vercel, Netlify, and GitHub Pages
-- **Project templates** for popular frameworks (React, Vue, Angular, Next.js, Astro, etc.)
+- **Community App Gallery** with working, previewable applications that can be remixed into isolated projects
 - **Real-time collaboration** and project sharing
 - **Code diff visualization** and version history
 - **Download projects as ZIP** or push directly to GitHub
@@ -533,50 +533,51 @@ The WebContainer integration provides a seamless development experience without 
 
 ---
 
-## Project Templates
+## Community Gallery, Remix, and Import Hub
 
-E-Code comes with a comprehensive collection of starter templates to help you quickly bootstrap your projects. Choose from popular frameworks and technologies:
+`/dashboard/templates` is the application Gallery. It is intentionally not a catalog of language or framework skeletons. Cards represent complete, published applications that can be previewed, reported, and remixed. Discovery supports free-text search, categories, artifact types, technologies, featured items, sorting, and grid/list views.
 
-### Frontend Frameworks
+The six historical starters are retained only as working E-Code demo applications: Orbit CRM, Northstar Operations, Pulse API Monitor, Launchline Planner, Kindred Booking, and Relay Field Service. They use JavaScript or TypeScript, ship functional previews, and serve as end-to-end non-regression fixtures. Python, Go, and Rust sources are rejected until those runtimes are proven across creation, IDE, runtime, Preview, and publication.
 
-- **React + Vite** - Modern React setup with TypeScript
-- **Vue.js** - Progressive JavaScript framework
-- **Angular** - Enterprise-ready framework
-- **Svelte** - Compiler-based framework for fast apps
-- **SolidJS** - Reactive framework with fine-grained updates
+### Remix isolation contract
 
-### Full-Stack Frameworks
+`POST /organizations/:orgId/gallery/apps/:galleryAppId/remix` creates a new project owned by the requesting organization. It copies the immutable app-version snapshot into a new internal Git repository and workspace, regenerates dependency locks, provisions isolated data resources, and records source provenance. Secret values, source database rows, creator workspaces, and creator resource identifiers are never copied. Only missing secret _names_ may be surfaced so the new owner can provide their own values. The Agent then analyzes the working copy and proposes the next changes without replacing working code.
 
-- **Next.js with shadcn/ui** - React framework with UI components
-- **Astro** - Static site generator for content-focused sites
-- **Qwik** - Resumable framework for instant loading
-- **Remix** - Full-stack React framework
-- **Nuxt** - Vue.js meta-framework
+### Import Hub
 
-### Mobile & Cross-Platform
+The two-phase Import Hub validates a source and shows a creation preview before any project is created. It supports exactly these 12 choices:
 
-- **Expo App** - React Native with Expo
-- **React Native** - Cross-platform mobile development
+- GitHub, including express repository links such as `github.com/owner/repo`
+- Bitbucket
+- Vercel
+- Figma
+- Claude
+- Bolt
+- Lovable
+- Base44
+- ZIP
+- Spreadsheet (`.xlsx`, `.csv`, or Google Sheets)
+- Previous Agent export
+- Empty
 
-### Presentation & Content
+Every connector validates its provider URL or upload, detects the supported runtime, reports missing secret names, generates safe runtime configuration, exposes progress, and returns recoverable failures when retry is possible. Source secret values and source database data are never imported. Spreadsheet rows are allowed only as an explicit seed dataset for the newly generated application. Figma, Claude, Bolt, Lovable, Base44, and Spreadsheet use the Agent and disclose credit use before creation. A screenshot is not an import provider; it remains a prompt/Canvas attachment.
 
-- **Slidev** - Developer-friendly presentations
-- **Astro Basic** - Lightweight static sites
+The Empty path creates a repository and workspace with zero files, no Agent, no framework, and no scaffold.
 
-### Vanilla JavaScript
+### Gallery publication and moderation API
 
-- **Vanilla Vite** - Minimal JavaScript setup
-- **Vite TypeScript** - TypeScript without framework
+Community publication is backed by organization and author ownership, immutable content-addressed versions, remix controls, moderation status, reports, featured state, and provenance. Publication accepts only a committed project whose current deployment Preview returns rendered content. Snapshots reject unsafe paths and unsupported runtime files, exclude dependency/build output and private environment files, redact common credential patterns, and enforce file-count and byte limits.
 
-### Getting Started with Templates
+- `GET /gallery/apps` and `GET /gallery/apps/:appIdOrSlug`: approved public discovery and detail
+- `GET|POST /organizations/:orgId/gallery/apps`: organization listing and draft creation from a real project
+- `GET|PATCH /organizations/:orgId/gallery/apps/:galleryAppId`: private detail and metadata/remix-control editing
+- `POST /organizations/:orgId/gallery/apps/:galleryAppId/submit`: verify the committed deployed Preview and submit it
+- `POST /gallery/apps/:galleryAppId/reports`: authenticated abuse or policy report
+- `POST /organizations/:orgId/gallery/apps/:galleryAppId/remix`: isolated, idempotent Remix
+- `/admin/gallery/apps/*` and `/admin/gallery/reports/*`: platform moderation, featuring, rejection, and report resolution
+- `/organizations/:orgId/project-imports/*`: Import Hub preflight, creation, job status, and retry
 
-1. Start a new project in E-Code
-2. Browse available templates in the starter selection
-3. Select your preferred technology stack
-4. The AI will scaffold your project with best practices
-5. Begin development immediately with live preview
-
-All templates are pre-configured with modern tooling, linting, and build processes for immediate productivity.
+Run `pnpm gallery:validate` to materialize all six demo applications, install dependencies, typecheck, build, start each runtime, verify a non-blank browser Preview, and recapture its thumbnail. The machine-readable report is written under `docs/ui-ux-evidence/2026-07-16/community-gallery/runtime/`.
 
 ---
 

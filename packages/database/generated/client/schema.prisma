@@ -38,6 +38,93 @@ enum SupportTicketStatus {
   CLOSED
 }
 
+enum ProjectImportSource {
+  GITHUB
+  BITBUCKET
+  VERCEL
+  FIGMA
+  CLAUDE
+  BOLT
+  LOVABLE
+  BASE44
+  ZIP
+  SPREADSHEET
+  PREVIOUS_AGENT
+  EMPTY
+}
+
+enum ProjectImportStatus {
+  VALIDATING
+  READY
+  CREATING
+  COMPLETE
+  FAILED
+  CANCELED
+}
+
+enum GalleryAppStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+  ARCHIVED
+}
+
+enum GalleryModerationStatus {
+  NOT_SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum GalleryPreviewStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+enum GalleryVisibility {
+  PUBLIC
+  UNLISTED
+}
+
+enum GalleryArtifactType {
+  BUSINESS_APP
+  BOOKING
+  CRM
+  DASHBOARD
+  ECOMMERCE
+  GAME
+  INTERNAL_TOOL
+  LANDING_PAGE
+  PRODUCTIVITY
+  SOCIAL
+  OTHER
+}
+
+enum GalleryReportStatus {
+  OPEN
+  DISMISSED
+  ACTIONED
+}
+
+enum GalleryReportReason {
+  COPYRIGHT
+  DECEPTIVE
+  HARMFUL
+  INAPPROPRIATE
+  MALWARE
+  PRIVACY
+  SPAM
+  OTHER
+}
+
+enum GalleryRemixStatus {
+  CREATING
+  READY
+  FAILED
+}
+
 model User {
   id                          String                         @id @default(cuid())
   email                       String                         @unique
@@ -99,6 +186,12 @@ model User {
   notifications               Notification[]
   aiMessageFeedback           AiMessageFeedback[]
   spendLimits                 UserSpendLimit[]
+  projectImportJobs           ProjectImportJob[]
+  authoredGalleryApps         GalleryApp[]                   @relation("GalleryAppAuthors")
+  galleryAppVersions          GalleryAppVersion[]            @relation("GalleryVersionCreators")
+  galleryReports              GalleryReport[]                @relation("GalleryReporters")
+  reviewedGalleryReports      GalleryReport[]                @relation("GalleryReportReviewers")
+  galleryRemixes              ProjectRemix[]                 @relation("GalleryRemixOwners")
 }
 
 model Account {
@@ -162,7 +255,9 @@ model Organization {
   scimTokens                 ScimToken[]
   customRoles                CustomRole[]
   siemWebhooks               SiemWebhook[]
-  projectTemplates           ProjectTemplate[]
+  projectImportJobs          ProjectImportJob[]
+  galleryApps                GalleryApp[]
+  galleryRemixes             ProjectRemix[]
   agentMemories              AgentMemory[]
   agentMemoryPreferences     AgentMemoryPreference[]
   mcpInstalls                McpInstall[]
@@ -255,7 +350,6 @@ model Project {
   secrets                ProjectSecret[]
   collaborators          ProjectCollaborator[]
   activity               ProjectActivity[]
-  templates              ProjectTemplate[]       @relation("ProjectTemplates")
   workspaces             Workspace[]
   snapshots              ProjectSnapshot[]
   storageObjects         ProjectStorageObject[]
@@ -274,6 +368,9 @@ model Project {
   skills                 ProjectSkill[]
   repairEvents           AgentRepairEvent[]
   slugRedirects          ProjectSlugRedirect[]
+  importJobs             ProjectImportJob[]
+  galleryApps            GalleryApp[]            @relation("GallerySourceProjects")
+  galleryRemixes         ProjectRemix[]          @relation("GalleryRemixDestinations")
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -574,17 +671,167 @@ model ProjectShareLink {
   @@index([projectId, expiresAt])
 }
 
-model ProjectTemplate {
-  id              String       @id @default(cuid())
-  sourceProjectId String
-  organizationId  String
-  name            String
-  description     String?
-  createdAt       DateTime     @default(now())
-  sourceProject   Project      @relation("ProjectTemplates", fields: [sourceProjectId], references: [id], onDelete: Cascade)
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+/// Durable two-phase import record. Source payloads (ZIP/spreadsheet bytes,
+/// OAuth tokens, URL credentials and secret values) are deliberately never
+/// persisted here: the browser resubmits the source after preflight and the API
+/// verifies `inputHash` before creation. Only safe detection metadata is stored.
+model ProjectImportJob {
+  id                   String              @id @default(cuid())
+  organizationId       String
+  userId               String
+  source               ProjectImportSource
+  status               ProjectImportStatus @default(VALIDATING)
+  idempotencyKey       String
+  requestHash          String
+  sourceReference      String?
+  sourceLabel          String?
+  stage                String
+  progress             Int                 @default(0)
+  validation           Json                @default("{}")
+  runtimeDetection     Json                @default("{}")
+  missingSecretNames   String[]            @default([])
+  generatedConfig      Json                @default("[]")
+  preview              Json                @default("{}")
+  usesAgent            Boolean             @default(false)
+  creditsDisclosure    String?
+  destinationProjectId String?
+  errorCode            String?
+  errorMessage         String?
+  recoverable          Boolean             @default(false)
+  completedAt          DateTime?
+  failedAt             DateTime?
+  canceledAt           DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  organization         Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  destinationProject   Project?            @relation(fields: [destinationProjectId], references: [id], onDelete: SetNull)
 
-  @@index([organizationId])
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, createdAt])
+  @@index([userId, createdAt])
+  @@index([destinationProjectId])
+  @@index([status, updatedAt])
+}
+
+model GalleryApp {
+  id                   String                  @id @default(cuid())
+  slug                 String                  @unique
+  sourceProjectId      String?
+  organizationId       String
+  authorUserId         String
+  authorHandle         String
+  authorDisplayName    String
+  authorAvatarUrl      String?
+  name                 String
+  description          String
+  artifactType         GalleryArtifactType
+  category             String
+  technologies         String[]                @default([])
+  tags                 String[]                @default([])
+  thumbnailUrl         String
+  visibility           GalleryVisibility       @default(PUBLIC)
+  status               GalleryAppStatus        @default(DRAFT)
+  moderationStatus     GalleryModerationStatus @default(NOT_SUBMITTED)
+  moderationReason     String?
+  remixAllowed         Boolean                 @default(true)
+  featured             Boolean                 @default(false)
+  remixCount           Int                     @default(0)
+  reportCount          Int                     @default(0)
+  previewStatus        GalleryPreviewStatus    @default(PENDING)
+  previewUrl           String?
+  previewEvidence      Json?
+  latestVersionId      String?
+  sourceGalleryAppId   String?
+  sourceGalleryAppSlug String?
+  submittedAt          DateTime?
+  publishedAt          DateTime?
+  archivedAt           DateTime?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  sourceProject        Project?                @relation("GallerySourceProjects", fields: [sourceProjectId], references: [id], onDelete: SetNull)
+  organization         Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  author               User                    @relation("GalleryAppAuthors", fields: [authorUserId], references: [id], onDelete: Restrict)
+  versions             GalleryAppVersion[]
+
+  @@index([organizationId, status, updatedAt])
+  @@index([status, moderationStatus, previewStatus, publishedAt])
+  @@index([featured, remixCount, publishedAt])
+  @@index([sourceProjectId])
+  @@index([authorUserId])
+}
+
+model GalleryAppVersion {
+  id                 String     @id @default(cuid())
+  galleryAppId       String
+  version            Int
+  files              Json
+  runtime            Json
+  dataRequirements   Json
+  contentHash        String
+  byteLength         BigInt
+  removedPaths       String[]   @default([])
+  redactedValueCount Int        @default(0)
+  validationChecks   String[]   @default([])
+  createdByUserId    String
+  createdAt          DateTime   @default(now())
+  galleryApp         GalleryApp @relation(fields: [galleryAppId], references: [id], onDelete: Cascade)
+  createdBy          User       @relation("GalleryVersionCreators", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([galleryAppId, version])
+  @@unique([galleryAppId, contentHash])
+  @@index([createdByUserId])
+}
+
+model GalleryReport {
+  id               String              @id @default(cuid())
+  galleryAppId     String
+  reporterUserId   String
+  reason           GalleryReportReason
+  details          String?
+  status           GalleryReportStatus @default(OPEN)
+  resolutionNote   String?
+  reviewedByUserId String?
+  reviewedAt       DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  reporter         User                @relation("GalleryReporters", fields: [reporterUserId], references: [id], onDelete: Cascade)
+  reviewedBy       User?               @relation("GalleryReportReviewers", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([galleryAppId, reporterUserId, reason])
+  @@index([status, createdAt])
+  @@index([reporterUserId, createdAt])
+}
+
+model ProjectRemix {
+  id                        String             @id @default(cuid())
+  galleryAppId              String
+  galleryAppVersionId       String
+  sourceProjectId           String?
+  destinationOrganizationId String
+  destinationOwnerUserId    String
+  destinationProjectId      String?
+  destinationRepositoryId   String?
+  destinationWorkspaceId    String?
+  agentAnalysisId           String?
+  idempotencyKey            String
+  requestHash               String
+  status                    GalleryRemixStatus @default(CREATING)
+  errorCode                 String?
+  completedAt               DateTime?
+  failedAt                  DateTime?
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
+  destinationOrganization   Organization       @relation(fields: [destinationOrganizationId], references: [id], onDelete: Cascade)
+  destinationOwner          User               @relation("GalleryRemixOwners", fields: [destinationOwnerUserId], references: [id], onDelete: Restrict)
+  destinationProject        Project?           @relation("GalleryRemixDestinations", fields: [destinationProjectId], references: [id], onDelete: SetNull)
+
+  @@unique([destinationOrganizationId, idempotencyKey])
+  @@index([galleryAppId, createdAt])
+  @@index([galleryAppVersionId])
+  @@index([destinationOwnerUserId, createdAt])
+  @@index([destinationProjectId])
+  @@index([status, updatedAt])
 }
 
 model Workspace {
@@ -747,6 +994,10 @@ model Deployment {
   // metered (mirrors WorkspaceRuntime.lastMeteredAt) so a re-reconcile never
   // double-charges. Dormant/SHADOW until BILLING_CREDITS_ENABLED. See metering-service.ts.
   lastMeteredAt      DateTime?
+  // Machine size the user picked at publish (rate-card key, e.g. 'dedicated-1').
+  // Applied verbatim as the runtime pod's requests==limits and used to price
+  // compute metering — the machine you picked is the machine you pay for.
+  machineSize        String                 @default("shared-0.5")
   startedAt          DateTime?
   finishedAt         DateTime?
   canceledAt         DateTime?
@@ -765,6 +1016,22 @@ model DeploymentEnvironment {
   id          String       @id @default(cuid())
   name        String       @unique
   deployments Deployment[]
+}
+
+// Versioned Rate Card: the priced catalogue (machine sizes, compute-unit and
+// request rates) served to the app and stamped on every metering event. A
+// price change INSERTS a new version and flips `active` — history is never
+// mutated, so past usage events stay auditable against the card that priced
+// them. Seeded with version 1 (= packages/billing BUILTIN_RATE_CARD).
+model RateCard {
+  id          String   @id @default(cuid())
+  version     Int      @unique
+  active      Boolean  @default(false)
+  data        Json
+  effectiveAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([active])
 }
 
 model AuditLog {
@@ -2107,4 +2374,104 @@ model DatabaseRestore {
   @@index([status])
   // "restores requested by user" lookups; was a full-scan (no FK on this column).
   @@index([requestedByUserId])
+}
+
+// ---------------------------------------------------------------------------
+// Scheduled tasks (cron). Backs BOTH the Workflows panel schedules AND the
+// Replit-parity "Scheduled" deployment type: a command that runs on a cron,
+// exits, and is billed for its RUN TIME (duration x machine size) rather than
+// 24/7. Before this, cron expressions were validated and a nextRunAt was
+// computed, but nothing ever fired them — the feature was dead.
+// ---------------------------------------------------------------------------
+
+enum ScheduledTaskKind {
+  /// Runs an existing Workflows-panel workflow (its ordered steps).
+  WORKFLOW
+  /// Replit "Scheduled Deployment": one shell command, on a cron.
+  DEPLOYMENT
+}
+
+enum ScheduledTaskRunStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+  TIMED_OUT
+  /// The previous run was still RUNNING when this tick fired (concurrencyPolicy=FORBID).
+  SKIPPED
+  CANCELED
+}
+
+/// One cron-scheduled unit of work owned by a project. `nextRunAt` is the claim
+/// token: the scheduler advances it inside a conditional UPDATE, so exactly one
+/// api replica can ever own a given tick (no distributed lock needed).
+model ScheduledTask {
+  id              String             @id @default(cuid())
+  organizationId  String
+  projectId       String
+  kind            ScheduledTaskKind  @default(DEPLOYMENT)
+  name            String
+  /// Shell command for DEPLOYMENT tasks (run as `sh -lc <command>` in the project sandbox).
+  command         String             @default("")
+  /// For WORKFLOW tasks: the workflow id inside VIBECORE_WORKFLOWS_STATE.
+  workflowId      Int?
+  /// 5-field cron expression, already normalized.
+  cron            String
+  /// IANA timezone the cron fields are interpreted in.
+  timezone        String             @default("UTC")
+  /// Machine size key. The size catalogue itself is owned elsewhere; this is the field only.
+  machineSize     String             @default("shared-0.5")
+  enabled         Boolean            @default(true)
+  /// Hard kill after this many seconds.
+  timeoutSeconds  Int                @default(900)
+  /// FORBID (skip if the previous run is still going) | ALLOW.
+  concurrency     String             @default("FORBID")
+  /// Replit parity: a failed scheduled run is NOT retried by default.
+  maxRetries      Int                @default(0)
+  notifyOnFailure Boolean            @default(true)
+  lastRunAt       DateTime?
+  lastStatus      String?
+  /// Next fire time (UTC). NULL when disabled.
+  nextRunAt       DateTime?
+  createdByUserId String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  runs            ScheduledTaskRun[]
+
+  @@unique([projectId, kind, workflowId])
+  /// The scheduler's hot query: enabled tasks whose nextRunAt is due.
+  @@index([enabled, nextRunAt])
+  @@index([projectId])
+  @@index([organizationId])
+}
+
+/// One execution. Holds the FULL captured stdout+stderr, the real exit code, the
+/// real duration, and the billing outcome for that duration.
+model ScheduledTaskRun {
+  id             String                 @id @default(cuid())
+  taskId         String
+  organizationId String
+  projectId      String
+  status         ScheduledTaskRunStatus @default(RUNNING)
+  /// "schedule" | "manual"
+  trigger        String                 @default("schedule")
+  attempt        Int                    @default(1)
+  /// The cron instant this run is for (may differ from startedAt under load).
+  scheduledFor   DateTime
+  startedAt      DateTime               @default(now())
+  finishedAt     DateTime?
+  durationMs     Int?
+  exitCode       Int?
+  /// Full captured output (stdout + stderr), not a tail.
+  logs           String                 @default("")
+  error          String?
+  machineSize    String?
+  /// Billed compute units for this run (duration x size). NULL until metered.
+  computeUnits   Float?
+  costCents      Float?
+  meteredAt      DateTime?
+  task           ScheduledTask          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, startedAt])
+  @@index([projectId, startedAt])
+  @@index([status])
 }

@@ -134,13 +134,16 @@ test('project creation exposes templates and import paths', async ({ page }) => 
   await expect(page.locator('.vc-new-project-chip', { hasText: 'Web' })).toBeVisible();
   await expect(page.getByTestId('ai-provider-dropdown')).toBeVisible();
   await expect(page.getByTestId('ai-model-dropdown')).toBeVisible();
-  await expect(page.getByRole('link', { name: /Import an existing GitHub repository/ })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: /Validate and import a GitHub repository/ })).toHaveAttribute(
     'href',
-    '/import-github',
+    '/dashboard/templates?section=import&source=github',
   );
-  await expect(page.getByRole('link', { name: /Upload a zip archive/ })).toHaveAttribute('href', '/import-zip');
-  await expect(page.getByRole('heading', { name: 'Start from the existing catalog' })).toBeVisible();
-  await expect(page.getByText('Authenticated template flow already wired to project creation.')).toBeVisible();
+  await expect(page.getByRole('link', { name: /Validate and import a source-code ZIP archive/ })).toHaveAttribute(
+    'href',
+    '/dashboard/templates?section=import&source=zip',
+  );
+  await expect(page.getByRole('heading', { name: 'Start from an app that already works' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Browse published apps' })).toBeVisible();
 });
 
 test('project creation light theme uses light containers and readable image previews', async ({ page }) => {
@@ -331,12 +334,12 @@ test('project creation syncs AI providers and models from settings', async ({ pa
   await expect(page.getByRole('option', { name: /GPT Settings Small/ })).toBeVisible();
 });
 
-test('private templates create a project instead of opening the public gallery', async ({ page }) => {
+test('Community Gallery remixes a published app into a running project', async ({ page }) => {
   await authenticate(page);
   await page.goto('/dashboard/templates');
-  await expect(page.getByRole('heading', { name: 'Templates' })).toBeVisible();
-  await expect(page.getByText('Create production workspaces from curated starters')).toBeVisible();
-  await page.getByRole('button', { name: 'Use template' }).first().click();
+  await expect(page.getByRole('heading', { name: 'Community Gallery' })).toBeVisible();
+  await expect(page.getByText(/working applications published by the community/i)).toBeVisible();
+  await page.getByRole('button', { name: /^Remix / }).first().click();
   await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 30000 });
   await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
 });
@@ -390,11 +393,10 @@ test('authenticated user area applies the global platform design system', async 
   });
 });
 
-test('public templates stay marketing-only for anonymous visitors', async ({ page }) => {
+test('the legacy templates URL sends anonymous visitors to sign in for the Community Gallery', async ({ page }) => {
   await page.goto('/templates');
-  await expect(page.getByRole('heading', { name: 'Templates gallery' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Sign in to use templates' })).toHaveAttribute('href', '/login');
-  await expect(page.getByRole('link', { name: 'Sign in to use' }).first()).toHaveAttribute('href', '/login');
+  await expect(page).toHaveURL(/\/login\?returnTo=/);
+  await expect(page.getByRole('heading', { name: /Welcome back|Sign in/i })).toBeVisible();
 });
 
 test('public homepage light theme keeps imagery adapted and readable', async ({ page }) => {
@@ -595,125 +597,27 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   await page.locator('.bolt-project-tabbar:visible .bolt-project-tab-main').first().click();
   await expect(dismissibleToolMenu).toBeHidden();
 
-  const filesToolMenu = await openVisibleIdeToolMenu(page);
-  const filesToolButton = filesToolMenu.getByRole('button', { name: /Files/ });
+  const openFilesTab = page.getByRole('button', { name: 'Open Files tab' });
 
-  await expect(filesToolButton).toBeVisible();
-  await filesToolButton.click();
-  await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
-  await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
-  await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
+  await expect(openFilesTab).toBeVisible();
+  await openFilesTab.click();
 
-  const rightPanel = page.getByRole('complementary', { name: 'Project files panel' });
-  await expect(rightPanel).toBeVisible();
+  const filesTab = page.locator('.bolt-project-tab[data-panel="files"]');
+  const filesPane = page.locator('.bolt-project-pane-leaf').filter({ has: filesTab }).first();
 
-  const rightPanelMetrics = await rightPanel.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    const style = window.getComputedStyle(element);
-
-    return {
-      position: style.position,
-      top: rect.top,
-      right: Math.round(window.innerWidth - rect.right),
-      width: rect.width,
-      height: rect.height,
-      background: style.backgroundColor,
-      borderLeft: style.borderLeftColor,
-    };
-  });
-  expect(rightPanelMetrics.position).toBe('relative');
-  expect(rightPanelMetrics.top).toBe(36);
-  expect(rightPanelMetrics.right).toBe(0);
-  expect(rightPanelMetrics.width).toBeGreaterThanOrEqual(260);
-  expect(rightPanelMetrics.width).toBeLessThanOrEqual(290);
-  expect(rightPanelMetrics.height).toBe((page.viewportSize()?.height ?? 720) - 36 - 32);
-  expect(rightPanelMetrics.background).toBe('rgb(14, 21, 37)');
-  expect(rightPanelMetrics.borderLeft).toBe('rgb(26, 32, 48)');
-  await expect(rightPanel.locator('.bolt-project-files-tool')).toBeVisible();
+  await expect(filesTab).toHaveCount(1);
+  await expect(filesTab).toBeVisible();
+  await expect(filesTab).toHaveAttribute('aria-selected', 'true');
+  await expect(filesPane).toBeVisible();
+  await expect(filesPane.locator('.bolt-project-files-tool')).toBeVisible();
   await expect
-    .poll(async () => rightPanel.locator('.bolt-file-tree-node').count(), { timeout: 30_000 })
+    .poll(async () => filesPane.locator('.bolt-file-tree-node').count(), { timeout: 30_000 })
     .toBeGreaterThan(0);
+  await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
 
-  const filesPanelFillMetrics = await rightPanel.locator('.bolt-project-files-tool').evaluate((element) => {
-    const toolRect = element.getBoundingClientRect();
-    const contentRect = element.parentElement!.getBoundingClientRect();
-    const tree = element.querySelector('.bolt-project-file-tree') as HTMLElement;
-    const treeRect = tree.getBoundingClientRect();
-    const toolStyle = window.getComputedStyle(element);
-    const treeStyle = window.getComputedStyle(tree);
-
-    return {
-      contentWidth: Math.round(contentRect.width),
-      toolWidth: Math.round(toolRect.width),
-      treeWidth: Math.round(treeRect.width),
-      toolBackground: toolStyle.backgroundColor,
-      treeBackground: treeStyle.backgroundColor,
-    };
-  });
-  expect(filesPanelFillMetrics.contentWidth).toBeGreaterThanOrEqual(260);
-  expect(filesPanelFillMetrics.contentWidth).toBeLessThanOrEqual(280);
-  expect(filesPanelFillMetrics.toolWidth).toBe(filesPanelFillMetrics.contentWidth);
-  expect(filesPanelFillMetrics.treeWidth).toBe(filesPanelFillMetrics.contentWidth);
-  expect(filesPanelFillMetrics.toolBackground).toBe('rgb(14, 21, 37)');
-  expect(filesPanelFillMetrics.treeBackground).toBe('rgb(14, 21, 37)');
-
-  await page.evaluate(() => {
-    localStorage.setItem('bolt_theme', 'light');
-    document.documentElement.setAttribute('data-theme', 'light');
-    document.documentElement.classList.remove('dark');
-  });
-
-  const fileRowMetrics = await rightPanel
-    .locator('.bolt-file-tree-node')
-    .first()
-    .evaluate((element) => {
-      const rect = element.getBoundingClientRect();
-      const style = window.getComputedStyle(element);
-      const icon = element.querySelector('.bolt-file-tree-icon-wrap') as HTMLElement;
-      const iconRect = icon.getBoundingClientRect();
-      const iconStyle = window.getComputedStyle(icon);
-      const name = element.querySelector('.bolt-file-tree-name') as HTMLElement;
-      const nameStyle = window.getComputedStyle(name);
-
-      return {
-        rowWidth: Math.round(rect.width),
-        rowHeight: Math.round(rect.height),
-        borderRadius: style.borderRadius,
-        gap: style.gap,
-        paddingLeft: style.paddingLeft,
-        paddingRight: style.paddingRight,
-        iconWidth: Math.round(iconRect.width),
-        iconHeight: Math.round(iconRect.height),
-        iconColor: iconStyle.color,
-        nameColor: nameStyle.color,
-        nameFontSize: nameStyle.fontSize,
-        nameFontWeight: nameStyle.fontWeight,
-        nameLineHeight: nameStyle.lineHeight,
-      };
-    });
-
-  expect(fileRowMetrics).toMatchObject({
-    rowWidth: 240,
-    rowHeight: 28,
-    borderRadius: '4px',
-    gap: '6px',
-    paddingLeft: '0px',
-    paddingRight: '0px',
-    iconWidth: 16,
-    iconHeight: 16,
-    iconColor: 'rgb(54, 55, 59)',
-    nameColor: 'rgb(54, 55, 59)',
-    nameFontSize: '14px',
-    nameFontWeight: '400',
-    nameLineHeight: 'normal',
-  });
-
-  await expect(page.getByLabel(/Resize (?:files|right) panel/)).toBeVisible();
-  await rightPanel.getByLabel('Close right panel').click();
-  await expect(rightPanel).toHaveCount(0);
-  await expect(page.getByTestId('ide-files-panel-toggle')).toHaveAttribute('aria-label', 'Open files panel');
-  await page.getByTestId('ide-files-panel-toggle').click();
-  await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible();
+  await openFilesTab.click();
+  await expect(filesTab).toHaveCount(1);
+  await expect(filesTab).toHaveAttribute('aria-selected', 'true');
 });
 
 test('IDE applies the full 2026 color theme tokens', async ({ page, isMobile }) => {
@@ -1429,16 +1333,167 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await expect(gitPanel.getByRole('heading', { name: 'History' })).toBeVisible();
   await expect(gitPanel.getByRole('button', { name: 'Commit & Push' })).toBeVisible();
 
-  await expect(page.getByLabel('Split right')).toHaveCount(0);
-  await expect(page.getByLabel('Split down')).toHaveCount(0);
-  await expect(page.locator('.bolt-project-drop-zones')).toHaveCount(0);
-  await page.locator('.bolt-project-tab').first().click({ button: 'right' });
-  await expect(page.locator('.bolt-project-context-menu')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /Move to new pane/ })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /Move to existing pane/ })).toHaveCount(0);
-  await page.getByLabel('Tab actions').first().click();
-  await page.getByRole('button', { name: 'Close to right' }).first().click();
-  await expect(page.getByRole('tab', { name: /Deploy/ }).first()).toBeVisible();
+  const paneLeaves = page.locator('.bolt-project-pane-leaf[data-pane-id]');
+  const activeInitialPane = page.locator('.bolt-project-pane-leaf[data-active="true"]').first();
+  const initialPaneId = await activeInitialPane.getAttribute('data-pane-id');
+
+  expect(initialPaneId).toBeTruthy();
+
+  const initialPane = page.locator(`.bolt-project-pane-leaf[data-pane-id="${initialPaneId}"]`);
+  const initialOptions = page.getByTestId(`pane-options-${initialPaneId}`);
+
+  await expect(initialOptions).toHaveAccessibleName('Options for active tab');
+  await initialOptions.focus();
+  await page.keyboard.press('Enter');
+
+  const initialOptionsMenu = page.getByTestId(`pane-options-menu-${initialPaneId}`);
+
+  await expect(initialOptionsMenu).toBeVisible();
+  await expect(initialOptionsMenu).toHaveAttribute('role', 'menu');
+  await expect(initialOptionsMenu).toContainText('Window');
+  await expect(initialOptionsMenu).toContainText('Pane');
+  await expect(initialOptionsMenu).toContainText('Tab');
+  await expect(initialOptionsMenu.getByTestId('open-new-project-editor-window')).toBeVisible();
+  await initialOptionsMenu.getByTestId('split-pane-right').click();
+  await expect(paneLeaves).toHaveCount(2);
+
+  const paneIdsAfterHorizontalSplit = await paneLeaves.evaluateAll((panes) =>
+    panes.map((pane) => pane.getAttribute('data-pane-id')).filter((id): id is string => Boolean(id)),
+  );
+  const horizontalPaneId = paneIdsAfterHorizontalSplit.find((id) => id !== initialPaneId);
+
+  expect(horizontalPaneId).toBeTruthy();
+
+  const horizontalSplit = page.locator('.bolt-project-pane-split[data-direction="horizontal"]').first();
+  const horizontalPanels = horizontalSplit.locator(':scope > [data-panel]');
+
+  await expect(horizontalSplit).toBeVisible();
+  await expect(horizontalPanels).toHaveCount(2);
+
+  const horizontalGeometry = await horizontalPanels.evaluateAll((panels) =>
+    panels.map((panel) => {
+      const rect = panel.getBoundingClientRect();
+
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, right: rect.right };
+    }),
+  );
+
+  expect(Math.abs(horizontalGeometry[0].y - horizontalGeometry[1].y)).toBeLessThanOrEqual(2);
+  expect(Math.abs(horizontalGeometry[0].height - horizontalGeometry[1].height)).toBeLessThanOrEqual(2);
+  expect(horizontalGeometry[1].x).toBeGreaterThanOrEqual(horizontalGeometry[0].right);
+
+  const horizontalFirstPanel = horizontalPanels.first();
+  const horizontalResizeHandle = horizontalSplit.getByRole('separator', { name: 'Resize panes horizontally' });
+  const horizontalWidthBeforeResize = await horizontalFirstPanel.boundingBox();
+  const horizontalHandleBox = await horizontalResizeHandle.boundingBox();
+
+  expect(horizontalWidthBeforeResize).not.toBeNull();
+  expect(horizontalHandleBox).not.toBeNull();
+
+  await page.mouse.move(
+    horizontalHandleBox!.x + horizontalHandleBox!.width / 2,
+    horizontalHandleBox!.y + horizontalHandleBox!.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(horizontalHandleBox!.x + 80, horizontalHandleBox!.y + horizontalHandleBox!.height / 2, {
+    steps: 6,
+  });
+  await page.mouse.up();
+  await expect
+    .poll(async () => (await horizontalFirstPanel.boundingBox())?.width ?? 0, {
+      message: 'The horizontal pane divider should resize both panes',
+    })
+    .toBeGreaterThan(horizontalWidthBeforeResize!.width + 24);
+
+  const horizontalPane = page.locator(`.bolt-project-pane-leaf[data-pane-id="${horizontalPaneId}"]`);
+
+  await expect(horizontalPane.locator('.bolt-project-tab[data-panel="git"]')).toBeVisible();
+  await horizontalPane.getByTestId('tab-add').click();
+
+  const addTabPalette = page.getByTestId('ide-add-tab-command-palette');
+
+  await expect(addTabPalette).toBeVisible();
+  await addTabPalette.getByLabel('Search commands, tools, or files').fill('Logs');
+  await addTabPalette.getByTestId('feature-logs').click();
+
+  const logsTab = horizontalPane.locator('.bolt-project-tab[data-panel="logs"]');
+
+  await expect(logsTab).toBeVisible();
+  await logsTab.locator('.bolt-project-tab-main').click();
+
+  const logsTabId = await logsTab.getAttribute('data-tab-id');
+  const sourceTabCount = await horizontalPane.locator('.bolt-project-tab').count();
+  const targetTabCount = await initialPane.locator('.bolt-project-tab').count();
+
+  expect(logsTabId).toBeTruthy();
+
+  await page.getByTestId(`pane-options-${horizontalPaneId}`).click();
+
+  const horizontalOptionsMenu = page.getByTestId(`pane-options-menu-${horizontalPaneId}`);
+
+  await expect(horizontalOptionsMenu.getByTestId(`move-tab-to-${initialPaneId}`)).toBeVisible();
+  await horizontalOptionsMenu.getByTestId(`move-tab-to-${initialPaneId}`).click();
+  await expect(page.locator(`.bolt-project-tab[data-tab-id="${logsTabId}"]`)).toHaveCount(1);
+  await expect(horizontalPane.locator(`.bolt-project-tab[data-tab-id="${logsTabId}"]`)).toHaveCount(0);
+  await expect(initialPane.locator(`.bolt-project-tab[data-tab-id="${logsTabId}"]`)).toHaveCount(1);
+  await expect(horizontalPane.locator('.bolt-project-tab')).toHaveCount(sourceTabCount - 1);
+  await expect(initialPane.locator('.bolt-project-tab')).toHaveCount(targetTabCount + 1);
+
+  await page.getByTestId(`pane-options-${initialPaneId}`).click();
+  await page.getByTestId(`pane-options-menu-${initialPaneId}`).getByTestId('split-pane-down').click();
+  await expect(paneLeaves).toHaveCount(3);
+
+  const verticalSplit = page.locator('.bolt-project-pane-split[data-direction="vertical"]').first();
+  const verticalPanels = verticalSplit.locator(':scope > [data-panel]');
+
+  await expect(verticalSplit).toBeVisible();
+  await expect(verticalPanels).toHaveCount(2);
+
+  const verticalGeometry = await verticalPanels.evaluateAll((panels) =>
+    panels.map((panel) => {
+      const rect = panel.getBoundingClientRect();
+
+      return { x: rect.x, y: rect.y, width: rect.width, bottom: rect.bottom };
+    }),
+  );
+
+  expect(Math.abs(verticalGeometry[0].x - verticalGeometry[1].x)).toBeLessThanOrEqual(2);
+  expect(Math.abs(verticalGeometry[0].width - verticalGeometry[1].width)).toBeLessThanOrEqual(2);
+  expect(verticalGeometry[1].y).toBeGreaterThanOrEqual(verticalGeometry[0].bottom);
+  await expect(page.locator(`.bolt-project-tab[data-tab-id="${logsTabId}"]`)).toHaveCount(1);
+
+  const paneIdsAfterVerticalSplit = await paneLeaves.evaluateAll((panes) =>
+    panes.map((pane) => pane.getAttribute('data-pane-id')).filter((id): id is string => Boolean(id)),
+  );
+  const verticalPaneId = paneIdsAfterVerticalSplit.find((id) => !paneIdsAfterHorizontalSplit.includes(id));
+
+  expect(verticalPaneId).toBeTruthy();
+  await page.getByTestId(`pane-options-${verticalPaneId}`).click();
+
+  const verticalOptionsMenu = page.getByTestId(`pane-options-menu-${verticalPaneId}`);
+  const floatPaneAction = verticalOptionsMenu.getByTestId('float-pane');
+
+  if ((await floatPaneAction.count()) > 0) {
+    await floatPaneAction.click();
+
+    const floatingPane = page.locator(`[data-testid="floating-pane"][data-pane-id="${verticalPaneId}"]`);
+
+    await expect(floatingPane).toBeVisible();
+    await expect(page.getByTestId(`dock-floating-pane-${verticalPaneId}`)).toBeVisible();
+    await page.getByTestId(`pane-options-${verticalPaneId}`).click();
+    await expect(
+      page.getByTestId(`pane-options-menu-${verticalPaneId}`).getByTestId('dock-floating-pane'),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.getByTestId(`dock-floating-pane-${verticalPaneId}`).click();
+    await expect(floatingPane).toHaveCount(0);
+    await expect(
+      page.locator(`.bolt-project-main-panes .bolt-project-pane-leaf[data-pane-id="${verticalPaneId}"]`),
+    ).toBeVisible();
+  } else {
+    await page.keyboard.press('Escape');
+    await expect(verticalOptionsMenu).toBeHidden();
+  }
 
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+J' : 'Control+J');
 
@@ -1948,7 +2003,7 @@ test('public and authenticated routes render without route errors', async ({ pag
 test('command palette entries navigate to real product routes', async ({ page }) => {
   await authenticate(page);
   await page.goto('/command-palette');
-  await page.getByRole('link', { name: /Import GitHub repository/ }).click();
-  await expect(page).toHaveURL('/import-github');
-  await expect(page.getByRole('heading', { name: 'Import GitHub' })).toBeVisible();
+  await page.getByRole('link', { name: /Open Import Hub/ }).click();
+  await expect(page).toHaveURL('/dashboard/templates?section=import&source=github');
+  await expect(page.getByRole('heading', { name: 'Import Hub' })).toBeVisible();
 });

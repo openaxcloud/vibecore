@@ -119,6 +119,84 @@ describe('project IDE memory persistence', () => {
     expect(stored.updatedAt).toEqual(expect.any(String));
   });
 
+  it('round-trips canonical multi-Window, vertical split and floating Pane state', async () => {
+    const projectId = 'project-window-pane-layout';
+
+    await saveProjectIdeMemory(projectId, {
+      ui: {
+        projectEditorLayout: {
+          version: 2,
+          activeWindowId: 'window-secondary',
+          windows: {
+            'window-primary': {
+              id: 'window-primary',
+              root: {
+                type: 'leaf',
+                id: 'pane-primary',
+                tabs: [{ id: 'tab-editor', panel: 'editor' }],
+                activeTabId: 'tab-editor',
+              },
+              floatingPanes: [],
+              activePaneId: 'pane-primary',
+            },
+            'window-secondary': {
+              id: 'window-secondary',
+              root: {
+                type: 'split',
+                id: 'split-secondary',
+                direction: 'vertical',
+                ratio: 0.42,
+                first: {
+                  type: 'leaf',
+                  id: 'pane-code',
+                  tabs: [{ id: 'tab-code', panel: 'editor', filePath: '/src/App.tsx' }],
+                  activeTabId: 'tab-code',
+                },
+                second: {
+                  type: 'leaf',
+                  id: 'pane-preview',
+                  tabs: [{ id: 'tab-preview', panel: 'preview' }],
+                  activeTabId: 'tab-preview',
+                },
+              },
+              floatingPanes: [
+                {
+                  id: 'floating-terminal',
+                  pane: {
+                    type: 'leaf',
+                    id: 'pane-terminal',
+                    tabs: [{ id: 'tab-terminal', panel: 'terminal' }],
+                    activeTabId: 'tab-terminal',
+                  },
+                  bounds: { x: 90, y: 70, width: 680, height: 380 },
+                  zIndex: 3,
+                },
+              ],
+              activePaneId: 'pane-terminal',
+              maximizedPaneId: 'pane-terminal',
+            },
+          },
+        },
+      },
+    });
+
+    const restored = await getProjectIdeMemory(projectId);
+    const layout = restored.ui?.projectEditorLayout;
+
+    expect(layout?.activeWindowId).toBe('window-secondary');
+    expect(layout?.windows['window-secondary'].root).toMatchObject({
+      type: 'split',
+      direction: 'vertical',
+      ratio: 0.42,
+    });
+    expect(layout?.windows['window-secondary'].floatingPanes[0]).toMatchObject({
+      id: 'floating-terminal',
+      pane: { id: 'pane-terminal', tabs: [{ panel: 'terminal' }] },
+      bounds: { x: 90, y: 70, width: 680, height: 380 },
+    });
+    expect(layout?.windows['window-secondary'].maximizedPaneId).toBe('pane-terminal');
+  });
+
   it('restores from localStorage when the API is unavailable', async () => {
     const projectId = 'project-local-fallback';
     globalThis.localStorage.setItem(

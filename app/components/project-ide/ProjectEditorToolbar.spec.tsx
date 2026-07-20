@@ -50,6 +50,7 @@ describe('<ProjectEditorToolbar />', () => {
 
     const save = screen.getByRole('button', { name: 'Save' });
     expect(save.classList.contains('bolt-project-editor-save-button')).toBe(true);
+    expect(container.querySelector('.bolt-project-editor-toolbar-actions')?.contains(save)).toBe(false);
     fireEvent.click(save);
     expect(props.onSave).toHaveBeenCalledTimes(1);
   });

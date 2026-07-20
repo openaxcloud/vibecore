@@ -16,7 +16,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
-import { SiNodedotjs, SiOpenai, SiPython, SiReact, SiSupabase, SiTypescript } from 'react-icons/si';
+import { SiNodedotjs, SiOpenai, SiReact, SiSupabase, SiTypescript, SiVite } from 'react-icons/si';
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
@@ -48,7 +48,7 @@ const stacks = [
   { icon: SiReact, label: 'React' },
   { icon: SiTypescript, label: 'TypeScript' },
   { icon: SiNodedotjs, label: 'Node.js' },
-  { icon: SiPython, label: 'Python' },
+  { icon: SiVite, label: 'Vite' },
   { icon: SiOpenai, label: 'AI agents' },
   { icon: SiSupabase, label: 'Supabase' },
 ];
@@ -86,8 +86,8 @@ const workflow = [
 const pipeline = [
   {
     icon: Boxes,
-    title: 'Ready-to-fork templates',
-    copy: 'Start every bounty from a working E-Code project — AI features, integrations, and growth experiments set up and ready.',
+    title: 'Ready-to-remix applications',
+    copy: 'Start a bounty from a working published application with an isolated copy, visible provenance and a functional preview.',
   },
   {
     icon: ShieldCheck,

@@ -414,13 +414,122 @@ exports.Prisma.ProjectShareLinkScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
-exports.Prisma.ProjectTemplateScalarFieldEnum = {
+exports.Prisma.ProjectImportJobScalarFieldEnum = {
   id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  source: 'source',
+  status: 'status',
+  idempotencyKey: 'idempotencyKey',
+  requestHash: 'requestHash',
+  sourceReference: 'sourceReference',
+  sourceLabel: 'sourceLabel',
+  stage: 'stage',
+  progress: 'progress',
+  validation: 'validation',
+  runtimeDetection: 'runtimeDetection',
+  missingSecretNames: 'missingSecretNames',
+  generatedConfig: 'generatedConfig',
+  preview: 'preview',
+  usesAgent: 'usesAgent',
+  creditsDisclosure: 'creditsDisclosure',
+  destinationProjectId: 'destinationProjectId',
+  errorCode: 'errorCode',
+  errorMessage: 'errorMessage',
+  recoverable: 'recoverable',
+  completedAt: 'completedAt',
+  failedAt: 'failedAt',
+  canceledAt: 'canceledAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GalleryAppScalarFieldEnum = {
+  id: 'id',
+  slug: 'slug',
   sourceProjectId: 'sourceProjectId',
   organizationId: 'organizationId',
+  authorUserId: 'authorUserId',
+  authorHandle: 'authorHandle',
+  authorDisplayName: 'authorDisplayName',
+  authorAvatarUrl: 'authorAvatarUrl',
   name: 'name',
   description: 'description',
+  artifactType: 'artifactType',
+  category: 'category',
+  technologies: 'technologies',
+  tags: 'tags',
+  thumbnailUrl: 'thumbnailUrl',
+  visibility: 'visibility',
+  status: 'status',
+  moderationStatus: 'moderationStatus',
+  moderationReason: 'moderationReason',
+  remixAllowed: 'remixAllowed',
+  featured: 'featured',
+  remixCount: 'remixCount',
+  reportCount: 'reportCount',
+  previewStatus: 'previewStatus',
+  previewUrl: 'previewUrl',
+  previewEvidence: 'previewEvidence',
+  latestVersionId: 'latestVersionId',
+  sourceGalleryAppId: 'sourceGalleryAppId',
+  sourceGalleryAppSlug: 'sourceGalleryAppSlug',
+  submittedAt: 'submittedAt',
+  publishedAt: 'publishedAt',
+  archivedAt: 'archivedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GalleryAppVersionScalarFieldEnum = {
+  id: 'id',
+  galleryAppId: 'galleryAppId',
+  version: 'version',
+  files: 'files',
+  runtime: 'runtime',
+  dataRequirements: 'dataRequirements',
+  contentHash: 'contentHash',
+  byteLength: 'byteLength',
+  removedPaths: 'removedPaths',
+  redactedValueCount: 'redactedValueCount',
+  validationChecks: 'validationChecks',
+  createdByUserId: 'createdByUserId',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.GalleryReportScalarFieldEnum = {
+  id: 'id',
+  galleryAppId: 'galleryAppId',
+  reporterUserId: 'reporterUserId',
+  reason: 'reason',
+  details: 'details',
+  status: 'status',
+  resolutionNote: 'resolutionNote',
+  reviewedByUserId: 'reviewedByUserId',
+  reviewedAt: 'reviewedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ProjectRemixScalarFieldEnum = {
+  id: 'id',
+  galleryAppId: 'galleryAppId',
+  galleryAppVersionId: 'galleryAppVersionId',
+  sourceProjectId: 'sourceProjectId',
+  destinationOrganizationId: 'destinationOrganizationId',
+  destinationOwnerUserId: 'destinationOwnerUserId',
+  destinationProjectId: 'destinationProjectId',
+  destinationRepositoryId: 'destinationRepositoryId',
+  destinationWorkspaceId: 'destinationWorkspaceId',
+  agentAnalysisId: 'agentAnalysisId',
+  idempotencyKey: 'idempotencyKey',
+  requestHash: 'requestHash',
+  status: 'status',
+  errorCode: 'errorCode',
+  completedAt: 'completedAt',
+  failedAt: 'failedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.WorkspaceScalarFieldEnum = {
@@ -521,6 +630,7 @@ exports.Prisma.DeploymentScalarFieldEnum = {
   rolledBackFromId: 'rolledBackFromId',
   parentDeploymentId: 'parentDeploymentId',
   lastMeteredAt: 'lastMeteredAt',
+  machineSize: 'machineSize',
   startedAt: 'startedAt',
   finishedAt: 'finishedAt',
   canceledAt: 'canceledAt',
@@ -531,6 +641,15 @@ exports.Prisma.DeploymentScalarFieldEnum = {
 exports.Prisma.DeploymentEnvironmentScalarFieldEnum = {
   id: 'id',
   name: 'name'
+};
+
+exports.Prisma.RateCardScalarFieldEnum = {
+  id: 'id',
+  version: 'version',
+  active: 'active',
+  data: 'data',
+  effectiveAt: 'effectiveAt',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.AuditLogScalarFieldEnum = {
@@ -1336,6 +1455,51 @@ exports.Prisma.DatabaseRestoreScalarFieldEnum = {
   completedAt: 'completedAt'
 };
 
+exports.Prisma.ScheduledTaskScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  projectId: 'projectId',
+  kind: 'kind',
+  name: 'name',
+  command: 'command',
+  workflowId: 'workflowId',
+  cron: 'cron',
+  timezone: 'timezone',
+  machineSize: 'machineSize',
+  enabled: 'enabled',
+  timeoutSeconds: 'timeoutSeconds',
+  concurrency: 'concurrency',
+  maxRetries: 'maxRetries',
+  notifyOnFailure: 'notifyOnFailure',
+  lastRunAt: 'lastRunAt',
+  lastStatus: 'lastStatus',
+  nextRunAt: 'nextRunAt',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ScheduledTaskRunScalarFieldEnum = {
+  id: 'id',
+  taskId: 'taskId',
+  organizationId: 'organizationId',
+  projectId: 'projectId',
+  status: 'status',
+  trigger: 'trigger',
+  attempt: 'attempt',
+  scheduledFor: 'scheduledFor',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt',
+  durationMs: 'durationMs',
+  exitCode: 'exitCode',
+  logs: 'logs',
+  error: 'error',
+  machineSize: 'machineSize',
+  computeUnits: 'computeUnits',
+  costCents: 'costCents',
+  meteredAt: 'meteredAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1365,6 +1529,93 @@ exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
 };
+exports.ProjectImportSource = exports.$Enums.ProjectImportSource = {
+  GITHUB: 'GITHUB',
+  BITBUCKET: 'BITBUCKET',
+  VERCEL: 'VERCEL',
+  FIGMA: 'FIGMA',
+  CLAUDE: 'CLAUDE',
+  BOLT: 'BOLT',
+  LOVABLE: 'LOVABLE',
+  BASE44: 'BASE44',
+  ZIP: 'ZIP',
+  SPREADSHEET: 'SPREADSHEET',
+  PREVIOUS_AGENT: 'PREVIOUS_AGENT',
+  EMPTY: 'EMPTY'
+};
+
+exports.ProjectImportStatus = exports.$Enums.ProjectImportStatus = {
+  VALIDATING: 'VALIDATING',
+  READY: 'READY',
+  CREATING: 'CREATING',
+  COMPLETE: 'COMPLETE',
+  FAILED: 'FAILED',
+  CANCELED: 'CANCELED'
+};
+
+exports.GalleryArtifactType = exports.$Enums.GalleryArtifactType = {
+  BUSINESS_APP: 'BUSINESS_APP',
+  BOOKING: 'BOOKING',
+  CRM: 'CRM',
+  DASHBOARD: 'DASHBOARD',
+  ECOMMERCE: 'ECOMMERCE',
+  GAME: 'GAME',
+  INTERNAL_TOOL: 'INTERNAL_TOOL',
+  LANDING_PAGE: 'LANDING_PAGE',
+  PRODUCTIVITY: 'PRODUCTIVITY',
+  SOCIAL: 'SOCIAL',
+  OTHER: 'OTHER'
+};
+
+exports.GalleryVisibility = exports.$Enums.GalleryVisibility = {
+  PUBLIC: 'PUBLIC',
+  UNLISTED: 'UNLISTED'
+};
+
+exports.GalleryAppStatus = exports.$Enums.GalleryAppStatus = {
+  DRAFT: 'DRAFT',
+  PENDING_REVIEW: 'PENDING_REVIEW',
+  PUBLISHED: 'PUBLISHED',
+  REJECTED: 'REJECTED',
+  ARCHIVED: 'ARCHIVED'
+};
+
+exports.GalleryModerationStatus = exports.$Enums.GalleryModerationStatus = {
+  NOT_SUBMITTED: 'NOT_SUBMITTED',
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+};
+
+exports.GalleryPreviewStatus = exports.$Enums.GalleryPreviewStatus = {
+  PENDING: 'PENDING',
+  VERIFIED: 'VERIFIED',
+  FAILED: 'FAILED'
+};
+
+exports.GalleryReportReason = exports.$Enums.GalleryReportReason = {
+  COPYRIGHT: 'COPYRIGHT',
+  DECEPTIVE: 'DECEPTIVE',
+  HARMFUL: 'HARMFUL',
+  INAPPROPRIATE: 'INAPPROPRIATE',
+  MALWARE: 'MALWARE',
+  PRIVACY: 'PRIVACY',
+  SPAM: 'SPAM',
+  OTHER: 'OTHER'
+};
+
+exports.GalleryReportStatus = exports.$Enums.GalleryReportStatus = {
+  OPEN: 'OPEN',
+  DISMISSED: 'DISMISSED',
+  ACTIONED: 'ACTIONED'
+};
+
+exports.GalleryRemixStatus = exports.$Enums.GalleryRemixStatus = {
+  CREATING: 'CREATING',
+  READY: 'READY',
+  FAILED: 'FAILED'
+};
+
 exports.WorkspaceStatus = exports.$Enums.WorkspaceStatus = {
   PENDING: 'PENDING',
   STARTING: 'STARTING',
@@ -1483,6 +1734,20 @@ exports.DatabaseRestoreStatus = exports.$Enums.DatabaseRestoreStatus = {
   FAILED: 'FAILED'
 };
 
+exports.ScheduledTaskKind = exports.$Enums.ScheduledTaskKind = {
+  WORKFLOW: 'WORKFLOW',
+  DEPLOYMENT: 'DEPLOYMENT'
+};
+
+exports.ScheduledTaskRunStatus = exports.$Enums.ScheduledTaskRunStatus = {
+  RUNNING: 'RUNNING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  TIMED_OUT: 'TIMED_OUT',
+  SKIPPED: 'SKIPPED',
+  CANCELED: 'CANCELED'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   Account: 'Account',
@@ -1510,7 +1775,11 @@ exports.Prisma.ModelName = {
   CollaborationPresence: 'CollaborationPresence',
   CollaborationComment: 'CollaborationComment',
   ProjectShareLink: 'ProjectShareLink',
-  ProjectTemplate: 'ProjectTemplate',
+  ProjectImportJob: 'ProjectImportJob',
+  GalleryApp: 'GalleryApp',
+  GalleryAppVersion: 'GalleryAppVersion',
+  GalleryReport: 'GalleryReport',
+  ProjectRemix: 'ProjectRemix',
   Workspace: 'Workspace',
   WorkspaceIdeState: 'WorkspaceIdeState',
   WorkspaceSession: 'WorkspaceSession',
@@ -1520,6 +1789,7 @@ exports.Prisma.ModelName = {
   ProjectStorageObject: 'ProjectStorageObject',
   Deployment: 'Deployment',
   DeploymentEnvironment: 'DeploymentEnvironment',
+  RateCard: 'RateCard',
   AuditLog: 'AuditLog',
   SecurityEventResolution: 'SecurityEventResolution',
   AdminAuditLog: 'AdminAuditLog',
@@ -1586,7 +1856,9 @@ exports.Prisma.ModelName = {
   ModelConfig: 'ModelConfig',
   DatabaseInstance: 'DatabaseInstance',
   DatabaseSnapshot: 'DatabaseSnapshot',
-  DatabaseRestore: 'DatabaseRestore'
+  DatabaseRestore: 'DatabaseRestore',
+  ScheduledTask: 'ScheduledTask',
+  ScheduledTaskRun: 'ScheduledTaskRun'
 };
 
 /**

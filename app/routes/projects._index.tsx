@@ -203,8 +203,8 @@ export default function ProjectsPage() {
       actions={
         <>
           <LinkButton to="/projects/new">Create project</LinkButton>
-          <LinkButton to="/import-github" variant="outline">
-            Import GitHub
+          <LinkButton to="/dashboard/templates?section=import" variant="outline">
+            Import Hub
           </LinkButton>
         </>
       }
