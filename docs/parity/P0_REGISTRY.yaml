@@ -550,7 +550,7 @@ p0s:
     priority: 1
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/ROUTE_OBSERVATION_REGISTRY.yaml
     proof: "Adopté verbatim §3.3 (« le sujet observé est un visiteur anonyme ») ; ROUTE_OBSERVATION authenticated:false."
@@ -565,7 +565,7 @@ p0s:
     priority: 2
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/ROUTE_OBSERVATION_REGISTRY.yaml
     proof: "Chiffres verbatim §3.3 adoptés + ROUTE_OBSERVATION_REGISTRY (20 routes, signup ×2)."
@@ -580,7 +580,7 @@ p0s:
     priority: 3
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/livescan-2026-07-20/
     proof: "Paquet PRÉSENT dans le repo : docs/parity/livescan-2026-07-20/ = 69 fichiers + manifest.json (21 entrées) ; hashes du tableau = manifest."
@@ -595,7 +595,7 @@ p0s:
     priority: 4
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/IMPORT_PROVIDER_REGISTRY.yaml
     proof: "§9.1 verbatim (« capacité Git confirmée par la documentation et le changelog, mais pas une tuile ») ; IMPORT_PROVIDER note + P141 builtState=PARTIEL (endpoint /import/gitlab existe) ; UNK-LS-GITLAB-GIT réduit à l entrée authentifiée."
@@ -610,7 +610,7 @@ p0s:
     priority: 5
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/ARTIFACT_KIND_REGISTRY.yaml
     proof: "§5.2 verbatim adopté ; ARTIFACT_KIND ×7 verrouillé validateur ; GENERATED_ASSET ×8 et COMPONENT ×7 alignés sur l expert."
@@ -625,7 +625,7 @@ p0s:
     priority: 6
     owner: platform
     status: OPEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/OBSERVATION_REGISTRY.yaml
     proof: "15 OBS-DELTA-20260720-* PENDING avec classifyInto ; registryUniverseReady FAIL tant que non classifiés/dédupliqués (§6.3)."
@@ -640,7 +640,7 @@ p0s:
     priority: 7
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/SURFACE_REGISTRY.yaml
     proof: "P160–P174 et WI-LS-* démontés ; EXPECTED univers = 159 candidats historiques ; §6.3 canonicalSurfaceCount:null adopté."
@@ -655,7 +655,7 @@ p0s:
     priority: 8
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/baseline/snapshots/2026-07-20/llms-full.txt
     proof: "Les 6 vérifiés DOC_CURRENT dans le corpus hashé du 20/07 : Spotlight l.5911, Resources panel l.5959, Devtools l.6116, Library l.7580, Android Emulator l.2833, Grouped Publish l.7605/7634. UNK-LS correspondants retirés."
@@ -670,7 +670,7 @@ p0s:
     priority: 9
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/CAPABILITY_REGISTRY.yaml
     proof: "§10.4 verbatim (PublicApiStatus UNKNOWN, McpServerStatus DOC_CURRENT_BETA) + claim RPL-30 amendé + CAP-MCP-SERVER."
@@ -685,7 +685,7 @@ p0s:
     priority: 10
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/PUBLIC_BASELINE_REPLIT_2026.yaml
     proof: "§8.3 verbatim + claim RPL-29 amendé (une route testée ne prouve pas la disparition de toutes)."
@@ -700,7 +700,7 @@ p0s:
     priority: 11
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/EXTERNAL_ECOSYSTEM_REGISTRY.yaml
     proof: "§8.4 verbatim adopté ; ECO-EXPERTS : provider Contra, behavior EXTERNAL_REDIRECT, legacyDataOrBackendState UNKNOWN."
@@ -715,7 +715,7 @@ p0s:
     priority: 12
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
     proof: "§11.1 verbatim + OFF-TEAMS-RETIRED + CAP-TEAM-COLLAB + claims amendés."
@@ -730,7 +730,7 @@ p0s:
     priority: 13
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
     proof: "§3.4 verbatim (Core $25/$20 annuel effectif observé par l expert vs $20/$18 scan — divergence conservée) ; OFFERING avec PriceObservation schema."
@@ -745,7 +745,7 @@ p0s:
     priority: 14
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/PUBLIC_BASELINE_REPLIT_2026.yaml
     proof: "§7.2 verbatim (« pages publiques et docs courantes consultées ; interface authentifiée par plan reste à vérifier ») cohérent avec RPL-2026-004."
@@ -760,7 +760,7 @@ p0s:
     priority: 15
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/CAPABILITY_REGISTRY.yaml
     proof: "§7.2 verbatim ; CAP-PARALLEL-AGENTS corrigé : isolation runtime par tâche = UNKNOWN."
@@ -775,7 +775,7 @@ p0s:
     priority: 16
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/DOCUMENT_MANIFEST.yaml
     proof: "§0 verbatim (reviewGeneratedAt + manifeste post-merge non auto-référentiel) ; recalcul réel = annexe A.2 + DOCUMENT_MANIFEST."
@@ -790,7 +790,7 @@ p0s:
     priority: 17
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/APPROVAL_STATUS.json
     proof: "Source unique = JSON généré : univers 159 candidats, 99 work items, 10 surfaces déclarées, deltas=observations."
@@ -805,7 +805,7 @@ p0s:
     priority: 18
     owner: platform
     status: OPEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/CI_ATTESTATION.yaml
     proof: "Par nature post-merge (P0-A2-13/mergedToMainAt) ; la CI attestera au commit mergé sur main."
@@ -820,7 +820,7 @@ p0s:
     priority: 1
     owner: platform
     status: PROVEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/SURFACE_REGISTRY.yaml
     proof: "159/159 croisées par 6 agents (A–H) : 79 DEJA_CONSTRUIT / 43 PARTIEL / 37 NON_FAIT, builtState+codeRefs par entrée ; composant bolt non câblé = PARTIEL (BD-* respectés)."
@@ -835,7 +835,7 @@ p0s:
     priority: 2
     owner: platform
     status: OPEN
-    commit: PENDING_COMMIT2
+    commit: b598e79042dce0af91c376a810c61320fd988013
     reviewer: UNKNOWN
     evidenceId: docs/parity/UNKNOWN_REGISTRY.yaml
     proof: "PARTIEL : 44 inconnues tracées avec méthode ; verdicts attendus de la session « Scan Replit live » (Chrome connecté d Avi)."
