@@ -221,6 +221,11 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
       sourceSnapshotId: snapshot.id,
       authorName: 'Ada Lovelace',
       authorUserId: ctx.author.id,
+      // FAIL-CLOSED : un fixture remixable déclare sa licence explicitement.
+      remixAllowed: true,
+      licenseId: 'MIT',
+      licenseText: 'MIT License — fixture',
+      licenseTextSha256: 'f'.repeat(64),
     });
 
     // ---- Mutate the LIVE source AFTER the snapshot: the pin must ignore this. ----
@@ -348,6 +353,7 @@ describe('Gallery remix — versioned license + consent + PII masking (P0-V3-05 
       licenseId: 'MIT',
       licenseText: LICENSE_TEXT,
       licenseTextSha256: createHash('sha256').update(LICENSE_TEXT, 'utf8').digest('hex'),
+      remixAllowed: true,
       ...listingOverrides,
     });
 
@@ -587,5 +593,96 @@ describe('POST /admin/gallery-listings — curator publish (no self-service)', (
       payload: listingBody(source.id, snapshot.id),
     });
     expect(res.statusCode).toBe(403);
+  });
+});
+
+describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
+  // Curateur local (setupCurator est scoped dans le describe admin).
+  async function mkCurator() {
+    const store = new TestApiStore();
+    const projectStorage = new SnapshotProjectStorage();
+    const app = await buildApiApp({ store, projectStorage, emailProvider: new QuietEmailProvider() });
+    const admin = await store.createUser({
+      email: 'curator2@example.com',
+      name: 'Curator2',
+      passwordHash: hashPassword('password123'),
+      platformAdmin: true,
+    });
+    await store.updateUser({ userId: admin.id, mfaEnabled: true });
+    await store.createSession({ userId: admin.id, token: 'admin-token', expiresAt: new Date(Date.now() + 3600_000) });
+    await app.inject({ method: 'POST', url: '/auth/reauth', headers: auth('admin-token'), payload: { password: 'password123' } });
+    const org = await store.createOrganization({ name: 'C2 Org', slug: 'c2-org', ownerUserId: admin.id });
+    const source = await store.createProject({ organizationId: org.id, name: 'Sample2', slug: 'sample2' });
+    const files: ProjectFile[] = [{ path: 'index.js', content: '1\n', updatedAt: '' }];
+    await projectStorage.writeFiles(source.id, files);
+    const archive = await projectStorage.createSnapshot({ projectId: source.id, files });
+    const snapshot = await store.createSnapshot({ projectId: source.id, kind: 'manual', manifest: {}, storageKey: archive.storageKey });
+    return { app, store, source, snapshot };
+  }
+
+  it('un listing créé SANS choix explicite est NON-remixable par défaut', async () => {
+    const { app, mkListing } = await seedGallery();
+    await mkListing({ slug: 'plain-app', title: 'Plain App', category: 'web', files: [{ path: 'a', content: '1', updatedAt: '' }] });
+
+    const detail = await app.inject({ method: 'GET', url: '/gallery/plain-app' });
+    expect(detail.json().listing.remixAllowed).toBe(false); // ALL_RIGHTS_RESERVED par défaut
+  });
+
+  it('curation : remixAllowed=true SANS licence → 400 REMIX_LICENSE_REQUIRED', async () => {
+    const { app, source, snapshot } = await mkCurator();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/admin/gallery-listings',
+      headers: auth('admin-token'),
+      payload: {
+        slug: 'no-license', title: 'No License', description: 'x', category: 'web',
+        sourceProjectId: source.id, sourceSnapshotId: snapshot.id, authorName: 'A',
+        remixAllowed: true,
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().code).toBe('REMIX_LICENSE_REQUIRED');
+  });
+
+  it('curation : licence fournie mais SANS confirmations droits/PII → 400 REMIX_RIGHTS_CONFIRMATION_REQUIRED', async () => {
+    const { app, source, snapshot } = await mkCurator();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/admin/gallery-listings',
+      headers: auth('admin-token'),
+      payload: {
+        slug: 'no-rights', title: 'No Rights', description: 'x', category: 'web',
+        sourceProjectId: source.id, sourceSnapshotId: snapshot.id, authorName: 'A',
+        remixAllowed: true, licenseId: 'MIT', licenseText: 'MIT…',
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().code).toBe('REMIX_RIGHTS_CONFIRMATION_REQUIRED');
+  });
+
+  it('défense en profondeur : listing marqué remixable mais SANS licence en base → remix 403 REMIX_LICENSE_REQUIRED', async () => {
+    const ctx = await seedGallery();
+    const { store, projectStorage, app } = ctx;
+    const project = await store.createProject({ organizationId: ctx.org.id, name: 'Forced', slug: 'forced' });
+    const files: ProjectFile[] = [{ path: 'a', content: '1', updatedAt: '' }];
+    await projectStorage.writeFiles(project.id, files);
+    const archive = await projectStorage.createSnapshot({ projectId: project.id, files });
+    const snapshot = await store.createSnapshot({ projectId: project.id, kind: 'manual', manifest: {}, storageKey: archive.storageKey });
+    // Contourne la route (écriture store directe) : remixable SANS licence.
+    await store.createGalleryListing({
+      slug: 'forced-app', title: 'Forced', description: 'x', category: 'web',
+      sourceProjectId: project.id, sourceSnapshotId: snapshot.id, authorName: 'A',
+      remixAllowed: true,
+    });
+    const remixer = await store.createUser({ email: 'rx@example.com', name: 'Rx', passwordHash: hashPassword('password123') });
+    const remixerOrg = await store.createOrganization({ name: 'RxO', slug: 'rxo', ownerUserId: remixer.id });
+    await store.createSession({ userId: remixer.id, token: 'rx-token', expiresAt: new Date(Date.now() + 3600_000) });
+
+    const res = await app.inject({
+      method: 'POST', url: '/gallery/forced-app/remix', headers: auth('rx-token'),
+      payload: { organizationId: remixerOrg.id, acceptLicense: true },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.json().code).toBe('REMIX_LICENSE_REQUIRED'); // aucun fallback, jamais
   });
 });

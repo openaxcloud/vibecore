@@ -1983,7 +1983,7 @@ export class TestApiStore implements ApiStore {
       authorName: input.authorName,
       authorUserId: input.authorUserId,
       appUrl: input.appUrl,
-      remixAllowed: input.remixAllowed ?? true,
+      remixAllowed: input.remixAllowed ?? false, // FAIL-CLOSED : jamais remixable sans choix explicite
       licenseId: input.licenseId,
       licenseText: input.licenseText,
       licenseTextSha256: input.licenseTextSha256,

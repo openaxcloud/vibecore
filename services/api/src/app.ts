@@ -21804,6 +21804,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    // FAIL-CLOSED en profondeur : même un listing marqué remixable ne se
+    // remixe pas sans licence explicite enregistrée (aucun fallback).
+    if (!listing.licenseId || !listing.licenseTextSha256) {
+      return reply.status(403).send({
+        error: 'This listing has no explicit license — remixing is closed by default.',
+        code: 'REMIX_LICENSE_REQUIRED',
+      });
+    }
+
     /*
      * Explicit versioned acceptance (I-RMX-3): no consent, no clone. The reply
      * carries what there IS to accept (license id + text sha + consent-text
@@ -21921,6 +21930,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     licenseId: z.string().min(1).max(64).optional(),
     licenseText: z.string().min(1).max(100_000).optional(),
     piiConsentVersion: z.string().min(1).max(64).optional(),
+    /*
+     * FAIL-CLOSED (directive 20/07) : rendre un listing remixable exige que
+     * l'AUTEUR ait explicitement (1) choisi une licence autorisant le remix,
+     * (2) confirmé détenir les droits (code/assets/données), (3) accepté la
+     * politique données personnelles. Aucun choix implicite.
+     */
+    rightsConfirmed: z.boolean().optional(),
+    piiPolicyAccepted: z.boolean().optional(),
   });
 
   /*
@@ -21935,6 +21952,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireRecentAdminReauth(request);
 
     const body = parse(adminGalleryListingSchema, request.body ?? {});
+
+    // FAIL-CLOSED : pas de listing remixable sans licence explicite + droits
+    // confirmés + politique PII acceptée. Le défaut est NON-remixable.
+    if (body.remixAllowed === true) {
+      if (!body.licenseId || !body.licenseText) {
+        return reply.status(400).send({
+          error: 'A remixable listing requires an explicit license (id + text). Default is non-remixable.',
+          code: 'REMIX_LICENSE_REQUIRED',
+        });
+      }
+
+      if (body.rightsConfirmed !== true || body.piiPolicyAccepted !== true) {
+        return reply.status(400).send({
+          error: 'A remixable listing requires explicit rights confirmation and PII policy acceptance.',
+          code: 'REMIX_RIGHTS_CONFIRMATION_REQUIRED',
+        });
+      }
+    }
 
     const sourceProject = await store.getProject(body.sourceProjectId);
     if (!sourceProject) {
