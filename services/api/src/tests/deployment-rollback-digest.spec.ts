@@ -27,7 +27,14 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
 
   beforeEach(() => {
     process.env.WORKSPACE_MANAGER_URL = 'http://workspace-manager.test';
-    process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST = '1';
+
+    /*
+     * D2: the digest path is the DEFAULT — these tests run with the env var
+     * UNSET on purpose, proving a helm upgrade that drops the flag cannot
+     * silently revive the URL-copy path. The explicit '0' kill switch has its
+     * own test below.
+     */
+    delete process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST;
   });
 
   afterEach(() => {
@@ -185,6 +192,66 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
 
     expect(res.statusCode).toBe(409);
     expect(res.json().code).toBe('ROLLBACK_SECRET_POLICY_UNSATISFIABLE');
+
+    await app.close();
+  });
+
+  it("REFUSES (409) when explicitly disabled ('0') — the kill switch fails CLOSED, never URL-copy", async () => {
+    process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST = '0';
+
+    const { app, store, auth, projectId } = await setup();
+    const captured = stubManagerStart();
+    const v1 = await createRetainedRelease(store, projectId);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${v1.id}/rollback`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.json().code).toBe('SERVER_ROLLBACK_DIGEST_DISABLED');
+
+    // Nothing re-deployed AND no rollback row created (refused before the row).
+    expect(captured.starts.length).toBe(0);
+
+    const list = await store.listDeployments(projectId);
+    expect(list.filter((d) => d.rolledBackFromId === v1.id).length).toBe(0);
+
+    await app.close();
+  });
+
+  it('annotates un-rollback-able server releases with rollbackUnavailableReason (list + detail)', async () => {
+    const { app, store, auth, projectId } = await setup();
+    stubManagerStart();
+
+    const withDigest = await createRetainedRelease(store, projectId);
+    const withoutDigest = await createRetainedRelease(store, projectId, { image: { imageRef: IMAGE_REF } });
+
+    const list = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/deployments`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(list.statusCode).toBe(200);
+
+    const rows = (list.json() as { deployments: Array<Record<string, unknown>> }).deployments;
+    const good = rows.find((d) => d.id === withDigest.id);
+    const bad = rows.find((d) => d.id === withoutDigest.id);
+    expect(good?.rollbackUnavailableReason).toBeUndefined();
+    expect(bad?.rollbackUnavailableReason).toBe('NO_RETAINED_DIGEST');
+
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/deployments/${withoutDigest.id}`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(detail.statusCode).toBe(200);
+    expect((detail.json() as { deployment: Record<string, unknown> }).deployment.rollbackUnavailableReason).toBe(
+      'NO_RETAINED_DIGEST',
+    );
 
     await app.close();
   });

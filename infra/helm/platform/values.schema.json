@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "vibecore-platform values — safety-critical keys only",
+  "description": "Validates ONLY the keys whose silent loss has already caused (or would cause) a production incident. Everything else stays schema-free on purpose: this file must never make an unrelated upgrade fail. Helm validates the COALESCED values (chart defaults merged with the release's reused values) on every install/upgrade/template/lint.",
+  "type": "object",
+  "required": ["platformEnv"],
+  "properties": {
+    "platformEnv": {
+      "type": "object",
+      "required": ["runtime"],
+      "properties": {
+        "runtime": {
+          "type": "object",
+          "required": ["serverDeployRollbackFromDigest"],
+          "properties": {
+            "serverDeployRollbackFromDigest": {
+              "type": "string",
+              "enum": ["0", "1"],
+              "description": "D2 (approved 2026-07-17): '1' = server rollback re-deploys the retained image by digest (I-REL-1, fail-closed). '0' = explicit kill switch — the api refuses server rollbacks (409) rather than reviving the URL-copy row that re-deploys nothing. Any other value (including '' or a bare boolean) is rejected at upgrade time."
+            }
+          }
+        }
+      }
+    }
+  }
+}
