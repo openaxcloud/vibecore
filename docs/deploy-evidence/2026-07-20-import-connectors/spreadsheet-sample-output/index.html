@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Q3 Product Sales</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; padding: 1.5rem; }
+    h1 { font-size: 1.25rem; margin: 0 0 1rem; }
+    .meta { color: #6b7280; font-size: 0.85rem; margin-bottom: 1rem; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+    th, td { border: 1px solid #d1d5db; padding: 0.4rem 0.6rem; text-align: left; }
+    th { cursor: pointer; background: rgba(127,127,127,0.12); position: sticky; top: 0; }
+    tbody tr:nth-child(even) { background: rgba(127,127,127,0.05); }
+  </style>
+</head>
+<body>
+  <h1>Q3 Product Sales</h1>
+  <div class="meta" id="meta"></div>
+  <table><thead><tr id="head"></tr></thead><tbody id="rows"></tbody></table>
+  <script>
+    let sortState = { col: null, dir: 1 };
+    fetch('./data.json').then(function (r) { return r.json(); }).then(function (data) {
+      var columns = data.columns || [];
+      var rows = data.rows || [];
+      document.getElementById('meta').textContent = rows.length + ' rows × ' + columns.length + ' columns';
+      var head = document.getElementById('head');
+      columns.forEach(function (col, idx) {
+        var th = document.createElement('th');
+        th.textContent = col;
+        th.addEventListener('click', function () {
+          sortState.dir = sortState.col === col ? -sortState.dir : 1;
+          sortState.col = col;
+          rows.sort(function (a, b) {
+            var av = (a[col] || ''), bv = (b[col] || '');
+            var an = parseFloat(av), bn = parseFloat(bv);
+            if (!isNaN(an) && !isNaN(bn)) { return (an - bn) * sortState.dir; }
+            return av.localeCompare(bv) * sortState.dir;
+          });
+          render(columns, rows);
+        });
+        head.appendChild(th);
+      });
+      render(columns, rows);
+    }).catch(function (e) {
+      document.getElementById('meta').textContent = 'Failed to load data.json: ' + e;
+    });
+    function render(columns, rows) {
+      var body = document.getElementById('rows');
+      body.textContent = '';
+      rows.forEach(function (row) {
+        var tr = document.createElement('tr');
+        columns.forEach(function (col) {
+          var td = document.createElement('td');
+          td.textContent = row[col] == null ? '' : String(row[col]);
+          tr.appendChild(td);
+        });
+        body.appendChild(tr);
+      });
+    }
+  </script>
+</body>
+</html>

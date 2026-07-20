@@ -161,7 +161,7 @@ documents:
     repoCommit: d56931bd
     reviewer: UNKNOWN
   - file: IMPORT_PROVIDER_REGISTRY.yaml
-    sha256: "79a66db6711a1ef202ff7a5d2d9bead647009729e5e81d5935490c3d3137cf34"
+    sha256: "4fee18d565eb449d67dee6e2ed3fa509e932a0de43e8b3aba5c6743e48b6475c"
     schemaVersion: 1
     repoCommit: 42a48091
     reviewer: UNKNOWN

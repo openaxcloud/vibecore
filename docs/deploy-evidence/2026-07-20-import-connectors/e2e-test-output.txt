@@ -1,0 +1,16 @@
+ ✓ src/tests/import-connectors-e2e.spec.ts > Import connectors — E2E secure state machine > SPREADSHEET: CSV → derived static project, clean scan → COMMITTED (target written only at commit) 136ms
+ ✓ src/tests/import-connectors-e2e.spec.ts > Import connectors — E2E secure state machine > bolt: export bundle → wrapper stripped, clean scan → COMMITTED 69ms
+ ✓ src/tests/import-connectors-e2e.spec.ts > Import connectors — E2E secure state machine > lovable: export bundle → wrapper stripped, clean scan → COMMITTED 49ms
+ ✓ src/tests/import-connectors-e2e.spec.ts > Import connectors — E2E secure state machine > base44: export bundle → wrapper stripped, clean scan → COMMITTED 54ms
+ ✓ src/tests/import-connectors-e2e.spec.ts > Import connectors — E2E secure state machine > previous-agent-export: export bundle → wrapper stripped, clean scan → COMMITTED 40ms
+ ✓ src/tests/import-connectors-e2e.spec.ts > Import connectors — E2E secure state machine > BOLT with a secret → QUARANTINED (202); commit with per-finding consent redacts ONLY that line → COMMITTED 45ms
+ ✓ src/tests/import-connectors-e2e.spec.ts > Import connectors — E2E secure state machine > BOLT with a secret, commit WITHOUT consent → 409 blocked, no target write 43ms
+ ✓ src/tests/import-connectors-e2e.spec.ts > Import connectors — E2E secure state machine > security hardening rejects a hostile bundle BEFORE staging (no job, no target) > rejects path traversal → 422 42ms
+ ✓ src/tests/import-connectors-e2e.spec.ts > Import connectors — E2E secure state machine > security hardening rejects a hostile bundle BEFORE staging (no job, no target) > rejects symlink → 422 50ms
+ ✓ src/tests/import-connectors-e2e.spec.ts > Import connectors — E2E secure state machine > security hardening rejects a hostile bundle BEFORE staging (no job, no target) > rejects an archive bomb (too many files) → 422 49ms
+ ✓ src/tests/import-connectors-e2e.spec.ts > Import connectors — E2E secure state machine > external-api connectors are honestly BLOCKED (424), never faked > vercel → 424 CONNECTOR_CREDENTIAL_REQUIRED, no project created 48ms
+ ✓ src/tests/import-connectors-e2e.spec.ts > Import connectors — E2E secure state machine > external-api connectors are honestly BLOCKED (424), never faked > figma → 424 CONNECTOR_CREDENTIAL_REQUIRED, no project created 39ms
+ ✓ src/tests/import-connectors-e2e.spec.ts > Import connectors — E2E secure state machine > external-api connectors are honestly BLOCKED (424), never faked > claude → 424 CONNECTOR_CREDENTIAL_REQUIRED, no project created 38ms
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Duration  2.35s (transform 774ms, setup 0ms, collect 1.42s, tests 705ms, environment 0ms, prepare 42ms)

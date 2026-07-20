@@ -1,0 +1,8 @@
+9e15372707e61e7697493dad999376959e4deb18a3f1e156b611ac2111432f4f  services/api/src/import-connectors.ts
+63ab00346739a9088be29b73327a7592b7d3e3fa0fb9a10351bd71211ca84b18  services/api/src/import-connectors.spec.ts
+f23fa5e15c283bb3f133a46e342e84a486e23a35eea76efb4baa258913b59a5d  services/api/src/tests/import-connectors-e2e.spec.ts
+9c35bfc06213d6fcc12c7b8451bf2a9e55788e3367591a7a29d98547968049b7  docs/deploy-evidence/2026-07-20-import-connectors/unit-test-output.txt
+25ea8f395b86d939ec0e842871e7eee5dbd5367dfcdc96181c4f0b54a5f078c1  docs/deploy-evidence/2026-07-20-import-connectors/e2e-test-output.txt
+2eb01c6ede47bf2b6d39b1b85d73403f313ee16cb0a2f132f45214d71a6b7c7c  docs/deploy-evidence/2026-07-20-import-connectors/spreadsheet-sample-output/index.html
+132c476acf47cfceca25bbd10f11e73bf070218e2ed94430848db2625d384794  docs/deploy-evidence/2026-07-20-import-connectors/spreadsheet-sample-output/data.json
+fe849c54a195c255d148ad3f8db3e8997dafe0de78f82292f80a4fea2fab31a8  docs/deploy-evidence/2026-07-20-import-connectors/spreadsheet-sample-output/README.md

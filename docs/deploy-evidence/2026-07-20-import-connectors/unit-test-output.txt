@@ -1,0 +1,7 @@
+ ✓ src/import-connectors.spec.ts > normalizeStagedPath — traversal + hostile-path rejection > accepts and canonicalises a normal nested path 1ms
+ ✓ src/import-connectors.spec.ts > normalizeStagedPath — traversal + hostile-path rejection > rejects ../etc/passwd with IMPORT_PATH_TRAVERSAL 0ms
+ ✓ src/import-connectors.spec.ts > normalizeStagedPath — traversal + hostile-path rejection > rejects a/../../b with IMPORT_PATH_TRAVERSAL 0ms
+ ✓ src/import-connectors.spec.ts > normalizeStagedPath — traversal + hostile-path rejection > rejects /etc/passwd with IMPORT_PATH_ABSOLUTE 0ms
+ ✓ src/import-connectors.spec.ts > normalizeStagedPath — traversal + hostile-path rejection > rejects C:\windows\system32 with IMPORT_PATH_DRIVE 0ms
+ ✓ src/import-connectors.spec.ts > normalizeStagedPath — traversal + hostile-path rejection > rejects ~/secrets with IMPORT_PATH_HOME 0ms
+ ✓ src/import-connectors.spec.ts > normalizeStagedPath — traversal + hostile-path rejection > rejects a\b with IMPORT_PATH_BACKSLASH 0ms

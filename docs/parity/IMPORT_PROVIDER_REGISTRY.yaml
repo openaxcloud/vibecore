@@ -5,41 +5,109 @@
 # courante ». hubTileVisible=false, capabilityStatus=DOC_CURRENT. L'entrée
 # authentifiée exacte du flux reste à vérifier (UNK-LS-GITLAB-GIT).
 # JAMAIS « retiré ».
+#
+# MàJ 2026-07-20 (branche feat/import-connectors-parity) : les connecteurs
+# restants ont été branchés sur le pipeline sécurisé générique
+# (POST /orgs/:orgId/imports → import-connectors.ts). capabilityStatus :
+#   EXECUTED_PROVEN  = import réel prouvé de bout en bout (machine à états
+#                      RECEIVED→…→COMMITTED) — evidenceId + artefacts hashés.
+#   BLOCKED          = exige une clé/API externe absente ici (raison précise).
+# mergedToMain=false tant que la PR n'est pas mergée (états séparés
+# dispatché/codé/testé-live — un point n'est « fait » que mergé + prouvé).
 schemaVersion: 1
 repoCommit: 42a48091
 providers:
   - provider: GITHUB
     ecodeBuiltState: DEJA_CONSTRUIT
+    capabilityStatus: EXECUTED_PROVEN
+    hubTileVisible: true
     proof: "Import sécurisé staging jetable (2026-07-16-import, 22 tests)"
   - provider: BITBUCKET
-    ecodeBuiltState: NON_FAIT
+    ecodeBuiltState: DEJA_CONSTRUIT
+    capabilityStatus: EXECUTED_PROVEN
+    hubTileVisible: true
+    proof: "Endpoint dédié /projects/import/bitbucket + connector-import.spec (org-scoped, SSRF-safe)"
   - provider: VERCEL
     ecodeBuiltState: NON_FAIT
-    note: "D4 lot 1"
+    capabilityStatus: BLOCKED
+    hubTileVisible: true
+    mergedToMain: false
+    blockedReason: "Récupérer la source d'un projet Vercel exige le jeton d'accès Vercel de l'utilisateur connecté (api.vercel.com deployment files API). Aucun connector token disponible ici → 424 CONNECTOR_CREDENTIAL_REQUIRED (jamais un faux succès)."
+    lastVerifiedAt: "2026-07-20"
+    note: "D4 lot 1 — connecteur vercel (auth) existe pour le DEPLOY ; le FETCH source d'import n'est pas câblé sans jeton."
   - provider: FIGMA
     ecodeBuiltState: NON_FAIT
+    capabilityStatus: BLOCKED
+    hubTileVisible: true
+    mergedToMain: false
+    blockedReason: "L'import Figma exige le personal access token Figma de l'appelant + une étape design-to-code. Ni jeton ni moteur de génération ne sont câblés → 424."
+    lastVerifiedAt: "2026-07-20"
     note: "D4 lot 2"
   - provider: CLAUDE
     ecodeBuiltState: NON_FAIT
+    capabilityStatus: BLOCKED
+    hubTileVisible: true
+    mergedToMain: false
+    blockedReason: "Le contrat de source « Claude Design » (comment un artefact Claude est récupéré) n'est pas défini et exige une clé externe ; non exécutable sans falsifier la source → 424."
+    lastVerifiedAt: "2026-07-20"
     note: "D4 lot 2"
   - provider: BOLT
-    ecodeBuiltState: NON_FAIT
+    ecodeBuiltState: PROUVE_SUR_BRANCHE
+    capabilityStatus: EXECUTED_PROVEN
+    hubTileVisible: true
+    mergedToMain: false
+    branch: feat/import-connectors-parity
+    evidenceId: docs/deploy-evidence/2026-07-20-import-connectors/
+    proof: "E2E via app réelle : bundle → wrapper strippé → COMMITTED ; secret → QUARANTINED → consentement redige la seule ligne ; commit sans consentement → 409 (import-connectors-e2e.spec)."
+    lastVerifiedAt: "2026-07-20"
     note: "D4 lot 1"
   - provider: LOVABLE
-    ecodeBuiltState: NON_FAIT
+    ecodeBuiltState: PROUVE_SUR_BRANCHE
+    capabilityStatus: EXECUTED_PROVEN
+    hubTileVisible: true
+    mergedToMain: false
+    branch: feat/import-connectors-parity
+    evidenceId: docs/deploy-evidence/2026-07-20-import-connectors/
+    proof: "E2E via app réelle : export bundle → COMMITTED (import-connectors-e2e.spec, paramétrique)."
+    lastVerifiedAt: "2026-07-20"
     note: "D4 lot 1"
   - provider: BASE44
-    ecodeBuiltState: NON_FAIT
+    ecodeBuiltState: PROUVE_SUR_BRANCHE
+    capabilityStatus: EXECUTED_PROVEN
+    hubTileVisible: true
+    mergedToMain: false
+    branch: feat/import-connectors-parity
+    evidenceId: docs/deploy-evidence/2026-07-20-import-connectors/
+    proof: "E2E via app réelle : export bundle → COMMITTED + rejet archive-bomb (>5000 fichiers → 422) (import-connectors-e2e.spec)."
+    lastVerifiedAt: "2026-07-20"
     note: "D4 lot 1"
   - provider: ZIP
     ecodeBuiltState: DEJA_CONSTRUIT
+    capabilityStatus: EXECUTED_PROVEN
+    hubTileVisible: true
     proof: "Pipeline import archive sécurisé (IMP-1/2/3/5)"
   - provider: SPREADSHEET
-    ecodeBuiltState: NON_FAIT
-    note: "D4 lot 3"
+    ecodeBuiltState: PROUVE_SUR_BRANCHE
+    capabilityStatus: EXECUTED_PROVEN
+    hubTileVisible: true
+    mergedToMain: false
+    branch: feat/import-connectors-parity
+    evidenceId: docs/deploy-evidence/2026-07-20-import-connectors/
+    proof: "CSV/TSV → projet statique réel (table triable) ; E2E COMMITTED + rendu UI capturé (h1 + valeurs « 3,600 » entre guillemets parsées). Bug UI __APP_NAME__ (replace vs replaceAll) attrapé par la preuve visuelle et corrigé."
+    lastVerifiedAt: "2026-07-20"
+    note: "D4 lot 3 — CSV/TSV natif ; XLSX = suite (parseur non ajouté)."
   - provider: PREVIOUS_AGENT_EXPORT
-    ecodeBuiltState: NON_FAIT
+    ecodeBuiltState: PROUVE_SUR_BRANCHE
+    capabilityStatus: EXECUTED_PROVEN
+    hubTileVisible: true
+    mergedToMain: false
+    branch: feat/import-connectors-parity
+    evidenceId: docs/deploy-evidence/2026-07-20-import-connectors/
+    proof: "E2E via app réelle : export bundle → COMMITTED (import-connectors-e2e.spec, paramétrique)."
+    lastVerifiedAt: "2026-07-20"
     note: "D4 lot 1"
   - provider: EMPTY
     ecodeBuiltState: DEJA_CONSTRUIT
+    capabilityStatus: EXECUTED_PROVEN
+    hubTileVisible: true
     proof: "Création projet vide (voie power-user) — à re-prouver UI (ACT-03)"

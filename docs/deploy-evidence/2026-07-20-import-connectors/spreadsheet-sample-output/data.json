@@ -1,0 +1,24 @@
+{
+  "columns": [
+    "product",
+    "units",
+    "revenue"
+  ],
+  "rows": [
+    {
+      "product": "Widget",
+      "units": "120",
+      "revenue": "3,600"
+    },
+    {
+      "product": "Gadget",
+      "units": "80",
+      "revenue": "2,400"
+    },
+    {
+      "product": "Gizmo",
+      "units": "45",
+      "revenue": "1,350"
+    }
+  ]
+}

@@ -158,8 +158,17 @@ import {
   unresolvedFindings,
   type ConsentDecision,
   type ImportFile,
+  type ImportProvider,
   type ImportState,
 } from './import-pipeline.js';
+import {
+  CONNECTOR_CAPABILITIES,
+  ConnectorCredentialRequiredError,
+  ImportSecurityError,
+  prepareConnectorImport,
+  sanitizeImportFiles,
+  type StagedInputFile,
+} from './import-connectors.js';
 import {
   RemixInvariantError,
   assertRemixTransition,
@@ -18266,9 +18275,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const importCreateSchema = z.object({
     provider: z.enum(IMPORT_HUB_PROVIDERS as [string, ...string[]]),
     sourceRef: z.string().optional(),
+    /** Spreadsheet: raw CSV/TSV text when not carried as a file. */
+    sourceText: z.string().optional(),
+    /** Optional project-name hint (spreadsheet / derived providers). */
+    name: z.string().min(1).max(200).optional(),
     files: z
-      .array(z.object({ path: z.string().min(1), content: z.string(), encoding: z.string().optional() }))
-      .max(5000)
+      .array(
+        z.object({
+          path: z.string().min(1),
+          content: z.string(),
+          encoding: z.string().optional(),
+          type: z.enum(['file', 'symlink', 'directory']).optional(),
+          linkTarget: z.string().optional(),
+        }),
+      )
+      .max(10000)
       .default([]),
   });
 
@@ -18317,6 +18338,54 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrganizationNotSuspended(store, orgId);
 
     const body = parse(importCreateSchema, request.body);
+    const provider = body.provider as ImportProvider;
+    const capability = CONNECTOR_CAPABILITIES[provider];
+
+    /*
+     * CONNECTOR PREPARE + SECURITY HARDENING (before any job/credits exist):
+     *  - native providers (github/bitbucket/zip/empty) posted to this generic
+     *    endpoint are hardened in place (path traversal / symlink / archive-bomb
+     *    / binary-as-text) but otherwise pass through untouched;
+     *  - derived (spreadsheet) synthesises files from CSV/TSV;
+     *  - file-bundle (bolt/lovable/base44/previous-agent-export) is normalised;
+     *  - external-api (vercel/figma/claude) is BLOCKED with a precise 424 when no
+     *    credential + fetch is available — never a fake success.
+     * A hostile bundle is rejected HERE, so it never reaches staging or a target.
+     */
+    let preparedFiles: ImportFile[];
+    let prepareSummary: Record<string, unknown>;
+
+    try {
+      if (capability.execution === 'native') {
+        preparedFiles = sanitizeImportFiles(body.files as StagedInputFile[]);
+        prepareSummary = { provider, fileCount: preparedFiles.length, via: 'native' };
+      } else {
+        const prepared = prepareConnectorImport(provider, {
+          files: body.files as StagedInputFile[],
+          sourceText: body.sourceText,
+          name: body.name,
+          hasExternalCredential: false,
+        });
+        preparedFiles = prepared.files;
+        prepareSummary = prepared.summary;
+      }
+    } catch (error) {
+      if (error instanceof ConnectorCredentialRequiredError) {
+        return reply.status(error.statusCode).send({
+          error: error.message,
+          code: error.code,
+          provider: error.provider,
+          reason: error.reason,
+          blocked: true,
+        });
+      }
+
+      if (error instanceof ImportSecurityError) {
+        return reply.status(error.statusCode).send({ error: error.message, code: error.code, path: error.path });
+      }
+
+      throw error;
+    }
 
     // Staging expires (idle) — the sweeper / timeout path uses this.
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
@@ -18343,9 +18412,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       await store.updateImportJob(job.id, { creditsReserved: true });
 
-      // STAGING_ISOLATED — files into the disposable staging, NOT the target.
-      const stagedFiles: ImportFile[] = body.files ?? [];
+      // STAGING_ISOLATED — sanitised/derived files into the disposable staging,
+      // NOT the target. `preparedFiles` already passed the connector security gate.
+      const stagedFiles: ImportFile[] = preparedFiles;
       importStaging.set(job.id, stagedFiles);
+      request.log?.info?.({ event: 'import.connector', importJobId: job.id, ...prepareSummary }, 'connector prepared');
       await advance('STAGING_ISOLATED', { stagedFileCount: stagedFiles.length });
 
       // SCANNING — read-only detection; content is never mutated here.
