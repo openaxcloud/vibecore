@@ -605,6 +605,18 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
   LS-16 : DOCUMENT_MANIFEST porte generatedAt/generatedFromCommit/
   mergedCommit dérivés de l'attestation (plus de timestamp constant).
 
+## 2026-07-20 (suite — lot B : EX-02 + EX-10, mécanique de statut)
+
+- (P0-EX-02) IMPLEMENTATION_STATUS devient une VUE GÉNÉRÉE :
+  IMPLEMENTATION_FACTS.yaml (faits éditables : codeRefs/evidenceIds/
+  mergedToMain/partialReason/adjacentOnly) + générateur à règles §23 ;
+  fidélité 159/159 prouvée à la migration (11 PROVEN / 68 CODED / 43
+  PARTIAL / 37 NOT_STARTED inchangés) ; 65 codeRefs disparus maintenant
+  VISIBLES (missingCodeRefs) ; drift-check validateur + preuves négatives
+  (édition à la main → DRIFT ; PARTIAL sans raison → refus).
+- (P0-EX-10) la CI parité GÉNÈRE les 4 vues, échoue sur dérive
+  (git diff --exit-code) et PUBLIE l'artefact parity-status-generated —
+  plus un simple --check.
 ## 2026-07-20 (soir — directives gouvernance Avi)
 
 - RÈGLE MAÎTRESSE appliquée : nouveau statut PROVEN_REVIEW_PENDING ; CLOSED

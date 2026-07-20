@@ -956,6 +956,28 @@ function checkHeader(file, doc) {
 
 /* ---- 15. IMPLEMENTATION_STATUS — règles §23 (CODED=mergé, PROVEN=preuves) ---- */
 {
+  // P0-EX-02 : le statut est GÉNÉRÉ depuis IMPLEMENTATION_FACTS.yaml — toute
+  // édition à la main du statut (ou fait changé sans régénération) = DRIFT.
+  const genPath = join(here, 'generate-implementation-status.mjs');
+
+  if (!existsSync(genPath)) {
+    fail('IMPLEMENTATION_STATUS', 'generator script missing (P0-EX-02)');
+  } else {
+    try {
+      const { computeImplementationStatus } = await import(genPath);
+      const computed = computeImplementationStatus();
+      const current = readFileSync(join(parityRoot, 'IMPLEMENTATION_STATUS.yaml'), 'utf8');
+
+      if (current !== computed) {
+        fail('IMPLEMENTATION_STATUS.yaml', 'DRIFT — régénérer (statut édité à la main ou fait changé sans régénération, P0-EX-02)');
+      } else {
+        checked.push('IMPLEMENTATION_STATUS.yaml is up to date (computed from IMPLEMENTATION_FACTS — P0-EX-02)');
+      }
+    } catch (error) {
+      fail('IMPLEMENTATION_STATUS.yaml', `génération impossible: ${error.message}`);
+    }
+  }
+
   const impl = loadYaml(join(parityRoot, 'IMPLEMENTATION_STATUS.yaml'));
   const items = impl.items ?? [];
   const STATUSES = ['NOT_STARTED', 'PARTIAL', 'CODED', 'INTEGRATED', 'PROVEN', 'BLOCKED', 'NOT_APPLICABLE'];
