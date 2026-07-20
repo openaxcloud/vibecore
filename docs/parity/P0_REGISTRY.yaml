@@ -7,7 +7,10 @@ p0s:
     title: "Collecteur aveugle : ajouter routes produit (rendu JS) + canal de lancement"
     priority: 1
     owner: platform
-    status: OPEN
+    status: PROVEN_REVIEW_PENDING
+    expectedReviewer: OpenAI-Codex
+    reviewReceiptId: RR-20260720-CODEX-01
+    remediationTrack: QUICK
     conditionDeCloture: "Fournir artefacts rejouables : hash Gallery obsolète (fad9… vs 1f5f…), capture limitée au footer, artefact incohérent ; puis re-soumission au relecteur"
     refusalReason: "hash Gallery obsolète (fad9… vs 1f5f…), capture limitée au footer, artefact incohérent"
     refusalType: NON_REPRODUCTIBLE
@@ -23,7 +26,10 @@ p0s:
     title: "Gallery : requalifier la table (mesures réelles, archive rendue)"
     priority: 2
     owner: platform
-    status: OPEN
+    status: PROVEN_REVIEW_PENDING
+    expectedReviewer: OpenAI-Codex
+    reviewReceiptId: RR-20260720-CODEX-01
+    remediationTrack: QUICK
     conditionDeCloture: "Fournir artefacts rejouables : même hash obsolète, métriques réelles 20 653/20 649 pas 20 650 ; puis re-soumission au relecteur"
     refusalReason: "même hash obsolète, métriques réelles 20 653/20 649 pas 20 650"
     refusalType: NON_REPRODUCTIBLE
@@ -40,6 +46,7 @@ p0s:
     priority: 3
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     conditionDeCloture: "Compléter l'évidence : tests recopient constantes 300 et 0,1 sans source GCP autoritative ; puis re-soumission au relecteur"
     refusalReason: "tests recopient constantes 300 et 0,1 sans source GCP autoritative"
     refusalType: PREUVE_INSUFFISANTE
@@ -94,7 +101,10 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-02"
     priority: 2
     owner: platform
-    status: OPEN
+    status: PROVEN_REVIEW_PENDING
+    expectedReviewer: OpenAI-Codex
+    reviewReceiptId: RR-20260720-CODEX-01
+    remediationTrack: QUICK
     refusalReason: "hash et métriques Gallery ≠ valeurs annoncées"
     refusalType: NON_REPRODUCTIBLE
     reviewVerdict: REFUSED
@@ -114,6 +124,7 @@ p0s:
     priority: 3
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "tests auto-référentiels, sans ancrage GCP vérifiable"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -133,6 +144,7 @@ p0s:
     priority: 4
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "champs CloudTenant + machines transfert/merge/split/suspension/restauration absents"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -197,6 +209,7 @@ p0s:
     priority: 8
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "RUN.log absent, rollback vide/404, JSON antérieur 400, script incomplet"
     refusalType: NON_REPRODUCTIBLE
     reviewVerdict: REFUSED
@@ -216,6 +229,7 @@ p0s:
     priority: 9
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "barrière 2 phases prouvée mais pas le niveau « transaction-consistent » revendiqué"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -235,6 +249,7 @@ p0s:
     priority: 10
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "rotation/rétention UNKNOWN ; révocation, provenance, récupération manquent"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -254,6 +269,7 @@ p0s:
     priority: 11
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "contrat sans DBMigrationExecution, clé idempotence ni protocole complet mutation PROD"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -273,6 +289,7 @@ p0s:
     priority: 12
     owner: platform
     status: OPEN
+    remediationTrack: CHANTIER
     refusalReason: "pas de double entrée canonique, décimales/FX/cutoff, compensations ni rapprochement PSP/GCP"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -292,6 +309,7 @@ p0s:
     priority: 13
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "registre schemaVersion 3, accessibilité UNKNOWN, aucun contrat WCAG 2.2 AA"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -310,7 +328,9 @@ p0s:
     source: "Audit v3 (2026-07-16), P0-14"
     priority: 14
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: "97759a77"
@@ -358,6 +378,7 @@ p0s:
     priority: 1
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "manifeste non signé, provenance/validation par fichier incomplètes, reviewers UNKNOWN"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -376,7 +397,9 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-02"
     priority: 2
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
@@ -394,6 +417,7 @@ p0s:
     priority: 3
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "modèle partiel au §5 (ArtifactKind), aucun schéma complet Project→Artifacts"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -412,7 +436,9 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-04"
     priority: 4
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
@@ -430,6 +456,7 @@ p0s:
     priority: 5
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "sourceBaselineReady=false mais registryUniverseReady=true ; la preuve dit que les deux échouent"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -448,7 +475,9 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-06"
     priority: 6
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
@@ -466,6 +495,7 @@ p0s:
     priority: 7
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "le gate ne valide pas schémas/références/tests/compatibilité annoncés"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -484,7 +514,9 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-08"
     priority: 8
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
@@ -502,6 +534,7 @@ p0s:
     priority: 9
     owner: platform
     status: OPEN
+    remediationTrack: CHANTIER
     refusalReason: "WIF prouvé GKE seulement, pas les 3 chemins"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -520,7 +553,10 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-10"
     priority: 10
     owner: platform
-    status: OPEN
+    status: PROVEN_REVIEW_PENDING
+    expectedReviewer: OpenAI-Codex
+    reviewReceiptId: RR-20260720-CODEX-01
+    remediationTrack: QUICK
     refusalReason: "décision Gallery réellement DECIDED, pas OPEN/CAPTURE_INCOMPLETE"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -539,7 +575,9 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-11"
     priority: 11
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
@@ -572,6 +610,7 @@ p0s:
     priority: 13
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "champs provenance absents, attestation sur un autre commit, generatedAt incohérent"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -591,6 +630,7 @@ p0s:
     priority: 14
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "contrats et seuils multi-tenant nommés inexistants"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -644,7 +684,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 1
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
@@ -661,7 +703,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 2
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
@@ -679,6 +723,7 @@ p0s:
     priority: 3
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "69 éléments au total (manifeste inclus) et 21 fichiers de liens non hashés"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -697,7 +742,10 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 4
     owner: platform
-    status: OPEN
+    status: PROVEN_REVIEW_PENDING
+    expectedReviewer: OpenAI-Codex
+    reviewReceiptId: RR-20260720-CODEX-01
+    remediationTrack: QUICK
     refusalReason: "simple note d'en-tête, aucune entrée GitLab structurée"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -716,7 +764,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 5
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
@@ -734,6 +784,7 @@ p0s:
     priority: 6
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "observations TRIAGED malgré liens cassés/non sémantiques"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -752,7 +803,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 7
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
@@ -769,7 +822,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 8
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
@@ -786,7 +841,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 9
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
@@ -803,7 +860,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 10
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
@@ -820,7 +879,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 11
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
@@ -837,7 +898,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 12
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
@@ -854,7 +917,10 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 13
     owner: platform
-    status: OPEN
+    status: PROVEN_REVIEW_PENDING
+    expectedReviewer: OpenAI-Codex
+    reviewReceiptId: RR-20260720-CODEX-01
+    remediationTrack: QUICK
     refusalReason: "prix $25/$20 et $95 sans geo/locale/cohorte ni hash"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -873,7 +939,10 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 14
     owner: platform
-    status: OPEN
+    status: PROVEN_REVIEW_PENDING
+    expectedReviewer: OpenAI-Codex
+    reviewReceiptId: RR-20260720-CODEX-01
+    remediationTrack: QUICK
     refusalReason: "claim absolu « no model selector anywhere » subsiste"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -892,7 +961,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 15
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
@@ -909,7 +980,10 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 16
     owner: platform
-    status: OPEN
+    status: PROVEN_REVIEW_PENDING
+    expectedReviewer: OpenAI-Codex
+    reviewReceiptId: RR-20260720-CODEX-01
+    remediationTrack: QUICK
     refusalReason: "manifeste sans generatedAt/generatedFromCommit/mergedCommit, annexe absente, timestamp constant"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -928,7 +1002,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 17
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
@@ -945,7 +1021,9 @@ p0s:
     source: "Plan corrigé expert §19 (2026-07-20, verbatim) ; scan sha256 396b07e2520d1171…"
     priority: 18
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: b598e79042dce0af91c376a810c61320fd988013
@@ -963,6 +1041,7 @@ p0s:
     priority: 1
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "159 candidats mais aucun builtState/codeRefs ; tous pending/unknown"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -1000,7 +1079,9 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 1
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
@@ -1018,6 +1099,7 @@ p0s:
     priority: 2
     owner: platform
     status: OPEN
+    remediationTrack: CHANTIER
     refusalReason: "aucun générateur d'IMPLEMENTATION_STATUS dans scripts/CI"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -1036,7 +1118,9 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 3
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
@@ -1054,6 +1138,7 @@ p0s:
     priority: 4
     owner: platform
     status: OPEN
+    remediationTrack: CHANTIER
     refusalReason: "code + 15 tests prouvent encore l'ancienne machine (SCANNING→COMMITTING)"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -1073,6 +1158,7 @@ p0s:
     priority: 5
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "l'artefact ne distingue pas apps supplémentaires et types d'Artifact"
     refusalType: PREUVE_INSUFFISANTE
     reviewVerdict: REFUSED
@@ -1091,7 +1177,9 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 6
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
@@ -1109,6 +1197,7 @@ p0s:
     priority: 7
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "contrat annonce P124 CODED, réel PARTIAL, sans entité Guest"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -1128,6 +1217,7 @@ p0s:
     priority: 8
     owner: platform
     status: OPEN
+    remediationTrack: A_TRIER
     refusalReason: "schéma accepte 2 artefacts mobile + manifeste minimal invalide ; allOf n'est qu'une description"
     refusalType: DESACCORD
     reviewVerdict: REFUSED
@@ -1146,7 +1236,9 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 9
     owner: platform
-    status: CLOSED
+    status: PROVEN_REVIEW_PENDING
+    reviewNote: "acceptés au reçu RR-20260720-CODEX-01 (INCOMPLET : responseHash manquant) — CLOSED interdit tant que le reçu n'est pas complété"
+    reviewReceiptId: RR-20260720-CODEX-01
     reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: 46da267bcaf21335635935aed385ae414daade9b
@@ -1164,6 +1256,7 @@ p0s:
     priority: 10
     owner: platform
     status: OPEN
+    remediationTrack: CHANTIER
     refusalReason: "la CI vérifie --check seulement, ne génère/écrit pas le statut"
     refusalType: DESACCORD
     reviewVerdict: REFUSED

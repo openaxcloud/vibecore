@@ -254,11 +254,11 @@ decisions:
     targetDate: "2026-09-30"
   - decisionId: DEC-OWNER-REMIX-DEFAULT-LICENSE
     title: "Licence par défaut d'un listing Gallery sans licence déclarée"
-    status: OPEN
+    status: DECIDED
     owner: owner
     priority: 2
     rationale: "Le chantier V3-05 (licence+consentement versionnés au remix) est codé : un listing SANS licence déclarée affiche « No license specified by the author » et le remix reste possible après acceptation du texte de consentement plateforme (REMIX_CONSENT_VERSION). C'est un choix PRODUIT non tranché : (a) exiger une licence à la curation, (b) adopter une licence par défaut imposée, ou (c) conserver « non renseignée » avec consentement plateforme (comportement actuel du code)."
     consequence: "Tant que non tranché, le comportement (c) s'applique — honnête et affiché, jamais une licence inventée. Trancher (a) ou (b) = petite modif du schéma de curation admin."
     cost: "aucun coût technique notable ; enjeu juridique à valider"
-    nextAction: "Avi tranche (a)/(b)/(c) ; appliquer au schéma admin si (a)/(b)"
+    nextAction: "TRANCHÉ par Avi (directive 20/07) : FAIL-CLOSED — défaut ALL_RIGHTS_RESERVED non-remixable ; remixable = licence explicite + confirmation droits + politique PII acceptée ; démo E-Code = MIT code seul, assets/données à part, données démo synthétiques ; textes juridiques à valider avant lancement public. Implémentation : PR #25 (mig 0077 + gates 400/403)."
     targetDate: "2026-08-15"

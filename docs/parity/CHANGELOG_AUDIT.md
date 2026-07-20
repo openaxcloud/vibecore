@@ -617,3 +617,24 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
 - (P0-EX-10) la CI parité GÉNÈRE les 4 vues, échoue sur dérive
   (git diff --exit-code) et PUBLIE l'artefact parity-status-generated —
   plus un simple --check.
+## 2026-07-20 (soir — directives gouvernance Avi)
+
+- RÈGLE MAÎTRESSE appliquée : nouveau statut PROVEN_REVIEW_PENDING ; CLOSED
+  exige un ReviewReceipt COMPLET (REVIEW_RECEIPT_REGISTRY, garde validateur).
+  Les 22 « signés » du lot 57febeab repassent PROVEN_REVIEW_PENDING (reçu
+  RR-20260720-CODEX-01 INCOMPLET : responseHash+version modèle manquants).
+  Les 8 QUICK remédiés passent PROVEN_REVIEW_PENDING (re-signature attendue).
+  Compte : 0 CLOSED / 30 PROVEN_REVIEW_PENDING / 30 OPEN / 5 PROVEN.
+- COUNTER_RECONCILIATION_20260720.md GÉNÉRÉ (compteurs dérivés, drift-check
+  CI) — répond aux 4 questions (39→38 expliqué, 8e rapide = LS-04+LS-16 et
+  EX-10 n'y est pas, 6e chantier = le groupe des 14 contrats, contrats comptés
+  fichiers + groupe).
+- SUPERSESSION_REGISTRY : aliases surfaces couverts 100%, 164 et 122 DÉRIVÉS
+  des tables (garde CI).
+- REVIEWER_RESUBMISSION_A_20260720.md : resoumission POUR REVUE des 8 QUICK
+  (refus verbatim + correction + commit + repro + négatifs + statut).
+- DEC-OWNER-REMIX-DEFAULT-LICENSE → DECIDED (fail-closed, directive Avi) ;
+  implémentation code = PR #25 (mig 0077, 400/403, 39 tests).
+- V3_05_REMIX_AUDIT_20260720.md : audit exigence par exigence — V3-05 PAS clos
+  (reste : logs/historique secrets, attribution visible, merge #25, preuve
+  live prod, re-signature).

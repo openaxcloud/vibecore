@@ -41,6 +41,7 @@
             "enum": [
               "OPEN",
               "PROVEN",
+              "PROVEN_REVIEW_PENDING",
               "CLOSED"
             ]
           },
