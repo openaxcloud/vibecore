@@ -4,7 +4,8 @@ schemaVersion: 1
 repoCommit: d56931bd
 reviewer: UNKNOWN
 reviewVerdict: REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)
-reviewCloseCriterion: durcir le contenu puis obtenir la signature du relecteur ; raison détaillée du refus à consigner verbatim dès transmission du rapport
+refusalReason: Group/Guest/AccessGrant non implémentés (verbatim relecteur, transmis 20/07)
+reviewCloseCriterion: corriger — Group/Guest/AccessGrant non implémentés — puis re-soumettre à signature
 
 ## 1. Entités de domaine
 

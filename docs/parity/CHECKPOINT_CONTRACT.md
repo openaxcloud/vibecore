@@ -4,7 +4,8 @@ schemaVersion: 1
 repoCommit: ca299f87
 reviewer: UNKNOWN
 reviewVerdict: REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)
-reviewCloseCriterion: durcir le contenu puis obtenir la signature du relecteur ; raison détaillée du refus à consigner verbatim dès transmission du rapport
+refusalReason: tests unitaires mais aucun câblage réel (verbatim relecteur, transmis 20/07)
+reviewCloseCriterion: corriger — tests unitaires mais aucun câblage réel — puis re-soumettre à signature
 
 Contrat du checkpoint projet. Formalise DOMAIN_MODEL §6 + la machine à états
 prouvée `services/api/src/lifecycle-state-machines.ts` (checkpoint two-phase

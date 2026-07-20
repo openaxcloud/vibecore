@@ -4,7 +4,8 @@ schemaVersion: 1
 repoCommit: ca299f87
 reviewer: UNKNOWN
 reviewVerdict: REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)
-reviewCloseCriterion: durcir le contenu puis obtenir la signature du relecteur ; raison détaillée du refus à consigner verbatim dès transmission du rapport
+refusalReason: inventaire non exhaustif sans tests négatifs (verbatim relecteur, transmis 20/07)
+reviewCloseCriterion: corriger — inventaire non exhaustif sans tests négatifs — puis re-soumettre à signature
 
 Baseline des identités GCP/K8s. Complète DOMAIN_MODEL §4 (IAM).
 
